@@ -50,6 +50,8 @@ public class SchemaCoreTest extends BaseCoreTest {
         schema.propertyKey("time").asText().create();
         schema.propertyKey("contribution").asText().create();
         schema.propertyKey("weight").asDouble().create();
+        schema.propertyKey("tags").asText().valueSet().create();
+        schema.propertyKey("score").asInt().valueSet().create();
     }
 
     protected void assertVLEqual(String label, Id id) {

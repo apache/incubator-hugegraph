@@ -55,8 +55,13 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.propertyKey("fans").asLong().ifNotExist().create();
         schema.propertyKey("height").asFloat().ifNotExist().create();
         schema.propertyKey("idNo").asText().ifNotExist().create();
+        schema.propertyKey("category").asText().valueSet().ifNotExist()
+              .create();
+        schema.propertyKey("score").asInt().valueSet().ifNotExist()
+              .create();
         schema.vertexLabel("person")
-              .properties("id", "name", "age", "city", "born",
+              .properties("id", "name", "age", "city", "born", "tags",
+                          "category", "score",
                           "fans", "height", "weight", "idNo")
               .primaryKeys("id").create();
         schema.indexLabel("personByName").onV("person").secondary()
@@ -75,6 +80,12 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .by("weight").create();
         schema.indexLabel("personByIdNo").onV("person").unique()
               .by("idNo").create();
+        schema.indexLabel("personByTags").onV("person").secondary()
+              .by("tags").create();
+        schema.indexLabel("personByCategory").onV("person").search()
+              .by("category").create();
+        schema.indexLabel("personByScore").onV("person").secondary()
+              .by("score").create();
 
         VertexLabel person = schema.getVertexLabel("person");
         IndexLabel personByName = schema.getIndexLabel("personByName");
@@ -85,6 +96,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         IndexLabel personByHeight = schema.getIndexLabel("personByHeight");
         IndexLabel personByWeight = schema.getIndexLabel("personByWeight");
         IndexLabel personByIdNo = schema.getIndexLabel("personByIdNo");
+        IndexLabel personByTags = schema.getIndexLabel("personByTags");
+        IndexLabel personByCategory = schema.getIndexLabel("personByCategory");
+        IndexLabel personByScore = schema.getIndexLabel("personByScore");
 
         Assert.assertNotNull(personByName);
         Assert.assertNotNull(personByCity);
@@ -94,12 +108,15 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertNotNull(personByHeight);
         Assert.assertNotNull(personByWeight);
         Assert.assertNotNull(personByIdNo);
+        Assert.assertNotNull(personByTags);
+        Assert.assertNotNull(personByCategory);
 
-        Assert.assertEquals(8, person.indexLabels().size());
+        Assert.assertEquals(11, person.indexLabels().size());
         assertContainsIl(person.indexLabels(),
                          "personByName", "personByCity", "personByAge",
                          "personByBorn", "personByFans","personByHeight",
-                         "personByWeight", "personByIdNo");
+                         "personByWeight", "personByIdNo", "personByTags",
+                         "personByCategory", "personByScore");
 
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByName.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByCity.baseType());
@@ -109,6 +126,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByHeight.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByWeight.baseType());
         Assert.assertEquals(HugeType.VERTEX_LABEL, personByIdNo.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByTags.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByCategory.baseType());
+        Assert.assertEquals(HugeType.VERTEX_LABEL, personByScore.baseType());
 
         assertVLEqual("person", personByName.baseValue());
         assertVLEqual("person", personByCity.baseValue());
@@ -118,6 +138,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertVLEqual("person", personByHeight.baseValue());
         assertVLEqual("person", personByWeight.baseValue());
         assertVLEqual("person", personByIdNo.baseValue());
+        assertVLEqual("person", personByTags.baseValue());
+        assertVLEqual("person", personByCategory.baseValue());
+        assertVLEqual("person", personByScore.baseValue());
 
         Assert.assertEquals(IndexType.SECONDARY, personByName.indexType());
         Assert.assertEquals(IndexType.SEARCH, personByCity.indexType());
@@ -127,6 +150,9 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(IndexType.RANGE_FLOAT, personByHeight.indexType());
         Assert.assertEquals(IndexType.RANGE_DOUBLE, personByWeight.indexType());
         Assert.assertEquals(IndexType.UNIQUE, personByIdNo.indexType());
+        Assert.assertEquals(IndexType.SECONDARY, personByTags.indexType());
+        Assert.assertEquals(IndexType.SEARCH, personByCategory.indexType());
+        Assert.assertEquals(IndexType.SECONDARY, personByScore.indexType());
     }
 
     @Test
@@ -174,21 +200,31 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .primaryKeys("name").create();
         schema.edgeLabel("authored").singleTime()
               .link("author", "book")
-              .properties("contribution")
+              .properties("contribution", "tags")
               .create();
 
         schema.indexLabel("authoredByContri").onE("authored").secondary()
               .by("contribution").create();
+        schema.indexLabel("authoredByTags").onE("authored").secondary()
+              .by("tags").create();
 
         EdgeLabel authored = schema.getEdgeLabel("authored");
         IndexLabel authoredByContri = schema.getIndexLabel("authoredByContri");
+        IndexLabel authoredByTags = schema.getIndexLabel("authoredByTags");
 
         Assert.assertNotNull(authoredByContri);
-        Assert.assertEquals(1, authored.indexLabels().size());
-        assertContainsIl(authored.indexLabels(), "authoredByContri");
+        Assert.assertEquals(2, authored.indexLabels().size());
+        assertContainsIl(authored.indexLabels(), "authoredByContri",
+                         "authoredByTags");
+
         Assert.assertEquals(HugeType.EDGE_LABEL, authoredByContri.baseType());
+        Assert.assertEquals(HugeType.EDGE_LABEL, authoredByTags.baseType());
+
         assertELEqual("authored", authoredByContri.baseValue());
+        assertELEqual("authored", authoredByTags.baseValue());
+
         Assert.assertEquals(IndexType.SECONDARY, authoredByContri.indexType());
+        Assert.assertEquals(IndexType.SECONDARY, authoredByTags.indexType());
     }
 
     @Test
@@ -331,6 +367,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
               .primaryKeys("id").create();
         schema.vertexLabel("book").properties("name")
               .primaryKeys("name").create();
+        schema.vertexLabel("soft").properties("name", "tags", "score")
+              .primaryKeys("name").create();
         schema.edgeLabel("authored").singleTime().link("author", "book")
               .properties("contribution", "age", "weight").create();
 
@@ -340,6 +378,23 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .by("name").range().create();
         }, e -> {
             Assert.assertContains("Range index can only build on numeric",
+                                  e.getMessage());
+        });
+
+        // Collection index not support union index
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("softByNameAndTags").onV("soft")
+                  .by("name", "tags").secondary().create();
+        }, e -> {
+            Assert.assertContains("Not allowed to build union index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("softByScore").onV("soft")
+                  .by("score").range().create();
+        }, e -> {
+            Assert.assertContains("Not allowed to build range index",
                                   e.getMessage());
         });
 
