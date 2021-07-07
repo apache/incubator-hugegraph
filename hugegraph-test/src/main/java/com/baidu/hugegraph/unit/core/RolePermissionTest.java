@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.auth.HugeProject;
 import com.baidu.hugegraph.auth.HugeResource;
 import com.baidu.hugegraph.auth.HugeResource.NameObject;
 import com.baidu.hugegraph.auth.HugeTarget;
@@ -30,6 +31,7 @@ import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.ResourceObject;
 import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.RolePermission;
+import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -148,6 +150,7 @@ public class RolePermissionTest {
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.USER_GROUP));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.TARGET));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.METRICS));
+        Assert.assertTrue(ResourceType.ROOT.match(ResourceType.PROJECT));
         Assert.assertTrue(ResourceType.ROOT.match(ResourceType.ROOT));
 
         // ALL
@@ -161,6 +164,7 @@ public class RolePermissionTest {
 
         Assert.assertFalse(ResourceType.ALL.match(ResourceType.GRANT));
         Assert.assertFalse(ResourceType.ALL.match(ResourceType.USER_GROUP));
+        Assert.assertFalse(ResourceType.ALL.match(ResourceType.PROJECT));
         Assert.assertFalse(ResourceType.ALL.match(ResourceType.TARGET));
         Assert.assertFalse(ResourceType.ALL.match(ResourceType.METRICS));
         Assert.assertFalse(ResourceType.ALL.match(ResourceType.ROOT));
@@ -185,6 +189,7 @@ public class RolePermissionTest {
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.ALL));
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.GRANT));
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.USER_GROUP));
+        Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.PROJECT));
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.TARGET));
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.METRICS));
         Assert.assertFalse(ResourceType.SCHEMA.match(ResourceType.ROOT));
@@ -202,6 +207,7 @@ public class RolePermissionTest {
         // isAuth
         Assert.assertTrue(ResourceType.GRANT.isAuth());
         Assert.assertTrue(ResourceType.USER_GROUP.isAuth());
+        Assert.assertTrue(ResourceType.PROJECT.isAuth());
         Assert.assertTrue(ResourceType.TARGET.isAuth());
 
         Assert.assertFalse(ResourceType.ROOT.isAuth());
@@ -215,6 +221,7 @@ public class RolePermissionTest {
         // isGrantOrUser
         Assert.assertTrue(ResourceType.GRANT.isGrantOrUser());
         Assert.assertTrue(ResourceType.USER_GROUP.isGrantOrUser());
+        Assert.assertFalse(ResourceType.PROJECT.isGrantOrUser());
         Assert.assertFalse(ResourceType.TARGET.isGrantOrUser());
 
         Assert.assertFalse(ResourceType.ROOT.isGrantOrUser());
@@ -488,6 +495,27 @@ public class RolePermissionTest {
         Assert.assertTrue(root.filter(r3));
         Assert.assertTrue(root.filter(r4));
         Assert.assertTrue(root.filter(r5));
+    }
+
+    @Test
+    public void testHugeResourceFilterProject() {
+        HugeResource all = HugeResource.ALL;
+        ResourceObject<?> r1 = ResourceObject.of("hugegraph",
+                                                 new HugeProject("project1"));
+        Assert.assertFalse(all.filter(r1));
+        
+        HugeResource project = new HugeResource(ResourceType.PROJECT,
+                                                "project1",
+                                                null);
+        Assert.assertTrue(project.filter(r1));
+
+        HugeResource root = new HugeResource(ResourceType.ROOT,
+                                             HugeResource.ANY, null);
+        Assert.assertTrue(root.filter(r1));
+
+        ResourceObject<?> r2 = ResourceObject.of("hugegraph",
+                                                 new HugeProject("project2"));
+        Assert.assertFalse(project.filter(r2));
     }
 
     private boolean roleContains(RolePermission role, RolePermission other) {

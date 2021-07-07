@@ -21,12 +21,20 @@ package com.baidu.hugegraph.auth;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import javax.security.sasl.AuthenticationException;
+import javax.ws.rs.ForbiddenException;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeUser.P;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
@@ -40,13 +48,18 @@ import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.LockUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import io.jsonwebtoken.Claims;
 
 public class StandardAuthManager implements AuthManager {
+
+    protected static final Logger LOG = Log.logger(StandardAuthManager.class);
 
     private final HugeGraphParams graph;
     private final EventListener eventListener;
@@ -61,6 +74,7 @@ public class StandardAuthManager implements AuthManager {
     private final EntityManager<HugeUser> users;
     private final EntityManager<HugeGroup> groups;
     private final EntityManager<HugeTarget> targets;
+    private final EntityManager<HugeProject> project;
 
     private final RelationshipManager<HugeBelong> belong;
     private final RelationshipManager<HugeAccess> access;
@@ -87,6 +101,8 @@ public class StandardAuthManager implements AuthManager {
                                           HugeGroup::fromVertex);
         this.targets = new EntityManager<>(this.graph, HugeTarget.P.TARGET,
                                            HugeTarget::fromVertex);
+        this.project = new EntityManager<>(this.graph, HugeProject.P.PROJECT,
+                                           HugeProject::fromVertex);
 
         this.belong = new RelationshipManager<>(this.graph, HugeBelong.P.BELONG,
                                                 HugeBelong::fromEdge);
@@ -144,6 +160,7 @@ public class StandardAuthManager implements AuthManager {
         HugeTarget.schema(this.graph).initSchemaIfNeeded();
         HugeBelong.schema(this.graph).initSchemaIfNeeded();
         HugeAccess.schema(this.graph).initSchemaIfNeeded();
+        HugeProject.schema(this.graph).initSchemaIfNeeded();
     }
 
     private void invalidateUserCache() {
@@ -373,6 +390,183 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public Id createProject(HugeProject project) {
+        E.checkArgument(!StringUtils.isEmpty(project.name()),
+                        "The name of project can't be null or empty");
+        return commit(() -> {
+            // Create project admin group
+            if (project.adminGroupId() == null) {
+                HugeGroup adminGroup = new HugeGroup("admin_" + project.name());
+                /*
+                 * "creator" is a necessary parameter, other places are passed
+                 * in "AuthManagerProxy", but here is the underlying module, so
+                 * pass it directly here
+                 */
+                adminGroup.creator(project.creator());
+                Id adminGroupId = this.createGroup(adminGroup);
+                project.adminGroupId(adminGroupId);
+            }
+
+            // Create project op group
+            if (project.opGroupId() == null) {
+                HugeGroup opGroup = new HugeGroup("op_" + project.name());
+                // Ditto
+                opGroup.creator(project.creator());
+                Id opGroupId = this.createGroup(opGroup);
+                project.opGroupId(opGroupId);
+            }
+
+            // Create project target to verify permission
+            final String targetName = "project_res_" + project.name();
+            HugeResource resource = new HugeResource(ResourceType.PROJECT,
+                                                     project.name(),
+                                                     null);
+            HugeTarget target = new HugeTarget(targetName,
+                                               this.graph.name(),
+                                               "localhost:8080",
+                                               ImmutableList.of(resource));
+            // Ditto
+            target.creator(project.creator());
+            Id targetId = this.targets.add(target);
+            project.targetId(targetId);
+
+            Id adminGroupId = project.adminGroupId();
+            Id opGroupId = project.opGroupId();
+            HugeAccess adminGroupWriteAccess = new HugeAccess(
+                                                   adminGroupId, targetId,
+                                                   HugePermission.WRITE);
+            // Ditto
+            adminGroupWriteAccess.creator(project.creator());
+            HugeAccess adminGroupReadAccess = new HugeAccess(
+                                                  adminGroupId, targetId,
+                                                  HugePermission.READ);
+            // Ditto
+            adminGroupReadAccess.creator(project.creator());
+            HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
+                                                          HugePermission.READ);
+            // Ditto
+            opGroupReadAccess.creator(project.creator());
+            this.access.add(adminGroupWriteAccess);
+            this.access.add(adminGroupReadAccess);
+            this.access.add(opGroupReadAccess);
+            return this.project.add(project);
+        });
+    }
+
+    @Override
+    public HugeProject deleteProject(Id id) {
+        return this.commit(() -> {
+            LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+            try {
+                locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+                HugeProject oldProject = this.project.get(id);
+                /*
+                 * Check whether there are any graph binding this project,
+                 * throw ForbiddenException, if it is
+                 */
+                if (!CollectionUtils.isEmpty(oldProject.graphs())) {
+                    String errInfo = String.format("Can't delete project '%s' " +
+                                                   "that contains any graph, " +
+                                                   "there are graphs bound " +
+                                                   "to it", id);
+                    throw new ForbiddenException(errInfo);
+                }
+                HugeProject project = this.project.delete(id);
+                E.checkArgumentNotNull(project,
+                                       "Failed to delete the project '%s'",
+                                       id);
+                E.checkArgumentNotNull(project.adminGroupId(),
+                                       "Failed to delete the project '%s'," +
+                                       "the admin group of project can't " +
+                                       "be null", id);
+                E.checkArgumentNotNull(project.opGroupId(),
+                                       "Failed to delete the project '%s'," +
+                                       "the op group of project can't be null",
+                                       id);
+                E.checkArgumentNotNull(project.targetId(),
+                                       "Failed to delete the project '%s', " +
+                                       "the target resource of project " +
+                                       "can't be null", id);
+                // Delete admin group
+                this.groups.delete(project.adminGroupId());
+                // Delete op group
+                this.groups.delete(project.opGroupId());
+                // Delete project_target
+                this.targets.delete(project.targetId());
+                return project;
+            } finally {
+                locks.unlock();
+            }
+        });
+    }
+
+    @Override
+    public Id updateProject(HugeProject project) {
+        return this.project.update(project);
+    }
+
+    @Override
+    public Id projectAddGraphs(Id id, Set<String> graphs) {
+        E.checkArgument(!CollectionUtils.isEmpty(graphs),
+                        "Failed to add graphs to project '%s', the graphs " +
+                        "parameter can't be empty", id);
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            E.checkArgument(!sourceGraphs.containsAll(graphs),
+                            "There are graphs '%s' of project '%s' that " +
+                            "have been added in the graph collection",
+                            graphs, id);
+            sourceGraphs.addAll(graphs);
+            project.graphs(sourceGraphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public Id projectRemoveGraphs(Id id, Set<String> graphs) {
+        E.checkArgumentNotNull(id,
+                               "Failed to remove graphs, the project id " +
+                               "parameter can't be null");
+        E.checkArgument(!CollectionUtils.isEmpty(graphs),
+                        "Failed to delete graphs from the project '%s', " +
+                        "the graphs parameter can't be null or empty", id);
+
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        try {
+            locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
+
+            HugeProject project = this.project.get(id);
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            if (!sourceGraphs.containsAll(graphs)) {
+                return id;
+            }
+            sourceGraphs.removeAll(graphs);
+            project.graphs(sourceGraphs);
+            return this.project.update(project);
+        } finally {
+            locks.unlock();
+        }
+    }
+
+    @Override
+    public HugeProject getProject(Id id) {
+        return this.project.get(id);
+    }
+
+    @Override
+    public List<HugeProject> listAllProject(long limit) {
+        return this.project.list(limit);
+    }
+
+    @Override
     public HugeUser matchUser(String name, String password) {
         E.checkArgumentNotNull(name, "User name can't be null");
         E.checkArgumentNotNull(password, "User password can't be null");
@@ -426,7 +620,7 @@ public class StandardAuthManager implements AuthManager {
         }
 
         // Collect accesses by user
-        List<HugeAccess> accesses = new ArrayList<>();;
+        List<HugeAccess> accesses = new ArrayList<>();
         List<HugeBelong> belongs = this.listBelongByUser(user.id(), -1);
         for (HugeBelong belong : belongs) {
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
@@ -521,5 +715,39 @@ public class StandardAuthManager implements AuthManager {
      */
     public static boolean isLocal(AuthManager authManager) {
         return authManager instanceof StandardAuthManager;
+    }
+
+    public <R> R commit(Callable<R> callable) {
+        this.groups.autoCommit(false);
+        this.access.autoCommit(false);
+        this.targets.autoCommit(false);
+        this.project.autoCommit(false);
+        this.belong.autoCommit(false);
+        this.users.autoCommit(false);
+
+        try {
+            R result = callable.call();
+            this.graph.systemTransaction().commit();
+            return result;
+        } catch (Throwable e) {
+            this.groups.autoCommit(true);
+            this.access.autoCommit(true);
+            this.targets.autoCommit(true);
+            this.project.autoCommit(true);
+            this.belong.autoCommit(true);
+            this.users.autoCommit(true);
+            try {
+                this.graph.systemTransaction().rollback();
+            } catch (Throwable rollbackException) {
+                LOG.error("Failed to rollback transaction: {}",
+                          rollbackException.getMessage(), rollbackException);
+            }
+            if (e instanceof HugeException) {
+                throw (HugeException) e;
+            } else {
+                throw new HugeException("Failed to commit transaction: %s",
+                                        e.getMessage(), e);
+            }
+        }
     }
 }

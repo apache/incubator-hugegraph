@@ -59,6 +59,8 @@ public enum ResourceType {
 
     USER_GROUP,
 
+    PROJECT,
+
     TARGET,
 
     METRICS,

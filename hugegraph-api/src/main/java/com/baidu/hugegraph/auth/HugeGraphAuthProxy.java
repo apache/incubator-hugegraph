@@ -1396,6 +1396,54 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
+        public Id createProject(HugeProject project) {
+            this.updateCreator(project);
+            verifyUserPermission(HugePermission.WRITE, project);
+            return this.authManager.createProject(project);
+        }
+
+        @Override
+        public HugeProject deleteProject(Id id) {
+            verifyUserPermission(HugePermission.DELETE,
+                                 this.authManager.getProject(id));
+            return this.authManager.deleteProject(id);
+        }
+
+        @Override
+        public Id updateProject(HugeProject project) {
+            this.updateCreator(project);
+            verifyUserPermission(HugePermission.WRITE, project);
+            return this.authManager.updateProject(project);
+        }
+
+        @Override
+        public Id projectAddGraphs(Id id, Set<String> graphs) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.projectAddGraphs(id, graphs);
+        }
+
+        @Override
+        public Id projectRemoveGraphs(Id id, Set<String> graphs) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.projectRemoveGraphs(id, graphs);
+        }
+
+        @Override
+        public HugeProject getProject(Id id) {
+            HugeProject project = this.authManager.getProject(id);
+            verifyUserPermission(HugePermission.READ, project);
+            return project;
+        }
+
+        @Override
+        public List<HugeProject> listAllProject(long limit) {
+            List<HugeProject> projects = this.authManager.listAllProject(limit);
+            return verifyUserPermission(HugePermission.READ, projects);
+        }
+
+        @Override
         public HugeUser matchUser(String name, String password) {
             // Unneeded to verify permission
             return this.authManager.matchUser(name, password);
