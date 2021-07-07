@@ -26,6 +26,7 @@ import java.util.Map;
 
 import javax.security.sasl.AuthenticationException;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Test;
 
@@ -49,7 +50,6 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.baidu.hugegraph.util.ObjectUtils;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -72,7 +72,7 @@ public class AuthTest extends BaseCoreTest {
             authManager.deleteTarget(target.id());
         }
         for (HugeProject project : authManager.listAllProject(-1)) {
-            if (!ObjectUtils.isEmpty(project.graphs())) {
+            if (!CollectionUtils.isEmpty(project.graphs())) {
                 authManager.projectRemoveGraphs(project.id(), project.graphs());
             }
             authManager.deleteProject(project.id());

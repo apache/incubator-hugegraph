@@ -25,11 +25,11 @@ import java.util.Map;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.util.ObjectUtils;
 
 public class ProjectApiTest extends BaseApiTest {
 
@@ -53,13 +53,13 @@ public class ProjectApiTest extends BaseApiTest {
                                                        "project_description");
         Assert.assertEquals("this is a good project", projectDescription);
         String projectTarget = assertJsonContains(respBody, "project_target");
-        Assert.assertFalse(ObjectUtils.isEmpty(projectTarget));
+        Assert.assertFalse(StringUtils.isEmpty(projectTarget));
         String projectAdminGroup = assertJsonContains(respBody,
                                                       "project_admin_group");
-        Assert.assertFalse(ObjectUtils.isEmpty(projectAdminGroup));
+        Assert.assertFalse(StringUtils.isEmpty(projectAdminGroup));
         String projectOpGroup = assertJsonContains(respBody,
                                                    "project_op_group");
-        Assert.assertFalse(ObjectUtils.isEmpty(projectOpGroup));
+        Assert.assertFalse(StringUtils.isEmpty(projectOpGroup));
     }
 
     @Test
@@ -181,16 +181,16 @@ public class ProjectApiTest extends BaseApiTest {
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
         Assert.assertEquals(name, projectName);
-        if (!ObjectUtils.isEmpty(desc)) {
+        if (!StringUtils.isEmpty(desc)) {
             String description = assertJsonContains(respBody,
                                                     "project_description");
             Assert.assertEquals(desc, description);
         }
-        Assert.assertFalse(ObjectUtils.isEmpty(
+        Assert.assertFalse(StringUtils.isEmpty(
                 assertJsonContains(respBody, "project_target")));
-        Assert.assertFalse(ObjectUtils.isEmpty(
+        Assert.assertFalse(StringUtils.isEmpty(
                 assertJsonContains(respBody, "project_admin_group")));
-        Assert.assertFalse(ObjectUtils.isEmpty(
+        Assert.assertFalse(StringUtils.isEmpty(
                 assertJsonContains(respBody, "project_op_group")));
         return respBody;
     }
@@ -199,12 +199,12 @@ public class ProjectApiTest extends BaseApiTest {
                                             String graph) {
         String projectId = assertJsonContains(createProject(projectName, null),
                                               "id");
-        addGraphs(projectId, graph);
+        this.addGraphs(projectId, graph);
         return projectId;
     }
 
     private void addGraphs(String projectId, String... graphNames) {
-        Assert.assertFalse(ObjectUtils.isEmpty(graphNames));
+        Assert.assertFalse(ArrayUtils.isEmpty(graphNames));
         StringBuilder graphNamesBuilder = new StringBuilder();
         for (int i = 0; i < graphNames.length - 1; i++) {
             graphNamesBuilder.append(String.format("\"%s\",", graphNames[i]));

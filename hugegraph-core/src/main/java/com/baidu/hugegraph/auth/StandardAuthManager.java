@@ -30,6 +30,8 @@ import java.util.concurrent.Callable;
 import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.ForbiddenException;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -48,7 +50,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
 import com.baidu.hugegraph.util.Log;
-import com.baidu.hugegraph.util.ObjectUtils;
 import com.baidu.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -390,7 +391,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createProject(HugeProject project) {
-        E.checkArgument(!ObjectUtils.isEmpty(project.name()),
+        E.checkArgument(!StringUtils.isEmpty(project.name()),
                         "The name of project can't be null or empty");
         return commit(() -> {
             // Create project admin group
@@ -464,7 +465,7 @@ public class StandardAuthManager implements AuthManager {
                  * Check whether there are any graph binding this project,
                  * throw ForbiddenException, if it is
                  */
-                if (!ObjectUtils.isEmpty(oldProject.graphs())) {
+                if (!CollectionUtils.isEmpty(oldProject.graphs())) {
                     String errInfo = String.format("Can't delete project '%s' " +
                                                    "that contains any graph, " +
                                                    "there are graphs bound " +
@@ -507,7 +508,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id projectAddGraphs(Id id, Set<String> graphs) {
-        E.checkArgument(!ObjectUtils.isEmpty(graphs),
+        E.checkArgument(!CollectionUtils.isEmpty(graphs),
                         "Failed to add graphs to project '%s', the graphs " +
                         "parameter can't be empty", id);
 
@@ -534,7 +535,7 @@ public class StandardAuthManager implements AuthManager {
         E.checkArgumentNotNull(id,
                                "Failed to remove graphs, the project id " +
                                "parameter can't be null");
-        E.checkArgument(!ObjectUtils.isEmpty(graphs),
+        E.checkArgument(!CollectionUtils.isEmpty(graphs),
                         "Failed to delete graphs from the project '%s', " +
                         "the graphs parameter can't be null or empty", id);
 

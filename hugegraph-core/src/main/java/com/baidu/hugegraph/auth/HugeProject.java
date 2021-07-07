@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -38,7 +39,6 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.ObjectUtils;
 
 public class HugeProject extends Entity {
 
@@ -125,7 +125,7 @@ public class HugeProject extends Entity {
 
     @Override
     public Map<String, Object> asMap() {
-        E.checkState(!ObjectUtils.isEmpty(this.name),
+        E.checkState(!StringUtils.isEmpty(this.name),
                      "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
                      "The admin group id of project '%s' can't be null",
@@ -144,7 +144,7 @@ public class HugeProject extends Entity {
         if (this.graphs != null && !this.graphs.isEmpty()) {
             map.put(Graph.Hidden.unHide(HugeProject.P.GRAPHS), this.graphs);
         }
-        if (!ObjectUtils.isEmpty(this.description)) {
+        if (!StringUtils.isEmpty(this.description)) {
             map.put(Graph.Hidden.unHide(HugeProject.P.DESCRIPTIONS),
                     this.description);
         }
@@ -158,7 +158,7 @@ public class HugeProject extends Entity {
 
     @Override
     protected Object[] asArray() {
-        E.checkState(!ObjectUtils.isEmpty(this.name),
+        E.checkState(!StringUtils.isEmpty(this.name),
                      "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
                      "The admin group id of project can't be null",
@@ -174,7 +174,7 @@ public class HugeProject extends Entity {
         list.add(HugeProject.P.NAME);
         list.add(this.name);
 
-        if (!ObjectUtils.isEmpty(this.description)) {
+        if (!StringUtils.isEmpty(this.description)) {
             list.add(HugeProject.P.DESCRIPTIONS);
             list.add(this.description);
         }
