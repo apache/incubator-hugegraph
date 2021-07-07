@@ -444,36 +444,26 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         BackendEntry entry = item.entry();
 
         RocksDBTable table;
+        if (entry.type() != HugeType.OLAP && !entry.olap()) {
+            table = this.table(entry.type());
+        } else if (entry.olap()) {
+            table = this.table(this.olapTableName(entry.type()));
+            session = this.session(HugeType.OLAP);
+        } else {
+            table = this.table(this.olapTableName(entry.subId()));
+            session = this.session(HugeType.OLAP);
+        }
         switch (item.action()) {
             case INSERT:
-                if (entry.type() == HugeType.OLAP) {
-                    table = this.table(this.olapTableName(entry.subId()));
-                    session = this.session(HugeType.OLAP);
-                } else {
-                    table = this.table(entry.type());
-                }
                 table.insert(session, entry);
                 break;
             case DELETE:
-                if (entry.olap()) {
-                    table = this.table(this.olapTableName(entry.type()));
-                    session = this.session(HugeType.OLAP);
-                } else {
-                    table = this.table(entry.type());
-                }
                 table.delete(session, entry);
                 break;
             case APPEND:
-                if (entry.olap()) {
-                    table = this.table(this.olapTableName(entry.type()));
-                    session = this.session(HugeType.OLAP);
-                } else {
-                    table = this.table(entry.type());
-                }
                 table.append(session, entry);
                 break;
             case ELIMINATE:
-                table = this.table(entry.type());
                 table.eliminate(session, entry);
                 break;
             default:
@@ -693,18 +683,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
-    protected RocksDBSessions db(HugeType tableType) {
-        this.checkOpened();
-
-        // Optimized disk
-        String disk = this.tableDiskMapping.get(tableType);
-        if (disk != null) {
-            return this.db(disk);
-        }
-
-        return this.sessions;
-    }
-
     @Override
     protected Session session(HugeType tableType) {
         this.checkOpened();
@@ -884,6 +862,18 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     private final void checkDbOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "RocksDB has not been opened");
+    }
+
+    protected RocksDBSessions db(HugeType tableType) {
+        this.checkOpened();
+
+        // Optimized disk
+        String disk = this.tableDiskMapping.get(tableType);
+        if (disk != null) {
+            return this.db(disk);
+        }
+
+        return this.sessions;
     }
 
     private RocksDBSessions db(String disk) {
