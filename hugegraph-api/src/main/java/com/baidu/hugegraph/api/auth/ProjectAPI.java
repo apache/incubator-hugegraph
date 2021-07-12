@@ -115,10 +115,11 @@ public class ProjectAPI extends API {
             project = jsonProject.buildRemoveGraph(project);
         } else {
             E.checkArgument(StringUtils.isEmpty(action),
-                            "The action '%s' parameter can only be either " +
-                            "%s or %s or ''", action,
+                            "The action parameter can only be either " +
+                            "%s or %s or '', but got '%s'",
                             ProjectAPI.ACTION_ADD_GRAPH,
-                            ProjectAPI.ACTION_REMOVE_GRAPH);
+                            ProjectAPI.ACTION_REMOVE_GRAPH,
+                            action);
             project = jsonProject.buildUpdateDescription(project);
         }
         authManager.updateProject(project);
