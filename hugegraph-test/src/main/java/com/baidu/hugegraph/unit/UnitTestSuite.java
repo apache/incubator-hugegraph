@@ -22,6 +22,7 @@ package com.baidu.hugegraph.unit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.unit.core.SystemSchemaStoreTest;
 import com.baidu.hugegraph.unit.util.RateLimiterTest;
 import com.baidu.hugegraph.unit.cache.CacheManagerTest;
 import com.baidu.hugegraph.unit.cache.CacheTest;
@@ -112,6 +113,7 @@ import com.baidu.hugegraph.unit.util.VersionTest;
     Int2IntsMapTest.class,
     ObjectIntMappingTest.class,
     IdSetTest.class,
+    SystemSchemaStoreTest.class,
 
     /* serializer */
     BytesBufferTest.class,

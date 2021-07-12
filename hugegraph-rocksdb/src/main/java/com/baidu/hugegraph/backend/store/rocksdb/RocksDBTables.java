@@ -54,6 +54,7 @@ public class RocksDBTables {
                 session.commit();
             } catch (Exception e) {
                 session.rollback();
+                throw e;
             }
         }
 

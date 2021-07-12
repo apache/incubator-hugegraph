@@ -38,9 +38,9 @@ public class SystemSchemaStore {
     private final Map<String, SchemaElement> storeByNames;
 
     public SystemSchemaStore() {
-        CollectionFactory factory = new CollectionFactory(CollectionType.EC);
         this.storeByIds = new SchemaElement[SYSTEM_SCHEMA_MAX_NUMS];
-        this.storeByNames = factory.newMap(SYSTEM_SCHEMA_MAX_NUMS);
+        this.storeByNames = CollectionFactory.newMap(CollectionType.EC,
+                                                     SYSTEM_SCHEMA_MAX_NUMS);
     }
 
     public void add(SchemaElement schema) {
