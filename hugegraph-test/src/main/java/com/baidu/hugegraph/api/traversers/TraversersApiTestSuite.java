@@ -42,7 +42,8 @@ import org.junit.runners.Suite;
     SameNeighborsApiTest.class,
     ShortestPathApiTest.class,
     SingleSourceShortestPathApiTest.class,
-    TemplatePathsApiTest.class
+    TemplatePathsApiTest.class,
+    WeightedShortestPathApiTest.class
 })
 public class TraversersApiTestSuite {
 }

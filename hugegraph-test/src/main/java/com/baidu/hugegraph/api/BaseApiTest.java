@@ -325,9 +325,7 @@ public class BaseApiTest {
                                     + "\"inVLabel\": \"person\","
                                     + "\"properties\": {"
                                     + " \"date\": \"2021-01-01\","
-                                    + " \"weight\":0.5}"
-                                    +   "},"
-                                    + "{"
+                                    + " \"weight\":0.5}},{"
                                     + "\"label\": \"knows\","
                                     + "\"outV\": \"%s\","
                                     + "\"inV\": \"%s\","
@@ -335,9 +333,7 @@ public class BaseApiTest {
                                     + "\"inVLabel\": \"person\","
                                     + "\"properties\": {"
                                     + " \"date\": \"2021-01-01\","
-                                    + " \"weight\":0.5}"
-                                    + "},"
-                                    + "{"
+                                    + " \"weight\":0.4}},{"
                                     + "\"label\": \"knows\","
                                     + "\"outV\": \"%s\","
                                     + "\"inV\": \"%s\","
@@ -345,9 +341,7 @@ public class BaseApiTest {
                                     + "\"inVLabel\": \"person\","
                                     + "\"properties\": {"
                                     + " \"date\": \"2021-01-01\","
-                                    + " \"weight\":0.5}"
-                                    + "},"
-                                    + "{"
+                                    + " \"weight\":0.3}},{"
                                     + "\"label\": \"created\","
                                     + "\"outV\": \"%s\","
                                     + "\"inV\": \"%s\","
@@ -355,9 +349,8 @@ public class BaseApiTest {
                                     + "\"inVLabel\": \"software\","
                                     + "\"properties\": {"
                                     + " \"date\": \"2021-01-01\","
-                                    + " \"weight\":0.5}"
-                                    + "},"
-                                    + "{"
+                                    + " \"weight\":0.2}"
+                                    + "},{"
                                     + "\"label\": \"created\","
                                     + "\"outV\": \"%s\","
                                     + "\"inV\": \"%s\","
@@ -365,8 +358,8 @@ public class BaseApiTest {
                                     + "\"inVLabel\": \"software\","
                                     + "\"properties\": {"
                                     + " \"date\": \"2021-01-01\","
-                                    + " \"weight\":0.5}"
-                                    + "}]", markoId, peterId, peterId, joshId,
+                                    + " \"weight\":0.1}}]",
+                                    markoId, peterId, peterId, joshId,
                                     joshId, vadasId, markoId, rippleId,
                                     peterId, rippleId);
         createAndAssert(path, body);
@@ -600,10 +593,6 @@ public class BaseApiTest {
                                        response.getStatus(), content);
         Assert.assertEquals(message, status, response.getStatus());
         return content;
-    }
-
-    protected static Map<String, Object> parseMap(String json) {
-        return JsonUtil.fromJson(json, Map.class);
     }
 
     public static <T> T assertJsonContains(String response, String key) {

@@ -19,14 +19,70 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.List;
+import java.util.Map;
+
+import javax.ws.rs.core.Response;
+
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+import com.google.common.collect.ImmutableList;
 
 public class TemplatePathsApiTest extends BaseApiTest {
 
+    final static String path = "graphs/hugegraph/traversers/templatepaths";
+
+    @Before
+    public void prepareSchema() {
+        BaseApiTest.initPropertyKey();
+        BaseApiTest.initVertexLabel();
+        BaseApiTest.initEdgeLabel();
+        BaseApiTest.initVertex();
+        BaseApiTest.initEdge();
+    }
+
     @Test
-    public void testGet() {
-        // TODO
+    public void testPost() {
+        Map<String, String> name2Ids = listAllVertexName2Ids();
+        String vadasId = name2Ids.get("vadas");
+        String joshId = name2Ids.get("josh");
+        String peterId = name2Ids.get("peter");
+        String rippleId = name2Ids.get("ripple");
+        String template = "{" +
+                          "\"sources\": {" +
+                          " \"ids\": []," +
+                          " \"label\": \"person\"," +
+                          " \"properties\": {" +
+                          "  \"name\": \"vadas\"}}," +
+                          "\"targets\": {" +
+                          " \"ids\": []," +
+                          " \"label\": \"software\"," +
+                          " \"properties\": {" +
+                          " \"name\": \"ripple\"}}," +
+                          "\"steps\": [{" +
+                          " \"direction\": \"IN\"," +
+                          " \"labels\": [\"knows\"]," +
+                          " \"properties\": {}," +
+                          " \"max_degree\": 10000," +
+                          " \"max_times\": 2," +
+                          " \"skip_degree\": 100000},{" +
+                          " \"direction\": \"OUT\"," +
+                          " \"labels\": [\"created\"]," +
+                          " \"properties\": {}," +
+                          " \"max_degree\": 10000," +
+                          " \"skip_degree\": 100000}]," +
+                          " \"capacity\": 10000," +
+                          " \"limit\": 10," +
+                          " \"with_vertex\": true}";
+        Response r = client().post(path, template);
+        String resp = assertResponseStatus(200, r);
+        List<Map> objects = assertJsonContains(resp, "paths");
+        Assert.assertEquals(1, objects.size());
+        List<String> paths = assertMapContains(objects.get(0), "objects");
+        Assert.assertEquals(ImmutableList.of(vadasId, joshId, peterId, rippleId),
+                            paths);
     }
 }

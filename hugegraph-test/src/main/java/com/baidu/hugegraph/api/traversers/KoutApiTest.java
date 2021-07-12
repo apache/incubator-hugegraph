@@ -52,19 +52,18 @@ public class KoutApiTest extends BaseApiTest {
         String peterId = name2Ids.get("peter");
         String joshId = name2Ids.get("josh");
         String rippleId = name2Ids.get("ripple");
-        // Test for nearest is true
-        Response r = client().get(path,
-                                  ImmutableMap.of("source", id2Json(markoId),
-                                                  "max_depth", 2));
+        // Test for nearest=true
+        Response r = client().get(path, ImmutableMap.of("source",
+                                                        id2Json(markoId),
+                                                        "max_depth", 2));
         String respBody = assertResponseStatus(200, r);
         List<String> vertices = assertJsonContains(respBody, "vertices");
         Assert.assertEquals(1, vertices.size());
         Assert.assertTrue(vertices.contains(joshId));
-        // Test for nearest is false
-        r = client().get(path,
-                         ImmutableMap.of("source", id2Json(markoId),
-                                         "max_depth", 2,
-                                         "nearest", "false"));
+        // Test for nearest=false
+        r = client().get(path, ImmutableMap.of("source", id2Json(markoId),
+                                               "max_depth", 2,
+                                               "nearest", "false"));
         respBody = assertResponseStatus(200, r);
         vertices = assertJsonContains(respBody, "vertices");
         Assert.assertEquals(3, vertices.size());
@@ -77,29 +76,27 @@ public class KoutApiTest extends BaseApiTest {
     public void testPost() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        String reqBody = String.format("{ "
-                                       + "\"source\": \"%s\", "
-                                       + "\"step\": { "
-                                       + "  \"direction\": \"BOTH\", "
-                                       +
-                                       "  \"labels\": [\"knows\", " +
-                                       "\"created\"], "
-                                       + "  \"properties\": { "
-                                       + "    \"weight\": \"P.gt(0.1)\"}, "
-                                       + "  \"degree\": 10000, "
-                                       + "  \"skip_degree\": 100000}, "
-                                       + "\"max_depth\": 1, "
-                                       + "\"nearest\": true, "
-                                       + "\"limit\": 10000, "
-                                       + "\"with_vertex\": true, "
-                                       + "\"with_path\": true}", markoId);
+        String reqBody = String.format("{ " +
+                                       "\"source\": \"%s\", " +
+                                       "\"step\": { " +
+                                       " \"direction\": \"BOTH\", " +
+                                       " \"labels\": [\"knows\", " +
+                                       " \"created\"], " +
+                                       "\"properties\": { " +
+                                       " \"weight\": \"P.gt(0.1)\"}, " +
+                                       " \"degree\": 10000, " +
+                                       " \"skip_degree\": 100000}, " +
+                                       "\"max_depth\": 1, " +
+                                       "\"nearest\": true, " +
+                                       "\"limit\": 10000, " +
+                                       "\"with_vertex\": true, " +
+                                       "\"with_path\": true}", markoId);
         Response resp = client().post(path, reqBody);
         String respBody = assertResponseStatus(200, resp);
-        Map<String, Object> entity = parseMap(respBody);
-        assertMapContains(entity, "size");
-        assertMapContains(entity, "kout");
-        assertMapContains(entity, "paths");
-        assertMapContains(entity, "vertices");
-        Assert.assertEquals(2, entity.get("size"));
+        Object size = assertJsonContains(respBody, "size");
+        Assert.assertEquals(2, size);
+        assertJsonContains(respBody, "kout");
+        assertJsonContains(respBody, "paths");
+        assertJsonContains(respBody, "vertices");
     }
 }

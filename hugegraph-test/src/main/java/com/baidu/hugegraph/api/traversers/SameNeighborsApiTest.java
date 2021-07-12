@@ -50,9 +50,10 @@ public class SameNeighborsApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
         String peterId = name2Ids.get("peter");
-        Response r = client().get(path,
-                                  ImmutableMap.of("vertex", id2Json(markoId),
-                                                  "other", id2Json(joshId)));
+        Response r = client().get(path, ImmutableMap.of("vertex",
+                                                        id2Json(markoId),
+                                                        "other",
+                                                        id2Json(joshId)));
         String respBody = assertResponseStatus(200, r);
         List<String> sameNeighbors = assertJsonContains(respBody,
                                                         "same_neighbors");

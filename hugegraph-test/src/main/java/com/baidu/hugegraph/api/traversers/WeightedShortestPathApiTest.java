@@ -29,11 +29,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class ShortestPathApiTest extends BaseApiTest {
+public class WeightedShortestPathApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/shortestpath";
+    final static String path = "graphs/hugegraph/traversers/" +
+                               "weightedshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -48,15 +50,21 @@ public class ShortestPathApiTest extends BaseApiTest {
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        String joshId = name2Ids.get("vadas");
+        String joshId = name2Ids.get("josh");
+        String peterId = name2Ids.get("peter");
+        String rippleId = name2Ids.get("ripple");
         Response r = client().get(path, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "target",
                                                         id2Json(joshId),
-                                                        "max_depth",
-                                                        100));
+                                                        "weight", "weight",
+                                                        "with_vertex", true));
         String respBody = assertResponseStatus(200, r);
-        List<String> paths = assertJsonContains(respBody, "path");
+        Map<String, Map> paths = assertJsonContains(respBody,"path");
         Assert.assertFalse(paths.isEmpty());
+        List<String> expectedVertices = ImmutableList.of(markoId, rippleId,
+                                                         peterId, joshId);
+        List<String> vertices = assertMapContains(paths, "vertices");
+        Assert.assertEquals(expectedVertices, vertices);
     }
 }

@@ -19,12 +19,15 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.List;
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class AllShortestPathsApiTest extends BaseApiTest {
@@ -45,11 +48,19 @@ public class AllShortestPathsApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String vadasId = name2Ids.get("vadas");
+        String peterId = name2Ids.get("peter");
+        String joshId = name2Ids.get("josh");
         Map<String, Object> entities = ImmutableMap.of("source",
                                                        id2Json(markoId),
                                                        "target",
                                                        id2Json(vadasId),
                                                        "max_depth", 100);
-        assertResponseStatus(200, client().get(path, entities));
+        String respJson = assertResponseStatus(200,
+                                               client().get(path, entities));
+        List paths = assertJsonContains(respJson, "paths");
+        Assert.assertEquals(1, paths.size());
+        List objects = assertMapContains((Map<?, ?>) paths.get(0), "objects");
+        Assert.assertEquals(ImmutableList.of(markoId, peterId, joshId,
+                                             vadasId), objects);
     }
 }

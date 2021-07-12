@@ -65,20 +65,19 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
         String rippleId = name2Ids.get("ripple");
         String peterId = name2Ids.get("peter");
         String jsonId = name2Ids.get("josh");
-        String reqBody = String.format("{ "
-                                       + "\"vertex\": \"%s\", "
-                                       + "\"step\": { "
-                                       + "  \"direction\": \"BOTH\", "
-                                       + "  \"labels\": [], "
-                                       + "  \"degree\": 10000, "
-                                       + "  \"skip_degree\": 100000 }, "
-                                       + "\"top\": 3}", markoId);
+        String reqBody = String.format("{ " +
+                                       "\"vertex\": \"%s\", " +
+                                       "\"step\": { " +
+                                       " \"direction\": \"BOTH\", " +
+                                       " \"labels\": [], " +
+                                       " \"degree\": 10000, " +
+                                       " \"skip_degree\": 100000 }, " +
+                                       "\"top\": 3}", markoId);
         Response r = client().post(path, reqBody);
         String respBody = assertResponseStatus(200, r);
-        Map<String, Object> entity = parseMap(respBody);
-        Double rippleJaccardSimilarity = assertMapContains(entity, rippleId);
-        Double peterJaccardSimilarity = assertMapContains(entity, peterId);
-        Double jsonJaccardSimilarity = assertMapContains(entity, jsonId);
+        Double rippleJaccardSimilarity = assertJsonContains(respBody, rippleId);
+        Double peterJaccardSimilarity = assertJsonContains(respBody, peterId);
+        Double jsonJaccardSimilarity = assertJsonContains(respBody, jsonId);
         Assert.assertEquals(0.3333, rippleJaccardSimilarity.doubleValue(),
                             0.0001);
         Assert.assertEquals(0.25, peterJaccardSimilarity.doubleValue(), 0.0001);

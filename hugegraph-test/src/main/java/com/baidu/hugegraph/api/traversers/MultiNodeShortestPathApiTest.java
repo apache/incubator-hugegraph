@@ -48,21 +48,20 @@ public class MultiNodeShortestPathApiTest extends BaseApiTest {
         String peterId = name2Ids.get("peter");
         String joshId = name2Ids.get("josh");
         String vadasId = name2Ids.get("vadas");
-        String reqBody = String.format("{ "
-                                       + "\"vertices\": { "
-                                       + "  \"ids\": [\"%s\", \"%s\", \"%s\", "
-                                       + "    \"%s\"]}, "
-                                       + "\"step\": { "
-                                       + "  \"direction\": \"BOTH\", "
-                                       + "  \"properties\": {}}, "
-                                       + "\"max_depth\": 10, "
-                                       + "\"capacity\": 100000000, "
-                                       + "\"with_vertex\": true}",
+        String reqBody = String.format("{ " +
+                                       "\"vertices\": { " +
+                                       " \"ids\": [\"%s\", \"%s\", \"%s\", " +
+                                       " \"%s\"]}, " +
+                                       "\"step\": { " +
+                                       " \"direction\": \"BOTH\", " +
+                                       " \"properties\": {}}, " +
+                                       "\"max_depth\": 10, " +
+                                       "\"capacity\": 100000000, " +
+                                       "\"with_vertex\": true}",
                                        markoId, peterId, joshId, vadasId);
         Response r = client().post(path, reqBody);
-        String respJosn = assertResponseStatus(200, r);
-        Map<String, Object> entity = parseMap(respJosn);
-        assertMapContains(entity, "paths");
-        assertMapContains(entity, "vertices");
+        String respJson = assertResponseStatus(200, r);
+        assertJsonContains(respJson, "paths");
+        assertJsonContains(respJson, "vertices");
     }
 }

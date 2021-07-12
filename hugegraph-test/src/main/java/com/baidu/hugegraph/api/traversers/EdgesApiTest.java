@@ -19,18 +19,16 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import org.junit.Assert;
-
 import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
@@ -56,10 +54,8 @@ public class EdgesApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         final String edgeGetPath = "graphs/hugegraph/graph/edges";
         String vadasId = name2Ids.get("vadas");
-        Map params =  ImmutableMap.of("vertex_id",
-                                      id2Json(vadasId),
-                                      "direction",
-                                      "IN");
+        Map params =  ImmutableMap.of("vertex_id", id2Json(vadasId),
+                                      "direction", "IN");
         Response r = client().get(edgeGetPath, params);
         String respBody = assertResponseStatus(200, r);
         List<Map> edges = assertJsonContains(respBody, "edges");
@@ -68,8 +64,7 @@ public class EdgesApiTest extends BaseApiTest {
         String edgeId = assertMapContains(edges.get(0), "id");
         Assert.assertNotNull(edgeId);
 
-        r = client().get(EDGE_PATH,
-                         ImmutableMultimap.of("ids", edgeId));
+        r = client().get(EDGE_PATH, ImmutableMultimap.of("ids", edgeId));
         assertResponseStatus(200, r);
     }
 
@@ -86,8 +81,7 @@ public class EdgesApiTest extends BaseApiTest {
         r = client().get(SCAN_PATH, ImmutableMap.of("start", start,
                                                     "end", end));
         respBody = assertResponseStatus(200, r);
-        Map<String, Object> entity2 = parseMap(respBody);
-        Assert.assertNotNull(entity2);
-        Assert.assertFalse(entity2.isEmpty());
+        List edges = assertJsonContains(respBody, "edges");
+        Assert.assertFalse(edges.isEmpty());
     }
 }

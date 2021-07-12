@@ -19,13 +19,12 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import org.junit.Assert;
-
 import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,18 +47,18 @@ public class CustomizedCrosspointsApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String rippleId = name2Ids.get("ripple");
-        String reqBody = String.format("{ "
-                                       + "\"sources\":{ "
-                                       + "  \"ids\":[\"%s\",\"%s\"]}, "
-                                       + "\"path_patterns\":[{ "
-                                       + "  \"steps\":[{ "
-                                       + "    \"direction\":\"BOTH\","
-                                       + "    \"labels\":[], "
-                                       + "    \"degree\":-1}]}], "
-                                       + "\"with_path\":true, "
-                                       + "\"with_vertex\":true, "
-                                       + "\"capacity\":-1, "
-                                       + "\"limit\":-1}", markoId, rippleId);
+        String reqBody = String.format("{ " +
+                                       "\"sources\":{ " +
+                                       " \"ids\":[\"%s\",\"%s\"]}, " +
+                                       "\"path_patterns\":[{ " +
+                                       " \"steps\":[{ " +
+                                       "  \"direction\":\"BOTH\"," +
+                                       "  \"labels\":[], " +
+                                       "  \"degree\":-1}]}], " +
+                                       "\"with_path\":true, " +
+                                       "\"with_vertex\":true, " +
+                                       "\"capacity\":-1, " +
+                                       "\"limit\":-1}", markoId, rippleId);
         Response r = client().post(path, reqBody);
         String respBody = assertResponseStatus(200, r);
         List<Object> paths = assertJsonContains(respBody, "paths");
