@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.api.auth;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -54,6 +53,7 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/auth/projects")
@@ -98,7 +98,6 @@ public class ProjectAPI extends API {
                          JsonProject jsonProject) {
         LOG.debug("Graph [{}] update {} project: {}", graph, action,
                   jsonProject);
-        checkUpdateAction(action);
         checkUpdatingBody(jsonProject);
 
         HugeGraph g = graph(manager, graph);
@@ -111,22 +110,17 @@ public class ProjectAPI extends API {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
         if (ProjectAPI.isAddGraph(action)) {
-            Set<String> sourceGraphs = new HashSet<>(project.graphs());
-            E.checkArgument(!sourceGraphs.containsAll(jsonProject.graphs()),
-                            "There are graphs '%s' of project '%s' that " +
-                            "have been added in the graph collection",
-                            jsonProject.graphs(), project.id());
-            sourceGraphs.addAll(jsonProject.graphs());
-            project.graphs(sourceGraphs);
+            project = jsonProject.buildAddGraph(project);
         } else if (ProjectAPI.isRemoveGraph(action)) {
-            Set<String> sourceGraphs = new HashSet<>(project.graphs());
-            sourceGraphs.removeAll(jsonProject.graphs());
-            project.graphs(sourceGraphs);
+            project = jsonProject.buildRemoveGraph(project);
         } else {
-            E.checkArgumentNotNull(jsonProject.description(),
-                                   "The description of project " +
-                                   "can't be null");
-            project.description(jsonProject.description());
+            E.checkArgument(StringUtils.isEmpty(action),
+                            "The action parameter can only be either " +
+                            "%s or %s or '', but got '%s'",
+                            ProjectAPI.ACTION_ADD_GRAPH,
+                            ProjectAPI.ACTION_REMOVE_GRAPH,
+                            action);
+            project = jsonProject.buildUpdateDescription(project);
         }
         authManager.updateProject(project);
         return manager.serializer(g).writeAuthElement(project);
@@ -182,14 +176,6 @@ public class ProjectAPI extends API {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
     }
-
-    public static void checkUpdateAction(String action) {
-        E.checkArgument(StringUtils.isEmpty(action) ||
-                        isAddGraph(action) || isRemoveGraph(action),
-                        "The action '%s' parameter can only be either " +
-                        "add_graph or remove_graph or ''", action);
-    }
-
     public static boolean isAddGraph(String action) {
         return ACTION_ADD_GRAPH.equals(action);
     }
@@ -198,6 +184,10 @@ public class ProjectAPI extends API {
         return ACTION_REMOVE_GRAPH.equals(action);
     }
 
+    @JsonIgnoreProperties(value = {"id", "target_creator",
+                                   "target_create", "target_update",
+                                   "project_admin_group", "project_op_group",
+                                   "project_target"})
     private static class JsonProject implements Checkable {
 
         @JsonProperty("project_name")
@@ -212,13 +202,53 @@ public class ProjectAPI extends API {
             return project;
         }
 
-        public Set<String> graphs() {
-            return this.graphs == null ? Collections.emptySet() :
-                   Collections.unmodifiableSet(this.graphs);
+        private HugeProject buildAddGraph(HugeProject project) {
+            E.checkArgument(this.name == null ||
+                            this.name.equals(project.name()),
+                            "The name of project can't be updated");
+            E.checkArgument(!CollectionUtils.isEmpty(this.graphs),
+                            "The graphs of project can't be empty " +
+                            "when adding graphs");
+            E.checkArgument(StringUtils.isEmpty(this.description),
+                            "The description of project can't be updated " +
+                            "when adding graphs");
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            E.checkArgument(!sourceGraphs.containsAll(this.graphs),
+                            "There are graphs '%s' of project '%s' that " +
+                            "have been added in the graph collection",
+                            this.graphs, project.id());
+            sourceGraphs.addAll(this.graphs);
+            project.graphs(sourceGraphs);
+            return project;
         }
 
-        public String description() {
-            return this.description;
+        private HugeProject buildRemoveGraph(HugeProject project) {
+            E.checkArgument(this.name == null ||
+                            this.name.equals(project.name()),
+                            "The name of project can't be updated");
+            E.checkArgument(!CollectionUtils.isEmpty(this.graphs),
+                            "The graphs of project can't be empty " +
+                            "when removing graphs");
+            E.checkArgument(StringUtils.isEmpty(this.description),
+                            "The description of project can't be updated " +
+                            "when removing graphs");
+            Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            sourceGraphs.removeAll(this.graphs);
+            project.graphs(sourceGraphs);
+            return project;
+        }
+
+        private HugeProject buildUpdateDescription(HugeProject project) {
+            E.checkArgument(this.name == null ||
+                            this.name.equals(project.name()),
+                            "The name of project can't be updated");
+            E.checkArgumentNotNull(this.description,
+                                   "The description of project " +
+                                   "can't be null");
+            E.checkArgument(CollectionUtils.isEmpty(this.graphs),
+                            "The graphs of project can't be updated");
+            project.description(this.description);
+            return project;
         }
 
         @Override
@@ -233,8 +263,6 @@ public class ProjectAPI extends API {
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.name == null,
-                            "The name of project can't be updated");
             E.checkArgument(!CollectionUtils.isEmpty(this.graphs) ||
                             this.description != null,
                             "Must specify 'graphs' or 'description' " +
