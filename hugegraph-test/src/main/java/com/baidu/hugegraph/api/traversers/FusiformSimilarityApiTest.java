@@ -24,6 +24,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class FusiformSimilarityApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/fusiformsimilarity";
+    final static String path = TRAVERSERS_API + "/fusiformsimilarity";
 
     @Before
     public void prepareSchema() {
@@ -62,11 +63,12 @@ public class FusiformSimilarityApiTest extends BaseApiTest {
                                          "\"limit\": -1, " +
                                          "\"with_intermediary\": false, " +
                                          "\"with_vertex\":true}");
-        String respBody = assertResponseStatus(200, r);
-        Map<String, List> similars = assertJsonContains(respBody, "similars");
+        String content = assertResponseStatus(200, r);
+        Map<String, List> similars = assertJsonContains(content, "similars");
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String peterId = name2Ids.get("peter");
+        Assert.assertEquals(2, similars.size());
         assertMapContains(similars, markoId);
         assertMapContains(similars, peterId);
     }

@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
 
 public class TemplatePathsApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/templatepaths";
+    final static String path = TRAVERSERS_API + "/templatepaths";
 
     @Before
     public void prepareSchema() {
@@ -78,8 +78,8 @@ public class TemplatePathsApiTest extends BaseApiTest {
                           " \"limit\": 10," +
                           " \"with_vertex\": true}";
         Response r = client().post(path, template);
-        String resp = assertResponseStatus(200, r);
-        List<Map> objects = assertJsonContains(resp, "paths");
+        String content = assertResponseStatus(200, r);
+        List<Map> objects = assertJsonContains(content, "paths");
         Assert.assertEquals(1, objects.size());
         List<String> paths = assertMapContains(objects.get(0), "objects");
         Assert.assertEquals(ImmutableList.of(vadasId, joshId, peterId, rippleId),

@@ -35,10 +35,9 @@ import com.google.common.collect.ImmutableMultimap;
 
 public class EdgesApiTest extends BaseApiTest {
 
-    final static String EDGE_PATH = "graphs/hugegraph/traversers/edges";
-    final static String SHARES_PATH = "graphs/hugegraph/traversers" +
-                                      "/edges/shards";
-    final static String SCAN_PATH = "graphs/hugegraph/traversers/edges/scan";
+    final static String EDGE_PATH = TRAVERSERS_API + "/edges";
+    final static String SHARES_PATH = TRAVERSERS_API + "/edges/shards";
+    final static String SCAN_PATH = TRAVERSERS_API + "/edges/scan";
 
     @Before
     public void prepareSchema() {
@@ -57,31 +56,37 @@ public class EdgesApiTest extends BaseApiTest {
         Map params =  ImmutableMap.of("vertex_id", id2Json(vadasId),
                                       "direction", "IN");
         Response r = client().get(edgeGetPath, params);
-        String respBody = assertResponseStatus(200, r);
-        List<Map> edges = assertJsonContains(respBody, "edges");
+        String content = assertResponseStatus(200, r);
+        List<Map> edges = assertJsonContains(content, "edges");
         Assert.assertNotNull(edges);
         Assert.assertFalse(edges.isEmpty());
         String edgeId = assertMapContains(edges.get(0), "id");
         Assert.assertNotNull(edgeId);
 
         r = client().get(EDGE_PATH, ImmutableMultimap.of("ids", edgeId));
-        assertResponseStatus(200, r);
+        content = assertResponseStatus(200, r);
+        List edges2 = assertJsonContains(content, "edges");
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(edges.get(0), edges2.get(0));
     }
 
     @Test
     public void testShareAndScan() {
         Response r = client().get(SHARES_PATH, ImmutableMap.of("split_size",
                                                                1048576));
-        String respBody = assertResponseStatus(200, r);
-        List<Map> shards = assertJsonContains(respBody, "shards");
+        String content = assertResponseStatus(200, r);
+        List<Map> shards = assertJsonContains(content, "shards");
         Assert.assertNotNull(shards);
         Assert.assertFalse(shards.isEmpty());
         String start = assertMapContains(shards.get(0), "start");
         String end = assertMapContains(shards.get(0), "end");
         r = client().get(SCAN_PATH, ImmutableMap.of("start", start,
                                                     "end", end));
-        respBody = assertResponseStatus(200, r);
-        List edges = assertJsonContains(respBody, "edges");
-        Assert.assertFalse(edges.isEmpty());
+        content = assertResponseStatus(200, r);
+        /*
+         * Different storage backends return differently, so the return is
+         * not checked
+         */
+        assertJsonContains(content, "edges");
     }
 }

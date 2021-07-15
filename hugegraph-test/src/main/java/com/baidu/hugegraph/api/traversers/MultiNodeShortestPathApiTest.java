@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.api.traversers;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,7 +32,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class MultiNodeShortestPathApiTest extends BaseApiTest {
 
-    final String path = "graphs/hugegraph/traversers/multinodeshortestpath";
+    final String path = TRAVERSERS_API + "/multinodeshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -60,8 +62,8 @@ public class MultiNodeShortestPathApiTest extends BaseApiTest {
                                        "\"with_vertex\": true}",
                                        markoId, peterId, joshId, vadasId);
         Response r = client().post(path, reqBody);
-        String respJson = assertResponseStatus(200, r);
-        assertJsonContains(respJson, "paths");
-        assertJsonContains(respJson, "vertices");
+        String content = assertResponseStatus(200, r);
+        List paths = assertJsonContains(content, "paths");
+        Assert.assertEquals(6, paths.size());
     }
 }

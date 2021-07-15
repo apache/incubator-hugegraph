@@ -34,8 +34,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class WeightedShortestPathApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/" +
-                               "weightedshortestpath";
+    final static String path = TRAVERSERS_API + "/weightedshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -59,8 +58,8 @@ public class WeightedShortestPathApiTest extends BaseApiTest {
                                                         id2Json(joshId),
                                                         "weight", "weight",
                                                         "with_vertex", true));
-        String respBody = assertResponseStatus(200, r);
-        Map<String, Map> paths = assertJsonContains(respBody,"path");
+        String content = assertResponseStatus(200, r);
+        Map<String, Map> paths = assertJsonContains(content, "path");
         Assert.assertFalse(paths.isEmpty());
         List<String> expectedVertices = ImmutableList.of(markoId, rippleId,
                                                          peterId, joshId);

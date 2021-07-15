@@ -32,8 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SingleSourceShortestPathApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/" +
-                               "singlesourceshortestpath";
+    final static String path = TRAVERSERS_API + "/singlesourceshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -52,8 +51,8 @@ public class SingleSourceShortestPathApiTest extends BaseApiTest {
                                                         id2Json(markoId),
                                                         "with_vertex",
                                                         true));
-        String respBody = assertResponseStatus(200, r);
-        Map<String, Map> paths = assertJsonContains(respBody,"paths");
-        Assert.assertFalse(paths.isEmpty());
+        String content = assertResponseStatus(200, r);
+        Map<String, Map> paths = assertJsonContains(content, "paths");
+        Assert.assertEquals(4, paths.size());
     }
 }

@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class JaccardSimilarityApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/jaccardsimilarity";
+    final static String path = TRAVERSERS_API + "/jaccardsimilarity";
 
     @Before
     public void prepareSchema() {
@@ -74,10 +74,10 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
                                        " \"skip_degree\": 100000 }, " +
                                        "\"top\": 3}", markoId);
         Response r = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, r);
-        Double rippleJaccardSimilarity = assertJsonContains(respBody, rippleId);
-        Double peterJaccardSimilarity = assertJsonContains(respBody, peterId);
-        Double jsonJaccardSimilarity = assertJsonContains(respBody, jsonId);
+        String content = assertResponseStatus(200, r);
+        Double rippleJaccardSimilarity = assertJsonContains(content, rippleId);
+        Double peterJaccardSimilarity = assertJsonContains(content, peterId);
+        Double jsonJaccardSimilarity = assertJsonContains(content, jsonId);
         Assert.assertEquals(0.3333, rippleJaccardSimilarity.doubleValue(),
                             0.0001);
         Assert.assertEquals(0.25, peterJaccardSimilarity.doubleValue(), 0.0001);

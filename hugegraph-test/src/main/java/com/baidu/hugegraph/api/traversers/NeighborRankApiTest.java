@@ -32,7 +32,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class NeighborRankApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/neighborrank";
+    final static String path = TRAVERSERS_API + "/neighborrank";
 
     @Before
     public void prepareSchema() {
@@ -53,8 +53,8 @@ public class NeighborRankApiTest extends BaseApiTest {
                                        " \"direction\": \"BOTH\"}]," +
                                        "\"alpha\":%s}", markoId, 1);
         Response r = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, r);
-        List<Double> ranks = assertJsonContains(respBody, "ranks");
+        String content = assertResponseStatus(200, r);
+        List<Double> ranks = assertJsonContains(content, "ranks");
         Assert.assertEquals(2, ranks.size());
     }
 }

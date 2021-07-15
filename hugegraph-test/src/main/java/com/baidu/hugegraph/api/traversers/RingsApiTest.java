@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class RingsApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/rings";
+    final static String path = TRAVERSERS_API + "/rings";
 
     @Before
     public void prepareSchema() {
@@ -52,9 +52,9 @@ public class RingsApiTest extends BaseApiTest {
                                                      id2Json(markoId),
                                                      "max_depth", 10);
         Response r = client().get(path, params);
-        String respJson = assertResponseStatus(200, r);
-        List<Map<String, List<String>>> rings = assertJsonContains(respJson,
+        String content = assertResponseStatus(200, r);
+        List<Map<String, List<String>>> rings = assertJsonContains(content,
                                                                    "rings");
-        Assert.assertFalse(rings.isEmpty());
+        Assert.assertEquals(1, rings.size());
     }
 }

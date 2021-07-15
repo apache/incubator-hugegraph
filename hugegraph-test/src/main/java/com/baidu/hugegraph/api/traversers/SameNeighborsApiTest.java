@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SameNeighborsApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/sameneighbors";
+    final static String path = TRAVERSERS_API + "/sameneighbors";
 
     @Before
     public void prepareSchema() {
@@ -54,8 +54,8 @@ public class SameNeighborsApiTest extends BaseApiTest {
                                                         id2Json(markoId),
                                                         "other",
                                                         id2Json(joshId)));
-        String respBody = assertResponseStatus(200, r);
-        List<String> sameNeighbors = assertJsonContains(respBody,
+        String content = assertResponseStatus(200, r);
+        List<String> sameNeighbors = assertJsonContains(content,
                                                         "same_neighbors");
         Assert.assertFalse(sameNeighbors.isEmpty());
         Assert.assertTrue(sameNeighbors.contains(peterId));

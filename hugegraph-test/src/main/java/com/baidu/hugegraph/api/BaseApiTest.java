@@ -69,6 +69,8 @@ public class BaseApiTest {
     private static final String GRAPH_EDGE = "/graph/edges";
     private static final String BATCH = "/batch";
 
+    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
+
     private static RestClient client;
 
     private static final ObjectMapper mapper = new ObjectMapper();

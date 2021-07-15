@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class RaysApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/rays";
+    final static String path = TRAVERSERS_API + "/rays";
 
     @Before
     public void prepareSchema() {
@@ -52,8 +52,8 @@ public class RaysApiTest extends BaseApiTest {
         Response r = client().get(path, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 10));
-        String respBody = assertResponseStatus(200, r);
-        List<Map<String, List<String>>> rays = assertJsonContains(respBody,
+        String content = assertResponseStatus(200, r);
+        List<Map<String, List<String>>> rays = assertJsonContains(content,
                                                                   "rays");
         Assert.assertNotNull(rays);
         Assert.assertEquals(2, rays.size());

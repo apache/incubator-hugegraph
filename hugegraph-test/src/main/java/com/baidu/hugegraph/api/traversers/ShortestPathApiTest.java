@@ -29,11 +29,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class ShortestPathApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/shortestpath";
+    final static String path = TRAVERSERS_API + "/shortestpath";
 
     @Before
     public void prepareSchema() {
@@ -48,15 +49,16 @@ public class ShortestPathApiTest extends BaseApiTest {
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        String joshId = name2Ids.get("vadas");
+        String joshId = name2Ids.get("josh");
+        String peterId = name2Ids.get("peter");
         Response r = client().get(path, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "target",
                                                         id2Json(joshId),
                                                         "max_depth",
                                                         100));
-        String respBody = assertResponseStatus(200, r);
-        List<String> paths = assertJsonContains(respBody, "path");
-        Assert.assertFalse(paths.isEmpty());
+        String content = assertResponseStatus(200, r);
+        List<String> paths = assertJsonContains(content, "path");
+        Assert.assertEquals(ImmutableList.of(markoId, peterId, joshId), paths);
     }
 }

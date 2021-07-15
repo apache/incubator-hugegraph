@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AllShortestPathsApiTest extends BaseApiTest {
 
-    public static String path = "graphs/hugegraph/traversers/allshortestpaths";
+    public static String path = TRAVERSERS_API + "/allshortestpaths";
 
     @Before
     public void prepareSchema() {
@@ -55,9 +55,9 @@ public class AllShortestPathsApiTest extends BaseApiTest {
                                                        "target",
                                                        id2Json(vadasId),
                                                        "max_depth", 100);
-        String respJson = assertResponseStatus(200,
-                                               client().get(path, entities));
-        List paths = assertJsonContains(respJson, "paths");
+        String content = assertResponseStatus(200,
+                                              client().get(path, entities));
+        List paths = assertJsonContains(content, "paths");
         Assert.assertEquals(1, paths.size());
         List objects = assertMapContains((Map<?, ?>) paths.get(0), "objects");
         Assert.assertEquals(ImmutableList.of(markoId, peterId, joshId,

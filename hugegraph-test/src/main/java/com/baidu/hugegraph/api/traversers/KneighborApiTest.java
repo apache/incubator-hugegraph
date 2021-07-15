@@ -30,10 +30,11 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public class KneighborApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/kneighbor";
+    final static String path = TRAVERSERS_API + "/kneighbor";
 
     @Before
     public void prepareSchema() {
@@ -48,12 +49,16 @@ public class KneighborApiTest extends BaseApiTest {
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
+        String rippleId = name2Ids.get("ripple");
+        String peterId = name2Ids.get("peter");
+        String joshId = name2Ids.get("josh");
         Response r = client().get(path, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 2));
-        String respBody = assertResponseStatus(200, r);
-        List<String> vertices = assertJsonContains(respBody, "vertices");
-        Assert.assertEquals(3, vertices.size());
+        String content = assertResponseStatus(200, r);
+        List<String> vertices = assertJsonContains(content, "vertices");
+        Assert.assertEquals(ImmutableSet.of(rippleId, joshId, peterId),
+                            ImmutableSet.copyOf(vertices));
     }
 
     @Test

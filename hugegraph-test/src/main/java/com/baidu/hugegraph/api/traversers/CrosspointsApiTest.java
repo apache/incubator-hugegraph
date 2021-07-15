@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import com.baidu.hugegraph.testutil.Assert;
-
 import java.util.List;
 import java.util.Map;
 
@@ -30,11 +28,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+import com.baidu.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
 
 public class CrosspointsApiTest extends BaseApiTest {
 
-    public static String path = "graphs/hugegraph/traversers/crosspoints";
+    public static String path = TRAVERSERS_API + "/crosspoints";
 
     @Before
     public void prepareSchema() {
@@ -56,9 +55,9 @@ public class CrosspointsApiTest extends BaseApiTest {
                                                      id2Json(vadasId),
                                                      "max_depth", 10);
         Response r = client().get(path, params);
-        String respBody = assertResponseStatus(200, r);
-        List<Map<String, Object>> crosspoints = assertJsonContains(respBody,
-                                                                   "crosspoints");
+        String content = assertResponseStatus(200, r);
+        List<Map<String, Object>> crosspoints = assertJsonContains(
+                                                content, "crosspoints");
         Assert.assertEquals(2, crosspoints.size());
     }
 }

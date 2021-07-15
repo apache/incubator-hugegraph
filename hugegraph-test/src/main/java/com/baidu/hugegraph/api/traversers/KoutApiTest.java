@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class KoutApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/kout";
+    final static String path = TRAVERSERS_API + "/kout";
 
     @Before
     public void prepareSchema() {
@@ -56,16 +56,16 @@ public class KoutApiTest extends BaseApiTest {
         Response r = client().get(path, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 2));
-        String respBody = assertResponseStatus(200, r);
-        List<String> vertices = assertJsonContains(respBody, "vertices");
+        String content = assertResponseStatus(200, r);
+        List<String> vertices = assertJsonContains(content, "vertices");
         Assert.assertEquals(1, vertices.size());
         Assert.assertTrue(vertices.contains(joshId));
         // Test for nearest=false
         r = client().get(path, ImmutableMap.of("source", id2Json(markoId),
                                                "max_depth", 2,
                                                "nearest", "false"));
-        respBody = assertResponseStatus(200, r);
-        vertices = assertJsonContains(respBody, "vertices");
+        content = assertResponseStatus(200, r);
+        vertices = assertJsonContains(content, "vertices");
         Assert.assertEquals(3, vertices.size());
         Assert.assertTrue(vertices.containsAll(ImmutableList.of(peterId,
                                                                 rippleId,
@@ -92,11 +92,11 @@ public class KoutApiTest extends BaseApiTest {
                                        "\"with_vertex\": true, " +
                                        "\"with_path\": true}", markoId);
         Response resp = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, resp);
-        Object size = assertJsonContains(respBody, "size");
+        String content = assertResponseStatus(200, resp);
+        Object size = assertJsonContains(content, "size");
         Assert.assertEquals(2, size);
-        assertJsonContains(respBody, "kout");
-        assertJsonContains(respBody, "paths");
-        assertJsonContains(respBody, "vertices");
+        assertJsonContains(content, "kout");
+        assertJsonContains(content, "paths");
+        assertJsonContains(content, "vertices");
     }
 }

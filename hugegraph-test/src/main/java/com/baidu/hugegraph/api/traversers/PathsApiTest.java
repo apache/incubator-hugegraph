@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class PathsApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/paths";
+    final static String path = TRAVERSERS_API + "/paths";
 
     @Before
     public void prepareSchema() {
@@ -54,9 +54,9 @@ public class PathsApiTest extends BaseApiTest {
                                                         "target",
                                                         id2Json(vadasId),
                                                         "max_depth", 3));
-        String respBody = assertResponseStatus(200, r);
-        assertJsonContains(respBody, "paths");
-        List<Map<String, Object>> paths = assertJsonContains(respBody, "paths");
+        String content = assertResponseStatus(200, r);
+        assertJsonContains(content, "paths");
+        List<Map<String, Object>> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(1, paths.size());
     }
 
@@ -80,8 +80,8 @@ public class PathsApiTest extends BaseApiTest {
                                        "\"with_vertex\": false}",
                                        markoId, joshId);
         Response r = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, r);
-        List<Map<String, Object>> paths = assertJsonContains(respBody, "paths");
-        Assert.assertFalse(paths.isEmpty());
+        String content = assertResponseStatus(200, r);
+        List<Map<String, Object>> paths = assertJsonContains(content, "paths");
+        Assert.assertEquals(2, paths.size());
     }
 }

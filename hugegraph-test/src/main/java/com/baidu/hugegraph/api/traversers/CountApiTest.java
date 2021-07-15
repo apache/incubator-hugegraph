@@ -29,7 +29,7 @@ import com.baidu.hugegraph.testutil.Assert;
 
 public class CountApiTest extends BaseApiTest {
 
-    public static String path = "graphs/hugegraph/traversers/count";
+    public static String path = TRAVERSERS_API + "/count";
 
     @Before
     public void prepareSchema() {
@@ -46,15 +46,15 @@ public class CountApiTest extends BaseApiTest {
         String reqBody = String.format("{ " +
                                        "\"source\": \"%s\", " +
                                        "\"steps\": [{ " +
-                                       "  \"labels\": []," +
-                                       "  \"degree\": 100," +
-                                       "  \"skip_degree\": 100},{ " +
-                                       "  \"labels\": []," +
-                                       "  \"degree\": 100," +
-                                       "  \"skip_degree\": 100},{ " +
-                                       "  \"labels\": []," +
-                                       "  \"degree\": 100," +
-                                       "  \"skip_degree\": 100}]}", markoId);
+                                       " \"labels\": []," +
+                                       " \"degree\": 100," +
+                                       " \"skip_degree\": 100},{ " +
+                                       " \"labels\": []," +
+                                       " \"degree\": 100," +
+                                       " \"skip_degree\": 100},{ " +
+                                       " \"labels\": []," +
+                                       " \"degree\": 100," +
+                                       " \"skip_degree\": 100}]}", markoId);
         Response r = client().post(path, reqBody);
         String content = assertResponseStatus(200, r);
         Integer count = assertJsonContains(content, "count");

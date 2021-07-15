@@ -32,7 +32,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class CustomizedCrosspointsApiTest extends BaseApiTest {
 
-    public static String path = "graphs/hugegraph/traversers/customizedcrosspoints";
+    public static String path = TRAVERSERS_API + "/customizedcrosspoints";
 
     @Before
     public void prepareSchema() {
@@ -60,8 +60,8 @@ public class CustomizedCrosspointsApiTest extends BaseApiTest {
                                        "\"capacity\":-1, " +
                                        "\"limit\":-1}", markoId, rippleId);
         Response r = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, r);
-        List<Object> paths = assertJsonContains(respBody, "paths");
+        String content = assertResponseStatus(200, r);
+        List<Object> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(2, paths.size());
     }
 }

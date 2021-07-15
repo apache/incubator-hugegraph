@@ -30,7 +30,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class PersonalRankApiTest extends BaseApiTest {
 
-    final static String path = "graphs/hugegraph/traversers/personalrank";
+    final static String path = TRAVERSERS_API + "/personalrank";
 
     @Before
     public void prepareSchema() {
@@ -53,7 +53,7 @@ public class PersonalRankApiTest extends BaseApiTest {
                                        "\"alpha\":\"%s\"}",
                                        markoId, 3, "created", 1);
         Response r = client().post(path, reqBody);
-        String respBody = assertResponseStatus(200, r);
-        assertJsonContains(respBody, peterId);
+        String content = assertResponseStatus(200, r);
+        assertJsonContains(content, peterId);
     }
 }
