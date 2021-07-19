@@ -114,10 +114,11 @@ public final class ApiVersion {
      * [0.62] Issue-1378: Add compact api for rocksdb/cassandra/hbase backend
      * [0.63] Issue-1500: Add user-login RESTful API
      * [0.64] Issue-1504: Add auth-project RESTful API
+     * [0.65] Issue-1505: Create admin-group and op-group when initStore
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.64");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.65");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
