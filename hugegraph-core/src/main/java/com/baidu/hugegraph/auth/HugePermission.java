@@ -32,8 +32,8 @@ public enum HugePermission implements SerialEnum {
 
     ANY(0x7f, "any");
 
-    private byte code;
-    private String name;
+    private final byte code;
+    private final String name;
 
     static {
         SerialEnum.register(HugePermission.class);

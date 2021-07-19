@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.auth;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
 
@@ -47,6 +48,7 @@ public class TokenGenerator {
     }
 
     public String create(Map<String, ?> payload, long expire) {
+        expire = Duration.ofSeconds(expire).toMillis();
         return Jwts.builder()
                    .setClaims(payload)
                    .setExpiration(new Date(System.currentTimeMillis() + expire))
