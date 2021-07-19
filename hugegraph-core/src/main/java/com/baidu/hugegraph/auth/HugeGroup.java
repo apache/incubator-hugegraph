@@ -32,6 +32,8 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.HugeGroupTag;
 import com.baidu.hugegraph.util.E;
 
 public class HugeGroup extends Entity {
@@ -40,6 +42,7 @@ public class HugeGroup extends Entity {
 
     private String name;
     private String description;
+    private HugeGroupTag tag;
 
     public HugeGroup(String name) {
         this(null, name);
@@ -78,6 +81,14 @@ public class HugeGroup extends Entity {
         this.description = description;
     }
 
+    public HugeGroupTag tag() {
+        return this.tag;
+    }
+
+    public void tag(HugeGroupTag tag) {
+        this.tag = tag;
+    }
+
     @Override
     public String toString() {
         return String.format("HugeGroup(%s)%s", this.id, this.asMap());
@@ -94,6 +105,9 @@ public class HugeGroup extends Entity {
                 break;
             case P.DESCRIPTION:
                 this.description = (String) value;
+                break;
+            case P.TAG:
+                this.tag = HugeGroupTag.fromCode((Byte) value);
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -118,6 +132,11 @@ public class HugeGroup extends Entity {
             list.add(this.description);
         }
 
+        if (this.tag != null) {
+            list.add(P.TAG);
+            list.add(this.tag.code());
+        }
+
         return super.asArray(list);
     }
 
@@ -130,6 +149,9 @@ public class HugeGroup extends Entity {
         map.put(Hidden.unHide(P.NAME), this.name);
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
+        }
+        if (this.tag != null) {
+            map.put(Hidden.unHide(P.TAG), this.tag);
         }
 
         return super.asMap(map);
@@ -153,6 +175,7 @@ public class HugeGroup extends Entity {
 
         public static final String NAME = "~group_name";
         public static final String DESCRIPTION = "~group_description";
+        public static final String TAG = "~group_tag";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("group_");
@@ -182,7 +205,7 @@ public class HugeGroup extends Entity {
                                     .properties(properties)
                                     .usePrimaryKeyId()
                                     .primaryKeys(P.NAME)
-                                    .nullableKeys(P.DESCRIPTION)
+                                    .nullableKeys(P.DESCRIPTION, P.TAG)
                                     .enableLabelIndex(true)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -193,6 +216,7 @@ public class HugeGroup extends Entity {
 
             props.add(createPropertyKey(P.NAME));
             props.add(createPropertyKey(P.DESCRIPTION));
+            props.add(createPropertyKey(P.TAG, DataType.BYTE));
 
             return super.initProperties(props);
         }

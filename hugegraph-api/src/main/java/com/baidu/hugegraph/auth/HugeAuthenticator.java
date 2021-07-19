@@ -327,7 +327,7 @@ public interface HugeAuthenticator extends Authenticator {
             for (Map.Entry<HugePermission, Object> e : perms.entrySet()) {
                 HugePermission permission = e.getKey();
                 // May be required = ANY
-                if (action.match(permission)) {
+                if (permission.match(action)) {
                     // Return matched resource of corresponding action
                     return e.getValue();
                 }

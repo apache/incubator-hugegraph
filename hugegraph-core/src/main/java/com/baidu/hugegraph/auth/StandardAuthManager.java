@@ -46,6 +46,7 @@ import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.type.define.HugeGroupTag;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.LockUtil;
@@ -132,6 +133,7 @@ public class StandardAuthManager implements AuthManager {
             if (storeEvents.contains(event.name())) {
                 try {
                     this.initSchemaIfNeeded();
+                    this.initAdminAndOpGroupIfNeeded();
                 } finally {
                     this.graph.closeTx();
                 }
@@ -153,6 +155,16 @@ public class StandardAuthManager implements AuthManager {
         return true;
     }
 
+    private void invalidateUserCache() {
+        this.usersCache.clear();
+    }
+
+    private void invalidatePasswdCache(Id id) {
+        this.pwdCache.invalidate(id);
+        // Clear all tokenCache because can't get userId in it
+        this.tokenCache.clear();
+    }
+
     private void initSchemaIfNeeded() {
         this.invalidateUserCache();
         HugeUser.schema(this.graph).initSchemaIfNeeded();
@@ -163,14 +175,36 @@ public class StandardAuthManager implements AuthManager {
         HugeProject.schema(this.graph).initSchemaIfNeeded();
     }
 
-    private void invalidateUserCache() {
-        this.usersCache.clear();
+    private void initAdminAndOpGroupIfNeeded() {
+        HugeConfig config = this.graph.configuration();
+        String authStore = config.get(AuthOptions.AUTH_GRAPH_STORE);
+
+        this.initGroup(authStore, HugeGroupTag.SUPER_ADMIN,
+                       HugeResource.SUPER_ADMIN_RES, HugePermission.ANY);
+        this.initGroup(authStore, HugeGroupTag.OP_SUPER_ADMIN,
+                       HugeResource.OP_ADMIN_RES, HugePermission.ANY);
     }
 
-    private void invalidatePasswdCache(Id id) {
-        this.pwdCache.invalidate(id);
-        // Clear all tokenCache because can't get userId in it
-        this.tokenCache.clear();
+    private void initGroup(String authStore, HugeGroupTag tag,
+                           List<HugeResource> res, HugePermission permission) {
+        List<HugeGroup> groups = this.groups.query(HugeGroup.P.NAME, tag.name(), -1);
+        if (CollectionUtils.isNotEmpty(groups)) {
+            return;
+        }
+
+        HugeGroup adminGroup = new HugeGroup(tag.name());
+        adminGroup.tag(tag);
+        adminGroup.creator("admin");
+        Id adminGroupId = this.createGroup(adminGroup);
+
+        HugeTarget adminTarget = new HugeTarget(tag.name(), authStore, "", res);
+        adminTarget.creator("admin");
+        Id adminTargetId = this.createTarget(adminTarget);
+
+        HugeAccess access = new HugeAccess(adminGroupId, adminTargetId,
+                                           permission);
+        access.creator("admin");
+        this.createAccess(access);
     }
 
     @Override

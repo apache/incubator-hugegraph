@@ -40,7 +40,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
@@ -59,6 +58,11 @@ public class HugeResource {
 
     private static final Set<ResourceType> CHECK_NAME_RESS = ImmutableSet.of(
                                                              ResourceType.META);
+    public static final List<HugeResource> SUPER_ADMIN_RES = ImmutableList.of(
+                  new HugeResource(ResourceType.ROOT, ANY, null));
+    public static final List<HugeResource> OP_ADMIN_RES = ImmutableList.of(
+                  new HugeResource(ResourceType.METRICS, ANY, null),
+                  new HugeResource(ResourceType.STATUS, ANY, null));
 
     static {
         SimpleModule module = new SimpleModule();
