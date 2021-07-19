@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -40,6 +41,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeGroup;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
@@ -108,6 +110,23 @@ public class GroupAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
+        return manager.serializer(g).writeAuthElements("groups", groups);
+    }
+
+    @POST
+    @Timed
+    @Path("/ids")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String listByIds(@Context GraphManager manager,
+                            @PathParam("graph") String graph,
+                            List<String> groupIds) {
+        LOG.debug("Graph [{}] list groups", graph);
+
+        HugeGraph g = graph(manager, graph);
+        List<Id> ids = groupIds.stream()
+                               .map(UserAPI::parseId)
+                               .collect(Collectors.toList());
+        List<HugeGroup> groups = manager.authManager().listGroups(ids);
         return manager.serializer(g).writeAuthElements("groups", groups);
     }
 
