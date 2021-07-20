@@ -123,9 +123,11 @@ public interface BackendStore {
 
     public default String olapTableName(Id id) {
         StringBuilder sb = new StringBuilder(5 + 4);
-        sb.append(this.store()).append("_")
+        sb.append(this.store())
+          .append("_")
           .append(HugeType.OLAP.string().toLowerCase())
-          .append("_").append(id.asLong());
+          .append("_")
+          .append(id.asLong());
         return sb.toString();
     }
 
