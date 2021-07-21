@@ -153,6 +153,7 @@ public class CassandraSerializer extends TableSerializer {
         entry.subId(pk.id());
         entry.column(HugeKeys.PROPERTY_VALUE,
                      this.writeProperty(pk, prop.value()));
+        entry.olap(true);
         return entry;
     }
 

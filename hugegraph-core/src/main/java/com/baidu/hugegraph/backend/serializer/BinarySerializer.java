@@ -420,6 +420,7 @@ public class BinarySerializer extends AbstractSerializer {
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
         entry.column(name, buffer.bytes());
         entry.subId(propertyKey.id());
+        entry.olap(true);
         return entry;
     }
 

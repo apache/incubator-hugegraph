@@ -229,8 +229,8 @@ public abstract class CassandraStore
 
         switch (item.action()) {
             case INSERT:
-                // Insert olap entry
-                if (entry.type() == HugeType.OLAP) {
+                // Insert olap vertex
+                if (entry.olap()) {
                     this.table(this.olapTableName(entry.subId()))
                         .insert(session, entry.row());
                     break;
@@ -245,6 +245,7 @@ public abstract class CassandraStore
                 }
                 break;
             case DELETE:
+                // Delete olap vertex index by index label
                 if (entry.olap()) {
                     this.table(this.olapTableName(entry.type()))
                         .delete(session, entry.row());
@@ -260,6 +261,7 @@ public abstract class CassandraStore
                 }
                 break;
             case APPEND:
+                // Append olap vertex index
                 if (entry.olap()) {
                     this.table(this.olapTableName(entry.type()))
                         .append(session, entry.row());

@@ -444,13 +444,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         BackendEntry entry = item.entry();
 
         RocksDBTable table;
-        if (entry.type() != HugeType.OLAP && !entry.olap()) {
+        if (!entry.olap()) {
+            // Oltp table
             table = this.table(entry.type());
-        } else if (entry.olap()) {
-            table = this.table(this.olapTableName(entry.type()));
-            session = this.session(HugeType.OLAP);
         } else {
-            table = this.table(this.olapTableName(entry.subId()));
+            if (entry.type().isIndex()) {
+                // Olap index
+                table = this.table(this.olapTableName(entry.type()));
+            } else {
+                // Olap vertex
+                table = this.table(this.olapTableName(entry.subId()));
+            }
             session = this.session(HugeType.OLAP);
         }
         switch (item.action()) {
@@ -478,6 +482,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         readLock.lock();
         try {
             this.checkOpened();
+
             HugeType tableType = RocksDBTable.tableType(query);
             RocksDBTable table;
             RocksDBSessions.Session session;
@@ -488,6 +493,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 table = this.table(tableType);
                 session = this.session(tableType);
             }
+
             Iterator<BackendEntry> entries = table.query(session, query);
             // Merge olap results as needed
             Set<Id> olapPks = query.olapPks();

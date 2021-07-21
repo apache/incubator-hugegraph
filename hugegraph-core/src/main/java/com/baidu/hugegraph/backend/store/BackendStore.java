@@ -115,20 +115,20 @@ public interface BackendStore {
         StringBuilder sb = new StringBuilder(7);
         sb.append(this.store())
           .append("_")
-          .append(HugeType.OLAP.string().toLowerCase())
+          .append(HugeType.OLAP.string())
           .append("_")
-          .append(type.string().toLowerCase());
-        return sb.toString();
+          .append(type.string());
+        return sb.toString().toLowerCase();
     }
 
     public default String olapTableName(Id id) {
         StringBuilder sb = new StringBuilder(5 + 4);
         sb.append(this.store())
           .append("_")
-          .append(HugeType.OLAP.string().toLowerCase())
+          .append(HugeType.OLAP.string())
           .append("_")
           .append(id.asLong());
-        return sb.toString();
+        return sb.toString().toLowerCase();
     }
 
     // Increase next id for specific type
