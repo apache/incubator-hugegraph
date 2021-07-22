@@ -111,11 +111,51 @@ public interface BackendStore {
         this.increaseCounter(type, increment);
     }
 
+    public default String olapTableName(HugeType type) {
+        StringBuilder sb = new StringBuilder(7);
+        sb.append(this.store())
+          .append("_")
+          .append(HugeType.OLAP.string())
+          .append("_")
+          .append(type.string());
+        return sb.toString().toLowerCase();
+    }
+
+    public default String olapTableName(Id id) {
+        StringBuilder sb = new StringBuilder(5 + 4);
+        sb.append(this.store())
+          .append("_")
+          .append(HugeType.OLAP.string())
+          .append("_")
+          .append(id.asLong());
+        return sb.toString().toLowerCase();
+    }
+
     // Increase next id for specific type
     public void increaseCounter(HugeType type, long increment);
 
     // Get current counter for a specific type
     public long getCounter(HugeType type);
+
+    public default void createOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.createOlapTable()");
+    }
+
+    public default void checkAndRegisterOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.checkAndRegisterOlapTable()");
+    }
+
+    public default void clearOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.clearOlapTable()");
+    }
+
+    public default void removeOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.removeOlapTable()");
+    }
 
     public default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");

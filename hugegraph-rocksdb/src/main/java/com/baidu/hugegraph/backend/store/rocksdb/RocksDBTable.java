@@ -256,6 +256,10 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), start, end, type);
     }
 
+    public boolean isOlap() {
+        return false;
+    }
+
     protected static final BackendEntryIterator newEntryIterator(
                                                 BackendColumnIterator cols,
                                                 Query query) {

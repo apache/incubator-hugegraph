@@ -38,10 +38,16 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
                                                Cloneable {
 
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
-    public static final int NEXT_PRIMITIVE_SYS_ID = 7;
+    public static final int NEXT_PRIMITIVE_SYS_ID = 8;
 
     public static final Id NONE_ID = IdGenerator.ZERO;
+
     public static final String UNDEF = "~undefined";
+
+    // OLAP_ID means all of vertex label ids
+    public static final Id OLAP_ID = IdGenerator.of(-7);
+    // OLAP means all of vertex label names
+    public static final String OLAP = "~olap";
 
     protected final HugeGraph graph;
 
@@ -164,5 +170,49 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
         E.checkArgument(Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE,
                         "Schema id is out of bound: %s", l);
         return (int) l;
+    }
+
+    public static class TaskWithSchema {
+
+        private SchemaElement schemaElement;
+        private Id task;
+
+        public TaskWithSchema(SchemaElement schemaElement, Id task) {
+            E.checkNotNull(schemaElement, "schema element");
+            this.schemaElement = schemaElement;
+            this.task = task;
+        }
+
+        public void propertyKey(PropertyKey propertyKey) {
+            E.checkNotNull(propertyKey, "property key");
+            this.schemaElement = propertyKey;
+        }
+
+        public void indexLabel(IndexLabel indexLabel) {
+            E.checkNotNull(indexLabel, "index label");
+            this.schemaElement = indexLabel;
+        }
+
+        public PropertyKey propertyKey() {
+            E.checkState(this.schemaElement instanceof PropertyKey,
+                         "Expect property key, but actual schema type is " +
+                         "'%s'", this.schemaElement.getClass());
+            return (PropertyKey) this.schemaElement;
+        }
+
+        public IndexLabel indexLabel() {
+            E.checkState(this.schemaElement instanceof IndexLabel,
+                         "Expect index label, but actual schema type is " +
+                         "'%s'", this.schemaElement.getClass());
+            return (IndexLabel) this.schemaElement;
+        }
+
+        public SchemaElement schemaElement() {
+            return this.schemaElement;
+        }
+
+        public Id task() {
+            return this.task;
+        }
     }
 }

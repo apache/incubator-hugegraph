@@ -34,6 +34,7 @@ import com.baidu.hugegraph.type.HugeType;
 public interface GraphSerializer {
 
     public BackendEntry writeVertex(HugeVertex vertex);
+    public BackendEntry writeOlapVertex(HugeVertex vertex);
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
     public HugeVertex readVertex(HugeGraph graph, BackendEntry entry);
 

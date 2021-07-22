@@ -41,6 +41,7 @@ import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
@@ -146,6 +147,32 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
+    public String writeTaskWithSchema(
+                  SchemaElement.TaskWithSchema taskWithSchema) {
+        StringBuilder builder = new StringBuilder();
+        long id = taskWithSchema.task() == null ?
+                  0L : taskWithSchema.task().asLong();
+        SchemaElement schemaElement = taskWithSchema.schemaElement();
+        String type;
+        String schema;
+        if (schemaElement instanceof PropertyKey) {
+            type = "property_key";
+            schema = this.writePropertyKey((PropertyKey) schemaElement);
+        } else if (schemaElement instanceof IndexLabel) {
+            type = "index_label";
+            schema = this.writeIndexlabel((IndexLabel) schemaElement);
+        } else {
+            throw new HugeException("Invalid schema element '%s' in " +
+                                    "TaskWithSchema, only support " +
+                                    "[PropertyKey, IndexLabel]", schemaElement);
+        }
+        return builder.append("{\"").append(type).append("\": ")
+                      .append(schema)
+                      .append(", \"task_id\": ").append(id).append("}")
+                      .toString();
+    }
+
+    @Override
     public String writePropertyKeys(List<PropertyKey> propertyKeys) {
         return writeList("propertykeys", propertyKeys);
     }
@@ -178,16 +205,6 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeIndexlabels(List<IndexLabel> indexLabels) {
         return writeList("indexlabels", indexLabels);
-    }
-
-    @Override
-    public String writeCreatedIndexLabel(IndexLabel.CreatedIndexLabel cil) {
-        StringBuilder builder = new StringBuilder();
-        long id = cil.task() == null ? 0L : cil.task().asLong();
-        return builder.append("{\"index_label\": ")
-                      .append(this.writeIndexlabel(cil.indexLabel()))
-                      .append(", \"task_id\": ").append(id).append("}")
-                      .toString();
     }
 
     @Override

@@ -37,7 +37,7 @@ import com.baidu.hugegraph.type.Propfiable;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 
@@ -46,14 +46,14 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private ReadFrequency readFrequency;
+    private WriteType writeType;
 
     public PropertyKey(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.readFrequency = ReadFrequency.OLTP;
+        this.writeType = WriteType.OLTP;
     }
 
     @Override
@@ -85,12 +85,20 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         this.aggregateType = aggregateType;
     }
 
-    public void readFrequency(ReadFrequency readFrequency) {
-        this.readFrequency = readFrequency;
+    public void writeType(WriteType writeType) {
+        this.writeType = writeType;
     }
 
-    public ReadFrequency readFrequency() {
-        return this.readFrequency;
+    public WriteType writeType() {
+        return this.writeType;
+    }
+
+    public boolean oltp() {
+        return this.writeType.oltp();
+    }
+
+    public boolean olap() {
+        return this.writeType.olap();
     }
 
     @Override
@@ -120,7 +128,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                this.dataType == other.dataType() &&
                this.cardinality == other.cardinality() &&
                this.aggregateType == other.aggregateType() &&
-               this.readFrequency == other.readFrequency();
+               this.writeType == other.writeType();
     }
 
     public String clazz() {
@@ -348,6 +356,8 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
     public interface Builder extends SchemaBuilder<PropertyKey> {
 
+        TaskWithSchema createWithTask();
+
         Builder asText();
 
         Builder asInt();
@@ -386,7 +396,7 @@ public class PropertyKey extends SchemaElement implements Propfiable {
 
         Builder calcList();
 
-        Builder readFrequency(ReadFrequency readFrequency);
+        Builder writeType(WriteType writeType);
 
         Builder cardinality(Cardinality cardinality);
 

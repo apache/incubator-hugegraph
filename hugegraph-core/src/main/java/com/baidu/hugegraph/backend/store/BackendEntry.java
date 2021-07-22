@@ -90,11 +90,16 @@ public interface BackendEntry extends Idfiable {
     public void columns(BackendColumn... columns);
 
     public void merge(BackendEntry other);
+    public boolean mergable(BackendEntry other);
 
     public void clear();
 
     public default boolean belongToMe(BackendColumn column) {
         return Bytes.prefixWith(column.name, id().asBytes());
+    }
+
+    public default boolean olap() {
+        return false;
     }
 
     public interface BackendIterator<T> extends Iterator<T> {

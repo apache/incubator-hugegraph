@@ -336,4 +336,88 @@ public class RocksDBTables {
             super(database, TABLE);
         }
     }
+
+    public static class OlapTable extends RocksDBTable {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapTable(String database, Id id) {
+            super(database, joinTableName(TABLE, id.asString()));
+        }
+
+        @Override
+        protected BackendColumnIterator queryById(Session session, Id id) {
+            return this.getById(session, id);
+        }
+
+        @Override
+        public boolean isOlap() {
+            return true;
+        }
+    }
+
+    public static class OlapSecondaryIndex extends SecondaryIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapSecondaryIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapSecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeIntIndex extends RangeIntIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeIntIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeIntIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeLongIndex extends RangeLongIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeLongIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeLongIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeFloatIndex extends RangeFloatIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeFloatIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeFloatIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeDoubleIndex extends RangeDoubleIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeDoubleIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeDoubleIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
 }

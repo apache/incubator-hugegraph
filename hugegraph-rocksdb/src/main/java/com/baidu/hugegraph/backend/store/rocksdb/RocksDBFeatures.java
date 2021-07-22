@@ -138,6 +138,6 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsOlapProperties() {
-        return false;
+        return true;
     }
 }

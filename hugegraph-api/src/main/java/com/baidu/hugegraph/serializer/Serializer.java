@@ -33,6 +33,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 
@@ -63,7 +64,7 @@ public interface Serializer {
 
     public String writeIndexlabels(List<IndexLabel> indexLabels);
 
-    public String writeCreatedIndexLabel(IndexLabel.CreatedIndexLabel cil);
+    public String writeTaskWithSchema(SchemaElement.TaskWithSchema tws);
 
     public String writeVertex(Vertex v);
 

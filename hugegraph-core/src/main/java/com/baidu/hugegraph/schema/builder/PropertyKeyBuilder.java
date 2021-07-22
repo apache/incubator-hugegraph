@@ -20,23 +20,27 @@
 package com.baidu.hugegraph.schema.builder;
 
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 
 public class PropertyKeyBuilder extends AbstractBuilder
@@ -47,7 +51,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private DataType dataType;
     private Cardinality cardinality;
     private AggregateType aggregateType;
-    private ReadFrequency readFrequency;
+    private WriteType writeType;
     private boolean checkExist;
     private Userdata userdata;
 
@@ -60,7 +64,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = DataType.TEXT;
         this.cardinality = Cardinality.SINGLE;
         this.aggregateType = AggregateType.NONE;
-        this.readFrequency = ReadFrequency.OLTP;
+        this.writeType = WriteType.OLTP;
         this.userdata = new Userdata();
         this.checkExist = true;
     }
@@ -74,7 +78,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.dataType = copy.dataType();
         this.cardinality = copy.cardinality();
         this.aggregateType = copy.aggregateType();
-        this.readFrequency = copy.readFrequency();
+        this.writeType = copy.writeType();
         this.userdata = new Userdata(copy.userdata());
         this.checkExist = false;
     }
@@ -87,37 +91,10 @@ public class PropertyKeyBuilder extends AbstractBuilder
         propertyKey.dataType(this.dataType);
         propertyKey.cardinality(this.cardinality);
         propertyKey.aggregateType(this.aggregateType);
-        propertyKey.readFrequency(this.readFrequency);
+        propertyKey.writeType(this.writeType);
         propertyKey.userdata(this.userdata);
         return propertyKey;
     }
-
-    @Override
-    public PropertyKey create() {
-        HugeType type = HugeType.PROPERTY_KEY;
-        this.checkSchemaName(this.name);
-
-        return this.lockCheckAndCreateSchema(type, this.name, name -> {
-            PropertyKey propertyKey = this.propertyKeyOrNull(name);
-            if (propertyKey != null) {
-                if (this.checkExist || !hasSameProperties(propertyKey)) {
-                    throw new ExistedException(type, name);
-                }
-                return propertyKey;
-            }
-            this.checkSchemaIdIfRestoringMode(type, this.id);
-
-            Userdata.check(this.userdata, Action.INSERT);
-            this.checkAggregateType();
-            this.checkOlap();
-
-            propertyKey = this.build();
-            assert propertyKey.name().equals(name);
-            this.graph().addPropertyKey(propertyKey);
-            return propertyKey;
-        });
-    }
-
 
     /**
      * Check whether this has same properties with propertyKey.
@@ -142,12 +119,68 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.readFrequency != propertyKey.readFrequency()) {
+        if (this.writeType != propertyKey.writeType()) {
             return false;
         }
 
         // all properties are same, return true.
         return true;
+    }
+
+    @Override
+    public SchemaElement.TaskWithSchema createWithTask() {
+        HugeType type = HugeType.PROPERTY_KEY;
+        this.checkSchemaName(this.name);
+
+        return this.lockCheckAndCreateSchema(type, this.name, name -> {
+            PropertyKey propertyKey = this.propertyKeyOrNull(name);
+            if (propertyKey != null) {
+                if (this.checkExist || !hasSameProperties(propertyKey)) {
+                    throw new ExistedException(type, name);
+                }
+                return new SchemaElement.TaskWithSchema(propertyKey,
+                                                        IdGenerator.ZERO);
+            }
+            this.checkSchemaIdIfRestoringMode(type, this.id);
+
+            Userdata.check(this.userdata, Action.INSERT);
+            this.checkAggregateType();
+            this.checkOlap();
+
+            propertyKey = this.build();
+            assert propertyKey.name().equals(name);
+            Id id = this.graph().addPropertyKey(propertyKey);
+            return new SchemaElement.TaskWithSchema(propertyKey, id);
+        });
+    }
+
+    @Override
+    public PropertyKey create() {
+        // Create index label async
+        SchemaElement.TaskWithSchema propertyKeyWithTask =
+                                     this.createWithTask();
+
+        Id task = propertyKeyWithTask.task();
+        if (task == IdGenerator.ZERO) {
+            /*
+             * Task id will be IdGenerator.ZERO if creating property key
+             * already exists or creating property key is oltp
+             */
+            return propertyKeyWithTask.propertyKey();
+        }
+
+        // Wait task completed (change to sync mode)
+        HugeGraph graph = this.graph();
+        long timeout = graph.option(CoreOptions.TASK_WAIT_TIMEOUT);
+        try {
+            graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
+        } catch (TimeoutException e) {
+            throw new HugeException(
+                      "Failed to wait property key create task completed", e);
+        }
+
+        // Return property key without task-info
+        return propertyKeyWithTask.propertyKey();
     }
 
     @Override
@@ -186,8 +219,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         if (propertyKey == null) {
             return null;
         }
-        this.graph().removePropertyKey(propertyKey.id());
-        return null;
+        return this.graph().removePropertyKey(propertyKey.id());
     }
 
     @Override
@@ -313,8 +345,8 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     @Override
-    public PropertyKey.Builder readFrequency(ReadFrequency readFrequency) {
-        this.readFrequency = readFrequency;
+    public PropertyKey.Builder writeType(WriteType writeType) {
+        this.writeType = writeType;
         return this;
     }
 
@@ -410,7 +442,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     }
 
     private void checkOlap() {
-        if (this.readFrequency == ReadFrequency.OLTP) {
+        if (this.writeType == WriteType.OLTP) {
             return;
         }
 
@@ -422,8 +454,16 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         if (!this.aggregateType.isNone()) {
             throw new NotAllowException(
-                      "Not allow to set aggregate type '%s' for olap " +
+                      "Not allowed to set aggregate type '%s' for olap " +
                       "property key '%s'", this.aggregateType, this.name);
+        }
+
+        if (this.writeType == WriteType.OLAP_RANGE &&
+            !this.dataType.isNumber() && !this.dataType.isDate()) {
+            throw new NotAllowException(
+                      "Not allowed to set write type to OLAP_RANGE for " +
+                      "property key '%s' with data type '%s'",
+                      this.name, this.dataType);
         }
     }
 }

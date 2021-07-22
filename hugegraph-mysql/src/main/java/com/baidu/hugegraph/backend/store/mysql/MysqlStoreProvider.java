@@ -63,6 +63,7 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
          *             instead of sortable B64
          * [1.9] #295: support ttl for vertex and edge
          * [1.10] #1333: support read frequency for property key
+         * [1.11] #1506: rename read frequency to write type
          */
         return "1.10";
     }

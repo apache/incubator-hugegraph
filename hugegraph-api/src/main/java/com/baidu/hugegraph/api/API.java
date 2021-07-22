@@ -57,6 +57,7 @@ public class API {
 
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
+    public static final String ACTION_CLEAR = "clear";
 
     private static final Meter succeedMeter =
                          MetricsUtil.registerMeter(API.class, "commit-succeed");

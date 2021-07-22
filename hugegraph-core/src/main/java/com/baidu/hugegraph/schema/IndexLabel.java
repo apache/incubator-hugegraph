@@ -130,6 +130,10 @@ public class IndexLabel extends SchemaElement {
                              other.graph.mapPkId2Name(other.indexFields));
     }
 
+    public boolean olap() {
+        return OLAP_ID.equals(this.baseValue);
+    }
+
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
     private static final int VL_IL_ID = -1;
     private static final int EL_IL_ID = -2;
@@ -234,7 +238,7 @@ public class IndexLabel extends SchemaElement {
 
     public interface Builder extends SchemaBuilder<IndexLabel> {
 
-        CreatedIndexLabel createWithTask();
+        TaskWithSchema createWithTask();
 
         Id rebuild();
 
@@ -265,32 +269,4 @@ public class IndexLabel extends SchemaElement {
         Builder rebuild(boolean rebuild);
     }
 
-    public static class CreatedIndexLabel {
-
-        private IndexLabel indexLabel;
-        private Id task;
-
-        public CreatedIndexLabel(IndexLabel indexLabel, Id task) {
-            E.checkNotNull(indexLabel, "index label");
-            this.indexLabel = indexLabel;
-            this.task = task;
-        }
-
-        public void indexLabel(IndexLabel indexLabel) {
-            E.checkNotNull(indexLabel, "index label");
-            this.indexLabel = indexLabel;
-        }
-
-        public IndexLabel indexLabel() {
-            return this.indexLabel;
-        }
-
-        public void task(Id task) {
-            this.task = task;
-        }
-
-        public Id task() {
-            return this.task;
-        }
-    }
 }

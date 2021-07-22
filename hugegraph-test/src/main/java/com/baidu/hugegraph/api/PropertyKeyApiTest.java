@@ -23,6 +23,8 @@ import javax.ws.rs.core.Response;
 
 import org.junit.Test;
 
+import com.baidu.hugegraph.testutil.Assert;
+
 public class PropertyKeyApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/schema/propertykeys/";
@@ -83,6 +85,8 @@ public class PropertyKeyApiTest extends BaseApiTest {
 
         String name = "id";
         r = client().delete(path, name);
-        assertResponseStatus(204, r);
+        String content = assertResponseStatus(202, r);
+        int task = assertJsonContains(content, "task_id");
+        Assert.assertEquals(0, task);
     }
 }

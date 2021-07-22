@@ -42,6 +42,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IndexType;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.google.common.collect.ImmutableList;
 
@@ -1179,6 +1180,60 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(NotFoundException.class, () -> {
             schema.getIndexLabel("personByCity");
+        });
+    }
+
+    @Test
+    public void testAddIndexLabelWithOlapPropertyKey() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        super.initPropertyKeys();
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person").properties("name", "age", "city")
+              .primaryKeys("name").create();
+
+        schema.propertyKey("pagerank")
+              .asDouble().valueSingle()
+              .writeType(WriteType.OLAP_RANGE)
+              .ifNotExist().create();
+        schema.propertyKey("wcc")
+              .asText().valueSingle()
+              .writeType(WriteType.OLAP_SECONDARY)
+              .ifNotExist().create();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByPagerankAndWcc").onV("person")
+                  .secondary().by("pagerank", "wcc").ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("Can't build index on multiple olap " +
+                                  "properties,", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByPagerankAndCity").onV("person")
+                  .secondary().by("pagerank", "city").ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("Can't build index on olap properties and " +
+                                  "oltp properties in one index label,",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByWcc").onV("person")
+                  .search().by("wcc").ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("Only secondary and range index can be " +
+                                  "built on olap property,", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            schema.indexLabel("personByPagerank").onV("person")
+                  .shard().by("pagerank").ifNotExist().create();
+        }, e -> {
+            Assert.assertContains("Only secondary and range index can be " +
+                                  "built on olap property,", e.getMessage());
         });
     }
 

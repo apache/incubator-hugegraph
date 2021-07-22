@@ -601,7 +601,18 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched(prefix = "graph")
     public HugeVertex constructVertex(boolean verifyVL, Object... keyValues) {
         HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
-
+        if (possibleOlapVertex(elemKeys)) {
+            Id id = HugeVertex.getIdValue(elemKeys.id());
+            HugeVertex vertex = HugeVertex.create(this, id,
+                                                  VertexLabel.OLAP_VL);
+            ElementHelper.attachProperties(vertex, keyValues);
+            Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
+                                                       .iterator();
+            assert iterator.hasNext();
+            if (iterator.next().propertyKey().olap()) {
+                return vertex;
+            }
+        }
         VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label(),
                                                         verifyVL);
         Id id = HugeVertex.getIdValue(elemKeys.id());
@@ -626,6 +637,11 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         return vertex;
+    }
+
+    private boolean possibleOlapVertex(HugeElement.ElementKeys elemKeys) {
+        return elemKeys.id() != null && elemKeys.label() == null &&
+               elemKeys.keys().size() == 1;
     }
 
     @Watched(prefix = "graph")

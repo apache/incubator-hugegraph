@@ -46,6 +46,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -77,9 +78,9 @@ public class IndexLabelAPI extends API {
 
         HugeGraph g = graph(manager, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
-        IndexLabel.CreatedIndexLabel il = builder.createWithTask();
+        SchemaElement.TaskWithSchema il = builder.createWithTask();
         il.indexLabel(mapIndexLabel(il.indexLabel()));
-        return manager.serializer(g).writeCreatedIndexLabel(il);
+        return manager.serializer(g).writeTaskWithSchema(il);
     }
 
     @PUT

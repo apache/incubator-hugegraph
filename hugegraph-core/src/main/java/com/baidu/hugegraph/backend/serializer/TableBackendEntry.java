@@ -131,6 +131,7 @@ public class TableBackendEntry implements BackendEntry {
 
     // NOTE: selfChanged is false when the row has not changed but subRows has.
     private boolean selfChanged = true;
+    private boolean olap = false;
 
     public TableBackendEntry(Id id) {
         this(null, id);
@@ -188,6 +189,14 @@ public class TableBackendEntry implements BackendEntry {
 
     public boolean selfChanged() {
         return this.selfChanged;
+    }
+
+    public void olap(boolean olap) {
+        this.olap = olap;
+    }
+
+    public boolean olap() {
+        return this.olap;
     }
 
     public Row row() {
@@ -261,6 +270,23 @@ public class TableBackendEntry implements BackendEntry {
     @Override
     public void merge(BackendEntry other) {
         throw new NotImplementedException("Not supported by table backend");
+    }
+
+    @Override
+    public boolean mergable(BackendEntry other) {
+        if (!(other instanceof TableBackendEntry)) {
+            return false;
+        }
+        TableBackendEntry tableEntry = (TableBackendEntry) other;
+        Object selfId = this.column(HugeKeys.ID);
+        Object otherId = tableEntry.column(HugeKeys.ID);
+        if (!selfId.equals(otherId)) {
+            return false;
+        }
+        Id key = tableEntry.subId();
+        Object value = tableEntry.row().column(HugeKeys.PROPERTY_VALUE);
+        this.row().column(HugeKeys.PROPERTIES, key.asLong(), value);
+        return true;
     }
 
     @Override

@@ -37,7 +37,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public String type() {
-        return SchemaCallable.REMOVE_SCHEMA;
+        return REMOVE_SCHEMA;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
         return null;
     }
 
-    protected static void removeVertexLabel(HugeGraphParams graph, Id id) {
+    private static void removeVertexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         VertexLabel vertexLabel = schemaTx.getVertexLabel(id);

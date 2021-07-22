@@ -17,51 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type.define;
+package com.baidu.hugegraph.job.schema;
 
-public enum SchemaStatus implements SerialEnum {
+import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.schema.PropertyKey;
 
-    CREATED(1, "created"),
+public class OlapPropertyKeyCreateCallable extends SchemaCallable {
 
-    CREATING(2, "creating"),
-
-    REBUILDING(3, "rebuilding"),
-
-    DELETING(4, "deleting"),
-
-    UNDELETED(5, "undeleted"),
-
-    INVALID(6, "invalid"),
-
-    CLEARING(7, "clearing");
-
-    private byte code = 0;
-    private String name = null;
-
-    static {
-        SerialEnum.register(SchemaStatus.class);
-    }
-
-    SchemaStatus(int code, String name) {
-        assert code < 256;
-        this.code = (byte) code;
-        this.name = name;
-    }
-
-    public boolean ok() {
-        return this == CREATED;
-    }
-
-    public boolean deleting() {
-        return this == DELETING || this == UNDELETED;
+    @Override
+    public String type() {
+        return CREATE_OLAP;
     }
 
     @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
+    public Object execute() {
+        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        PropertyKey propertyKey = schemaTx.getPropertyKey(this.schemaId());
+        schemaTx.createIndexLabelForOlapPk(propertyKey);
+        schemaTx.createOlapPk(this.schemaId());
+        return null;
     }
 }

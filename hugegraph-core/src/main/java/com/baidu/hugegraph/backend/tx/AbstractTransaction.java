@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -39,11 +41,14 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.collection.IdSet;
 import com.google.common.util.concurrent.RateLimiter;
 
 public abstract class AbstractTransaction implements Transaction {
@@ -154,10 +159,29 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.beforeRead();
         try {
+            this.injectOlapPkIfNeeded(squery);
             return new QueryResults<>(this.store.query(squery), query);
         } finally {
             this.afterRead(); // TODO: not complete the iteration currently
         }
+    }
+
+    private void injectOlapPkIfNeeded(Query query) {
+        if (!query.resultType().isVertex() ||
+            !this.graph.readMode().showOlap()) {
+            return;
+        }
+        /*
+         * Control olap access by auth, only accessible olap property key
+         * will be queried
+         */
+        Set<Id> olapPks = new IdSet(CollectionType.EC);
+        for (PropertyKey propertyKey : this.graph.graph().propertyKeys()) {
+            if (propertyKey.olap()) {
+                olapPks.add(propertyKey.id());
+            }
+        }
+        query.olapPks(olapPks);
     }
 
     @Watched(prefix = "tx")

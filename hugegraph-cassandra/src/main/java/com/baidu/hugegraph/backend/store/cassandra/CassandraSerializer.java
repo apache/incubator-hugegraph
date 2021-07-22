@@ -37,7 +37,9 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -56,6 +58,16 @@ public class CassandraSerializer extends TableSerializer {
     @Override
     protected TableBackendEntry newBackendEntry(TableBackendEntry.Row row) {
         return new CassandraBackendEntry(row);
+    }
+
+    @Override
+    protected TableBackendEntry newBackendEntry(HugeIndex index) {
+        TableBackendEntry backendEntry = newBackendEntry(index.type(),
+                                                         index.id());
+        if (index.indexLabel().olap()) {
+            backendEntry.olap(true);
+        }
+        return backendEntry;
     }
 
     @Override
@@ -128,6 +140,21 @@ public class CassandraSerializer extends TableSerializer {
             Id pkeyId = this.toId(prop.getKey());
             this.parseProperty(pkeyId, prop.getValue(), element);
         }
+    }
+
+    @Override
+    public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        CassandraBackendEntry entry = newBackendEntry(HugeType.OLAP,
+                                                      vertex.id());
+        entry.column(HugeKeys.ID, this.writeId(vertex.id()));
+        HugeProperty<?> prop = vertex.getProperties().values()
+                                     .iterator().next();
+        PropertyKey pk = prop.propertyKey();
+        entry.subId(pk.id());
+        entry.column(HugeKeys.PROPERTY_VALUE,
+                     this.writeProperty(pk, prop.value()));
+        entry.olap(true);
+        return entry;
     }
 
     @Override
