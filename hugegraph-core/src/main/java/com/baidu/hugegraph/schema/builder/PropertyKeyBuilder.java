@@ -217,7 +217,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     public Id remove() {
         PropertyKey propertyKey = this.propertyKeyOrNull(this.name);
         if (propertyKey == null) {
-            return null;
+            return IdGenerator.ZERO;
         }
         return this.graph().removePropertyKey(propertyKey.id());
     }
