@@ -156,32 +156,28 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void createOlapTable(HugeGraph graph, Id pkId) {
-        String g = ((HugeConfig) graph.configuration())
-                   .get(CoreOptions.STORE_GRAPH);
+        String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
         store.createOlapTable(pkId);
     }
 
     @Override
     public void initAndRegisterOlapTable(HugeGraph graph, Id pkId) {
-        String g = ((HugeConfig) graph.configuration())
-                   .get(CoreOptions.STORE_GRAPH);
+        String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
         store.checkAndRegisterOlapTable(pkId);
     }
 
     @Override
     public void clearOlapTable(HugeGraph graph, Id pkId) {
-        String g = ((HugeConfig) graph.configuration())
-                   .get(CoreOptions.STORE_GRAPH);
+        String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
         store.clearOlapTable(pkId);
     }
 
     @Override
     public void removeOlapTable(HugeGraph graph, Id pkId) {
-        String g = ((HugeConfig) graph.configuration())
-                   .get(CoreOptions.STORE_GRAPH);
+        String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
         store.removeOlapTable(pkId);
     }
