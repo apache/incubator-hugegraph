@@ -321,7 +321,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         if (this.removeLeftIndexOnOverwrite) {
-            this.removeLeftIndex(addedVertices);
+            this.removeLeftIndexIfNeeded(addedVertices);
         }
 
         // Do vertex update
@@ -356,25 +356,6 @@ public class GraphTransaction extends IndexableTransaction {
             // Update index of edge
             this.indexTx.updateEdgeIndex(e, false);
             this.indexTx.updateLabelIndex(e, false);
-        }
-    }
-
-    private void removeLeftIndex(Map<Id, HugeVertex> vertices) {
-        Set<Id> ids = vertices.keySet();
-        if (ids.isEmpty()) {
-            return;
-        }
-        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
-        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
-        try {
-            while (results.hasNext()) {
-                HugeVertex existedVertex = results.next();
-                HugeVertex newVertex = vertices.get(existedVertex.id());
-                checkLabel(existedVertex, newVertex);
-                this.indexTx.updateVertexIndex(existedVertex, true);
-            }
-        } finally {
-            CloseableIterator.closeIterator(results);
         }
     }
 
@@ -1575,7 +1556,14 @@ public class GraphTransaction extends IndexableTransaction {
             }
             HugeVertex existedVertex = results.next();
             HugeVertex newVertex = vertices.get(existedVertex.id());
-            checkLabel(existedVertex, newVertex);
+            if (!existedVertex.label().equals(newVertex.label())) {
+                throw new HugeException(
+                          "The newly added vertex with id:'%s' label:'%s' " +
+                          "is not allowed to insert, because already exist " +
+                          "a vertex with same id and different label:'%s'",
+                          newVertex.id(), newVertex.label(),
+                          existedVertex.label());
+            }
         } finally {
             CloseableIterator.closeIterator(results);
         }
@@ -1617,6 +1605,23 @@ public class GraphTransaction extends IndexableTransaction {
         } catch (Throwable e) {
             this.locksTable.unlock();
             throw e;
+        }
+    }
+
+    private void removeLeftIndexIfNeeded(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = vertices.keySet();
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        try {
+            while (results.hasNext()) {
+                HugeVertex existedVertex = results.next();
+                this.indexTx.updateVertexIndex(existedVertex, true);
+            }
+        } finally {
+            CloseableIterator.closeIterator(results);
         }
     }
 
@@ -1665,7 +1670,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
-            if (cq.elementHasLeftIndex(elem.id())) {
+            if (cq.existLeftIndex(elem.id())) {
                 /*
                  * Both have correct and left index, wo should return true
                  * but also needs to cleaned up left index
@@ -2040,18 +2045,6 @@ public class GraphTransaction extends IndexableTransaction {
                     CloseableIterator.closeIterator(iter);
                 }
             } while (page != null);
-        }
-    }
-
-    private static void checkLabel(HugeVertex existedVertex,
-                                   HugeVertex newVertex) {
-        if (!existedVertex.label().equals(newVertex.label())) {
-            throw new HugeException(
-                      "The newly added vertex with id:'%s' label:'%s' " +
-                      "is not allowed to insert, because already exist " +
-                      "a vertex with same id and different label:'%s'",
-                      newVertex.id(), newVertex.label(),
-                      existedVertex.label());
         }
     }
 }

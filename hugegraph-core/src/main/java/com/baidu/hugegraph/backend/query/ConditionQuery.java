@@ -170,7 +170,7 @@ public final class ConditionQuery extends IdQuery {
         this.element2IndexValueMap.removeElementLeftIndex(elementId);
     }
 
-    public boolean elementHasLeftIndex(Id elementId) {
+    public boolean existLeftIndex(Id elementId) {
         return this.getElementLeftIndex(elementId) != null;
     }
 
