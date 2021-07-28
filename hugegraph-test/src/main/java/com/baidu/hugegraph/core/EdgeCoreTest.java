@@ -3186,8 +3186,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -3374,8 +3373,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "lazyLoadAdjacentVertex", false);
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 

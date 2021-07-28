@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
@@ -126,6 +127,7 @@ public class GraphTransaction extends IndexableTransaction {
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
     private final boolean ignoreInvalidEntry;
+    private final boolean optimizeAggrByIndex;
     private final int commitPartOfAdjacentEdges;
     private final int batchSize;
     private final int pageSize;
@@ -152,6 +154,8 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
              conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
+        this.optimizeAggrByIndex =
+             conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -538,21 +542,30 @@ public class GraphTransaction extends IndexableTransaction {
             return super.queryNumber(query);
         }
 
+        Aggregate aggregate = query.aggregateNotNull();
+
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean indexQuery = q.getClass() == IdQuery.class;
             OptimizedType optimized = ((ConditionQuery) query).optimized();
             Number result;
             if (!indexQuery) {
                 result = super.queryNumber(q);
-            } else if (optimized == OptimizedType.INDEX) {
-                // The number of ids means results size (assume no left index)
-                result = q.ids().size();
             } else {
-                assert optimized == OptimizedType.INDEX_FILTER;
-                assert q.resultType().isVertex() || q.resultType().isEdge();
-                result = IteratorUtils.count(q.resultType().isVertex() ?
-                                             this.queryVertices(q) :
-                                             this.queryEdges(q));
+                E.checkArgument(aggregate.func() == AggregateFunc.COUNT,
+                                "The %s operator on index is not supported now",
+                                aggregate.func().string());
+                if (this.optimizeAggrByIndex &&
+                    optimized == OptimizedType.INDEX) {
+                    // The ids size means results count (assume no left index)
+                    result = q.ids().size();
+                } else {
+                    assert optimized == OptimizedType.INDEX_FILTER ||
+                           optimized == OptimizedType.INDEX;
+                    assert q.resultType().isVertex() || q.resultType().isEdge();
+                    result = IteratorUtils.count(q.resultType().isVertex() ?
+                                                 this.queryVertices(q) :
+                                                 this.queryEdges(q));
+                }
             }
             return new QueryResults<>(IteratorUtils.of(result), q);
         });
@@ -560,7 +573,6 @@ public class GraphTransaction extends IndexableTransaction {
         QueryResults<Number> results = queries.empty() ?
                                        QueryResults.empty() :
                                        queries.fetch(this.pageSize);
-        Aggregate aggregate = query.aggregateNotNull();
         return aggregate.reduce(results.iterator());
     }
 

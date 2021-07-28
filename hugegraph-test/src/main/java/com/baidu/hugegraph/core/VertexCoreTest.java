@@ -5389,6 +5389,90 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryCountWithOptimizeByIndex() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .secondary().by("lived").create();
+        graph.schema().indexLabel("authorByAge").onV("author")
+             .range().by("age").create();
+        init10Vertices();
+
+        initPersonIndex(true);
+        init100Persons();
+
+        boolean old = Whitebox.getInternalState(params().graphTransaction(),
+                                                "optimizeAggrByIndex");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "optimizeAggrByIndex", true);
+        try {
+            GraphTraversalSource g = graph.traversal();
+
+            Assert.assertEquals(110L, g.V().count().next());
+
+            Assert.assertEquals(2L, g.V().hasLabel("author").count().next());
+            Assert.assertEquals(3L, g.V().hasLabel("language").count().next());
+            Assert.assertEquals(5L, g.V().hasLabel("book").count().next());
+            Assert.assertEquals(8L, g.V().hasLabel("book", "language")
+                                         .count().next());
+
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("lived", "California")
+                                         .count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", 61).count().next());
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .has("age", P.gte(61)).count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62)).count().next());
+
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62))
+                                         .has("lived", "California")
+                                         .count().next());
+            Assert.assertEquals(0L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62))
+                                         .has("lived", "Canadian")
+                                         .count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(63))
+                                         .has("lived", "Canadian")
+                                         .count().next());
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .has("age", P.lt(63))
+                                         .has("lived", P.within("California",
+                                                                "Canadian"))
+                                         .count().next());
+
+            Assert.assertEquals(9L, g.V().hasLabel("person")
+                                          .has("age", 8)
+                                          .count().next());
+            Assert.assertEquals(50L, g.V().hasLabel("person")
+                                          .has("city", "Beijing")
+                                          .count().next());
+            Assert.assertEquals(5L, g.V().hasLabel("person")
+                                         .has("age", 8)
+                                         .has("city", "Beijing")
+                                         .count().next());
+            Assert.assertEquals(3L, g.V().hasLabel("person")
+                                         .has("age", 8)
+                                         .has("city", "Beijing")
+                                         .limit(3).count().next());
+
+            Assert.assertEquals(110L, g.V().count().min().next());
+            Assert.assertEquals(5L, g.V().hasLabel("book").count().max().next());
+
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .values("age").count().next());
+            Assert.assertEquals(8L, g.V().hasLabel("author")
+                                         .values().count().next());
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "optimizeAggrByIndex", old);
+        }
+    }
+
+    @Test
     public void testAddVertexWithUniqueIndex() {
         SchemaManager schema = graph().schema();
         schema.vertexLabel("user")
