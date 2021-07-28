@@ -49,7 +49,7 @@ public abstract class BackendSessionPool {
         this.sessionCount = new AtomicInteger(0);
         this.sessions = new ConcurrentHashMap<>();
         this.reconnectDetectInterval = this.config.get(
-                                       CoreOptions.CONNECTION_DETECT_INTERVAL);
+                                       CoreOptions.STORE_CONN_DETECT_INTERVAL);
     }
 
     public HugeConfig config() {

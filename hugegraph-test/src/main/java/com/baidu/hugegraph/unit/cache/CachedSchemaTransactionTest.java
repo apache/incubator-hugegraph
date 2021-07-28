@@ -154,15 +154,13 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
                                                     "fake-pk-1"));
 
-        this.params.schemaEventHub().notify(Events.CACHE, "clear",
-                                            null, null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
         Assert.assertEquals("fake-pk-1",
                             cache.getPropertyKey(IdGenerator.of(1)).name());
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
 
-        this.params.schemaEventHub().notify(Events.CACHE, "clear",
-                                            null, null).get();
+        this.params.schemaEventHub().notify(Events.CACHE, "clear", null).get();
         Assert.assertEquals(IdGenerator.of(1),
                             cache.getPropertyKey("fake-pk-1").id());
         Assert.assertEquals("fake-pk-1",
