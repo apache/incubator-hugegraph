@@ -509,6 +509,31 @@ public class VertexCoreTest extends BaseCoreTest {
                      .next();
         // Debug stop here to see whether the left index be correctly determined
         Assert.assertEquals(testDataCount, count);
+
+        // mock test removeLeftIndexIfNeeded
+        boolean removeLeftIndexOnOverwrite =
+                Whitebox.getInternalState(params().graphTransaction(),
+                                          "removeLeftIndexOnOverwrite");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "removeLeftIndexOnOverwrite", true);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i * 3);
+        }
+
+        if (!removeLeftIndexOnOverwrite) {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "removeLeftIndexOnOverwrite", false);
+        }
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
     }
 
     @Test
