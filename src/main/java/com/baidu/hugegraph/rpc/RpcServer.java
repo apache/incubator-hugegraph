@@ -137,8 +137,8 @@ public class RpcServer {
                 }
             }
         }
-        this.configs.removeAllService();
         this.serverConfig.destroy();
+        this.configs.removeAllService();
     }
 
     private void checkEnabled() {

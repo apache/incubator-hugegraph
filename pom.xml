@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-rpc</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <name>hugegraph-rpc</name>
     <url>https://github.com/hugegraph/hugegraph-rpc</url>
