@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Singleton;
@@ -44,6 +45,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.graph.EdgeAPI;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -57,7 +59,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/kneighbor")
 @Singleton
@@ -132,18 +134,20 @@ public class KneighborAPI extends TraverserAPI {
                                                     request.limit);
         }
 
-        int size = results.size();
-        Set<Id> neighbors = request.countOnly ?
-                            ImmutableSet.of() : results.ids(request.limit);
+        long size = results.size();
+        if (request.limit != Query.NO_LIMIT && size > request.limit) {
+            size = request.limit;
+        }
+        List<Id> neighbors = request.countOnly ?
+                             ImmutableList.of() : results.ids(request.limit);
 
         HugeTraverser.PathSet paths = new HugeTraverser.PathSet();
         if (request.withPath) {
             paths.addAll(results.paths(request.limit));
         }
         Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (request.withVertex) {
-            Set<Id> ids = new HashSet<>();
-            ids.addAll(results.ids(request.limit));
+        if (request.withVertex && !request.countOnly) {
+            Set<Id> ids = new HashSet<>(neighbors);
             if (request.withPath) {
                 for (HugeTraverser.Path p : paths) {
                     ids.addAll(p.vertices());

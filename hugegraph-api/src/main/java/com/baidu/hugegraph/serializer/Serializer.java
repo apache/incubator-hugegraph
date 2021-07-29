@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -101,7 +100,7 @@ public interface Serializer {
     public String writeWeightedPaths(WeightedPaths paths,
                                      Iterator<Vertex> vertices);
 
-    public String writeNodesWithPath(String name, Set<Id> nodes, int size,
+    public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> iterator);
+                                     Iterator<Vertex> vertices);
 }

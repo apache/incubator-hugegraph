@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -311,9 +310,9 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeNodesWithPath(String name, Set<Id> nodes, int size,
+    public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> iterator) {
+                                     Iterator<Vertex> vertices) {
         List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
@@ -321,7 +320,7 @@ public class JsonSerializer implements Serializer {
 
         Map<String, Object> results;
         results = ImmutableMap.of(name, nodes, "size", size,
-                                  "paths", pathList, "vertices", iterator);
+                                  "paths", pathList, "vertices", vertices);
         return JsonUtil.toJson(results);
     }
 }
