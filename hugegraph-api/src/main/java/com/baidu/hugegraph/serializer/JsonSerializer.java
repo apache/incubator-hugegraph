@@ -52,7 +52,6 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class JsonSerializer implements Serializer {
 
@@ -312,20 +311,17 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeNodesWithPath(String name, Set<Id> nodes,
+    public String writeNodesWithPath(String name, Set<Id> nodes, int size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> iterator,
-                                     boolean countOnly) {
+                                     Iterator<Vertex> iterator) {
         List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
         }
 
         Map<String, Object> results;
-        results = ImmutableMap.of("size", nodes.size(),
-                                  name, countOnly ? ImmutableSet.of() : nodes,
-                                  "paths", pathList,
-                                  "vertices", iterator);
+        results = ImmutableMap.of(name, nodes, "size", size,
+                                  "paths", pathList, "vertices", iterator);
         return JsonUtil.toJson(results);
     }
 }

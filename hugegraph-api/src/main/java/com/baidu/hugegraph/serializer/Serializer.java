@@ -36,7 +36,6 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
-
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
@@ -102,8 +101,7 @@ public interface Serializer {
     public String writeWeightedPaths(WeightedPaths paths,
                                      Iterator<Vertex> vertices);
 
-    public String writeNodesWithPath(String name, Set<Id> nodes,
+    public String writeNodesWithPath(String name, Set<Id> nodes, int size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> iterator,
-                                     boolean countOnly);
+                                     Iterator<Vertex> iterator);
 }
