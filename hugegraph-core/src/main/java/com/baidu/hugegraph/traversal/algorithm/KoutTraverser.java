@@ -108,8 +108,8 @@ public class KoutTraverser extends OltpTraverser {
         checkLimit(limit);
         long[] depth = new long[1];
         depth[0] = maxDepth;
-        boolean concurrent = maxDepth >= this.concurrentDepth() &&
-                             step.direction() == Directions.BOTH;
+        boolean concurrent = maxDepth >= this.concurrentDepth();
+
         KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
                                               source, nearest);
 
