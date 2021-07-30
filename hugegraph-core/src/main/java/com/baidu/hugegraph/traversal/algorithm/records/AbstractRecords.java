@@ -42,7 +42,7 @@ public abstract class AbstractRecords implements Records {
     }
 
     @Watched
-    protected int code(Id id) {
+    protected final int code(Id id) {
         if (id.number()) {
             long l = id.asLong();
             if (0 <= l && l <= Integer.MAX_VALUE) {
@@ -55,22 +55,22 @@ public abstract class AbstractRecords implements Records {
     }
 
     @Watched
-    protected Id id(int code) {
+    protected final Id id(int code) {
         if (code >= 0) {
             return IdGenerator.of(code);
         }
         return this.idMapping.code2Object(-code);
     }
 
-    protected Record newRecord() {
+    protected final Record newRecord() {
         return RecordFactory.newRecord(this.type, this.concurrent);
     }
 
-    protected Record currentRecord() {
+    protected final Record currentRecord() {
         return this.currentRecord;
     }
 
-    protected void currentRecord(Record record) {
+    protected final void currentRecord(Record record) {
         this.currentRecord = record;
     }
 }

@@ -30,7 +30,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.records.KoutRecords;
-import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -110,8 +109,7 @@ public class KoutTraverser extends OltpTraverser {
         depth[0] = maxDepth;
         boolean concurrent = maxDepth >= this.concurrentDepth();
 
-        KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
-                                              source, nearest);
+        KoutRecords records = new KoutRecords(concurrent, source, nearest);
 
         Consumer<Id> consumer = v -> {
             if (this.reachLimit(limit, depth[0], records.size())) {
@@ -128,7 +126,7 @@ public class KoutTraverser extends OltpTraverser {
 
         while (depth[0]-- > 0) {
             records.startOneLayer(true);
-            traverseIds(records.keys(), consumer, concurrent);
+            this.traverseIds(records.keys(), consumer, concurrent);
             records.finishOneLayer();
         }
         return records;

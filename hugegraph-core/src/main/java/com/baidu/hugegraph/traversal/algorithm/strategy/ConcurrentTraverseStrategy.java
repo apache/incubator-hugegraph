@@ -27,8 +27,8 @@ import java.util.function.BiConsumer;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.traversal.algorithm.OltpTraverser;
+import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 
 public class ConcurrentTraverseStrategy extends OltpTraverser
                                         implements TraverseStrategy {
@@ -57,8 +57,7 @@ public class ConcurrentTraverseStrategy extends OltpTraverser
     }
 
     @Override
-    public void addNode(Map<Id, List<Node>> vertices,
-                        Id id, Node node) {
+    public void addNode(Map<Id, List<Node>> vertices, Id id, Node node) {
         ((ConcurrentMultiValuedMap<Id, Node>) vertices).add(id, node);
     }
 

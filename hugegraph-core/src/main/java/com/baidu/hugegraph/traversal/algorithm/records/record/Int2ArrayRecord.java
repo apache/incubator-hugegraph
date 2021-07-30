@@ -35,13 +35,13 @@ public class Int2ArrayRecord implements Record {
     }
 
     @Override
-    public boolean containsKey(int key) {
-        return this.layer.containsKey(key);
+    public boolean containsKey(int node) {
+        return this.layer.containsKey(node);
     }
 
     @Override
-    public IntIterator get(int key) {
-        return new IntIterator(this.layer.getValues(key));
+    public IntIterator get(int node) {
+        return new IntIterator(this.layer.getValues(node));
     }
 
     @Override
@@ -52,5 +52,10 @@ public class Int2ArrayRecord implements Record {
     @Override
     public int size() {
         return this.layer.size();
+    }
+
+    @Override
+    public String toString() {
+        return this.layer.toString();
     }
 }

@@ -23,17 +23,19 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 
 public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
 
-    private SingleThreadObjectIntMapping<V> objectIntMapping;
+    private final SingleThreadObjectIntMapping<V> objectIntMapping;
 
     public ConcurrentObjectIntMapping() {
         this.objectIntMapping = new SingleThreadObjectIntMapping<>();
     }
 
+    @Override
     @Watched
     public synchronized int object2Code(Object object) {
         return this.objectIntMapping.object2Code(object);
     }
 
+    @Override
     @Watched
     public synchronized V code2Object(int code) {
         return this.objectIntMapping.code2Object(code);
@@ -42,5 +44,10 @@ public class ConcurrentObjectIntMapping<V> implements ObjectIntMapping<V> {
     @Override
     public synchronized void clear() {
         this.objectIntMapping.clear();
+    }
+
+    @Override
+    public synchronized String toString() {
+        return this.objectIntMapping.toString();
     }
 }

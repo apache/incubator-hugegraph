@@ -83,7 +83,7 @@ public class ShortestPathTraverser extends HugeTraverser {
             checkCapacity(traverser.capacity, traverser.accessed(),
                           "shortest path");
         }
-        return paths.isEmpty() ? Path.EMPTY_PATH : paths.iterator().next();
+        return paths.isEmpty() ? Path.EMPTY : paths.iterator().next();
     }
 
     public Path shortestPath(Id sourceV, Id targetV, EdgeStep step,
@@ -120,8 +120,7 @@ public class ShortestPathTraverser extends HugeTraverser {
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
         while (true) {
-            paths = traverser.forward() ?
-                    traverser.forward(true) : traverser.backward(true);
+            paths = traverser.traverse(true);
             // Found, reach max depth or reach capacity, stop searching
             if (!paths.isEmpty() || --depth <= 0) {
                 break;
@@ -134,7 +133,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
     private class Traverser {
 
-        private ShortestPathRecords record;
+        private final ShortestPathRecords record;
         private final Directions direction;
         private final Map<Id, String> labels;
         private final long degree;
@@ -150,6 +149,11 @@ public class ShortestPathTraverser extends HugeTraverser {
             this.degree = degree;
             this.skipDegree = skipDegree;
             this.capacity = capacity;
+        }
+
+        public PathSet traverse(boolean all) {
+            return this.record.sourcesLessThanTargets() ?
+                   this.forward(true) : this.backward(true);
         }
 
         /**
@@ -230,10 +234,6 @@ public class ShortestPathTraverser extends HugeTraverser {
             this.record.finishOneLayer();
 
             return results;
-        }
-
-        public boolean forward() {
-            return this.record.lessSources();
         }
 
         private boolean superNode(Id vertex, Directions direction) {

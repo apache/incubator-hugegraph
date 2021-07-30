@@ -68,7 +68,7 @@ public class IdSet extends AbstractSet<Id> {
     public Iterator<Id> iterator() {
         return new ExtendableIterator<>(
                this.nonNumberIds.iterator(),
-               new EcIdIterator(this.numberIds.longIterator()));
+               new EcLongIdIterator(this.numberIds.longIterator()));
     }
 
     @Override
@@ -94,11 +94,11 @@ public class IdSet extends AbstractSet<Id> {
         this.nonNumberIds.clear();
     }
 
-    private static class EcIdIterator implements Iterator<Id> {
+    private static class EcLongIdIterator implements Iterator<Id> {
 
         private final MutableLongIterator iterator;
 
-        public EcIdIterator(MutableLongIterator iter) {
+        public EcLongIdIterator(MutableLongIterator iter) {
             this.iterator = iter;
         }
 

@@ -84,4 +84,9 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
     public void clear() {
         this.int2IdMap.clear();
     }
+
+    @Override
+    public String toString() {
+        return this.int2IdMap.toString();
+    }
 }
