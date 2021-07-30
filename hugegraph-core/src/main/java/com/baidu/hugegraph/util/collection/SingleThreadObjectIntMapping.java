@@ -37,11 +37,20 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
 
     @Watched
     @SuppressWarnings("unchecked")
+    @Override
     public int object2Code(Object object) {
         int code = object.hashCode();
         // TODO: improve hash algorithm
         for (int i = 1; i > 0; i <<= 1) {
             for (int j = 0; j < MAX_OFFSET; j++) {
+                if (code <= 0) {
+                    if (code == 0) {
+                        code = 1;
+                    } else {
+                        code = -code;
+                    }
+                }
+                assert code > 0;
                 V existed = this.int2IdMap.get(code);
                 if (existed == null) {
                     this.int2IdMap.put(code, (V) object);
@@ -65,7 +74,9 @@ public class SingleThreadObjectIntMapping<V> implements ObjectIntMapping<V> {
     }
 
     @Watched
+    @Override
     public V code2Object(int code) {
+        assert code > 0;
         return this.int2IdMap.get(code);
     }
 
