@@ -24,25 +24,26 @@ import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
 
-import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
-import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
-
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
+import com.baidu.hugegraph.type.define.CollectionType;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
+import com.baidu.hugegraph.util.collection.IntMap;
+import com.baidu.hugegraph.util.collection.IntSet;
 
 public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
 
-    private final IntHashSet accessedVertices;
+    private final IntSet accessedVertices;
     private boolean pathFound;
 
     public ShortestPathRecords(Id sourceV, Id targetV) {
         super(RecordType.INT, false, sourceV, targetV);
 
-        this.accessedVertices = new IntHashSet();
+        this.accessedVertices = CollectionFactory.newIntSet(CollectionType.EC);
         this.accessedVertices.add(this.code(sourceV));
         this.accessedVertices.add(this.code(targetV));
         this.pathFound = false;
@@ -108,7 +109,7 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
         ids.add(this.id(node));
         int value = node;
         for (int i = size - 1; i > 0 ; i--) {
-            IntIntHashMap layer = ((Int2IntRecord) all.elementAt(i)).layer();
+            IntMap layer = ((Int2IntRecord) all.elementAt(i)).layer();
             value = layer.get(value);
             ids.add(this.id(value));
         }

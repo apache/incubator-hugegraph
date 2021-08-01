@@ -21,12 +21,12 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
-import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.type.define.CollectionType;
@@ -46,7 +46,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
     @Override
     public List<Id> ids(long limit) {
         List<Id> ids = CollectionFactory.newList(CollectionType.EC);
-        IntIterator iterator = this.records().peek().keys();
+        Iterator<Integer> iterator = this.records().peek().keys();
         while ((limit == NO_LIMIT || limit-- > 0L) && iterator.hasNext()) {
             ids.add(this.id(iterator.next()));
         }
@@ -57,7 +57,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
     public PathSet paths(long limit) {
         PathSet paths = new PathSet();
         Stack<Record> records = this.records();
-        IntIterator iterator = records.peek().keys();
+        Iterator<Integer> iterator = records.peek().keys();
         while ((limit == NO_LIMIT || limit-- > 0L) && iterator.hasNext()) {
             paths.add(this.linkPath(records.size() - 1, iterator.next()));
         }

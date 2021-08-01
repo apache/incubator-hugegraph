@@ -41,7 +41,7 @@ public class RecordFactory {
                 throw new AssertionError("Unsupported record type: " + type);
         }
 
-        if (concurrent) {
+        if (concurrent && !record.concurrent()) {
             record = new SyncRecord(record);
         }
 

@@ -19,6 +19,10 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
+import java.util.Iterator;
+
+import com.baidu.hugegraph.util.collection.IntIterator;
+
 public class SyncRecord implements Record {
 
     private final Object lock;
@@ -39,7 +43,7 @@ public class SyncRecord implements Record {
     }
 
     @Override
-    public IntIterator keys() {
+    public Iterator<Integer> keys() {
         /*
          * Another threads call addPath() will change IntIterator inner array,
          * but in kout/kneighbor scenario it's ok because keys() and addPath()
@@ -76,5 +80,10 @@ public class SyncRecord implements Record {
         synchronized (this.lock) {
             return this.record.size();
         }
+    }
+
+    @Override
+    public boolean concurrent() {
+        return true;
     }
 }

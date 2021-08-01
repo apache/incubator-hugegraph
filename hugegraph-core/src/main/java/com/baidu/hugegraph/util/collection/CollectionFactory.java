@@ -261,4 +261,16 @@ public class CollectionFactory {
     public static IdSet newIdSet(CollectionType type) {
         return new IdSet(type);
     }
+
+    public static IntSet newIntSet(CollectionType type) {
+//        return concurrent ? new IntHashSet().asSynchronized() : new IntHashSet();
+//        return new IntSet.IntSetByEcSegment(IntMap.CPUS * 2);
+        return new IntSet.IntSetByFixedAddr(Integer.MAX_VALUE);
+    }
+
+    public static IntMap newIntMap(CollectionType type) {
+//        return concurrent ? new IntIntHashMap().asSynchronized() : new IntIntHashMap();
+        return new IntMap.IntMapByEcSegment(IntMap.CPUS * 2);
+//        return new IntMap.IntMapByBlocks(Integer.MAX_VALUE);
+    }
 }

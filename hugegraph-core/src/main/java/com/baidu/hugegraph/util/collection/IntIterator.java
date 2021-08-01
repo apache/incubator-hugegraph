@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.traversal.algorithm.records.record;
+package com.baidu.hugegraph.util.collection;
 
 import java.util.Iterator;
 
@@ -54,5 +54,21 @@ public class IntIterator implements Iterator<Integer> {
             return this.iterator.hasNext();
         }
         return this.index < this.array.length;
+    }
+
+    public static int size2PowerOf2Size(int size) {
+        if (size < 1) {
+            size = 1;
+        }
+
+        int n = size - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        size = n + 1;
+
+        return size;
     }
 }

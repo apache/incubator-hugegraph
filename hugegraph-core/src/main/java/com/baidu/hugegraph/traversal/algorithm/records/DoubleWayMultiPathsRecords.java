@@ -30,9 +30,9 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
-import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
+import com.baidu.hugegraph.util.collection.IntIterator;
 import com.google.common.collect.Lists;
 
 public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
@@ -40,7 +40,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     private final Stack<Record> sourceRecords;
     private final Stack<Record> targetRecords;
 
-    private IntIterator parentRecordKeys;
+    private Iterator<Integer> parentRecordKeys;
     private int currentKey;
     private boolean movingForward;
     private long accessed;

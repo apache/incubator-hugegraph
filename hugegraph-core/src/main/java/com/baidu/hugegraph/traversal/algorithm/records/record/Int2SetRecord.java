@@ -22,6 +22,8 @@ package com.baidu.hugegraph.traversal.algorithm.records.record;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
+import com.baidu.hugegraph.util.collection.IntIterator;
+
 public class Int2SetRecord implements Record {
 
     private final IntObjectHashMap<IntHashSet> layer;
@@ -59,6 +61,11 @@ public class Int2SetRecord implements Record {
     @Override
     public int size() {
         return this.layer.size();
+    }
+
+    @Override
+    public boolean concurrent() {
+        return false;
     }
 
     @Override

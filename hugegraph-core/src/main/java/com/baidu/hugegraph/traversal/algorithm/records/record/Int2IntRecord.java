@@ -19,19 +19,24 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
+import java.util.Iterator;
+
+import com.baidu.hugegraph.type.define.CollectionType;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
+import com.baidu.hugegraph.util.collection.IntIterator;
+import com.baidu.hugegraph.util.collection.IntMap;
 
 public class Int2IntRecord implements Record {
 
-    private final IntIntHashMap layer;
+    private final IntMap layer;
 
     public Int2IntRecord() {
-        this.layer = new IntIntHashMap();
+        this.layer = CollectionFactory.newIntMap(CollectionType.EC);
     }
 
     @Override
-    public IntIterator keys() {
-        return new IntIterator(this.layer.keySet().intIterator());
+    public Iterator<Integer> keys() {
+        return this.layer.keys();
     }
 
     @Override
@@ -54,7 +59,12 @@ public class Int2IntRecord implements Record {
         return this.layer.size();
     }
 
-    public IntIntHashMap layer() {
+    @Override
+    public boolean concurrent() {
+        return this.layer.concurrent();
+    }
+
+    public IntMap layer() {
         return this.layer;
     }
 
