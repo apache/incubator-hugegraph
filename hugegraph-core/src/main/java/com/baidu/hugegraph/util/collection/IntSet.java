@@ -123,6 +123,7 @@ public interface IntSet {
         @SuppressWarnings("static-access")
         private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
                                               UNSAFE.ARRAY_LONG_INDEX_SCALE);
+        private static final int MOD64 = 0x3f;
 
         public IntSetByFixedAddr(int numBits) {
             this.numBitsUnsigned = numBits;
@@ -136,7 +137,7 @@ public interface IntSet {
         public boolean add(int key) {
             long ukey = key + this.numBitsUnsigned;
             long offset = this.offset(key);
-            long bit = ukey & 0x3f;
+            long bit = ukey & MOD64;
             long bitmask = 1L << bit;
 
             while (true) {
@@ -161,7 +162,7 @@ public interface IntSet {
 //                return false;
 //            }
 //
-//            int bit = key & 0x3f; // mod 64
+//            int bit = key & MOD64; // mod 64
 //            long bitmask = 1L << bit;
 //            return (this.bits[index] & bitmask) != 0;
             long ukey = key + this.numBitsUnsigned;
@@ -169,7 +170,7 @@ public interface IntSet {
                 return false;
             }
             long offset = this.offset(key);
-            long bit = ukey & 0x3f;
+            long bit = ukey & MOD64;
             long bitmask = 1L << bit;
 
             long value = UNSAFE.getLongVolatile(this.bits, offset);
@@ -182,7 +183,7 @@ public interface IntSet {
 //            if (index >= this.bits.length) {
 //                return false;
 //            }
-//            int bit = key & 0x3f; // mod 64
+//            int bit = key & MOD64; // mod 64
 //            long bitmask = 1L << bit;
 //            this.bits[index] &= ~bitmask;
 //
@@ -190,7 +191,7 @@ public interface IntSet {
 //            return true;
             long ukey = key + this.numBitsUnsigned;
             long offset = this.offset(key);
-            long bit = ukey & 0x3f;
+            long bit = ukey & MOD64;
             long bitmask = 1L << bit;
 
             while (true) {
@@ -252,6 +253,7 @@ public interface IntSet {
         @SuppressWarnings("static-access")
         private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
                                               UNSAFE.ARRAY_LONG_INDEX_SCALE);
+        private static final int MOD64 = 0x3f;
 
         public IntSetByFixedAddrUnsigned(int numBits) {
             this.numBits = numBits;
@@ -263,7 +265,7 @@ public interface IntSet {
         @Override
         public boolean add(int key) {
             int offset = this.offset(key);
-            int bit = key & 0x3f;
+            int bit = key & MOD64;
             long bitmask = 1L << bit;
 
             while (true) {
@@ -288,14 +290,14 @@ public interface IntSet {
 //                return false;
 //            }
 //
-//            int bit = key & 0x3f; // mod 64
+//            int bit = key & MOD64; // mod 64
 //            long bitmask = 1L << bit;
 //            return (this.bits[index] & bitmask) != 0;
             if (key >= this.numBits || key < 0) {
                 return false;
             }
             int offset = this.offset(key);
-            int bit = key & 0x3f;
+            int bit = key & MOD64;
             long bitmask = 1L << bit;
 
             long value = UNSAFE.getLongVolatile(this.bits, offset);
@@ -308,14 +310,14 @@ public interface IntSet {
 //            if (index >= this.bits.length) {
 //                return false;
 //            }
-//            int bit = key & 0x3f; // mod 64
+//            int bit = key & MOD64; // mod 64
 //            long bitmask = 1L << bit;
 //            this.bits[index] &= ~bitmask;
 //
 //            this.length.decrement();
 //            return true;
             int offset = this.offset(key);
-            int bit = key & 0x3f;
+            int bit = key & MOD64;
             long bitmask = 1L << bit;
 
             while (true) {
@@ -344,6 +346,50 @@ public interface IntSet {
         public int size() {
             return this.size.get();
 //            return (int) this.size.sum();
+        }
+
+        public int nextKey(int key) {
+            if (key < 0) {
+                key = 0;
+            }
+            if (key >= this.numBits) {
+                return key;
+            }
+
+            int offset = this.offset(key);
+            int startBit = key & MOD64;
+            int bitsEachLong = 64;
+            int bytesEachLong = 8;
+            key -= startBit;
+
+            // check the first long
+            long value = UNSAFE.getLongVolatile(this.bits, offset);
+            if (value != 0L) {
+                for (int bit = startBit; bit < bitsEachLong; bit++) {
+                    long bitmask = 1L << bit;
+                    if ((value & bitmask) != 0L) {
+                        return key + bit;
+                    }
+                }
+            }
+            offset += bytesEachLong;
+            key += bitsEachLong;
+
+            // check the remaining
+            while (key < this.numBits) {
+                value = UNSAFE.getLongVolatile(this.bits, offset);
+                if (value != 0L) {
+                    for (int bit = 0; bit < bitsEachLong; bit++) {
+                        long bitmask = 1L << bit;
+                        if ((value & bitmask) != 0L) {
+                            return key + bit;
+                        }
+                    }
+                }
+                offset += bytesEachLong;
+                key += bitsEachLong;
+            }
+            return key;
         }
 
         private int offset(int key) {

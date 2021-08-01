@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.unit.util;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.BiFunction;
 
@@ -179,8 +180,6 @@ public class IntMapTest extends BaseUnitTest {
         Assert.assertEquals(2000, testMap.apply(2000, 1999));
         Assert.assertEquals(2000, testMap.apply(2000, 2000));
 
-//        IntMap map = fixed(Integer.MAX_VALUE, 40);
-//        map.put(Integer.MAX_VALUE - 1, 1);
         Assert.assertEquals(10000000, testMap.apply(10000000, 100));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -234,8 +233,98 @@ public class IntMapTest extends BaseUnitTest {
         Assert.assertEquals(count, testMap.apply(Integer.MAX_VALUE, 4000));
     }
 
+    @Test
+    public void testIntFixedMapSegmentKeys() {
+        IntMap map = fixed(Integer.MAX_VALUE, 40);
+        map.put(Integer.MAX_VALUE - 1, 1);
+
+        for (int i = 0; i < 10000; i++) {
+            Iterator<Integer> iter = map.keys();
+            Assert.assertTrue(iter.hasNext());
+            Assert.assertEquals(Integer.MAX_VALUE - 1, iter.next());
+            Assert.assertFalse(iter.hasNext());
+
+            Assert.assertThrows(NoSuchElementException.class, () -> {
+                iter.next();
+            }, e -> {
+                Assert.assertNull(e.getMessage());
+            });
+        }
+    }
+
+    @Test
+    public void testIntFixedMapSegmentKeysWithMultiSegs() {
+        int segments = 400;
+        int segmentSize = Integer.MAX_VALUE / segments;
+        int step = 50;
+        IntMap map = fixed(Integer.MAX_VALUE, segments);
+        for (int k = 0; k < segments; k += step) {
+            map.put(segmentSize * k, k);
+        }
+
+        for (int i = 0; i < 10; i++) {
+            Iterator<Integer> iter = map.keys();
+            for (int k = 0; k < segments; k += step) {
+                Assert.assertTrue(iter.hasNext());
+                Assert.assertEquals(segmentSize * k, iter.next());
+            }
+
+            Assert.assertFalse(iter.hasNext());
+            Assert.assertThrows(NoSuchElementException.class, () -> {
+                iter.next();
+            }, e -> {
+                Assert.assertNull(e.getMessage());
+            });
+        }
+    }
+
+    @Test
+    public void testIntFixedMapSegmentValues() {
+        IntMap map = fixed(Integer.MAX_VALUE, 40);
+        map.put(Integer.MAX_VALUE - 1, 1);
+
+        for (int i = 0; i < 10; i++) {
+            Iterator<Integer> iter = map.values();
+            Assert.assertTrue(iter.hasNext());
+            Assert.assertEquals(1, iter.next());
+            Assert.assertFalse(iter.hasNext());
+
+            Assert.assertThrows(NoSuchElementException.class, () -> {
+                iter.next();
+            }, e -> {
+                Assert.assertNull(e.getMessage());
+            });
+        }
+    }
+
+    @Test
+    public void testIntFixedMapSegmentValuesWithMultiSegs() {
+        int segments = 400;
+        int segmentSize = Integer.MAX_VALUE / segments;
+        int step = 50;
+        IntMap map = fixed(Integer.MAX_VALUE, segments);
+        for (int k = 0; k < segments; k += step) {
+            map.put(segmentSize * k, k);
+        }
+
+        for (int i = 0; i < 10; i++) {
+            Iterator<Integer> iter = map.values();
+            for (int k = 0; k < segments; k += step) {
+                Assert.assertTrue(iter.hasNext());
+                Assert.assertEquals(k, iter.next());
+            }
+
+            Assert.assertFalse(iter.hasNext());
+            Assert.assertThrows(NoSuchElementException.class, () -> {
+                iter.next();
+            }, e -> {
+                Assert.assertNull(e.getMessage());
+            });
+        }
+    }
+
     private IntMap fixed(int capacity, int segments) {
-        return new IntMap.IntMapByBlocks(capacity, segments, size ->
+        return new IntMap.IntMapBySegments(capacity, segments, size ->
                                            new IntMap.IntMapByFixedAddr(size));
     }
 

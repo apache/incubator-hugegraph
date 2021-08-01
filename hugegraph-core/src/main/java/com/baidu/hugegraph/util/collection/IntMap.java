@@ -139,12 +139,12 @@ public interface IntMap {
     }
 
     /**
-     * NOTE: IntMapByBlocks(backend by IntMapByFixedAddr) is:
+     * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:
      * - slower 4x than IntMapByFixedAddr for 4 threads;
      * - faster 10x than ec IntIntHashMap-segment-lock for 4 threads;
      * - faster 20x than ec IntIntHashMap-global-lock for 4 threads;
      */
-    public static class IntMapByBlocks implements IntMap {
+    public static class IntMapBySegments implements IntMap {
 
         private final IntMap[] maps;
         private final long capacity;
@@ -161,12 +161,12 @@ public interface IntMap {
         private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
                                               UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
 
-        public IntMapByBlocks(int capacity) {
+        public IntMapBySegments(int capacity) {
             this(capacity, CPUS * 100, size -> new IntMapByFixedAddr(size));
         }
 
-        public IntMapByBlocks(int capacity, int segments,
-                              Function<Integer, IntMap> creator) {
+        public IntMapBySegments(int capacity, int segments,
+                                Function<Integer, IntMap> creator) {
             E.checkArgument(segments >= 1,
                             "Invalid segments %s", segments);
             E.checkArgument(capacity >= segments,
@@ -177,7 +177,8 @@ public interface IntMap {
             // include signed and unsigned number
             this.unsignedSize = capacity;
             this.capacity = this.unsignedSize * 2L;
-            this.segmentSize = segmentSize(this.capacity, segments);
+            this.segmentSize = IntMapByFixedAddr.segmentSize(
+                               this.capacity, segments);
             this.segmentShift = Integer.numberOfTrailingZeros(this.segmentSize);
             /*
              * The mask is lower bits of each segment size, like
@@ -246,7 +247,7 @@ public interface IntMap {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
             for (int i = 0; i < this.maps.length; i++) {
                 IntMap map = this.maps[i];
-                if (map == null) {
+                if (map == null || map.size() == 0) {
                     continue;
                 }
                 int base = this.segmentSize * i;
@@ -261,7 +262,7 @@ public interface IntMap {
         public Iterator<Integer> values() {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
             for (IntMap map : this.maps) {
-                if (map != null) {
+                if (map != null && map.size() > 0) {
                     iters.extend(map.values());
                 }
             }
@@ -301,20 +302,6 @@ public interface IntMap {
                 }
             }
         }
-
-        private static int segmentSize(long capacity, int segments) {
-            long eachSize = capacity / segments;
-            eachSize = IntIterator.size2PowerOf2Size((int) eachSize);
-            /*
-             * Supply total size
-             * like capacity=20 and segments=19, then eachSize=1
-             * should increase eachSize to eachSize * 2.
-             */
-            while (eachSize * segments < capacity) {
-                eachSize <<= 1;
-            }
-            return (int) eachSize;
-        }
     }
 
     /**
@@ -330,6 +317,11 @@ public interface IntMap {
 //        private final LongAdder size;
         private final AtomicInteger size;
 
+        private final int indexBlocksNum;
+        private final int indexBlockSize;
+        private final int indexBlockSizeShift;
+        private final IntSet.IntSetByFixedAddrUnsigned indexBlocksSet;
+
         private static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_INT_BASE_OFFSET;
@@ -342,12 +334,35 @@ public interface IntMap {
             this.values = new int[capacity];
 //            this.size = new LongAdder();
             this.size = new AtomicInteger();
+
+            // each block at least >= 1kb
+            int minBlockSize = 1 << 10;
+            // 64k index blocks by default (indexBlocksSet will cost 8kb memory)
+            int indexBlocksNum = 1 << 16;
+            int indexBlockSize = IntMapByFixedAddr.segmentSize(
+                                 capacity, indexBlocksNum);
+            if (indexBlockSize < minBlockSize) {
+                indexBlockSize = minBlockSize;
+                indexBlocksNum = IntMapByFixedAddr.segmentSize(
+                                 capacity, indexBlockSize);
+            }
+            this.indexBlocksNum = indexBlocksNum;
+            this.indexBlockSize = IntMapByFixedAddr.segmentSize(
+                                  capacity, this.indexBlocksNum);
+            this.indexBlockSizeShift = Integer.numberOfTrailingZeros(
+                                       this.indexBlockSize);
+            this.indexBlocksSet = new IntSet.IntSetByFixedAddrUnsigned(
+                                  this.indexBlocksNum);
+
             this.clear();
         }
 
         @Override
         public boolean put(int key, int value) {
             assert value != NULL : "put value can't be " + NULL;
+            if (value == NULL) {
+                return false;
+            }
             int offset = this.offset(key);
 //            int oldV = UNSAFE.getAndSetInt(this.values, offset, value);
 //            if (oldV == NULL) {
@@ -383,10 +398,14 @@ public interface IntMap {
             if (newV == oldV) {
                 return true;
             }
-            if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV) &&
-                oldV == NULL) {
-                this.size.incrementAndGet();
-//                this.size.increment();
+            if (oldV != NULL) {
+                UNSAFE.putIntVolatile(this.values, offset, newV);
+            } else {
+                if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
+                    this.size.incrementAndGet();
+//                    this.size.increment();
+                    this.indexBlocksSet.add(key >>> this.indexBlockSizeShift);
+                }
             }
             return true;
         }
@@ -404,6 +423,7 @@ public interface IntMap {
                 assert oldV == NULL;
                 this.size.incrementAndGet();
 //                this.size.increment();
+                this.indexBlocksSet.add(key >>> this.indexBlockSizeShift);
                 return true;
             }
             return false;
@@ -453,6 +473,7 @@ public interface IntMap {
             Arrays.fill(this.values, NULL);
             this.size.set(0);
 //            this.size.reset();
+            this.indexBlocksSet.clear();
         }
 
         @Override
@@ -485,57 +506,97 @@ public interface IntMap {
             return offset;
         }
 
+        private static int segmentSize(long capacity, int segments) {
+            long eachSize = capacity / segments;
+            eachSize = IntIterator.size2PowerOf2Size((int) eachSize);
+            /*
+             * Supply total size
+             * like capacity=20 and segments=19, then eachSize=1
+             * should increase eachSize to eachSize * 2.
+             */
+            while (eachSize * segments < capacity) {
+                eachSize <<= 1;
+            }
+            return (int) eachSize;
+        }
+
         private class KeyIterator implements Iterator<Integer> {
 
             private final int INVALID = -1;
 
-            private int index = 0;
-            private int current = INVALID;
+            private int indexOfBlock = 0;
+            private int indexInBlock = 0;
+
+            private int current = this.INVALID;
+
+            public KeyIterator() {
+                this.indexOfBlock = indexBlocksSet.nextKey(this.indexOfBlock);
+            }
 
             @Override
             public boolean hasNext() {
-                if (this.current != INVALID) {
+                if (this.current != this.INVALID) {
                     return true;
                 }
-                while (this.index < capacity) {
-                    int value = get(this.index);
-                    if (value != NULL) {
-                        this.current = this.index++;
-                        return true;
+                while (this.indexOfBlock < indexBlocksNum) {
+                    while (this.indexInBlock < indexBlockSize) {
+                        int index = this.indexOfBlock << indexBlockSizeShift;
+                        index += this.indexInBlock++;
+                        int value = get(index);
+                        if (value != NULL) {
+                            this.current = index;
+                            return true;
+                        }
                     }
-                    this.index++;
+                    this.indexOfBlock = indexBlocksSet.nextKey(
+                                        this.indexOfBlock + 1);
+                    this.indexInBlock = 0;
                 }
                 return false;
             }
 
             @Override
             public Integer next() {
-                if (this.current == INVALID) {
+                if (this.current == this.INVALID) {
                     if (!this.hasNext()) {
                         throw new NoSuchElementException();
                     }
                 }
                 Integer result = this.current;
-                this.current = INVALID;
+                this.current = this.INVALID;
                 return result;
             }
         }
 
         private class ValueIterator implements Iterator<Integer> {
 
-            private int index = 0;
+            private int indexOfBlock = 0;
+            private int indexInBlock = 0;
+
             private int current = NULL;
+
+            public ValueIterator() {
+                this.indexOfBlock = indexBlocksSet.nextKey(this.indexOfBlock);
+            }
 
             @Override
             public boolean hasNext() {
                 if (this.current != NULL) {
                     return true;
                 }
-                while (this.index < capacity) {
-                    this.current = get(this.index++);
-                    if (this.current != NULL) {
-                        return true;
+                while (this.indexOfBlock < indexBlocksNum) {
+                    while (this.indexInBlock < indexBlockSize) {
+                        int index = this.indexOfBlock << indexBlockSizeShift;
+                        index += this.indexInBlock++;
+                        int value = get(index);
+                        if (value != NULL) {
+                            this.current = value;
+                            return true;
+                        }
                     }
+                    this.indexOfBlock = indexBlocksSet.nextKey(
+                                        this.indexOfBlock + 1);
+                    this.indexInBlock = 0;
                 }
                 return false;
             }

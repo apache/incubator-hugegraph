@@ -270,7 +270,7 @@ public class CollectionFactory {
 
     public static IntMap newIntMap(CollectionType type) {
 //        return concurrent ? new IntIntHashMap().asSynchronized() : new IntIntHashMap();
-        return new IntMap.IntMapByEcSegment(IntMap.CPUS * 2);
-//        return new IntMap.IntMapByBlocks(Integer.MAX_VALUE);
+//        return new IntMap.IntMapByEcSegment(IntMap.CPUS * 2);
+        return new IntMap.IntMapBySegments(Integer.MAX_VALUE);
     }
 }
