@@ -21,7 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
-import java.util.Set;
+import java.util.List;
 import java.util.Stack;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -44,8 +44,8 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         return (int) this.accessed();
     }
 
-    public Set<Id> ids(long limit) {
-        Set<Id> ids = CollectionFactory.newIdSet(CollectionType.EC);
+    public List<Id> ids(long limit) {
+        List<Id> ids = CollectionFactory.newList(CollectionType.EC);
         Stack<Record> records = this.records();
         // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {

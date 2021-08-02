@@ -77,8 +77,7 @@ public class KneighborTraverser extends OltpTraverser {
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        boolean concurrent = maxDepth >= this.concurrentDepth() &&
-                             step.direction() == Directions.BOTH;
+        boolean concurrent = maxDepth >= this.concurrentDepth();
 
         KneighborRecords records = new KneighborRecords(RecordType.INT,
                                                         concurrent,

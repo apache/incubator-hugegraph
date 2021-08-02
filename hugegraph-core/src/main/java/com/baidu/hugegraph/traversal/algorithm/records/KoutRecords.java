@@ -21,7 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
-import java.util.Set;
+import java.util.List;
 import java.util.Stack;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -44,9 +44,9 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
         return this.currentRecord().size();
     }
 
-    public Set<Id> ids(long limit) {
+    public List<Id> ids(long limit) {
+        List<Id> ids = CollectionFactory.newList(CollectionType.EC);
         IntIterator iterator = this.records().peek().keys();
-        Set<Id> ids = CollectionFactory.newIdSet(CollectionType.EC);
         while ((limit == NO_LIMIT || limit-- > 0L) && iterator.hasNext()) {
             ids.add(this.id(iterator.next()));
         }
