@@ -32,14 +32,15 @@ public class HbaseOptions extends OptionHolder {
         super();
     }
 
-    private static volatile HbaseOptions instance;
-
-    public static synchronized HbaseOptions instance() {
-        if (instance == null) {
-            instance = new HbaseOptions();
+    private static class InstanceHolder {
+        private final static HbaseOptions instance = new HbaseOptions();
+        static {
             instance.registerOptions();
         }
-        return instance;
+    }
+
+    public static HbaseOptions instance() {
+        return InstanceHolder.instance;
     }
 
     public static final ConfigOption<String> HBASE_HOSTS =
