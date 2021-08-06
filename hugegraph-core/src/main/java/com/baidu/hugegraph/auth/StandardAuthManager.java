@@ -521,7 +521,7 @@ public class StandardAuthManager implements AuthManager {
             int oldSize = sourceGraphs.size();
             sourceGraphs.addAll(graphs);
             // Return if there is none graph been added
-            if (sourceGraphs.size() <= oldSize) {
+            if (sourceGraphs.size() == oldSize) {
                 return id;
             }
             project.graphs(sourceGraphs);
@@ -549,7 +549,7 @@ public class StandardAuthManager implements AuthManager {
             int oldSize = sourceGraphs.size();
             sourceGraphs.removeAll(graphs);
             // Return if there is none graph been removed
-            if (sourceGraphs.size() >= oldSize) {
+            if (sourceGraphs.size() == oldSize) {
                 return id;
             }
             project.graphs(sourceGraphs);
