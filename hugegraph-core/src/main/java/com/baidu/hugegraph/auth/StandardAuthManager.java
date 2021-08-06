@@ -518,9 +518,10 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            int oldSize = sourceGraphs.size();
             sourceGraphs.addAll(graphs);
-            // Returning if don't have any new graph need been added
-            if (sourceGraphs.size() <= project.graphs().size()) {
+            // Return if there is none graph been added
+            if (sourceGraphs.size() <= oldSize) {
                 return id;
             }
             project.graphs(sourceGraphs);
@@ -545,9 +546,10 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             Set<String> sourceGraphs = new HashSet<>(project.graphs());
+            int oldSize = sourceGraphs.size();
             sourceGraphs.removeAll(graphs);
-            // Returning if don't have any graph need been removed
-            if (sourceGraphs.size() >= project.graphs().size()) {
+            // Return if there is none graph been removed
+            if (sourceGraphs.size() >= oldSize) {
                 return id;
             }
             project.graphs(sourceGraphs);
