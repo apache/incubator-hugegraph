@@ -49,6 +49,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
@@ -206,9 +207,10 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
                         "Invalid scan with multi conditions: %s", query);
         Condition.Relation scan = query.relations().iterator().next();
         Shard shard = (Shard) scan.value();
-
-        int start = Long.valueOf(shard.start()).intValue();
-        int end = Long.valueOf(shard.end()).intValue();
+        int start = Strings.isNullOrEmpty(shard.start()) ?
+                    0 : Long.valueOf(shard.start()).intValue();
+        int end = Strings.isNullOrEmpty(shard.end()) ?
+                  0 : Long.valueOf(shard.end()).intValue();
 
         List<BackendEntry> rs = new ArrayList<>(end - start);
 

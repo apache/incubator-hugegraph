@@ -17,35 +17,33 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api;
+package com.baidu.hugegraph.api.traversers;
 
-import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import com.baidu.hugegraph.api.traversers.TraversersApiTestSuite;
-import com.baidu.hugegraph.dist.RegisterUtil;
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    PropertyKeyApiTest.class,
-    VertexLabelApiTest.class,
-    EdgeLabelApiTest.class,
-    IndexLabelApiTest.class,
-    VertexApiTest.class,
-    EdgeApiTest.class,
-    TaskApiTest.class,
-    GremlinApiTest.class,
-    MetricsApiTest.class,
-    UserApiTest.class,
-    LoginApiTest.class,
-    ProjectApiTest.class,
-    TraversersApiTestSuite.class
+    AllShortestPathsApiTest.class,
+    CountApiTest.class,
+    CrosspointsApiTest.class,
+    CustomizedCrosspointsApiTest.class,
+    EdgesApiTest.class,
+    FusiformSimilarityApiTest.class,
+    JaccardSimilarityApiTest.class,
+    KneighborApiTest.class,
+    KoutApiTest.class,
+    MultiNodeShortestPathApiTest.class,
+    NeighborRankApiTest.class,
+    PathsApiTest.class,
+    PersonalRankApiTest.class,
+    RaysApiTest.class,
+    RingsApiTest.class,
+    SameNeighborsApiTest.class,
+    ShortestPathApiTest.class,
+    SingleSourceShortestPathApiTest.class,
+    TemplatePathsApiTest.class,
+    WeightedShortestPathApiTest.class
 })
-public class ApiTestSuite {
-
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
-    }
+public class TraversersApiTestSuite {
 }

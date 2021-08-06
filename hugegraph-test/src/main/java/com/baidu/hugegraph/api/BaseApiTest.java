@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
+import org.apache.http.util.TextUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
@@ -49,6 +51,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 
 public class BaseApiTest {
 
@@ -64,6 +67,9 @@ public class BaseApiTest {
     private static final String SCHEMA_ILS = "/schema/indexlabels";
     private static final String GRAPH_VERTEX = "/graph/vertices";
     private static final String GRAPH_EDGE = "/graph/edges";
+    private static final String BATCH = "/batch";
+
+    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
 
     private static RestClient client;
 
@@ -93,7 +99,7 @@ public class BaseApiTest {
         return new RestClient(BASE_URL);
     }
 
-    static class RestClient {
+    public static class RestClient {
 
         private Client client;
         private WebTarget target;
@@ -130,6 +136,14 @@ public class BaseApiTest {
         public Response get(String path,
                             MultivaluedMap<String, Object> headers) {
             return this.target.path(path).request().headers(headers).get();
+        }
+
+        public Response get(String path, Multimap<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> entries : params.entries()) {
+                target = target.queryParam(entries.getKey(), entries.getValue());
+            }
+            return target.request().get();
         }
 
         public Response get(String path, Map<String, Object> params) {
@@ -296,6 +310,63 @@ public class BaseApiTest {
         assertResponseStatus(202, r);
     }
 
+    protected static void initEdge() {
+        String path = URL_PREFIX + GRAPH_EDGE + BATCH;
+        Map<String, String> ret = listAllVertexName2Ids();
+        String markoId = ret.get("marko");
+        String peterId = ret.get("peter");
+        String joshId = ret.get("josh");
+        String vadasId = ret.get("vadas");
+        String rippleId = ret.get("ripple");
+
+        String body = String.format("[{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.5}},{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.4}},{"
+                                    + "\"label\": \"knows\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"person\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.3}},{"
+                                    + "\"label\": \"created\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"software\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.2}"
+                                    + "},{"
+                                    + "\"label\": \"created\","
+                                    + "\"outV\": \"%s\","
+                                    + "\"inV\": \"%s\","
+                                    + "\"outVLabel\": \"person\","
+                                    + "\"inVLabel\": \"software\","
+                                    + "\"properties\": {"
+                                    + " \"date\": \"2021-01-01\","
+                                    + " \"weight\":0.1}}]",
+                                    markoId, peterId, peterId, joshId,
+                                    joshId, vadasId, markoId, rippleId,
+                                    peterId, rippleId);
+        createAndAssert(path, body);
+    }
+
     protected static void initVertex() {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
@@ -361,6 +432,41 @@ public class BaseApiTest {
         return r;
     }
 
+    protected static Map<String, String> listAllVertexName2Ids() {
+        Response r = client.get(URL_PREFIX + GRAPH_VERTEX);
+        String content = assertResponseStatus(200, r);
+
+        @SuppressWarnings("rawtypes")
+        List<Map> vertices = readList(content, "vertices", Map.class);
+
+        Map<String, String> vertextName2Ids = new HashMap<>();
+        for (Map vertice : vertices) {
+            Map properties = (Map) vertice.get("properties");
+            if (properties == null ||
+                !properties.containsKey("name") ||
+                !vertice.containsKey("id")) {
+                continue;
+            }
+            String name = (String) properties.get("name");
+            if (TextUtils.isEmpty(name)) {
+                continue;
+            }
+
+            String id = (String) vertice.get("id");
+            if (TextUtils.isEmpty(id)) {
+                continue;
+            }
+
+            vertextName2Ids.put(name, id);
+        }
+
+        return vertextName2Ids;
+    }
+
+    protected static String id2Json(String params) {
+        return String.format("\"%s\"", params);
+    }
+
     protected static String getVertexId(String label, String key, String value)
                                         throws IOException {
         String props = mapper.writeValueAsString(ImmutableMap.of(key, value));
@@ -369,10 +475,7 @@ public class BaseApiTest {
                 "properties", URLEncoder.encode(props, "UTF-8")
         );
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX, params);
-        String content = r.readEntity(String.class);
-        if (r.getStatus() != 200) {
-            throw new HugeException("Failed to get vertex id: %s", content);
-        }
+        String content = assertResponseStatus(200, r);
 
         @SuppressWarnings("rawtypes")
         List<Map> list = readList(content, "vertices", Map.class);
