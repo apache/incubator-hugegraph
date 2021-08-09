@@ -54,10 +54,8 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
@@ -148,7 +146,8 @@ public class GraphsAPI extends API {
                          String configText) {
         LOG.debug("Create graph {} with config options '{}'", name, configText);
         HugeGraph graph = manager.createGraph(name, configText);
-        return ImmutableMap.of("name", graph.name(), "backend", graph.backend());
+        return ImmutableMap.of("name", graph.name(),
+                               "backend", graph.backend());
     }
 
     @GET
@@ -292,27 +291,5 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, name);
         return ImmutableMap.of("graph_read_mode", g.readMode());
-    }
-
-    public static class JsonGraphParams {
-
-        @JsonProperty("name")
-        private String name;
-        @JsonProperty("options")
-        private Map<String, String> options = InsertionOrderUtil.newMap();
-
-        public String name() {
-            return this.name;
-        }
-
-        public Map<String, String> options() {
-            return this.options;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("JsonGraphParams{name=%s, options=%s}",
-                                 this.name, this.options);
-        }
     }
 }

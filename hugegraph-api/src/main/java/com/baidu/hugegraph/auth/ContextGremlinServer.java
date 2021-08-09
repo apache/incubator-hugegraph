@@ -85,6 +85,7 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
+    // TODO: inject auth graph if config authenticator
     public void injectAuthGraph() {
         HugeGraphAuthProxy.setContext(Context.admin());
 

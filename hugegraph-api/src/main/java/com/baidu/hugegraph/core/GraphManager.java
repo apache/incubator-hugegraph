@@ -156,7 +156,7 @@ public final class GraphManager {
          * 3. inject graph and traversal source into gremlin server context
          * 4. inject graph into rest server context
          */
-        HugeGraph g = graph(name);
+        HugeGraph g = this.graph(name);
         E.checkArgumentNotNull(g, "The origin graph '%s' doesn't exist", name);
         E.checkArgumentNotNull(newName, "The graph name can't be null");
         E.checkArgument(!this.graphs().contains(newName),
@@ -234,7 +234,7 @@ public final class GraphManager {
     }
 
     public void dropGraph(String name) {
-        HugeGraph g = graph(name);
+        HugeGraph g = this.graph(name);
         E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
         E.checkArgument(this.graphs.size() > 1,
                         "The graph '%s' is the only one, not allowed to delete",
