@@ -161,10 +161,11 @@ public class HugeProject extends Entity {
         E.checkState(!StringUtils.isEmpty(this.name),
                      "The name of project can't be null");
         E.checkState(this.adminGroupId != null,
-                     "The admin group id of project can't be null",
+                     "The admin group id of project '%s' can't be null",
                      this.name);
         E.checkState(this.opGroupId != null,
-                     "The op group id of project can't be null", this.name);
+                     "The op group id of project '%s' can't be null",
+                     this.name);
 
         List<Object> list = new ArrayList<>(16);
 
@@ -198,6 +199,7 @@ public class HugeProject extends Entity {
         return super.asArray(list);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected boolean property(String key, Object value) {
         if (super.property(key, value)) {

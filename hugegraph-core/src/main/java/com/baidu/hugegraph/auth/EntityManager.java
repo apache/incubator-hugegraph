@@ -146,8 +146,7 @@ public class EntityManager<T extends Entity> {
 
     private Iterator<Vertex> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
-        Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-        return vertices;
+        return this.tx().queryVertices(idArray);
     }
 
     private Iterator<Vertex> queryEntity(String label,

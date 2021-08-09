@@ -205,7 +205,8 @@ public class RolePermission {
         }
     }
 
-    private static class RolePermissionDeser extends StdDeserializer<RolePermission> {
+    private static class RolePermissionDeser
+                   extends StdDeserializer<RolePermission> {
 
         private static final long serialVersionUID = -2038234657843260957L;
 
