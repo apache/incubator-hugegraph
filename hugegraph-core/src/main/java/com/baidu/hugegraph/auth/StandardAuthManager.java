@@ -518,11 +518,12 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             Set<String> sourceGraphs = new HashSet<>(project.graphs());
-            E.checkArgument(!sourceGraphs.containsAll(graphs),
-                            "There are graphs '%s' of project '%s' that " +
-                            "have been added in the graph collection",
-                            graphs, id);
+            int oldSize = sourceGraphs.size();
             sourceGraphs.addAll(graphs);
+            // Return if there is none graph been added
+            if (sourceGraphs.size() == oldSize) {
+                return id;
+            }
             project.graphs(sourceGraphs);
             return this.project.update(project);
         } finally {
@@ -545,10 +546,12 @@ public class StandardAuthManager implements AuthManager {
 
             HugeProject project = this.project.get(id);
             Set<String> sourceGraphs = new HashSet<>(project.graphs());
-            if (!sourceGraphs.containsAll(graphs)) {
+            int oldSize = sourceGraphs.size();
+            sourceGraphs.removeAll(graphs);
+            // Return if there is none graph been removed
+            if (sourceGraphs.size() == oldSize) {
                 return id;
             }
-            sourceGraphs.removeAll(graphs);
             project.graphs(sourceGraphs);
             return this.project.update(project);
         } finally {
