@@ -519,8 +519,10 @@ public class VertexCoreTest extends BaseCoreTest {
 
         for (int i = 1; i <= testDataCount; i++) {
             graph.addVertex(T.label, "developer", "name", "developer" + i,
-                            "age", i * 3);
+                            "age", i * 3,
+                            "score", i * 3);
         }
+        graph.tx().commit();
 
         if (!removeLeftIndexOnOverwrite) {
             Whitebox.setInternalState(params().graphTransaction(),
@@ -530,6 +532,7 @@ public class VertexCoreTest extends BaseCoreTest {
         count = graph.traversal().V()
                      .hasLabel("developer")
                      .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
                      .limit(-1)
                      .count()
                      .next();
