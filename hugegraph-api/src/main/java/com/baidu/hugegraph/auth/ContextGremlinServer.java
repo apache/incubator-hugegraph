@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -37,11 +38,14 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
  */
 public class ContextGremlinServer extends GremlinServer {
+
+    private static final Logger LOG = Log.logger(GremlinServer.class);
 
     private static final String G_PREFIX = "__g_";
 
@@ -58,12 +62,14 @@ public class ContextGremlinServer extends GremlinServer {
 
     private void listenChanges() {
         this.eventHub.listen(Events.GRAPH_CREATE, event -> {
+            LOG.debug("GremlinServer accepts event 'graph.create'");
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
             this.injectGraph(graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
+            LOG.debug("GremlinServer accepts event 'graph.drop'");
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
             this.removeGraph(name);
@@ -85,7 +91,6 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    // TODO: inject auth graph if config authenticator
     public void injectAuthGraph() {
         HugeGraphAuthProxy.setContext(Context.admin());
 
@@ -116,7 +121,8 @@ public class ContextGremlinServer extends GremlinServer {
 
     private void injectGraph(HugeGraph graph) {
         String name = graph.name();
-        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
+        GraphManager manager = this.getServerGremlinExecutor()
+                                   .getGraphManager();
         manager.putGraph(name, graph);
 
         GraphTraversalSource g = manager.getGraph(name).traversal();
@@ -124,7 +130,8 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     private void removeGraph(String name) {
-        GraphManager manager = this.getServerGremlinExecutor().getGraphManager();
+        GraphManager manager = this.getServerGremlinExecutor()
+                                   .getGraphManager();
         try {
             manager.removeGraph(name);
         } catch (Exception e) {
