@@ -414,6 +414,179 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveLeftRangeIndex() throws InterruptedException {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("updateTime").asLong().create();
+
+        schema.vertexLabel("soft").properties("name", "updateTime")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByUpdateTime").onV("soft").range()
+              .by("updateTime").create();
+
+        final long testDataCount = 10L;
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "updateTime", i);
+        }
+        graph.tx().commit();
+
+        long count = graph.traversal().V()
+                          .has("soft", "updateTime",
+                               ConditionP.gt(0))
+                          .limit(-1)
+                          .count()
+                          .next();
+        Assert.assertEquals(testDataCount, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "updateTime", 2 * i);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .has("soft", "updateTime",
+                          ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+
+        schema.propertyKey("score").asInt().create();
+        schema.vertexLabel("developer").properties("name", "age", "score")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("developerByAge").onV("developer").range()
+              .by("age").create();
+        schema.indexLabel("developerByScore").onV("developer").range()
+              .by("score").create();
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i,
+                            "score", i);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i * 2,
+                            "score", i * 2);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+
+        Assert.assertEquals(testDataCount, count);
+
+        // Wait left index to be removed
+        Thread.sleep(2000);
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        // Debug stop here to see whether the left index be correctly determined
+        Assert.assertEquals(testDataCount, count);
+
+        // mock test removeLeftIndexIfNeeded
+        boolean removeLeftIndexOnOverwrite =
+                Whitebox.getInternalState(params().graphTransaction(),
+                                          "removeLeftIndexOnOverwrite");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "removeLeftIndexOnOverwrite", true);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i * 3,
+                            "score", i * 3);
+        }
+        graph.tx().commit();
+
+        if (!removeLeftIndexOnOverwrite) {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "removeLeftIndexOnOverwrite", false);
+        }
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+    }
+
+    @Test
+    public void testLeftUnionIndex(){
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("updateTime").asLong().create();
+        schema.propertyKey("country").asText().create();
+
+        schema.vertexLabel("soft").properties("name", "country", "updateTime")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByCountryAndUpdateTime").onV("soft").secondary()
+              .by("country", "updateTime").create();
+
+        final long testDataCount = 2L;
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "country", "china", "updateTime", i);
+        }
+        graph.tx().commit();
+
+        long count = graph.traversal().V()
+                          .hasLabel("soft")
+                          .has("updateTime", 2L)
+                          .has("country", "china")
+                          .limit(-1)
+                          .count()
+                          .next();
+        Assert.assertEquals(1, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "country", "china", "updateTime", i * 2);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("soft")
+                     .has("updateTime", 2L)
+                     .has("country", "china")
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(1L, count);
+    }
+
+    @Test
     public void testAddVertexWithPropertySet() {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "review", "id", 1,

@@ -134,6 +134,26 @@ public class IndexLabel extends SchemaElement {
         return OLAP_ID.equals(this.baseValue);
     }
 
+    public Object validValue(Object value) {
+        if (!(value instanceof Number)) {
+            return value;
+        }
+
+        Number number = (Number) value;
+        switch (this.indexType()) {
+            case RANGE_INT:
+                return number.intValue();
+            case RANGE_LONG:
+                return number.longValue();
+            case RANGE_FLOAT:
+                return number.floatValue();
+            case RANGE_DOUBLE:
+                return number.doubleValue();
+            default:
+                return value;
+        }
+    }
+
     // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
     private static final int VL_IL_ID = -1;
     private static final int EL_IL_ID = -2;

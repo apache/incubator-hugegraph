@@ -126,6 +126,7 @@ public class GraphTransaction extends IndexableTransaction {
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
+    private final boolean removeLeftIndexOnOverwrite;
     private final boolean ignoreInvalidEntry;
     private final boolean optimizeAggrByIndex;
     private final int commitPartOfAdjacentEdges;
@@ -150,6 +151,8 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.lazyLoadAdjacentVertex =
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+        this.removeLeftIndexOnOverwrite =
+             conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
         this.commitPartOfAdjacentEdges =
              conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
@@ -320,6 +323,11 @@ public class GraphTransaction extends IndexableTransaction {
         if (this.checkCustomVertexExist) {
             this.checkVertexExistIfCustomizedId(addedVertices);
         }
+
+        if (this.removeLeftIndexOnOverwrite) {
+            this.removeLeftIndexIfNeeded(addedVertices);
+        }
+
         // Do vertex update
         for (HugeVertex v : addedVertices.values()) {
             assert !v.removed();
@@ -1612,6 +1620,23 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private void removeLeftIndexIfNeeded(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = vertices.keySet();
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        try {
+            while (results.hasNext()) {
+                HugeVertex existedVertex = results.next();
+                this.indexTx.updateVertexIndex(existedVertex, true);
+            }
+        } finally {
+            CloseableIterator.closeIterator(results);
+        }
+    }
+
     private <T extends HugeElement> Iterator<T> filterUnmatchedRecords(
                                                 Iterator<T> results,
                                                 Query query) {
@@ -1657,6 +1682,14 @@ public class GraphTransaction extends IndexableTransaction {
 
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
+            if (cq.existLeftIndex(elem.id())) {
+                /*
+                 * Both have correct and left index, wo should return true
+                 * but also needs to cleaned up left index
+                 */
+                this.indexTx.asyncRemoveIndexLeft(cq, elem);
+            }
+
             /* Return true if:
              * 1.not query by index or by primary-key/sort-key
              *   (cq.optimized() == 0 means query just by sysprop)
@@ -1666,7 +1699,6 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         if (cq.optimized() == OptimizedType.INDEX) {
-            LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }
         return false;
