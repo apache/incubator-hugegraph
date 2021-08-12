@@ -112,6 +112,11 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         return results;
     }
 
+    public boolean lessSources() {
+        return this.sourceRecords.peek().size() <=
+               this.targetRecords.peek().size();
+    }
+
     @Override
     public long accessed() {
         return this.accessed;
