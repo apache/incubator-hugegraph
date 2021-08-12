@@ -137,6 +137,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
             return metrics.compact();
         });
+
+        this.registerMetaHandler("flush", (session, meta, args) -> {
+            RocksDBMetrics metrics = new RocksDBMetrics(dbsGet.get(), session);
+            return metrics.flush();
+        });
     }
 
     protected void registerTableManager(HugeType type, RocksDBTable table) {

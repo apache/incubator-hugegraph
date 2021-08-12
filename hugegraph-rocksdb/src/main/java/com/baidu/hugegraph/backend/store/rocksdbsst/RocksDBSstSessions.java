@@ -157,6 +157,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
+    public void flush() {
+        throw new NotSupportException("RocksDBSstStore flush()");
+    }
+
+    @Override
     public RocksDBSessions copy(HugeConfig config,
                                 String database, String store) {
         return new RocksDBSstSessions(config, database, store, this);

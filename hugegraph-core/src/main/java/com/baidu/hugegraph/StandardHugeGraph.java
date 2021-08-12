@@ -287,6 +287,11 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void mode(GraphMode mode) {
+        if (this.mode.loading() && mode == GraphMode.NONE &&
+            this.storeProvider.type().equalsIgnoreCase("rocksdb")) {
+            // Flush WAL to sst file after load data for rocksdb backend
+            this.metadata(null, "flush");
+        }
         LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
     }

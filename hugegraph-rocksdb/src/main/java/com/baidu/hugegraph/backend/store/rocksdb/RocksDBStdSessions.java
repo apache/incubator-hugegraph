@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -48,6 +49,7 @@ import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Env;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.InfoLogLevel;
 import org.rocksdb.LRUCache;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
@@ -249,6 +251,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
             // Waits while compaction is performed on the background threads
             // rocksdb().flush(new FlushOptions())
             rocksdb().compactRange();
+        } catch (RocksDBException e) {
+            throw new BackendException(e);
+        }
+    }
+
+    @Override
+    public void flush() {
+        try {
+
+            this.rocksdb().flush(new FlushOptions().setWaitForFlush(true),
+                                 this.rocksdb.cfHandles.values()
+                                     .stream().map(CFHandle::get)
+                                     .collect(Collectors.toList()));
+            LOG.info("Finish flush of rocksdb path {}", this.dataPath);
         } catch (RocksDBException e) {
             throw new BackendException(e);
         }

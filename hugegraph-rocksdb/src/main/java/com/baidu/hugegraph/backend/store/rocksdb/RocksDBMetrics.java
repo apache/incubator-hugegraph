@@ -236,4 +236,22 @@ public class RocksDBMetrics implements BackendMetrics {
 
         return results;
     }
+
+    public Map<String, Object> flush() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        results.put(NODES, 1);
+        results.put(CLUSTER_ID, SERVER_LOCAL);
+
+        try {
+            for (RocksDBSessions db : this.dbs) {
+                // NOTE: maybe cost long time
+                db.flush();
+            }
+            results.put(SERVERS, ImmutableMap.of(SERVER_LOCAL, "OK"));
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
+        }
+
+        return results;
+    }
 }

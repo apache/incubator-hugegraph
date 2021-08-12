@@ -44,6 +44,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract List<String> property(String property);
     public abstract void compactRange();
+    public abstract void flush();
 
     public abstract RocksDBSessions copy(HugeConfig config,
                                          String database, String store);
