@@ -176,9 +176,9 @@ public abstract class SchemaDefine {
 
         protected Map<String, Object> asMap(Map<String, Object> map) {
             E.checkState(this.create != null,
-                         "Property %s can't be null", CREATE);
+                         "Property %s time can't be null", CREATE);
             E.checkState(this.update != null,
-                         "Property %s can't be null", UPDATE);
+                         "Property %s time can't be null", UPDATE);
             E.checkState(this.creator != null,
                          "Property %s can't be null", CREATOR);
 
@@ -213,9 +213,9 @@ public abstract class SchemaDefine {
 
         protected Object[] asArray(List<Object> list) {
             E.checkState(this.create != null,
-                         "Property %s can't be null", CREATE);
+                         "Property %s time can't be null", CREATE);
             E.checkState(this.update != null,
-                         "Property %s can't be null", UPDATE);
+                         "Property %s time can't be null", UPDATE);
             E.checkState(this.creator != null,
                          "Property %s can't be null", CREATOR);
 

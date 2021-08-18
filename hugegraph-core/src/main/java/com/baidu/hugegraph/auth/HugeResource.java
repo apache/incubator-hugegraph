@@ -40,7 +40,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Namifiable;
@@ -181,7 +180,7 @@ public class HugeResource {
                     return false;
                 }
             } catch (IllegalArgumentException e) {
-                throw new HugeException("Invalid resouce '%s' for '%s': %s",
+                throw new HugeException("Invalid resource '%s' for '%s': %s",
                                         expected, propName, e.getMessage());
             }
         }

@@ -167,7 +167,7 @@ public class StandardAuthManager implements AuthManager {
         this.usersCache.clear();
     }
 
-    private void invalidatePasswdCache(Id id) {
+    private void invalidatePasswordCache(Id id) {
         this.pwdCache.invalidate(id);
         // Clear all tokenCache because can't get userId in it
         this.tokenCache.clear();
@@ -182,14 +182,14 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public Id updateUser(HugeUser user) {
         this.invalidateUserCache();
-        this.invalidatePasswdCache(user.id());
+        this.invalidatePasswordCache(user.id());
         return this.users.update(user);
     }
 
     @Override
     public HugeUser deleteUser(Id id) {
         this.invalidateUserCache();
-        this.invalidatePasswdCache(id);
+        this.invalidatePasswordCache(id);
         return this.users.delete(id);
     }
 
@@ -704,7 +704,7 @@ public class StandardAuthManager implements AuthManager {
             return new UserWithRole(username);
         } else if (needBuildCache) {
             long expireAt = payload.getExpiration().getTime();
-            long bornTime = tokenCache.expire() -
+            long bornTime = this.tokenCache.expire() -
                             (expireAt - System.currentTimeMillis());
             this.tokenCache.update(IdGenerator.of(token), username,
                                    Math.negateExact(bornTime));

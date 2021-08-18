@@ -59,12 +59,12 @@ public class RelationshipManager<T extends Relationship> {
     private static final long NO_LIMIT = -1L;
 
     public RelationshipManager(HugeGraphParams graph, String label,
-                               Function<Edge, T> dser) {
+                               Function<Edge, T> deser) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.label = label;
-        this.deser = dser;
+        this.deser = deser;
         this.autoCommit.set(true);
     }
 
@@ -162,8 +162,7 @@ public class RelationshipManager<T extends Relationship> {
 
     private Iterator<Edge> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
-        Iterator<Edge> edges = this.tx().queryEdges(idArray);
-        return edges;
+        return this.tx().queryEdges(idArray);
     }
 
     private Iterator<Edge> queryRelationship(Id source,
