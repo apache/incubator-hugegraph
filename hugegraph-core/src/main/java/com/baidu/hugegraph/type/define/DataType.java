@@ -49,6 +49,9 @@ public enum DataType implements SerialEnum {
     private final byte code;
     private final String name;
     private final Class<?> clazz;
+    private final static String POSITIVE_INFINITY = "Infinity";
+    private final static String NEGATIVE_INFINITY = "-Infinity";
+    private final static String NaN = "NaN";
 
     static {
         SerialEnum.register(DataType.class);
@@ -104,15 +107,22 @@ public enum DataType implements SerialEnum {
         return this == DataType.UUID;
     }
 
+    private <V> boolean isInfinityOrNaN(V value) {
+        return value instanceof String &&
+               (POSITIVE_INFINITY.equals(value) ||
+                NEGATIVE_INFINITY.equals(value) || NaN.equals(value));
+    }
+
     public <V> Number valueToNumber(V value) {
-        if (!(this.isNumber() && value instanceof Number)) {
+        if (!(this.isNumber() && value instanceof Number) &&
+            !isInfinityOrNaN(value)) {
             return null;
         }
         if (this.clazz.isInstance(value)) {
             return (Number) value;
         }
 
-        Number number = null;
+        Number number;
         try {
             switch (this) {
                 case BYTE:
@@ -126,15 +136,11 @@ public enum DataType implements SerialEnum {
                     break;
                 case FLOAT:
                     Float fvalue = Float.valueOf(value.toString());
-                    if (!fvalue.isInfinite() && !fvalue.isNaN()) {
-                        number = fvalue;
-                    }
+                    number = fvalue;
                     break;
                 case DOUBLE:
                     Double dvalue = Double.valueOf(value.toString());
-                    if (!dvalue.isInfinite() && !dvalue.isNaN()) {
-                        number = dvalue;
-                    }
+                    number = dvalue;
                     break;
                 default:
                     throw new AssertionError(String.format(
@@ -219,6 +225,6 @@ public enum DataType implements SerialEnum {
                 return type;
             }
         }
-        throw new HugeException("Unknow clazz '%s' for DataType", clazz);
+        throw new HugeException("Unknown clazz '%s' for DataType", clazz);
     }
 }

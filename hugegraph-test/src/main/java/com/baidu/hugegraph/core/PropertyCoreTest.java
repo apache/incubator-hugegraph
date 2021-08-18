@@ -449,6 +449,11 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                             property("float", Float.MIN_VALUE));
         Assert.assertEquals(Float.MAX_VALUE,
                             property("float", Float.MAX_VALUE));
+        Assert.assertEquals(Float.POSITIVE_INFINITY,
+                            property("float", Float.POSITIVE_INFINITY));
+        Assert.assertEquals(Float.NEGATIVE_INFINITY,
+                            property("float", Float.NEGATIVE_INFINITY));
+        Assert.assertEquals(Float.NaN, property("float", Float.NaN));
 
         List<Float> list = ImmutableList.of(1f, 3f, 3f, 127f, 128f);
         Assert.assertEquals(list, propertyList("float",
@@ -462,13 +467,13 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                                              1f, 3f, 3f, 127f, 128f));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            property("float", Double.MAX_VALUE);
+            property("float", 'a');
         }, e -> {
             Assert.assertContains("Invalid property value " +
-                                  "'1.7976931348623157E308' for key 'float'",
+                                  "'a' for key 'float'",
                                   e.getMessage());
             Assert.assertContains("expect a value of type Float, " +
-                                  "actual type Double",
+                                  "actual type Character",
                                   e.getMessage());
         });
 
@@ -501,6 +506,11 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                             property("double", Double.MIN_VALUE));
         Assert.assertEquals(Double.MAX_VALUE,
                             property("double", Double.MAX_VALUE));
+        Assert.assertEquals(Double.POSITIVE_INFINITY,
+                            property("double", Double.POSITIVE_INFINITY));
+        Assert.assertEquals(Double.NEGATIVE_INFINITY,
+                            property("double", Double.NEGATIVE_INFINITY));
+        Assert.assertEquals(Double.NaN, property("double", Double.NaN));
 
         List<Double> list = ImmutableList.of(1d, 3d, 3d, 127d, 128d);
         Assert.assertEquals(list, propertyList("double",
