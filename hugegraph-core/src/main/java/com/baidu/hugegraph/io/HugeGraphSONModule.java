@@ -583,7 +583,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         }
     }
 
-
     private static class BlobDeserializer extends StdDeserializer<Blob> {
 
         public BlobDeserializer() {

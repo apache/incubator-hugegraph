@@ -19,34 +19,22 @@
 
 package com.baidu.hugegraph.api;
 
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import javax.ws.rs.core.Response;
 
-import com.baidu.hugegraph.api.traversers.TraversersApiTestSuite;
-import com.baidu.hugegraph.dist.RegisterUtil;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    PropertyKeyApiTest.class,
-    VertexLabelApiTest.class,
-    EdgeLabelApiTest.class,
-    IndexLabelApiTest.class,
-    SchemaApiTest.class,
-    VertexApiTest.class,
-    EdgeApiTest.class,
-    TaskApiTest.class,
-    GremlinApiTest.class,
-    MetricsApiTest.class,
-    UserApiTest.class,
-    LoginApiTest.class,
-    ProjectApiTest.class,
-    TraversersApiTestSuite.class
-})
-public class ApiTestSuite {
+public class SchemaApiTest extends BaseApiTest {
 
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
+    private static String path = "/graphs/hugegraph/schema";
+
+    @Test
+    public void testGet() {
+        Response r = client().get(path);
+        String content = assertResponseStatus(200, r);
+
+        assertJsonContains(content, "propertykeys");
+        assertJsonContains(content, "vertexlabels");
+        assertJsonContains(content, "edgelabels");
+        assertJsonContains(content, "indexlabels");
     }
 }
