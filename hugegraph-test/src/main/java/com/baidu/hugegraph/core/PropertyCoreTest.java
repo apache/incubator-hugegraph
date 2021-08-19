@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Date;
@@ -451,8 +452,18 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                             property("float", Float.MAX_VALUE));
         Assert.assertEquals(Float.POSITIVE_INFINITY,
                             property("float", Float.POSITIVE_INFINITY));
+        Assert.assertEquals(Float.POSITIVE_INFINITY,
+                            property("float", Double.MAX_VALUE));
+        Assert.assertEquals(Float.POSITIVE_INFINITY,
+                            property("float", Double.POSITIVE_INFINITY));
         Assert.assertEquals(Float.NEGATIVE_INFINITY,
                             property("float", Float.NEGATIVE_INFINITY));
+        Assert.assertEquals(Float.NEGATIVE_INFINITY,
+                            property("float", -Double.MAX_VALUE));
+        Assert.assertEquals(Float.POSITIVE_INFINITY,
+                            property("float", -Double.NEGATIVE_INFINITY));
+        Assert.assertEquals(Float.POSITIVE_INFINITY,
+                            property("float", -2 * Double.NEGATIVE_INFINITY));
         Assert.assertEquals(Float.NaN, property("float", Float.NaN));
 
         List<Float> list = ImmutableList.of(1f, 3f, 3f, 127f, 128f);
@@ -508,6 +519,23 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                             property("double", Double.MAX_VALUE));
         Assert.assertEquals(Double.POSITIVE_INFINITY,
                             property("double", Double.POSITIVE_INFINITY));
+        Assert.assertEquals(Double.POSITIVE_INFINITY,
+                            property("double", 2 * Double.POSITIVE_INFINITY));
+
+        BigDecimal two = new BigDecimal(2);
+        BigDecimal value = BigDecimal.valueOf(Double.MAX_VALUE).multiply(two);
+        Assert.assertEquals(Double.POSITIVE_INFINITY,
+                            property("double", value));
+        Assert.assertEquals(Double.POSITIVE_INFINITY,
+                            property("double", -Double.NEGATIVE_INFINITY));
+        Assert.assertEquals(Double.POSITIVE_INFINITY,
+                            property("double", -2 * Double.NEGATIVE_INFINITY));
+
+        value = BigDecimal.valueOf(-Double.MAX_VALUE).multiply(two);
+        Assert.assertEquals(Double.NEGATIVE_INFINITY,
+                            property("double", value));
+        value = BigDecimal.valueOf(Double.MIN_VALUE).divide(two);
+        Assert.assertEquals(0.0, property("double", value));
         Assert.assertEquals(Double.NEGATIVE_INFINITY,
                             property("double", Double.NEGATIVE_INFINITY));
         Assert.assertEquals(Double.NaN, property("double", Double.NaN));

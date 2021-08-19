@@ -283,19 +283,6 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("float").asFloat().create();
         schema.vertexLabel("number").properties("float").create();
 
-        //Assert.assertThrows(IllegalArgumentException.class, () -> {
-        //    double value = Float.MAX_VALUE * 2.0d;
-        //    graph.addVertex(T.label, "number", "float", value);
-        //});
-        //Assert.assertThrows(IllegalArgumentException.class, () -> {
-        //    double value = -(Float.MAX_VALUE * 2.0d);
-        //    graph.addVertex(T.label, "number", "float", value);
-        //});
-        //
-        //Assert.assertThrows(IllegalArgumentException.class, () -> {
-        //    graph.addVertex(T.label, "number", "float", Double.MAX_VALUE);
-        //});
-
         double value = Float.MIN_VALUE / 2.0d;
         float fvalue = graph.addVertex(T.label, "number", "float", value)
                             .value("float");
@@ -317,17 +304,6 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
         schema.propertyKey("double").asDouble().create();
         schema.vertexLabel("number").properties("double").create();
-
-        //Assert.assertThrows(IllegalArgumentException.class, () -> {
-        //    BigDecimal two = new BigDecimal(2);
-        //    BigDecimal value = new BigDecimal(Double.MAX_VALUE).multiply(two);
-        //    graph.addVertex(T.label, "number", "double", value);
-        //});
-        //Assert.assertThrows(IllegalArgumentException.class, () -> {
-        //    BigDecimal two = new BigDecimal(2);
-        //    BigDecimal value = new BigDecimal(-Double.MAX_VALUE).multiply(two);
-        //    graph.addVertex(T.label, "number", "double", value);
-        //});
 
         BigDecimal two = new BigDecimal(2);
         BigDecimal value = new BigDecimal(Double.MIN_VALUE).divide(two);

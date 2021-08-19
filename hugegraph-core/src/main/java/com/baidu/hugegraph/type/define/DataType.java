@@ -107,7 +107,7 @@ public enum DataType implements SerialEnum {
         return this == DataType.UUID;
     }
 
-    private <V> boolean isInfinityOrNaN(V value) {
+    private static <V> boolean isInfinityOrNaN(V value) {
         return value instanceof String &&
                (POSITIVE_INFINITY.equals(value) ||
                 NEGATIVE_INFINITY.equals(value) || NaN.equals(value));
