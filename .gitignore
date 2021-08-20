@@ -19,3 +19,5 @@ target
 gen-java
 build
 node*
+/hugegraph-0.*
+/dist.sh

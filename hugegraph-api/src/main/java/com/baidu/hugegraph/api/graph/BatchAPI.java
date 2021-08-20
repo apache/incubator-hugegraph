@@ -45,6 +45,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class BatchAPI extends API {
 
     private static final Logger LOG = Log.logger(BatchAPI.class);
+    private static final int BUSY_TIME_OUT = 10;
 
     // NOTE: VertexAPI and EdgeAPI should share a counter
     private static final AtomicInteger batchWriteThreads = new AtomicInteger(0);
@@ -64,6 +65,15 @@ public class BatchAPI extends API {
     public <R> R commit(HugeConfig config, HugeGraph g, int size,
                         Callable<R> callable) {
         int maxWriteThreads = config.get(ServerOptions.MAX_WRITE_THREADS);
+        for( int retry = 0; retry < BUSY_TIME_OUT &&
+                batchWriteThreads.get() >= maxWriteThreads; retry ++) {
+            // block the caller...
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         int writingThreads = batchWriteThreads.incrementAndGet();
         if (writingThreads > maxWriteThreads) {
             batchWriteThreads.decrementAndGet();
