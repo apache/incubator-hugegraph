@@ -6,6 +6,7 @@ on:
       - master
       - /^release-.*$/
       - /^test-.*$/
+      - /^gh.*$/
   pull_request:
     branches:
       - master
