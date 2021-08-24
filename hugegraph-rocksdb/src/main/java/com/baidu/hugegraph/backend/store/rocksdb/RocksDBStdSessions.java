@@ -259,8 +259,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public void flush() {
         try {
-
-            this.rocksdb().flush(new FlushOptions().setWaitForFlush(true),
+            this.rocksdb().flush(new FlushOptions().setWaitForFlush(false),
                                  this.rocksdb.cfHandles.values()
                                      .stream().map(CFHandle::get)
                                      .collect(Collectors.toList()));
