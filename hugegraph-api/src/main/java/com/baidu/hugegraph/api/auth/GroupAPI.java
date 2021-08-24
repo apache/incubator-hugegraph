@@ -174,9 +174,6 @@ public class GroupAPI extends API {
         }
 
         @Override
-        public void checkUpdate() {
-            // E.checkArgumentNotNull(this.description,
-            //                       "The description of group can't be null");
-        }
+        public void checkUpdate() {}
     }
 }
