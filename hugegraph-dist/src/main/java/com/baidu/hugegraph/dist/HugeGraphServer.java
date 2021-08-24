@@ -73,6 +73,7 @@ public class HugeGraphServer {
             LOG.error("HugeRestServer stop error: ", e);
         }
 
+        
         try {
             this.gremlinServer.stop().get();
             LOG.info("HugeGremlinServer stopped");
