@@ -198,8 +198,8 @@ public class BelongAPI extends API {
 
         @Override
         public void checkUpdate() {
-            E.checkArgumentNotNull(this.description,
-                                   "The description of belong can't be null");
+            // E.checkArgumentNotNull(this.description,
+            //                       "The description of belong can't be null");
         }
     }
 }

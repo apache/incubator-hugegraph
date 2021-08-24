@@ -207,8 +207,8 @@ public class AccessAPI extends API {
 
         @Override
         public void checkUpdate() {
-            E.checkArgumentNotNull(this.description,
-                                   "The description of access can't be null");
+            // E.checkArgumentNotNull(this.description,
+            //                       "The description of access can't be null");
         }
     }
 }

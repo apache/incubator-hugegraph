@@ -215,10 +215,12 @@ public class UserAPI extends API {
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgument(!StringUtils.isEmpty(this.name),
-                            "The name of user can't be null");
-            E.checkArgument(!StringUtils.isEmpty(this.password),
-                            "The password of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.name) &&
+                            this.name.matches(USER_NAME_PATTERN),
+                            "The name is 6-18 characters and can only contain letters, numbers or underscores");
+            E.checkArgument(!StringUtils.isEmpty(this.password) &&
+                            this.password.matches(USER_PASSWORD_PATTERN),
+                            "The password is 8-16 characters, which can be letters, numbers or special symbols");
         }
 
         @Override
