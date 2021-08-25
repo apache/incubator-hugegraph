@@ -30,6 +30,7 @@ import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.google.common.collect.ImmutableSet;
 
 public enum DataType implements SerialEnum {
 
@@ -49,12 +50,11 @@ public enum DataType implements SerialEnum {
     private final byte code;
     private final String name;
     private final Class<?> clazz;
-    private final static String POSITIVE_INFINITY = "Infinity";
-    private final static String NEGATIVE_INFINITY = "-Infinity";
-    private final static String NaN = "NaN";
+    private final static ImmutableSet<String> specialNums;
 
     static {
         SerialEnum.register(DataType.class);
+        specialNums = ImmutableSet.of("-Infinity", "Infinity", "NaN");
     }
 
     DataType(int code, String name, Class<?> clazz) {
@@ -108,9 +108,7 @@ public enum DataType implements SerialEnum {
     }
 
     private static <V> boolean isInfinityOrNaN(V value) {
-        return value instanceof String &&
-               (POSITIVE_INFINITY.equals(value) ||
-                NEGATIVE_INFINITY.equals(value) || NaN.equals(value));
+        return value instanceof String && specialNums.contains(value);
     }
 
     public <V> Number valueToNumber(V value) {
