@@ -29,8 +29,8 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
-import com.google.common.collect.ImmutableSet;
 
 public enum DataType implements SerialEnum {
 
@@ -50,11 +50,9 @@ public enum DataType implements SerialEnum {
     private final byte code;
     private final String name;
     private final Class<?> clazz;
-    private final static ImmutableSet<String> specialNums;
 
     static {
         SerialEnum.register(DataType.class);
-        specialNums = ImmutableSet.of("-Infinity", "Infinity", "NaN");
     }
 
     DataType(int code, String name, Class<?> clazz) {
@@ -107,13 +105,9 @@ public enum DataType implements SerialEnum {
         return this == DataType.UUID;
     }
 
-    private static <V> boolean isInfinityOrNaN(V value) {
-        return value instanceof String && specialNums.contains(value);
-    }
-
     public <V> Number valueToNumber(V value) {
         if (!(this.isNumber() && value instanceof Number) &&
-            !isInfinityOrNaN(value)) {
+            !JsonUtil.isInfinityOrNaN(value)) {
             return null;
         }
         if (this.clazz.isInstance(value)) {
@@ -133,12 +127,10 @@ public enum DataType implements SerialEnum {
                     number = Long.valueOf(value.toString());
                     break;
                 case FLOAT:
-                    Float fvalue = Float.valueOf(value.toString());
-                    number = fvalue;
+                    number = Float.valueOf(value.toString());
                     break;
                 case DOUBLE:
-                    Double dvalue = Double.valueOf(value.toString());
-                    number = dvalue;
+                    number = Double.valueOf(value.toString());
                     break;
                 default:
                     throw new AssertionError(String.format(
