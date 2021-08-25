@@ -51,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/auth/belongs")
+@Path("graphs/auth/belongs")
 @Singleton
 public class BelongAPI extends API {
 
@@ -63,12 +63,11 @@ public class BelongAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          JsonBelong jsonBelong) {
-        LOG.debug("Graph [{}] create belong: {}", graph, jsonBelong);
+        LOG.debug("Graph [{}] create belong: {}", SYSTEM_GRAPH, jsonBelong);
         checkCreatingBody(jsonBelong);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeBelong belong = jsonBelong.build();
         belong.id(manager.authManager().createBelong(belong));
         return manager.serializer(g).writeAuthElement(belong);
@@ -80,13 +79,12 @@ public class BelongAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          JsonBelong jsonBelong) {
-        LOG.debug("Graph [{}] update belong: {}", graph, jsonBelong);
+        LOG.debug("Graph [{}] update belong: {}", SYSTEM_GRAPH, jsonBelong);
         checkUpdatingBody(jsonBelong);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeBelong belong;
         try {
             belong = manager.authManager().getBelong(UserAPI.parseId(id));
@@ -102,16 +100,15 @@ public class BelongAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @QueryParam("user") String user,
                        @QueryParam("group") String group,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] list belongs by user {} or group {}",
-                  graph, user, group);
+                SYSTEM_GRAPH, user, group);
         E.checkArgument(user == null || group == null,
                         "Can't pass both user and group at the same time");
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         List<HugeBelong> belongs;
         if (user != null) {
             Id id = UserAPI.parseId(user);
@@ -130,11 +127,10 @@ public class BelongAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get belong: {}", graph, id);
+        LOG.debug("Graph [{}] get belong: {}", SYSTEM_GRAPH, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeBelong belong = manager.authManager().getBelong(UserAPI.parseId(id));
         return manager.serializer(g).writeAuthElement(belong);
     }
@@ -144,12 +140,11 @@ public class BelongAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete belong: {}", graph, id);
+        LOG.debug("Graph [{}] delete belong: {}", SYSTEM_GRAPH, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
             manager.authManager().deleteBelong(UserAPI.parseId(id));
         } catch (NotFoundException e) {

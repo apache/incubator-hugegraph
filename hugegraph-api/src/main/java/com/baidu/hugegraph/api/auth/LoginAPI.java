@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/auth")
+@Path("graphs/auth")
 @Singleton
 public class LoginAPI extends API {
 
@@ -66,15 +66,14 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
-                        @PathParam("graph") String graph,
                         JsonLogin jsonLogin) {
-        LOG.debug("Graph [{}] user login: {}", graph, jsonLogin);
+        LOG.debug("Graph [{}] user login: {}", SYSTEM_GRAPH, jsonLogin);
         checkCreatingBody(jsonLogin);
 
         try {
             String token = manager.authManager()
                                   .loginUser(jsonLogin.name, jsonLogin.password);
-            HugeGraph g = graph(manager, graph);
+            HugeGraph g = graph(manager, SYSTEM_GRAPH);
             return manager.serializer(g)
                           .writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
@@ -89,11 +88,10 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public void logout(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] user logout: {}", graph, auth);
+        LOG.debug("Graph [{}] user logout: {}", SYSTEM_GRAPH, auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -113,12 +111,11 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String verifyToken(@Context GraphManager manager,
-                              @PathParam("graph") String graph,
                               @HeaderParam(HttpHeaders.AUTHORIZATION)
                               String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] get user: {}", graph, token);
+        LOG.debug("Graph [{}] get user: {}", SYSTEM_GRAPH, token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -129,7 +126,7 @@ public class LoginAPI extends API {
                                                     .length());
         UserWithRole userWithRole = manager.authManager().validateUser(token);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         return manager.serializer(g)
                       .writeMap(ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
                                                 userWithRole.username(),

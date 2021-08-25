@@ -51,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/auth/groups")
+@Path("graphs/auth/groups")
 @Singleton
 public class GroupAPI extends API {
 
@@ -63,12 +63,11 @@ public class GroupAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          JsonGroup jsonGroup) {
-        LOG.debug("Graph [{}] create group: {}", graph, jsonGroup);
+        LOG.debug("Graph [{}] create group: {}", SYSTEM_GRAPH, jsonGroup);
         checkCreatingBody(jsonGroup);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeGroup group = jsonGroup.build();
         group.id(manager.authManager().createGroup(group));
         return manager.serializer(g).writeAuthElement(group);
@@ -80,13 +79,12 @@ public class GroupAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          JsonGroup jsonGroup) {
-        LOG.debug("Graph [{}] update group: {}", graph, jsonGroup);
+        LOG.debug("Graph [{}] update group: {}", SYSTEM_GRAPH, jsonGroup);
         checkUpdatingBody(jsonGroup);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeGroup group;
         try {
             group = manager.authManager().getGroup(UserAPI.parseId(id));
@@ -102,11 +100,10 @@ public class GroupAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list groups", graph);
+        LOG.debug("Graph [{}] list groups", SYSTEM_GRAPH);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
         return manager.serializer(g).writeAuthElements("groups", groups);
     }
@@ -116,11 +113,10 @@ public class GroupAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get group: {}", graph, id);
+        LOG.debug("Graph [{}] get group: {}", SYSTEM_GRAPH, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
         return manager.serializer(g).writeAuthElement(group);
     }
@@ -130,12 +126,11 @@ public class GroupAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete group: {}", graph, id);
+        LOG.debug("Graph [{}] delete group: {}", SYSTEM_GRAPH, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
             manager.authManager().deleteGroup(IdGenerator.of(id));
         } catch (NotFoundException e) {

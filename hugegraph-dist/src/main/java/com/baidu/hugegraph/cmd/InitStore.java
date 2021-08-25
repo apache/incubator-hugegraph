@@ -19,9 +19,7 @@
 
 package com.baidu.hugegraph.cmd;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.configuration.tree.ConfigurationNode;
@@ -90,7 +88,29 @@ public class InitStore {
         E.checkArgument(!graphNames.isEmpty(),
                         "Must contain at least one graph");
 
-        for (ConfigurationNode graphName : graphNames) {
+        List<ConfigurationNode> sortedGraphNames = new ArrayList<>();
+        for (ConfigurationNode item : graphNames) {
+            sortedGraphNames.add(item);
+        }
+        sortedGraphNames.sort(new Comparator<ConfigurationNode>() {
+            @Override
+            public int compare(ConfigurationNode t0,
+                               ConfigurationNode t1) {
+                String configPath = t0.getValue().toString();
+                HugeConfig config = new HugeConfig(configPath);
+                E.checkArgument(config != null,
+                        "graph config is null");
+
+                String clazz = config.getString("gremlin.graph", (String) null);
+                if (clazz != null && clazz.trim().equals(
+                        "com.baidu.hugegraph.HugeFactory")) {
+                    return 1;
+                }
+                return -1;
+            }
+        });
+
+        for (ConfigurationNode graphName : sortedGraphNames) {
             @SuppressWarnings("unchecked")
             String name = ((Map.Entry<String, Object>)
                            graphName.getReference()).getKey();

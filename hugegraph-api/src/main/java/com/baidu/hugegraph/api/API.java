@@ -72,6 +72,8 @@ public class API {
     private static final Meter unknownErrorMeter =
                          MetricsUtil.registerMeter(API.class, "unknown-error");
 
+    public static final String SYSTEM_GRAPH = "system";
+
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
         if (g == null) {

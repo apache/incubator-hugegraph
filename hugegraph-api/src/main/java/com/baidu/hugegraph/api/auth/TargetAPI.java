@@ -52,7 +52,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/auth/targets")
+@Path("graphs/auth/targets")
 @Singleton
 public class TargetAPI extends API {
 
@@ -64,12 +64,11 @@ public class TargetAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] create target: {}", graph, jsonTarget);
+        LOG.debug("Graph [{}] create target: {}", SYSTEM_GRAPH, jsonTarget);
         checkCreatingBody(jsonTarget);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeTarget target = jsonTarget.build();
         target.id(manager.authManager().createTarget(target));
         return manager.serializer(g).writeAuthElement(target);
@@ -81,13 +80,12 @@ public class TargetAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] update target: {}", graph, jsonTarget);
+        LOG.debug("Graph [{}] update target: {}", SYSTEM_GRAPH, jsonTarget);
         checkUpdatingBody(jsonTarget);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeTarget target;
         try {
             target = manager.authManager().getTarget(UserAPI.parseId(id));
@@ -103,11 +101,10 @@ public class TargetAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list targets", graph);
+        LOG.debug("Graph [{}] list targets", SYSTEM_GRAPH);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         List<HugeTarget> targets = manager.authManager().listAllTargets(limit);
         return manager.serializer(g).writeAuthElements("targets", targets);
     }
@@ -117,11 +114,10 @@ public class TargetAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get target: {}", graph, id);
+        LOG.debug("Graph [{}] get target: {}", SYSTEM_GRAPH, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeTarget target = manager.authManager().getTarget(UserAPI.parseId(id));
         return manager.serializer(g).writeAuthElement(target);
     }
@@ -131,12 +127,11 @@ public class TargetAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete target: {}", graph, id);
+        LOG.debug("Graph [{}] delete target: {}", SYSTEM_GRAPH, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
             manager.authManager().deleteTarget(UserAPI.parseId(id));
         } catch (NotFoundException e) {

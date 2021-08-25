@@ -56,7 +56,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/auth/projects")
+@Path("graphs/auth/projects")
 @Singleton
 public class ProjectAPI extends API {
 
@@ -70,12 +70,11 @@ public class ProjectAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          JsonProject jsonProject) {
-        LOG.debug("Graph [{}] create project: {}", graph, jsonProject);
+        LOG.debug("Graph [{}] create project: {}", SYSTEM_GRAPH, jsonProject);
         checkCreatingBody(jsonProject);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeProject project = jsonProject.build();
         Id projectId = manager.authManager().createProject(project);
         /*
@@ -92,15 +91,14 @@ public class ProjectAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          @QueryParam("action") String action,
                          JsonProject jsonProject) {
-        LOG.debug("Graph [{}] update {} project: {}", graph, action,
+        LOG.debug("Graph [{}] update {} project: {}", SYSTEM_GRAPH, action,
                   jsonProject);
         checkUpdatingBody(jsonProject);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeProject project;
         Id projectId = UserAPI.parseId(id);
         AuthManager authManager = manager.authManager();
@@ -130,11 +128,10 @@ public class ProjectAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list project", graph);
+        LOG.debug("Graph [{}] list project", SYSTEM_GRAPH);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         List<HugeProject> projects = manager.authManager()
                                             .listAllProject(limit);
         return manager.serializer(g).writeAuthElements("projects", projects);
@@ -145,11 +142,10 @@ public class ProjectAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get project: {}", graph, id);
+        LOG.debug("Graph [{}] get project: {}", SYSTEM_GRAPH, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeProject project;
         try {
             project = manager.authManager().getProject(UserAPI.parseId(id));
@@ -164,12 +160,11 @@ public class ProjectAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete project: {}", graph, id);
+        LOG.debug("Graph [{}] delete project: {}", SYSTEM_GRAPH, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
             manager.authManager().deleteProject(UserAPI.parseId(id));
         } catch (NotFoundException e) {
