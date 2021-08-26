@@ -69,7 +69,7 @@ public class PropertyKeyAPI extends API {
 
     @POST
     @Timed
-    @Status(Status.CREATED)
+    @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
@@ -88,6 +88,7 @@ public class PropertyKeyAPI extends API {
 
     @PUT
     @Timed
+    @Status(Status.ACCEPTED)
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)

@@ -303,7 +303,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                 }
 
                 byte[] target = new byte[length + 1];
-                target[1] = 0x1;
+                target[0] = 0x1;
                 System.arraycopy(result, 0, target, 1, length);
                 return target;
             }

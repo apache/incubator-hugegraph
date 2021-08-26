@@ -202,49 +202,49 @@ public class BaseApiTest {
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"age\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"city\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"lang\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"date\",\n"
                 + "\"data_type\": \"TEXT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"price\",\n"
                 + "\"data_type\": \"INT\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
         createAndAssert(path, "{\n"
                 + "\"name\": \"weight\",\n"
                 + "\"data_type\": \"DOUBLE\",\n"
                 + "\"cardinality\": \"SINGLE\",\n"
                 + "\"check_exist\": false,\n"
                 + "\"properties\":[]\n"
-                + "}");
+                + "}", 202);
     }
 
     protected static void initVertexLabel() {
@@ -427,8 +427,13 @@ public class BaseApiTest {
     }
 
     protected static Response createAndAssert(String path, String body) {
+        return createAndAssert(path, body, 201);
+    }
+
+    protected static Response createAndAssert(String path, String body,
+                                              int status) {
         Response r = client.post(path, body);
-        assertResponseStatus(201, r);
+        assertResponseStatus(status, r);
         return r;
     }
 
