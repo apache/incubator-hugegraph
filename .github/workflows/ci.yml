@@ -6,13 +6,13 @@ on:
       - master
       - /^release-.*$/
       - /^test-.*$/
-      - /^gh.*$/
+      - /^gh-.*$/
   pull_request:
     branches:
       - master
       - /^release-.*$/
       - /^test-.*$/
-      - /^gh.*$/
+      - /^gh-.*$/
 jobs:
   build:
     runs-on: ubuntu-18.04
