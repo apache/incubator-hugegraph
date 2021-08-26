@@ -5,14 +5,15 @@ on:
     branches:
       - master
       - /^release-.*$/
-      - /^test-.*$/
+#      - /^test-.*$/
       - /^gh-.*$/
   pull_request:
     branches:
       - master
       - /^release-.*$/
-      - /^test-.*$/
+ #     - /^test-.*$/
       - /^gh-.*$/
+
 jobs:
   build:
     runs-on: ubuntu-18.04
