@@ -1,5 +1,6 @@
 # How to Contribute to HugeGraph
 
+
 Thanks for taking the time to contribute! As an open source project, HugeGraph is looking forward to be contributed from everyone, and we are also grateful to all of the contributors.
 
 The following is a contribution guide for HugeGraph:
