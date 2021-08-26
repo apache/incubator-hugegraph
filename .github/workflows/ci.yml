@@ -5,14 +5,16 @@ on:
     branches:
       - master
       - /^release-.*$/
-#      - /^test-.*$/
-      - /^gh-.*$/
+      - /^test-.*$/
+      - gh-master
+      - gh2021q3
   pull_request:
     branches:
       - master
       - /^release-.*$/
  #     - /^test-.*$/
-      - /^gh-.*$/
+      - gh-master
+      - gh2021q3
 
 jobs:
   build:
