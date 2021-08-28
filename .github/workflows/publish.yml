@@ -8,12 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
-    env:
-      TRAVIS_DIR: hugegraph-dist/src/assembly/travis
-    strategy:
-      fail-fast: false
-      matrix:
-        BACKEND: [memory, cassandra, hbase, rocksdb]
     steps:
       - name: Install JDK 8
         uses: actions/setup-java@v2
@@ -42,4 +36,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: 'hugegraph-*'
+          args: 'hugegraph-*.tar.gz'
