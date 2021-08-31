@@ -59,9 +59,9 @@ public class API {
     public static final String ACTION_ELIMINATE = "eliminate";
     public static final String ACTION_CLEAR = "clear";
 
-    public static final String USER_NAME_PATTERN = "^[0-9a-zA-Z_]{6,18}$";
+    public static final String USER_NAME_PATTERN = "^[0-9a-zA-Z_]{5,16}$";
     public static final String USER_PASSWORD_PATTERN =
-           "[a-zA-Z0-9_.,\\-()/=+?!*;@#:%\\[\\]‘\\\\${}^|~\\n\\r\\t ]{8,16}";
+           "[a-zA-Z0-9~!@#$%^&*()_+|<>,.?/:;'`\"\\[\\]{}\\\\]{5,16}";
 
     private static final Meter succeedMeter =
                          MetricsUtil.registerMeter(API.class, "commit-succeed");

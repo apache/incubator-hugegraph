@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class UserApiTest extends BaseApiTest {
 
-    private static final String path = "graphs/hugegraph/auth/users";
+    private static final String path = "graphs/auth/users";
     private static final int NO_LIMIT = -1;
 
     @After
@@ -59,11 +59,11 @@ public class UserApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        String user1 = "{\"user_name\":\"user1\",\"user_password\":\"p1\"," +
+        String user1 = "{\"user_name\":\"user1\",\"user_password\":\"passwrod1\"," +
                        "\"user_email\":\"user1@baidu.com\",\"user_phone\":" +
                        "\"123456789\",\"user_avatar\":\"image1.jpg\"}";
 
-        String user2 = "{\"user_name\":\"user2\",\"user_password\":\"p2\"," +
+        String user2 = "{\"user_name\":\"user2\",\"user_password\":\"passwrod2\"," +
                        "\"user_email\":\"user2@baidu.com\"," +
                        "\"user_phone\":\"1357924680\"," +
                        "\"user_avatar\":\"image2.jpg\"}";
@@ -88,7 +88,7 @@ public class UserApiTest extends BaseApiTest {
         Response r3 = client().post(path, "{}");
         assertResponseStatus(400, r3);
 
-        String user3 = "{\"user_name\":\"user1\",\"user_password\":\"p1\"," +
+        String user3 = "{\"user_name\":\"user1\",\"user_password\":\"passwrod3\"," +
                        "\"user_email\":\"user1@baidu.com\"," +
                        "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                        ".jpg\"}";
@@ -129,7 +129,7 @@ public class UserApiTest extends BaseApiTest {
             if (user.get("user_name").equals("admin")) {
                 continue;
             }
-            String user1 = "{\"user_password\":\"p1\"," +
+            String user1 = "{\"user_password\":\"password1\"," +
                            "\"user_email\":\"user1@baidu.com\"," +
                            "\"user_phone\":\"111111\"," +
                            "\"user_avatar\":\"image1" +
@@ -161,7 +161,7 @@ public class UserApiTest extends BaseApiTest {
     }
 
     protected void createUser(String name) {
-        String user = "{\"user_name\":\"" + name + "\",\"user_password\":\"p1" +
+        String user = "{\"user_name\":\"" + name + "\",\"user_password\":\"password1" +
                       "\", \"user_email\":\"user1@baidu.com\"," +
                       "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                       ".jpg\"}";

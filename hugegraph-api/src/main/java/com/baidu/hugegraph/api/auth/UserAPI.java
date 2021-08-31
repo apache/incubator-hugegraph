@@ -211,10 +211,14 @@ public class UserAPI extends API {
         public void checkCreate(boolean isBatch) {
             E.checkArgument(!StringUtils.isEmpty(this.name) &&
                             this.name.matches(USER_NAME_PATTERN),
-                            "The name is 6-18 characters and can only contain letters, numbers or underscores");
+                            "The name is 5-16 characters " +
+                            "and can only contain letters, " +
+                            "numbers or underscores");
             E.checkArgument(!StringUtils.isEmpty(this.password) &&
                             this.password.matches(USER_PASSWORD_PATTERN),
-                            "The password is 8-16 characters, which can be letters, numbers or special symbols");
+                            "The password is 5-16 characters, " +
+                            "which can be letters, numbers or " +
+                            "special symbols");
         }
 
         @Override

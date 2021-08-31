@@ -38,13 +38,13 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public class LoginApiTest extends BaseApiTest {
 
-    private static final String PATH = "graphs/hugegraph/auth";
-    private static final String USER_PATH = "graphs/hugegraph/auth/users";
+    private static final String PATH = "graphs/auth";
+    private static final String USER_PATH = "graphs/auth/users";
     private String userId4Test;
 
     @Before
     public void setup() {
-        Response r = this.createUser("test", "test");
+        Response r = this.createUser("test1", "test1");
         Map<String, Object> user = r.readEntity(
                                      new GenericType<Map<String, Object>>(){});
         this.userId4Test = (String) user.get("id");
@@ -59,14 +59,14 @@ public class LoginApiTest extends BaseApiTest {
     public void testLogin() {
         Response r;
 
-        r = this.login("test", "test");
+        r = this.login("test1", "test1");
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
-        r = this.login("test", "pass");
+        r = this.login("test1", "pass1");
         assertResponseStatus(401, r);
 
-        r = this.login("pass", "pass");
+        r = this.login("pass1", "pass1");
         assertResponseStatus(401, r);
     }
 
@@ -75,7 +75,7 @@ public class LoginApiTest extends BaseApiTest {
         Response r;
         String result;
 
-        r = this.login("test", "test");
+        r = this.login("test1", "test1");
         result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
@@ -99,7 +99,7 @@ public class LoginApiTest extends BaseApiTest {
         Response r;
         String result;
 
-        r = this.login("test", "test");
+        r = this.login("test1", "test1");
         result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
@@ -118,7 +118,7 @@ public class LoginApiTest extends BaseApiTest {
                                    result,
                                    new TypeReference<Map<String, Object>>(){});
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
-        Assert.assertEquals("test", user.get("user_name"));
+        Assert.assertEquals("test1", user.get("user_name"));
 
         String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();

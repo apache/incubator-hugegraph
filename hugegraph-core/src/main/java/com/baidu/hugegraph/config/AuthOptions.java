@@ -55,7 +55,7 @@ public class AuthOptions extends OptionHolder {
                     "The name of graph used to store authentication information, " +
                     "like users, only for com.baidu.hugegraph.auth.StandardAuthenticator.",
                     disallowEmpty(),
-                    "hugegraph"
+                    "system"
             );
 
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =

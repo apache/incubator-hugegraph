@@ -23,6 +23,7 @@ import java.io.Console;
 import java.net.InetAddress;
 import java.util.Scanner;
 
+import com.baidu.hugegraph.api.API;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
@@ -77,7 +78,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private String inputPassword() {
         String inputPrompt = "Please input the admin password:";
-        String notEmptyPrompt = "The admin password can't be empty";
+        String notEmptyPrompt = "The admin password is 5-16 characters, " +
+                                "which can be letters, numbers or " +
+                                "special symbols";
         Console console = System.console();
         while (true) {
             String password = "";
@@ -90,7 +93,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
                 Scanner scanner = new Scanner(System.in);
                 password = scanner.nextLine();
             }
-            if (!password.isEmpty()) {
+            if (!password.isEmpty() &&
+                password.matches(API.USER_PASSWORD_PATTERN)) {
                 return password;
             }
             System.out.println(notEmptyPrompt);

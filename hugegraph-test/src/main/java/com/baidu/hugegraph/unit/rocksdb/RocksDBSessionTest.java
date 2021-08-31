@@ -410,7 +410,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         byte[] value21 = b("value-2-1");
         session.put(TABLE, key21, value21);
 
-        session.deleteRange(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
+        session.deleteRange(TABLE, new byte[]{1, 3}, new byte[]{1, -3});
         this.commit();
 
         Assert.assertArrayEquals(value11, session.get(TABLE, key11));
