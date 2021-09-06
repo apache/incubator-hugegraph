@@ -56,13 +56,24 @@ public class JsonSerializer implements Serializer {
 
     private static final int LBUF_SIZE = 1024;
 
-    private static JsonSerializer INSTANCE = new JsonSerializer();
+    private static final JsonSerializer INSTANCE = new JsonSerializer();
+
+    private Map<String, Object> debugMeasure = null;
+    private static final String MEASURE_KEY = "measure";
 
     private JsonSerializer() {
     }
 
     public static JsonSerializer instance() {
         return INSTANCE;
+    }
+
+    private JsonSerializer(Map<String, Object> debugMeasure) {
+        this.debugMeasure = debugMeasure;
+    }
+
+    public static JsonSerializer instance(Map<String, Object> debugMatrix) {
+        return new JsonSerializer(debugMatrix);
     }
 
     @Override
@@ -72,14 +83,14 @@ public class JsonSerializer implements Serializer {
 
     @Override
     public String writeList(String label, Collection<?> list) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {
-            out.write(String.format("{\"%s\": ", label).getBytes(API.CHARSET));
-            out.write(JsonUtil.toJson(list).getBytes(API.CHARSET));
-            out.write("}".getBytes(API.CHARSET));
-            return out.toString(API.CHARSET);
-        } catch (Exception e) {
-            throw new HugeException("Failed to serialize %s", e, label);
+        Map<String, Object> results;
+        if (this.debugMeasure != null) {
+            results = ImmutableMap.of(label, list,
+                                      MEASURE_KEY, this.debugMeasure);
+        } else {
+            results = ImmutableMap.of(label, list);
         }
+        return JsonUtil.toJson(results);
     }
 
     private String writeIterator(String label, Iterator<?> iter,
@@ -162,12 +173,12 @@ public class JsonSerializer implements Serializer {
         } else {
             throw new HugeException("Invalid schema element '%s' in " +
                                     "TaskWithSchema, only support " +
-                                    "[PropertyKey, IndexLabel]", schemaElement);
+                                    "[PropertyKey, IndexLabel]",
+                                    schemaElement);
         }
         return builder.append("{\"").append(type).append("\": ")
-                      .append(schema)
-                      .append(", \"task_id\": ").append(id).append("}")
-                      .toString();
+                      .append(schema).append(", \"task_id\": ")
+                      .append(id).append("}").toString();
     }
 
     @Override
@@ -312,15 +323,23 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> vertices) {
+                                     Iterator<Vertex> vertices,
+                                     Iterator<Edge> edges) {
         List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
         }
 
-        Map<String, Object> results;
-        results = ImmutableMap.of(name, nodes, "size", size,
-                                  "paths", pathList, "vertices", vertices);
-        return JsonUtil.toJson(results);
+        ImmutableMap.Builder<Object, Object> build = ImmutableMap.builder()
+                                                     .put(name, nodes)
+                                                     .put("size", size)
+                                                     .put("paths", pathList)
+                                                     .put("vertices", vertices)
+                                                     .put("edges", edges);
+
+        if (this.debugMeasure != null) {
+            build.put(MEASURE_KEY, this.debugMeasure);
+        }
+        return JsonUtil.toJson(build.build());
     }
 }

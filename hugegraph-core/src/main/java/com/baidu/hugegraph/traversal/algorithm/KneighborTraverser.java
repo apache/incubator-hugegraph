@@ -71,7 +71,8 @@ public class KneighborTraverser extends OltpTraverser {
     }
 
     public KneighborRecords customizedKneighbor(Id source, EdgeStep step,
-                                                int maxDepth, long limit) {
+                                                int maxDepth, long limit,
+                                                boolean withEdge) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-neighbor max_depth");
@@ -88,9 +89,16 @@ public class KneighborTraverser extends OltpTraverser {
                 return;
             }
             Iterator<Edge> edges = edgesOfVertex(v, step);
-            while (!this.reachLimit(limit, records.size()) && edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+            while (!this.reachLimit(limit, records.size())
+                   && edges.hasNext()) {
+                HugeEdge edge = (HugeEdge) edges.next();
+                Id target = edge.id().otherVertexId();
                 records.addPath(v, target);
+                if(withEdge) {
+                    // for breadth, we have to collect all edge during traversal,
+                    // to avoid over occupy for memery, we collect edgeid only.
+                    records.addEdgeId(edge.id());
+                }
             }
         };
 
@@ -99,6 +107,12 @@ public class KneighborTraverser extends OltpTraverser {
             traverseIds(records.keys(), consumer, concurrent);
             records.finishOneLayer();
         }
+
+        if (withEdge) {
+            // we should filter out unused-edge for breadth first algorithm.
+            records.filterUnusedEdges(limit);
+        }
+
         return records;
     }
 

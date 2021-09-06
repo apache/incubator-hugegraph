@@ -36,6 +36,22 @@ public class KneighborApiTest extends BaseApiTest {
 
     final static String path = TRAVERSERS_API + "/kneighbor";
 
+    final static String postParams = "{ " +
+                                     "\"source\": \"%s\", " +
+                                     "\"step\": { " +
+                                     " \"direction\": \"BOTH\", " +
+                                     " \"labels\": [\"knows\", " +
+                                     " \"created\"], " +
+                                     "\"properties\": { " +
+                                     " \"weight\": \"P.gt(0.1)\"}, " +
+                                     " \"degree\": 10000, " +
+                                     " \"skip_degree\": 100000}, " +
+                                     "\"max_depth\": 2, " +
+                                     "\"limit\": 10000, " +
+                                     "\"with_vertex\": true, " +
+                                     "\"with_path\": true, " +
+                                     "\"with_edge\": true}";
+
     @Before
     public void prepareSchema() {
         BaseApiTest.initPropertyKey();
@@ -59,30 +75,20 @@ public class KneighborApiTest extends BaseApiTest {
         List<String> vertices = assertJsonContains(content, "vertices");
         Assert.assertEquals(ImmutableSet.of(rippleId, joshId, peterId),
                             ImmutableSet.copyOf(vertices));
+        assertJsonContains(content, "measure");
     }
 
     @Test
     public void testPost() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        String reqBody = String.format("{ " +
-                                       "\"source\": \"%s\", " +
-                                       "\"step\": { " +
-                                       " \"direction\": \"BOTH\", " +
-                                       " \"labels\": [\"knows\", " +
-                                       " \"created\"], " +
-                                       "\"properties\": { " +
-                                       " \"weight\": \"P.gt(0.1)\"}, " +
-                                       " \"degree\": 10000, " +
-                                       " \"skip_degree\": 100000}, " +
-                                       "\"max_depth\": 3, " +
-                                       "\"limit\": 10000, " +
-                                       "\"with_vertex\": true, " +
-                                       "\"with_path\": true}", markoId);
+        String reqBody = String.format(postParams, markoId);
         Response r = client().post(path, reqBody);
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "kneighbor");
         assertJsonContains(content, "paths");
         assertJsonContains(content, "vertices");
+        assertJsonContains(content, "edges");
+        assertJsonContains(content, "measure");
     }
 }

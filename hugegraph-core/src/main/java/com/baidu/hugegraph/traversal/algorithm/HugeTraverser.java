@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -88,6 +89,13 @@ public class HugeTraverser {
 
     public static final long NO_LIMIT = -1L;
 
+    // for debugMesure
+    public long edgeIterCounter = 0;
+    public long vertexIterCounter = 0;
+
+    public static final String ALGORITHMS_BREADTH_FIRST = "breadth_first";
+    public static final String ALGORITHMS_DEEP_FIRST = "deep_first";
+
     public HugeTraverser(HugeGraph graph) {
         this.graph = graph;
         if (collectionFactory == null) {
@@ -120,6 +128,7 @@ public class HugeTraverser {
             Iterator<Edge> edges = this.edgesOfVertex(source, dir,
                                                       label, degree);
             while (edges.hasNext()) {
+                this.edgeIterCounter++;
                 HugeEdge e = (HugeEdge) edges.next();
                 Id target = e.id().otherVertexId();
                 boolean matchExcluded = (excluded != null &&
@@ -150,6 +159,7 @@ public class HugeTraverser {
         Set<Id> neighbors = newSet();
         Iterator<Edge> edges = this.edgesOfVertex(source, step);
         while (edges.hasNext()) {
+            this.edgeIterCounter++;
             neighbors.add(((HugeEdge) edges.next()).id().otherVertexId());
         }
         return neighbors;
@@ -204,16 +214,18 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertexWithSK(Id source, EdgeStep edgeStep) {
-        assert edgeStep.properties() != null && !edgeStep.properties().isEmpty();
+        assert edgeStep.properties() != null &&
+               !edgeStep.properties().isEmpty();
         return this.edgesOfVertex(source, edgeStep, true);
     }
 
     private Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep,
                                          boolean mustAllSK) {
         Id[] edgeLabels = edgeStep.edgeLabels();
-        Query query = GraphTransaction.constructEdgesQuery(source,
-                                                           edgeStep.direction(),
-                                                           edgeLabels);
+        Query query = GraphTransaction.constructEdgesQuery(
+                      source,
+                      edgeStep.direction(),
+                      edgeLabels);
         ConditionQuery filter = null;
         if (mustAllSK) {
             this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties());
@@ -269,9 +281,10 @@ public class HugeTraverser {
 
     protected long edgesCount(Id source, EdgeStep edgeStep) {
         Id[] edgeLabels = edgeStep.edgeLabels();
-        Query query = GraphTransaction.constructEdgesQuery(source,
-                                                           edgeStep.direction(),
-                                                           edgeLabels);
+        Query query = GraphTransaction.constructEdgesQuery(
+                      source,
+                      edgeStep.direction(),
+                      edgeLabels);
         this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties());
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
@@ -306,7 +319,8 @@ public class HugeTraverser {
             this.graph.vertex(vertexId);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException(String.format(
-                      "The %s with id '%s' does not exist", name, vertexId), e);
+                      "The %s with id '%s' does not exist", name, vertexId),
+                      e);
         }
     }
 
@@ -324,8 +338,8 @@ public class HugeTraverser {
 
     public static void checkPositive(long value, String name) {
         E.checkArgument(value > 0,
-                        "The %s parameter must be > 0, but got %s",
-                        name, value);
+                "The %s parameter must be > 0, but got %s",
+                name, value);
     }
 
     public static void checkPositiveOrNoLimit(long value, String name) {
@@ -350,14 +364,14 @@ public class HugeTraverser {
                                      String traverse) {
         if (capacity != NO_LIMIT && access > capacity) {
             throw new HugeException("Exceed capacity '%s' while finding %s",
-                                    capacity, traverse);
+                      capacity, traverse);
         }
     }
 
     public static void checkSkipDegree(long skipDegree, long degree,
                                        long capacity) {
         E.checkArgument(skipDegree >= 0L &&
-                        skipDegree <= Query.DEFAULT_CAPACITY ,
+                        skipDegree <= Query.DEFAULT_CAPACITY,
                         "The skipped degree must be in [0, %s], but got '%s'",
                         Query.DEFAULT_CAPACITY, skipDegree);
         if (capacity != NO_LIMIT) {
@@ -372,6 +386,17 @@ public class HugeTraverser {
                             "but got skipped degree '%s' and max degree '%s'",
                             skipDegree, degree);
         }
+    }
+
+    public static void checkAlgorithm(String algorithm) {
+        E.checkArgument(algorithm.compareToIgnoreCase(ALGORITHMS_BREADTH_FIRST) == 0 ||
+                        algorithm.compareToIgnoreCase(ALGORITHMS_DEEP_FIRST) == 0,
+                        "The algorithm must be one of '%s' or '%s', but got '%s'",
+                        ALGORITHMS_BREADTH_FIRST, ALGORITHMS_DEEP_FIRST, algorithm);
+    }
+
+    public static boolean isDeepFirstAlgorithm(String algorithm) {
+        return algorithm.compareToIgnoreCase(ALGORITHMS_DEEP_FIRST) == 0;
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
@@ -613,6 +638,7 @@ public class HugeTraverser {
          * Compares the specified object with this path for equality.
          * Returns <tt>true</tt> if and only if both have same vertices list
          * without regard of crosspoint.
+         *
          * @param other the object to be compared for equality with this path
          * @return <tt>true</tt> if the specified object is equal to this path
          */
@@ -706,5 +732,112 @@ public class HugeTraverser {
             }
             return vertices;
         }
+    }
+
+    public static class NestedIterator implements Iterator<Edge> {
+
+        private static final int MAX_CACHED_COUNT = 1000;
+
+        // skip de-dup for vertices those exceed this limit
+        private static final int MAX_VISITED_COUNT = 1000000;
+
+        private final Iterator<Edge> parentIterator;
+        private final HugeTraverser traverser;
+        private final EdgeStep edgeStep;
+
+        // visited vertex-ids of all parent-tree,
+        // used to exclude visited vertex or other purpose
+        private final Set<Id> visited;
+
+        // cache for edges
+        private final ArrayList<HugeEdge> cache = new ArrayList<>();
+
+        // of parent
+        private HugeEdge currentEdge = null;
+        private Iterator<Edge> currentIterator = null;
+
+        // todo: may add edge-filter and/or vertice-filter ...
+
+        public NestedIterator(HugeTraverser traverser, Iterator<Edge> parent,
+                              EdgeStep edgeStep, Set<Id> visited) {
+            this.traverser = traverser;
+            this.parentIterator = parent;
+            this.edgeStep = edgeStep;
+            this.visited = visited;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (currentIterator == null || !currentIterator.hasNext())
+                return fetch();
+            return true;
+        }
+
+        @Override
+        public Edge next() {
+            return currentIterator.next();
+        }
+
+        protected boolean fetch() {
+            if (this.cache.size() == 0) {
+                // fill cache from parent
+                while (this.parentIterator.hasNext() &&
+                       this.cache.size() < MAX_CACHED_COUNT) {
+                    HugeEdge e = (HugeEdge) parentIterator.next();
+                    traverser.edgeIterCounter++;
+                    Id vid = e.id().otherVertexId();
+                    if (!visited.contains(vid)) {
+                        this.cache.add(e);
+                        if (visited.size() < MAX_VISITED_COUNT) {
+                            // skip over limit visited vertices.
+                            this.visited.add(vid);
+                        }
+                    }
+                }
+            }
+            if (this.cache.size() == 0) {
+                return false;
+            }
+            this.currentEdge = this.cache.get(0);
+            this.currentIterator = traverser.edgesOfVertex(
+                                   this.currentEdge.id().otherVertexId(),
+                                   edgeStep);
+            this.cache.remove(0);
+            return true;
+        }
+
+        public List<HugeEdge> getPathEdges(List<HugeEdge> edges) {
+            if (parentIterator instanceof NestedIterator) {
+                NestedIterator parent = (NestedIterator) this.parentIterator;
+                parent.getPathEdges(edges);
+            }
+            edges.add(currentEdge);
+            return edges;
+        }
+    }
+
+    public Iterator<Edge> createNestedIterator(Id sourceV, EdgeStep edgeStep,
+                                               int depth, Set<Id> visited) {
+        E.checkArgument(depth > 0,
+                        "The depth should large than 0 for nested iterator");
+
+        visited.add(sourceV);
+
+        // build a chained iterator path with length of depth
+        Iterator<Edge> it = this.edgesOfVertex(sourceV, edgeStep);
+        for (int i = 1; i < depth; i++) {
+            it = new NestedIterator(this, it, edgeStep, visited);
+        }
+        return it;
+    }
+
+    public static List<HugeEdge> getPathEdges(Iterator<Edge> it,
+                                              HugeEdge edge) {
+        ArrayList<HugeEdge> edges = new ArrayList<>();
+        if (it instanceof NestedIterator) {
+            ((NestedIterator) it).getPathEdges(edges);
+        }
+        edges.add(edge);
+        return edges;
     }
 }

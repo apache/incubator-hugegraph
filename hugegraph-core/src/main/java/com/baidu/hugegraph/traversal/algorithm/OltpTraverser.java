@@ -88,6 +88,7 @@ public abstract class OltpTraverser extends HugeTraverser
         } else {
             long count = 0L;
             while (ids.hasNext()) {
+                this.edgeIterCounter++;
                 count++;
                 consumer.accept(ids.next());
             }
@@ -111,6 +112,7 @@ public abstract class OltpTraverser extends HugeTraverser
         long total = 0L;
         try {
             while (iterator.hasNext()) {
+                this.edgeIterCounter++;
                 total++;
                 K v = iterator.next();
                 consumers.provide(v);

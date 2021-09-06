@@ -38,6 +38,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
@@ -85,6 +86,7 @@ public class KneighborAPI extends TraverserAPI {
                   "max degree '{}' and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth,
                   maxDegree, limit);
+        DebugMeasure measure = new DebugMeasure();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -95,8 +97,11 @@ public class KneighborAPI extends TraverserAPI {
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             ids = traverser.kneighbor(source, dir, edgeLabel,
                                       depth, maxDegree, limit);
+            measure.addIterCount(1 + traverser.vertexIterCounter,
+                                 traverser.edgeIterCounter);
         }
-        return manager.serializer(g).writeList("vertices", ids);
+        return manager.serializer(g, measure.getResult())
+                      .writeList("vertices", ids);
     }
 
     @POST
@@ -106,6 +111,8 @@ public class KneighborAPI extends TraverserAPI {
     public String post(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        Request request) {
+        DebugMeasure measure = new DebugMeasure();
+
         E.checkArgumentNotNull(request, "The request body can't be null");
         E.checkArgumentNotNull(request.source,
                                "The source of request can't be null");
@@ -118,9 +125,10 @@ public class KneighborAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get customized kneighbor from source vertex " +
                   "'{}', with step '{}', limit '{}', count_only '{}', " +
-                  "with_vertex '{}' and with_path '{}'",
+                  "with_vertex '{}', with_path '{}' and with_edge '{}'",
                   graph, request.source, request.step, request.limit,
-                  request.countOnly, request.withVertex, request.withPath);
+                  request.countOnly, request.withVertex, request.withPath,
+                  request.withEdge);
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
@@ -131,7 +139,10 @@ public class KneighborAPI extends TraverserAPI {
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             results = traverser.customizedKneighbor(sourceId, step,
                                                     request.maxDepth,
-                                                    request.limit);
+                                                    request.limit,
+                                                    request.withEdge);
+            measure.addIterCount(1 + traverser.vertexIterCounter,
+                                 traverser.edgeIterCounter);
         }
 
         long size = results.size();
@@ -145,7 +156,8 @@ public class KneighborAPI extends TraverserAPI {
         if (request.withPath) {
             paths.addAll(results.paths(request.limit));
         }
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
+        Iterator<Vertex> iterVertice = QueryResults.emptyIterator();
+        Iterator<Edge> iterEdge = QueryResults.emptyIterator();
         if (request.withVertex && !request.countOnly) {
             Set<Id> ids = new HashSet<>(neighbors);
             if (request.withPath) {
@@ -154,11 +166,26 @@ public class KneighborAPI extends TraverserAPI {
                 }
             }
             if (!ids.isEmpty()) {
-                iter = g.vertices(ids.toArray());
+                iterVertice = g.vertices(ids.toArray());
+                measure.addIterCount(ids.size(), 0);
             }
         }
-        return manager.serializer(g).writeNodesWithPath("kneighbor", neighbors,
-                                                        size, paths, iter);
+        if (request.withEdge && !request.countOnly) {
+            Iterator<Edge> iter = results.getEdges();
+            if (iter == null) {
+                Set<Id> ids = results.getEdgeIds();
+                if (!ids.isEmpty()) {
+                    iter = g.edges(ids.toArray());
+                    measure.addIterCount(0, ids.size());
+                }
+            }
+            if (iter != null) {
+                iterEdge = iter;
+            }
+        }
+        return manager.serializer(g, measure.getResult())
+                      .writeNodesWithPath("kneighbor", neighbors, size,
+                                          paths, iterVertice, iterEdge);
     }
 
     private static class Request {
@@ -177,14 +204,17 @@ public class KneighborAPI extends TraverserAPI {
         public boolean withVertex = false;
         @JsonProperty("with_path")
         public boolean withPath = false;
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
 
         @Override
         public String toString() {
             return String.format("PathRequest{source=%s,step=%s,maxDepth=%s" +
                                  "limit=%s,countOnly=%s,withVertex=%s," +
-                                 "withPath=%s}", this.source, this.step,
-                                 this.maxDepth, this.limit, this.countOnly,
-                                 this.withVertex, this.withPath);
+                                 "withPath=%s,withEdge=%s}", this.source,
+                                 this.step, this.maxDepth, this.limit,
+                                 this.countOnly, this.withVertex,
+                                 this.withPath, this.withEdge);
         }
     }
 }

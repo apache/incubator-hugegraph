@@ -100,7 +100,8 @@ public class KoutTraverser extends OltpTraverser {
 
     public KoutRecords customizedKout(Id source, EdgeStep step,
                                       int maxDepth, boolean nearest,
-                                      long capacity, long limit) {
+                                      long capacity, long limit,
+                                      boolean withEdge) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
         checkPositive(maxDepth, "k-out max_depth");
@@ -108,10 +109,11 @@ public class KoutTraverser extends OltpTraverser {
         checkLimit(limit);
         long[] depth = new long[1];
         depth[0] = maxDepth;
-        boolean concurrent = maxDepth >= this.concurrentDepth();
+        // forbidden concurrent when withEdge is true. todo: need optimised...
+        boolean concurrent = maxDepth >= this.concurrentDepth() && !withEdge;
 
         KoutRecords records = new KoutRecords(RecordType.INT, concurrent,
-                                              source, nearest);
+                                              source, nearest, 0);
 
         Consumer<Id> consumer = v -> {
             if (this.reachLimit(limit, depth[0], records.size())) {
@@ -120,8 +122,14 @@ public class KoutTraverser extends OltpTraverser {
             Iterator<Edge> edges = edgesOfVertex(v, step);
             while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                HugeEdge edge = (HugeEdge) edges.next();
+                Id target = edge.id().otherVertexId();
                 records.addPath(v, target);
+                if(withEdge) {
+                    // for breadth, we have to collect all edge during traversal,
+                    // to avoid over occupy for memery, we collect edgeid only.
+                    records.addEdgeId(edge.id());
+                }
                 this.checkCapacity(capacity, records.accessed(), depth[0]);
             }
         };
@@ -130,6 +138,45 @@ public class KoutTraverser extends OltpTraverser {
             records.startOneLayer(true);
             traverseIds(records.keys(), consumer, concurrent);
             records.finishOneLayer();
+        }
+
+        if (withEdge) {
+            // we should filter out unused-edge for breadth first algorithm.
+            records.filterUnusedEdges(limit);
+        }
+
+        return records;
+    }
+
+    public KoutRecords deepFirstKout(Id sourceV, EdgeStep step,
+                                     int depth, boolean nearest, long capacity,
+                                     long limit, boolean withEdge) {
+        E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        checkPositive(depth, "k-out max_depth");
+        checkCapacity(capacity);
+        checkLimit(limit);
+
+        Set<Id> all = newIdSet();
+        all.add(sourceV);
+
+        KoutRecords records = new KoutRecords(RecordType.INT, false,
+                                              sourceV, nearest, depth);
+
+        Iterator<Edge> it = this.createNestedIterator(sourceV, step, depth, all);
+
+        while (it.hasNext()) {
+            this.edgeIterCounter++;
+            HugeEdge edge = (HugeEdge) it.next();
+            Id target = edge.id().otherVertexId();
+            if(!nearest || !all.contains(target)) {
+                records.addFullPath(HugeTraverser.getPathEdges(it, edge),
+                                    withEdge);
+            }
+
+            if (limit != NO_LIMIT && records.size() >= limit ||
+                capacity != NO_LIMIT && all.size() > capacity)
+                break;
         }
         return records;
     }

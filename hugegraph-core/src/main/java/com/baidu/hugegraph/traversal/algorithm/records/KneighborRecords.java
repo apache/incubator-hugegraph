@@ -21,6 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
@@ -69,5 +70,22 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
             }
         }
         return paths;
+    }
+
+    public void filterUnusedEdges(long limit) {
+        // for breadth-first algorithm, edges are collected when met,
+        // but only those which connect to last-level should be kept.
+        HashSet<Long> codePairs = new HashSet<>();
+
+        Stack<Record> records = this.records();
+        for (int i = 1; i < records.size(); i++) {
+            IntIterator iterator = records.get(i).keys();
+            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+                addEdgeToCodePair(codePairs, i, iterator.next());
+                limit--;
+            }
+        }
+
+        filterEdges(codePairs);
     }
 }
