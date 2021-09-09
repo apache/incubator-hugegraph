@@ -21,12 +21,13 @@ jobs:
       fail-fast: false
       matrix:
         BACKEND: [memory, cassandra, scylladb, hbase, rocksdb]
+        java-version: ['8', '8.0.192']
     steps:
-      - name: Install JDK 8
+      - name: Install JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
-          distribution: 'adopt'
+          java-version: ${{ matrix.java-version }}
+          distribution: 'zulu'
 
       - name: Cache Maven packages
         uses: actions/cache@v2
