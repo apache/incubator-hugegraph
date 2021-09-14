@@ -7,14 +7,14 @@ on:
       - /^release-.*$/
       - /^test-.*$/
       - gh-master
-      - gh2021q3
+      - gh-pre-release
   pull_request:
     branches:
       - master
       - /^release-.*$/
  #     - /^test-.*$/
       - gh-master
-      - gh2021q3
+      - gh-pre-release
 
 jobs:
   build:
