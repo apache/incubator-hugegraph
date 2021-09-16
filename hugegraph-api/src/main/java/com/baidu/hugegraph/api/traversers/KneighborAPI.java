@@ -38,6 +38,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -134,10 +135,13 @@ public class KneighborAPI extends TraverserAPI {
         Id sourceId = HugeVertex.getIdValue(request.source);
 
         EdgeStep step = step(g, request.step);
+        VertexStep vStep = request.vStep == null ? null :
+                           vertexStep(g, request.vStep);
 
         KneighborRecords results;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             results = traverser.customizedKneighbor(sourceId, step,
+                                                    vStep,
                                                     request.maxDepth,
                                                     request.limit,
                                                     request.withEdge);
@@ -194,6 +198,8 @@ public class KneighborAPI extends TraverserAPI {
         public Object source;
         @JsonProperty("step")
         public TraverserAPI.Step step;
+        @JsonProperty("vertex_step")
+        public TraverserAPI.VStep vStep;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
@@ -209,12 +215,12 @@ public class KneighborAPI extends TraverserAPI {
 
         @Override
         public String toString() {
-            return String.format("PathRequest{source=%s,step=%s,maxDepth=%s" +
-                                 "limit=%s,countOnly=%s,withVertex=%s," +
-                                 "withPath=%s,withEdge=%s}", this.source,
-                                 this.step, this.maxDepth, this.limit,
-                                 this.countOnly, this.withVertex,
-                                 this.withPath, this.withEdge);
+            return String.format("PathRequest{source=%s,step=%s,vStep=%s," +
+                                 "maxDepth=%s,limit=%s,countOnly=%s," +
+                                 "withVertex=%s,withPath=%s,withEdge=%s}",
+                                 this.source, this.step, this.vStep,
+                                 this.maxDepth, this.limit,this.countOnly,
+                                 this.withVertex, this.withPath, this.withEdge);
         }
     }
 }

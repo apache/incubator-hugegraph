@@ -228,6 +228,12 @@ public class UserAPI extends API {
                             this.email != null ||
                             this.avatar != null,
                             "Expect one of user password/phone/email/avatar]");
+            if (!StringUtils.isEmpty(this.password)) {
+                E.checkArgument(this.password.matches(USER_PASSWORD_PATTERN),
+                                "The password is 5-16 characters, " +
+                                "which can be letters, numbers or " +
+                                "special symbols");
+            }
         }
     }
 }

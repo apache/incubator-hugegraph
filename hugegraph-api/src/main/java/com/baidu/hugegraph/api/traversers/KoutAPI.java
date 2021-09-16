@@ -41,6 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
 import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -117,8 +118,8 @@ public class KoutAPI extends TraverserAPI {
                                     g, dir, lables, ImmutableMap.of(),
                                     maxDegree, 0);
                 KoutRecords results = traverser.deepFirstKout(
-                                      sourceId, edgeStep, depth, nearest,
-                                      capacity, limit, false);
+                                      sourceId, edgeStep, null, depth,
+                                      nearest, capacity, limit, false);
                 ids = results.ids(limit);
             } else {
                 ids = traverser.kout(sourceId, dir, edgeLabel, depth,
@@ -164,11 +165,14 @@ public class KoutAPI extends TraverserAPI {
         Id sourceId = HugeVertex.getIdValue(request.source);
 
         EdgeStep step = step(g, request.step);
+        VertexStep vStep = request.vStep == null ? null :
+                           vertexStep(g, request.vStep);
 
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             if (HugeTraverser.isDeepFirstAlgorithm(request.algorithm)) {
                 results = traverser.deepFirstKout(sourceId, step,
+                                                  vStep,
                                                   request.maxDepth,
                                                   request.nearest,
                                                   request.capacity,
@@ -176,6 +180,7 @@ public class KoutAPI extends TraverserAPI {
                                                   request.withEdge);
             } else {
                 results = traverser.customizedKout(sourceId, step,
+                                                   vStep,
                                                    request.maxDepth,
                                                    request.nearest,
                                                    request.capacity,
@@ -235,6 +240,8 @@ public class KoutAPI extends TraverserAPI {
         public Object source;
         @JsonProperty("step")
         public TraverserAPI.Step step;
+        @JsonProperty("vertex_step")
+        public TraverserAPI.VStep vStep;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("nearest")
@@ -256,11 +263,12 @@ public class KoutAPI extends TraverserAPI {
 
         @Override
         public String toString() {
-            return String.format("KoutRequest{source=%s,step=%s,maxDepth=%s" +
-                                 "nearest=%s,countOnly=%s,capacity=%s," +
-                                 "limit=%s,withVertex=%s,withPath=%s," +
-                                 "withEdge=%s,algorithm=%s}", this.source,
-                                 this.step, this.maxDepth, this.nearest,
+            return String.format("KoutRequest{source=%s,step=%s," +
+                                 "vStep=%s,maxDepth=%s,nearest=%s," +
+                                 "countOnly=%s,capacity=%s,limit=%s," +
+                                 "withVertex=%s,withPath=%s,withEdge=%s," +
+                                 "algorithm=%s}", this.source, this.step,
+                                 this.vStep, this.maxDepth, this.nearest,
                                  this.countOnly, this.capacity, this.limit,
                                  this.withVertex, this.withPath, this.withEdge,
                                  this.algorithm);

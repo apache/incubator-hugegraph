@@ -27,6 +27,7 @@ import java.util.Map;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,6 +37,11 @@ public class TraverserAPI extends API {
     protected static EdgeStep step(HugeGraph graph, Step step) {
         return new EdgeStep(graph, step.direction, step.labels, step.properties,
                             step.maxDegree, step.skipDegree);
+    }
+
+    protected static VertexStep vertexStep(HugeGraph graph,
+                                           VStep vStep) {
+        return new VertexStep(graph, vStep.labels, vStep.properties);
     }
 
     protected static class Step {
@@ -59,5 +65,20 @@ public class TraverserAPI extends API {
                                  this.direction, this.labels, this.properties,
                                  this.maxDegree, this.skipDegree);
         }
+    }
+
+    protected static class VStep {
+
+        @JsonProperty("labels")
+        public List<String> labels;
+        @JsonProperty("properties")
+        public Map<String, Object> properties;
+
+        @Override
+        public String toString() {
+            return String.format("VertexStep{labels=%s,properties=%s}",
+                                 this.labels, this.properties);
+        }
+
     }
 }
