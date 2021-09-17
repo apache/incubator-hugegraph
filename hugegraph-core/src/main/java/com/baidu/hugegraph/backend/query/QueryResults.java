@@ -20,8 +20,8 @@
 package com.baidu.hugegraph.backend.query;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -115,8 +115,20 @@ public class QueryResults<R> {
         }
 
         // Fill map with all elements
-        Map<Id, T> map = new HashMap<>();
+        Map<Id, T> map = new LinkedHashMap<>();
         QueryResults.fillMap(origin, map);
+
+        if (map.size() > ids.size()) {
+            /*
+             * This means current query is part of QueryResults. For example,
+             * g.V().has('country', 'china').has('city', within('HK', 'BJ'))
+             * will be converted to
+             * g.V().has('country', 'china').has('city', 'HK') or
+             * g.V().has('country', 'china').has('city', 'BJ'),
+             * and ids is just first index subquery's id, not all.
+             */
+            ids = map.keySet();
+        }
 
         return new MapperIterator<>(ids.iterator(), id -> {
             return map.get(id);
