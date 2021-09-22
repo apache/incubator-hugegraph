@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.baidu.hugegraph.HugeException;
@@ -99,8 +99,7 @@ public class KoutTraverser extends OltpTraverser {
         return latest;
     }
 
-    public KoutRecords customizedKout(Id source, EdgeStep step,
-                                      VertexStep vStep, int maxDepth,
+    public KoutRecords customizedKout(Id source, Steps steps, int maxDepth,
                                       boolean nearest, long capacity,
                                       long limit, boolean withEdge) {
         E.checkNotNull(source, "source vertex id");
@@ -121,12 +120,7 @@ public class KoutTraverser extends OltpTraverser {
                 return;
             }
 
-            Iterator<Edge> edges = null;
-            if (vStep == null) {
-                edges = edgesOfVertex(v, step);
-            } else {
-                edges = edgesOfVertexAF(v, step, vStep);
-            }
+            Iterator<Edge> edges = edgesOfVertexAF(v, steps);
             while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
@@ -155,8 +149,7 @@ public class KoutTraverser extends OltpTraverser {
         return records;
     }
 
-    public KoutRecords deepFirstKout(Id sourceV, EdgeStep step,
-                                     VertexStep vStep, int depth,
+    public KoutRecords deepFirstKout(Id sourceV, Steps steps, int depth,
                                      boolean nearest, long capacity,
                                      long limit, boolean withEdge) {
         E.checkNotNull(sourceV, "source vertex id");
@@ -171,8 +164,8 @@ public class KoutTraverser extends OltpTraverser {
         KoutRecords records = new KoutRecords(RecordType.INT, false,
                                               sourceV, nearest, depth);
 
-        Iterator<Edge> it = this.createNestedIterator(sourceV, step,
-                                                      vStep, depth, all);
+        Iterator<Edge> it = this.createNestedIterator(sourceV, steps,
+                                                      depth, all);
         while (it.hasNext()) {
             this.edgeIterCounter++;
             HugeEdge edge = (HugeEdge) it.next();

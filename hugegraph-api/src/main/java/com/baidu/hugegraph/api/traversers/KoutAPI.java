@@ -23,7 +23,6 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -41,8 +40,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
-import com.google.common.collect.ImmutableMap;
+import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -59,7 +57,6 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
 import com.baidu.hugegraph.traversal.algorithm.records.KoutRecords;
-import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -110,15 +107,9 @@ public class KoutAPI extends TraverserAPI {
         Collection<Id> ids;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             if (HugeTraverser.isDeepFirstAlgorithm(algorithm)) {
-                List<String> lables = new ArrayList<>();
-                if (edgeLabel != null) {
-                    lables.add(edgeLabel);
-                }
-                EdgeStep edgeStep = new EdgeStep(
-                                    g, dir, lables, ImmutableMap.of(),
-                                    maxDegree, 0);
+                Steps steps = steps(g, dir, edgeLabel, maxDegree);
                 KoutRecords results = traverser.deepFirstKout(
-                                      sourceId, edgeStep, null, depth,
+                                      sourceId, steps, depth,
                                       nearest, capacity, limit, false);
                 ids = results.ids(limit);
             } else {
@@ -144,7 +135,7 @@ public class KoutAPI extends TraverserAPI {
         E.checkArgumentNotNull(request, "The request body can't be null");
         E.checkArgumentNotNull(request.source,
                                "The source of request can't be null");
-        E.checkArgument(request.step != null,
+        E.checkArgument(request.steps != null,
                         "The steps of request can't be null");
         if (request.countOnly) {
             E.checkArgument(!request.withVertex && !request.withPath,
@@ -153,34 +144,29 @@ public class KoutAPI extends TraverserAPI {
         HugeTraverser.checkAlgorithm(request.algorithm);
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
-                  "with step '{}', max_depth '{}', nearest '{}', " +
+                  "with steps '{}', max_depth '{}', nearest '{}', " +
                   "count_only '{}', capacity '{}', limit '{}', " +
                   "with_vertex '{}', with_path '{}', with_edge '{}' " +
-                  "and algorithm '{}'", graph, request.source, request.step,
+                  "and algorithm '{}'", graph, request.source, request.steps,
                   request.maxDepth, request.nearest, request.countOnly,
                   request.capacity, request.limit, request.withVertex,
                   request.withPath, request.withEdge, request.algorithm);
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
-
-        EdgeStep step = step(g, request.step);
-        VertexStep vStep = request.vStep == null ? null :
-                           vertexStep(g, request.vStep);
+        Steps steps = steps(g, request.steps);
 
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             if (HugeTraverser.isDeepFirstAlgorithm(request.algorithm)) {
-                results = traverser.deepFirstKout(sourceId, step,
-                                                  vStep,
+                results = traverser.deepFirstKout(sourceId, steps,
                                                   request.maxDepth,
                                                   request.nearest,
                                                   request.capacity,
                                                   request.limit,
                                                   request.withEdge);
             } else {
-                results = traverser.customizedKout(sourceId, step,
-                                                   vStep,
+                results = traverser.customizedKout(sourceId, steps,
                                                    request.maxDepth,
                                                    request.nearest,
                                                    request.capacity,
@@ -238,10 +224,8 @@ public class KoutAPI extends TraverserAPI {
 
         @JsonProperty("source")
         public Object source;
-        @JsonProperty("step")
-        public TraverserAPI.Step step;
-        @JsonProperty("vertex_step")
-        public TraverserAPI.VStep vStep;
+        @JsonProperty("steps")
+        public TraverserAPI.EVSteps steps;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("nearest")
@@ -263,15 +247,14 @@ public class KoutAPI extends TraverserAPI {
 
         @Override
         public String toString() {
-            return String.format("KoutRequest{source=%s,step=%s," +
-                                 "vStep=%s,maxDepth=%s,nearest=%s," +
-                                 "countOnly=%s,capacity=%s,limit=%s," +
-                                 "withVertex=%s,withPath=%s,withEdge=%s," +
-                                 "algorithm=%s}", this.source, this.step,
-                                 this.vStep, this.maxDepth, this.nearest,
-                                 this.countOnly, this.capacity, this.limit,
-                                 this.withVertex, this.withPath, this.withEdge,
-                                 this.algorithm);
+            return String.format("KoutRequest{source=%s,steps=%s," +
+                                 "maxDepth=%s,nearest=%s,countOnly=%s," +
+                                 "capacity=%s,limit=%s,withVertex=%s," +
+                                 "withPath=%s,withEdge=%s,algorithm=%s}",
+                                 this.source, this.steps, this.maxDepth,
+                                 this.nearest, this.countOnly, this.capacity,
+                                 this.limit, this.withVertex, this.withPath,
+                                 this.withEdge, this.algorithm);
         }
     }
 }

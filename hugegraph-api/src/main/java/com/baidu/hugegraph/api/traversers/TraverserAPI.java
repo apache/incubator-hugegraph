@@ -21,13 +21,15 @@ package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
-import com.baidu.hugegraph.traversal.algorithm.steps.VertexStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import com.baidu.hugegraph.type.define.Directions;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,9 +41,36 @@ public class TraverserAPI extends API {
                             step.maxDegree, step.skipDegree);
     }
 
-    protected static VertexStep vertexStep(HugeGraph graph,
-                                           VStep vStep) {
-        return new VertexStep(graph, vStep.labels, vStep.properties);
+    protected static Steps steps(HugeGraph graph, Directions directions,
+                                 String label, long maxDegree) {
+        Map<String, Map<String, Object>> eSteps = new HashMap<>();
+        eSteps.put(label, null);
+        return new Steps(graph, directions, eSteps, null,
+                         maxDegree, 0);
+    }
+
+    protected static Steps steps(HugeGraph graph, EVSteps steps) {
+        Map<String, Map<String, Object>> eSteps = new HashMap<>();
+        Map<String, Map<String, Object>> vSteps = new HashMap<>();
+
+        if (steps.eSteps != null) {
+            Iterator<EVStepEntity> itr = steps.eSteps.iterator();
+            while (itr.hasNext()) {
+                EVStepEntity item = itr.next();
+                eSteps.put(item.label, item.properties);
+            }
+        }
+
+        if (steps.vSteps != null) {
+            Iterator<EVStepEntity> itr = steps.vSteps.iterator();
+            while (itr.hasNext()) {
+                EVStepEntity item = itr.next();
+                vSteps.put(item.label, item.properties);
+            }
+        }
+
+        return new Steps(graph, steps.direction, eSteps, vSteps,
+                steps.maxDegree, steps.skipDegree);
     }
 
     protected static class Step {
@@ -67,18 +96,43 @@ public class TraverserAPI extends API {
         }
     }
 
-    protected static class VStep {
+    protected static class EVStepEntity {
+        @JsonProperty("label")
+        public String label;
 
-        @JsonProperty("labels")
-        public List<String> labels;
         @JsonProperty("properties")
         public Map<String, Object> properties;
 
         @Override
         public String toString() {
-            return String.format("VertexStep{labels=%s,properties=%s}",
-                                 this.labels, this.properties);
+            return String.format("EVStepEntity{label=%s,properties=%s}",
+                                 this.label, this.properties);
         }
+    }
 
+    protected static class EVSteps {
+        @JsonProperty("direction")
+        public Directions direction;
+
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
+
+        @JsonProperty("skip_degree")
+        public long skipDegree = 0L;
+
+        @JsonProperty("edge_steps")
+        public List<EVStepEntity> eSteps;
+
+        @JsonProperty("vertex_steps")
+        public List<EVStepEntity> vSteps;
+
+        @Override
+        public String toString() {
+            return String.format("Steps{direction=%s,maxDegree=%s," +
+                                 "skipDegree=%s,eSteps=%s,vSteps=%s}",
+                                 this.direction, this.maxDegree,
+                                 this.skipDegree, this.eSteps, this.vSteps);
+        }
     }
 }

@@ -37,13 +37,16 @@ public class KoutApiTest extends BaseApiTest {
     final static String path = TRAVERSERS_API + "/kout";
     final static String postParams = "{ " +
                                      "\"source\": \"%s\", " +
-                                     "\"step\": { " +
+                                     "\"steps\": { " +
                                      " \"direction\": \"BOTH\", " +
-                                     " \"labels\": [\"knows\", " +
-                                     " \"created\"], " +
-                                     "\"properties\": { " +
-                                     " \"weight\": \"P.gt(0.1)\"}, " +
-                                     " \"degree\": 10000, " +
+                                     "\"edge_steps\": [" +
+                                     "{\"label\":\"knows\"," +
+                                     "\"properties\": {" +
+                                     "\"weight\": \"P.gt(0.1)\"}}," +
+                                     "{\"label\":\"created\"," +
+                                     "\"properties\": {" +
+                                     "\"weight\": \"P.gt(0.1)\"}}]," +
+                                     " \"max_degree\": 10000, " +
                                      " \"skip_degree\": 100000}, " +
                                      "\"max_depth\": 1, " +
                                      "\"nearest\": true, " +

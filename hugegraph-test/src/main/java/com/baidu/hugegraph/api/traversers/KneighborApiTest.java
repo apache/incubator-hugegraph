@@ -38,13 +38,13 @@ public class KneighborApiTest extends BaseApiTest {
 
     final static String postParams = "{ " +
                                      "\"source\": \"%s\", " +
-                                     "\"step\": { " +
+                                     "\"steps\": { " +
                                      " \"direction\": \"BOTH\", " +
-                                     " \"labels\": [\"knows\", " +
-                                     " \"created\"], " +
-                                     "\"properties\": { " +
-                                     " \"weight\": \"P.gt(0.1)\"}, " +
-                                     " \"degree\": 10000, " +
+                                     "\"edge_steps\": [" +
+                                     "{\"label\":\"knows\"," +
+                                     "\"properties\": {" +
+                                     "\"weight\": \"P.gt(0.1)\"}}]," +
+                                     " \"max_degree\": 10000, " +
                                      " \"skip_degree\": 100000}, " +
                                      "\"max_depth\": 2, " +
                                      "\"limit\": 10000, " +
