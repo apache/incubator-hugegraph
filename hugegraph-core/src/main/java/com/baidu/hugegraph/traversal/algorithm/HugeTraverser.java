@@ -887,8 +887,9 @@ public class HugeTraverser {
         // used to exclude visited vertex or other purpose
         private final Set<Id> visited;
 
-        // cache for edges
-        private final ArrayList<HugeEdge> cache = new ArrayList<>();
+        // cache for edges, initial capacity to avoid mem-fragment
+        private final ArrayList<HugeEdge> cache = new ArrayList<>(MAX_CACHED_COUNT);
+        private int cachePointer = 0;
 
         // of parent
         private HugeEdge currentEdge = null;
@@ -917,7 +918,9 @@ public class HugeTraverser {
         }
 
         protected boolean fetch() {
-            if (this.cache.size() == 0) {
+            if (this.cache.size() == this.cachePointer) {
+                this.cache.clear();
+                this.cachePointer = 0;
                 // fill cache from parent
                 while (this.parentIterator.hasNext() &&
                        this.cache.size() < MAX_CACHED_COUNT) {
@@ -932,15 +935,15 @@ public class HugeTraverser {
                         }
                     }
                 }
+                if (this.cache.size() == 0) {
+                    return false;
+                }
             }
-            if (this.cache.size() == 0) {
-                return false;
-            }
-            this.currentEdge = this.cache.get(0);
+            this.currentEdge = this.cache.get(this.cachePointer);
+            this.cachePointer ++;
             this.currentIterator = traverser.edgesOfVertex(
                                    this.currentEdge.id().otherVertexId(),
                                    edgeStep);
-            this.cache.remove(0);
             return true;
         }
 
