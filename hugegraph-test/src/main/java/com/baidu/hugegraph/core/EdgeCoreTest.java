@@ -5913,14 +5913,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         marko.addEdge("like", vadas, "weight", 0.5);
         graph().tx().commit();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
-        }, e -> {
-            Assert.assertEquals("Don't accept query based on properties " +
-                                "[weight] that are not indexed in label " +
-                                "'like', may not match secondary condition",
-                                e.getMessage());
-        });
+        graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
     }
 
     @Test

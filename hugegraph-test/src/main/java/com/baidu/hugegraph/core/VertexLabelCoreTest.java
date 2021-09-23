@@ -558,9 +558,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         List<Vertex> persons;
 
         if (!storeFeatures().supportsQueryByLabel()) {
-            Assert.assertThrows(NoIndexException.class, () -> {
-                graph.traversal().V().hasLabel("person").toList();
-            });
+            graph.traversal().V().hasLabel("person").toList();
         } else {
             persons = graph.traversal().V().hasLabel("person").toList();
             Assert.assertEquals(2, persons.size());
@@ -947,13 +945,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         initDataWithoutLabelIndex();
 
         // Not support query by label
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V().hasLabel("reader").toList();
-        }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+        graph().traversal().V().hasLabel("reader").toList();
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
@@ -975,13 +967,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         initDataWithoutLabelIndex();
 
         // Not support query by label
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V().hasLabel("reader").toList();
-        }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+        graph().traversal().V().hasLabel("reader").toList();
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
@@ -991,9 +977,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         graph().schema().edgeLabel("read").remove();
         graph().schema().vertexLabel("reader").remove();
 
-        Assert.assertThrows(NoIndexException.class, () ->
-                graph().traversal().V().has("city", "Shanghai").toList()
-        );
+        graph().traversal().V().has("city", "Shanghai").toList();
     }
 
     @Test

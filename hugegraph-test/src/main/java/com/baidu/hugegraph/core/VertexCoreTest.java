@@ -2177,17 +2177,10 @@ public class VertexCoreTest extends BaseCoreTest {
         });
 
         graph.readMode(GraphReadMode.ALL);
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().has(olapPropName, "a").hasNext();
-        });
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().has(olapPropName, "c").hasNext();
-        });
-
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().has(olapPropName, "f").hasNext();
-        });
+        graph.traversal().V().has(olapPropName, "a").hasNext();
+        graph.traversal().V().has(olapPropName, "c").hasNext();
+        graph.traversal().V().has(olapPropName, "f").hasNext();
 
         graph.readMode(GraphReadMode.OLTP_ONLY);
     }
@@ -4403,14 +4396,9 @@ public class VertexCoreTest extends BaseCoreTest {
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "San Francisco Bay Area");
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().hasLabel("author")
-                                 .has("lived", "Bay Area")
-                                 .toList();
-        }, e -> {
-            Assert.assertContains("may not match secondary condition",
-                                  e.getMessage());
-        });
+        graph.traversal().V().hasLabel("author")
+             .has("lived", "Bay Area")
+             .toList();
     }
 
     @Test
@@ -4595,27 +4583,12 @@ public class VertexCoreTest extends BaseCoreTest {
                         "lived", "San Francisco Bay Area");
         graph.tx().commit();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().hasLabel("author")
-                                 .has("lived",P.neq("Beijing"))
-                                 .toList();
-        }, e -> {
-            Assert.assertEquals("Don't accept query based on properties " +
-                                "[lived] that are not indexed in label " +
-                                "'author', may not match secondary" +
-                                "/not-equal condition", e.getMessage());
-        });
+        graph.traversal().V().hasLabel("author")
+             .has("lived",P.neq("Beijing"))
+             .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().has("lived",P.neq("Beijing"))
-                                 .toList();
-        }, e -> {
-            Assert.assertContains("Don't accept query based on properties " +
-                                  "[lived] that are not indexed in any label",
-                                  e.getMessage());
-            Assert.assertContains("may not match not-equal condition",
-                                  e.getMessage());
-        });
+
+        graph.traversal().V().has("lived",P.neq("Beijing")).toList();
     }
 
     @Test
@@ -5446,44 +5419,32 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(4, vertices.size());
 
         // Invalid query
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("city", "Jinan")
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("city", "Jinan")
+               .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("age", 30)
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("age", 30)
+               .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("weight", 60)
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("weight", 60)
+               .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("city", "Jinan")
-                   .has("age", 30)
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("city", "Jinan")
+               .has("age", 30)
+               .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("province", "Shandong")
-                   .has("age", 30)
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("province", "Shandong")
+               .has("age", 30)
+               .toList();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph().traversal().V()
-                   .has("province", "Shandong")
-                   .has("age", P.between(10, 30))
-                   .toList();
-        });
+        graph().traversal().V()
+               .has("province", "Shandong")
+               .has("age", P.between(10, 30))
+               .toList();
     }
 
     @Test
@@ -5786,14 +5747,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "node", "name", "tom");
         graph.tx().commit();
 
-        Assert.assertThrows(NoIndexException.class, () -> {
-            graph.traversal().V().hasLabel("node").has("name", "tom").next();
-        }, (e) -> {
-            Assert.assertEquals("Don't accept query based on properties " +
-                                "[name] that are not indexed in label 'node'," +
-                                " may not match secondary condition",
-                                e.getMessage());
-        });
+        graph.traversal().V().hasLabel("node").has("name", "tom").next();
     }
 
     @Test
