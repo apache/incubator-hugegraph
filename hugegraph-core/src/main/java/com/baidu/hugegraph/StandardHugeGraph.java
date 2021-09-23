@@ -129,7 +129,8 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.OLTP_COLLECTION_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
            CoreOptions.VERTEX_ENCODE_PK_NUMBER,
-           CoreOptions.STORE_GRAPH
+           CoreOptions.STORE_GRAPH,
+           CoreOptions.STORE
     );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);

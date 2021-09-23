@@ -7,7 +7,7 @@ TRAVIS_DIR=`dirname $0`
 BASE_DIR=$1
 BACKEND=$2
 BIN=$BASE_DIR/bin
-CONF=$BASE_DIR/conf/hugegraph.properties
+CONF=$BASE_DIR/conf/graphs/hugegraph.properties
 REST_CONF=$BASE_DIR/conf/rest-server.properties
 GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 

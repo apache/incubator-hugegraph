@@ -40,6 +40,7 @@ public enum NodeRole implements SerialEnum {
         SerialEnum.register(NodeRole.class);
     }
 
+    @Override
     public byte code() {
         return this.code;
     }

@@ -50,6 +50,7 @@ jobs:
 
       - name: Prepare env and service
         run: |
+          $TRAVIS_DIR/install-etcd.sh
           $TRAVIS_DIR/install-backend.sh ${{ matrix.BACKEND }}
 
       - name: Run test

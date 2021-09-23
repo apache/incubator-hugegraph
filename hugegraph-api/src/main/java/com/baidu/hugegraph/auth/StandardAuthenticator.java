@@ -21,6 +21,7 @@ package com.baidu.hugegraph.auth;
 
 import java.io.Console;
 import java.net.InetAddress;
+import java.util.Map;
 import java.util.Scanner;
 
 import com.baidu.hugegraph.api.API;
@@ -33,6 +34,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.rpc.RpcClientProviderWithAuth;
+import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 
@@ -104,7 +106,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
     @Override
     public void setup(HugeConfig config) {
         String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
-        String graphPath = config.getMap(ServerOptions.GRAPHS).get(graphName);
+        Map<String, String> graphConfs = ConfigUtil.scanGraphsDir(
+                                         config.get(ServerOptions.GRAPHS));
+        String graphPath = graphConfs.get(graphName);
         E.checkArgument(graphPath != null,
                         "Can't find graph name '%s' in config '%s' at " +
                         "'rest-server.properties' to store auth information, " +

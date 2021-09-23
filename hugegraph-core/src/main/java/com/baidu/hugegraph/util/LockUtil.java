@@ -179,8 +179,10 @@ public final class LockUtil {
     }
 
     public static void unlock(String graph, String name) {
-        LockManager.instance().get(join(graph, REENTRANT_LOCK))
-                   .lock(name).unlock();
+        String lockGroup = join(graph, REENTRANT_LOCK);
+        if (LockManager.instance().exists(lockGroup)) {
+            LockManager.instance().get(lockGroup).lock(name).unlock();
+        }
     }
 
     public static List<Lock> lock(String... locks) {

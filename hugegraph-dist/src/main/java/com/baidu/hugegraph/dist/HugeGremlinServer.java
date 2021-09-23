@@ -25,47 +25,20 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.ContextGremlinServer;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.util.ConfigUtil;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class HugeGremlinServer {
 
     private static final Logger LOG = Log.logger(HugeGremlinServer.class);
 
-    private static final String G_PREFIX = "__g_";
-
-    public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            String msg = "HugeGremlinServer can only accept one config files";
-            LOG.error(msg);
-            throw new HugeException(msg);
-        }
-
-        register();
-
-        try {
-            start(args[0]);
-        } catch (Exception e) {
-            LOG.error("HugeGremlinServer error:", e);
-            throw e;
-        }
-        LOG.info("HugeGremlinServer started");
-    }
-
-    public static void register() {
-        RegisterUtil.registerBackends();
-        RegisterUtil.registerPlugins();
-    }
-
-    public static GremlinServer start(String conf) throws Exception {
+    public static GremlinServer start(String conf, String graphsDir,
+                                      EventHub hub) throws Exception {
         // Start GremlinServer with inject traversal source
-        return startWithInjectTraversal(conf);
-    }
-
-    private static ContextGremlinServer startWithInjectTraversal(String conf)
-            throws Exception {
         LOG.info(GremlinServer.getHeader());
         final Settings settings;
-
         try {
             settings = Settings.read(conf);
         } catch (Exception e) {
@@ -73,12 +46,18 @@ public class HugeGremlinServer {
                       "being parsed properly. [{}]", conf, e.getMessage());
             throw e;
         }
+        // Scan graph confs and inject into gremlin server context
+        E.checkState(settings.graphs != null,
+                     "The GremlinServer's settings.graphs is null");
+        if (graphsDir != null) {
+            settings.graphs.putAll(ConfigUtil.scanGraphsDir(graphsDir));
+        }
 
         LOG.info("Configuring Gremlin Server from {}", conf);
-        ContextGremlinServer server = new ContextGremlinServer(settings);
+        ContextGremlinServer server = new ContextGremlinServer(settings, hub);
 
         // Inject customized traversal source
-        server.injectTraversalSource(G_PREFIX);
+        server.injectTraversalSource();
 
         server.start().exceptionally(t -> {
             LOG.error("Gremlin Server was unable to start and will " +

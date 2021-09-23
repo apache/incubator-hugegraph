@@ -135,12 +135,36 @@ public class ServerOptions extends OptionHolder {
                     2 * CoreOptions.CPUS
             );
 
-    public static final ConfigListOption<String> GRAPHS =
+    public static final ConfigListOption<String> ETCDS =
             new ConfigListOption<>(
-                    "graphs",
-                    "The map of graphs' name and config file.",
+                    "etcds",
+                    "The URL of ectds.",
                     disallowEmpty(),
-                    "hugegraph:conf/hugegraph.properties"
+                    "http://127.0.0.1:2379"
+            );
+
+    public static final ConfigOption<String> CLUSTER =
+            new ConfigOption<>(
+                    "cluster",
+                    "The cluster name.",
+                    disallowEmpty(),
+                    "hg-test"
+            );
+
+    public static final ConfigOption<Boolean> GRAPH_LOAD_FROM_LOCAL_CONFIG =
+            new ConfigOption<>(
+                    "graph.load_from_local_config",
+                    "Whether to load graphs from local configs.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> GRAPHS =
+            new ConfigOption<>(
+                    "graphs",
+                    "The directory store graphs' config file.",
+                    disallowEmpty(),
+                    "./conf/graphs"
             );
 
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =

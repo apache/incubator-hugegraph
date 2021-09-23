@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.auth;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
@@ -28,23 +29,66 @@ import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.util.Events;
+import com.baidu.hugegraph.util.Log;
 
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
  */
 public class ContextGremlinServer extends GremlinServer {
 
-    public ContextGremlinServer(final Settings settings) {
+    private static final Logger LOG = Log.logger(GremlinServer.class);
+
+    private static final String G_PREFIX = "__g_";
+
+    private final EventHub eventHub;
+
+    public ContextGremlinServer(final Settings settings, EventHub eventHub) {
         /*
          * pass custom Executor https://github.com/apache/tinkerpop/pull/813
          */
         super(settings, newGremlinExecutorService(settings));
+        this.eventHub = eventHub;
+        this.listenChanges();
+    }
+
+    private void listenChanges() {
+        this.eventHub.listen(Events.GRAPH_CREATE, event -> {
+            LOG.debug("GremlinServer accepts event 'graph.create'");
+            event.checkArgs(HugeGraph.class);
+            HugeGraph graph = (HugeGraph) event.args()[0];
+            this.injectGraph(graph);
+            return null;
+        });
+        this.eventHub.listen(Events.GRAPH_DROP, event -> {
+            LOG.debug("GremlinServer accepts event 'graph.drop'");
+            event.checkArgs(String.class);
+            String name = (String) event.args()[0];
+            this.removeGraph(name);
+            return null;
+        });
+    }
+
+    private void unlistenChanges() {
+        this.eventHub.unlisten(Events.GRAPH_CREATE);
+        this.eventHub.unlisten(Events.GRAPH_DROP);
+    }
+
+    @Override
+    public synchronized CompletableFuture<Void> stop() {
+        try {
+            return super.stop();
+        } finally {
+            this.unlistenChanges();
+        }
     }
 
     public void injectAuthGraph() {
@@ -59,12 +103,12 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    public void injectTraversalSource(String prefix) {
+    public void injectTraversalSource() {
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         for (String graph : manager.getGraphNames()) {
             GraphTraversalSource g = manager.getGraph(graph).traversal();
-            String gName = prefix + graph;
+            String gName = G_PREFIX + graph;
             if (manager.getTraversalSource(gName) != null) {
                 throw new HugeException(
                           "Found existing name '%s' in global bindings, " +
@@ -73,6 +117,28 @@ public class ContextGremlinServer extends GremlinServer {
             // Add a traversal source for all graphs with customed rule.
             manager.putTraversalSource(gName, g);
         }
+    }
+
+    private void injectGraph(HugeGraph graph) {
+        String name = graph.name();
+        GraphManager manager = this.getServerGremlinExecutor()
+                                   .getGraphManager();
+        manager.putGraph(name, graph);
+
+        GraphTraversalSource g = manager.getGraph(name).traversal();
+        manager.putTraversalSource(G_PREFIX + name, g);
+    }
+
+    private void removeGraph(String name) {
+        GraphManager manager = this.getServerGremlinExecutor()
+                                   .getGraphManager();
+        try {
+            manager.removeGraph(name);
+        } catch (Exception e) {
+            throw new HugeException("Failed to remove graph '%s' from " +
+                                    "gremlin server context", e, name);
+        }
+        manager.removeTraversalSource(G_PREFIX + name);
     }
 
     static ExecutorService newGremlinExecutorService(Settings settings) {

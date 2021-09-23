@@ -41,6 +41,11 @@
                     <groupId>io.netty</groupId>
                     <artifactId>netty-all</artifactId>
                 </exclusion>
+                <!-- conflict with etcd 0.5.2 -->
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-netty-shaded</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -115,6 +120,12 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey2</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.etcd</groupId>
+            <artifactId>jetcd-core</artifactId>
+            <version>0.5.2</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -153,7 +164,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.66.0.0</Implementation-Version>
+                            <Implementation-Version>0.67.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
