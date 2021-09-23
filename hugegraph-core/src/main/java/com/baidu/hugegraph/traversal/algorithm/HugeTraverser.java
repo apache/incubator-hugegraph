@@ -1030,7 +1030,7 @@ public class HugeTraverser {
             this.cachePointer ++;
             this.currentIterator = traverser.edgesOfVertexAF(
                                    this.currentEdge.id().otherVertexId(),
-                                   edgeStep);
+                                   steps);
             return true;
         }
 
