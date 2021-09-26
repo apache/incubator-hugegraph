@@ -29,6 +29,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public enum DataType implements SerialEnum {
@@ -105,14 +106,15 @@ public enum DataType implements SerialEnum {
     }
 
     public <V> Number valueToNumber(V value) {
-        if (!(this.isNumber() && value instanceof Number)) {
+        if (!(this.isNumber() && value instanceof Number) &&
+            !JsonUtil.isInfinityOrNaN(value)) {
             return null;
         }
         if (this.clazz.isInstance(value)) {
             return (Number) value;
         }
 
-        Number number = null;
+        Number number;
         try {
             switch (this) {
                 case BYTE:
@@ -125,16 +127,10 @@ public enum DataType implements SerialEnum {
                     number = Long.valueOf(value.toString());
                     break;
                 case FLOAT:
-                    Float fvalue = Float.valueOf(value.toString());
-                    if (!fvalue.isInfinite() && !fvalue.isNaN()) {
-                        number = fvalue;
-                    }
+                    number = Float.valueOf(value.toString());
                     break;
                 case DOUBLE:
-                    Double dvalue = Double.valueOf(value.toString());
-                    if (!dvalue.isInfinite() && !dvalue.isNaN()) {
-                        number = dvalue;
-                    }
+                    number = Double.valueOf(value.toString());
                     break;
                 default:
                     throw new AssertionError(String.format(
@@ -219,6 +215,6 @@ public enum DataType implements SerialEnum {
                 return type;
             }
         }
-        throw new HugeException("Unknow clazz '%s' for DataType", clazz);
+        throw new HugeException("Unknown clazz '%s' for DataType", clazz);
     }
 }

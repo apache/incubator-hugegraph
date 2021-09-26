@@ -69,8 +69,9 @@ public interface HugeGraph extends Graph {
 
     public Id getNextId(HugeType type);
 
-    public void addPropertyKey(PropertyKey key);
-    public void removePropertyKey(Id key);
+    public Id addPropertyKey(PropertyKey key);
+    public Id removePropertyKey(Id key);
+    public Id clearPropertyKey(PropertyKey propertyKey);
     public Collection<PropertyKey> propertyKeys();
     public PropertyKey propertyKey(String key);
     public PropertyKey propertyKey(Id key);

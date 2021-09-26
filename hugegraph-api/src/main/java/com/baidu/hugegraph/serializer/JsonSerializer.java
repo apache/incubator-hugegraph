@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -41,6 +40,7 @@ import com.baidu.hugegraph.iterator.Metadatable;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
@@ -51,7 +51,6 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 public class JsonSerializer implements Serializer {
 
@@ -146,6 +145,32 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
+    public String writeTaskWithSchema(
+                  SchemaElement.TaskWithSchema taskWithSchema) {
+        StringBuilder builder = new StringBuilder();
+        long id = taskWithSchema.task() == null ?
+                  0L : taskWithSchema.task().asLong();
+        SchemaElement schemaElement = taskWithSchema.schemaElement();
+        String type;
+        String schema;
+        if (schemaElement instanceof PropertyKey) {
+            type = "property_key";
+            schema = this.writePropertyKey((PropertyKey) schemaElement);
+        } else if (schemaElement instanceof IndexLabel) {
+            type = "index_label";
+            schema = this.writeIndexlabel((IndexLabel) schemaElement);
+        } else {
+            throw new HugeException("Invalid schema element '%s' in " +
+                                    "TaskWithSchema, only support " +
+                                    "[PropertyKey, IndexLabel]", schemaElement);
+        }
+        return builder.append("{\"").append(type).append("\": ")
+                      .append(schema)
+                      .append(", \"task_id\": ").append(id).append("}")
+                      .toString();
+    }
+
+    @Override
     public String writePropertyKeys(List<PropertyKey> propertyKeys) {
         return writeList("propertykeys", propertyKeys);
     }
@@ -178,16 +203,6 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeIndexlabels(List<IndexLabel> indexLabels) {
         return writeList("indexlabels", indexLabels);
-    }
-
-    @Override
-    public String writeCreatedIndexLabel(IndexLabel.CreatedIndexLabel cil) {
-        StringBuilder builder = new StringBuilder();
-        long id = cil.task() == null ? 0L : cil.task().asLong();
-        return builder.append("{\"index_label\": ")
-                      .append(this.writeIndexlabel(cil.indexLabel()))
-                      .append(", \"task_id\": ").append(id).append("}")
-                      .toString();
     }
 
     @Override
@@ -295,20 +310,17 @@ public class JsonSerializer implements Serializer {
     }
 
     @Override
-    public String writeNodesWithPath(String name, Set<Id> nodes,
+    public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
-                                     Iterator<Vertex> iterator,
-                                     boolean countOnly) {
+                                     Iterator<Vertex> vertices) {
         List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
         }
 
         Map<String, Object> results;
-        results = ImmutableMap.of("size", nodes.size(),
-                                  name, countOnly ? ImmutableSet.of() : nodes,
-                                  "paths", pathList,
-                                  "vertices", iterator);
+        results = ImmutableMap.of(name, nodes, "size", size,
+                                  "paths", pathList, "vertices", vertices);
         return JsonUtil.toJson(results);
     }
 }

@@ -324,7 +324,15 @@ public class CoreOptions extends OptionHolder {
                     1
             );
 
-    public static final ConfigOption<Long> CONNECTION_DETECT_INTERVAL =
+    public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
+            new ConfigOption<>(
+                    "task.sync_deletion",
+                    "Whether to delete schema or expired data synchronously.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Long> STORE_CONN_DETECT_INTERVAL =
             new ConfigOption<>(
                     "store.connection_detect_interval",
                     "The interval in seconds for detecting connections, " +
@@ -348,6 +356,14 @@ public class CoreOptions extends OptionHolder {
                     "vertex.check_customized_id_exist",
                     "Whether to check the vertices exist for those using " +
                     "customized id strategy.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> VERTEX_REMOVE_LEFT_INDEX =
+            new ConfigOption<>(
+                    "vertex.remove_left_index_at_overwrite",
+                    "Whether remove left index at overwrite.",
                     disallowEmpty(),
                     false
             );
@@ -386,12 +402,38 @@ public class CoreOptions extends OptionHolder {
                     true
             );
 
+    public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
+            new ConfigOption<>(
+                    "vertex.tx_capacity",
+                    "The max size(items) of vertices(uncommitted) in " +
+                    "transaction.",
+                    rangeInt(COMMIT_BATCH, 1000000),
+                    10000
+            );
+
+    public static final ConfigOption<Integer> EDGE_TX_CAPACITY =
+            new ConfigOption<>(
+                    "edge.tx_capacity",
+                    "The max size(items) of edges(uncommitted) in " +
+                     "transaction.",
+                    rangeInt(COMMIT_BATCH, 1000000),
+                    10000
+            );
+
     public static final ConfigOption<Boolean> QUERY_IGNORE_INVALID_DATA =
             new ConfigOption<>(
                     "query.ignore_invalid_data",
                     "Whether to ignore invalid data of vertex or edge.",
                     disallowEmpty(),
                     true
+            );
+
+    public static final ConfigOption<Boolean> QUERY_OPTIMIZE_AGGR_BY_INDEX =
+            new ConfigOption<>(
+                    "query.optimize_aggregate_by_index",
+                    "Whether to optimize aggregate query(like count) by index.",
+                    disallowEmpty(),
+                    false
             );
 
     public static final ConfigOption<Integer> QUERY_BATCH_SIZE =
@@ -446,24 +488,6 @@ public class CoreOptions extends OptionHolder {
                     20000000
             );
 
-    public static final ConfigOption<Integer> VERTEX_TX_CAPACITY =
-            new ConfigOption<>(
-                    "vertex.tx_capacity",
-                    "The max size(items) of vertices(uncommitted) in " +
-                    "transaction.",
-                    rangeInt(COMMIT_BATCH, 1000000),
-                    10000
-            );
-
-    public static final ConfigOption<Integer> EDGE_TX_CAPACITY =
-            new ConfigOption<>(
-                    "edge.tx_capacity",
-                    "The max size(items) of edges(uncommitted) in " +
-                     "transaction.",
-                    rangeInt(COMMIT_BATCH, 1000000),
-                    10000
-            );
-
     /**
      * The schema name rule:
      * 1、Not allowed end with spaces
@@ -483,14 +507,6 @@ public class CoreOptions extends OptionHolder {
                     "The max cache size(items) of schema cache.",
                     rangeInt(0L, Long.MAX_VALUE),
                     10000L
-            );
-
-    public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
-            new ConfigOption<>(
-                    "task.sync_deletion",
-                    "Whether to delete schema or expired data synchronously.",
-                    disallowEmpty(),
-                    false
             );
 
     public static final ConfigOption<String> VERTEX_CACHE_TYPE =

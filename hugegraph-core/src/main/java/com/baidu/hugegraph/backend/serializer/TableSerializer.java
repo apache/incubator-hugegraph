@@ -56,7 +56,7 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.ReadFrequency;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.E;
@@ -193,6 +193,9 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeVertex(HugeVertex vertex) {
+        if (vertex.olap()) {
+            return this.writeOlapVertex(vertex);
+        }
         TableBackendEntry entry = newBackendEntry(vertex);
         if (vertex.hasTtl()) {
             entry.ttl(vertex.ttl());
@@ -465,8 +468,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         entry.column(HugeKeys.CARDINALITY, propertyKey.cardinality().code());
         entry.column(HugeKeys.AGGREGATE_TYPE,
                      propertyKey.aggregateType().code());
-        entry.column(HugeKeys.READ_FREQUENCY,
-                     propertyKey.readFrequency().code());
+        entry.column(HugeKeys.WRITE_TYPE,
+                     propertyKey.writeType().code());
         entry.column(HugeKeys.PROPERTIES,
                      this.toLongSet(propertyKey.properties()));
         this.writeUserdata(propertyKey, entry);
@@ -566,9 +569,9 @@ public abstract class TableSerializer extends AbstractSerializer {
                                              Cardinality.class);
         AggregateType aggregateType = schemaEnum(entry, HugeKeys.AGGREGATE_TYPE,
                                                  AggregateType.class);
-        ReadFrequency readFrequency = schemaEnumOrDefault(
-                                      entry, HugeKeys.READ_FREQUENCY,
-                                      ReadFrequency.class, ReadFrequency.OLTP);
+        WriteType writeType = schemaEnumOrDefault(
+                              entry, HugeKeys.WRITE_TYPE,
+                              WriteType.class, WriteType.OLTP);
         Object properties = schemaColumn(entry, HugeKeys.PROPERTIES);
         SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
                                          SchemaStatus.class);
@@ -577,7 +580,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         propertyKey.dataType(dataType);
         propertyKey.cardinality(cardinality);
         propertyKey.aggregateType(aggregateType);
-        propertyKey.readFrequency(readFrequency);
+        propertyKey.writeType(writeType);
         propertyKey.properties(this.toIdArray(properties));
         propertyKey.status(status);
         this.readUserdata(propertyKey, entry);

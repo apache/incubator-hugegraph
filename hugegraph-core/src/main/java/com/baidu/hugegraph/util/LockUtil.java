@@ -50,6 +50,7 @@ public final class LockUtil {
     public static final String READ = "read";
 
     public static final String INDEX_LABEL_DELETE = "il_delete";
+    public static final String INDEX_LABEL_CLEAR = "il_clear";
     public static final String EDGE_LABEL_DELETE = "el_delete";
     public static final String VERTEX_LABEL_DELETE = "vl_delete";
     public static final String INDEX_LABEL_REBUILD = "il_rebuild";
@@ -57,6 +58,7 @@ public final class LockUtil {
     public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
+    public static final String PROJECT_UPDATE = "project_update";
     public static final String KEY_LOCK = "key_lock";
     public static final String ROW_LOCK = "row_lock";
     public static final String REENTRANT_LOCK = "reentrant_lock";
@@ -67,6 +69,7 @@ public final class LockUtil {
 
     public static void init(String graph) {
         LockManager.instance().create(join(graph, INDEX_LABEL_DELETE));
+        LockManager.instance().create(join(graph, INDEX_LABEL_CLEAR));
         LockManager.instance().create(join(graph, EDGE_LABEL_DELETE));
         LockManager.instance().create(join(graph, VERTEX_LABEL_DELETE));
         LockManager.instance().create(join(graph, INDEX_LABEL_REBUILD));
@@ -77,10 +80,12 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, KEY_LOCK));
         LockManager.instance().create(join(graph, ROW_LOCK));
         LockManager.instance().create(join(graph, REENTRANT_LOCK));
+        LockManager.instance().create(join(graph, PROJECT_UPDATE));
     }
 
     public static void destroy(String graph) {
         LockManager.instance().destroy(join(graph, INDEX_LABEL_DELETE));
+        LockManager.instance().destroy(join(graph, INDEX_LABEL_CLEAR));
         LockManager.instance().destroy(join(graph, EDGE_LABEL_DELETE));
         LockManager.instance().destroy(join(graph, VERTEX_LABEL_DELETE));
         LockManager.instance().destroy(join(graph, INDEX_LABEL_REBUILD));
@@ -91,6 +96,7 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, KEY_LOCK));
         LockManager.instance().destroy(join(graph, ROW_LOCK));
         LockManager.instance().destroy(join(graph, REENTRANT_LOCK));
+        LockManager.instance().destroy(join(graph, PROJECT_UPDATE));
     }
 
     private static String join(String graph, String group) {

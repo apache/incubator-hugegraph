@@ -54,16 +54,18 @@ public class RelationshipManager<T extends Relationship> {
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Edge, T> deser;
+    private final ThreadLocal<Boolean> autoCommit = new ThreadLocal<>();
 
     private static final long NO_LIMIT = -1L;
 
     public RelationshipManager(HugeGraphParams graph, String label,
-                               Function<Edge, T> dser) {
+                               Function<Edge, T> deser) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.label = label;
-        this.deser = dser;
+        this.deser = deser;
+        this.autoCommit.set(true);
     }
 
     private GraphTransaction tx() {
@@ -160,8 +162,7 @@ public class RelationshipManager<T extends Relationship> {
 
     private Iterator<Edge> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
-        Iterator<Edge> edges = this.tx().queryEdges(idArray);
-        return edges;
+        return this.tx().queryEdges(idArray);
     }
 
     private Iterator<Edge> queryRelationship(Id source,
@@ -231,6 +232,14 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private void commitOrRollback() {
+        Boolean autoCommit = this.autoCommit.get();
+        if (autoCommit != null && !autoCommit) {
+            return;
+        }
         this.tx().commitOrRollback();
+    }
+
+    public void autoCommit(boolean value) {
+        autoCommit.set(value);
     }
 }

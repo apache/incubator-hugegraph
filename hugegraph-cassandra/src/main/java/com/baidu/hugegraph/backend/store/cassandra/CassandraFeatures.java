@@ -124,6 +124,6 @@ public class CassandraFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsOlapProperties() {
-        return false;
+        return true;
     }
 }

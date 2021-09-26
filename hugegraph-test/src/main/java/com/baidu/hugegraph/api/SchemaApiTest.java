@@ -17,33 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.type.define;
+package com.baidu.hugegraph.api;
 
-public enum ReadFrequency implements SerialEnum {
+import javax.ws.rs.core.Response;
 
-    OLTP(1, "oltp"),
+import org.junit.Test;
 
-    OLAP(2, "olap");
+public class SchemaApiTest extends BaseApiTest {
 
-    private byte code = 0;
-    private String name = null;
+    private static String path = "/graphs/hugegraph/schema";
 
-    static {
-        SerialEnum.register(ReadFrequency.class);
-    }
+    @Test
+    public void testGet() {
+        Response r = client().get(path);
+        String content = assertResponseStatus(200, r);
 
-    ReadFrequency(int code, String name) {
-        assert code < 256;
-        this.code = (byte) code;
-        this.name = name;
-    }
-
-    @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
+        assertJsonContains(content, "propertykeys");
+        assertJsonContains(content, "vertexlabels");
+        assertJsonContains(content, "edgelabels");
+        assertJsonContains(content, "indexlabels");
     }
 }

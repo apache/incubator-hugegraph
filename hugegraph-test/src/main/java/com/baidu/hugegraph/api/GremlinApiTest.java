@@ -127,7 +127,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"cardinality\": \"SINGLE\","
                 + "\"properties\":[]"
                 + "}";
-        assertResponseStatus(201, client().post(pkPath, foo));
+        assertResponseStatus(202, client().post(pkPath, foo));
         // Cardinality list
         String bar = "{"
                 + "\"name\": \"bar\","
@@ -135,7 +135,7 @@ public class GremlinApiTest extends BaseApiTest {
                 + "\"cardinality\": \"LIST\","
                 + "\"properties\":[]"
                 + "}";
-        assertResponseStatus(201, client().post(pkPath, bar));
+        assertResponseStatus(202, client().post(pkPath, bar));
 
         String vlPath = "/graphs/hugegraph/schema/vertexlabels/";
         String vertexLabel = "{"

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -37,20 +38,28 @@ import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeElement;
+import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public final class ConditionQuery extends IdQuery {
 
+    private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
+
     // Conditions will be concated with `and` by default
-    private Set<Condition> conditions = new LinkedHashSet<>();
+    private Set<Condition> conditions = EMPTY_CONDITIONS;
 
     private OptimizedType optimizedType = OptimizedType.NONE;
     private Function<HugeElement, Boolean> resultsFilter = null;
+    private Element2IndexValueMap element2IndexValueMap = null;
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
@@ -73,6 +82,9 @@ public final class ConditionQuery extends IdQuery {
             }
         }
 
+        if (this.conditions == EMPTY_CONDITIONS) {
+            this.conditions = CollectionFactory.newSet(CollectionType.EC);
+        }
         this.conditions.add(condition);
         return this;
     }
@@ -134,12 +146,49 @@ public final class ConditionQuery extends IdQuery {
         this.conditions = new LinkedHashSet<>();
     }
 
+    public void recordIndexValue(Id propertyId, Id id, Object indexValue) {
+        this.ensureElement2IndexValueMap();
+        this.element2IndexValueMap.addIndexValue(propertyId, id, indexValue);
+    }
+
+    public void selectedIndexField(Id indexField) {
+        this.ensureElement2IndexValueMap();
+        this.element2IndexValueMap.selectedIndexField(indexField);
+    }
+
+    public Set<LeftIndex> getElementLeftIndex(Id elementId) {
+        if (this.element2IndexValueMap == null) {
+            return null;
+        }
+        return this.element2IndexValueMap.getLeftIndex(elementId);
+    }
+
+    public void removeElementLeftIndex(Id elementId) {
+        if (this.element2IndexValueMap == null) {
+            return;
+        }
+        this.element2IndexValueMap.removeElementLeftIndex(elementId);
+    }
+
+    public boolean existLeftIndex(Id elementId) {
+        return this.getElementLeftIndex(elementId) != null;
+    }
+
     public List<Condition.Relation> relations() {
         List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {
             relations.addAll(c.relations());
         }
         return relations;
+    }
+
+    public Relation relation(Id key){
+        for (Relation r : this.relations()) {
+            if (r.key().equals(key)) {
+                return r;
+            }
+        }
+        return null;
     }
 
     @Watched
@@ -207,6 +256,16 @@ public final class ConditionQuery extends IdQuery {
 
     public boolean containsScanCondition() {
         return this.containsCondition(Condition.RelationType.SCAN);
+    }
+
+    public boolean containsContainsCondition(Id key) {
+        for (Relation r : this.relations()) {
+            if (r.key().equals(key)) {
+                return r.relation().equals(RelationType.CONTAINS) ||
+                       r.relation().equals(RelationType.TEXT_CONTAINS);
+            }
+        }
+        return false;
     }
 
     public boolean allSysprop() {
@@ -310,10 +369,11 @@ public final class ConditionQuery extends IdQuery {
             boolean got = false;
             for (Relation r : this.userpropRelations()) {
                 if (r.key().equals(field) && !r.isSysprop()) {
-                    E.checkState(r.relation == RelationType.EQ,
+                    E.checkState(r.relation == RelationType.EQ ||
+                                 r.relation == RelationType.CONTAINS,
                                  "Method userpropValues(List<String>) only " +
                                  "used for secondary index, " +
-                                 "relation must be EQ, but got %s",
+                                 "relation must be EQ or CONTAINS, but got %s",
                                  r.relation());
                     values.add(r.serialValue());
                     got = true;
@@ -389,7 +449,6 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
         return keys.size() > 0 && conditionKeys.containsAll(keys);
@@ -399,7 +458,10 @@ public final class ConditionQuery extends IdQuery {
     public ConditionQuery copy() {
         ConditionQuery query = (ConditionQuery) super.copy();
         query.originQuery(this);
-        query.conditions = new LinkedHashSet<>(this.conditions);
+        query.conditions = this.conditions == EMPTY_CONDITIONS ?
+                           EMPTY_CONDITIONS :
+                           CollectionFactory.newSet(CollectionType.EC,
+                                                    this.conditions);
 
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
@@ -424,13 +486,13 @@ public final class ConditionQuery extends IdQuery {
         if (this.resultsFilter != null) {
             return this.resultsFilter.apply(element);
         }
-
+        boolean valid = true;
         for (Condition cond : this.conditions()) {
-            if (!cond.test(element)) {
-                return false;
-            }
+            valid &= cond.test(element);
+            valid &= (this.element2IndexValueMap == null ||
+                      this.element2IndexValueMap.validRangeIndex(element,  cond));
         }
-        return true;
+        return valid;
     }
 
     public void checkFlattened() {
@@ -499,6 +561,24 @@ public final class ConditionQuery extends IdQuery {
         }
     }
 
+    public ConditionQuery originConditionQuery() {
+        Query originQuery = this.originQuery();
+        if (!(originQuery instanceof ConditionQuery)) {
+            return null;
+        }
+
+        while (originQuery.originQuery() instanceof ConditionQuery) {
+            originQuery = originQuery.originQuery();
+        }
+        return (ConditionQuery) originQuery;
+    }
+
+    private void ensureElement2IndexValueMap() {
+        if (this.element2IndexValueMap == null) {
+            this.element2IndexValueMap = new Element2IndexValueMap();
+        }
+    }
+
     public static String concatValues(List<Object> values) {
         List<Object> newValues = new ArrayList<>(values.size());
         for (Object v : values) {
@@ -507,12 +587,27 @@ public final class ConditionQuery extends IdQuery {
         return SplicingIdGenerator.concatValues(newValues);
     }
 
+    public static String concatValues(Object value) {
+        if (value instanceof List) {
+            return concatValues((List<Object>)value);
+        }
+
+        if (needConvertNumber(value)) {
+            return LongEncoding.encodeNumber(value);
+        }
+        return value.toString();
+    }
+
     private static Object convertNumberIfNeeded(Object value) {
-        if (NumericUtil.isNumber(value) || value instanceof Date) {
-            // Numeric or date values should be converted to string
+        if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
         }
         return value;
+    }
+
+    private static boolean needConvertNumber(Object value) {
+        // Numeric or date values should be converted to number from string
+        return NumericUtil.isNumber(value) || value instanceof Date;
     }
 
     public enum OptimizedType {
@@ -521,5 +616,150 @@ public final class ConditionQuery extends IdQuery {
         SORT_KEYS,
         INDEX,
         INDEX_FILTER
+    }
+
+    public static final class Element2IndexValueMap {
+
+        private final Map<Id, Set<LeftIndex>> leftIndexMap;
+        private final Map<Id, Map<Id, Set<Object>>> filed2IndexValues;
+        private Id selectedIndexField;
+
+        public Element2IndexValueMap() {
+            this.filed2IndexValues = new HashMap<>();
+            this.leftIndexMap = new HashMap<>();
+        }
+
+        public void addIndexValue(Id indexField, Id elementId,
+                                  Object indexValue) {
+            if (!this.filed2IndexValues.containsKey(indexField)) {
+                this.filed2IndexValues.put(indexField, new HashMap<>());
+            }
+            Map<Id, Set<Object>> element2IndexValueMap =
+                                 this.filed2IndexValues.get(indexField);
+            if (element2IndexValueMap.containsKey(elementId)) {
+                element2IndexValueMap.get(elementId).add(indexValue);
+            } else {
+                element2IndexValueMap.put(elementId,
+                                          Sets.newHashSet(indexValue));
+            }
+        }
+
+        public void selectedIndexField(Id indexField) {
+            this.selectedIndexField = indexField;
+        }
+
+        public Set<Object> removeIndexValues(Id indexField, Id elementId) {
+            if (!this.filed2IndexValues.containsKey(indexField)) {
+                return null;
+            }
+            return this.filed2IndexValues.get(indexField).get(elementId);
+        }
+
+        public void addLeftIndex(Id indexField, Set<Object> indexValues,
+                                 Id elementId) {
+            LeftIndex leftIndex = new LeftIndex(indexValues, indexField);
+            if (this.leftIndexMap.containsKey(elementId)) {
+                this.leftIndexMap.get(elementId).add(leftIndex);
+            } else {
+                this.leftIndexMap.put(elementId, Sets.newHashSet(leftIndex));
+            }
+        }
+
+        public Set<LeftIndex> getLeftIndex(Id elementId) {
+            return this.leftIndexMap.get(elementId);
+        }
+
+        public void removeElementLeftIndex(Id elementId) {
+            this.leftIndexMap.remove(elementId);
+        }
+
+        public boolean validRangeIndex(HugeElement element, Condition cond) {
+            // Not UserpropRelation
+            if (!(cond instanceof Condition.UserpropRelation)) {
+                return true;
+            }
+
+            Condition.UserpropRelation propRelation =
+                                       (Condition.UserpropRelation) cond;
+            Id propId = propRelation.key();
+            Set<Object> fieldValues = this.removeIndexValues(propId,
+                                                             element.id());
+            if (fieldValues == null) {
+                // Not range index
+                return true;
+            }
+
+            HugeProperty<Object> hugeProperty = element.getProperty(propId);
+            if (hugeProperty == null) {
+                // Property value has been deleted
+                this.addLeftIndex(propId, fieldValues, element.id());
+                return false;
+            }
+
+            /*
+             * NOTE: If success remove means has correct index,
+             * we should add left index values to left index map
+             * waiting to be removed
+             */
+            boolean hasRightValue = removeValue(fieldValues, hugeProperty.value());
+            if (fieldValues.size() > 0) {
+                this.addLeftIndex(propId, fieldValues, element.id());
+            }
+
+            /*
+             * NOTE: When query by more than one range index field,
+             * if current field is not the selected one, it can only be used to
+             * determine whether the index values matched, can't determine
+             * the element is valid or not
+             */
+            if (this.selectedIndexField != null) {
+                return !propId.equals(this.selectedIndexField) || hasRightValue;
+            }
+
+            return hasRightValue;
+        }
+
+        private static boolean removeValue(Set<Object> values, Object value){
+            for (Object compareValue : values) {
+                if (numberEquals(compareValue, value)) {
+                    values.remove(compareValue);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static boolean numberEquals(Object number1, Object number2) {
+            // Same class compare directly
+            if (number1.getClass().equals(number2.getClass())) {
+                return number1.equals(number2);
+            }
+
+            // Otherwise convert to BigDecimal to make two numbers comparable
+            Number n1 = NumericUtil.convertToNumber(number1);
+            Number n2 = NumericUtil.convertToNumber(number2);
+            BigDecimal b1 = new BigDecimal(n1.doubleValue());
+            BigDecimal b2 = new BigDecimal(n2.doubleValue());
+            return b1.compareTo(b2) == 0;
+        }
+    }
+
+    public static final class LeftIndex {
+
+        private final Set<Object> indexFieldValues;
+        private final Id indexField;
+
+        public LeftIndex(Set<Object> indexFieldValues, Id indexField) {
+            this.indexFieldValues = indexFieldValues;
+            this.indexField = indexField;
+        }
+
+        public Set<Object> indexFieldValues() {
+            return indexFieldValues;
+        }
+
+        public Id indexField() {
+            return indexField;
+        }
     }
 }

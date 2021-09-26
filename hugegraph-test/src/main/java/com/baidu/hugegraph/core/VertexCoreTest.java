@@ -62,6 +62,7 @@ import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NoIndexException;
+import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.Userdata;
@@ -71,12 +72,16 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeVertex;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.traversal.optimize.ConditionP;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.CollectionUtil;
+import com.baidu.hugegraph.util.LongEncoding;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -278,19 +283,6 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.propertyKey("float").asFloat().create();
         schema.vertexLabel("number").properties("float").create();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            double value = Float.MAX_VALUE * 2.0d;
-            graph.addVertex(T.label, "number", "float", value);
-        });
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            double value = -(Float.MAX_VALUE * 2.0d);
-            graph.addVertex(T.label, "number", "float", value);
-        });
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.addVertex(T.label, "number", "float", Double.MAX_VALUE);
-        });
-
         double value = Float.MIN_VALUE / 2.0d;
         float fvalue = graph.addVertex(T.label, "number", "float", value)
                             .value("float");
@@ -312,17 +304,6 @@ public class VertexCoreTest extends BaseCoreTest {
         SchemaManager schema = graph.schema();
         schema.propertyKey("double").asDouble().create();
         schema.vertexLabel("number").properties("double").create();
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BigDecimal two = new BigDecimal(2);
-            BigDecimal value = new BigDecimal(Double.MAX_VALUE).multiply(two);
-            graph.addVertex(T.label, "number", "double", value);
-        });
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BigDecimal two = new BigDecimal(2);
-            BigDecimal value = new BigDecimal(-Double.MAX_VALUE).multiply(two);
-            graph.addVertex(T.label, "number", "double", value);
-        });
 
         BigDecimal two = new BigDecimal(2);
         BigDecimal value = new BigDecimal(Double.MIN_VALUE).divide(two);
@@ -409,6 +390,179 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testRemoveLeftRangeIndex() throws InterruptedException {
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("updateTime").asLong().create();
+
+        schema.vertexLabel("soft").properties("name", "updateTime")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByUpdateTime").onV("soft").range()
+              .by("updateTime").create();
+
+        final long testDataCount = 10L;
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "updateTime", i);
+        }
+        graph.tx().commit();
+
+        long count = graph.traversal().V()
+                          .has("soft", "updateTime",
+                               ConditionP.gt(0))
+                          .limit(-1)
+                          .count()
+                          .next();
+        Assert.assertEquals(testDataCount, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "updateTime", 2 * i);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .has("soft", "updateTime",
+                          ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+
+        schema.propertyKey("score").asInt().create();
+        schema.vertexLabel("developer").properties("name", "age", "score")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("developerByAge").onV("developer").range()
+              .by("age").create();
+        schema.indexLabel("developerByScore").onV("developer").range()
+              .by("score").create();
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i,
+                            "score", i);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i * 2,
+                            "score", i * 2);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+
+        Assert.assertEquals(testDataCount, count);
+
+        // Wait left index to be removed
+        Thread.sleep(2000);
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        // Debug stop here to see whether the left index be correctly determined
+        Assert.assertEquals(testDataCount, count);
+
+        // mock test removeLeftIndexIfNeeded
+        boolean removeLeftIndexOnOverwrite =
+                Whitebox.getInternalState(params().graphTransaction(),
+                                          "removeLeftIndexOnOverwrite");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "removeLeftIndexOnOverwrite", true);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "developer", "name", "developer" + i,
+                            "age", i * 3,
+                            "score", i * 3);
+        }
+        graph.tx().commit();
+
+        if (!removeLeftIndexOnOverwrite) {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "removeLeftIndexOnOverwrite", false);
+        }
+
+        count = graph.traversal().V()
+                     .hasLabel("developer")
+                     .has("age", ConditionP.gt(0))
+                     .has("score", ConditionP.gt(0))
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(testDataCount, count);
+    }
+
+    @Test
+    public void testLeftUnionIndex(){
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+
+        schema.propertyKey("updateTime").asLong().create();
+        schema.propertyKey("country").asText().create();
+
+        schema.vertexLabel("soft").properties("name", "country", "updateTime")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByCountryAndUpdateTime").onV("soft").secondary()
+              .by("country", "updateTime").create();
+
+        final long testDataCount = 2L;
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "country", "china", "updateTime", i);
+        }
+        graph.tx().commit();
+
+        long count = graph.traversal().V()
+                          .hasLabel("soft")
+                          .has("updateTime", 2L)
+                          .has("country", "china")
+                          .limit(-1)
+                          .count()
+                          .next();
+        Assert.assertEquals(1, count);
+
+        for (int i = 1; i <= testDataCount; i++) {
+            graph.addVertex(T.label, "soft", "name", "soft" + i,
+                            "country", "china", "updateTime", i * 2);
+        }
+        graph.tx().commit();
+
+        count = graph.traversal().V()
+                     .hasLabel("soft")
+                     .has("updateTime", 2L)
+                     .has("country", "china")
+                     .limit(-1)
+                     .count()
+                     .next();
+        Assert.assertEquals(1L, count);
+    }
+
+    @Test
     public void testAddVertexWithPropertySet() {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "review", "id", 1,
@@ -429,6 +583,136 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
                             vertex.value("contribution"));
+    }
+
+    @Test
+    public void testAddVertexWithCollectionIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("tags").asText().valueSet().create();
+        schema.propertyKey("category").asText().valueSet().create();
+        schema.propertyKey("country").asText().create();
+        schema.propertyKey("score").asInt().valueSet().create();
+
+        schema.vertexLabel("soft").properties("name", "tags", "score",
+                                              "country", "category")
+              .primaryKeys("name").create();
+
+        schema.indexLabel("softByTag").onV("soft").secondary()
+              .by("tags").create();
+
+        schema.indexLabel("softByCategory").onV("soft").search()
+              .by("category").create();
+
+        schema.indexLabel("softByScore").onV("soft").secondary()
+              .by("score").create();
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "soft", "name", "hugegraph",
+                        "country", "china",
+                        "score", ImmutableList.of(5, 4, 3),
+                        "category", ImmutableList.of("graph database", "db"),
+                        "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        graph.addVertex(T.label, "soft", "name", "neo4j",
+                        "country", "usa",
+                        "score", ImmutableList.of(5, 4),
+                        "category", ImmutableList.of("graphdb", "database"),
+                        "tags", ImmutableList.of("graphdb", "cypher"));
+
+        graph.addVertex(T.label, "soft", "name", "janusgraph",
+                        "country", "usa",
+                        "score", ImmutableList.of(5),
+                        "category",
+                        ImmutableList.of("hello graph", "graph database"),
+                        "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        graph.tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph.traversal().V()
+                        .has("soft", "category",
+                             ConditionP.textContains("hello database"))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "category",
+                             ConditionP.textContains("graph"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().V().has("soft", "tags",
+                                      "gremlin").toList();
+        });
+
+        // query by contains
+        vertices = graph.traversal().V()
+                        .has("soft", "tags",
+                             ConditionP.contains("gremlin"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        // secondary-index with list/set of number properties
+        vertices = graph.traversal().V()
+                        .has("soft", "score",
+                             ConditionP.contains(5))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "name",
+                             "hugegraph").toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // add a new tag
+        Vertex vertex = vertices.get(0);
+        vertex.property("tags", ImmutableSet.of("new_tag"));
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags",
+                             ConditionP.contains("new_tag")).toList();
+        Assert.assertEquals(1, vertices.size());
+
+        // delete tag gremlin
+        vertex = graph.addVertex(T.label, "soft", "name", "hugegraph",
+                                 "country", "china",
+                                 "score", ImmutableList.of(5, 4, 3),
+                                 "category",
+                                 ImmutableList.of("hello graph", "graph database"),
+                                 "tags", ImmutableList.of("graphdb", "new_tag"));
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("gremlin"))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("new_tag"))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("graphdb"))
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        // remove
+        vertex.remove();
+        graph.tx().commit();
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("new_tag"))
+                        .toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = graph.traversal().V()
+                        .has("soft", "tags", ConditionP.contains("graphdb"))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
     }
 
     @Test
@@ -1800,6 +2084,591 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddOlapNoneProperties() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        String olapPropName = "olap";
+        schema.propertyKey(olapPropName)
+              .asText().valueSingle()
+              .writeType(WriteType.OLAP_COMMON)
+              .ifNotExist().create();
+
+        init10Vertices();
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        String language = graph.vertexLabel("language").id().asString();
+        Id id3 = SplicingIdGenerator.splicing(language, "java");
+        Id id4 = SplicingIdGenerator.splicing(language, "c++");
+        Id id5 = SplicingIdGenerator.splicing(language, "python");
+
+        String book = graph.vertexLabel("book").id().asString();
+        Id id6 = SplicingIdGenerator.splicing(book, "java-1");
+        Id id7 = SplicingIdGenerator.splicing(book, "java-2");
+        Id id8 = SplicingIdGenerator.splicing(book, "java-3");
+        Id id9 = SplicingIdGenerator.splicing(book, "java-4");
+        Id id10 = SplicingIdGenerator.splicing(book, "java-5");
+
+        graph.addVertex(T.id, id1.asObject(), olapPropName, "a");
+        graph.addVertex(T.id, id2.asObject(), olapPropName, "b");
+        graph.addVertex(T.id, id3.asObject(), olapPropName, "c");
+        graph.addVertex(T.id, id4.asObject(), olapPropName, "d");
+        graph.addVertex(T.id, id5.asObject(), olapPropName, "e");
+        graph.addVertex(T.id, id6.asObject(), olapPropName, "f");
+        graph.addVertex(T.id, id7.asObject(), olapPropName, "g");
+        graph.addVertex(T.id, id8.asObject(), olapPropName, "h");
+        graph.addVertex(T.id, id9.asObject(), olapPropName, "i");
+        graph.addVertex(T.id, id10.asObject(), olapPropName, "j");
+
+        graph.tx().commit();
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "a").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "c").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "f").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        graph.readMode(GraphReadMode.ALL);
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().has(olapPropName, "a").hasNext();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().has(olapPropName, "c").hasNext();
+        });
+
+        Assert.assertThrows(NoIndexException.class, () -> {
+            graph.traversal().V().has(olapPropName, "f").hasNext();
+        });
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
+    public void testAddOlapSecondaryProperties() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        String olapPropName = "wcc";
+        schema.propertyKey(olapPropName)
+              .asText().valueSingle()
+              .writeType(WriteType.OLAP_SECONDARY)
+              .ifNotExist().create();
+
+        init10Vertices();
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        String language = graph.vertexLabel("language").id().asString();
+        Id id3 = SplicingIdGenerator.splicing(language, "java");
+        Id id4 = SplicingIdGenerator.splicing(language, "c++");
+        Id id5 = SplicingIdGenerator.splicing(language, "python");
+
+        String book = graph.vertexLabel("book").id().asString();
+        Id id6 = SplicingIdGenerator.splicing(book, "java-1");
+        Id id7 = SplicingIdGenerator.splicing(book, "java-2");
+        Id id8 = SplicingIdGenerator.splicing(book, "java-3");
+        Id id9 = SplicingIdGenerator.splicing(book, "java-4");
+        Id id10 = SplicingIdGenerator.splicing(book, "java-5");
+
+        graph.addVertex(T.id, id1.asObject(), olapPropName, "a");
+        graph.addVertex(T.id, id2.asObject(), olapPropName, "b");
+        graph.addVertex(T.id, id3.asObject(), olapPropName, "c");
+        graph.addVertex(T.id, id4.asObject(), olapPropName, "d");
+        graph.addVertex(T.id, id5.asObject(), olapPropName, "e");
+        graph.addVertex(T.id, id6.asObject(), olapPropName, "f");
+        graph.addVertex(T.id, id7.asObject(), olapPropName, "g");
+        graph.addVertex(T.id, id8.asObject(), olapPropName, "h");
+        graph.addVertex(T.id, id9.asObject(), olapPropName, "i");
+        graph.addVertex(T.id, id10.asObject(), olapPropName, "j");
+
+        graph.tx().commit();
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "a").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "c").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, "f").hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        graph.readMode(GraphReadMode.ALL);
+        List<Vertex> vertices = graph.traversal().V()
+                                     .has(olapPropName, "a").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, "c").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id3).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, "f").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id6).next(), vertices.get(0));
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
+    public void testAddOlapRangeProperties() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        String olapPropName = "pagerank";
+        schema.propertyKey(olapPropName)
+              .asDouble().valueSingle()
+              .writeType(WriteType.OLAP_RANGE)
+              .ifNotExist().create();
+
+        init10Vertices();
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        String language = graph.vertexLabel("language").id().asString();
+        Id id3 = SplicingIdGenerator.splicing(language, "java");
+        Id id4 = SplicingIdGenerator.splicing(language, "c++");
+        Id id5 = SplicingIdGenerator.splicing(language, "python");
+
+        String book = graph.vertexLabel("book").id().asString();
+        Id id6 = SplicingIdGenerator.splicing(book, "java-1");
+        Id id7 = SplicingIdGenerator.splicing(book, "java-2");
+        Id id8 = SplicingIdGenerator.splicing(book, "java-3");
+        Id id9 = SplicingIdGenerator.splicing(book, "java-4");
+        Id id10 = SplicingIdGenerator.splicing(book, "java-5");
+
+        graph.addVertex(T.id, id1.asObject(), olapPropName, 0.1D);
+        graph.addVertex(T.id, id2.asObject(), olapPropName, 0.2D);
+        graph.addVertex(T.id, id3.asObject(), olapPropName, 0.3D);
+        graph.addVertex(T.id, id4.asObject(), olapPropName, 0.4D);
+        graph.addVertex(T.id, id5.asObject(), olapPropName, 0.5D);
+        graph.addVertex(T.id, id6.asObject(), olapPropName, 0.6D);
+        graph.addVertex(T.id, id7.asObject(), olapPropName, 0.7D);
+        graph.addVertex(T.id, id8.asObject(), olapPropName, 0.8D);
+        graph.addVertex(T.id, id9.asObject(), olapPropName, 0.9D);
+        graph.addVertex(T.id, id10.asObject(), olapPropName, 1.0D);
+
+        graph.tx().commit();
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, 0.1D).hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, 0.3D).hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V().has(olapPropName, 0.6D).hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        graph.traversal().V(id1).next();
+
+        graph.readMode(GraphReadMode.ALL);
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .has(olapPropName, 0.1D).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, 0.3D).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id3).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, 0.6D).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id6).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, P.gt(0.9D)).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id10).next(),
+                            vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, P.lt(0.2D)).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V().has(olapPropName, P.gte(0.9D))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id9).next()));
+        Assert.assertTrue(vertices.contains(
+                          graph.traversal().V(id10).next()));
+
+        vertices = graph.traversal().V().has(olapPropName, P.lte(0.2D))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id1).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id2).next()));
+
+        vertices = graph.traversal().V()
+                        .has(olapPropName, P.inside(0.2D, 0.9D)).toList();
+        Assert.assertEquals(6, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id3).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id4).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id5).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id6).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id7).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id8).next()));
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
+    public void testAddOlapRangeAndOlapSecondaryProperties() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("pagerank")
+              .asDouble().valueSingle()
+              .writeType(WriteType.OLAP_RANGE)
+              .ifNotExist().create();
+        schema.propertyKey("wcc")
+              .asText().valueSingle()
+              .writeType(WriteType.OLAP_SECONDARY)
+              .ifNotExist().create();
+
+        init10Vertices();
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        String language = graph.vertexLabel("language").id().asString();
+        Id id3 = SplicingIdGenerator.splicing(language, "java");
+        Id id4 = SplicingIdGenerator.splicing(language, "c++");
+        Id id5 = SplicingIdGenerator.splicing(language, "python");
+
+        String book = graph.vertexLabel("book").id().asString();
+        Id id6 = SplicingIdGenerator.splicing(book, "java-1");
+        Id id7 = SplicingIdGenerator.splicing(book, "java-2");
+        Id id8 = SplicingIdGenerator.splicing(book, "java-3");
+        Id id9 = SplicingIdGenerator.splicing(book, "java-4");
+        Id id10 = SplicingIdGenerator.splicing(book, "java-5");
+
+        graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
+        graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
+        graph.addVertex(T.id, id3.asObject(), "pagerank", 0.3D);
+        graph.addVertex(T.id, id4.asObject(), "pagerank", 0.4D);
+        graph.addVertex(T.id, id5.asObject(), "pagerank", 0.5D);
+        graph.addVertex(T.id, id6.asObject(), "pagerank", 0.6D);
+        graph.addVertex(T.id, id7.asObject(), "pagerank", 0.7D);
+        graph.addVertex(T.id, id8.asObject(), "pagerank", 0.8D);
+        graph.addVertex(T.id, id9.asObject(), "pagerank", 0.9D);
+        graph.addVertex(T.id, id10.asObject(), "pagerank", 1.0D);
+
+        graph.tx().commit();
+
+        graph.addVertex(T.id, id1.asObject(), "wcc", "a");
+        graph.addVertex(T.id, id2.asObject(), "wcc", "a");
+        graph.addVertex(T.id, id3.asObject(), "wcc", "c");
+        graph.addVertex(T.id, id4.asObject(), "wcc", "c");
+        graph.addVertex(T.id, id5.asObject(), "wcc", "c");
+        graph.addVertex(T.id, id6.asObject(), "wcc", "f");
+        graph.addVertex(T.id, id7.asObject(), "wcc", "f");
+        graph.addVertex(T.id, id8.asObject(), "wcc", "f");
+        graph.addVertex(T.id, id9.asObject(), "wcc", "f");
+        graph.addVertex(T.id, id10.asObject(), "wcc", "f");
+
+        graph.tx().commit();
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("pagerank", 0.1D)
+                 .has("wcc", "a")
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("pagerank", 0.3D)
+                 .has("wcc", "b")
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("pagerank", 0.6D)
+                 .has("wcc", "f")
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        graph.readMode(GraphReadMode.ALL);
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .has("pagerank", 0.1D)
+                                     .has("wcc", "a")
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", 0.3D)
+                        .has("wcc", "c")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id3).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", 0.6D)
+                        .has("wcc", "f")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id6).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.gt(0.9D))
+                        .has("wcc", "f")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id10).next(),
+                            vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.lt(0.2D))
+                        .has("wcc", "a")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                          .has("pagerank", P.gte(0.9D))
+                          .has("wcc", "f")
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id9).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id10).next()));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.lte(0.2D))
+                        .has("wcc", "a")
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id1).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id2).next()));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.inside(0.2D, 0.9D))
+                        .has("wcc", "c")
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id3).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id4).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id5).next()));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.inside(0.2D, 0.9D))
+                        .has("wcc", "f")
+                        .toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id6).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id7).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id8).next()));
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
+    public void testQueryOlapRangeAndRegularSecondaryProperties() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        schema.indexLabel("authorByAge").onV("author").range()
+              .by("age").create();
+        schema.indexLabel("authorByLived").onV("author").secondary()
+              .by("lived").create();
+
+        schema.propertyKey("pagerank")
+              .asDouble().valueSingle()
+              .writeType(WriteType.OLAP_RANGE)
+              .ifNotExist().create();
+        schema.propertyKey("wcc")
+              .asText().valueSingle()
+              .writeType(WriteType.OLAP_SECONDARY)
+              .ifNotExist().create();
+
+        init10Vertices();
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
+        graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
+
+        graph.tx().commit();
+
+        graph.addVertex(T.id, id1.asObject(), "wcc", "a");
+        graph.addVertex(T.id, id2.asObject(), "wcc", "b");
+
+        graph.tx().commit();
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("pagerank", 0.1D)
+                 .has("lived", "Canadian")
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("wcc", "a")
+                 .has("age", 62)
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
+        Assert.assertThrows(NotAllowException.class, () -> {
+            graph.traversal().V()
+                 .has("pagerank", 0.1D)
+                 .has("age", 62)
+                 .hasNext();
+        }, e -> {
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
+
+        graph.readMode(GraphReadMode.ALL);
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .has("pagerank", 0.1D)
+                                     .has("lived", "Canadian")
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.lte(0.1D))
+                        .has("age", P.gte(62))
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.lte(0.1D))
+                        .has("age", P.gte(62))
+                        .has("lived", "Canadian")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("age", P.gt(5))
+                        .has("wcc", "b")
+                        .toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(graph.traversal().V(id2).next(), vertices.get(0));
+
+        vertices = graph.traversal().V()
+                        .has("pagerank", P.gte(0.1D))
+                        .has("age", P.gte(10))
+                        .toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id1).next()));
+        Assert.assertTrue(vertices.contains(graph.traversal().V(id2).next()));
+
+        Set<Vertex> vertexSet = graph.traversal().V()
+                                     .has("pagerank", P.lte(0.9D))
+                                     .has("wcc", P.within("a", "b"))
+                                     .has("age", P.gt(20))
+                                     .has("lived", P.within("Canadian",
+                                                            "California"))
+                                     .toSet();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertexSet.contains(graph.traversal().V(id1).next()));
+        Assert.assertTrue(vertexSet.contains(graph.traversal().V(id2).next()));
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
     public void testQueryAll() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -2121,8 +2990,9 @@ public class VertexCoreTest extends BaseCoreTest {
             query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
             graph.vertices(query).hasNext();
         }, e -> {
-            Assert.assertContains("Can't do index query with [LABEL ==",
+            Assert.assertContains("Can't do index query with [",
                                   e.getMessage());
+            Assert.assertContains("LABEL == ", e.getMessage());
             Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
@@ -4665,6 +5535,90 @@ public class VertexCoreTest extends BaseCoreTest {
                                      .values("age").count().next());
         Assert.assertEquals(8L, g.V().hasLabel("author")
                                      .values().count().next());
+    }
+
+    @Test
+    public void testQueryCountWithOptimizeByIndex() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("authorByLived").onV("author")
+             .secondary().by("lived").create();
+        graph.schema().indexLabel("authorByAge").onV("author")
+             .range().by("age").create();
+        init10Vertices();
+
+        initPersonIndex(true);
+        init100Persons();
+
+        boolean old = Whitebox.getInternalState(params().graphTransaction(),
+                                                "optimizeAggrByIndex");
+        Whitebox.setInternalState(params().graphTransaction(),
+                                  "optimizeAggrByIndex", true);
+        try {
+            GraphTraversalSource g = graph.traversal();
+
+            Assert.assertEquals(110L, g.V().count().next());
+
+            Assert.assertEquals(2L, g.V().hasLabel("author").count().next());
+            Assert.assertEquals(3L, g.V().hasLabel("language").count().next());
+            Assert.assertEquals(5L, g.V().hasLabel("book").count().next());
+            Assert.assertEquals(8L, g.V().hasLabel("book", "language")
+                                         .count().next());
+
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("lived", "California")
+                                         .count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", 61).count().next());
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .has("age", P.gte(61)).count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62)).count().next());
+
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62))
+                                         .has("lived", "California")
+                                         .count().next());
+            Assert.assertEquals(0L, g.V().hasLabel("author")
+                                         .has("age", P.lt(62))
+                                         .has("lived", "Canadian")
+                                         .count().next());
+            Assert.assertEquals(1L, g.V().hasLabel("author")
+                                         .has("age", P.lt(63))
+                                         .has("lived", "Canadian")
+                                         .count().next());
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .has("age", P.lt(63))
+                                         .has("lived", P.within("California",
+                                                                "Canadian"))
+                                         .count().next());
+
+            Assert.assertEquals(9L, g.V().hasLabel("person")
+                                          .has("age", 8)
+                                          .count().next());
+            Assert.assertEquals(50L, g.V().hasLabel("person")
+                                          .has("city", "Beijing")
+                                          .count().next());
+            Assert.assertEquals(5L, g.V().hasLabel("person")
+                                         .has("age", 8)
+                                         .has("city", "Beijing")
+                                         .count().next());
+            Assert.assertEquals(3L, g.V().hasLabel("person")
+                                         .has("age", 8)
+                                         .has("city", "Beijing")
+                                         .limit(3).count().next());
+
+            Assert.assertEquals(110L, g.V().count().min().next());
+            Assert.assertEquals(5L, g.V().hasLabel("book").count().max().next());
+
+            Assert.assertEquals(2L, g.V().hasLabel("author")
+                                         .values("age").count().next());
+            Assert.assertEquals(8L, g.V().hasLabel("author")
+                                         .values().count().next());
+        } finally {
+            Whitebox.setInternalState(params().graphTransaction(),
+                                      "optimizeAggrByIndex", old);
+        }
     }
 
     @Test

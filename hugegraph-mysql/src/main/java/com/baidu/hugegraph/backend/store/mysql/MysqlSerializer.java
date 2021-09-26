@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
+
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -33,6 +35,7 @@ import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
@@ -161,5 +164,10 @@ public class MysqlSerializer extends TableSerializer {
         for (Map.Entry<String, Object> e : userdata.entrySet()) {
             schema.userdata(e.getKey(), e.getValue());
         }
+    }
+
+    @Override
+    public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        throw new NotImplementedException("Unsupported writeOlapVertex()");
     }
 }

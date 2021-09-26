@@ -26,15 +26,18 @@ import java.util.Map;
 
 import javax.security.sasl.AuthenticationException;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.After;
 import org.junit.Test;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugeBelong;
 import com.baidu.hugegraph.auth.HugeGroup;
 import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.auth.HugeProject;
 import com.baidu.hugegraph.auth.HugeResource;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.auth.HugeUser;
@@ -67,6 +70,12 @@ public class AuthTest extends BaseCoreTest {
         }
         for (HugeTarget target : authManager.listAllTargets(-1)) {
             authManager.deleteTarget(target.id());
+        }
+        for (HugeProject project : authManager.listAllProject(-1)) {
+            if (!CollectionUtils.isEmpty(project.graphs())) {
+                authManager.projectRemoveGraphs(project.id(), project.graphs());
+            }
+            authManager.deleteProject(project.id());
         }
 
         Assert.assertEquals(0, authManager.listAllAccess(-1).size());
@@ -1364,6 +1373,138 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNull(userWithRole.userId());
         Assert.assertEquals("huge", userWithRole.username());
         Assert.assertNull(userWithRole.role());
+    }
+
+    @Test
+    public void testCreateProject() {
+        HugeGraph graph = graph();
+        HugeProject project = makeProject("test_project",
+                                          "this is a test project");
+        Id id = graph.authManager().createProject(project);
+        Assert.assertNotNull(id);
+        project = graph.authManager().getProject(id);
+        Assert.assertNotNull(project);
+        Assert.assertEquals("this is a test project", project.description());
+        Assert.assertEquals("test_project", project.name());
+        Assert.assertNotNull(project.adminGroupId());
+        Assert.assertNotNull(project.opGroupId());
+        Assert.assertNotNull(project.targetId());
+
+        // Check name is unique index
+        HugeProject sameNameProject = makeProject("test_project",
+                                                  "this is a test " +
+                                                  "project another");
+        Assert.assertThrows(HugeException.class, () -> {
+            graph.authManager().createProject(sameNameProject);
+        });
+    }
+
+    @Test
+    public void testDelProject() {
+        HugeProject project = makeProject("test_project", null);
+        AuthManager authManager = graph().authManager();
+        Id projectId = authManager.createProject(project);
+        Assert.assertNotNull(projectId);
+        HugeProject deletedProject = authManager.deleteProject(projectId);
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getProject(projectId);
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getGroup(IdGenerator.of(deletedProject.adminGroupId()));
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getGroup(IdGenerator.of(deletedProject.opGroupId()));
+        });
+        Assert.assertThrows(NotFoundException.class, () -> {
+            authManager.getTarget(IdGenerator.of(deletedProject.targetId()));
+        });
+    }
+
+    @Test
+    public void testUpdateProject() {
+        HugeProject project = makeProject("test_project",
+                                          "this is a desc");
+        AuthManager authManager = graph().authManager();
+        Id projectId = authManager.createProject(project);
+        project = authManager.getProject(projectId);
+        project.description("this is a desc another");
+        projectId = authManager.updateProject(project);
+        HugeProject newProject = authManager.getProject(projectId);
+        Assert.assertEquals("this is a desc another", newProject.description());
+    }
+
+    @Test
+    public void testProjectAddGraph() {
+        HugeProject project = makeProject("test_project", "");
+        AuthManager authManager = graph().authManager();
+        Id projectId = authManager.createProject(project);
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of("graph_test"));
+        Assert.assertNotNull(projectId);
+        project = authManager.getProject(projectId);
+        Assert.assertFalse(project.graphs().isEmpty());
+    }
+
+    @Test
+    public void testProjectRemoveGraph() {
+        Id projectId = makeProjectAndAddGraph(graph(), "test_project",
+                                              "graph_test");
+        AuthManager authManager = graph().authManager();
+        Assert.assertNotNull(projectId);
+        HugeProject project = authManager.getProject(projectId);
+        Assert.assertNotNull(project);
+        Assert.assertFalse(project.graphs().isEmpty());
+        projectId = authManager.projectRemoveGraphs(
+                                project.id(), ImmutableSet.of("graph_test"));
+        project = authManager.getProject(projectId);
+        Assert.assertNotNull(project);
+        Assert.assertTrue(project.graphs().isEmpty());
+    }
+
+    @Test
+    public void testListProject() {
+        AuthManager authManager = graph().authManager();
+        authManager.createProject(makeProject("test_project1", ""));
+        authManager.createProject(makeProject("test_project2", ""));
+        authManager.createProject(makeProject("test_project3", ""));
+
+        List<HugeProject> projects = authManager.listAllProject(1);
+        Assert.assertNotNull(projects);
+        Assert.assertTrue(projects.size() == 1);
+
+        projects = authManager.listAllProject(-1);
+        Assert.assertNotNull(projects);
+        Assert.assertTrue(projects.size() == 3);
+
+        projects = authManager.listAllProject(3);
+        Assert.assertNotNull(projects);
+        Assert.assertTrue(projects.size() == 3);
+
+        projects = authManager.listAllProject(4);
+        Assert.assertNotNull(projects);
+        Assert.assertTrue(projects.size() == 3);
+
+        projects = authManager.listAllProject(2);
+        Assert.assertNotNull(projects);
+        Assert.assertTrue(projects.size() == 2);
+    }
+
+    private static Id makeProjectAndAddGraph(HugeGraph graph,
+                                             String projectName,
+                                             String graphName) {
+        HugeProject project = makeProject(projectName, "");
+        AuthManager authManager = graph.authManager();
+        Id projectId = authManager.createProject(project);
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of(graphName));
+        Assert.assertNotNull(projectId);
+        return projectId;
+    }
+
+    private static HugeProject makeProject(String name, String desc) {
+        HugeProject project = new HugeProject(name, desc);
+        project.creator("admin");
+        return project;
     }
 
     private static HugeUser makeUser(String name, String password) {

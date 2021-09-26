@@ -180,7 +180,7 @@ public class HugeResource {
                     return false;
                 }
             } catch (IllegalArgumentException e) {
-                throw new HugeException("Invalid resouce '%s' for '%s': %s",
+                throw new HugeException("Invalid resource '%s' for '%s': %s",
                                         expected, propName, e.getMessage());
             }
         }

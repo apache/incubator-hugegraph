@@ -401,7 +401,7 @@ public abstract class CassandraTable
         });
     }
 
-    private static CassandraBackendEntry row2Entry(HugeType type, Row row) {
+    protected static CassandraBackendEntry row2Entry(HugeType type, Row row) {
         CassandraBackendEntry entry = new CassandraBackendEntry(type);
 
         List<Definition> cols = row.getColumnDefinitions().asList();
@@ -655,5 +655,9 @@ public abstract class CassandraTable
 
     public void truncate(CassandraSessionPool.Session session) {
         this.truncateTable(session);
+    }
+
+    public boolean isOlap() {
+        return false;
     }
 }

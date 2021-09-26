@@ -31,7 +31,9 @@ public enum SchemaStatus implements SerialEnum {
 
     UNDELETED(5, "undeleted"),
 
-    INVALID(6, "invalid");
+    INVALID(6, "invalid"),
+
+    CLEARING(7, "clearing");
 
     private byte code = 0;
     private String name = null;

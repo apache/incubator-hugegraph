@@ -135,7 +135,7 @@ public class HugeBelong extends Relationship {
         return super.asMap(map);
     }
 
-    public static <V> HugeBelong fromEdge(Edge edge) {
+    public static HugeBelong fromEdge(Edge edge) {
         HugeBelong belong = new HugeBelong((Id) edge.outVertex().id(),
                                            (Id) edge.inVertex().id());
         return fromEdge(edge, belong);

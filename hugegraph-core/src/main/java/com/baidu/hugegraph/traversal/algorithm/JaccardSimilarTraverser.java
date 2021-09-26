@@ -76,8 +76,8 @@ public class JaccardSimilarTraverser extends OltpTraverser {
         checkCapacity(capacity);
 
         Map<Id, Double> results;
-        if (3 >= this.concurrentDepth() &&
-            step.direction() == Directions.BOTH) {
+        int maxDepth = 3;
+        if (maxDepth >= this.concurrentDepth()) {
             results = this.jaccardSimilarsConcurrent(source, step, capacity);
         } else {
             results = this.jaccardSimilarsSingle(source, step, capacity);

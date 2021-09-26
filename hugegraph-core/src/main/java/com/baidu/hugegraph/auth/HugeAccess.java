@@ -165,7 +165,7 @@ public class HugeAccess extends Relationship {
         return super.asMap(map);
     }
 
-    public static <V> HugeAccess fromEdge(Edge edge) {
+    public static HugeAccess fromEdge(Edge edge) {
         HugeAccess access = new HugeAccess((Id) edge.outVertex().id(),
                                            (Id) edge.inVertex().id());
         return fromEdge(edge, access);

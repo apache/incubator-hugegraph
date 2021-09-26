@@ -38,17 +38,20 @@ import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.IndexType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.collection.IdSet;
 
 public class IndexLabelBuilder extends AbstractBuilder
                                implements IndexLabel.Builder {
@@ -118,7 +121,6 @@ public class IndexLabelBuilder extends AbstractBuilder
         return indexLabel;
     }
 
-
     /**
      * Check whether this has same properties with existedIndexLabel.
      * Only baseType, baseValue, indexType, indexFields are checked.
@@ -175,7 +177,7 @@ public class IndexLabelBuilder extends AbstractBuilder
      * Create index label with async mode
      */
     @Override
-    public IndexLabel.CreatedIndexLabel createWithTask() {
+    public SchemaElement.TaskWithSchema createWithTask() {
         HugeType type = HugeType.INDEX_LABEL;
         this.checkSchemaName(this.name);
 
@@ -185,13 +187,18 @@ public class IndexLabelBuilder extends AbstractBuilder
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
                     throw new ExistedException(type, name);
                 }
-                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                return new SchemaElement.TaskWithSchema(indexLabel,
                                                         IdGenerator.ZERO);
             }
             this.checkSchemaIdIfRestoringMode(type, this.id);
 
             this.checkBaseType();
             this.checkIndexType();
+
+            if (SchemaElement.OLAP.equals(this.baseValue)) {
+                return new SchemaElement.TaskWithSchema(this.build(),
+                                                        IdGenerator.ZERO);
+            }
 
             SchemaLabel schemaLabel = this.loadElement();
 
@@ -217,7 +224,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             if (!this.rebuild) {
                 indexLabel.status(SchemaStatus.CREATED);
                 this.graph().addIndexLabel(schemaLabel, indexLabel);
-                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                return new SchemaElement.TaskWithSchema(indexLabel,
                                                         IdGenerator.ZERO);
             }
 
@@ -229,7 +236,7 @@ public class IndexLabelBuilder extends AbstractBuilder
                 Id rebuildTask = this.rebuildIndex(indexLabel, removeTasks);
                 E.checkNotNull(rebuildTask, "rebuild-index task");
 
-                return new IndexLabel.CreatedIndexLabel(indexLabel,
+                return new SchemaElement.TaskWithSchema(indexLabel,
                                                         rebuildTask);
             } catch (Throwable e) {
                 this.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
@@ -244,13 +251,13 @@ public class IndexLabelBuilder extends AbstractBuilder
     @Override
     public IndexLabel create() {
         // Create index label async
-        IndexLabel.CreatedIndexLabel createdIndexLabel = this.createWithTask();
+        SchemaElement.TaskWithSchema createdIndexLabel = this.createWithTask();
 
         Id task = createdIndexLabel.task();
         if (task == IdGenerator.ZERO) {
             /*
              * Task id will be IdGenerator.ZERO if creating index label
-             * already exists.
+             * already exists or creating index label is for olap
              */
             return createdIndexLabel.indexLabel();
         }
@@ -448,6 +455,9 @@ public class IndexLabelBuilder extends AbstractBuilder
     }
 
     private SchemaLabel loadElement() {
+        if (SchemaElement.OLAP.equals(this.baseValue)) {
+            return VertexLabel.OLAP_VL;
+        }
         return IndexLabel.getElement(this.graph(),
                                      this.baseType, this.baseValue);
     }
@@ -456,6 +466,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         List<String> fields = this.indexFields;
         E.checkNotEmpty(fields, "index fields", this.name);
 
+        Set<Id> olapPks = new IdSet(CollectionType.EC);
         for (String field : fields) {
             PropertyKey pkey = this.propertyKeyOrNull(field);
             // In general this will not happen
@@ -466,10 +477,35 @@ public class IndexLabelBuilder extends AbstractBuilder
             E.checkArgument(pkey.aggregateType().isIndexable(),
                             "The aggregate type %s is not indexable",
                             pkey.aggregateType());
-            E.checkArgument(pkey.cardinality().single(),
-                            "Not allowed to build index on property key " +
-                            "'%s' whose cardinality is list or set",
-                            pkey.name());
+
+            if (pkey.cardinality().multiple()) {
+                E.checkArgument(fields.size() == 1,
+                                "Not allowed to build union index on property" +
+                                " key '%s' whose cardinality is multiple",
+                                pkey.name());
+            }
+
+            if (pkey.olap()) {
+                olapPks.add(pkey.id());
+            }
+        }
+
+        if (!olapPks.isEmpty()) {
+            E.checkArgument(olapPks.size() == 1,
+                            "Can't build index on multiple olap properties, " +
+                            "but got fields '%s' for index label '%s'",
+                            fields, this.name);
+            E.checkArgument(olapPks.size() == fields.size(),
+                            "Can't build index on olap properties and oltp " +
+                            "properties in one index label, " +
+                            "but got fields '%s' for index label '%s'",
+                            fields, this.name);
+            E.checkArgument(this.indexType == IndexType.SECONDARY ||
+                            this.indexType == IndexType.RANGE,
+                            "Only secondary and range index can be built on " +
+                            "olap property, but got index type '%s' on olap " +
+                            "property key '%s' for index label '%s'",
+                            this.indexType, fields.get(0), this.name);
         }
 
         List<String> properties = this.graph().mapPkId2Name(propertyIds);
@@ -506,6 +542,10 @@ public class IndexLabelBuilder extends AbstractBuilder
                         "one field, but got %s fields: '%s'",
                         fields.size(), fields);
         String field = fields.iterator().next();
+        PropertyKey property = this.graph().propertyKey(field);
+        E.checkArgument(!property.cardinality().multiple(),
+                        "Not allowed to build range index on property " +
+                        "'%s' whose cardinality is multiple", field);
         DataType dataType = this.graph().propertyKey(field).dataType();
         E.checkArgument(dataType.isNumber() || dataType.isDate(),
                         "Range index can only build on numeric or " +

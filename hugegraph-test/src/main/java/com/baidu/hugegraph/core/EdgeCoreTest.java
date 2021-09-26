@@ -70,6 +70,7 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.testutil.Whitebox;
+import com.baidu.hugegraph.traversal.optimize.ConditionP;
 import com.baidu.hugegraph.traversal.optimize.Text;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
@@ -2713,8 +2714,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
             graph.edges(query).hasNext();
         }, e -> {
-            Assert.assertContains("Can't do index query with [LABEL ==",
+            Assert.assertContains("Can't do index query with [",
                                   e.getMessage());
+            Assert.assertContains("LABEL == ", e.getMessage());
             Assert.assertContains("NAME == n2", e.getMessage());
         });
     }
@@ -3184,8 +3186,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -3372,8 +3373,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "lazyLoadAdjacentVertex", false);
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
-        params().graphEventHub().notify(Events.CACHE, "clear",
-                                        null, null).get();
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
@@ -7053,6 +7053,103 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         String page = TraversalUtil.page(iter);
         Assert.assertNull(page);
+    }
+
+    @Test
+    public void testAddEdgeWithCollectionIndex() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("tags").asText().valueSet().create();
+        schema.propertyKey("category").asText().valueSet().create();
+        schema.propertyKey("country").asText().create();
+
+        schema.vertexLabel("soft")
+              .properties("name", "tags", "country", "category")
+              .primaryKeys("name").create();
+
+        schema.edgeLabel("related")
+              .sourceLabel("soft")
+              .targetLabel("soft")
+              .properties("tags").create();
+
+        schema.indexLabel("edgeByTag").onE("related").secondary()
+              .by("tags")
+              .create();
+
+        HugeGraph graph = graph();
+
+        Vertex huge = graph.addVertex(
+                      T.label, "soft",
+                      "name", "hugegraph",
+                      "country", "china",
+                      "category", ImmutableList.of("graphdb", "db"),
+                      "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        Vertex neo4j = graph.addVertex(
+                       T.label, "soft", "name", "neo4j",
+                       "country", "usa",
+                       "category", ImmutableList.of("graphdb", "db"),
+                       "tags", ImmutableList.of("graphdb", "cypher"));
+
+        Vertex janus = graph.addVertex(
+                       T.label, "soft", "name", "janusgraph",
+                       "country", "usa",
+                       "category", ImmutableList.of("graphdb", "db"),
+                       "tags", ImmutableList.of("graphdb", "gremlin"));
+
+        huge.addEdge("related", neo4j, "tags", ImmutableList.of("graphdb"));
+
+        Edge huge2janus = huge.addEdge("related", janus, "tags",
+                                       ImmutableList.of("graphdb", "gremlin"));
+
+        graph.tx().commit();
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            graph.traversal().E().has("related", "tags",
+                                      "gremlin").toList();
+        });
+
+
+        List<Edge> edges =  graph.traversal().E()
+                                 .has("related","tags",
+                                      ConditionP.contains("gremlin"))
+                                 .toList();
+
+        Assert.assertEquals(1, edges.size());
+
+        edges =  graph.traversal().E()
+                      .has("related",
+                           "tags", ConditionP.contains("graphdb"))
+                      .toList();
+
+        Assert.assertEquals(2, edges.size());
+
+        // append a new tag
+        huge2janus.property("tags", ImmutableList.of("newTag"));
+        graph.tx().commit();
+
+        edges =  graph.traversal().E()
+                      .has("related",
+                           "tags", ConditionP.contains("newTag"))
+                      .toList();
+
+        Assert.assertEquals(1, edges.size());
+
+        edges =  graph.traversal().E()
+                      .has("related",
+                           "tags", ConditionP.contains("graphdb"))
+                      .toList();
+
+        Assert.assertEquals(2, edges.size());
+
+        // remove a edge
+        edges.get(0).remove();
+        graph.tx().commit();
+
+        edges =  graph.traversal().E()
+                      .has("related",
+                           "tags", ConditionP.contains("graphdb"))
+                      .toList();
+        Assert.assertEquals(1, edges.size());
     }
 
     private void init18Edges() {

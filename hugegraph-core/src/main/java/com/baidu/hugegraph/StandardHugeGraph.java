@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,6 +51,7 @@ import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
@@ -126,7 +128,8 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.OLTP_CONCURRENT_DEPTH,
            CoreOptions.OLTP_COLLECTION_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
-           CoreOptions.VERTEX_ENCODE_PK_NUMBER
+           CoreOptions.VERTEX_ENCODE_PK_NUMBER,
+           CoreOptions.STORE_GRAPH
     );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
@@ -255,6 +258,9 @@ public class StandardHugeGraph implements HugeGraph {
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
+        LOG.info("Search olap property key for graph '{}'", this.name);
+        this.schemaTransaction().initAndRegisterOlapTables();
+
         LOG.info("Restoring incomplete tasks for graph '{}'...", this.name);
         this.taskScheduler().restoreTasks();
 
@@ -283,15 +289,6 @@ public class StandardHugeGraph implements HugeGraph {
     public void mode(GraphMode mode) {
         LOG.info("Graph {} will work in {} mode", this, mode);
         this.mode = mode;
-        if (mode.loading()) {
-            /*
-             * NOTE: This may block tasks submit and lead the queue to be full,
-             * so don't submit gremlin job when loading data
-             */
-            this.taskManager.pauseScheduledThreadPool();
-        } else {
-            this.taskManager.resumeScheduledThreadPool();
-        }
     }
 
     @Override
@@ -301,6 +298,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void readMode(GraphReadMode readMode) {
+        this.clearVertexCache();
         this.readMode = readMode;
     }
 
@@ -391,6 +389,17 @@ public class StandardHugeGraph implements HugeGraph {
         LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
 
+    private void clearVertexCache() {
+        Future<?> future = this.graphEventHub.notify(Events.CACHE, "clear",
+                                                     HugeType.VERTEX);
+        try {
+            future.get();
+        } catch (Throwable e) {
+            LOG.warn("Error when waiting for event execution: vertex cache " +
+                     "clear", e);
+        }
+    }
+
     private SchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
@@ -435,8 +444,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadGraphStore() {
-        String graph = this.configuration.get(CoreOptions.STORE_GRAPH);
-        return this.storeProvider.loadGraphStore(graph);
+        String name = this.configuration.get(CoreOptions.STORE_GRAPH);
+        return this.storeProvider.loadGraphStore(name);
     }
 
     private BackendStore loadSystemStore() {
@@ -670,14 +679,20 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey pkey) {
+    public Id addPropertyKey(PropertyKey pkey) {
         assert this.name.equals(pkey.graph().name());
-        this.schemaTransaction().addPropertyKey(pkey);
+        if (pkey.olap()) {
+            this.clearVertexCache();
+        }
+        return this.schemaTransaction().addPropertyKey(pkey);
     }
 
     @Override
-    public void removePropertyKey(Id pkey) {
-        this.schemaTransaction().removePropertyKey(pkey);
+    public Id removePropertyKey(Id pkey) {
+        if (this.propertyKey(pkey).olap()) {
+            this.clearVertexCache();
+        }
+        return this.schemaTransaction().removePropertyKey(pkey);
     }
 
     @Override
@@ -697,6 +712,15 @@ public class StandardHugeGraph implements HugeGraph {
         PropertyKey pk = this.schemaTransaction().getPropertyKey(name);
         E.checkArgument(pk != null, "Undefined property key: '%s'", name);
         return pk;
+    }
+
+    @Override
+    public Id clearPropertyKey(PropertyKey propertyKey) {
+        if (propertyKey.oltp()) {
+            return IdGenerator.ZERO;
+        }
+        this.clearVertexCache();
+        return this.schemaTransaction().clearOlapPk(propertyKey);
     }
 
     @Override
@@ -806,7 +830,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
-        assert this.name.equals(schemaLabel.graph().name());
+        assert VertexLabel.OLAP_VL.equals(schemaLabel) ||
+               this.name.equals(schemaLabel.graph().name());
         assert this.name.equals(indexLabel.graph().name());
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
     }

@@ -120,16 +120,10 @@ public class ShortestPathTraverser extends HugeTraverser {
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
         while (true) {
+            paths = traverser.forward() ?
+                    traverser.forward(true) : traverser.backward(true);
             // Found, reach max depth or reach capacity, stop searching
-            if (!(paths = traverser.forward(true)).isEmpty() ||
-                --depth <= 0) {
-                break;
-            }
-            checkCapacity(traverser.capacity, traverser.accessed(),
-                          "shortest path");
-
-            if (!(paths = traverser.backward(true)).isEmpty() ||
-                --depth <= 0) {
+            if (!paths.isEmpty() || --depth <= 0) {
                 break;
             }
             checkCapacity(traverser.capacity, traverser.accessed(),
@@ -236,6 +230,10 @@ public class ShortestPathTraverser extends HugeTraverser {
             this.record.finishOneLayer();
 
             return results;
+        }
+
+        public boolean forward() {
+            return this.record.lessSources();
         }
 
         private boolean superNode(Id vertex, Directions direction) {

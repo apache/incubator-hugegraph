@@ -54,6 +54,7 @@ import com.baidu.hugegraph.backend.page.IdHolderList;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.page.QueryList;
 import com.baidu.hugegraph.backend.query.Aggregate;
+import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.ConditionQuery.OptimizedType;
@@ -125,7 +126,9 @@ public class GraphTransaction extends IndexableTransaction {
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
+    private final boolean removeLeftIndexOnOverwrite;
     private final boolean ignoreInvalidEntry;
+    private final boolean optimizeAggrByIndex;
     private final int commitPartOfAdjacentEdges;
     private final int batchSize;
     private final int pageSize;
@@ -148,10 +151,14 @@ public class GraphTransaction extends IndexableTransaction {
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.lazyLoadAdjacentVertex =
              conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+        this.removeLeftIndexOnOverwrite =
+             conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
         this.commitPartOfAdjacentEdges =
              conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
              conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
+        this.optimizeAggrByIndex =
+             conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -316,6 +323,11 @@ public class GraphTransaction extends IndexableTransaction {
         if (this.checkCustomVertexExist) {
             this.checkVertexExistIfCustomizedId(addedVertices);
         }
+
+        if (this.removeLeftIndexOnOverwrite) {
+            this.removeLeftIndexIfNeeded(addedVertices);
+        }
+
         // Do vertex update
         for (HugeVertex v : addedVertices.values()) {
             assert !v.removed();
@@ -538,21 +550,30 @@ public class GraphTransaction extends IndexableTransaction {
             return super.queryNumber(query);
         }
 
+        Aggregate aggregate = query.aggregateNotNull();
+
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean indexQuery = q.getClass() == IdQuery.class;
             OptimizedType optimized = ((ConditionQuery) query).optimized();
             Number result;
             if (!indexQuery) {
                 result = super.queryNumber(q);
-            } else if (optimized == OptimizedType.INDEX) {
-                // The number of ids means results size (assume no left index)
-                result = q.ids().size();
             } else {
-                assert optimized == OptimizedType.INDEX_FILTER;
-                assert q.resultType().isVertex() || q.resultType().isEdge();
-                result = IteratorUtils.count(q.resultType().isVertex() ?
-                                             this.queryVertices(q) :
-                                             this.queryEdges(q));
+                E.checkArgument(aggregate.func() == AggregateFunc.COUNT,
+                                "The %s operator on index is not supported now",
+                                aggregate.func().string());
+                if (this.optimizeAggrByIndex &&
+                    optimized == OptimizedType.INDEX) {
+                    // The ids size means results count (assume no left index)
+                    result = q.ids().size();
+                } else {
+                    assert optimized == OptimizedType.INDEX_FILTER ||
+                           optimized == OptimizedType.INDEX;
+                    assert q.resultType().isVertex() || q.resultType().isEdge();
+                    result = IteratorUtils.count(q.resultType().isVertex() ?
+                                                 this.queryVertices(q) :
+                                                 this.queryEdges(q));
+                }
             }
             return new QueryResults<>(IteratorUtils.of(result), q);
         });
@@ -560,7 +581,6 @@ public class GraphTransaction extends IndexableTransaction {
         QueryResults<Number> results = queries.empty() ?
                                        QueryResults.empty() :
                                        queries.fetch(this.pageSize);
-        Aggregate aggregate = query.aggregateNotNull();
         return aggregate.reduce(results.iterator());
     }
 
@@ -601,7 +621,18 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched(prefix = "graph")
     public HugeVertex constructVertex(boolean verifyVL, Object... keyValues) {
         HugeElement.ElementKeys elemKeys = HugeElement.classifyKeys(keyValues);
-
+        if (possibleOlapVertex(elemKeys)) {
+            Id id = HugeVertex.getIdValue(elemKeys.id());
+            HugeVertex vertex = HugeVertex.create(this, id,
+                                                  VertexLabel.OLAP_VL);
+            ElementHelper.attachProperties(vertex, keyValues);
+            Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
+                                                       .iterator();
+            assert iterator.hasNext();
+            if (iterator.next().propertyKey().olap()) {
+                return vertex;
+            }
+        }
         VertexLabel vertexLabel = this.checkVertexLabel(elemKeys.label(),
                                                         verifyVL);
         Id id = HugeVertex.getIdValue(elemKeys.id());
@@ -626,6 +657,11 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         return vertex;
+    }
+
+    private boolean possibleOlapVertex(HugeElement.ElementKeys elemKeys) {
+        return elemKeys.id() != null && elemKeys.label() == null &&
+               elemKeys.keys().size() == 1;
     }
 
     @Watched(prefix = "graph")
@@ -1584,6 +1620,23 @@ public class GraphTransaction extends IndexableTransaction {
         }
     }
 
+    private void removeLeftIndexIfNeeded(Map<Id, HugeVertex> vertices) {
+        Set<Id> ids = vertices.keySet();
+        if (ids.isEmpty()) {
+            return;
+        }
+        IdQuery idQuery = new IdQuery(HugeType.VERTEX, ids);
+        Iterator<HugeVertex> results = this.queryVerticesFromBackend(idQuery);
+        try {
+            while (results.hasNext()) {
+                HugeVertex existedVertex = results.next();
+                this.indexTx.updateVertexIndex(existedVertex, true);
+            }
+        } finally {
+            CloseableIterator.closeIterator(results);
+        }
+    }
+
     private <T extends HugeElement> Iterator<T> filterUnmatchedRecords(
                                                 Iterator<T> results,
                                                 Query query) {
@@ -1629,6 +1682,14 @@ public class GraphTransaction extends IndexableTransaction {
 
         ConditionQuery cq = (ConditionQuery) query;
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
+            if (cq.existLeftIndex(elem.id())) {
+                /*
+                 * Both have correct and left index, wo should return true
+                 * but also needs to cleaned up left index
+                 */
+                this.indexTx.asyncRemoveIndexLeft(cq, elem);
+            }
+
             /* Return true if:
              * 1.not query by index or by primary-key/sort-key
              *   (cq.optimized() == 0 means query just by sysprop)
@@ -1638,7 +1699,6 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         if (cq.optimized() == OptimizedType.INDEX) {
-            LOG.info("Remove left index: {}, query: {}", elem, cq);
             this.indexTx.asyncRemoveIndexLeft(cq, elem);
         }
         return false;

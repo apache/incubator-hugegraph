@@ -279,6 +279,18 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     }
 
     @Override
+    public boolean mergable(BackendEntry other) {
+        if (!(other instanceof TextBackendEntry)) {
+            return false;
+        }
+        if (!this.id().equals(other.id())) {
+            return false;
+        }
+        this.columns(other.columns());
+        return true;
+    }
+
+    @Override
     public void clear() {
         this.columns.clear();
     }

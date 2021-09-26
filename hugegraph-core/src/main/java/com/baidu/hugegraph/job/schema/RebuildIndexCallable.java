@@ -45,7 +45,7 @@ public class RebuildIndexCallable extends SchemaCallable {
 
     @Override
     public String type() {
-        return SchemaCallable.REBUILD_INDEX;
+        return REBUILD_INDEX;
     }
 
     @Override

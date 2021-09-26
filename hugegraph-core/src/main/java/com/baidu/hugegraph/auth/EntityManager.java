@@ -51,16 +51,17 @@ public class EntityManager<T extends Entity> {
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Vertex, T> deser;
+    private final ThreadLocal<Boolean> autoCommit = new ThreadLocal<>();
 
     private static final long NO_LIMIT = -1L;
 
     public EntityManager(HugeGraphParams graph, String label,
-                         Function<Vertex, T> dser) {
+                         Function<Vertex, T> deser) {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
         this.label = label;
-        this.deser = dser;
+        this.deser = deser;
     }
 
     private GraphTransaction tx() {
@@ -145,8 +146,7 @@ public class EntityManager<T extends Entity> {
 
     private Iterator<Vertex> queryById(List<Id> ids) {
         Object[] idArray = ids.toArray(new Id[ids.size()]);
-        Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-        return vertices;
+        return this.tx().queryVertices(idArray);
     }
 
     private Iterator<Vertex> queryEntity(String label,
@@ -189,6 +189,14 @@ public class EntityManager<T extends Entity> {
     }
 
     private void commitOrRollback() {
+        Boolean autoCommit = this.autoCommit.get();
+        if (autoCommit != null && !autoCommit) {
+            return;
+        }
         this.tx().commitOrRollback();
+    }
+
+    public void autoCommit(boolean value) {
+        this.autoCommit.set(value);
     }
 }

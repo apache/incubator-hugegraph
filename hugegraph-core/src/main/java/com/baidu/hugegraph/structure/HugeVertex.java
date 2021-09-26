@@ -98,7 +98,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public VertexLabel schemaLabel() {
-        assert this.graph().sameAs(this.label.graph());
+        assert VertexLabel.OLAP_VL.equals(this.label) ||
+               this.graph().sameAs(this.label.graph());
         return this.label;
     }
 
@@ -444,15 +445,16 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         if (cardinality != VertexProperty.Cardinality.single) {
             E.checkArgument(propertyKey.cardinality() ==
                             Cardinality.convert(cardinality),
-                            "Invalid cardinalty '%s' for property key '%s', " +
+                            "Invalid cardinality '%s' for property key '%s', " +
                             "expect '%s'", cardinality, key,
                             propertyKey.cardinality().string());
         }
 
         // Check key in vertex label
-        E.checkArgument(this.label.properties().contains(propertyKey.id()),
+        E.checkArgument(VertexLabel.OLAP_VL.equals(this.label) ||
+                        this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for vertex label '%s'",
-                        key, this.label());
+                        key, this.label);
         // Primary-Keys can only be set once
         if (this.schemaLabel().primaryKeys().contains(propertyKey.id())) {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
@@ -608,6 +610,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;
+    }
+
+    public boolean olap() {
+        return VertexLabel.OLAP_VL.equals(this.label);
     }
 
     @Override

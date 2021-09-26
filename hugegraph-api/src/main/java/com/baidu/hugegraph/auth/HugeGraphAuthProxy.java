@@ -184,16 +184,22 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void addPropertyKey(PropertyKey key) {
+    public Id addPropertyKey(PropertyKey key) {
         verifySchemaPermission(HugePermission.WRITE, key);
-        this.hugegraph.addPropertyKey(key);
+        return this.hugegraph.addPropertyKey(key);
     }
 
     @Override
-    public void removePropertyKey(Id key) {
+    public Id removePropertyKey(Id key) {
         PropertyKey pkey = this.hugegraph.propertyKey(key);
         verifySchemaPermission(HugePermission.DELETE, pkey);
-        this.hugegraph.removePropertyKey(key);
+        return this.hugegraph.removePropertyKey(key);
+    }
+
+    @Override
+    public Id clearPropertyKey(PropertyKey propertyKey) {
+        verifySchemaPermission(HugePermission.DELETE, propertyKey);
+        return this.hugegraph.clearPropertyKey(propertyKey);
     }
 
     @Override
@@ -1393,6 +1399,54 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             List<HugeAccess> r = this.authManager.listAccessByTarget(target,
                                                                      limit);
             return verifyUserPermission(HugePermission.READ, r);
+        }
+
+        @Override
+        public Id createProject(HugeProject project) {
+            this.updateCreator(project);
+            verifyUserPermission(HugePermission.WRITE, project);
+            return this.authManager.createProject(project);
+        }
+
+        @Override
+        public HugeProject deleteProject(Id id) {
+            verifyUserPermission(HugePermission.DELETE,
+                                 this.authManager.getProject(id));
+            return this.authManager.deleteProject(id);
+        }
+
+        @Override
+        public Id updateProject(HugeProject project) {
+            this.updateCreator(project);
+            verifyUserPermission(HugePermission.WRITE, project);
+            return this.authManager.updateProject(project);
+        }
+
+        @Override
+        public Id projectAddGraphs(Id id, Set<String> graphs) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.projectAddGraphs(id, graphs);
+        }
+
+        @Override
+        public Id projectRemoveGraphs(Id id, Set<String> graphs) {
+            verifyUserPermission(HugePermission.WRITE,
+                                 this.authManager.getProject(id));
+            return this.authManager.projectRemoveGraphs(id, graphs);
+        }
+
+        @Override
+        public HugeProject getProject(Id id) {
+            HugeProject project = this.authManager.getProject(id);
+            verifyUserPermission(HugePermission.READ, project);
+            return project;
+        }
+
+        @Override
+        public List<HugeProject> listAllProject(long limit) {
+            List<HugeProject> projects = this.authManager.listAllProject(limit);
+            return verifyUserPermission(HugePermission.READ, projects);
         }
 
         @Override

@@ -23,6 +23,8 @@ import javax.ws.rs.core.Response;
 
 import org.junit.Test;
 
+import com.baidu.hugegraph.testutil.Assert;
+
 public class PropertyKeyApiTest extends BaseApiTest {
 
     private static String path = "/graphs/hugegraph/schema/propertykeys/";
@@ -36,7 +38,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
     }
 
     @Test
@@ -48,7 +50,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         String name = "id";
         r = client().get(path, name);
@@ -64,7 +66,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         r = client().get(path);
         assertResponseStatus(200, r);
@@ -79,10 +81,12 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 + "\"properties\":[]"
                 + "}";
         Response r = client().post(path, propertyKey);
-        assertResponseStatus(201, r);
+        assertResponseStatus(202, r);
 
         String name = "id";
         r = client().delete(path, name);
-        assertResponseStatus(204, r);
+        String content = assertResponseStatus(202, r);
+        int task = assertJsonContains(content, "task_id");
+        Assert.assertEquals(0, task);
     }
 }

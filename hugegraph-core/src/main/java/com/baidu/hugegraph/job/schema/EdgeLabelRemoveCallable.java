@@ -34,7 +34,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public String type() {
-        return SchemaCallable.REMOVE_SCHEMA;
+        return REMOVE_SCHEMA;
     }
 
     @Override

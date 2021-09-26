@@ -423,8 +423,6 @@ public class VertexAPI extends BatchAPI {
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgumentNotNull(this.label,
-                                   "The label of vertex can't be null");
             this.checkUpdate();
         }
 
@@ -446,8 +444,10 @@ public class VertexAPI extends BatchAPI {
         public Object[] properties() {
             Object[] props = API.properties(this.properties);
             List<Object> list = new ArrayList<>(Arrays.asList(props));
-            list.add(T.label);
-            list.add(this.label);
+            if (this.label != null) {
+                list.add(T.label);
+                list.add(this.label);
+            }
             if (this.id != null) {
                 list.add(T.id);
                 list.add(this.id);

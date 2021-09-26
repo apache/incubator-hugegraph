@@ -30,10 +30,12 @@ import com.baidu.hugegraph.backend.query.Aggregate.AggregateFunc;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.collection.IdSet;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -49,6 +51,8 @@ public class Query implements Cloneable {
 
     protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
+    private static final Set<Id> EMPTY_OLAP_PKS = ImmutableSet.of();
+
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;
     private long offset;
@@ -60,6 +64,8 @@ public class Query implements Cloneable {
     private boolean showHidden;
     private boolean showDeleting;
     private boolean showExpired;
+    private boolean olap;
+    private Set<Id> olapPks;
 
     private Aggregate aggregate;
 
@@ -88,6 +94,8 @@ public class Query implements Cloneable {
 
         this.aggregate = null;
         this.showExpired = false;
+        this.olap = false;
+        this.olapPks = EMPTY_OLAP_PKS;
     }
 
     public void copyBasic(Query query) {
@@ -100,6 +108,7 @@ public class Query implements Cloneable {
         this.showDeleting = query.showDeleting();
         this.aggregate = query.aggregate();
         this.showExpired = query.showExpired();
+        this.olap = query.olap();
         if (query.orders != null) {
             this.orders(query.orders);
         }
@@ -341,6 +350,31 @@ public class Query implements Cloneable {
 
     public boolean paging() {
         return this.page != null;
+    }
+
+    public void olap(boolean olap) {
+        this.olap = olap;
+    }
+
+    public boolean olap() {
+        return this.olap;
+    }
+
+    public void olapPks(Set<Id> olapPks) {
+        for (Id olapPk : olapPks) {
+            this.olapPk(olapPk);
+        }
+    }
+
+    public void olapPk(Id olapPk) {
+        if (this.olapPks == EMPTY_OLAP_PKS) {
+            this.olapPks = new IdSet(CollectionType.EC);
+        }
+        this.olapPks.add(olapPk);
+    }
+
+    public Set<Id> olapPks() {
+        return this.olapPks;
     }
 
     public long capacity() {
