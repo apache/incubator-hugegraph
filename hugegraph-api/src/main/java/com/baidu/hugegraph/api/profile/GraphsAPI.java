@@ -137,6 +137,8 @@ public class GraphsAPI extends API {
                       "Please take the message: %s", CONFIRM_CLEAR));
         }
         g.truncateBackend();
+        // truncateBackend() will open tx, so must close here(commit)
+        g.tx().commit();
     }
 
     @PUT
@@ -195,6 +197,8 @@ public class GraphsAPI extends API {
         E.checkArgument(mode != null, "Graph mode can't be null");
         HugeGraph g = graph(manager, graph);
         g.mode(mode);
+        // mode(m) might trigger tx open, must close(commit)
+        g.tx().commit();
         return ImmutableMap.of("mode", mode);
     }
 
