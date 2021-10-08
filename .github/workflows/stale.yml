@@ -21,6 +21,8 @@ jobs:
         stale-issue-label: 'inactive'
         stale-pr-label: 'inactive'
         exempt-issue-labels: 'feature,bug,enhancement,improvement,wontfix,todo'
+        exempt-pr-labels: 'feature,bug,enhancement,improvement,wontfix,todo'
+        exempt-all-milestones: true
 
         days-before-issue-stale: 15
         days-before-issue-close: 20
