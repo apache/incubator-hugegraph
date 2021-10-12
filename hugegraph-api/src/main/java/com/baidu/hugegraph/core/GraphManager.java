@@ -94,11 +94,20 @@ public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    private static final String ETCD_PATH_TEMPLATE = "/hugegraph/%s/%s/%s";
-    private static final String ETCD_GRAPH_CONF = "graph-configs";
-    private static final String ETCD_GRAPH_MANAGE = "graph-manage";
-    private static final String ETCD_GRAPH_ADD = "graph-add";
-    private static final String ETCD_GRAPH_REMOVE = "graph-remove";
+    public static final String META_PATH_DELIMETER = "/";
+    public static final String META_PATH_JOIN = "-";
+
+    public static final String META_PATH_HUGEGRAPH = "HUGEGRAPH";
+    public static final String META_PATH_NAMESPACE = "NAMESPACE";
+    public static final String META_PATH_CONF = "CONF";
+    public static final String META_PATH_GRAPH = "GRAPH";
+    public static final String META_PATH_AUTH = "AUTH";
+    public static final String META_PATH_USER = "USER";
+    public static final String META_PATH_EVENT = "EVENT";
+    public static final String META_PATH_ADD = "ADD";
+    public static final String META_PATH_REMOVE = "REMOVE";
+
+    public static final String DEFAULT_NAMESPACE = "HG_NS";
 
     private final String graphsDir;
     private final String cluster;
@@ -157,9 +166,9 @@ public final class GraphManager {
         this.addMetrics(conf);
 
         // Watch dynamically graph add/remove
-        this.etcdClient.getWatchClient().watch(this.graphAdd(),
+        this.etcdClient.getWatchClient().watch(this.graphAddKey(),
                                                this::listenEtcdGraphAdd);
-        this.etcdClient.getWatchClient().watch(this.graphRemove(),
+        this.etcdClient.getWatchClient().watch(this.graphRemoveKey(),
                                                this::listenEtcdGraphRemove);
     }
 
@@ -230,8 +239,15 @@ public final class GraphManager {
             }
 
             // Get graph name from .../graph-manage/graph-add
-            String graphName = event.getKeyValue().getValue()
-                                    .toString(Charset.defaultCharset());
+            String value = event.getKeyValue().getValue()
+                                .toString(Charset.defaultCharset());
+            String[] values = value.split(META_PATH_JOIN);
+            E.checkArgument(values.length == 2,
+                            "Graph name must be '{namespace}-{graph}', " +
+                            "but got '%s'", value);
+            // TODO: use namespace when supported
+            String namespace = values[0];
+            String graphName = values[1];
 
             if (this.graphs.containsKey(graphName) ||
                 this.creatingGraphs.contains(graphName)) {
@@ -242,7 +258,7 @@ public final class GraphManager {
             List<KeyValue> keyValues;
             KV kvClient = this.etcdClient.getKVClient();
             try {
-                keyValues = kvClient.get(this.graphConf(graphName))
+                keyValues = kvClient.get(this.graphConfKey(graphName))
                                     .get().getKvs();
             } catch (InterruptedException e) {
                 throw new HugeException("Interrupted when read " +
@@ -271,8 +287,15 @@ public final class GraphManager {
             }
 
             // Get graph name from .../graph-manage/graph-remove
-            String graphName = event.getKeyValue().getValue()
-                                    .toString(Charset.defaultCharset());
+            String value = event.getKeyValue().getValue()
+                                .toString(Charset.defaultCharset());
+            String[] values = value.split(META_PATH_JOIN);
+            E.checkArgument(values.length == 2,
+                            "Graph name must be '{namespace}-{graph}', " +
+                            "but got '%s'", value);
+            // TODO: use namespace when supported
+            String namespace = values[0];
+            String graphName = values[1];
             if (!this.graphs.containsKey(graphName) ||
                 this.removingGraphs.contains(graphName)) {
                 this.removingGraphs.remove(graphName);
@@ -297,13 +320,13 @@ public final class GraphManager {
             this.creatingGraphs.add(name);
             KV kvClient = this.etcdClient.getKVClient();
             try {
-                kvClient.put(this.graphConf(name),
-                             toByteSequence(configText)).get();
-                kvClient.put(this.graphAdd(), toByteSequence(name)).get();
+                kvClient.put(this.graphConfKey(name),
+                             this.graphConfValue(configText)).get();
+                kvClient.put(this.graphAddKey(), this.nsGraphName(name)).get();
             } catch (InterruptedException | ExecutionException e) {
                 try {
-                    kvClient.delete(this.graphConf(name)).get();
-                    kvClient.delete(this.graphAdd()).get();
+                    kvClient.delete(this.graphConfKey(name)).get();
+                    kvClient.delete(this.graphAddKey()).get();
                 } catch (Throwable t) {
                     throw new HugeException(
                               "Failed to upload graph config of '%s'", name, e);
@@ -370,8 +393,8 @@ public final class GraphManager {
             this.removingGraphs.add(name);
             KV kvClient = this.etcdClient.getKVClient();
             try {
-                kvClient.delete(this.graphConf(name)).get();
-                kvClient.put(this.graphRemove(), toByteSequence(name)).get();
+                kvClient.delete(this.graphConfKey(name)).get();
+                kvClient.put(this.graphRemoveKey(), this.nsGraphName(name)).get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new HugeException(
                           "Failed to remove graph config of '%s'", name, e);
@@ -649,7 +672,7 @@ public final class GraphManager {
     }
 
     private Map<String, String> graphConfigs() {
-        ByteSequence prefix = this.graphConf(Strings.EMPTY);
+        ByteSequence prefix = this.graphConfKey(Strings.EMPTY);
         GetOption getOption = GetOption.newBuilder().withPrefix(prefix).build();
         GetResponse response;
         try {
@@ -670,21 +693,47 @@ public final class GraphManager {
         return graphConfigs;
     }
 
-    private ByteSequence graphAdd() {
-        return toByteSequence(String.format(ETCD_PATH_TEMPLATE, this.cluster,
-                                            ETCD_GRAPH_MANAGE, ETCD_GRAPH_ADD));
+    private ByteSequence graphAddKey() {
+        // HUGEGRAPH/{cluster}/EVENT/GRAPH/ADD
+        return toByteSequence(String.join(META_PATH_DELIMETER,
+                                          META_PATH_HUGEGRAPH,
+                                          this.cluster, META_PATH_EVENT,
+                                          META_PATH_GRAPH, META_PATH_ADD));
     }
 
-    private ByteSequence graphRemove() {
-        return toByteSequence(String.format(ETCD_PATH_TEMPLATE,
-                                            this.cluster,
-                                            ETCD_GRAPH_MANAGE,
-                                            ETCD_GRAPH_REMOVE));
+    private ByteSequence graphRemoveKey() {
+        // HUGEGRAPH/{cluster}/EVENT/GRAPH/REMOVE
+        return toByteSequence(String.join(META_PATH_DELIMETER,
+                                          META_PATH_HUGEGRAPH,
+                                          this.cluster, META_PATH_EVENT,
+                                          META_PATH_GRAPH, META_PATH_REMOVE));
     }
 
-    private ByteSequence graphConf(String graph) {
-        return toByteSequence(String.format(ETCD_PATH_TEMPLATE, this.cluster,
-                                            ETCD_GRAPH_CONF, graph));
+    // TODO: remove after support namespace
+    private ByteSequence graphConfKey(String graph) {
+        return this.graphConfKey(DEFAULT_NAMESPACE, graph);
+    }
+
+    private ByteSequence graphConfKey(String namespace, String graph) {
+        // HUGEGRAPH/{cluster}/NAMESPACE/{namespace}/GRAPH/{graph}/CONF
+        return toByteSequence(String.join(META_PATH_DELIMETER,
+                                          META_PATH_HUGEGRAPH,
+                                          this.cluster, META_PATH_NAMESPACE,
+                                          namespace, META_PATH_GRAPH,
+                                          graph, META_PATH_CONF));
+    }
+
+    private ByteSequence graphConfValue(String config) {
+        return toByteSequence(config);
+    }
+
+    // TODO: remove after support namespace
+    private ByteSequence nsGraphName(String name) {
+        return this.nsGraphName(DEFAULT_NAMESPACE, name);
+    }
+
+    private ByteSequence nsGraphName(String namespace, String name) {
+        return toByteSequence(String.join(META_PATH_JOIN, namespace, name));
     }
 
     private static ByteSequence toByteSequence(String content) {
