@@ -200,7 +200,7 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Object query, Function<Object, Object> func) {
-        if (this.node().selfIsLeader() || !this.context.isSafeRead()) {
+        if (!this.context.isSafeRead()) {
             return func.apply(query);
         }
 
