@@ -25,6 +25,7 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
+import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.Bytes;
@@ -193,6 +194,15 @@ public class CoreOptions extends OptionHolder {
                     "The thread number used to execute reading index.",
                     rangeInt(0, Integer.MAX_VALUE),
                     8
+            );
+
+    public static final ConfigOption<String> RAFT_READ_ONLY_OPTION =
+            new ConfigOption<>(
+                    "raft.read_only_option",
+                    "The linearizability of read strategy.",
+                    allowValues(ReadOnlyOption.ReadOnlyLeaseBased.name(),
+                                ReadOnlyOption.ReadOnlySafe.name()),
+                    "ReadOnlyLeaseBased"
             );
 
     public static final ConfigOption<Integer> RAFT_APPLY_BATCH =

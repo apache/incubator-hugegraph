@@ -30,6 +30,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
@@ -258,6 +259,9 @@ public final class RaftSharedContext {
         raftOptions.setReplicatorPipeline(
                     config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
         raftOptions.setOpenStatistics(false);
+        raftOptions.setReadOnlyOptions(
+                    ReadOnlyOption.valueOf(
+                    config.get(CoreOptions.RAFT_READ_ONLY_OPTION)));
 
         return nodeOptions;
     }
