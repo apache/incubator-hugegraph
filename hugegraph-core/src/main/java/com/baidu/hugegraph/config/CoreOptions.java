@@ -25,7 +25,6 @@ import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
-import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.Bytes;
@@ -196,12 +195,11 @@ public class CoreOptions extends OptionHolder {
                     8
             );
 
-    public static final ConfigOption<String> RAFT_READ_ONLY_OPTION =
+    public static final ConfigOption<String> RAFT_READ_STRATEGY =
             new ConfigOption<>(
-                    "raft.read_only_option",
+                    "raft.read_strategy",
                     "The linearizability of read strategy.",
-                    allowValues(ReadOnlyOption.ReadOnlyLeaseBased.name(),
-                                ReadOnlyOption.ReadOnlySafe.name()),
+                    allowValues("ReadOnlyLeaseBased", "ReadOnlySafe"),
                     "ReadOnlyLeaseBased"
             );
 

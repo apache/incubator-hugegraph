@@ -261,7 +261,7 @@ public final class RaftSharedContext {
         raftOptions.setOpenStatistics(false);
         raftOptions.setReadOnlyOptions(
                     ReadOnlyOption.valueOf(
-                    config.get(CoreOptions.RAFT_READ_ONLY_OPTION)));
+                    config.get(CoreOptions.RAFT_READ_STRATEGY)));
 
         return nodeOptions;
     }
