@@ -120,12 +120,6 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey2</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.etcd</groupId>
-            <artifactId>jetcd-core</artifactId>
-            <version>0.5.2</version>
-        </dependency>
     </dependencies>
 
     <build>

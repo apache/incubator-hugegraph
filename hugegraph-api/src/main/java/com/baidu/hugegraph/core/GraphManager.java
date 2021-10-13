@@ -21,19 +21,17 @@ package com.baidu.hugegraph.core;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.logging.log4j.util.Strings;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -62,6 +60,7 @@ import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.license.LicenseVerifier;
+import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.metrics.ServerReporter;
 import com.baidu.hugegraph.rpc.RpcClientProvider;
@@ -72,52 +71,26 @@ import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
-import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
-import com.baidu.hugegraph.util.collection.CollectionFactory;
-
-import io.etcd.jetcd.ByteSequence;
-import io.etcd.jetcd.Client;
-import io.etcd.jetcd.KV;
-import io.etcd.jetcd.KeyValue;
-import io.etcd.jetcd.kv.GetResponse;
-import io.etcd.jetcd.options.GetOption;
-import io.etcd.jetcd.watch.WatchEvent;
-import io.etcd.jetcd.watch.WatchResponse;
 
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    public static final String META_PATH_DELIMETER = "/";
-    public static final String META_PATH_JOIN = "-";
-
-    public static final String META_PATH_HUGEGRAPH = "HUGEGRAPH";
-    public static final String META_PATH_NAMESPACE = "NAMESPACE";
-    public static final String META_PATH_CONF = "CONF";
-    public static final String META_PATH_GRAPH = "GRAPH";
-    public static final String META_PATH_AUTH = "AUTH";
-    public static final String META_PATH_USER = "USER";
-    public static final String META_PATH_EVENT = "EVENT";
-    public static final String META_PATH_ADD = "ADD";
-    public static final String META_PATH_REMOVE = "REMOVE";
-
-    public static final String DEFAULT_NAMESPACE = "HG_NS";
-
-    private final String graphsDir;
     private final String cluster;
+    private final String graphsDir;
     private final Map<String, Graph> graphs;
     private final Set<String> removingGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
-    private final Client etcdClient;
+    private final MetaManager metaManager = MetaManager.instance();
 
     private final EventHub eventHub;
 
@@ -146,16 +119,16 @@ public final class GraphManager {
         this.listenChanges();
 
         // Init etcd client
-        List<String> etcds = conf.get(ServerOptions.ETCDS);
-        this.etcdClient = Client.builder()
-                                .endpoints(etcds.toArray(new String[0]))
-                                .build();
+        List<String> endpoints = conf.get(ServerOptions.META_ENDPOINTS);
+        this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.ETCD,
+                                 endpoints);
+
         if (conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG)) {
             // Load graphs configured in local conf/graphs directory
             this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         }
         // Load graphs configured in etcd
-        this.loadGraphsFromEtcd(this.graphConfigs());
+        this.loadGraphsFromMeta(this.metaManager.graphConfigs());
 
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
@@ -164,12 +137,8 @@ public final class GraphManager {
         this.startRpcServer();
         this.serverStarted();
         this.addMetrics(conf);
-
-        // Watch dynamically graph add/remove
-        this.etcdClient.getWatchClient().watch(this.graphAddKey(),
-                                               this::listenEtcdGraphAdd);
-        this.etcdClient.getWatchClient().watch(this.graphRemoveKey(),
-                                               this::listenEtcdGraphRemove);
+        // listen meta changes, e.g. watch dynamically graph add/remove
+        this.listenMetaChanges();
     }
 
     public void destroy() {
@@ -198,6 +167,11 @@ public final class GraphManager {
         this.eventHub.unlisten(Events.GRAPH_DROP);
     }
 
+    private void listenMetaChanges() {
+        this.metaManager.listenGraphAdd(this::graphAddHandler);
+        this.metaManager.listenGraphRemove(this::graphRemoveHandler);
+    }
+
     public void loadGraphs(final Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
@@ -211,7 +185,7 @@ public final class GraphManager {
         }
     }
 
-    public void loadGraphsFromEtcd(final Map<String, String> graphConfs) {
+    public void loadGraphsFromMeta(final Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String config = conf.getValue();
@@ -231,82 +205,6 @@ public final class GraphManager {
         });
     }
 
-    private void listenEtcdGraphAdd(WatchResponse response) {
-        for (WatchEvent event : response.getEvents()) {
-            // Skip if not etcd PUT event
-            if (!isEtcdPut(event)) {
-                return;
-            }
-
-            // Get graph name from .../graph-manage/graph-add
-            String value = event.getKeyValue().getValue()
-                                .toString(Charset.defaultCharset());
-            String[] values = value.split(META_PATH_JOIN);
-            E.checkArgument(values.length == 2,
-                            "Graph name must be '{namespace}-{graph}', " +
-                            "but got '%s'", value);
-            // TODO: use namespace when supported
-            String namespace = values[0];
-            String graphName = values[1];
-
-            if (this.graphs.containsKey(graphName) ||
-                this.creatingGraphs.contains(graphName)) {
-                this.creatingGraphs.remove(graphName);
-                continue;
-            }
-            // Get graph config from .../graph-configs/xxx
-            List<KeyValue> keyValues;
-            KV kvClient = this.etcdClient.getKVClient();
-            try {
-                keyValues = kvClient.get(this.graphConfKey(graphName))
-                                    .get().getKvs();
-            } catch (InterruptedException e) {
-                throw new HugeException("Interrupted when read " +
-                                        "graph config from etcd", e);
-            } catch (ExecutionException e) {
-                throw new HugeException("ExecutionException occurs when " +
-                                        "read graph config from etcd", e);
-            }
-            E.checkState(keyValues.size() == 1,
-                         "There must be only one config with graph name '%s'",
-                         graphName);
-            String config = keyValues.get(0).getValue()
-                                     .toString(Charset.defaultCharset());
-
-            // Create graph without init
-            HugeGraph graph = this.createGraph(graphName, config, false);
-            graph.serverStarted(this.serverId, this.serverRole);
-        }
-    }
-
-    private void listenEtcdGraphRemove(WatchResponse response) {
-        for (WatchEvent event : response.getEvents()) {
-            // Skip if not etcd PUT event
-            if (!isEtcdPut(event)) {
-                return;
-            }
-
-            // Get graph name from .../graph-manage/graph-remove
-            String value = event.getKeyValue().getValue()
-                                .toString(Charset.defaultCharset());
-            String[] values = value.split(META_PATH_JOIN);
-            E.checkArgument(values.length == 2,
-                            "Graph name must be '{namespace}-{graph}', " +
-                            "but got '%s'", value);
-            // TODO: use namespace when supported
-            String namespace = values[0];
-            String graphName = values[1];
-            if (!this.graphs.containsKey(graphName) ||
-                this.removingGraphs.contains(graphName)) {
-                this.removingGraphs.remove(graphName);
-                continue;
-            }
-
-            // Remove graph without clear
-            this.dropGraph(graphName, false);
-        }
-    }
-
     public HugeGraph createGraph(String name, String configText, boolean init) {
         E.checkArgumentNotNull(name, "The graph name can't be null");
         E.checkArgument(!this.graphs().contains(name),
@@ -316,22 +214,11 @@ public final class GraphManager {
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
         HugeGraph graph = this.createGraph(config, init);
+
         if (init) {
             this.creatingGraphs.add(name);
-            KV kvClient = this.etcdClient.getKVClient();
-            try {
-                kvClient.put(this.graphConfKey(name),
-                             this.graphConfValue(configText)).get();
-                kvClient.put(this.graphAddKey(), this.nsGraphName(name)).get();
-            } catch (InterruptedException | ExecutionException e) {
-                try {
-                    kvClient.delete(this.graphConfKey(name)).get();
-                    kvClient.delete(this.graphAddKey()).get();
-                } catch (Throwable t) {
-                    throw new HugeException(
-                              "Failed to upload graph config of '%s'", name, e);
-                }
-            }
+            this.metaManager.addGraphConfig(name, configText);
+            this.metaManager.addGraph(name);
         }
         return graph;
     }
@@ -391,11 +278,10 @@ public final class GraphManager {
 
         if (clear) {
             this.removingGraphs.add(name);
-            KV kvClient = this.etcdClient.getKVClient();
             try {
-                kvClient.delete(this.graphConfKey(name)).get();
-                kvClient.put(this.graphRemoveKey(), this.nsGraphName(name)).get();
-            } catch (InterruptedException | ExecutionException e) {
+                this.metaManager.removeGraphConfig(name);
+                this.metaManager.removeGraph(name);
+            } catch (Exception e) {
                 throw new HugeException(
                           "Failed to remove graph config of '%s'", name, e);
             }
@@ -601,6 +487,48 @@ public final class GraphManager {
         }
     }
 
+
+    private <T> void graphAddHandler(T response) {
+        List<Pair<String, String>> pairs = this.metaManager
+                                               .extractGraphsFromResponse(response);
+        for (Pair<String, String> pair : pairs) {
+            // TODO: use namespace after supported
+            String namespace = pair.getLeft();
+            String graphName = pair.getRight();
+
+            if (this.graphs.containsKey(graphName) ||
+                this.creatingGraphs.contains(graphName)) {
+                this.creatingGraphs.remove(graphName);
+                continue;
+            }
+
+            String config = this.metaManager.getGraphConfig(graphName);
+
+            // Create graph without init
+            HugeGraph graph = this.createGraph(graphName, config, false);
+            graph.serverStarted(this.serverId, this.serverRole);
+            graph.tx().close();
+        }
+    }
+
+    private <T> void graphRemoveHandler(T response) {
+        List<Pair<String, String>> pairs = this.metaManager
+                                               .extractGraphsFromResponse(response);
+        for (Pair<String, String> pair : pairs) {
+            // TODO: use namespace after supported
+            String namespace = pair.getLeft();
+            String graphName = pair.getRight();
+            if (!this.graphs.containsKey(graphName) ||
+                this.removingGraphs.contains(graphName)) {
+                this.removingGraphs.remove(graphName);
+                continue;
+            }
+
+            // Remove graph without clear
+            this.dropGraph(graphName, false);
+        }
+    }
+
     private void addMetrics(HugeConfig config) {
         final MetricManager metric = MetricManager.INSTANCE;
         // Force to add server reporter
@@ -669,78 +597,5 @@ public final class GraphManager {
             MetricsUtil.registerGauge(Cache.class, size, () -> cache.size());
             MetricsUtil.registerGauge(Cache.class, cap, () -> cache.capacity());
         }
-    }
-
-    private Map<String, String> graphConfigs() {
-        ByteSequence prefix = this.graphConfKey(Strings.EMPTY);
-        GetOption getOption = GetOption.newBuilder().withPrefix(prefix).build();
-        GetResponse response;
-        try {
-            response = this.etcdClient.getKVClient()
-                                      .get(prefix, getOption).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new HugeException("Failed to scan graph config from etcd", e);
-        }
-        int size = (int) response.getCount();
-        Map<String, String> graphConfigs =
-                            CollectionFactory.newMap(CollectionType.JCF, size);
-        for (KeyValue kv : response.getKvs()) {
-            String key = kv.getKey().toString(Charset.defaultCharset());
-            String[] parts = key.split("/");
-            graphConfigs.put(parts[parts.length - 1],
-                             kv.getValue().toString(Charset.defaultCharset()));
-        }
-        return graphConfigs;
-    }
-
-    private ByteSequence graphAddKey() {
-        // HUGEGRAPH/{cluster}/EVENT/GRAPH/ADD
-        return toByteSequence(String.join(META_PATH_DELIMETER,
-                                          META_PATH_HUGEGRAPH,
-                                          this.cluster, META_PATH_EVENT,
-                                          META_PATH_GRAPH, META_PATH_ADD));
-    }
-
-    private ByteSequence graphRemoveKey() {
-        // HUGEGRAPH/{cluster}/EVENT/GRAPH/REMOVE
-        return toByteSequence(String.join(META_PATH_DELIMETER,
-                                          META_PATH_HUGEGRAPH,
-                                          this.cluster, META_PATH_EVENT,
-                                          META_PATH_GRAPH, META_PATH_REMOVE));
-    }
-
-    // TODO: remove after support namespace
-    private ByteSequence graphConfKey(String graph) {
-        return this.graphConfKey(DEFAULT_NAMESPACE, graph);
-    }
-
-    private ByteSequence graphConfKey(String namespace, String graph) {
-        // HUGEGRAPH/{cluster}/NAMESPACE/{namespace}/GRAPH/{graph}/CONF
-        return toByteSequence(String.join(META_PATH_DELIMETER,
-                                          META_PATH_HUGEGRAPH,
-                                          this.cluster, META_PATH_NAMESPACE,
-                                          namespace, META_PATH_GRAPH,
-                                          graph, META_PATH_CONF));
-    }
-
-    private ByteSequence graphConfValue(String config) {
-        return toByteSequence(config);
-    }
-
-    // TODO: remove after support namespace
-    private ByteSequence nsGraphName(String name) {
-        return this.nsGraphName(DEFAULT_NAMESPACE, name);
-    }
-
-    private ByteSequence nsGraphName(String namespace, String name) {
-        return toByteSequence(String.join(META_PATH_JOIN, namespace, name));
-    }
-
-    private static ByteSequence toByteSequence(String content) {
-        return ByteSequence.from(content.getBytes());
-    }
-
-    private static boolean isEtcdPut(WatchEvent event) {
-        return event.getEventType() == WatchEvent.EventType.PUT;
     }
 }

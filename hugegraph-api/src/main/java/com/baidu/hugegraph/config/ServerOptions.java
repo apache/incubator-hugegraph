@@ -135,10 +135,10 @@ public class ServerOptions extends OptionHolder {
                     2 * CoreOptions.CPUS
             );
 
-    public static final ConfigListOption<String> ETCDS =
+    public static final ConfigListOption<String> META_ENDPOINTS =
             new ConfigListOption<>(
-                    "etcds",
-                    "The URL of ectds.",
+                    "meta.endpoints",
+                    "The URL of meta endpoints.",
                     disallowEmpty(),
                     "http://127.0.0.1:2379"
             );
