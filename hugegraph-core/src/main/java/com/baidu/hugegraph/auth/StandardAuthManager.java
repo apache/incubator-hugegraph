@@ -680,6 +680,22 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public String createToken(String username) {
+        HugeUser user = this.findUser(username);
+        if (user == null) {
+            return null;
+        }
+
+        Map<String, ?> payload = ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
+                                                 username,
+                                                 AuthConstant.TOKEN_USER_ID,
+                                                 user.id.asString());
+        String token = this.tokenGenerator.create(payload, this.tokenExpire);
+        this.tokenCache.update(IdGenerator.of(token), username);
+        return token;
+    }
+
+    @Override
     public UserWithRole validateUser(String username, String password) {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {

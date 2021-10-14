@@ -274,4 +274,72 @@ public class ServerOptions extends OptionHolder {
                     null,
                     "hugegraph"
             );
+
+    public static final ConfigOption<String> K8S_API_ENABLE =
+            new ConfigOption<>(
+                    "k8s.api",
+                    "The k8s api start status " +
+                    "when the computer service is enabled.",
+                    null,
+                    "false"
+            );
+
+    public static final ConfigOption<String> K8S_KUBE_CONFIG =
+            new ConfigOption<>(
+                    "k8s.kubeconfig",
+                    "The k8s kube config file " +
+                    "when the computer service is enabled.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> K8S_HUGEGRAPH_URL =
+            new ConfigOption<>(
+                    "k8s.hugegraph_url",
+                    "The hugegraph url for k8s work " +
+                    "when the computer service is enabled.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> K8S_NAMESPACE =
+            new ConfigOption<>(
+                    "k8s.namespace",
+                    "The hugegraph url for k8s work " +
+                    "when the computer service is enabled.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> K8S_ENABLE_INTERNAL_ALGORITHM =
+            new ConfigOption<>(
+                    "k8s.enable_internal_algorithm",
+                    "Open k8s internal algorithm",
+                    null,
+                    "false"
+            );
+
+    public static final ConfigOption<String> K8S_INTERNAL_ALGORITHM_IMAGE_URL =
+            new ConfigOption<>(
+                    "k8s.internal_algorithm_image_url",
+                    "K8s internal algorithm image url",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> K8S_INTERNAL_ALGORITHM =
+            new ConfigOption<>(
+                    "k8s.internal_algorithm",
+                    "K8s internal algorithm",
+                    null,
+                    "[]"
+            );
+
+    public static final ConfigListOption<String> K8S_ALGORITHMS =
+            new ConfigListOption<>(
+                    "k8s.algorithms",
+                    "K8s algorithms",
+                    null,
+                    "[]"
+            );
 }

@@ -106,6 +106,7 @@
         <metrics.version>3.1.0</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
+        <fabric8.version>5.6.0</fabric8.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>

@@ -39,6 +39,7 @@ import javax.security.sasl.AuthenticationException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotAuthorizedException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
@@ -1515,6 +1516,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public void logoutUser(String token) {
             this.authManager.logoutUser(token);
+        }
+
+        @Override
+        public String createToken(String username) {
+            if (StringUtils.isEmpty(username)) {
+                Context context = getContext();
+                E.checkState(context != null,
+                             "Missing authentication context " +
+                             "when verifying resource permission");
+                username = context.user().username();
+            }
+            return this.authManager.createToken(username);
         }
 
         private void switchAuthManager(AuthManager authManager) {

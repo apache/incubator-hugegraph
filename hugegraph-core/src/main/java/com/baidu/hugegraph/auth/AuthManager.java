@@ -86,6 +86,7 @@ public interface AuthManager {
                             long expire)
                             throws AuthenticationException;
     public void logoutUser(String token);
+    public String createToken(String username);
 
     public UserWithRole validateUser(String username, String password);
     public UserWithRole validateUser(String token);
