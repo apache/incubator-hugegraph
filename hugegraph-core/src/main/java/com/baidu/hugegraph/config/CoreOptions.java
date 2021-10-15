@@ -195,6 +195,14 @@ public class CoreOptions extends OptionHolder {
                     8
             );
 
+    public static final ConfigOption<String> RAFT_READ_STRATEGY =
+            new ConfigOption<>(
+                    "raft.read_strategy",
+                    "The linearizability of read strategy.",
+                    allowValues("ReadOnlyLeaseBased", "ReadOnlySafe"),
+                    "ReadOnlyLeaseBased"
+            );
+
     public static final ConfigOption<Integer> RAFT_APPLY_BATCH =
             new ConfigOption<>(
                     "raft.apply_batch",
