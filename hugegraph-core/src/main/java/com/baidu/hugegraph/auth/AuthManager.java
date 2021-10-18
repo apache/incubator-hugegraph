@@ -82,7 +82,8 @@ public interface AuthManager {
     public HugeUser matchUser(String name, String password);
     public RolePermission rolePermission(AuthElement element);
 
-    public String loginUser(String username, String password)
+    public String loginUser(String username, String password,
+                            long expire)
                             throws AuthenticationException;
     public void logoutUser(String token);
 

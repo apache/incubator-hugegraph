@@ -655,7 +655,8 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public String loginUser(String username, String password)
+    public String loginUser(String username, String password,
+                            long expire)
                             throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
@@ -667,8 +668,8 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, this.tokenExpire);
-
+        expire = expire == 0L ? this.tokenExpire : expire;
+        String token = this.tokenGenerator.create(payload, expire * 1000);
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
     }
@@ -691,10 +692,9 @@ public class StandardAuthManager implements AuthManager {
     public UserWithRole validateUser(String token) {
         String username = this.tokenCache.get(IdGenerator.of(token));
 
-        Claims payload = null;
+        Claims payload = this.tokenGenerator.verify(token);
         boolean needBuildCache = false;
         if (username == null) {
-            payload = this.tokenGenerator.verify(token);
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
             needBuildCache = true;
         }

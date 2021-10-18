@@ -119,7 +119,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
         HugeConfig config = (HugeConfig) hugegraph.configuration();
-        long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
+        long expired = config.get(AuthOptions.AUTH_PROXY_CACHE_EXPIRE);
         long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
 
         this.hugegraph = hugegraph;
@@ -1503,9 +1503,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public String loginUser(String username, String password) {
+        public String loginUser(String username, String password,
+                                long expire) {
             try {
-                return this.authManager.loginUser(username, password);
+                return this.authManager.loginUser(username, password, expire);
             } catch (AuthenticationException e) {
                 throw new NotAuthorizedException(e.getMessage(), e);
             }

@@ -1292,11 +1292,11 @@ public class AuthTest extends BaseCoreTest {
         authManager.createUser(user);
 
         // Login
-        authManager.loginUser("test", "pass");
+        authManager.loginUser("test", "pass", 0);
 
         // Invalid username or password
         Assert.assertThrows(AuthenticationException.class, () -> {
-            authManager.loginUser("huge", "graph");
+            authManager.loginUser("huge", "graph", 0);
         }, e -> {
             Assert.assertContains("Incorrect username or password", e.getMessage());
         });
@@ -1309,7 +1309,7 @@ public class AuthTest extends BaseCoreTest {
         HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
         Id userId = authManager.createUser(user);
 
-        String token = authManager.loginUser("test", "pass");
+        String token = authManager.loginUser("test", "pass", 0);
 
         UserWithRole userWithRole;
         userWithRole = authManager.validateUser(token);
@@ -1345,7 +1345,7 @@ public class AuthTest extends BaseCoreTest {
         Id userId = authManager.createUser(user);
 
         // Login
-        String token = authManager.loginUser("test", "pass");
+        String token = authManager.loginUser("test", "pass", 0);
 
         // Logout
         Cache<Id, String> tokenCache = Whitebox.getInternalState(authManager,
