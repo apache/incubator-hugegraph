@@ -149,7 +149,8 @@ public class LoginApiTest extends BaseApiTest {
     private Response login(String name, String password) {
         String login = Paths.get(PATH, "login").toString();
         String loginUser = "{\"user_name\":\"%s\"," +
-                           "\"user_password\":\"%s\"}";
+                           "\"user_password\":\"%s\"," +
+                           "\"token_expire\":10080}";
 
         return client().post(login, String.format(loginUser,
                                                   name, password));
