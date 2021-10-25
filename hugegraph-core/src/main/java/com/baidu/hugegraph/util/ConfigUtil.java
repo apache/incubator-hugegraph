@@ -55,7 +55,8 @@ public final class ConfigUtil {
         try {
             yamlConfig.load(conf);
         } catch (ConfigurationException e) {
-            throw new HugeException("Failed to load yaml config file ", conf);
+            throw new HugeException(
+                      "Failed to load yaml config file %s", e, conf);
         }
         List<ConfigurationNode> nodes = yamlConfig.getRootNode()
                                                   .getChildren(NODE_GRAPHS);

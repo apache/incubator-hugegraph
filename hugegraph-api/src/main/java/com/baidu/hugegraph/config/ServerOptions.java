@@ -219,6 +219,14 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
+    public static final ConfigOption<Boolean> AUTH_SERVER =
+            new ConfigOption<>(
+                    "auth_server",
+                    "Whether is auth server.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<String> AUTH_GRAPH_STORE =
             new ConfigOption<>(
                     "auth.graph_store",

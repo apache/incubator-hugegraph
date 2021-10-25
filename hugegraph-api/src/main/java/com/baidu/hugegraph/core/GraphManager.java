@@ -138,7 +138,9 @@ public final class GraphManager {
         this.serverStarted();
         this.addMetrics(conf);
         // listen meta changes, e.g. watch dynamically graph add/remove
-        this.listenMetaChanges();
+        if (!conf.get(ServerOptions.AUTH_SERVER)) {
+            this.listenMetaChanges();
+        }
     }
 
     public void destroy() {
