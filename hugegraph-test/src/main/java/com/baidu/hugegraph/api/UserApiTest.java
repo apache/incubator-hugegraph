@@ -38,6 +38,7 @@ public class UserApiTest extends BaseApiTest {
     private static final String path = "graphs/hugegraph/auth/users";
     private static final int NO_LIMIT = -1;
 
+    @Override
     @After
     public void teardown() throws Exception {
         super.teardown();
@@ -152,6 +153,7 @@ public class UserApiTest extends BaseApiTest {
                 continue;
             }
             Response r = client().delete(path, (String) user.get("id"));
+            assertResponseStatus(204, r);
         }
         Response r = client().delete(path, "test1");
         String result = assertResponseStatus(400, r);

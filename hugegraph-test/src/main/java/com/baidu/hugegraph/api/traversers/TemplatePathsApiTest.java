@@ -79,10 +79,11 @@ public class TemplatePathsApiTest extends BaseApiTest {
                           " \"with_vertex\": true}";
         Response r = client().post(path, template);
         String content = assertResponseStatus(200, r);
-        List<Map> objects = assertJsonContains(content, "paths");
+        List<Map<?, ?>> objects = assertJsonContains(content, "paths");
         Assert.assertEquals(1, objects.size());
         List<String> paths = assertMapContains(objects.get(0), "objects");
-        Assert.assertEquals(ImmutableList.of(vadasId, joshId, peterId, rippleId),
+        Assert.assertEquals(ImmutableList.of(vadasId, joshId,
+                                             peterId, rippleId),
                             paths);
     }
 }

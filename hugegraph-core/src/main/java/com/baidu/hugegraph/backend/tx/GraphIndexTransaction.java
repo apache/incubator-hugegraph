@@ -178,7 +178,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private void updateVertexOlapIndex(HugeVertex vertex, boolean removed) {
-        Id pkId = vertex.getProperties().keySet().iterator().next();
+        Set<Id> propKeys = vertex.getPropertyKeys();
+        E.checkArgument(propKeys.size() == 1,
+                        "Expect only 1 property for olap vertex, but got %s",
+                        propKeys.size());
+        Id pkId = propKeys.iterator().next();
         List<IndexLabel> indexLabels = this.params().schemaTransaction()
                                            .getIndexLabels();
         for (IndexLabel il : indexLabels) {
@@ -262,8 +266,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                      * Property value is a collection
                      * we should create index for each item
                      */
-                    for (Object propValue :
-                                (Collection<Object>) propValues.get(0)) {
+                    for (Object propValue : (Collection<?>) propValues.get(0)) {
                         value = ConditionQuery.concatValues(propValue);
                         value = escapeIndexValueIfNeeded((String) value);
                         this.updateIndex(indexLabel, value, element.id(),
@@ -1458,8 +1461,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
          * or else keep the origin value.
          */
         return value instanceof Collection ?
-               StringUtils.join(((Collection<Object>) value).toArray(), " ") :
-               value.toString();
+               StringUtils.join(((Iterable<?>) value), " ") : value.toString();
     }
 
     private static String escapeIndexValueIfNeeded(String value) {
@@ -1562,6 +1564,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.indexLabels = indexLabels;
         }
 
+        @SuppressWarnings("unused")
         public SchemaLabel schemaLabel() {
             return this.schemaLabel;
         }
@@ -1601,7 +1604,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         @Override
         public int hashCode() {
-            return indexLabels.hashCode();
+            return this.indexLabels.hashCode();
         }
 
         @Override
@@ -1881,6 +1884,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return errorElem;
         }
 
+        @SuppressWarnings("unused")
         private boolean deletedByError(ConditionQuery query,
                                        HugeElement element) {
             HugeElement elem = this.newestElement(element);

@@ -437,19 +437,19 @@ public class BaseApiTest {
         return r;
     }
 
+    @SuppressWarnings("rawtypes")
     protected static Map<String, String> listAllVertexName2Ids() {
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX);
         String content = assertResponseStatus(200, r);
 
-        @SuppressWarnings("rawtypes")
         List<Map> vertices = readList(content, "vertices", Map.class);
 
         Map<String, String> vertextName2Ids = new HashMap<>();
-        for (Map vertice : vertices) {
-            Map properties = (Map) vertice.get("properties");
+        for (Map vertex : vertices) {
+            Map properties = (Map) vertex.get("properties");
             if (properties == null ||
                 !properties.containsKey("name") ||
-                !vertice.containsKey("id")) {
+                !vertex.containsKey("id")) {
                 continue;
             }
             String name = (String) properties.get("name");
@@ -457,7 +457,7 @@ public class BaseApiTest {
                 continue;
             }
 
-            String id = (String) vertice.get("id");
+            String id = (String) vertex.get("id");
             if (TextUtils.isEmpty(id)) {
                 continue;
             }

@@ -59,6 +59,7 @@ public class RaysApiTest extends BaseApiTest {
         Assert.assertEquals(2, rays.size());
         Object[] valuesArray = rays.get(0).values().toArray();
         Assert.assertNotEquals(0, valuesArray.length);
+        @SuppressWarnings("unchecked")
         List<String> values = (List<String>) valuesArray[0];
         Assert.assertTrue(values.contains(vadasId));
     }

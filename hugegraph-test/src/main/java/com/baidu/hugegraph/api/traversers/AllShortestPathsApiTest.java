@@ -57,9 +57,9 @@ public class AllShortestPathsApiTest extends BaseApiTest {
                                                        "max_depth", 100);
         String content = assertResponseStatus(200,
                                               client().get(path, entities));
-        List paths = assertJsonContains(content, "paths");
+        List<Map<?, ?>> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(1, paths.size());
-        List objects = assertMapContains((Map<?, ?>) paths.get(0), "objects");
+        List<?> objects = assertMapContains(paths.get(0), "objects");
         Assert.assertEquals(ImmutableList.of(markoId, peterId, joshId,
                                              vadasId), objects);
     }

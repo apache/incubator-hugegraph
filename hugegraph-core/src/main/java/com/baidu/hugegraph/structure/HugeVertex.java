@@ -547,7 +547,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         List<VertexProperty<V>> props = new ArrayList<>(propsCapacity);
 
         if (keys.length == 0) {
-            for (HugeProperty<?> prop : this.getProperties().values()) {
+            for (HugeProperty<?> prop : this.getProperties()) {
                 assert prop instanceof VertexProperty;
                 props.add((VertexProperty<V>) prop);
             }
@@ -675,10 +675,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             this.fresh(true);
         }
 
+        @Override
         public void resetEdges() {
             this.edges = newSet();
         }
 
+        @Override
         public void addEdge(HugeEdge edge) {
             if (this.edges == EMPTY_LIST) {
                 this.edges = newSet();

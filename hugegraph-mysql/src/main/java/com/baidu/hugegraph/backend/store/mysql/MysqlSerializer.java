@@ -116,7 +116,7 @@ public class MysqlSerializer extends TableSerializer {
                                     TableBackendEntry.Row row) {
         Map<Number, Object> properties = new HashMap<>();
         // Add all properties of a Vertex
-        for (HugeProperty<?> prop : element.getProperties().values()) {
+        for (HugeProperty<?> prop : element.getProperties()) {
             Number key = prop.propertyKey().id().asLong();
             Object val = prop.value();
             properties.put(key, val);

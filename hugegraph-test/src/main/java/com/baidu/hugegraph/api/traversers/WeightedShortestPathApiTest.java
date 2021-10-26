@@ -59,7 +59,7 @@ public class WeightedShortestPathApiTest extends BaseApiTest {
                                                         "weight", "weight",
                                                         "with_vertex", true));
         String content = assertResponseStatus(200, r);
-        Map<String, Map> paths = assertJsonContains(content, "path");
+        Map<String, Map<?, ?>> paths = assertJsonContains(content, "path");
         Assert.assertFalse(paths.isEmpty());
         List<String> expectedVertices = ImmutableList.of(markoId, rippleId,
                                                          peterId, joshId);

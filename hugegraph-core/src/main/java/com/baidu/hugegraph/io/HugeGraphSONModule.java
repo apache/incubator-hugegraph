@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -384,7 +385,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             }
         }
 
-        public void writePropertiesField(Map<Id, HugeProperty<?>> properties,
+        public void writePropertiesField(Collection<HugeProperty<?>> properties,
                                          JsonGenerator generator,
                                          SerializerProvider provider)
                                          throws IOException {
@@ -392,7 +393,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             generator.writeFieldName("properties");
             generator.writeStartObject();
 
-            for (HugeProperty<?> property : properties.values()) {
+            for (HugeProperty<?> property : properties) {
                 String key = property.key();
                 Object val = property.value();
                 try {

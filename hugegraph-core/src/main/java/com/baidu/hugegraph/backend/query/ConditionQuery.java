@@ -579,7 +579,7 @@ public final class ConditionQuery extends IdQuery {
         }
     }
 
-    public static String concatValues(List<Object> values) {
+    public static String concatValues(List<?> values) {
         List<Object> newValues = new ArrayList<>(values.size());
         for (Object v : values) {
             newValues.add(convertNumberIfNeeded(v));
@@ -589,7 +589,7 @@ public final class ConditionQuery extends IdQuery {
 
     public static String concatValues(Object value) {
         if (value instanceof List) {
-            return concatValues((List<Object>)value);
+            return concatValues((List<?>) value);
         }
 
         if (needConvertNumber(value)) {
@@ -755,11 +755,11 @@ public final class ConditionQuery extends IdQuery {
         }
 
         public Set<Object> indexFieldValues() {
-            return indexFieldValues;
+            return this.indexFieldValues;
         }
 
         public Id indexField() {
-            return indexField;
+            return this.indexField;
         }
     }
 }

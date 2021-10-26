@@ -65,8 +65,8 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -130,11 +130,11 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     private String formatPropertyValues(HugeVertex vertex) {
-        int size = vertex.getProperties().size();
+        int size = vertex.sizeOfProperties();
         StringBuilder sb = new StringBuilder(64 * size);
         // Vertex properties
         int i = 0;
-        for (HugeProperty<?> property : vertex.getProperties().values()) {
+        for (HugeProperty<?> property : vertex.getProperties()) {
             sb.append(this.formatPropertyName(property));
             sb.append(VALUE_SPLITOR);
             sb.append(this.formatPropertyValue(property));
@@ -193,7 +193,7 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     private String formatEdgeValue(HugeEdge edge) {
-        StringBuilder sb = new StringBuilder(256 * edge.getProperties().size());
+        StringBuilder sb = new StringBuilder(256 * edge.sizeOfProperties());
         // Edge id
         sb.append(edge.id().asString());
         // Write edge expired time
@@ -202,7 +202,7 @@ public class TextSerializer extends AbstractSerializer {
         sb.append(VALUE_SPLITOR);
         sb.append(edge.expiredTime());
         // Edge properties
-        for (HugeProperty<?> property : edge.getProperties().values()) {
+        for (HugeProperty<?> property : edge.getProperties()) {
             sb.append(VALUE_SPLITOR);
             sb.append(this.formatPropertyName(property));
             sb.append(VALUE_SPLITOR);

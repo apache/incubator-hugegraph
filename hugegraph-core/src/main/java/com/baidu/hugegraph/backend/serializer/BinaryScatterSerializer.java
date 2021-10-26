@@ -48,7 +48,7 @@ public class BinaryScatterSerializer extends BinarySerializer {
         entry.column(this.formatLabel(vertex));
 
         // Write all properties of a Vertex
-        for (HugeProperty<?> prop : vertex.getProperties().values()) {
+        for (HugeProperty<?> prop : vertex.getProperties()) {
             entry.column(this.formatProperty(prop));
         }
 
