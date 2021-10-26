@@ -106,12 +106,10 @@ public class ComputerDisAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> delete(@Context GraphManager manager,
                                       @PathParam("graph") String graph,
-                                      @PathParam("id") String id) {
+                                      @PathParam("id") long id) {
         LOG.debug("Graph [{}] delete computer job: {}", graph, id);
         E.checkArgument(K8sDriverProxy.isK8sApiEnabled() == true,
                         "The k8s api is not enable.");
-        E.checkArgument(id != null && !id.isEmpty(),
-                        "The computer name can't be empty");
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
@@ -130,12 +128,10 @@ public class ComputerDisAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> cancel(@Context GraphManager manager,
                                       @PathParam("graph") String graph,
-                                      @PathParam("id") String id) {
+                                      @PathParam("id") long id) {
         LOG.debug("Graph [{}] cancel computer job: {}", graph, id);
         E.checkArgument(K8sDriverProxy.isK8sApiEnabled() == true,
                         "The k8s api is not enable.");
-        E.checkArgument(id != null && !id.isEmpty(),
-                        "The computer name can't be empty.");
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
