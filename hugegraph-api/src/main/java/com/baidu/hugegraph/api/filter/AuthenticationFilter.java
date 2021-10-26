@@ -72,7 +72,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     );
 
     private static final List<String> ANONYMOUS_API_LIST = ImmutableList.of(
-            "metrics/backend"
+            "metrics/backend",
+            "metrics"
     );
 
     @Context
