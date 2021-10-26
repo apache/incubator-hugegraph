@@ -30,10 +30,13 @@ import com.baidu.hugegraph.util.E;
 
 public class BatchConditionQuery extends ConditionQuery {
 
-    private Condition.Relation in = null;
+    private Condition.Relation in;
+    private final int batchSize;
 
-    public BatchConditionQuery(HugeType resultType) {
+    public BatchConditionQuery(HugeType resultType, int batchSize) {
         super(resultType);
+        this.in = null;
+        this.batchSize = batchSize;
     }
 
     public void mergeToIN(ConditionQuery query, HugeKeys key) {
@@ -43,7 +46,7 @@ public class BatchConditionQuery extends ConditionQuery {
             this.resetConditions(new LinkedHashSet<>(query.conditions()));
             this.unsetCondition(key);
 
-            List<Object> list = new ArrayList<>(Query.QUERY_BATCH_CAPACITY);
+            List<Object> list = new ArrayList<>(this.batchSize);
             list.add(value);
             // TODO: ensure not flatten BatchQuery
             this.in = (Condition.Relation) Condition.in(key, list);

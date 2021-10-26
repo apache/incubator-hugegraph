@@ -123,7 +123,8 @@ public class HugeVertexStepByBatch<E extends Element>
     private Iterator<Edge> edges(List<Traverser.Admin<Vertex>> traversers) {
         assert traversers.size() > 0;
 
-        BatchConditionQuery batchQuery = new BatchConditionQuery(HugeType.EDGE);
+        BatchConditionQuery batchQuery = new BatchConditionQuery(
+                                         HugeType.EDGE, traversers.size());
 
         for (Traverser.Admin<Vertex> traverser : traversers) {
             ConditionQuery query = this.constructEdgesQuery(traverser);
