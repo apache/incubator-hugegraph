@@ -93,6 +93,7 @@ public class API {
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;
+    public static final String APPLICATION_TEXT_WITH_CHARSET = MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
                                                .getSubtype();
 

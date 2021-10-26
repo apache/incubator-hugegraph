@@ -27,13 +27,16 @@ import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
 
+import jersey.repackaged.com.google.common.collect.ImmutableMap;
+
+
 public class MetricsApiTest extends BaseApiTest {
 
     private static String path = "/metrics";
 
     @Test
     public void testMetricsAll() {
-        Response r = client().get(path);
+        Response r = client().get(path, ImmutableMap.of("type", "json"));
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "gauges");
         assertJsonContains(result, "counters");
