@@ -153,7 +153,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
         public PathSet traverse(boolean all) {
             return this.record.sourcesLessThanTargets() ?
-                   this.forward(true) : this.backward(true);
+                   this.forward(all) : this.backward(all);
         }
 
         /**

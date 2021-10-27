@@ -24,7 +24,7 @@ import com.baidu.hugegraph.type.define.SerialEnum;
 public enum RecordType implements SerialEnum {
 
     // One key with one int value
-    INT(2, "int"),
+    INT(1, "int"),
 
     // One key with multi unique values
     SET(2, "set"),
