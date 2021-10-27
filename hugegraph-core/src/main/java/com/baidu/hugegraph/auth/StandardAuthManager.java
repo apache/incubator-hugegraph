@@ -667,7 +667,8 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, this.tokenExpire * 1000);
+        String token = this.tokenGenerator.create(payload,
+                                                  this.tokenExpire * 1000);
 
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
