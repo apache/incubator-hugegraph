@@ -87,7 +87,7 @@ public class StandardAuthManager implements AuthManager {
         HugeConfig config = graph.configuration();
         long expired = config.get(AuthOptions.AUTH_CACHE_EXPIRE);
         long capacity = config.get(AuthOptions.AUTH_CACHE_CAPACITY);
-        this.tokenExpire = config.get(AuthOptions.AUTH_TOKEN_EXPIRE);
+        this.tokenExpire = config.get(AuthOptions.AUTH_TOKEN_EXPIRE) * 1000;
 
         this.graph = graph;
         this.eventListener = this.listenChanges();
