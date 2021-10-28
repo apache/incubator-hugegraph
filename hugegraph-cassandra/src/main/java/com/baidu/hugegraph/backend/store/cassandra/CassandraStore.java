@@ -193,9 +193,9 @@ public abstract class CassandraStore
     }
 
     @Override
-    public void close() {
+    public void close(boolean force) {
         LOG.debug("Store close: {}", this.store);
-        this.sessions.close();
+        this.sessions.close(force);
     }
 
     @Override

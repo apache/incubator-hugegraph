@@ -182,7 +182,7 @@ public abstract class InMemoryDBStore
     }
 
     @Override
-    public void close() throws BackendException {
+    public void close(boolean force) throws BackendException {
         LOG.debug("Store closed: {}", this.store);
     }
 

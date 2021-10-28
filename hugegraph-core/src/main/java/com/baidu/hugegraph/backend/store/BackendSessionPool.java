@@ -135,11 +135,15 @@ public abstract class BackendSessionPool {
     }
 
     public boolean close() {
+        return this.close(false);
+    }
+
+    public boolean close(boolean force) {
         Pair<Integer, Integer> result = Pair.of(-1, -1);
         try {
             result = this.closeSession();
         } finally {
-            if (result.getLeft() == 0) {
+            if (force || result.getLeft() == 0) {
                 this.doClose();
             }
         }

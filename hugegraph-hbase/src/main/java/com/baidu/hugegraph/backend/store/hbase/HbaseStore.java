@@ -172,9 +172,9 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void close() {
+    public void close(boolean force) {
         this.checkOpened();
-        this.sessions.close();
+        this.sessions.close(force);
 
         LOG.debug("Store closed: {}", this.store);
     }

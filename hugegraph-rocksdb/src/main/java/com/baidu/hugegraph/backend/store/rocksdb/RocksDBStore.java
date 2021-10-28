@@ -409,11 +409,11 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     @Override
-    public void close() {
+    public void close(boolean force) {
         LOG.debug("Store close: {}", this.store);
-
-        this.checkOpened();
-        this.closeSessions();
+        if (!this.sessions.closed() && this.opened()) {
+            this.closeSessions(force);
+        }
     }
 
     @Override
@@ -790,12 +790,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private final void closeSessions() {
+        this.closeSessions(false);
+    }
+
+    private final void closeSessions(boolean force) {
         Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet()
                                                                     .iterator();
         while (iter.hasNext()) {
             Map.Entry<String, RocksDBSessions> entry = iter.next();
             RocksDBSessions sessions = entry.getValue();
-            boolean closed = sessions.close();
+            boolean closed = sessions.close(force);
             if (closed) {
                 iter.remove();
             }

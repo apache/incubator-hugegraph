@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBGraphStore;
@@ -43,6 +44,14 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     @Override
     public String type() {
         return "rocksdb";
+    }
+
+    @Override
+    public void close() throws BackendException {
+        this.checkOpened();
+        for (BackendStore store : this.stores.values()) {
+            store.close(true);
+        }
     }
 
     @Override

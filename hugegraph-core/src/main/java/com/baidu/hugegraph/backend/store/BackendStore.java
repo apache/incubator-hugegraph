@@ -45,7 +45,11 @@ public interface BackendStore {
 
     // Open/close database
     public void open(HugeConfig config);
-    public void close();
+    public default void close() {
+        this.close(false);
+    }
+
+    public void close(boolean force);
     public boolean opened();
 
     // Initialize/clear database

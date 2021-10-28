@@ -69,7 +69,11 @@ public class CachedBackendStore implements BackendStore {
 
     @Override
     public void close() {
-        this.store.close();
+        this.close(false);
+    }
+
+    public void close(boolean force) {
+        this.store.close(force);
     }
 
     @Override

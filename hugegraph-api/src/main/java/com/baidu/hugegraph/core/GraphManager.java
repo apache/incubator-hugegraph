@@ -159,7 +159,12 @@ public final class GraphManager {
             LOG.debug("RestServer accepts event 'graph.drop'");
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
-            this.graphs.remove(name);
+            HugeGraph graph = (HugeGraph) this.graphs.remove(name);
+            try {
+                graph.close();
+            } catch (Exception e) {
+                LOG.warn("Failed to close graph", e);
+            }
             return null;
         });
     }
