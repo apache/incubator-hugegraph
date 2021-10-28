@@ -52,7 +52,7 @@ public class SingleSourceShortestPathApiTest extends BaseApiTest {
                                                         "with_vertex",
                                                         true));
         String content = assertResponseStatus(200, r);
-        Map<String, Map> paths = assertJsonContains(content, "paths");
+        Map<String, Map<?, ?>> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(4, paths.size());
     }
 }

@@ -42,6 +42,8 @@ import com.baidu.hugegraph.util.E;
 
 public class HugeProject extends Entity {
 
+    private static final long serialVersionUID = 8681323499069874520L;
+
     private String name;
     private Id adminGroupId;
     private Id opGroupId;

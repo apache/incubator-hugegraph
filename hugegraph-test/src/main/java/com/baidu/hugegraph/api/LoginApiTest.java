@@ -50,9 +50,10 @@ public class LoginApiTest extends BaseApiTest {
         this.userId4Test = (String) user.get("id");
     }
 
+    @Override
     @After
     public void teardown() {
-        Response r = this.deleteUser(userId4Test);
+        this.deleteUser(this.userId4Test);
     }
 
     @Test

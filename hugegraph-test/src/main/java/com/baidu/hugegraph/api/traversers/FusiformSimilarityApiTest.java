@@ -64,7 +64,7 @@ public class FusiformSimilarityApiTest extends BaseApiTest {
                                          "\"with_intermediary\": false, " +
                                          "\"with_vertex\":true}");
         String content = assertResponseStatus(200, r);
-        Map<String, List> similars = assertJsonContains(content, "similars");
+        Map<String, List<?>> similars = assertJsonContains(content, "similars");
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String peterId = name2Ids.get("peter");

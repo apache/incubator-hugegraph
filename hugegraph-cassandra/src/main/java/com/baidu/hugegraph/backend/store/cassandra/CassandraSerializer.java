@@ -43,6 +43,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
@@ -126,7 +127,7 @@ public class CassandraSerializer extends TableSerializer {
             row.column(HugeKeys.PROPERTIES, ImmutableMap.of());
         } else {
             // Format properties
-            for (HugeProperty<?> prop : element.getProperties().values()) {
+            for (HugeProperty<?> prop : element.getProperties()) {
                 this.formatProperty(prop, row);
             }
         }
@@ -147,12 +148,16 @@ public class CassandraSerializer extends TableSerializer {
         CassandraBackendEntry entry = newBackendEntry(HugeType.OLAP,
                                                       vertex.id());
         entry.column(HugeKeys.ID, this.writeId(vertex.id()));
-        HugeProperty<?> prop = vertex.getProperties().values()
-                                     .iterator().next();
-        PropertyKey pk = prop.propertyKey();
+
+        Collection<HugeProperty<?>> properties = vertex.getProperties();
+        E.checkArgument(properties.size() == 1,
+                        "Expect only 1 property for olap vertex, but got %s",
+                        properties.size());
+        HugeProperty<?> property = properties.iterator().next();
+        PropertyKey pk = property.propertyKey();
         entry.subId(pk.id());
         entry.column(HugeKeys.PROPERTY_VALUE,
-                     this.writeProperty(pk, prop.value()));
+                     this.writeProperty(pk, property.value()));
         entry.olap(true);
         return entry;
     }

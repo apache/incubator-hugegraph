@@ -626,7 +626,7 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex vertex = HugeVertex.create(this, id,
                                                   VertexLabel.OLAP_VL);
             ElementHelper.attachProperties(vertex, keyValues);
-            Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
+            Iterator<HugeProperty<?>> iterator = vertex.getProperties()
                                                        .iterator();
             assert iterator.hasNext();
             if (iterator.next().propertyKey().olap()) {
@@ -1531,7 +1531,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private void checkNonnullProperty(HugeVertex vertex) {
-        Set<Id> keys = vertex.getProperties().keySet();
+        Set<Id> keys = vertex.getPropertyKeys();
         VertexLabel vertexLabel = vertex.schemaLabel();
         // Check whether passed all non-null property
         @SuppressWarnings("unchecked")
