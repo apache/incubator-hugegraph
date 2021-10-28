@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +39,8 @@ import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.IntIterator;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
+import com.baidu.hugegraph.type.define.CollectionType;
+import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
@@ -95,7 +96,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         for (int i = 1; i < this.records.size(); i++) {
             IntIterator iterator = this.records.get(i).keys();
             while (iterator.hasNext()) {
-                paths.add(this.getPath(i, iterator.next()));
+                paths.add(this.linkPath(i, iterator.next()));
             }
         }
         return paths;
@@ -124,53 +125,66 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         this.accessedVertices.add(targetCode);
     }
 
-    public abstract int size();
-
-    public Path getPath(int target) {
-        List<Id> ids = new ArrayList<>();
+    protected final Path linkPath(int target) {
+        List<Id> ids = CollectionFactory.newList(CollectionType.EC);
+        // Find the layer where the target is located
+        int foundLayer = -1;
         for (int i = 0; i < this.records.size(); i++) {
-            IntIntHashMap layer = ((Int2IntRecord) this.records
-                                  .elementAt(i)).layer();
+            IntIntHashMap layer = this.layer(i);
             if (!layer.containsKey(target)) {
                 continue;
             }
 
+            foundLayer = i;
+            // Collect self node
             ids.add(this.id(target));
-            int parent = layer.get(target);
-            ids.add(this.id(parent));
-            i--;
-            for (; i > 0; i--) {
-                layer = ((Int2IntRecord) this.records.elementAt(i)).layer();
-                parent = layer.get(parent);
-                ids.add(this.id(parent));
-            }
             break;
+        }
+        // If a layer found, then concat parents
+        if (foundLayer > 0) {
+            for (int i = foundLayer; i > 0; i--) {
+                IntIntHashMap layer = this.layer(i);
+                // Uptrack parents
+                target = layer.get(target);
+                ids.add(this.id(target));
+            }
         }
         return new Path(ids);
     }
 
-    public Path getPath(int layerIndex, int target) {
-        List<Id> ids = new ArrayList<>();
-        IntIntHashMap layer = ((Int2IntRecord) this.records
-                              .elementAt(layerIndex)).layer();
+    protected final Path linkPath(int layerIndex, int target) {
+        List<Id> ids = CollectionFactory.newList(CollectionType.EC);
+        IntIntHashMap layer = this.layer(layerIndex);
         if (!layer.containsKey(target)) {
             throw new HugeException("Failed to get path for %s",
                                     this.id(target));
         }
+        // Collect self node
         ids.add(this.id(target));
-        int parent = layer.get(target);
-        ids.add(this.id(parent));
-        layerIndex--;
-        for (; layerIndex > 0; layerIndex--) {
-            layer = ((Int2IntRecord) this.records.elementAt(layerIndex)).layer();
-            parent = layer.get(parent);
-            ids.add(this.id(parent));
+        // Concat parents
+        for (int i = layerIndex; i > 0; i--) {
+            layer = this.layer(i);
+            // Uptrack parents
+            target = layer.get(target);
+            ids.add(this.id(target));
         }
         Collections.reverse(ids);
         return new Path(ids);
     }
 
-    public Stack<Record> records() {
+    protected final IntIntHashMap layer(int layerIndex) {
+        Record record = this.records.elementAt(layerIndex);
+        IntIntHashMap layer = ((Int2IntRecord) record).layer();
+        return layer;
+    }
+
+    protected final Stack<Record> records() {
         return this.records;
     }
+
+    public abstract int size();
+
+    public abstract List<Id> ids(long limit);
+
+    public abstract PathSet paths(long limit);
 }

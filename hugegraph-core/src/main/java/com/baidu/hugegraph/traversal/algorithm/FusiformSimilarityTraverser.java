@@ -275,9 +275,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public static class SimilarsMap {
 
-        private static final long serialVersionUID = -1906770930513268291L;
-
-        private Map<Id, Set<Similar>> similars = newMap();
+        private final Map<Id, Set<Similar>> similars = newMap();
 
         public int size() {
             return this.similars.size();

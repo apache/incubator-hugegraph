@@ -28,8 +28,8 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
@@ -54,28 +54,28 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
         assert !ring;
         PathSet paths = new PathSet();
         int targetCode = this.code(target);
+        int parentCode = this.current();
         // If cross point exists, shortest path found, concat them
-        if (this.forward() && this.targetContains(targetCode) ||
-            !this.forward() && this.sourceContains(targetCode)) {
+        if (this.movingForward() && this.targetContains(targetCode) ||
+            !this.movingForward() && this.sourceContains(targetCode)) {
             if (!filter.apply(target)) {
                 return paths;
             }
-            paths.add(this.forward() ?
-                      this.linkPath(this.current(), targetCode) :
-                      this.linkPath(targetCode, this.current()));
+            paths.add(this.movingForward() ?
+                      this.linkPath(parentCode, targetCode) :
+                      this.linkPath(targetCode, parentCode));
             this.pathFound = true;
             if (!all) {
                 return paths;
             }
         }
         /*
-         * Not found shortest path yet, node is added to
-         * newVertices if:
+         * Not found shortest path yet, node is added to current layer if:
          * 1. not in sources and newVertices yet
          * 2. path of node doesn't have loop
          */
         if (!this.pathFound && this.isNew(targetCode)) {
-            this.addPath(targetCode, this.current());
+            this.addPath(targetCode, parentCode);
         }
         return paths;
     }

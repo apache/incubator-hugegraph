@@ -34,9 +34,8 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public class KoutRecords extends SingleWayMultiPathsRecords {
 
-    public KoutRecords(RecordType type, boolean concurrent,
-                       Id source, boolean nearest) {
-        super(type, concurrent, source, nearest);
+    public KoutRecords(boolean concurrent, Id source, boolean nearest) {
+        super(RecordType.INT, concurrent, source, nearest);
     }
 
     @Override
@@ -44,6 +43,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
         return this.currentRecord().size();
     }
 
+    @Override
     public List<Id> ids(long limit) {
         List<Id> ids = CollectionFactory.newList(CollectionType.EC);
         IntIterator iterator = this.records().peek().keys();
@@ -53,12 +53,13 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
         return ids;
     }
 
+    @Override
     public PathSet paths(long limit) {
         PathSet paths = new PathSet();
         Stack<Record> records = this.records();
         IntIterator iterator = records.peek().keys();
         while ((limit == NO_LIMIT || limit-- > 0L) && iterator.hasNext()) {
-            paths.add(this.getPath(records.size() - 1, iterator.next()));
+            paths.add(this.linkPath(records.size() - 1, iterator.next()));
         }
         return paths;
     }

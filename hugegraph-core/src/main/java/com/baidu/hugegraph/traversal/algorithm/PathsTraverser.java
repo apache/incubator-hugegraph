@@ -56,9 +56,8 @@ public class PathsTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        PathSet paths = new PathSet();
         if (sourceV.equals(targetV)) {
-            return paths;
+            return PathSet.EMPTY;
         }
 
         Id labelId = this.getEdgeLabelId(label);
@@ -75,8 +74,7 @@ public class PathsTraverser extends HugeTraverser {
             }
             traverser.backward(targetDir);
         }
-        paths.addAll(traverser.paths());
-        return paths;
+        return traverser.paths();
     }
 
     private class Traverser {
@@ -88,7 +86,7 @@ public class PathsTraverser extends HugeTraverser {
         private final long capacity;
         private final long limit;
 
-        private PathSet paths;
+        private final PathSet paths;
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {

@@ -19,12 +19,36 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records;
 
+import java.util.function.Function;
+
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 
 public class PathsRecords extends DoubleWayMultiPathsRecords {
 
     public PathsRecords(boolean concurrent, Id sourceV, Id targetV) {
         super(RecordType.ARRAY, concurrent, sourceV, targetV);
+    }
+
+    @Watched
+    @Override
+    public PathSet findPath(Id target, Function<Id, Boolean> filter,
+                            boolean all, boolean ring) {
+        assert all;
+        int targetCode = this.code(target);
+        int parentCode = this.current();
+        // Add to current layer
+        this.addPath(targetCode, parentCode);
+        // If cross point exists, path found, concat them
+        PathSet paths = PathSet.EMPTY;
+        if (this.movingForward() && this.targetContains(targetCode)) {
+            paths = this.linkPath(parentCode, targetCode, ring);
+        }
+        if (!this.movingForward() && this.sourceContains(targetCode)) {
+            paths = this.linkPath(targetCode, parentCode, ring);
+        }
+        return paths;
     }
 }
