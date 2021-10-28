@@ -38,6 +38,8 @@ public class BaseCoreTest {
 
     protected static final int TX_BATCH = 100;
 
+    public static final String DEFAULT_GRAPH_SPACE = "default_namespace";
+
     public HugeGraph graph() {
         return CoreTestSuite.graph();
     }

@@ -52,7 +52,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/auth/targets")
+@Path("{graphspace}/graphs/auth/targets")
 @Singleton
 public class TargetAPI extends API {
 
@@ -64,14 +64,14 @@ public class TargetAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] create target: {}", SYSTEM_GRAPH, jsonTarget);
+        LOG.debug("Graph space [{}] create target: {}", graphSpace, jsonTarget);
         checkCreatingBody(jsonTarget);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        HugeTarget target = jsonTarget.build();
-        target.id(manager.authManager().createTarget(target));
-        return manager.serializer(g).writeAuthElement(target);
+        HugeTarget target = jsonTarget.build(graphSpace);
+        target.id(manager.authManager().createTarget(graphSpace, target));
+        return manager.serializer().writeAuthElement(target);
     }
 
     @PUT
@@ -80,33 +80,35 @@ public class TargetAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph [{}] update target: {}", SYSTEM_GRAPH, jsonTarget);
+        LOG.debug("Graph space [{}] update target: {}", graphSpace, jsonTarget);
         checkUpdatingBody(jsonTarget);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeTarget target;
         try {
-            target = manager.authManager().getTarget(UserAPI.parseId(id));
+            target = manager.authManager().getTarget(graphSpace,
+                                                     UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }
         target = jsonTarget.build(target);
-        manager.authManager().updateTarget(target);
-        return manager.serializer(g).writeAuthElement(target);
+        manager.authManager().updateTarget(graphSpace, target);
+        return manager.serializer().writeAuthElement(target);
     }
 
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list targets", SYSTEM_GRAPH);
+        LOG.debug("Graph space [{}] list targets", graphSpace);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        List<HugeTarget> targets = manager.authManager().listAllTargets(limit);
-        return manager.serializer(g).writeAuthElements("targets", targets);
+        List<HugeTarget> targets = manager.authManager()
+                                          .listAllTargets(graphSpace, limit);
+        return manager.serializer().writeAuthElements("targets", targets);
     }
 
     @GET
@@ -114,12 +116,13 @@ public class TargetAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get target: {}", SYSTEM_GRAPH, id);
+        LOG.debug("Graph space [{}] get target: {}", graphSpace, id);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        HugeTarget target = manager.authManager().getTarget(UserAPI.parseId(id));
-        return manager.serializer(g).writeAuthElement(target);
+        HugeTarget target = manager.authManager().getTarget(graphSpace,
+                                                            UserAPI.parseId(id));
+        return manager.serializer().writeAuthElement(target);
     }
 
     @DELETE
@@ -127,13 +130,13 @@ public class TargetAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete target: {}", SYSTEM_GRAPH, id);
+        LOG.debug("Graph space [{}] delete target: {}", graphSpace, id);
 
-        @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
-            manager.authManager().deleteTarget(UserAPI.parseId(id));
+            manager.authManager().deleteTarget(graphSpace,
+                                               UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }
@@ -168,8 +171,9 @@ public class TargetAPI extends API {
             return target;
         }
 
-        public HugeTarget build() {
-            HugeTarget target = new HugeTarget(this.name, this.graph, this.url);
+        public HugeTarget build(String graphSpace) {
+            HugeTarget target = new HugeTarget(this.name, graphSpace,
+                                               this.graph, this.url);
             if (this.resources != null) {
                 target.resources(JsonUtil.toJson(this.resources));
             }

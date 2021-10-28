@@ -19,11 +19,11 @@
 
 package com.baidu.hugegraph.unit.core;
 
+import com.baidu.hugegraph.core.BaseCoreTest;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugePermission;
-import com.baidu.hugegraph.auth.HugeProject;
 import com.baidu.hugegraph.auth.HugeResource;
 import com.baidu.hugegraph.auth.HugeResource.NameObject;
 import com.baidu.hugegraph.auth.HugeTarget;
@@ -31,7 +31,6 @@ import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.ResourceObject;
 import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.RolePermission;
-import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -46,7 +45,7 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinAdmin() {
         RolePermission admin = RolePermission.admin();
-        RolePermission role1 = RolePermission.role("admin", HugePermission.ANY);
+        RolePermission role1 = RolePermission.role("admin", "", HugePermission.ANY);
         Assert.assertEquals(admin, role1);
         Assert.assertSame(admin, RolePermission.builtin(admin));
         Assert.assertSame(admin, RolePermission.builtin(role1));
@@ -75,7 +74,7 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinNone() {
         RolePermission none = RolePermission.none();
-        RolePermission role1 = RolePermission.role("none", HugePermission.NONE);
+        RolePermission role1 = RolePermission.role("none", "", HugePermission.NONE);
         Assert.assertEquals(none, role1);
         Assert.assertSame(none, RolePermission.builtin(none));
         Assert.assertSame(none, RolePermission.builtin(role1));
@@ -487,7 +486,8 @@ public class RolePermissionTest {
         Assert.assertTrue(user3.filter(r3));
         Assert.assertTrue(user3.filter(r4));
 
-        ResourceObject<?> r5 = ResourceObject.of("g1", new HugeTarget("g", ""));
+        ResourceObject<?> r5 = ResourceObject.of("g1", new HugeTarget("g",
+                          BaseCoreTest.DEFAULT_GRAPH_SPACE, ""));
         Assert.assertFalse(user.filter(r5));
 
         HugeResource root = new HugeResource(ResourceType.ROOT,
@@ -495,27 +495,6 @@ public class RolePermissionTest {
         Assert.assertTrue(root.filter(r3));
         Assert.assertTrue(root.filter(r4));
         Assert.assertTrue(root.filter(r5));
-    }
-
-    @Test
-    public void testHugeResourceFilterProject() {
-        HugeResource all = HugeResource.ALL;
-        ResourceObject<?> r1 = ResourceObject.of("hugegraph",
-                                                 new HugeProject("project1"));
-        Assert.assertFalse(all.filter(r1));
-        
-        HugeResource project = new HugeResource(ResourceType.PROJECT,
-                                                "project1",
-                                                null);
-        Assert.assertTrue(project.filter(r1));
-
-        HugeResource root = new HugeResource(ResourceType.ROOT,
-                                             HugeResource.ANY, null);
-        Assert.assertTrue(root.filter(r1));
-
-        ResourceObject<?> r2 = ResourceObject.of("hugegraph",
-                                                 new HugeProject("project2"));
-        Assert.assertFalse(project.filter(r2));
     }
 
     private boolean roleContains(RolePermission role, RolePermission other) {

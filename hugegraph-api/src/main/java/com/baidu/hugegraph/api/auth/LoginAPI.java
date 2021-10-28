@@ -66,15 +66,14 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
                         JsonLogin jsonLogin) {
-        LOG.debug("Graph [{}] user login: {}", SYSTEM_GRAPH, jsonLogin);
+        LOG.debug("User login: {}", jsonLogin);
         checkCreatingBody(jsonLogin);
 
         try {
             String token = manager.authManager().loginUser(jsonLogin.name,
                                                            jsonLogin.password,
                                                            jsonLogin.expire);
-            HugeGraph g = graph(manager, SYSTEM_GRAPH);
-            return manager.serializer(g)
+            return manager.serializer()
                           .writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
             throw new NotAuthorizedException(e.getMessage(), e);
@@ -91,7 +90,7 @@ public class LoginAPI extends API {
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] user logout: {}", SYSTEM_GRAPH, auth);
+        LOG.debug("User logout: {}", auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -115,7 +114,7 @@ public class LoginAPI extends API {
                               String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] get user: {}", SYSTEM_GRAPH, token);
+        LOG.debug("verify token: {}", token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -126,8 +125,7 @@ public class LoginAPI extends API {
                                                     .length());
         UserWithRole userWithRole = manager.authManager().validateUser(token);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        return manager.serializer(g)
+        return manager.serializer()
                       .writeMap(ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
                                                 userWithRole.username(),
                                                 AuthConstant.TOKEN_USER_ID,

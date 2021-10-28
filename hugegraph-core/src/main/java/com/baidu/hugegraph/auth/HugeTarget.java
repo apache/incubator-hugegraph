@@ -26,7 +26,6 @@ import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
@@ -43,6 +42,7 @@ public class HugeTarget extends Entity {
     private static final long serialVersionUID = -3361487778656878418L;
 
     private String name;
+    private String graphSpace;
     private String graph;
     private String url;
     private List<HugeResource> resources;
@@ -50,26 +50,27 @@ public class HugeTarget extends Entity {
     private static final List<HugeResource> EMPTY = ImmutableList.of();
 
     public HugeTarget(Id id) {
-        this(id, null, null, null, EMPTY);
+        this(id, null, null, null, null, EMPTY);
     }
 
-    public HugeTarget(String name, String url) {
-        this(null, name, name, url, EMPTY);
+    public HugeTarget(String name, String graphSpace, String url) {
+        this(null, name,graphSpace,  name, url, EMPTY);
     }
 
-    public HugeTarget(String name, String graph, String url) {
-        this(null, name, graph, url, EMPTY);
+    public HugeTarget(String name, String graphSpace, String graph, String url) {
+        this(null, name, graphSpace, graph, url, EMPTY);
     }
 
-    public HugeTarget(String name, String graph, String url,
+    public HugeTarget(String name, String graphSpace, String graph, String url,
                       List<HugeResource> resources) {
-        this(null, name, graph, url, resources);
+        this(null, name, graphSpace, graph, url, resources);
     }
 
-    private HugeTarget(Id id, String name, String graph, String url,
+    private HugeTarget(Id id, String name, String graphSpace, String graph, String url,
                        List<HugeResource> resources) {
         this.id = id;
         this.name = name;
+        this.graphSpace = graphSpace;
         this.graph = graph;
         this.url = url;
         this.resources = resources;
@@ -88,6 +89,10 @@ public class HugeTarget extends Entity {
     @Override
     public String name() {
         return this.name;
+    }
+
+    public String graphSpace() {
+        return this.graphSpace;
     }
 
     public String graph() {
@@ -122,7 +127,7 @@ public class HugeTarget extends Entity {
 
     @Override
     public String toString() {
-        return String.format("HugeTarget(%s)%s", this.id, this.asMap());
+        return String.format("HugeTarget(%s)", this.id);
     }
 
     @Override
@@ -134,6 +139,9 @@ public class HugeTarget extends Entity {
             case P.NAME:
                 this.name = (String) value;
                 break;
+            case P.GRAPHSPACE:
+                this.graphSpace = (String) value;
+                break;
             case P.GRAPH:
                 this.graph = (String) value;
                 break;
@@ -141,7 +149,7 @@ public class HugeTarget extends Entity {
                 this.url = (String) value;
                 break;
             case P.RESS:
-                this.resources = HugeResource.parseResources((String) value);
+                this.resources = (List<HugeResource>) value;
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -161,6 +169,9 @@ public class HugeTarget extends Entity {
 
         list.add(P.NAME);
         list.add(this.name);
+
+        list.add(P.GRAPHSPACE);
+        list.add(this.graphSpace);
 
         list.add(P.GRAPH);
         list.add(this.graph);
@@ -184,6 +195,7 @@ public class HugeTarget extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         map.put(Hidden.unHide(P.NAME), this.name);
+        map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         map.put(Hidden.unHide(P.GRAPH), this.graph);
         map.put(Hidden.unHide(P.URL), this.url);
 
@@ -194,9 +206,9 @@ public class HugeTarget extends Entity {
         return super.asMap(map);
     }
 
-    public static HugeTarget fromVertex(Vertex vertex) {
-        HugeTarget target = new HugeTarget((Id) vertex.id());
-        return fromVertex(vertex, target);
+    public static HugeTarget fromMap(Map<String, Object> map) {
+        HugeTarget target = new HugeTarget(null);
+        return fromMap(map, target);
     }
 
     public static Schema schema(HugeGraphParams graph) {
@@ -211,6 +223,7 @@ public class HugeTarget extends Entity {
         public static final String LABEL = T.label.getAccessor();
 
         public static final String NAME = "~target_name";
+        public static final String GRAPHSPACE = "~target_graphspace";
         public static final String GRAPH = "~target_graph";
         public static final String URL = "~target_url";
         public static final String RESS = "~target_resources";

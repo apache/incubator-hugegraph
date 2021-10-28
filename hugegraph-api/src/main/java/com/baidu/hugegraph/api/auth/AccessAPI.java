@@ -36,7 +36,6 @@ import javax.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeAccess;
@@ -52,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/auth/accesses")
+@Path("{graphspace}/graphs/auth/accesses")
 @Singleton
 public class AccessAPI extends API {
 
@@ -64,14 +63,15 @@ public class AccessAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph [{}] create access: {}", SYSTEM_GRAPH, jsonAccess);
+        LOG.debug("Graph space [{}] create access: {}",
+                  graphSpace, jsonAccess);
         checkCreatingBody(jsonAccess);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        HugeAccess access = jsonAccess.build();
-        access.id(manager.authManager().createAccess(access));
-        return manager.serializer(g).writeAuthElement(access);
+        HugeAccess access = jsonAccess.build(graphSpace);
+        access.id(manager.authManager().createAccess(graphSpace, access));
+        return manager.serializer().writeAuthElement(access);
     }
 
     @PUT
@@ -80,47 +80,51 @@ public class AccessAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph [{}] update access: {}", SYSTEM_GRAPH, jsonAccess);
+        LOG.debug("Graph space [{}] update access: {}",
+                  graphSpace, jsonAccess);
         checkUpdatingBody(jsonAccess);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         HugeAccess access;
         try {
-            access = manager.authManager().getAccess(UserAPI.parseId(id));
+            access = manager.authManager().getAccess(graphSpace,
+                                                     UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
         access = jsonAccess.build(access);
-        manager.authManager().updateAccess(access);
-        return manager.serializer(g).writeAuthElement(access);
+        manager.authManager().updateAccess(graphSpace, access);
+        return manager.serializer().writeAuthElement(access);
     }
 
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @QueryParam("group") String group,
                        @QueryParam("target") String target,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list belongs by group {} or target {}",
-                SYSTEM_GRAPH, group, target);
+        LOG.debug("Graph space [{}] list belongs by group {} or target {}",
+                  graphSpace, group, target);
         E.checkArgument(group == null || target == null,
                         "Can't pass both group and target at the same time");
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         List<HugeAccess> belongs;
         if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = manager.authManager().listAccessByGroup(id, limit);
+            belongs = manager.authManager().listAccessByGroup(graphSpace,
+                                                              id, limit);
         } else if (target != null) {
             Id id = UserAPI.parseId(target);
-            belongs = manager.authManager().listAccessByTarget(id, limit);
+            belongs = manager.authManager().listAccessByTarget(graphSpace,
+                                                               id, limit);
         } else {
-            belongs = manager.authManager().listAllAccess(limit);
+            belongs = manager.authManager().listAllAccess(graphSpace, limit);
         }
-        return manager.serializer(g).writeAuthElements("accesses", belongs);
+        return manager.serializer().writeAuthElements("accesses", belongs);
     }
 
     @GET
@@ -128,12 +132,13 @@ public class AccessAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get access: {}", SYSTEM_GRAPH, id);
+        LOG.debug("Graph space [{}] get access: {}", graphSpace, id);
 
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
-        HugeAccess access = manager.authManager().getAccess(UserAPI.parseId(id));
-        return manager.serializer(g).writeAuthElement(access);
+        HugeAccess access = manager.authManager().getAccess(graphSpace,
+                                                            UserAPI.parseId(id));
+        return manager.serializer().writeAuthElement(access);
     }
 
     @DELETE
@@ -141,13 +146,13 @@ public class AccessAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete access: {}", SYSTEM_GRAPH, id);
+        LOG.debug("Graph space [{}] delete access: {}", graphSpace, id);
 
-        @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, SYSTEM_GRAPH);
         try {
-            manager.authManager().deleteAccess(UserAPI.parseId(id));
+            manager.authManager().deleteAccess(graphSpace,
+                                               UserAPI.parseId(id));
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
@@ -182,8 +187,9 @@ public class AccessAPI extends API {
             return access;
         }
 
-        public HugeAccess build() {
-            HugeAccess access = new HugeAccess(UserAPI.parseId(this.group),
+        public HugeAccess build(String graphSpace) {
+            HugeAccess access = new HugeAccess(graphSpace,
+                                               UserAPI.parseId(this.group),
                                                UserAPI.parseId(this.target));
             access.permission(this.permission);
             access.description(this.description);

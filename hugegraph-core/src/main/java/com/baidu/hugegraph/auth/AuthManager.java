@@ -20,8 +20,6 @@
 package com.baidu.hugegraph.auth;
 
 import java.util.List;
-import java.util.Set;
-
 import javax.security.sasl.AuthenticationException;
 
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
@@ -39,46 +37,43 @@ public interface AuthManager {
     public List<HugeUser> listUsers(List<Id> ids);
     public List<HugeUser> listAllUsers(long limit);
 
-    public Id createGroup(HugeGroup group);
-    public Id updateGroup(HugeGroup group);
-    public HugeGroup deleteGroup(Id id);
-    public HugeGroup getGroup(Id id);
-    public List<HugeGroup> listGroups(List<Id> ids);
-    public List<HugeGroup> listAllGroups(long limit);
+    public Id createGroup(String graphSpace, HugeGroup group);
+    public Id updateGroup(String graphSpace, HugeGroup group);
+    public HugeGroup deleteGroup(String graphSpace, Id id);
+    public HugeGroup getGroup(String graphSpace, Id id);
+    public List<HugeGroup> listGroups(String graphSpace, List<Id> ids);
+    public List<HugeGroup> listAllGroups(String graphSpace, long limit);
 
-    public Id createTarget(HugeTarget target);
-    public Id updateTarget(HugeTarget target);
-    public HugeTarget deleteTarget(Id id);
-    public HugeTarget getTarget(Id id);
-    public List<HugeTarget> listTargets(List<Id> ids);
-    public List<HugeTarget> listAllTargets(long limit);
+    public Id createTarget(String graphSpace, HugeTarget target);
+    public Id updateTarget(String graphSpace, HugeTarget target);
+    public HugeTarget deleteTarget(String graphSpace, Id id);
+    public HugeTarget getTarget(String graphSpace, Id id);
+    public List<HugeTarget> listTargets(String graphSpace, List<Id> ids);
+    public List<HugeTarget> listAllTargets(String graphSpace, long limit);
 
-    public Id createBelong(HugeBelong belong);
-    public Id updateBelong(HugeBelong belong);
-    public HugeBelong deleteBelong(Id id);
-    public HugeBelong getBelong(Id id);
-    public List<HugeBelong> listBelong(List<Id> ids);
-    public List<HugeBelong> listAllBelong(long limit);
-    public List<HugeBelong> listBelongByUser(Id user, long limit);
-    public List<HugeBelong> listBelongByGroup(Id group, long limit);
+    public Id createBelong(String graphSpace, HugeBelong belong);
+    public Id updateBelong(String graphSpace, HugeBelong belong);
+    public HugeBelong deleteBelong(String graphSpace, Id id);
+    public HugeBelong getBelong(String graphSpace, Id id);
+    public List<HugeBelong> listBelong(String graphSpace, List<Id> ids);
+    public List<HugeBelong> listAllBelong(String graphSpace, long limit);
+    public List<HugeBelong> listBelongByUser(String graphSpace,
+                                             Id user, long limit);
+    public List<HugeBelong> listBelongByGroup(String graphSpace,
+                                              Id group, long limit);
 
-    public Id createAccess(HugeAccess access);
-    public Id updateAccess(HugeAccess access);
-    public HugeAccess deleteAccess(Id id);
-    public HugeAccess getAccess(Id id);
-    public List<HugeAccess> listAccess(List<Id> ids);
-    public List<HugeAccess> listAllAccess(long limit);
-    public List<HugeAccess> listAccessByGroup(Id group, long limit);
-    public List<HugeAccess> listAccessByTarget(Id target, long limit);
+    public Id createAccess(String graphSpace, HugeAccess access);
+    public Id updateAccess(String graphSpace, HugeAccess access);
+    public HugeAccess deleteAccess(String graphSpace, Id id);
+    public HugeAccess getAccess(String graphSpace, Id id);
+    public List<HugeAccess> listAccess(String graphSpace, List<Id> ids);
+    public List<HugeAccess> listAllAccess(String graphSpace, long limit);
+    public List<HugeAccess> listAccessByGroup(String graphSpace,
+                                              Id group, long limit);
+    public List<HugeAccess> listAccessByTarget(String graphSpace,
+                                               Id target, long limit);
 
-    public Id createProject(HugeProject project);
-    public HugeProject deleteProject(Id id);
-    public Id updateProject(HugeProject project);
-    public Id projectAddGraphs(Id id, Set<String> graphs);
-    public Id projectRemoveGraphs(Id id, Set<String> graphs);
-    public HugeProject getProject(Id id);
-    public List<HugeProject> listAllProject(long limit);
-
+    public List<String> listGraphSpace();
     public HugeUser matchUser(String name, String password);
     public RolePermission rolePermission(AuthElement element);
 

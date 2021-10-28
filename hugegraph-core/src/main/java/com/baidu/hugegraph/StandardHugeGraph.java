@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.auth.AuthManager;
-import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheNotifier;
@@ -154,7 +153,6 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
-    private AuthManager authManager;
 
     private final HugeFeatures features;
 
@@ -214,7 +212,7 @@ public class StandardHugeGraph implements HugeGraph {
             SnowflakeIdGenerator.init(this.params);
 
             this.taskManager.addScheduler(this.params);
-            this.authManager = new StandardAuthManager(this.params);
+            // this.authManager = new StandardAuthManager(this.params);
             this.variables = null;
         } catch (Exception e) {
             this.storeProvider.close();
@@ -889,9 +887,6 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Close graph {}", this);
-        if (StandardAuthManager.isLocal(this.authManager)) {
-            this.authManager.close();
-        }
         this.taskManager.closeScheduler(this.params);
         try {
             this.closeTx();
@@ -963,14 +958,11 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public AuthManager authManager() {
-        // this.authManager.initSchemaIfNeeded();
-        return this.authManager;
+        return null;
     }
 
     @Override
-    public void switchAuthManager(AuthManager authManager) {
-        this.authManager = authManager;
-    }
+    public void switchAuthManager(AuthManager authManager) {}
 
     @Override
     public RaftGroupManager raftGroupManager(String group) {

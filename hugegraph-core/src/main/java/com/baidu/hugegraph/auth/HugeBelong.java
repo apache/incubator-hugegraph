@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
@@ -37,11 +37,13 @@ public class HugeBelong extends Relationship {
 
     private static final long serialVersionUID = -7242751631755533423L;
 
-    private final Id user;
-    private final Id group;
+    private String graphSpace;
+    private Id user;
+    private Id group;
     private String description;
 
-    public HugeBelong(Id user, Id group) {
+    public HugeBelong(String graphSpace, Id user, Id group) {
+        this.graphSpace = graphSpace;
         this.user = user;
         this.group = group;
         this.description = null;
@@ -68,6 +70,11 @@ public class HugeBelong extends Relationship {
     }
 
     @Override
+    public String graphSpace() {
+        return this.graphSpace;
+    }
+
+    @Override
     public Id source() {
         return this.user;
     }
@@ -87,8 +94,8 @@ public class HugeBelong extends Relationship {
 
     @Override
     public String toString() {
-        return String.format("HugeBelong(%s->%s)%s",
-                             this.user, this.group, this.asMap());
+        return String.format("HugeBelong(%s->%s)",
+                             this.user, this.group);
     }
 
     @Override
@@ -97,6 +104,15 @@ public class HugeBelong extends Relationship {
             return true;
         }
         switch (key) {
+            case P.GRAPHSPACE:
+                this.graphSpace = (String) value;
+                break;
+            case P.USER:
+                this.user = IdGenerator.of((String) value);
+                break;
+            case P.GROUP:
+                this.group = IdGenerator.of((String) value);
+                break;
             case P.DESCRIPTION:
                 this.description = (String) value;
                 break;
@@ -113,6 +129,15 @@ public class HugeBelong extends Relationship {
         list.add(T.label);
         list.add(P.BELONG);
 
+        list.add(P.GRAPHSPACE);
+        list.add(this.graphSpace);
+
+        list.add(P.USER);
+        list.add(this.user);
+
+        list.add(P.GROUP);
+        list.add(this.group);
+
         if (this.description != null) {
             list.add(P.DESCRIPTION);
             list.add(this.description);
@@ -125,6 +150,7 @@ public class HugeBelong extends Relationship {
     public Map<String, Object> asMap() {
         Map<String, Object> map = new HashMap<>();
 
+        map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         map.put(Hidden.unHide(P.USER), this.user);
         map.put(Hidden.unHide(P.GROUP), this.group);
 
@@ -135,10 +161,9 @@ public class HugeBelong extends Relationship {
         return super.asMap(map);
     }
 
-    public static HugeBelong fromEdge(Edge edge) {
-        HugeBelong belong = new HugeBelong((Id) edge.outVertex().id(),
-                                           (Id) edge.inVertex().id());
-        return fromEdge(edge, belong);
+    public static HugeBelong fromMap(Map<String, Object> map) {
+        HugeBelong belong = new HugeBelong("", null, null);
+        return fromMap(map, belong);
     }
 
     public static Schema schema(HugeGraphParams graph) {
@@ -151,8 +176,10 @@ public class HugeBelong extends Relationship {
 
         public static final String LABEL = T.label.getAccessor();
 
-        public static final String USER = HugeUser.P.USER;
-        public static final String GROUP = HugeGroup.P.GROUP;
+        public static final String GRAPHSPACE = "~belong_graphspace";
+
+        public static final String USER = "~user";      //  HugeUser.P.USER;
+        public static final String GROUP = "~group";     //HugeGroup.P.GROUP;
 
         public static final String DESCRIPTION = "~belong_description";
 

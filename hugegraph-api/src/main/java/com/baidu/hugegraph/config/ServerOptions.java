@@ -243,15 +243,6 @@ public class ServerOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<String> AUTH_GRAPH_STORE =
-            new ConfigOption<>(
-                    "auth.graph_store",
-                    "The name of graph used to store authentication information, " +
-                    "like users, only for com.baidu.hugegraph.auth.StandardAuthenticator.",
-                    disallowEmpty(),
-                    "system"
-            );
-
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
@@ -268,17 +259,6 @@ public class ServerOptions extends OptionHolder {
                     "only for com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
-            );
-
-    public static final ConfigOption<String> AUTH_REMOTE_URL =
-            new ConfigOption<>(
-                    "auth.remote_url",
-                    "If the address is empty, it provide auth service, " +
-                    "otherwise it is auth client and also provide auth service " +
-                    "through rpc forwarding. The remote url can be set to " +
-                    "multiple addresses, which are concat by ','.",
-                    null,
-                    ""
             );
 
     public static final ConfigOption<String> SSL_KEYSTORE_FILE =

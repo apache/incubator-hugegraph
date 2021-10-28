@@ -19,37 +19,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-rpc</artifactId>
-            <version>1.0.0</version>
-            <exclusions>
-                <!-- conflict with jraft -->
-                <exclusion>
-                    <groupId>com.alipay.sofa</groupId>
-                    <artifactId>bolt</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.alipay.sofa.common</groupId>
-                    <artifactId>sofa-common-tools</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.alipay.sofa</groupId>
-                    <artifactId>hessian</artifactId>
-                </exclusion>
-                <!-- conflict with cassandra-netty/tinkerpop-server  -->
-                <exclusion>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-all</artifactId>
-                </exclusion>
-                <!-- conflict with etcd 0.5.2 -->
-                <exclusion>
-                    <groupId>io.grpc</groupId>
-                    <artifactId>grpc-netty-shaded</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-server</artifactId>
             <exclusions>

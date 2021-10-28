@@ -23,14 +23,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
 
@@ -48,15 +45,6 @@ public class HugeUser extends Entity {
     private RolePermission role;
 
     public HugeUser(String name) {
-        this(null, name);
-    }
-
-    public HugeUser(Id id) {
-        this(id, null);
-    }
-
-    public HugeUser(Id id, String name) {
-        this.id = id;
         this.name = name;
         this.role = null;
     }
@@ -126,7 +114,7 @@ public class HugeUser extends Entity {
 
     @Override
     public String toString() {
-        return String.format("HugeUser(%s)%s", this.id, this.asMap());
+        return String.format("HugeUser(%s)", this.name);
     }
 
     @Override
@@ -215,9 +203,9 @@ public class HugeUser extends Entity {
         return super.asMap(map);
     }
 
-    public static HugeUser fromVertex(Vertex vertex) {
-        HugeUser user = new HugeUser((Id) vertex.id());
-        return fromVertex(vertex, user);
+    public static HugeUser fromMap(Map<String, Object> map) {
+        HugeUser user = new HugeUser("");
+        return fromMap(map, user);
     }
 
     public static Schema schema(HugeGraphParams graph) {

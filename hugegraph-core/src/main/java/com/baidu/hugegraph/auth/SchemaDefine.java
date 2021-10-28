@@ -20,17 +20,14 @@
 package com.baidu.hugegraph.auth;
 
 import java.io.Serializable;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.HugeTarget.P;
 import com.baidu.hugegraph.backend.id.Id;
@@ -44,6 +41,8 @@ import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaDefine {
+
+    public static SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     protected final HugeGraphParams graph;
     protected final String label;
@@ -120,6 +119,7 @@ public abstract class SchemaDefine {
 
         private static final long serialVersionUID = 8746691160192814973L;
 
+        protected static final String HIDE_ID = "~id";
         protected static final String CREATE = "create";
         protected static final String UPDATE = "update";
         protected static final String CREATOR = "creator";
@@ -187,8 +187,10 @@ public abstract class SchemaDefine {
                 map.put(Hidden.unHide(P.ID), this.id);
             }
 
-            map.put(unhideField(this.label(), CREATE), this.create);
-            map.put(unhideField(this.label(), UPDATE), this.update);
+            map.put(unhideField(this.label(), CREATE),
+                    FORMATTER.format(this.create));
+            map.put(unhideField(this.label(), UPDATE),
+                    FORMATTER.format(this.update));
             map.put(unhideField(this.label(), CREATOR), this.creator);
 
             return map;
@@ -196,17 +198,25 @@ public abstract class SchemaDefine {
 
         protected boolean property(String key, Object value) {
             E.checkNotNull(key, "property key");
-            if (key.equals(hideField(this.label(), CREATE))) {
-                this.create = (Date) value;
-                return true;
-            }
-            if (key.equals(hideField(this.label(), UPDATE))) {
-                this.update = (Date) value;
-                return true;
-            }
-            if (key.equals(hideField(this.label(), CREATOR))) {
-                this.creator = (String) value;
-                return true;
+            try {
+                if (key.equals(hideField(this.label(), CREATE))) {
+                    this.create = FORMATTER.parse(value.toString());
+                    return true;
+                }
+                if (key.equals(hideField(this.label(), UPDATE))) {
+                    this.update = FORMATTER.parse(value.toString());
+                    return true;
+                }
+                if (key.equals(hideField(this.label(), CREATOR))) {
+                    this.creator = (String) value;
+                    return true;
+                }
+                if (key.equals(HIDE_ID)) {
+                    this.id = IdGenerator.of((String) value);
+                    return true;
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
             }
             return false;
         }
@@ -246,16 +256,11 @@ public abstract class SchemaDefine {
 
         private static final long serialVersionUID = 4113319546914811762L;
 
-        public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
-            E.checkArgument(vertex.label().equals(entity.label()),
-                            "Illegal vertex label '%s' for entity '%s'",
-                            vertex.label(), entity.label());
-            entity.id((Id) vertex.id());
-            for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-                 iter.hasNext();) {
-                VertexProperty<Object> prop = iter.next();
-                entity.property(prop.key(), prop.value());
+        public static <T extends Entity> T fromMap(Map<String, Object> map, T entity) {
+            for (Map.Entry<String, Object> item : map.entrySet()) {
+                entity.property(Hidden.hide(item.getKey()), item.getValue());
             }
+            entity.id(IdGenerator.of(entity.name()));
             return entity;
         }
 
@@ -277,21 +282,21 @@ public abstract class SchemaDefine {
         public abstract String sourceLabel();
         public abstract String targetLabel();
 
+        public abstract String graphSpace();
         public abstract Id source();
         public abstract Id target();
 
-        public static <T extends Relationship> T fromEdge(Edge edge,
-                                                          T relationship) {
-            E.checkArgument(edge.label().equals(relationship.label()),
-                            "Illegal edge label '%s' for relationship '%s'",
-                            edge.label(), relationship.label());
-            relationship.id((Id) edge.id());
-            for (Iterator<Property<Object>> iter = edge.properties();
-                 iter.hasNext();) {
-                Property<Object> prop = iter.next();
-                relationship.property(prop.key(), prop.value());
+        public void setId() {
+            this.id(IdGenerator.of(this.source().asString() + "->" +
+                    this.target().asString()));
+        }
+
+        public static <T extends Relationship> T fromMap(Map<String, Object> map, T entity) {
+            for (Map.Entry<String, Object> item : map.entrySet()) {
+                entity.property(Hidden.hide(item.getKey()), item.getValue());
             }
-            return relationship;
+            entity.setId();
+            return entity;
         }
 
         @Override

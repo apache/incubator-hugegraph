@@ -24,7 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
@@ -39,16 +40,18 @@ public class HugeAccess extends Relationship {
 
     private static final long serialVersionUID = -7644007602408729385L;
 
-    private final Id group;
-    private final Id target;
+    private String graphSpace;
+    private Id group;
+    private Id target;
     private HugePermission permission;
     private String description;
 
-    public HugeAccess(Id group, Id target) {
-        this(group, target, null);
+    public HugeAccess(String graphSpace, Id group, Id target) {
+        this(graphSpace, group, target, null);
     }
 
-    public HugeAccess(Id group, Id target, HugePermission permission) {
+    public HugeAccess(String graphSpace, Id group, Id target, HugePermission permission) {
+        this.graphSpace = graphSpace;
         this.group = group;
         this.target = target;
         this.permission = permission;
@@ -73,6 +76,11 @@ public class HugeAccess extends Relationship {
     @Override
     public String targetLabel() {
         return P.TARGET;
+    }
+
+    @Override
+    public String graphSpace() {
+        return this.graphSpace;
     }
 
     @Override
@@ -103,8 +111,8 @@ public class HugeAccess extends Relationship {
 
     @Override
     public String toString() {
-        return String.format("HugeAccess(%s->%s)%s",
-                             this.group, this.target, this.asMap());
+        return String.format("HugeAccess(%s->%s)",
+                             this.group, this.target);
     }
 
     @Override
@@ -113,8 +121,18 @@ public class HugeAccess extends Relationship {
             return true;
         }
         switch (key) {
+            case P.GRAPHSPACE:
+                this.graphSpace = (String) value;
+                break;
+            case P.GROUP:
+                this.group = IdGenerator.of((String) value);
+                break;
+            case P.TARGET:
+                this.target = IdGenerator.of((String) value);
+                break;
             case P.PERMISSION:
-                this.permission = HugePermission.fromCode((Byte) value);
+                Integer code = (Integer) value;
+                this.permission = HugePermission.fromCode(code.byteValue());
                 break;
             case P.DESCRIPTION:
                 this.description = (String) value;
@@ -135,6 +153,15 @@ public class HugeAccess extends Relationship {
         list.add(T.label);
         list.add(P.ACCESS);
 
+        list.add(P.GRAPHSPACE);
+        list.add(this.graphSpace);
+
+        list.add(P.GROUP);
+        list.add(this.group);
+
+        list.add(P.TARGET);
+        list.add(this.target);
+
         list.add(P.PERMISSION);
         list.add(this.permission.code());
 
@@ -153,10 +180,11 @@ public class HugeAccess extends Relationship {
 
         Map<String, Object> map = new HashMap<>();
 
+        map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         map.put(Hidden.unHide(P.GROUP), this.group);
         map.put(Hidden.unHide(P.TARGET), this.target);
 
-        map.put(Hidden.unHide(P.PERMISSION), this.permission);
+        map.put(Hidden.unHide(P.PERMISSION), this.permission.code());
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
@@ -165,10 +193,26 @@ public class HugeAccess extends Relationship {
         return super.asMap(map);
     }
 
-    public static HugeAccess fromEdge(Edge edge) {
-        HugeAccess access = new HugeAccess((Id) edge.outVertex().id(),
-                                           (Id) edge.inVertex().id());
-        return fromEdge(edge, access);
+    @Override
+    public void setId() {
+        String opCode = String.valueOf(this.permission.code());
+        String accessId = accessId(this.source().asString(),
+                                   this.target.asString(),
+                                   opCode);
+        this.id(IdGenerator.of(accessId));
+    }
+
+    public static String accessId(String groupName, String targetName, String code) {
+        E.checkArgument(StringUtils.isNotEmpty(groupName) &&
+                        StringUtils.isNotEmpty(targetName),
+                        "The group name '%s' or target name '%s' is empty",
+                        groupName, targetName);
+        return String.join("->", groupName, code, targetName);
+    }
+
+    public static HugeAccess fromMap(Map<String, Object> map) {
+        HugeAccess access = new HugeAccess("", null, null);
+        return fromMap(map, access);
     }
 
     public static Schema schema(HugeGraphParams graph) {
@@ -181,8 +225,10 @@ public class HugeAccess extends Relationship {
 
         public static final String LABEL = T.label.getAccessor();
 
-        public static final String GROUP = HugeGroup.P.GROUP;
-        public static final String TARGET = HugeTarget.P.TARGET;
+        public static final String GRAPHSPACE = "~access_graphspace";
+
+        public static final String GROUP = "~group";    //HugeGroup.P.GROUP;
+        public static final String TARGET = "~target";   //HugeTarget.P.TARGET;
 
         public static final String PERMISSION = "~access_permission";
         public static final String DESCRIPTION = "~access_description";

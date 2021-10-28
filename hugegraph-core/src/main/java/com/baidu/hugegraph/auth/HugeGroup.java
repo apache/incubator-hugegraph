@@ -24,9 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.auth.SchemaDefine.Entity;
@@ -39,20 +40,23 @@ public class HugeGroup extends Entity {
     private static final long serialVersionUID = 2330399818352242686L;
 
     private String name;
+    private String graphSpace;
     private String description;
 
-    public HugeGroup(String name) {
-        this(null, name);
-    }
-
-    public HugeGroup(Id id) {
-        this(id, null);
-    }
-
-    public HugeGroup(Id id, String name) {
+    public HugeGroup(Id id, String name, String graphSpace) {
         this.id = id;
         this.name = name;
+        this.graphSpace = graphSpace;
         this.description = null;
+    }
+
+    public HugeGroup(String name, String graphSpace) {
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null,
+             name, graphSpace);
+    }
+
+    public HugeGroup(Id id, String graphSpace) {
+        this(id, id.asString(), graphSpace);
     }
 
     @Override
@@ -70,6 +74,10 @@ public class HugeGroup extends Entity {
         return this.name;
     }
 
+    public String graphSpace() {
+        return this.graphSpace;
+    }
+
     public String description() {
         return this.description;
     }
@@ -80,7 +88,7 @@ public class HugeGroup extends Entity {
 
     @Override
     public String toString() {
-        return String.format("HugeGroup(%s)%s", this.id, this.asMap());
+        return String.format("HugeGroup(%s)", this.id);
     }
 
     @Override
@@ -89,6 +97,9 @@ public class HugeGroup extends Entity {
             return true;
         }
         switch (key) {
+            case P.GRAPHSPACE:
+                this.graphSpace = (String) value;
+                break;
             case P.NAME:
                 this.name = (String) value;
                 break;
@@ -110,6 +121,9 @@ public class HugeGroup extends Entity {
         list.add(T.label);
         list.add(P.GROUP);
 
+        list.add(P.GRAPHSPACE);
+        list.add(this.graphSpace);
+
         list.add(P.NAME);
         list.add(this.name);
 
@@ -128,6 +142,7 @@ public class HugeGroup extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         map.put(Hidden.unHide(P.NAME), this.name);
+        map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
         }
@@ -135,9 +150,9 @@ public class HugeGroup extends Entity {
         return super.asMap(map);
     }
 
-    public static HugeGroup fromVertex(Vertex vertex) {
-        HugeGroup group = new HugeGroup((Id) vertex.id());
-        return fromVertex(vertex, group);
+    public static HugeGroup fromMap(Map<String, Object> map) {
+        HugeGroup group = new HugeGroup("", "");
+        return fromMap(map, group);
     }
 
     public static Schema schema(HugeGraphParams graph) {
@@ -152,6 +167,7 @@ public class HugeGroup extends Entity {
         public static final String LABEL = T.label.getAccessor();
 
         public static final String NAME = "~group_name";
+        public static final String GRAPHSPACE = "~group_graphspace";
         public static final String DESCRIPTION = "~group_description";
 
         public static String unhide(String key) {
