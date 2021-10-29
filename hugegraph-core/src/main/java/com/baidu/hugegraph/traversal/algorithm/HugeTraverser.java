@@ -168,6 +168,15 @@ public class HugeTraverser {
         return neighbors;
     }
 
+    protected int vertexDegree(Id source, EdgeStep step) {
+        int degree = 0;
+        Iterator<Edge> edges = this.edgesOfVertex(source, step);
+        while (edges.hasNext()) {
+            degree++;
+        }
+        return degree;
+    }
+
     @Watched
     protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
                                            Id label, long limit) {

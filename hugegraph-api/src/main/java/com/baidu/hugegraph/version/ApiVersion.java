@@ -117,6 +117,7 @@ public final class ApiVersion {
      * [0.65] Issue-1506: Support olap property key
      * [0.66] Issue-1567: Support get schema RESTful API
      * [0.67] Issue-1065: Support dynamically add/remove graph
+     * [0.67] Issue-10: Support adamic-adar & resource-allocation API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
