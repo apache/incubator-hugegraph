@@ -82,7 +82,11 @@ public class ComputerDisAPI extends API {
         checkCreatingBody(jsonTask);
 
         // username is "" means generate token from current context
-        String token = manager.authManager().createToken("");
+        String token = "";
+        if (manager.isAuthRequired()) {
+            token = manager.authManager().createToken("");
+        }
+
         Map<String, Object> input = ImmutableMap.of(
                             "graph", graph,
                             "algorithm", jsonTask.algorithm,

@@ -417,6 +417,10 @@ public final class GraphManager {
         return this.authenticator;
     }
 
+    public boolean isAuthRequired() {
+        return this.authenticator != null;
+    }
+
     @SuppressWarnings("unused")
     private void installLicense(HugeConfig config, String md5) {
         LicenseVerifier.instance().install(config, this, md5);
