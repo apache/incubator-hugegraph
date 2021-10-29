@@ -117,12 +117,13 @@ public final class ApiVersion {
      * [0.65] Issue-1506: Support olap property key
      * [0.66] Issue-1567: Support get schema RESTful API
      * [0.67] Issue-1065: Support dynamically add/remove graph
+     * [0.68] Issue-1741: Support adamic-adar & resource-allocation API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.67");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.68");
 
-    public static final void check() {
+    public static void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
         VersionUtil.check(CoreVersion.VERSION, "0.12", "0.13", CoreVersion.NAME);
     }
