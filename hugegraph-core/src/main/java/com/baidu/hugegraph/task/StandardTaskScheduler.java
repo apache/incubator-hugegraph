@@ -455,13 +455,17 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected void remove(HugeTask<?> task) {
+        this.remove(task, false);
+    }
+
+    protected void remove(HugeTask<?> task, boolean force) {
         E.checkNotNull(task, "remove task");
         HugeTask<?> delTask = this.tasks.remove(task.id());
         if (delTask != null && delTask != task) {
             LOG.warn("Task '{}' may be inconsistent status {}(expect {})",
                       task.id(), task.status(), delTask.status());
         }
-        assert delTask == null || delTask.completed() ||
+        assert force || delTask == null || delTask.completed() ||
                delTask.cancelling() || delTask.isCancelled() : delTask;
     }
 
@@ -567,7 +571,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> HugeTask<V> delete(Id id) {
+    public <V> HugeTask<V> delete(Id id, boolean force) {
         this.checkOnMasterNode("delete");
 
         HugeTask<?> task = this.task(id);
@@ -582,11 +586,11 @@ public class StandardTaskScheduler implements TaskScheduler {
          * when the database status is inconsistent.
          */
         if (task != null) {
-            E.checkArgument(task.completed(),
+            E.checkArgument(force || task.completed(),
                             "Can't delete incomplete task '%s' in status %s" +
                             ", Please try to cancel the task first",
                             id, task.status());
-            this.remove(task);
+            this.remove(task, force);
         }
 
         return this.call(() -> {
@@ -596,7 +600,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 return null;
             }
             HugeTask<V> result = HugeTask.fromVertex(vertex);
-            E.checkState(result.completed(),
+            E.checkState(force || result.completed(),
                          "Can't delete incomplete task '%s' in status %s",
                          id, result.status());
             this.tx().removeVertex(vertex);

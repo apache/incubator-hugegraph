@@ -1026,10 +1026,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public <V> HugeTask<V> delete(Id id) {
+        public <V> HugeTask<V> delete(Id id, boolean force) {
             verifyTaskPermission(HugePermission.DELETE,
                                  this.taskScheduler.task(id));
-            return this.taskScheduler.delete(id);
+            return this.taskScheduler.delete(id, force);
         }
 
         @Override

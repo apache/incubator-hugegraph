@@ -587,6 +587,42 @@ public class TaskCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testGremlinJobAndDelete() throws TimeoutException {
+        HugeGraph graph = graph();
+        TaskScheduler scheduler = graph.taskScheduler();
+
+        HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
+
+        sleepAWhile();
+        task = scheduler.task(task.id());
+        HugeTask<Object> finalTask = task;
+        Assert.assertThrows(IllegalArgumentException.class, () ->
+                scheduler.delete(finalTask.id()));
+        scheduler.delete(task.id(), true);
+        Assert.assertThrows(NotFoundException.class, () ->
+                scheduler.task(finalTask.id()));
+
+        // Cancel success task
+        HugeTask<Object> task2 = runGremlinJob("1+2");
+        task2 = scheduler.waitUntilTaskCompleted(task2.id(), 10);
+        Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
+        scheduler.delete(task2.id());
+        HugeTask<Object> finalTask1 = task2;
+        Assert.assertThrows(NotFoundException.class, () ->
+                scheduler.task(finalTask1.id()));
+
+        // Cancel failure task with big results (job size exceeded limit)
+        String bigList = "def l=[]; for (i in 1..800001) l.add(i); l;";
+        HugeTask<Object> task3 = runGremlinJob(bigList);
+        task3 = scheduler.waitUntilTaskCompleted(task3.id(), 12);
+        Assert.assertEquals(TaskStatus.FAILED, task3.status());
+        scheduler.delete(task3.id());
+        HugeTask<Object> finalTask2 = task3;
+        Assert.assertThrows(NotFoundException.class, () ->
+                scheduler.task(finalTask2.id()));
+    }
+
+    @Test
     public void testGremlinJobAndRestore() throws Exception {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();

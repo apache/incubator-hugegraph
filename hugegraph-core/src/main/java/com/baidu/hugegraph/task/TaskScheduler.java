@@ -41,7 +41,11 @@ public interface TaskScheduler {
 
     public <V> void save(HugeTask<V> task);
 
-    public <V> HugeTask<V> delete(Id id);
+    public <V> HugeTask<V> delete(Id id, boolean force);
+
+    public default <V> HugeTask<V> delete(Id id) {
+        return this.delete(id, false);
+    }
 
     public <V> HugeTask<V> task(Id id);
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
