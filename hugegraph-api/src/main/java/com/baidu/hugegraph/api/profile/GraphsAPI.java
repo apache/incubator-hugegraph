@@ -67,6 +67,7 @@ public class GraphsAPI extends API {
     private static final String GRAPH_ACTION = "action";
     private static final String CONFIRM_MESSAGE = "confirm_message";
     private static final String GRAPH_ACTION_CLEAR = "clear";
+    private static final String GRAPH_ACTION_RELOAD = "reload";
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";
@@ -144,27 +145,32 @@ public class GraphsAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Map<String, String> clear(
+    public Map<String, String> manage(
                                @Context GraphManager manager,
                                @PathParam("name") String name,
                                Map<String, String> actionMap) {
         LOG.debug("Clear graph by name '{}'", name);
-        E.checkArgument(actionMap != null && actionMap.size() == 2 &&
-                        actionMap.containsKey(GRAPH_ACTION) &&
-                        actionMap.containsKey(CONFIRM_MESSAGE),
-                        "Please pass '%s' and '%s' for graph clear",
-                        GRAPH_ACTION, CONFIRM_MESSAGE);
+        E.checkArgument(actionMap != null &&
+                        actionMap.containsKey(GRAPH_ACTION),
+                        "Please pass '%s' for graph manage", GRAPH_ACTION);
         String action = actionMap.get(GRAPH_ACTION);
-        E.checkArgument(GRAPH_ACTION_CLEAR.equals(action),
-                        "Not support graph action: '%s'", action);
-        String message = actionMap.get(CONFIRM_MESSAGE);
-        E.checkArgument(CONFIRM_CLEAR.equals(message),
-                        "Please take the message: %s", CONFIRM_CLEAR);
-        HugeGraph g = graph(manager, name);
-        g.truncateBackend();
-        // truncateBackend() will open tx, so must close here(commit)
-        g.tx().commit();
-        return ImmutableMap.of(name, "cleared");
+        switch (action) {
+            case GRAPH_ACTION_CLEAR:
+                String message = actionMap.get(CONFIRM_MESSAGE);
+                E.checkArgument(CONFIRM_CLEAR.equals(message),
+                                "Please take the message: %s", CONFIRM_CLEAR);
+                HugeGraph g = graph(manager, name);
+                g.truncateBackend();
+                // truncateBackend() will open tx, so must close here(commit)
+                g.tx().commit();
+                return ImmutableMap.of(name, "cleared");
+            case GRAPH_ACTION_RELOAD:
+                manager.reload(name);
+                return ImmutableMap.of(name, "reloaded");
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid graph action: '%s'", action));
+        }
     }
 
     @DELETE
@@ -180,6 +186,17 @@ public class GraphsAPI extends API {
         E.checkArgument(CONFIRM_DROP.equals(message),
                         "Please take the message: %s", CONFIRM_DROP);
         manager.dropGraph(name, true);
+    }
+
+    @PUT
+    @Timed
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
+    public Object reload(@Context GraphManager manager,
+                         Map<String, String> actionMap) {
+        LOG.debug("Reload all graphs");
+        manager.reload();
+        return ImmutableMap.of("result", "reloaded");
     }
 
     @PUT

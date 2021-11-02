@@ -167,6 +167,14 @@ public class ServerOptions extends OptionHolder {
                     "./conf/graphs"
             );
 
+    public static final ConfigOption<Boolean> SERVER_START_IGNORE_SINGLE_GRAPH_ERROR =
+            new ConfigOption<>(
+                    "server.start_ignore_single_graph_error",
+                    "Whether to start ignore single graph error.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
             new ConfigOption<>(
                     "batch.max_vertices_per_batch",
