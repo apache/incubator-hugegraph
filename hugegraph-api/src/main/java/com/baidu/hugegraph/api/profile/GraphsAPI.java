@@ -190,13 +190,24 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
+    @Path("manage")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Object reload(@Context GraphManager manager,
                          Map<String, String> actionMap) {
-        LOG.debug("Reload all graphs");
-        manager.reload();
-        return ImmutableMap.of("result", "reloaded");
+        LOG.debug("Manage graphs with '{}'", actionMap);
+        E.checkArgument(actionMap != null &&
+                        actionMap.containsKey(GRAPH_ACTION),
+                        "Please pass '%s' for graphs manage", GRAPH_ACTION);
+        String action = actionMap.get(GRAPH_ACTION);
+        switch (action) {
+            case GRAPH_ACTION_RELOAD:
+                manager.reload();
+                return ImmutableMap.of("graphs", "reloaded");
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid graphs action: '%s'", action));
+        }
     }
 
     @PUT

@@ -159,6 +159,13 @@ public final class GraphManager {
         for (String graph : this.graphs.keySet()) {
             this.dropGraph(graph, false);
         }
+        int count = 0;
+        while (!this.graphs.isEmpty() && count++ < 10) {
+            sleep1s();
+        }
+        if (!this.graphs.isEmpty()) {
+            throw new HugeException("Failed to reload grahps, try later");
+        }
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
             this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
@@ -175,7 +182,13 @@ public final class GraphManager {
         }
         // Remove graphs from GraphManager
         this.dropGraph(name, false);
-        while (this.graphs.containsKey(name));
+        int count = 0;
+        while (this.graphs.containsKey(name) && count++ < 10) {
+            sleep1s();
+        }
+        if (this.graphs.containsKey(name)) {
+            throw new HugeException("Failed to reload '%s', try later", name);
+        }
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
             Map<String, String> configs =
@@ -429,7 +442,7 @@ public final class GraphManager {
     }
 
     public HugeAuthenticator.User authenticate(Map<String, String> credentials)
-                                               throws AuthenticationException {
+                                  throws AuthenticationException {
         return this.authenticator().authenticate(credentials);
     }
 
@@ -545,7 +558,8 @@ public final class GraphManager {
                         } catch (Exception e) {
                             throw new BackendException(
                                       "The backend store of '%s' can't " +
-                                      "initialize admin user", hugegraph.name());
+                                      "initialize admin user",
+                                      hugegraph.name());
                         }
                     }
                 }
@@ -587,8 +601,8 @@ public final class GraphManager {
 
 
     private <T> void graphAddHandler(T response) {
-        List<Pair<String, String>> pairs = this.metaManager
-                                               .extractGraphsFromResponse(response);
+        List<Pair<String, String>> pairs =
+                this.metaManager.extractGraphsFromResponse(response);
         for (Pair<String, String> pair : pairs) {
             // TODO: use namespace after supported
             String namespace = pair.getLeft();
@@ -618,8 +632,8 @@ public final class GraphManager {
     }
 
     private <T> void graphRemoveHandler(T response) {
-        List<Pair<String, String>> pairs = this.metaManager
-                                               .extractGraphsFromResponse(response);
+        List<Pair<String, String>> pairs =
+                this.metaManager.extractGraphsFromResponse(response);
         for (Pair<String, String> pair : pairs) {
             // TODO: use namespace after supported
             String namespace = pair.getLeft();
@@ -652,7 +666,7 @@ public final class GraphManager {
                                   () -> maxWriteThreads);
 
         // Add metrics for caches
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Map<String, Cache<?, ?>> caches = (Map) CacheManager.instance()
                                                             .caches();
         registerCacheMetrics(caches);
@@ -707,6 +721,14 @@ public final class GraphManager {
             MetricsUtil.registerGauge(Cache.class, exp, () -> cache.expire());
             MetricsUtil.registerGauge(Cache.class, size, () -> cache.size());
             MetricsUtil.registerGauge(Cache.class, cap, () -> cache.capacity());
+        }
+    }
+
+    public static void sleep1s() {
+        try {
+            Thread.sleep(1000L);
+        } catch(InterruptedException e) {
+            // ignore
         }
     }
 }
