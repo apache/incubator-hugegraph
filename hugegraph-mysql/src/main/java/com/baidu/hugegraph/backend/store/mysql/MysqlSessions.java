@@ -493,16 +493,9 @@ public class MysqlSessions extends BackendSessionPool {
             if (!this.conn.getAutoCommit()) {
                 this.end();
             }
-            Statement statement = null;
-            try {
-                statement = this.conn.createStatement();
+            
+            try (Statement statement = this.conn.createStatement()) {
                 return statement.execute(sql);
-            } catch (SQLException sqlException) {
-                throw sqlException;
-            } finally {
-                if (statement != null) {
-                    statement.close();
-                }
             }
         }
 
