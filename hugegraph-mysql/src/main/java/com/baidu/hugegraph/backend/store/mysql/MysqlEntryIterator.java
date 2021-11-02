@@ -39,17 +39,17 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class MysqlEntryIterator extends BackendEntryIterator {
 
-    private final ResultSet results;
+    private final ResultSetWrapper resultSetWrapper;
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
     private BackendEntry next;
     private BackendEntry lastest;
     private boolean exceedLimit;
 
-    public MysqlEntryIterator(ResultSet rs, Query query,
+    public MysqlEntryIterator(ResultSetWrapper rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
-        this.results = rs;
+        this.resultSetWrapper = rs;
         this.merger = merger;
         this.next = null;
         this.lastest = null;
@@ -65,8 +65,8 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         }
 
         try {
-            while (!this.results.isClosed() && this.results.next()) {
-                MysqlBackendEntry entry = this.row2Entry(this.results);
+            while (!this.resultSetWrapper.getResultSet().isClosed() && this.resultSetWrapper.getResultSet().next()) {
+                MysqlBackendEntry entry = this.row2Entry(this.resultSetWrapper.getResultSet());
                 this.lastest = entry;
                 BackendEntry merged = this.merger.apply(this.current, entry);
                 if (this.current == null) {
@@ -87,7 +87,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                     this.exceedLimit = true;
                     // Need remove last one because fetched limit + 1 records
                     this.removeLastRecord();
-                    this.results.close();
+                    this.resultSetWrapper.close();
                     break;
                 }
             }
@@ -135,7 +135,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
     @Override
     public void close() throws Exception {
-        this.results.close();
+        this.resultSetWrapper.close();
     }
 
     private MysqlBackendEntry row2Entry(ResultSet result) throws SQLException {
