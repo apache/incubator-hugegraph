@@ -197,10 +197,10 @@ public class PaloSessions extends MysqlSessions {
         @SuppressWarnings("unused")
         private PaloLoadInfo getLoadInfoByLabel(String label) {
             String sql = String.format("SHOW LOAD WHERE LABEL = '%s'", label);
-            ResultSetWrapper resultSetWrapper = null;
+            ResultSetWrapper results = null;
             try {
-                resultSetWrapper = this.select(sql);
-                ResultSet resultSet = resultSetWrapper.getResultSet();
+                results = this.select(sql);
+                ResultSet resultSet = results.getResultSet();
 
                 if (resultSet.next()) {
                     return new PaloLoadInfo(resultSet);
@@ -210,8 +210,8 @@ public class PaloSessions extends MysqlSessions {
                 throw new BackendException("Failed to fetch load info " +
                                            "for label '%s'", e, label);
             } finally {
-                if (resultSetWrapper != null) {
-                    resultSetWrapper.close();
+                if (results != null) {
+                    results.close();
                 }
             }
         }
