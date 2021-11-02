@@ -25,18 +25,20 @@ public class ResultSetWrapper implements AutoCloseable{
             if (this.resultSet != null) {
                 this.resultSet.close();
             }
-
-            if (this.statement != null) {
-                this.statement.close();
-            }
         } catch (SQLException e) {
-            throw new BackendException(
-                    "Failed to close resultSet and statement", e);
+            throw new BackendException("Failed to close ResultSet", e);
+        } finally {
+            try {
+                if (this.statement != null) {
+                    this.statement.close();
+                }
+            } catch (SQLException e) {
+                throw new BackendException("Failed to close Statement", e);
+            }
         }
     }
 
     public ResultSet resultSet() {
         return resultSet;
     }
-    
 }
