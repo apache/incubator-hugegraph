@@ -364,8 +364,8 @@ public abstract class MysqlTable
         List<StringBuilder> selections = this.query2Select(this.table(), query);
         try {
             for (StringBuilder selection : selections) {
-                ResultSetWrapper resultSetWrapper = session.select(selection.toString());
-                rs.extend(parser.apply(query, resultSetWrapper));
+                ResultSetWrapper results = session.select(selection.toString());
+                rs.extend(parser.apply(query, results));
             }
         } catch (SQLException e) {
             throw new BackendException("Failed to query [%s]", e, query);
@@ -672,8 +672,8 @@ public abstract class MysqlTable
     }
 
     protected Iterator<BackendEntry> results2Entries(Query query,
-                                                     ResultSetWrapper resultSetWrapper) {
-        return new MysqlEntryIterator(resultSetWrapper, query, this::mergeEntries);
+                                                     ResultSetWrapper results) {
+        return new MysqlEntryIterator(results, query, this::mergeEntries);
     }
 
     protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
