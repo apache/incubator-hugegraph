@@ -111,6 +111,33 @@ public class RestClientTest {
             this.content = "";
         }
 
+        public RestClientImpl(String url, String token,
+                              int timeout, int status) {
+            super(url, token, timeout);
+            this.status = status;
+            this.headers = ImmutableMultivaluedMap.empty();
+            this.content = "";
+        }
+
+        public RestClientImpl(String url, String token, int timeout,
+                              int maxTotal, int maxPerRoute, int status) {
+            super(url, token, timeout, maxTotal, maxPerRoute);
+            this.status = status;
+            this.headers = ImmutableMultivaluedMap.empty();
+            this.content = "";
+        }
+
+        public RestClientImpl(String url, String token, int timeout,
+                              int maxTotal, int maxPerRoute,
+                              String trustStoreFile,
+                              String trustStorePassword, int status) {
+            super(url, token, timeout, maxTotal, maxPerRoute,
+                  trustStoreFile, trustStorePassword);
+            this.status = status;
+            this.headers = ImmutableMultivaluedMap.empty();
+            this.content = "";
+        }
+
         public RestClientImpl(String url, int timeout, int status) {
             this(url, timeout, status, ImmutableMultivaluedMap.empty(), "");
         }
@@ -219,8 +246,23 @@ public class RestClientTest {
     }
 
     @Test
+    public void testPostWithToken() {
+        RestClient client = new RestClientImpl("/test", "token", 1000, 200);
+        RestResult restResult = client.post("path", "body");
+        Assert.assertEquals(200, restResult.status());
+    }
+
+    @Test
     public void testPostWithAllParams() {
         RestClient client = new RestClientImpl("/test", "user", "", 1000,
+                                               10, 5, 200);
+        RestResult restResult = client.post("path", "body");
+        Assert.assertEquals(200, restResult.status());
+    }
+
+    @Test
+    public void testPostWithTokenAndAllParams() {
+        RestClient client = new RestClientImpl("/test", "token", 1000,
                                                10, 5, 200);
         RestResult restResult = client.post("path", "body");
         Assert.assertEquals(200, restResult.status());
@@ -231,6 +273,17 @@ public class RestClientTest {
         String trustStoreFile = "src/test/resources/cacerts.jks";
         String trustStorePassword = "changeit";
         RestClient client = new RestClientImpl("/test", "user", "", 1000,
+                                               10, 5, trustStoreFile,
+                                               trustStorePassword, 200);
+        RestResult restResult = client.post("path", "body");
+        Assert.assertEquals(200, restResult.status());
+    }
+
+    @Test
+    public void testPostHttpsWithTokenAndAllParams() {
+        String trustStoreFile = "src/test/resources/cacerts.jks";
+        String trustStorePassword = "changeit";
+        RestClient client = new RestClientImpl("/test", "token", 1000,
                                                10, 5, trustStoreFile,
                                                trustStorePassword, 200);
         RestResult restResult = client.post("path", "body");

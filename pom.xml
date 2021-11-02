@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.8.9</version>
+    <version>1.8.10</version>
 
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>

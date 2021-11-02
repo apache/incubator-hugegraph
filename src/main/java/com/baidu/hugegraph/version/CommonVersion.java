@@ -27,5 +27,5 @@ public class CommonVersion {
 
     // The second parameter of Version.of() is for all-in-one JAR
     public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "1.8.9");
+                                                     "1.8.10");
 }

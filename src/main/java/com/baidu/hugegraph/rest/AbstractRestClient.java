@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.rest;
 
+import java.io.IOException;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
@@ -38,6 +39,8 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.ClientRequestContext;
+import javax.ws.rs.client.ClientRequestFilter;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.client.WebTarget;
@@ -77,6 +80,8 @@ public abstract class AbstractRestClient implements RestClient {
     private static final long TTL = 24L;
     // Time unit: ms
     private static final long IDLE_TIME = 40L * 1000L;
+
+    private static final String TOKEN_KEY = "tokenKey";
 
     private final Client client;
     private final WebTarget target;
@@ -124,6 +129,32 @@ public abstract class AbstractRestClient implements RestClient {
                               String trustStorePassword) {
         this(url, new ConfigBuilder().configTimeout(timeout)
                                      .configUser(user, password)
+                                     .configPool(maxTotal, maxPerRoute)
+                                     .configSSL(trustStoreFile,
+                                                trustStorePassword)
+                                     .build());
+    }
+
+    public AbstractRestClient(String url, String token, int timeout) {
+        this(url, new ConfigBuilder().configTimeout(timeout)
+                                     .configToken(token)
+                                     .build());
+    }
+
+    public AbstractRestClient(String url, String token, int timeout,
+                              int maxTotal, int maxPerRoute) {
+        this(url, new ConfigBuilder().configTimeout(timeout)
+                                     .configToken(token)
+                                     .configPool(maxTotal, maxPerRoute)
+                                     .build());
+    }
+
+    public AbstractRestClient(String url, String token, int timeout,
+                              int maxTotal, int maxPerRoute,
+                              String trustStoreFile,
+                              String trustStorePassword) {
+        this(url, new ConfigBuilder().configTimeout(timeout)
+                                     .configToken(token)
                                      .configPool(maxTotal, maxPerRoute)
                                      .configSSL(trustStoreFile,
                                                 trustStorePassword)
@@ -519,6 +550,12 @@ public abstract class AbstractRestClient implements RestClient {
             return this;
         }
 
+        public ConfigBuilder configToken(String token) {
+            this.config.property(TOKEN_KEY, token);
+            this.config.register(BearerRequestFilter.class);
+            return this;
+        }
+
         public ConfigBuilder configPool(int maxTotal, int maxPerRoute) {
             this.config.property("maxTotal", maxTotal);
             this.config.property("maxPerRoute", maxPerRoute);
@@ -545,6 +582,17 @@ public abstract class AbstractRestClient implements RestClient {
 
         public ClientConfig build() {
             return this.config;
+        }
+    }
+
+    public static class BearerRequestFilter implements ClientRequestFilter {
+
+        @Override
+        public void filter(ClientRequestContext context) throws IOException {
+            String token = context.getClient().getConfiguration()
+                                  .getProperty(TOKEN_KEY).toString();
+            context.getHeaders().add(HttpHeaders.AUTHORIZATION,
+                                     "Bearer " + token);
         }
     }
 }
