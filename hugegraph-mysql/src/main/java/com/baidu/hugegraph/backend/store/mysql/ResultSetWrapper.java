@@ -6,10 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class ResultSetWrapper {
+public class ResultSetWrapper implements AutoCloseable{
 
-    private ResultSet resultSet;
-    private Statement statement;
+    private final ResultSet resultSet;
+    private final Statement statement;
 
     public ResultSetWrapper(ResultSet resultSet, Statement statement) {
         this.resultSet = resultSet;
@@ -17,21 +17,17 @@ public class ResultSetWrapper {
     }
 
     public boolean next() throws SQLException {
-        return resultSet.next();
-    }
-
-    public boolean isClosed() throws SQLException {
-        return resultSet.isClosed();
+        return !this.resultSet.isClosed() && this.resultSet.next();
     }
 
     public void close() {
         try {
-            if (resultSet != null) {
-                resultSet.close();
+            if (this.resultSet != null) {
+                this.resultSet.close();
             }
 
-            if (statement != null) {
-                statement.close();
+            if (this.statement != null) {
+                this.statement.close();
             }
         } catch (SQLException e) {
             throw new BackendException(
@@ -39,19 +35,8 @@ public class ResultSetWrapper {
         }
     }
 
-    public ResultSet getResultSet() {
+    public ResultSet resultSet() {
         return resultSet;
     }
-
-    public void setResultSet(ResultSet resultSet) {
-        this.resultSet = resultSet;
-    }
-
-    public Statement getStatement() {
-        return statement;
-    }
-
-    public void setStatement(Statement statement) {
-        this.statement = statement;
-    }
+    
 }
