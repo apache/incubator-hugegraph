@@ -39,7 +39,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class MysqlEntryIterator extends BackendEntryIterator {
 
-    private final ResultSetWrapper resultSetWrapper;
+    private final ResultSetWrapper results;
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
     private BackendEntry next;
@@ -49,7 +49,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     public MysqlEntryIterator(ResultSetWrapper rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
-        this.resultSetWrapper = rs;
+        this.results = rs;
         this.merger = merger;
         this.next = null;
         this.lastest = null;
@@ -65,8 +65,8 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         }
 
         try {
-            while (!this.resultSetWrapper.getResultSet().isClosed() && this.resultSetWrapper.getResultSet().next()) {
-                MysqlBackendEntry entry = this.row2Entry(this.resultSetWrapper.getResultSet());
+            while (!this.results.isClosed() && this.results.next()) {
+                MysqlBackendEntry entry = this.row2Entry(this.results.getResultSet());
                 this.lastest = entry;
                 BackendEntry merged = this.merger.apply(this.current, entry);
                 if (this.current == null) {
@@ -87,7 +87,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
                     this.exceedLimit = true;
                     // Need remove last one because fetched limit + 1 records
                     this.removeLastRecord();
-                    this.resultSetWrapper.close();
+                    this.results.close();
                     break;
                 }
             }
@@ -135,7 +135,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
 
     @Override
     public void close() throws Exception {
-        this.resultSetWrapper.close();
+        this.results.close();
     }
 
     private MysqlBackendEntry row2Entry(ResultSet result) throws SQLException {
