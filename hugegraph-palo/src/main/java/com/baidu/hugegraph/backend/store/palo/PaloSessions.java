@@ -198,9 +198,9 @@ public class PaloSessions extends MysqlSessions {
         private PaloLoadInfo getLoadInfoByLabel(String label) {
             String sql = String.format("SHOW LOAD WHERE LABEL = '%s'", label);
             try (ResultSetWrapper results = this.select(sql)){
-                ResultSet resultSet = results.resultSet();
-                if (resultSet.next()) {
-                    return new PaloLoadInfo(resultSet);
+                ResultSet rs = results.resultSet();
+                if (rs.next()) {
+                    return new PaloLoadInfo(rs);
                 }
                 throw new BackendException("Non-exist load label '%s'", label);
             } catch (SQLException e) {
