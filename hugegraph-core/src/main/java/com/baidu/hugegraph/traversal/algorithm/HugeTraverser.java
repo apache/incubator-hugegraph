@@ -33,8 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 
-import com.baidu.hugegraph.structure.HugeVertex;
-import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -55,7 +53,9 @@ import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
+import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.CollectionType;
@@ -68,6 +68,7 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 
 public class HugeTraverser {
 
@@ -169,12 +170,7 @@ public class HugeTraverser {
     }
 
     protected int vertexDegree(Id source, EdgeStep step) {
-        int degree = 0;
-        Iterator<Edge> edges = this.edgesOfVertex(source, step);
-        while (edges.hasNext()) {
-            degree++;
-        }
-        return degree;
+        return Iterators.size(this.edgesOfVertex(source, step));
     }
 
     @Watched

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import static java.lang.Math.log;
+
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
@@ -40,11 +42,11 @@ public class PredictionTraverser extends OltpTraverser {
                              String label, long degree, long limit) {
         Set<Id> neighbors = checkAndGetCommonNeighbors(source, target, dir,
                                                        label, degree, limit);
-        EdgeStep step = new EdgeStep(graph(), dir, ImmutableList.of(label));
+        EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
+                        new EdgeStep(graph(), dir, ImmutableList.of(label));
 
         return neighbors.stream()
-                        .mapToDouble(vid -> 1.0 / Math.log(
-                                                  this.vertexDegree(vid, step)))
+                        .mapToDouble(vid -> 1.0 / log(vertexDegree(vid, step)))
                         .sum();
     }
 
@@ -52,10 +54,11 @@ public class PredictionTraverser extends OltpTraverser {
                                      String label, long degree, long limit) {
         Set<Id> neighbors = checkAndGetCommonNeighbors(source, target, dir,
                                                        label, degree, limit);
-        EdgeStep step = new EdgeStep(graph(), dir, ImmutableList.of(label));
+        EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
+                        new EdgeStep(graph(), dir, ImmutableList.of(label));
 
         return neighbors.stream()
-                        .mapToDouble(vid -> 1.0 / this.vertexDegree(vid, step))
+                        .mapToDouble(vid -> 1.0 / vertexDegree(vid, step))
                         .sum();
     }
 
