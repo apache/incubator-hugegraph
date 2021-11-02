@@ -476,12 +476,13 @@ public class MysqlSessions extends BackendSessionPool {
 
         public ResultSetWrapper select(String sql) throws SQLException {
             assert this.conn.getAutoCommit();
+            Statement statement = this.conn.createStatement();
             try {
-                Statement statement = this.conn.createStatement();
                 ResultSet rs = statement.executeQuery(sql);
                 return new ResultSetWrapper(rs, statement);
-            } catch (SQLException sqlException) {
-                throw sqlException;
+            } catch (SQLException e) {
+                statement.close();
+                throw e;
             }
         }
 
