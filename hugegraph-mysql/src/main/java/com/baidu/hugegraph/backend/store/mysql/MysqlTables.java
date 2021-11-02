@@ -108,8 +108,11 @@ public class MysqlTables {
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
                                           this.table(), schemaCol, type.name());
+            ResultSetWrapper resultSetWrapper = null;
             try {
-                ResultSet resultSet = session.select(select);
+                resultSetWrapper = session.select(select);
+                ResultSet resultSet = resultSetWrapper.getResultSet();
+
                 if (resultSet.next()) {
                     return resultSet.getLong(idCol);
                 } else {
@@ -119,6 +122,10 @@ public class MysqlTables {
                 throw new BackendException(
                           "Failed to get id from counters with type '%s'",
                           e, type);
+            } finally {
+                if (resultSetWrapper != null) {
+                    resultSetWrapper.close();
+                }
             }
         }
 
