@@ -21,7 +21,6 @@ package com.baidu.hugegraph.backend.store.mysql;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -335,10 +334,10 @@ public abstract class MysqlTable
 
         Iterator<Number> results = this.query(session, query, (q, rs) -> {
             try {
-                if (!rs.getResultSet().next()) {
+                if (!rs.resultSet().next()) {
                     return IteratorUtils.of(aggregate.defaultValue());
                 }
-                return IteratorUtils.of(rs.getResultSet().getLong(1));
+                return IteratorUtils.of(rs.resultSet().getLong(1));
             } catch (SQLException e) {
                 throw new BackendException(e);
             }
