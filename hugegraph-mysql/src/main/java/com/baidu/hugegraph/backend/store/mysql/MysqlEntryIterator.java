@@ -65,7 +65,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         }
 
         try {
-            while (!this.results.isClosed() && this.results.next()) {
+            while (this.results.next()) {
                 MysqlBackendEntry entry = this.row2Entry(this.results.resultSet());
                 this.lastest = entry;
                 BackendEntry merged = this.merger.apply(this.current, entry);
