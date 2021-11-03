@@ -42,7 +42,7 @@ public class ScyllaDBTablesWithMV {
             Object value = cq.condition(key);
             return value != null && cq.allSysprop() &&
                    conditions.size() == 1 &&
-                   cq.containsCondition(key, Condition.RelationType.EQ);
+                   cq.containsRelation(key, Condition.RelationType.EQ);
         }
         return false;
     }

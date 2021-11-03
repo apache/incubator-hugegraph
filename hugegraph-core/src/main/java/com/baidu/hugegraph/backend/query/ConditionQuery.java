@@ -50,7 +50,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public final class ConditionQuery extends IdQuery {
+public class ConditionQuery extends IdQuery {
 
     private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
 
@@ -197,7 +197,8 @@ public final class ConditionQuery extends IdQuery {
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
-                if (r.key().equals(key) && r.relation() == RelationType.EQ) {
+                if (r.key().equals(key) && (r.relation() == RelationType.EQ ||
+                                            r.relation() == RelationType.IN)) {
                     values.add(r.value());
                 }
             }
@@ -216,8 +217,7 @@ public final class ConditionQuery extends IdQuery {
         for (Iterator<Condition> iter = this.conditions.iterator();
              iter.hasNext();) {
             Condition c = iter.next();
-            E.checkState(c.isRelation(), "Can't unset condition '%s'", c);
-            if (((Condition.Relation) c).key().equals(key)) {
+            if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
                 iter.remove();
             }
         }
@@ -235,8 +235,7 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsCondition(HugeKeys key,
-                                     Condition.RelationType type) {
+    public boolean containsRelation(HugeKeys key, Condition.RelationType type) {
         for (Relation r : this.relations()) {
             if (r.key().equals(key) && r.relation().equals(type)) {
                 return true;
@@ -245,7 +244,7 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsCondition(Condition.RelationType type) {
+    public boolean containsRelation(Condition.RelationType type) {
         for (Relation r : this.relations()) {
             if (r.relation().equals(type)) {
                 return true;
@@ -254,8 +253,8 @@ public final class ConditionQuery extends IdQuery {
         return false;
     }
 
-    public boolean containsScanCondition() {
-        return this.containsCondition(Condition.RelationType.SCAN);
+    public boolean containsScanRelation() {
+        return this.containsRelation(Condition.RelationType.SCAN);
     }
 
     public boolean containsContainsCondition(Id key) {

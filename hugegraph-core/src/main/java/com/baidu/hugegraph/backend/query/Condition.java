@@ -611,6 +611,9 @@ public abstract class Condition {
         public abstract boolean isSysprop();
 
         public abstract Object key();
+
+        @Override
+        public abstract Relation copy();
     }
 
     public static class SyspropRelation extends Relation {
@@ -629,7 +632,7 @@ public abstract class Condition {
         }
 
         @Override
-        public Object key() {
+        public HugeKeys key() {
             return this.key;
         }
 
@@ -646,12 +649,24 @@ public abstract class Condition {
         }
 
         @Override
-        public Condition copy() {
+        public Relation copy() {
             Relation clone = new SyspropRelation(this.key, this.relation(),
                                                  this.value);
             clone.serialKey(this.serialKey);
             clone.serialValue(this.serialValue);
             return clone;
+        }
+    }
+
+    public static class FlattenSyspropRelation extends SyspropRelation {
+
+        public FlattenSyspropRelation(SyspropRelation relation) {
+            super(relation.key(), relation.relation(), relation.value());
+        }
+
+        @Override
+        public boolean isFlattened() {
+            return true;
         }
     }
 
@@ -699,7 +714,7 @@ public abstract class Condition {
         }
 
         @Override
-        public Condition copy() {
+        public Relation copy() {
             Relation clone = new UserpropRelation(this.key, this.relation(),
                                                   this.value);
             clone.serialKey(this.serialKey);

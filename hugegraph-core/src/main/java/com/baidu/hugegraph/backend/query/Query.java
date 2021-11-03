@@ -42,7 +42,8 @@ public class Query implements Cloneable {
 
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
-    public static final long COMMIT_BATCH = 500;
+    public static final long COMMIT_BATCH = 500L;
+    public static final long QUERY_BATCH = 100L;
 
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
