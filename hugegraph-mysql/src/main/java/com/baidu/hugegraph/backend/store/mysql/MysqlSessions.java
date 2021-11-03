@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -473,9 +474,16 @@ public class MysqlSessions extends BackendSessionPool {
             }
         }
 
-        public ResultSet select(String sql) throws SQLException {
+        public ResultSetWrapper select(String sql) throws SQLException {
             assert this.conn.getAutoCommit();
-            return this.conn.createStatement().executeQuery(sql);
+            Statement statement = this.conn.createStatement();
+            try {
+                ResultSet rs = statement.executeQuery(sql);
+                return new ResultSetWrapper(rs, statement);
+            } catch (SQLException e) {
+                statement.close();
+                throw e;
+            }
         }
 
         public boolean execute(String sql) throws SQLException {
@@ -486,7 +494,10 @@ public class MysqlSessions extends BackendSessionPool {
             if (!this.conn.getAutoCommit()) {
                 this.end();
             }
-            return this.conn.createStatement().execute(sql);
+            
+            try (Statement statement = this.conn.createStatement()) {
+                return statement.execute(sql);
+            }
         }
 
         public void add(PreparedStatement statement) {

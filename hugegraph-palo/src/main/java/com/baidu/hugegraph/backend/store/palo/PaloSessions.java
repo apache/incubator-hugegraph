@@ -36,6 +36,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.baidu.hugegraph.backend.store.mysql.ResultSetWrapper;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -196,16 +197,10 @@ public class PaloSessions extends MysqlSessions {
         @SuppressWarnings("unused")
         private PaloLoadInfo getLoadInfoByLabel(String label) {
             String sql = String.format("SHOW LOAD WHERE LABEL = '%s'", label);
-            ResultSet result;
-            try {
-                result = this.select(sql);
-            } catch (SQLException e) {
-                throw new BackendException("Failed to fetch load info " +
-                                           "for label '%s'", e, label);
-            }
-            try {
-                if (result.next()) {
-                    return new PaloLoadInfo(result);
+            try (ResultSetWrapper results = this.select(sql)){
+                ResultSet rs = results.resultSet();
+                if (rs.next()) {
+                    return new PaloLoadInfo(rs);
                 }
                 throw new BackendException("Non-exist load label '%s'", label);
             } catch (SQLException e) {
