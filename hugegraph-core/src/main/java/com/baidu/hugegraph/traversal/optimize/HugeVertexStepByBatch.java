@@ -42,8 +42,6 @@ public class HugeVertexStepByBatch<E extends Element>
 
     private static final long serialVersionUID = -3609787815053052222L;
 
-    private final int batchSize = (int) Query.QUERY_BATCH;
-
     private BatchMapperIterator<Traverser.Admin<Vertex>, E> batchIterator;
     private Traverser.Admin<Vertex> head;
     private Iterator<E> iterator;
@@ -59,8 +57,9 @@ public class HugeVertexStepByBatch<E extends Element>
     protected Traverser.Admin<E> processNextStart() {
         /* Override super.processNextStart() */
         if (this.batchIterator == null) {
+            int batchSize = (int) Query.QUERY_BATCH;
             this.batchIterator = new BatchMapperIterator<>(
-                                 this.batchSize, this.starts, this::flatMap);
+                                 batchSize, this.starts, this::flatMap);
         }
 
         if (this.batchIterator.hasNext()) {
