@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.api;
 
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.GenericType;
@@ -28,6 +29,7 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
@@ -40,42 +42,57 @@ public class LoginApiTest extends BaseApiTest {
 
     private static final String PATH = "graphs/auth";
     private static final String USER_PATH = "graphs/auth/users";
-    private String userId4Test;
 
     @Before
-    public void setup() {
-        Response r = this.createUser("test1", "test1");
-        Map<String, Object> user = r.readEntity(
-                                     new GenericType<Map<String, Object>>(){});
-        this.userId4Test = (String) user.get("id");
-    }
+    public void setup() {}
 
     @After
     public void teardown() {
-        Response r = this.deleteUser(userId4Test);
+        Response r = this.client().get(USER_PATH, ImmutableMap.of("limit",
+                                                                  -1));
+        String result = r.readEntity(String.class);
+        Map<String, List<Map<String, Object>>> resultMap =
+                    JsonUtil.fromJson(result,
+                                      new TypeReference<Map<String,
+                                      List<Map<String, Object>>>>() {});
+        List<Map<String, Object>> users = resultMap.get("users");
+        for (Map<String, Object> user : users) {
+            if (user.get("user_name").equals("admin")) {
+                continue;
+            }
+            this.client().delete(PATH, (String) user.get("id"));
+        }
     }
 
     @Test
     public void testLogin() {
-        Response r;
+        Response r = this.createUser("logintest1", "logintest1");
+        Map<String, Object> user = r.readEntity(
+                            new GenericType<Map<String, Object>>(){});
+        String userId = (String) user.get("id");
+        assert userId != null : userId;
 
-        r = this.login("test1", "test1");
+        r = this.login("logintest1", "logintest1");
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
-        r = this.login("test1", "pass1");
+        r = this.login("logintest1", "pass1");
         assertResponseStatus(401, r);
 
-        r = this.login("pass1", "pass1");
+        r = this.login("pass1", "logintest1");
         assertResponseStatus(401, r);
     }
 
     @Test
     public void testLogout() {
-        Response r;
-        String result;
+        Response r = this.createUser("logouttest1", "logouttest1");
+        Map<String, Object> user = r.readEntity(
+                            new GenericType<Map<String, Object>>(){});
+        String userId = (String) user.get("id");
+        assert userId != null : userId;
 
-        r = this.login("test1", "test1");
+        String result;
+        r = this.login("logouttest1", "logouttest1");
         result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
@@ -96,10 +113,14 @@ public class LoginApiTest extends BaseApiTest {
 
     @Test
     public void testVerify() {
-        Response r;
-        String result;
+        Response r = this.createUser("verifytest1", "verifytest1");
+        Map<String, Object> user = r.readEntity(
+                            new GenericType<Map<String, Object>>(){});
+        String userId = (String) user.get("id");
+        assert userId != null : userId;
 
-        r = this.login("test1", "test1");
+        String result;
+        r = this.login("verifytest1", "verifytest1");
         result = assertResponseStatus(200, r);
         assertJsonContains(result, "token");
 
@@ -114,11 +135,10 @@ public class LoginApiTest extends BaseApiTest {
         assertJsonContains(result, "user_id");
         assertJsonContains(result, "user_name");
 
-        Map<String, Object> user = JsonUtil.fromJson(
-                                   result,
-                                   new TypeReference<Map<String, Object>>(){});
-        Assert.assertEquals(this.userId4Test, user.get("user_id"));
-        Assert.assertEquals("test1", user.get("user_name"));
+        user = JsonUtil.fromJson(result, new TypeReference<Map<String,
+                                                               Object>>(){});
+        Assert.assertEquals(userId, user.get("user_id"));
+        Assert.assertEquals("verifytest1", user.get("user_name"));
 
         String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();

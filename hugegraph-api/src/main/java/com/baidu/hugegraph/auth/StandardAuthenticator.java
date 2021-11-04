@@ -20,6 +20,10 @@
 package com.baidu.hugegraph.auth;
 
 import java.net.InetAddress;
+import java.util.List;
+
+import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.meta.MetaManager;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 
@@ -33,11 +37,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
     private AuthManager authManager = null;
 
     @Override
-    public void setup(HugeConfig config) {}
-
-    @Override
-    public void setup(AuthManager authManager) {
-        this.authManager = authManager;
+    public void setup(HugeConfig config) {
+        String cluster = config.get(ServerOptions.CLUSTER);
+        List<String> endpoints = config.get(ServerOptions.META_ENDPOINTS);
+        MetaManager metaManager = MetaManager.instance();
+        metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD,
+                            endpoints);
+        this.authManager = new StandardAuthManager(metaManager,
+                                                   config);
     }
 
     /**
@@ -84,5 +91,22 @@ public class StandardAuthenticator implements HugeAuthenticator {
     @Override
     public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
         throw new NotImplementedException("SaslNegotiator is unsupported");
+    }
+
+    public static void initAdminUserIfNeeded(String confFile) throws Exception {
+        MetaManager metaManager = MetaManager.instance();
+        HugeConfig config = new HugeConfig(confFile);
+        String authClass = config.get(ServerOptions.AUTHENTICATOR);
+        if (authClass.isEmpty()) {
+            return;
+        }
+
+        List<String> endpoints = config.get(ServerOptions.META_ENDPOINTS);
+        String cluster = config.get(ServerOptions.CLUSTER);
+        metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD,
+                            endpoints);
+        StandardAuthManager authManager = new StandardAuthManager(metaManager,
+                                                                  config);
+        authManager.initAdmin();
     }
 }

@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 
@@ -54,16 +56,19 @@ public class HugeTarget extends Entity {
     }
 
     public HugeTarget(String name, String graphSpace, String url) {
-        this(null, name,graphSpace,  name, url, EMPTY);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
+             graphSpace,  name, url, EMPTY);
     }
 
     public HugeTarget(String name, String graphSpace, String graph, String url) {
-        this(null, name, graphSpace, graph, url, EMPTY);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
+             graphSpace, graph, url, EMPTY);
     }
 
     public HugeTarget(String name, String graphSpace, String graph, String url,
                       List<HugeResource> resources) {
-        this(null, name, graphSpace, graph, url, resources);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
+             graphSpace, graph, url, resources);
     }
 
     private HugeTarget(Id id, String name, String graphSpace, String graph, String url,

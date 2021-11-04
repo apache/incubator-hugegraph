@@ -105,7 +105,7 @@ public class InitStore {
             initGraph(graphConfs.get(graphName));
         }
 
-        // StandardAuthenticator.initAdminUserIfNeeded(restConf);
+        StandardAuthenticator.initAdminUserIfNeeded(restConf);
 
         HugeFactory.shutdown(30L);
     }

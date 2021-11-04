@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
-
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -33,10 +32,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeGroup;
@@ -69,7 +67,8 @@ public class GroupAPI extends API {
         checkCreatingBody(jsonGroup);
 
         HugeGroup group = jsonGroup.build(graphSpace);
-        group.id(manager.authManager().createGroup(graphSpace, group));
+        AuthManager authManager = manager.authManager();
+        group.id(authManager.createGroup(graphSpace, group, true));
         return manager.serializer().writeAuthElement(group);
     }
 
@@ -86,7 +85,8 @@ public class GroupAPI extends API {
         checkUpdatingBody(jsonGroup);
 
         HugeGroup group = jsonGroup.build(graphSpace);
-        manager.authManager().updateGroup(graphSpace, group);
+        AuthManager authManager = manager.authManager();
+        authManager.updateGroup(graphSpace, group, true);
         return manager.serializer().writeAuthElement(group);
     }
 
@@ -98,8 +98,11 @@ public class GroupAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list groups", graphSpace);
 
+        AuthManager authManager = manager.authManager();
         List<HugeGroup> groups = manager.authManager()
-                                        .listAllGroups(graphSpace, limit);
+                                        .listAllGroups(graphSpace,
+                                                       limit,
+                                                       true);
         return manager.serializer().writeAuthElements("groups", groups);
     }
 
@@ -112,8 +115,10 @@ public class GroupAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get group: {}", graphSpace, id);
 
-        HugeGroup group = manager.authManager()
-                                 .getGroup(graphSpace, IdGenerator.of(id));
+        AuthManager authManager = manager.authManager();
+        HugeGroup group = authManager.getGroup(graphSpace,
+                                               IdGenerator.of(id),
+                                               true);
         return manager.serializer().writeAuthElement(group);
     }
 
@@ -127,7 +132,8 @@ public class GroupAPI extends API {
         LOG.debug("Graph space [{}] delete group: {}", graphSpace, id);
 
         try {
-            manager.authManager().deleteGroup(graphSpace, IdGenerator.of(id));
+            AuthManager authManager = manager.authManager();
+            authManager.deleteGroup(graphSpace, IdGenerator.of(id), true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid group id: " + id);
         }

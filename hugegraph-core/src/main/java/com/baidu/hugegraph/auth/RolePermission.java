@@ -43,12 +43,12 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public class RolePermission {
 
-    public static final RolePermission NONE = RolePermission.role(
-                                       "none", "", HugePermission.NONE);
-    public static final RolePermission ADMIN = RolePermission.role(
-                                       "admin", "", HugePermission.ANY);
-    public static final RolePermission SPACE = RolePermission.role(
-                                       "space", "", HugePermission.SPACE);
+    public static final RolePermission NONE = RolePermission.role("system",
+                                              "system", HugePermission.NONE);
+    public static final RolePermission ADMIN = RolePermission.role("system",
+                                               "system", HugePermission.ANY);
+    public static final RolePermission SPACE = RolePermission.role("system",
+                                               "system", HugePermission.SPACE);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -91,7 +91,7 @@ public class RolePermission {
         if (permissions == null) {
             permissions = new TreeMap<>();
             permissions.put(action, resources);
-            graphPermissions.put(graphSpace, permissions);
+            graphPermissions.put(graph, permissions);
         } else {
             List<HugeResource> mergedResources = permissions.get(action);
             if (mergedResources == null) {
@@ -182,7 +182,7 @@ public class RolePermission {
     }
 
     public static RolePermission all(String admin) {
-        return role(admin, null, HugePermission.ANY);
+        return role("system", "system", HugePermission.ANY);
     }
 
     public static RolePermission role(String graphSpace, String graph,
@@ -250,8 +250,8 @@ public class RolePermission {
         public RolePermission deserialize(JsonParser parser,
                                           DeserializationContext ctxt)
                                           throws IOException {
-            TypeReference<?> type = new TypeReference<TreeMap<String,
-                             TreeMap<HugePermission, List<HugeResource>>>>() {};
+            TypeReference<?> type = new TypeReference<TreeMap<String, TreeMap<String,
+                             TreeMap<HugePermission, List<HugeResource>>>>>() {};
             if ("roles".equals(parser.nextFieldName())) {
                 parser.nextValue();
                 return new RolePermission(parser.readValueAs(type));

@@ -82,19 +82,21 @@ public class MetaManager {
     public void connect(String cluster, MetaDriverType type, Object... args) {
         E.checkArgument(cluster != null && !cluster.isEmpty(),
                         "The cluster can't be null or empty");
-        this.cluster = cluster;
+        if (this.metaDriver == null) {
+            this.cluster = cluster;
 
-        switch (type) {
-            case ETCD:
-                this.metaDriver = new EtcdMetaDriver(args);
-                break;
-            case PD:
-                // TODO: uncomment after implement PdMetaDriver
-                // this.metaDriver = new PdMetaDriver(args);
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Invalid meta driver type: %s", type));
+            switch (type) {
+                case ETCD:
+                    this.metaDriver = new EtcdMetaDriver(args);
+                    break;
+                case PD:
+                    // TODO: uncomment after implement PdMetaDriver
+                    // this.metaDriver = new PdMetaDriver(args);
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                              "Invalid meta driver type: %s", type));
+            }
         }
     }
 
@@ -245,7 +247,7 @@ public class MetaManager {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG/{userName}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
-                           META_PATH_AUTH, META_PATH_BELONG, userName);
+                           META_PATH_AUTH, META_PATH_BELONG, userName + "->");
     }
 
     private String accessKey(String graphSpace, String access) {
@@ -266,7 +268,7 @@ public class MetaManager {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{groupName}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
-                           META_PATH_AUTH, META_PATH_ACCESS, groupName);
+                           META_PATH_AUTH, META_PATH_ACCESS, groupName + "->");
     }
 
     public String belongId(String userName, String groupName) {
@@ -357,8 +359,8 @@ public class MetaManager {
         Map<String, String> userMap =
                             this.metaDriver.scanWithPrefix(userListKey());
         for (Id id : ids) {
-            if (userMap.containsKey(id.asString())) {
-                String value = userMap.get(id.asString());
+            if (userMap.containsKey(userKey(id.asString()))) {
+                String value = userMap.get(userKey(id.asString()));
                 Map<String, Object> map = JsonUtil.fromJson(value, Map.class);
                 HugeUser user = HugeUser.fromMap(map);
                 result.add(user);
@@ -375,13 +377,13 @@ public class MetaManager {
         Map<String, String> userMap =
                             this.metaDriver.scanWithPrefix(userListKey());
         for (Map.Entry<String, String> item : userMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeUser user = HugeUser.fromMap(map);
             result.add(user);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -435,10 +437,11 @@ public class MetaManager {
                                       ClassNotFoundException {
         List<HugeGroup> result = new ArrayList<>();
         Map<String, String> groupMap =
-                            this.metaDriver.scanWithPrefix(groupListKey(graphSpace));
+                    this.metaDriver.scanWithPrefix(groupListKey(graphSpace));
         for (Id id : ids) {
-            if (groupMap.containsKey(id.asString())) {
-                String groupString = groupMap.get(id.asString());
+            if (groupMap.containsKey(groupKey(graphSpace, id.asString()))) {
+                String groupString = groupMap.get(groupKey(graphSpace,
+                                                           id.asString()));
                 Map<String, Object> map = JsonUtil.fromJson(groupString,
                                                             Map.class);
                 HugeGroup group = HugeGroup.fromMap(map);
@@ -456,13 +459,13 @@ public class MetaManager {
         Map<String, String> groupMap =
                             this.metaDriver.scanWithPrefix(groupListKey(graphSpace));
         for (Map.Entry<String, String> item : groupMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeGroup group = HugeGroup.fromMap(map);
             result.add(group);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -520,8 +523,9 @@ public class MetaManager {
         Map<String, String> targetMap =
                     this.metaDriver.scanWithPrefix(targetListKey(graphSpace));
         for (Id id : ids) {
-            if (targetMap.containsKey(id.asString())) {
-                String targetString = targetMap.get(id.asString());
+            if (targetMap.containsKey(targetKey(graphSpace, id.asString()))) {
+                String targetString = targetMap.get(targetKey(graphSpace,
+                                                              id.asString()));
                 Map<String, Object> map = JsonUtil.fromJson(targetString,
                                                             Map.class);
                 HugeTarget target = HugeTarget.fromMap(map);
@@ -539,13 +543,13 @@ public class MetaManager {
         Map<String, String> targetMap =
                     this.metaDriver.scanWithPrefix(targetListKey(graphSpace));
         for (Map.Entry<String, String> item : targetMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeTarget target = HugeTarget.fromMap(map);
             result.add(target);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -567,7 +571,7 @@ public class MetaManager {
         E.checkArgument(StringUtils.isEmpty(result),
                         "The belong name '%s' has existed", belongId);
         this.metaDriver.put(belongKey(graphSpace, belongId), serialize(belong));
-        return belong.id();
+        return IdGenerator.of(belongId);
     }
 
     public Id updateBelong(String graphSpace, HugeBelong belong)
@@ -620,8 +624,9 @@ public class MetaManager {
         Map<String, String> belongMap =
                     this.metaDriver.scanWithPrefix(belongListKey(graphSpace));
         for (Id id : ids) {
-            if (belongMap.containsKey(id.asString())) {
-                String belongString = belongMap.get(id.asString());
+            if (belongMap.containsKey(belongKey(graphSpace, id.asString()))) {
+                String belongString = belongMap.get(belongKey(graphSpace,
+                                                              id.asString()));
                 Map<String, Object> map = JsonUtil.fromJson(belongString,
                                                             Map.class);
                 HugeBelong belong = HugeBelong.fromMap(map);
@@ -639,13 +644,13 @@ public class MetaManager {
         Map<String, String> belongMap =
                     this.metaDriver.scanWithPrefix(belongListKey(graphSpace));
         for (Map.Entry<String, String> item : belongMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeBelong belong = HugeBelong.fromMap(map);
             result.add(belong);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -659,13 +664,13 @@ public class MetaManager {
         Map<String, String> belongMap = this.metaDriver.scanWithPrefix(
                             belongListKeyByUser(graphSpace, user.asString()));
         for (Map.Entry<String, String> item : belongMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeBelong belong = HugeBelong.fromMap(map);
             result.add(belong);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -690,16 +695,15 @@ public class MetaManager {
         Map<String, String> belongMap = this.metaDriver.scanWithPrefix(
                                         belongListKey(graphSpace));
         for (Map.Entry<String, String> item : belongMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             String groupName = groupFromBelong(item.getKey());
             if (groupName.equals(group.asString())) {
                 Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                             Map.class);
                 HugeBelong belong = HugeBelong.fromMap(map);
                 result.add(belong);
-            }
-
-            if (result.size() >= limit) {
-                break;
             }
         }
 
@@ -724,7 +728,7 @@ public class MetaManager {
         E.checkArgument(StringUtils.isEmpty(result),
                         "The access name '%s' has existed", accessId);
         this.metaDriver.put(accessKey(graphSpace, accessId), serialize(access));
-        return access.id();
+        return IdGenerator.of(accessId);
     }
 
     public Id updateAccess(String graphSpace, HugeAccess access)
@@ -781,8 +785,9 @@ public class MetaManager {
         Map<String, String> accessMap =
                     this.metaDriver.scanWithPrefix(accessListKey(graphSpace));
         for (Id id : ids) {
-            if (accessMap.containsKey(id.asString())) {
-                String accessString = accessMap.get(id.asString());
+            if (accessMap.containsKey(accessKey(graphSpace, id.asString()))) {
+                String accessString = accessMap.get(accessKey(graphSpace,
+                                                              id.asString()));
                 Map<String, Object> map = JsonUtil.fromJson(accessString,
                                                             Map.class);
                 HugeAccess access = HugeAccess.fromMap(map);
@@ -800,13 +805,13 @@ public class MetaManager {
         Map<String, String> accessMap =
                     this.metaDriver.scanWithPrefix(accessListKey(graphSpace));
         for (Map.Entry<String, String> item : accessMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeAccess access = HugeAccess.fromMap(map);
             result.add(access);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -820,13 +825,13 @@ public class MetaManager {
         Map<String, String> accessMap = this.metaDriver.scanWithPrefix(
                     accessListKeyByGroup(graphSpace, group.asString()));
         for (Map.Entry<String, String> item : accessMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                         Map.class);
             HugeAccess access = HugeAccess.fromMap(map);
             result.add(access);
-            if (result.size() >= limit) {
-                break;
-            }
         }
 
         return result;
@@ -851,16 +856,15 @@ public class MetaManager {
         Map<String, String> accessMap = this.metaDriver.scanWithPrefix(
                                         accessListKey(graphSpace));
         for (Map.Entry<String, String> item : accessMap.entrySet()) {
+            if (limit >=0 && result.size() >= limit) {
+                break;
+            }
             String targetName = targetFromAccess(item.getKey());
             if (targetName.equals(target.asString())) {
                 Map<String, Object> map = JsonUtil.fromJson(item.getValue(),
                                                             Map.class);
                 HugeAccess access = HugeAccess.fromMap(map);
                 result.add(access);
-            }
-
-            if (result.size() >= limit) {
-                break;
             }
         }
 
@@ -872,10 +876,19 @@ public class MetaManager {
         Map<String, String> graphSpaceMap = this.metaDriver.scanWithPrefix(
                                             graphSpaceListKey());
         for (Map.Entry<String, String> item : graphSpaceMap.entrySet()) {
-            result.add(item.getKey());
+            result.add(item.getValue());
         }
 
         return result;
+    }
+
+    public void initDefaultGraphSpace() {
+        String defaultGS = String.join(META_PATH_DELIMETER,
+                                       META_PATH_HUGEGRAPH,
+                                       this.cluster,
+                                       META_PATH_GRAPHSPACE_LIST,
+                                       "DEFAULT");
+        this.metaDriver.put(defaultGS, "DEFAULT");
     }
 
     public enum MetaDriverType {

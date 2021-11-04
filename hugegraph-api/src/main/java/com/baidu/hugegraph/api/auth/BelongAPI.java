@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.auth.AuthManager;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
@@ -69,7 +70,8 @@ public class BelongAPI extends API {
         checkCreatingBody(jsonBelong);
 
         HugeBelong belong = jsonBelong.build(graphSpace);
-        belong.id(manager.authManager().createBelong(graphSpace, belong));
+        AuthManager authManager = manager.authManager();
+        belong.id(authManager.createBelong(graphSpace, belong, true));
         return manager.serializer().writeAuthElement(belong);
     }
 
@@ -87,14 +89,16 @@ public class BelongAPI extends API {
         checkUpdatingBody(jsonBelong);
 
         HugeBelong belong;
+        AuthManager authManager = manager.authManager();
         try {
-            belong = manager.authManager()
-                            .getBelong(graphSpace, UserAPI.parseId(id));
+            belong = authManager.getBelong(graphSpace,
+                                           UserAPI.parseId(id),
+                                           true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }
         belong = jsonBelong.build(belong);
-        manager.authManager().updateBelong(graphSpace, belong);
+        authManager.updateBelong(graphSpace, belong, true);
         return manager.serializer().writeAuthElement(belong);
     }
 
@@ -112,17 +116,17 @@ public class BelongAPI extends API {
                         "Can't pass both user and group at the same time");
 
         List<HugeBelong> belongs;
+        AuthManager authManager = manager.authManager();
         if (user != null) {
             Id id = UserAPI.parseId(user);
-            belongs = manager.authManager()
-                             .listBelongByUser(graphSpace, id, limit);
+            belongs = authManager.listBelongByUser(graphSpace, id,
+                                                   limit, true);
         } else if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = manager.authManager()
-                             .listBelongByGroup(graphSpace, id, limit);
+            belongs = authManager.listBelongByGroup(graphSpace, id,
+                                                    limit, true);
         } else {
-            belongs = manager.authManager()
-                             .listAllBelong(graphSpace, limit);
+            belongs = authManager.listAllBelong(graphSpace, limit, true);
         }
         return manager.serializer().writeAuthElements("belongs", belongs);
     }
@@ -136,8 +140,10 @@ public class BelongAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get belong: {}", graphSpace, id);
 
-        HugeBelong belong = manager.authManager()
-                                   .getBelong(graphSpace, UserAPI.parseId(id));
+        AuthManager authManager = manager.authManager();
+        HugeBelong belong = authManager.getBelong(graphSpace,
+                                                  UserAPI.parseId(id),
+                                                  true);
         return manager.serializer().writeAuthElement(belong);
     }
 
@@ -151,8 +157,8 @@ public class BelongAPI extends API {
         LOG.debug("Graph space [{}] delete belong: {}", graphSpace, id);
 
         try {
-            manager.authManager()
-                   .deleteBelong(graphSpace, UserAPI.parseId(id));
+            AuthManager authManager = manager.authManager();
+            authManager.deleteBelong(graphSpace, UserAPI.parseId(id), true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }

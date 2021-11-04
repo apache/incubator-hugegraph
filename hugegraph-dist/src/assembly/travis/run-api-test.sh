@@ -15,11 +15,9 @@ mvn package -DskipTests
 
 # config rest-server
 sed -i 's/#auth.authenticator=/auth.authenticator=com.baidu.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
-sed -i 's/#auth.admin_token=/auth.admin_token=admin/' $REST_SERVER_CONF
-# echo "graph.load_from_local_config=true" >> $REST_SERVER_CONF
 
 # config hugegraph.properties
-sed -i 's/gremlin.graph=.*/gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
+# sed -i 's/gremlin.graph=.*/gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
 
 # config gremlin-server
 echo "

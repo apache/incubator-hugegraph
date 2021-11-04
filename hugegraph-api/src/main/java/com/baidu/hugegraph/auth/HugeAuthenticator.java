@@ -65,7 +65,6 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_ACTION = VAR_PREFIX + "action";
 
     public void setup(HugeConfig config);
-    public void setup(AuthManager authManager);
 
     public UserWithRole authenticate(String username, String password,
                                      String token);

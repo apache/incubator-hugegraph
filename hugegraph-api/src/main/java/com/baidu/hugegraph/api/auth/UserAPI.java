@@ -34,10 +34,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.auth.AuthManager;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeUser;
@@ -71,7 +71,8 @@ public class UserAPI extends API {
         checkCreatingBody(jsonUser);
 
         HugeUser user = jsonUser.build();
-        user.id(manager.authManager().createUser(user));
+        AuthManager authManager = manager.authManager();
+        user.id(authManager.createUser(user, true));
         return manager.serializer().writeAuthElement(user);
     }
 
@@ -87,13 +88,14 @@ public class UserAPI extends API {
         checkUpdatingBody(jsonUser);
 
         HugeUser user;
+        AuthManager authManager = manager.authManager();
         try {
-            user = manager.authManager().getUser(UserAPI.parseId(id));
+            user = authManager.getUser(UserAPI.parseId(id), true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
-        manager.authManager().updateUser(user);
+        authManager.updateUser(user, true);
         return manager.serializer().writeAuthElement(user);
     }
 
@@ -104,7 +106,8 @@ public class UserAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("List users");
 
-        List<HugeUser> users = manager.authManager().listAllUsers(limit);
+        AuthManager authManager = manager.authManager();
+        List<HugeUser> users = authManager.listAllUsers(limit, true);
         return manager.serializer().writeAuthElements("users", users);
     }
 
@@ -116,7 +119,8 @@ public class UserAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Get user: {}", id);
 
-        HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
+        AuthManager authManager = manager.authManager();
+        HugeUser user = authManager.getUser(IdGenerator.of(id), true);
         return manager.serializer().writeAuthElement(user);
     }
 
@@ -128,7 +132,8 @@ public class UserAPI extends API {
                        @PathParam("id") String id) {
         LOG.debug("Get user role: {}", id);
 
-        HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
+        AuthManager authManager = manager.authManager();
+        HugeUser user = authManager.getUser(IdGenerator.of(id), true);
         return manager.authManager().rolePermission(user).toJson();
     }
 
@@ -141,7 +146,8 @@ public class UserAPI extends API {
         LOG.debug("Delete user: {}", id);
 
         try {
-            manager.authManager().deleteUser(IdGenerator.of(id));
+            AuthManager authManager = manager.authManager();
+            authManager.deleteUser(IdGenerator.of(id), true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }

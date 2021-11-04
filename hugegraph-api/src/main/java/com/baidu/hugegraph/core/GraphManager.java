@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.baidu.hugegraph.auth.StandardAuthManager;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
@@ -124,9 +123,7 @@ public final class GraphManager {
         List<String> endpoints = conf.get(ServerOptions.META_ENDPOINTS);
         this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.ETCD,
                                  endpoints);
-
-        this.authManager = new StandardAuthManager(this.metaManager, conf);
-        this.authenticator.setup(this.authManager);
+        this.authManager = this.authenticator.authManager();
         this.graphLoadFromLocalConfig =
                 conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
         if (this.graphLoadFromLocalConfig) {

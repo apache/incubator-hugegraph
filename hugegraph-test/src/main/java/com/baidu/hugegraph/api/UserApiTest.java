@@ -59,11 +59,11 @@ public class UserApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        String user1 = "{\"user_name\":\"user1\",\"user_password\":\"passwrod1\"," +
+        String user1 = "{\"user_name\":\"create_user1\",\"user_password\":\"passwrod1\"," +
                        "\"user_email\":\"user1@baidu.com\",\"user_phone\":" +
                        "\"123456789\",\"user_avatar\":\"image1.jpg\"}";
 
-        String user2 = "{\"user_name\":\"user2\",\"user_password\":\"passwrod2\"," +
+        String user2 = "{\"user_name\":\"create_user2\",\"user_password\":\"passwrod2\"," +
                        "\"user_email\":\"user2@baidu.com\"," +
                        "\"user_phone\":\"1357924680\"," +
                        "\"user_avatar\":\"image2.jpg\"}";
@@ -88,30 +88,29 @@ public class UserApiTest extends BaseApiTest {
         Response r3 = client().post(path, "{}");
         assertResponseStatus(400, r3);
 
-        String user3 = "{\"user_name\":\"user1\",\"user_password\":\"passwrod3\"," +
+        String user3 = "{\"user_name\":\"create_user1\",\"user_password\":\"passwrod3\"," +
                        "\"user_email\":\"user1@baidu.com\"," +
                        "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                        ".jpg\"}";
         Response r4 = client().post(path, user3);
         String result4 = assertResponseStatus(400, r4);
-        String message = assertJsonContains(result4, "message");
-        Assert.assertThat(message,
-                          CoreMatchers.containsString("that already exists"));
+        Assert.assertThat(result4,
+                          CoreMatchers.containsString("has existed"));
     }
 
     @Test
     public void testList() {
-        createUser("test1");
-        createUser("test2");
-        createUser("test3");
+        createUser("test_list1");
+        createUser("test_list2");
+        createUser("test_list3");
         List<Map<String, Object>> users = listUsers();
-        Assert.assertEquals(4, users.size());
+        assert users.size() > 3 : users.size();
     }
 
     @Test
     public void testGetUser() {
-        createUser("test1");
-        createUser("test2");
+        createUser("test_get1");
+        createUser("test_get2");
         List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
             Response r = client().get(path, (String) user.get("id"));
@@ -122,8 +121,8 @@ public class UserApiTest extends BaseApiTest {
 
     @Test
     public void testUpdate() {
-        createUser("test1");
-        createUser("test2");
+        createUser("test_update1");
+        createUser("test_update2");
         List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
             if (user.get("user_name").equals("admin")) {
@@ -142,22 +141,18 @@ public class UserApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        createUser("test1");
-        createUser("test2");
-        createUser("test3");
+        createUser("test_del1");
+        createUser("test_del2");
+        createUser("test_del3");
 
-        List<Map<String, Object>> users = listUsers();
-        for (Map<String, Object> user : users) {
-            if (user.get("user_name").equals("admin")) {
-                continue;
-            }
-            Response r = client().delete(path, (String) user.get("id"));
-        }
-        Response r = client().delete(path, "test1");
+        client().delete(path, "test_del1");
+        client().delete(path, "test_del2");
+        client().delete(path, "test_del3");
+
+        Response r = client().delete(path, "test_del1");
         String result = assertResponseStatus(400, r);
-        String message = assertJsonContains(result, "message");
-        Assert.assertThat(message,
-                          CoreMatchers.containsString("Invalid user id:"));
+        Assert.assertThat(result,
+                          CoreMatchers.containsString("not existed"));
     }
 
     protected void createUser(String name) {

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.core;
 
+import com.baidu.hugegraph.auth.AuthManager;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.After;
@@ -38,10 +39,14 @@ public class BaseCoreTest {
 
     protected static final int TX_BATCH = 100;
 
-    public static final String DEFAULT_GRAPH_SPACE = "default_namespace";
+    public static final String DEFAULT_GRAPH_SPACE = "DEFAULT";
 
     public HugeGraph graph() {
         return CoreTestSuite.graph();
+    }
+
+    public AuthManager authManager() {
+        return CoreTestSuite.authManager();
     }
 
     @Before

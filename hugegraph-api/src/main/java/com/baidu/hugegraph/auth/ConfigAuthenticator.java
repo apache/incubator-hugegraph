@@ -51,11 +51,6 @@ public class ConfigAuthenticator implements HugeAuthenticator {
         this.tokens.put(USER_ADMIN, config.get(ServerOptions.AUTH_ADMIN_TOKEN));
     }
 
-    @Override
-    public void setup(AuthManager authManager) {
-
-    }
-
     /**
      * Verify if a user is legal
      * @param username  the username for authentication

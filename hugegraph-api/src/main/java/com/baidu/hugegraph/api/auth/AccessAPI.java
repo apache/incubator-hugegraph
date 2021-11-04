@@ -34,6 +34,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.auth.AuthManager;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
@@ -70,7 +71,8 @@ public class AccessAPI extends API {
         checkCreatingBody(jsonAccess);
 
         HugeAccess access = jsonAccess.build(graphSpace);
-        access.id(manager.authManager().createAccess(graphSpace, access));
+        AuthManager authManager = manager.authManager();
+        access.id(authManager.createAccess(graphSpace, access, true));
         return manager.serializer().writeAuthElement(access);
     }
 
@@ -88,14 +90,16 @@ public class AccessAPI extends API {
         checkUpdatingBody(jsonAccess);
 
         HugeAccess access;
+        AuthManager authManager = manager.authManager();
         try {
-            access = manager.authManager().getAccess(graphSpace,
-                                                     UserAPI.parseId(id));
+            access = authManager.getAccess(graphSpace,
+                                           UserAPI.parseId(id),
+                                           true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
         access = jsonAccess.build(access);
-        manager.authManager().updateAccess(graphSpace, access);
+        authManager.updateAccess(graphSpace, access, true);
         return manager.serializer().writeAuthElement(access);
     }
 
@@ -113,16 +117,17 @@ public class AccessAPI extends API {
                         "Can't pass both group and target at the same time");
 
         List<HugeAccess> belongs;
+        AuthManager authManager = manager.authManager();
         if (group != null) {
             Id id = UserAPI.parseId(group);
-            belongs = manager.authManager().listAccessByGroup(graphSpace,
-                                                              id, limit);
+            belongs = authManager.listAccessByGroup(graphSpace, id,
+                                                    limit, true);
         } else if (target != null) {
             Id id = UserAPI.parseId(target);
-            belongs = manager.authManager().listAccessByTarget(graphSpace,
-                                                               id, limit);
+            belongs = authManager.listAccessByTarget(graphSpace, id,
+                                                     limit, true);
         } else {
-            belongs = manager.authManager().listAllAccess(graphSpace, limit);
+            belongs = authManager.listAllAccess(graphSpace, limit, true);
         }
         return manager.serializer().writeAuthElements("accesses", belongs);
     }
@@ -136,8 +141,10 @@ public class AccessAPI extends API {
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get access: {}", graphSpace, id);
 
-        HugeAccess access = manager.authManager().getAccess(graphSpace,
-                                                            UserAPI.parseId(id));
+        AuthManager authManager = manager.authManager();
+        HugeAccess access = authManager.getAccess(graphSpace,
+                                                  UserAPI.parseId(id),
+                                                  true);
         return manager.serializer().writeAuthElement(access);
     }
 
@@ -151,8 +158,10 @@ public class AccessAPI extends API {
         LOG.debug("Graph space [{}] delete access: {}", graphSpace, id);
 
         try {
-            manager.authManager().deleteAccess(graphSpace,
-                                               UserAPI.parseId(id));
+            AuthManager authManager = manager.authManager();
+            authManager.deleteAccess(graphSpace,
+                                     UserAPI.parseId(id),
+                                     true);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }

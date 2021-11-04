@@ -19,11 +19,18 @@
 
 package com.baidu.hugegraph.core;
 
+import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.StandardAuthManager;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.meta.MetaManager;
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -34,6 +41,9 @@ import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -57,6 +67,9 @@ public class CoreTestSuite {
 
     private static HugeGraph graph = null;
 
+    private static MetaManager metaManager = MetaManager.instance();
+    private static StandardAuthManager authManager = null;
+
     @BeforeClass
     public static void initEnv() {
         RegisterUtil.registerBackends();
@@ -68,6 +81,14 @@ public class CoreTestSuite {
         graph.clearBackend();
         graph.initBackend();
         graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+
+        List<String> endpoints = new ArrayList<>();
+        endpoints.add("http://127.0.0.1:2379");
+        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
+                            endpoints);
+        authManager = new StandardAuthManager(metaManager,
+                      "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg");
+        authManager.initAdmin();
     }
 
     @AfterClass
@@ -92,5 +113,10 @@ public class CoreTestSuite {
         Assert.assertNotNull(graph);
         //Assert.assertFalse(graph.closed());
         return graph;
+    }
+
+    protected static AuthManager authManager() {
+        Assert.assertNotNull(authManager);
+        return authManager;
     }
 }
