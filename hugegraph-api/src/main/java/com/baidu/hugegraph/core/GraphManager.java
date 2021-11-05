@@ -540,7 +540,7 @@ public final class GraphManager {
                         String token =
                                 config.get(ServerOptions.AUTH_ADMIN_TOKEN);
                         try {
-//                            this.authenticator.initAdminUser(token);
+                            // this.authenticator.initAdminUser(token);
                         } catch (Exception e) {
                             throw new BackendException(
                                       "The backend store of '%s' can't " +
