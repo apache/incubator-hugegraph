@@ -800,14 +800,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for (Id il : schemaLabel.indexLabels()) {
             IndexLabel indexLabel = schema.getIndexLabel(il);
-            if (indexLabel.indexType().isUnique()) {
+            if (indexLabel == null || indexLabel.indexType().isUnique()) {
                 continue;
             }
             ils.add(indexLabel);
         }
         if (this.graph().readMode().showOlap()) {
             for (IndexLabel il : schema.getIndexLabels()) {
-                if (il.olap()) {
+                if (il != null && il.olap()) {
                     ils.add(il);
                 }
             }
