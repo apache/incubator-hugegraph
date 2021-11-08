@@ -19,29 +19,27 @@
 
 package com.baidu.hugegraph.api;
 
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.GenericType;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
+import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.util.JsonUtil;
+import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 
-public class LoginApiTest extends BaseApiTest {
+public class LoginApiDeprecatedTest extends BaseApiTest {
 
-    private static final String PATH = "auth";
-    private static final String USER_PATH = "auth/users";
+    private static final String PATH = "graphs/auth";
+    private static final String USER_PATH = "graphs/auth/users";
 
     @Before
     public void setup() {}

@@ -17,7 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.auth;
+package com.baidu.hugegraph.api.auth.deprecated;
+
+import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.AuthenticationFilter;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.auth.AuthConstant;
+import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.UserWithRole;
+import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.define.Checkable;
+import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
 
 import javax.inject.Singleton;
 import javax.security.sasl.AuthenticationException;
@@ -33,26 +50,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
-import com.baidu.hugegraph.auth.AuthManager;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
-import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.filter.AuthenticationFilter;
-import com.baidu.hugegraph.api.filter.StatusFilter;
-import com.baidu.hugegraph.api.filter.StatusFilter.Status;
-import com.baidu.hugegraph.auth.AuthConstant;
-import com.baidu.hugegraph.auth.UserWithRole;
-import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.define.Checkable;
-import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
-
-@Path("auth")
+@Path("graphs/auth")
 @Singleton
 public class LoginAPI extends API {
 
@@ -61,7 +59,7 @@ public class LoginAPI extends API {
     @POST
     @Timed
     @Path("login")
-    @Status(StatusFilter.Status.OK)
+    @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
@@ -84,7 +82,7 @@ public class LoginAPI extends API {
     @DELETE
     @Timed
     @Path("logout")
-    @Status(StatusFilter.Status.OK)
+    @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public void logout(@Context GraphManager manager,
@@ -107,7 +105,7 @@ public class LoginAPI extends API {
     @GET
     @Timed
     @Path("verify")
-    @Status(StatusFilter.Status.OK)
+    @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String verifyToken(@Context GraphManager manager,

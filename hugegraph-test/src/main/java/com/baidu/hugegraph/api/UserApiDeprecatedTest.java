@@ -19,23 +19,21 @@
 
 package com.baidu.hugegraph.api;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.Response;
-
+import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.baidu.hugegraph.util.JsonUtil;
-import com.google.common.collect.ImmutableMap;
+import javax.ws.rs.core.Response;
+import java.util.List;
+import java.util.Map;
 
-public class UserApiTest extends BaseApiTest {
+public class UserApiDeprecatedTest extends BaseApiTest {
 
-    private static final String path = "auth/users";
+    private static final String path = "graphs/auth/users";
     private static final int NO_LIMIT = -1;
 
     @After

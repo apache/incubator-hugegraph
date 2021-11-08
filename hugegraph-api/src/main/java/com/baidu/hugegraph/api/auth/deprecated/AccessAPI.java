@@ -17,9 +17,24 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.api.auth;
+package com.baidu.hugegraph.api.auth.deprecated;
 
-import java.util.List;
+import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.HugeAccess;
+import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.define.Checkable;
+import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -33,26 +48,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import java.util.List;
 
-import com.baidu.hugegraph.auth.AuthManager;
-import org.slf4j.Logger;
-
-import com.baidu.hugegraph.api.API;
-import com.baidu.hugegraph.api.filter.StatusFilter.Status;
-import com.baidu.hugegraph.auth.HugeAccess;
-import com.baidu.hugegraph.auth.HugePermission;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.define.Checkable;
-import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.server.RestServer;
-import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-@Path("graphspaces/{graphspace}/auth/accesses")
+@Path("graphspaces/{graphspace}/graphs/auth/accesses")
 @Singleton
 public class AccessAPI extends API {
 

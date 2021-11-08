@@ -55,7 +55,12 @@ public class PathFilter implements ContainerRequestFilter {
             "apis",
             "metrics",
             "versions",
-            "gremlin"
+            "gremlin",
+            "graphs/auth",
+            "graphs/auth/users",
+            "auth/users",
+            "auth"
+
     );
 
     @Override

@@ -264,7 +264,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <Implementation-Version>0.12.0.0</Implementation-Version>
+                            <Implementation-Version>0.13.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
