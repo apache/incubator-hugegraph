@@ -63,9 +63,10 @@ public class ContextGremlinServer extends GremlinServer {
     private void listenChanges() {
         this.eventHub.listen(Events.GRAPH_CREATE, event -> {
             LOG.info("GremlinServer accepts event 'graph.create'");
-            event.checkArgs(HugeGraph.class);
-            HugeGraph graph = (HugeGraph) event.args()[0];
-            this.injectGraph(graph);
+            event.checkArgs(String.class, HugeGraph.class);
+            String name = (String) event.args()[0];
+            HugeGraph graph = (HugeGraph) event.args()[1];
+            this.injectGraph(name, graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
@@ -119,8 +120,7 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    private void injectGraph(HugeGraph graph) {
-        String name = graph.name();
+    private void injectGraph(String name, HugeGraph graph) {
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         manager.putGraph(name, graph);

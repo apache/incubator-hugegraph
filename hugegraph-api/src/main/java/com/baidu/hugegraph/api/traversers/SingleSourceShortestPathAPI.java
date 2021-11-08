@@ -51,7 +51,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/traversers/singlesourceshortestpath")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/singlesourceshortestpath")
 @Singleton
 public class SingleSourceShortestPathAPI extends API {
 
@@ -61,6 +61,7 @@ public class SingleSourceShortestPathAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("direction") String direction,
@@ -84,7 +85,7 @@ public class SingleSourceShortestPathAPI extends API {
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
         WeightedPaths paths = traverser.singleSourceShortestPaths(

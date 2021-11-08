@@ -52,7 +52,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/traversers/count")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/count")
 @Singleton
 public class CountAPI extends API {
 
@@ -62,6 +62,7 @@ public class CountAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        CountRequest request) {
         LOG.debug("Graph [{}] get count from '{}' with request {}",
@@ -79,7 +80,7 @@ public class CountAPI extends API {
                                "must >= 0 or == -1, but got: '%s'",
                                request.dedupSize);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         List<EdgeStep> steps = steps(g, request);
         CountTraverser traverser = new CountTraverser(g);
         long count = traverser.count(sourceId, steps, request.containsTraversed,

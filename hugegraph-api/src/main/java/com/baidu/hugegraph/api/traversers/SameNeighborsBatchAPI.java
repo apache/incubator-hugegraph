@@ -51,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@Path("graphs/{graph}/traversers/sameneighborsbatch")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/sameneighborsbatch")
 @Singleton
 public class SameNeighborsBatchAPI extends API {
 
@@ -61,13 +61,14 @@ public class SameNeighborsBatchAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String sameNeighborsBatch(@Context GraphManager manager,
-                      @PathParam("graph") String graph,
-                      Request req) {
+                                     @PathParam("graphspace") String graphSpace,
+                                     @PathParam("graph") String graph,
+                                     Request req) {
         LOG.debug("Graph [{}] get same neighbors batch, '{}'", graph, req.toString());
 
         Directions dir = Directions.convert(EdgeAPI.parseDirection(req.direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
 
         List<Set<Id>> result = new ArrayList<Set<Id>>();

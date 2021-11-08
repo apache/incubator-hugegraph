@@ -47,7 +47,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/jobs/computer")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/computer")
 @Singleton
 public class ComputerAPI extends API {
 
@@ -61,6 +61,7 @@ public class ComputerAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graph") String graph,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("name") String computer,
                                 Map<String, Object> parameters) {
         LOG.debug("Graph [{}] schedule computer job: {}", graph, parameters);
@@ -73,7 +74,7 @@ public class ComputerAPI extends API {
             throw new NotFoundException("Not found computer: " + computer);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> input = ImmutableMap.of("computer", computer,
                                                     "parameters", parameters);
         JobBuilder<Object> builder = JobBuilder.of(g);

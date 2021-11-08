@@ -107,8 +107,7 @@ public class MetricsAPI extends API {
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
-        for (String graph : manager.graphs()) {
-            HugeGraph g = manager.graph(graph);
+        for (HugeGraph g : manager.graphs()) {
             Map<String, Object> metrics = InsertionOrderUtil.newMap();
             metrics.put(BackendMetrics.BACKEND, g.backend());
             try {
@@ -117,7 +116,7 @@ public class MetricsAPI extends API {
                 metrics.put(BackendMetrics.EXCEPTION, e.toString());
                 LOG.debug("Failed to get backend metrics", e);
             }
-            results.put(graph, metrics);
+            results.put(g.name(), metrics);
         }
         return JsonUtil.toJson(results);
     }

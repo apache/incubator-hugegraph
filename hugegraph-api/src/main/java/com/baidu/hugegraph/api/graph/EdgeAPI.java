@@ -73,7 +73,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/graph/edges")
+@Path("graphspaces/{graphspace}/graphs/{graph}/graph/edges")
 @Singleton
 public class EdgeAPI extends BatchAPI {
 
@@ -86,12 +86,13 @@ public class EdgeAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          JsonEdge jsonEdge) {
         LOG.debug("Graph [{}] create edge: {}", graph, jsonEdge);
         checkCreatingBody(jsonEdge);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         if (jsonEdge.sourceLabel != null && jsonEdge.targetLabel != null) {
             /*
@@ -125,6 +126,7 @@ public class EdgeAPI extends BatchAPI {
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String create(@Context HugeConfig config,
                          @Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @QueryParam("check_vertex")
                          @DefaultValue("true") boolean checkVertex,
@@ -133,7 +135,7 @@ public class EdgeAPI extends BatchAPI {
         checkCreatingBody(jsonEdges);
         checkBatchSize(config, jsonEdges);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -170,6 +172,7 @@ public class EdgeAPI extends BatchAPI {
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String update(@Context HugeConfig config,
                          @Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          BatchEdgeRequest req) {
         BatchEdgeRequest.checkUpdate(req);
@@ -177,7 +180,7 @@ public class EdgeAPI extends BatchAPI {
         checkUpdatingBody(req.jsonEdges);
         checkBatchSize(config, req.jsonEdges);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
                     req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
@@ -185,7 +188,8 @@ public class EdgeAPI extends BatchAPI {
         return this.commit(config, g, map.size(), () -> {
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
-                Id newEdgeId = getEdgeId(graph(manager, graph), newEdge);
+                Id newEdgeId = getEdgeId(graph(manager, graphSpace, graph),
+                                         newEdge);
                 JsonEdge oldEdge = map.get(newEdgeId);
                 this.updateExistElement(oldEdge, newEdge,
                                         req.updateStrategies);
@@ -224,6 +228,7 @@ public class EdgeAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_write"})
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          @QueryParam("action") String action,
@@ -240,7 +245,7 @@ public class EdgeAPI extends BatchAPI {
         // Parse action param
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         HugeEdge edge = (HugeEdge) g.edge(id);
         EdgeLabel edgeLabel = edge.schemaLabel();
 
@@ -263,6 +268,7 @@ public class EdgeAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_read"})
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @QueryParam("vertex_id") String vertexId,
                        @QueryParam("direction") String direction,
@@ -288,7 +294,7 @@ public class EdgeAPI extends BatchAPI {
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
         Direction dir = parseDirection(direction);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         GraphTraversal<?, Edge> traversal;
         if (vertex != null) {
@@ -340,11 +346,12 @@ public class EdgeAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_read"})
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get edge by id '{}'", graph, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         try {
             Edge edge = g.edge(id);
             return manager.serializer(g).writeEdge(edge);
@@ -361,12 +368,13 @@ public class EdgeAPI extends BatchAPI {
     @Consumes(APPLICATION_JSON)
     @RolesAllowed({"admin", "$owner=$graph $action=edge_delete"})
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id,
                        @QueryParam("label") String label) {
         LOG.debug("Graph [{}] remove vertex by id '{}'", graph, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         commit(g, () -> {
             try {
                 g.removeEdge(label, id);

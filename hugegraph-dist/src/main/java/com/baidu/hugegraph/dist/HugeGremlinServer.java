@@ -19,6 +19,12 @@
 
 package com.baidu.hugegraph.dist;
 
+import static com.baidu.hugegraph.core.GraphManager.DELIMETER;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+
+import java.util.Map;
+
+import org.apache.tinkerpop.gremlin.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
@@ -50,7 +56,12 @@ public class HugeGremlinServer {
         E.checkState(settings.graphs != null,
                      "The GremlinServer's settings.graphs is null");
         if (graphsDir != null) {
-            settings.graphs.putAll(ConfigUtil.scanGraphsDir(graphsDir));
+            Map<String, String> configs = ConfigUtil.scanGraphsDir(graphsDir);
+            for (Map.Entry<String, String> entry : configs.entrySet()) {
+                String key = String.join(DELIMETER, DEFAULT_GRAPH_SPACE_NAME,
+                                         entry.getKey());
+                settings.graphs.put(key, entry.getValue());
+            }
         }
 
         LOG.info("Configuring Gremlin Server from {}", conf);

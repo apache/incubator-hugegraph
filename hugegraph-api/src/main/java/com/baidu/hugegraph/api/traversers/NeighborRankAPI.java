@@ -51,7 +51,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/traversers/neighborrank")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/neighborrank")
 @Singleton
 public class NeighborRankAPI extends API {
 
@@ -61,6 +61,7 @@ public class NeighborRankAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String neighborRank(@Context GraphManager manager,
+                               @PathParam("graphspace") String graphSpace,
                                @PathParam("graph") String graph,
                                RankRequest request) {
         E.checkArgumentNotNull(request, "The rank request body can't be null");
@@ -80,7 +81,7 @@ public class NeighborRankAPI extends API {
                   request.steps, request.alpha, request.capacity);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         List<NeighborRankTraverser.Step> steps = steps(g, request);
         NeighborRankTraverser traverser;

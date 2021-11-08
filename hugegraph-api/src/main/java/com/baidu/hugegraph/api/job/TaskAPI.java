@@ -56,7 +56,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/tasks")
+@Path("graphspaces/{graphspace}/graphs/{graph}/tasks")
 @Singleton
 public class TaskAPI extends API {
 
@@ -69,6 +69,7 @@ public class TaskAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> list(@Context GraphManager manager,
+                                    @PathParam("graphspace") String graphSpace,
                                     @PathParam("graph") String graph,
                                     @QueryParam("status") String status,
                                     @QueryParam("ids") List<Long> ids,
@@ -78,7 +79,8 @@ public class TaskAPI extends API {
         LOG.debug("Graph [{}] list tasks with status {}, ids {}, " +
                   "limit {}, page {}", graph, status, ids, limit, page);
 
-        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graphSpace, graph)
+                                  .taskScheduler();
 
         Iterator<HugeTask<Object>> iter;
 
@@ -122,11 +124,13 @@ public class TaskAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> get(@Context GraphManager manager,
+                                   @PathParam("graphspace") String graphSpace,
                                    @PathParam("graph") String graph,
                                    @PathParam("id") long id) {
         LOG.debug("Graph [{}] get task: {}", graph, id);
 
-        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graphSpace, graph)
+                                  .taskScheduler();
         return scheduler.task(IdGenerator.of(id)).asMap();
     }
 
@@ -134,12 +138,14 @@ public class TaskAPI extends API {
     @Timed
     @Path("{id}")
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @PathParam("id") long id,
                        @QueryParam("force") boolean force) {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
-        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graphSpace, graph)
+                                  .taskScheduler();
         HugeTask<?> task = scheduler.delete(IdGenerator.of(id), force);
         E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
@@ -150,6 +156,8 @@ public class TaskAPI extends API {
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> update(@Context GraphManager manager,
+                                      @PathParam("graphspace")
+                                      String graphSpace,
                                       @PathParam("graph") String graph,
                                       @PathParam("id") long id,
                                       @QueryParam("action") String action) {
@@ -160,7 +168,8 @@ public class TaskAPI extends API {
                       "Not support action '%s'", action));
         }
 
-        TaskScheduler scheduler = graph(manager, graph).taskScheduler();
+        TaskScheduler scheduler = graph(manager, graphSpace, graph)
+                                  .taskScheduler();
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (!task.completed() && !task.cancelling()) {
             scheduler.cancel(task);

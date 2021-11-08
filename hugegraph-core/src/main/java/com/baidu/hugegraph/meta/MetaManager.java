@@ -35,9 +35,9 @@ import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.type.define.CollectionType;
@@ -61,9 +61,11 @@ public class MetaManager {
     public static final String META_PATH_TARGET = "TARGET";
     public static final String META_PATH_BELONG = "BELONG";
     public static final String META_PATH_ACCESS = "ACCESS";
+
     public static final String META_PATH_EVENT = "EVENT";
     public static final String META_PATH_ADD = "ADD";
     public static final String META_PATH_REMOVE = "REMOVE";
+    public static final String META_PATH_CHANGE = "CHANGE";
 
     public static final String DEFAULT_NAMESPACE = "default_ns";
 
@@ -100,6 +102,18 @@ public class MetaManager {
         }
     }
 
+    public <T> void listenGraphSpaceAdd(Consumer<T> consumer) {
+        this.listen(this.graphSpaceAddKey(), consumer);
+    }
+
+    public <T> void listenGraphSpaceRemove(Consumer<T> consumer) {
+        this.listen(this.graphSpaceRemoveKey(), consumer);
+    }
+
+    public <T> void listenGraphSpaceChange(Consumer<T> consumer) {
+        this.listen(this.graphSpaceUpdateKey(), consumer);
+    }
+
     public <T> void listenGraphAdd(Consumer<T> consumer) {
         this.listen(this.graphAddKey(), consumer);
     }
@@ -112,51 +126,120 @@ public class MetaManager {
         this.metaDriver.listen(key, consumer);
     }
 
-    public Map<String, String> graphConfigs() {
-        Map<String, String> configs =
-                            CollectionFactory.newMap(CollectionType.EC);
-        Map<String, String> keyValues = this.metaDriver
-                                            .scanWithPrefix(this.confPrefix());
+    public Map<String, GraphSpace> graphSpaceConfigs() {
+        Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
+                                        this.graphSpaceConfPrefix());
+        Map<String, GraphSpace> configs =
+                    CollectionFactory.newMap(CollectionType.EC);
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
             String[] parts = key.split(META_PATH_DELIMETER);
-            configs.put(parts[parts.length - 1], entry.getValue());
+            configs.put(parts[parts.length - 1],
+                        JsonUtil.fromJson(entry.getValue(), GraphSpace.class));
         }
         return configs;
     }
 
-    public <T> List<Pair<String, String>> extractGraphsFromResponse(T response) {
-        List<Pair<String, String>> graphs = new ArrayList<>();
-        for (String value : this.metaDriver.extractValuesFromResponse(response)) {
-            String[] values = value.split(META_PATH_JOIN);
-            E.checkArgument(values.length == 2,
-                            "Graph name must be '{namespace}-{graph}', " +
-                            "but got '%s'", value);
-            String namespace = values[0];
-            String graphName = values[1];
-            graphs.add(Pair.of(namespace, graphName));
+    public Map<String, String> graphConfigs(String graphSpace) {
+        Map<String, String> configs =
+                            CollectionFactory.newMap(CollectionType.EC);
+        Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
+                                        this.graphConfPrefix(graphSpace));
+        for (Map.Entry<String, String> entry : keyValues.entrySet()) {
+            String key = entry.getKey();
+            String[] parts = key.split(META_PATH_DELIMETER);
+            String name = parts[parts.length - 1];
+            String graphName = String.join("-", graphSpace, name);
+            configs.put(graphName, entry.getValue());
         }
-        return graphs;
+        return configs;
+    }
+
+    public <T> List<String> extractGraphSpacesFromResponse(T response) {
+        return this.metaDriver.extractValuesFromResponse(response);
+    }
+
+    public <T> List<String> extractGraphsFromResponse(T response) {
+        return this.metaDriver.extractValuesFromResponse(response);
+    }
+
+    public GraphSpace getGraphSpaceConfig(String graphSpace) {
+        String gs = this.metaDriver.get(this.graphSpaceConfKey(graphSpace));
+        return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
     public String getGraphConfig(String graph) {
         return this.metaDriver.get(this.graphConfKey(graph));
     }
 
-    public void addGraphConfig(String graph, String config) {
-        this.metaDriver.put(this.graphConfKey(graph), config);
+    public void addGraphConfig(String graphSpace, String graph, String config) {
+        this.metaDriver.put(this.graphConfKey(graphSpace, graph), config);
     }
 
-    public void removeGraphConfig(String graph) {
-        this.metaDriver.delete(this.graphConfKey(graph));
+    public GraphSpace graphSpace(String name) {
+        String space = this.metaDriver.get(this.graphSpaceConfKey(name));
+        if (space == null) {
+            return null;
+        }
+        return JsonUtil.fromJson(space, GraphSpace.class);
     }
 
-    public void addGraph(String graph) {
-        this.metaDriver.put(this.graphAddKey(), this.nsGraphName(graph));
+    public void addGraphSpaceConfig(String name, GraphSpace space) {
+        this.metaDriver.put(this.graphSpaceConfKey(name),
+                            JsonUtil.toJson(space));
     }
 
-    public void removeGraph(String graph) {
-        this.metaDriver.put(this.graphRemoveKey(), this.nsGraphName(graph));
+    public void removeGraphSpaceConfig(String name) {
+        this.metaDriver.delete(this.graphSpaceConfKey(name));
+    }
+
+    public void updateGraphSpaceConfig(String name, GraphSpace space) {
+        this.metaDriver.put(this.graphSpaceConfKey(name),
+                            JsonUtil.toJson(space));
+    }
+
+    public void addGraphSpace(String graphSpace) {
+        this.metaDriver.put(this.graphSpaceAddKey(), graphSpace);
+    }
+
+    public void removeGraphSpace(String graphSpace) {
+        this.metaDriver.put(this.graphSpaceRemoveKey(), graphSpace);
+    }
+
+    public void updateGraphSpace(String graphSpace) {
+        this.metaDriver.put(this.graphSpaceUpdateKey(), graphSpace);
+    }
+
+    public void removeGraphConfig(String graphSpace, String graph) {
+        this.metaDriver.delete(this.graphConfKey(graphSpace, graph));
+    }
+
+    public void addGraph(String graphSpace, String graph) {
+        this.metaDriver.put(this.graphAddKey(),
+                            this.nsGraphName(graphSpace, graph));
+    }
+
+    public void removeGraph(String graphSpace, String graph) {
+        this.metaDriver.put(this.graphRemoveKey(),
+                            this.nsGraphName(graphSpace, graph));
+    }
+
+    private String graphSpaceAddKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_GRAPHSPACE, META_PATH_ADD);
+    }
+
+    private String graphSpaceRemoveKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_GRAPHSPACE, META_PATH_REMOVE);
+    }
+
+    private String graphSpaceUpdateKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_GRAPHSPACE, META_PATH_CHANGE);
     }
 
     private String graphAddKey() {
@@ -173,8 +256,21 @@ public class MetaManager {
                            META_PATH_GRAPH, META_PATH_REMOVE);
     }
 
-    private String confPrefix() {
-        return this.graphConfKey(Strings.EMPTY);
+    private String graphConfPrefix(String graphSpace) {
+        return this.graphConfKey(graphSpace, Strings.EMPTY);
+    }
+
+    private String graphSpaceConfPrefix() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE,
+                           META_PATH_CONF);
+    }
+
+    private String graphSpaceConfKey(String name) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE,
+                           META_PATH_CONF, name);
     }
 
     // TODO: remove after support namespace
@@ -182,11 +278,11 @@ public class MetaManager {
         return this.graphConfKey(DEFAULT_NAMESPACE, graph);
     }
 
-    private String graphConfKey(String namespace, String graph) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{namespace}/GRAPH_CONF
+    private String graphConfKey(String graphSpace, String graph) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
-                           namespace, META_PATH_GRAPH_CONF, graph);
+                           graphSpace, META_PATH_GRAPH_CONF, graph);
     }
 
     private String userKey(String name) {
@@ -291,11 +387,6 @@ public class MetaManager {
         // HUGEGRAPH/{cluster}/GRAPHSPACE_LIST
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE_LIST);
-    }
-
-    // TODO: remove after support namespace
-    private String nsGraphName(String name) {
-        return this.nsGraphName(DEFAULT_NAMESPACE, name);
     }
 
     private String nsGraphName(String namespace, String name) {

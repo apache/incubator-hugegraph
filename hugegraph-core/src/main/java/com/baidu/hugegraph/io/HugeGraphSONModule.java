@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -64,6 +65,7 @@ import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
@@ -210,6 +212,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addSerializer(Tree.class, new TreeSerializer());
     }
 
+    public static void registerGraphSpaceSerializers(SimpleModule module) {
+        module.addSerializer(GraphSpace.class, new GraphSpaceSerializer());
+        module.addDeserializer(GraphSpace.class, new GraphSpaceDeserializer());
+    }
+
     @SuppressWarnings("rawtypes")
     private static class OptionalSerializer extends StdSerializer<Optional> {
 
@@ -227,6 +234,66 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             } else {
                 jsonGenerator.writeObject(null);
             }
+        }
+    }
+
+    private static class GraphSpaceSerializer
+            extends StdSerializer<GraphSpace> {
+
+        public GraphSpaceSerializer() {
+            super(GraphSpace.class);
+        }
+
+        @Override
+        public void serialize(GraphSpace gs,
+                              JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                              throws IOException {
+            jsonGenerator.writeStartObject();
+            for (Map.Entry<String, Object> entry : gs.info().entrySet()) {
+                jsonGenerator.writeFieldName(entry.getKey());
+                jsonGenerator.writeObject(entry.getValue());
+            }
+            jsonGenerator.writeEndObject();
+        }
+    }
+
+    private static class GraphSpaceDeserializer
+            extends StdDeserializer<GraphSpace> {
+
+        public GraphSpaceDeserializer() {
+            super(GraphSpace.class);
+        }
+
+        @Override
+        public GraphSpace deserialize(JsonParser jsonParser,
+                                      DeserializationContext ctxt)
+                                      throws IOException {
+            if (jsonParser.getCurrentToken() != JsonToken.START_OBJECT) {
+                throw new HugeException("invalid start marker");
+            }
+
+            String name = null;
+            Number maxGraphNumber = 0;
+            Number maxRoleNumber = 0;
+            Map<String, Object> configs = new HashMap<>();
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String fieldname = jsonParser.getCurrentName();
+                jsonParser.nextToken();
+                if ("name".equals(fieldname)) {
+                    name = jsonParser.getText();
+                } else if ("max_graph_number".equals(fieldname)) {
+                    maxGraphNumber = jsonParser.getNumberValue();
+                } else if ("max_role_number".equals(fieldname)) {
+                    maxRoleNumber = jsonParser.getNumberValue();
+                } else {
+                    configs.put(fieldname, jsonParser.getValueAsString());
+                }
+            }
+            jsonParser.close();
+
+            return new GraphSpace(name, maxGraphNumber.intValue(),
+                                  maxRoleNumber.intValue(), configs);
         }
     }
 

@@ -47,7 +47,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/traversers/sameneighbors")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/sameneighbors")
 @Singleton
 public class SameNeighborsAPI extends API {
 
@@ -57,6 +57,7 @@ public class SameNeighborsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("vertex") String vertex,
                       @QueryParam("other") String other,
@@ -74,7 +75,7 @@ public class SameNeighborsAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, maxDegree, limit);

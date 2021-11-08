@@ -40,7 +40,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/schema")
+@Path("graphspaces/{graphspace}/graphs/{graph}/schema")
 @Singleton
 public class SchemaAPI extends API {
 
@@ -51,10 +51,11 @@ public class SchemaAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=schema_read"})
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] list all schema", graph);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SchemaManager schema = g.schema();
 
         Map<String, List<?>> schemaMap = new LinkedHashMap<>(4);

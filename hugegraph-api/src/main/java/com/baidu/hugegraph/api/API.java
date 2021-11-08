@@ -39,6 +39,7 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
@@ -114,8 +115,9 @@ public class API {
     private static final Meter unknownErrorMeter =
                          MetricsUtil.registerMeter(API.class, "unknown-error");
 
-    public static HugeGraph graph(GraphManager manager, String graph) {
-        HugeGraph g = manager.graph(graph);
+    public static HugeGraph graph(GraphManager manager, String graphSpace,
+                                  String graph) {
+        HugeGraph g = manager.graph(graphSpace, graph);
         if (g == null) {
             throw new NotFoundException(String.format(
                       "Graph '%s' does not exist", graph));
@@ -123,8 +125,18 @@ public class API {
         return g;
     }
 
-    public static HugeGraph graph4admin(GraphManager manager, String graph) {
-        return graph(manager, graph).hugegraph();
+    public static GraphSpace space(GraphManager manager, String space) {
+        GraphSpace s = manager.graphSpace(space);
+        if (s == null) {
+            throw new NotFoundException(String.format(
+                      "Graph space '%s' does not exist", space));
+        }
+        return s;
+    }
+
+    public static HugeGraph graph4admin(GraphManager manager, String graphSpace,
+                                        String graph) {
+        return graph(manager, graphSpace, graph).hugegraph();
     }
 
     public static <R> R commit(HugeGraph g, Callable<R> callable) {

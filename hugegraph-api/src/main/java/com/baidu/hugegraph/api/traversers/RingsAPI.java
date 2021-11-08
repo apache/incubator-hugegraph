@@ -47,7 +47,7 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
-@Path("graphs/{graph}/traversers/rings")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/rings")
 @Singleton
 public class RingsAPI extends API {
 
@@ -57,6 +57,7 @@ public class RingsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String sourceV,
                       @QueryParam("direction") String direction,
@@ -80,7 +81,7 @@ public class RingsAPI extends API {
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,

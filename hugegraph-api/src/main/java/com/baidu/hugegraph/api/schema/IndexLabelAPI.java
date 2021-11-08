@@ -58,7 +58,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/schema/indexlabels")
+@Path("graphspaces/{graphspace}/graphs/{graph}/schema/indexlabels")
 @Singleton
 public class IndexLabelAPI extends API {
 
@@ -71,12 +71,13 @@ public class IndexLabelAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_write"})
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
         LOG.debug("Graph [{}] create index label: {}", graph, jsonIndexLabel);
         checkCreatingBody(jsonIndexLabel);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         SchemaElement.TaskWithSchema il = builder.createWithTask();
         il.indexLabel(mapIndexLabel(il.indexLabel()));
@@ -89,6 +90,7 @@ public class IndexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
@@ -102,7 +104,7 @@ public class IndexLabelAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         IndexLabel.Builder builder = jsonIndexLabel.convert2Builder(g);
         IndexLabel IndexLabel = append ? builder.append() : builder.eliminate();
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(IndexLabel));
@@ -113,6 +115,7 @@ public class IndexLabelAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_read"})
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
         boolean listAll = CollectionUtils.isEmpty(names);
@@ -122,7 +125,7 @@ public class IndexLabelAPI extends API {
             LOG.debug("Graph [{}] get index labels by names {}", graph, names);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         List<IndexLabel> labels;
         if (listAll) {
             labels = g.schema().getIndexLabels();
@@ -141,11 +144,12 @@ public class IndexLabelAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_read"})
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get index label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         IndexLabel indexLabel = g.schema().getIndexLabel(name);
         return manager.serializer(g).writeIndexlabel(mapIndexLabel(indexLabel));
     }
@@ -158,11 +162,12 @@ public class IndexLabelAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graphspace") String graphSpace,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove index label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         // Throw 404 if not exists
         g.schema().getIndexLabel(name);
         return ImmutableMap.of("task_id",

@@ -52,7 +52,7 @@ import com.google.common.collect.ImmutableMap;
  *  - Adamic Adar
  *  - Resource Allocation
  */
-@Path("graphs/{graph}/traversers/")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/")
 @Singleton
 public class PredictionAPI extends API {
 
@@ -63,6 +63,7 @@ public class PredictionAPI extends API {
     @Path("adamicadar")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("vertex") String current,
                       @QueryParam("other") String other,
@@ -80,7 +81,7 @@ public class PredictionAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         PredictionTraverser traverser = new PredictionTraverser(g);
         double score = traverser.adamicAdar(sourceId, targetId, dir,
                                             edgeLabel, maxDegree, limit);
@@ -92,6 +93,7 @@ public class PredictionAPI extends API {
     @Path("resourceallocation")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @QueryParam("vertex") String current,
                          @QueryParam("other") String other,
@@ -110,7 +112,7 @@ public class PredictionAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         PredictionTraverser traverser = new PredictionTraverser(g);
         double score = traverser.resourceAllocation(sourceId, targetId, dir,
                                                     edgeLabel, maxDegree,

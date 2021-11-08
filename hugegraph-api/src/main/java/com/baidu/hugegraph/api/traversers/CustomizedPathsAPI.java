@@ -59,7 +59,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/traversers/customizedpaths")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/customizedpaths")
 @Singleton
 public class CustomizedPathsAPI extends API {
 
@@ -70,6 +70,7 @@ public class CustomizedPathsAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        PathRequest request) {
         E.checkArgumentNotNull(request, "The path request body can't be null");
@@ -87,7 +88,7 @@ public class CustomizedPathsAPI extends API {
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         List<WeightedEdgeStep> steps = step(g, request);
         boolean sorted = request.sortBy != SortBy.NONE;

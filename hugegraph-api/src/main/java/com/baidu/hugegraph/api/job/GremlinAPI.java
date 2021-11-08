@@ -57,7 +57,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/jobs/gremlin")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/gremlin")
 @Singleton
 public class GremlinAPI extends API {
 
@@ -75,13 +75,14 @@ public class GremlinAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=gremlin_execute"})
     public Map<String, Id> post(@Context GraphManager manager,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("graph") String graph,
                                 GremlinRequest request) {
         LOG.debug("Graph [{}] schedule gremlin job: {}", graph, request);
         checkCreatingBody(request);
         gremlinJobInputHistogram.update(request.gremlin.length());
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         request.aliase(graph, "graph");
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name(request.name())

@@ -49,7 +49,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableList;
 
-@Path("graphs/{graph}/traversers/allshortestpaths")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/allshortestpaths")
 @Singleton
 public class AllShortestPathsAPI extends API {
 
@@ -59,6 +59,7 @@ public class AllShortestPathsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("target") String target,
@@ -81,7 +82,7 @@ public class AllShortestPathsAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
         List<String> edgeLabels = edgeLabel == null ? ImmutableList.of() :

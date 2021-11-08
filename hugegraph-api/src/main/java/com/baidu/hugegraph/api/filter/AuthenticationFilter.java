@@ -109,9 +109,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         MultivaluedMap<String, String> pathParameters =
                                 context.getUriInfo().getPathParameters();
         if (pathParameters != null && pathParameters.size() > 0) {
-            List<String> parameters = pathParameters.get("graph");
-            if (parameters != null && parameters.size() > 0) {
-                HugeGraph target = manager.graph(parameters.get(0));
+            List<String> spaceParam = pathParameters.get("graphspace");
+            List<String> graphParam = pathParameters.get("graph");
+            if (spaceParam != null && spaceParam.size() > 0 &&
+                graphParam != null && graphParam.size() > 0) {
+                HugeGraph target = manager.graph(spaceParam.get(0),
+                                                 graphParam.get(0));
                 if (target != null && target instanceof StandardHugeGraph) {
                     // Return anonymous user if access standard hugeGraph
                     return User.ANONYMOUS;

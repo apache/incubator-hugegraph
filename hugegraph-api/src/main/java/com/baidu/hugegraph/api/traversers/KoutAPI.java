@@ -64,7 +64,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
-@Path("graphs/{graph}/traversers/kout")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/kout")
 @Singleton
 public class KoutAPI extends TraverserAPI {
 
@@ -74,6 +74,7 @@ public class KoutAPI extends TraverserAPI {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("direction") String direction,
@@ -102,7 +103,7 @@ public class KoutAPI extends TraverserAPI {
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         Collection<Id> ids;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
@@ -128,6 +129,7 @@ public class KoutAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         DebugMeasure measure = new DebugMeasure();
@@ -152,7 +154,7 @@ public class KoutAPI extends TraverserAPI {
                   request.capacity, request.limit, request.withVertex,
                   request.withPath, request.withEdge, request.algorithm);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
         Steps steps = steps(g, request.steps);
 

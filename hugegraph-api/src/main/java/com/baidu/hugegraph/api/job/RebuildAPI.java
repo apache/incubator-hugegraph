@@ -40,7 +40,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
-@Path("graphs/{graph}/jobs/rebuild")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/rebuild")
 @Singleton
 public class RebuildAPI extends API {
 
@@ -53,11 +53,13 @@ public class RebuildAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
     public Map<String, Id> vertexLabelRebuild(@Context GraphManager manager,
+                                              @PathParam("graphspace")
+                                              String graphSpace,
                                               @PathParam("graph") String graph,
                                               @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild vertex label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().vertexLabel(name).rebuildIndex());
     }
@@ -69,11 +71,13 @@ public class RebuildAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
     public Map<String, Id> edgeLabelRebuild(@Context GraphManager manager,
+                                            @PathParam("graphspace")
+                                            String graphSpace,
                                             @PathParam("graph") String graph,
                                             @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild edge label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().edgeLabel(name).rebuildIndex());
     }
@@ -85,11 +89,13 @@ public class RebuildAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
     public Map<String, Id> indexLabelRebuild(@Context GraphManager manager,
+                                             @PathParam("graphspace")
+                                             String graphSpace,
                                              @PathParam("graph") String graph,
                                              @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild index label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().indexLabel(name).rebuild());
     }

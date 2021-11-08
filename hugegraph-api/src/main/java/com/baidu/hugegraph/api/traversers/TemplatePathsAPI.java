@@ -52,7 +52,7 @@ import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Path("graphs/{graph}/traversers/templatepaths")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/templatepaths")
 @Singleton
 public class TemplatePathsAPI extends TraverserAPI {
 
@@ -63,6 +63,7 @@ public class TemplatePathsAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -79,7 +80,7 @@ public class TemplatePathsAPI extends TraverserAPI {
                   graph, request.sources, request.targets, request.steps,
                   request.capacity, request.limit, request.withVertex);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         Iterator<Vertex> targets = request.targets.vertices(g);
         List<RepeatEdgeStep> steps = steps(g, request.steps);
