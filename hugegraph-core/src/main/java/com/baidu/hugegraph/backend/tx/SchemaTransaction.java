@@ -415,8 +415,7 @@ public class SchemaTransaction extends IndexableTransaction {
         if (entry == null) {
             return null;
         }
-        T schema = this.deserialize(entry, type);
-        return schema;
+        return this.deserialize(entry, type);
     }
 
     protected <T extends SchemaElement> List<T> getAllSchema(HugeType type) {
@@ -425,8 +424,11 @@ public class SchemaTransaction extends IndexableTransaction {
         Iterator<BackendEntry> entries = this.query(query).iterator();
         try {
             while (entries.hasNext()) {
-                results.add(this.deserialize(entries.next(), type));
-                Query.checkForceCapacity(results.size());
+                BackendEntry entry = entries.next();
+                if (entry != null) {
+                    results.add(this.deserialize(entry, type));
+                    Query.checkForceCapacity(results.size());
+                }
             }
         } finally {
             CloseableIterator.closeIterator(entries);
