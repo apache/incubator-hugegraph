@@ -85,8 +85,8 @@ public class GraphsAPI extends API {
             String role = RequiredPerm.roleFor(graph, HugePermission.READ);
             if (sc.isUserInRole(role)) {
                 try {
-                    HugeGraph g = graph(manager, graph);
-                    filterGraphs.add(g.name());
+                    graph(manager, graph);
+                    filterGraphs.add(graph);
                 } catch (ForbiddenException ignored) {
                     // ignore
                 }
@@ -105,7 +105,7 @@ public class GraphsAPI extends API {
         LOG.debug("Get graph by name '{}'", graph);
 
         HugeGraph g = graph(manager, graph);
-        return ImmutableMap.of("name", g.name(), "backend", g.backend());
+        return ImmutableMap.of("name", graph, "backend", g.backend());
     }
 
     @POST
