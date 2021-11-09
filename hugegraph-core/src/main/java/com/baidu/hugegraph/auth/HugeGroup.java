@@ -167,7 +167,7 @@ public class HugeGroup extends Entity {
         public static final String LABEL = T.label.getAccessor();
 
         public static final String NAME = "~group_name";
-        public static final String GRAPHSPACE = "~group_graphspace";
+        public static final String GRAPHSPACE = "~graphspace";
         public static final String DESCRIPTION = "~group_description";
 
         public static String unhide(String key) {

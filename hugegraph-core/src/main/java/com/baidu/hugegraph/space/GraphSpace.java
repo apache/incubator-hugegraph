@@ -29,7 +29,7 @@ import com.baidu.hugegraph.util.E;
 
 public class GraphSpace {
 
-    public static final String DEFAULT_GRAPH_SPACE_NAME = "default";
+    public static final String DEFAULT_GRAPH_SPACE_NAME = "DEFAULT";
 
     private static final int DEFAULT_MAX_GRAPH_NUMBER = 100;
     private static final int DEFAULT_MAX_ROLE_NUMBER = 100;

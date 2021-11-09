@@ -228,7 +228,7 @@ public class HugeTarget extends Entity {
         public static final String LABEL = T.label.getAccessor();
 
         public static final String NAME = "~target_name";
-        public static final String GRAPHSPACE = "~target_graphspace";
+        public static final String GRAPHSPACE = "~graphspace";
         public static final String GRAPH = "~target_graph";
         public static final String URL = "~target_url";
         public static final String RESS = "~target_resources";

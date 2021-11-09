@@ -176,7 +176,7 @@ public class HugeBelong extends Relationship {
 
         public static final String LABEL = T.label.getAccessor();
 
-        public static final String GRAPHSPACE = "~belong_graphspace";
+        public static final String GRAPHSPACE = "~graphspace";
 
         public static final String USER = "~user";      //  HugeUser.P.USER;
         public static final String GROUP = "~group";     //HugeGroup.P.GROUP;

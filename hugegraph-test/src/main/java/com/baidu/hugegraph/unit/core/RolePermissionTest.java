@@ -45,12 +45,12 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinAdmin() {
         RolePermission admin = RolePermission.admin();
-        RolePermission role1 = RolePermission.role("system", "system", HugePermission.ANY);
+        RolePermission role1 = RolePermission.role("SYSTEM", "SYSTEM", HugePermission.ANY);
         Assert.assertEquals(admin, role1);
         Assert.assertSame(admin, RolePermission.builtin(admin));
         Assert.assertSame(admin, RolePermission.builtin(role1));
 
-        RolePermission role = RolePermission.fromJson("{\"roles\":{\"system\":{\"system\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}}");
+        RolePermission role = RolePermission.fromJson("{\"roles\":{\"SYSTEM\":{\"SYSTEM\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}}");
         Assert.assertTrue(roleContains(admin, role));
 
         RolePermission role2 = RolePermission.all("admin");
@@ -59,7 +59,7 @@ public class RolePermissionTest {
         Assert.assertTrue(roleContains(role2, role));
 
         RolePermission hg = RolePermission.all("hg1");
-        RolePermission role3 = RolePermission.fromJson("{\"roles\":{\"system\":{\"system\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}}");
+        RolePermission role3 = RolePermission.fromJson("{\"roles\":{\"SYSTEM\":{\"SYSTEM\":{\"ANY\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}}");
         Assert.assertEquals(hg, RolePermission.builtin(hg));
         Assert.assertSame(hg, RolePermission.fromJson(hg));
         Assert.assertTrue(roleContains(hg, role3));
@@ -74,13 +74,13 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinNone() {
         RolePermission none = RolePermission.none();
-        RolePermission role1 = RolePermission.role("system", "system", HugePermission.NONE);
+        RolePermission role1 = RolePermission.role("SYSTEM", "SYSTEM", HugePermission.NONE);
         Assert.assertEquals(none, role1);
         Assert.assertSame(none, RolePermission.builtin(none));
         Assert.assertSame(none, RolePermission.builtin(role1));
 
-        Assert.assertEquals("{\"roles\":{\"system\":{\"system\":{\"NONE\":[{\"type\":\"ALL\",\"label\":\"*\",\"properties\":null}]}}}}", none.toJson());
-        RolePermission role = RolePermission.fromJson("{\"roles\":{\"system\":{\"system\":{\"NONE\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}");
+        Assert.assertEquals("{\"roles\":{\"SYSTEM\":{\"SYSTEM\":{\"NONE\":[{\"type\":\"ALL\",\"label\":\"*\",\"properties\":null}]}}}}", none.toJson());
+        RolePermission role = RolePermission.fromJson("{\"roles\":{\"SYSTEM\":{\"SYSTEM\":{\"NONE\":[{\"type\":\"ALL\",\"label\":\"write\",\"properties\":null}]}}}");
         Assert.assertTrue(roleContains(none, role));
     }
 
