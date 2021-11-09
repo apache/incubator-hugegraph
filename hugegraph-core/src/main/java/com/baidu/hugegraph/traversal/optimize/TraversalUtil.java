@@ -544,6 +544,9 @@ public final class TraversalUtil {
     public static <V> Iterator<V> filterResult(
                                   List<HasContainer> hasContainers,
                                   Iterator<? extends Element> iterator) {
+        if (hasContainers.isEmpty()) {
+            return (Iterator<V>) iterator;
+        }
         Iterator<?> result = new FilterIterator<>(iterator, elem -> {
             return HasContainer.testAll(elem, hasContainers);
         });

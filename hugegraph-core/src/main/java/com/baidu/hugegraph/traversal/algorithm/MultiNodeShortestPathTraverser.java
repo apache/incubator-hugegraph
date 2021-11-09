@@ -76,7 +76,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         this.traversePairs(pairs.iterator(), pair -> {
             Path path = traverser.shortestPath(pair.getLeft(), pair.getRight(),
                                                step, maxDepth, capacity);
-            if (!Path.EMPTY_PATH.equals(path)) {
+            if (!Path.EMPTY.equals(path)) {
                 results.add(path);
             }
         });
@@ -93,7 +93,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
         for (Pair<Id, Id> pair : pairs) {
             Path path = traverser.shortestPath(pair.getLeft(), pair.getRight(),
                                                step, maxDepth, capacity);
-            if (!Path.EMPTY_PATH.equals(path)) {
+            if (!Path.EMPTY.equals(path)) {
                 results.add(path);
             }
         }

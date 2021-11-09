@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.unit;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -29,6 +31,7 @@ import java.util.concurrent.Future;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.util.TimeUtil;
 
 public class BaseUnitTest {
@@ -41,6 +44,17 @@ public class BaseUnitTest {
     @AfterClass
     public static void clear() throws Exception {
         // pass
+    }
+
+    public static <V> void assertCollectionEquals(Collection<V> list1,
+                                                  Collection<V> list2) {
+        Assert.assertEquals(list1.size(), list2.size());
+        Iterator<V> iter1 = list1.iterator();
+        Iterator<V> iter2 = list2.iterator();
+        while (iter1.hasNext()) {
+            Assert.assertTrue(iter2.hasNext());
+            Assert.assertEquals(iter1.next(), iter2.next());
+        }
     }
 
     protected static final void runWithThreads(int threads, Runnable task) {

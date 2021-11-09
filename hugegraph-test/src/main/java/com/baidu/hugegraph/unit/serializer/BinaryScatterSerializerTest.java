@@ -41,14 +41,14 @@ public class BinaryScatterSerializerTest extends BaseUnitTest {
         BackendEntry entry1 = ser.writeVertex(edge.sourceVertex());
         HugeVertex vertex1 = ser.readVertex(edge.graph(), entry1);
         Assert.assertEquals(edge.sourceVertex(), vertex1);
-        Assert.assertEquals(edge.sourceVertex().getProperties(),
-                            vertex1.getProperties());
+        assertCollectionEquals(edge.sourceVertex().getProperties(),
+                               vertex1.getProperties());
 
         BackendEntry entry2 = ser.writeVertex(edge.targetVertex());
         HugeVertex vertex2 = ser.readVertex(edge.graph(), entry2);
         Assert.assertEquals(edge.targetVertex(), vertex2);
-        Assert.assertEquals(edge.targetVertex().getProperties(),
-                            vertex2.getProperties());
+        assertCollectionEquals(edge.targetVertex().getProperties(),
+                               vertex2.getProperties());
 
         Whitebox.setInternalState(vertex2, "removed", true);
         Assert.assertTrue(vertex2.removed());
@@ -71,14 +71,14 @@ public class BinaryScatterSerializerTest extends BaseUnitTest {
         Assert.assertEquals(1, vertex1.getEdges().size());
         HugeEdge edge = vertex1.getEdges().iterator().next();
         Assert.assertEquals(edge1, edge);
-        Assert.assertEquals(edge1.getProperties(), edge.getProperties());
+        assertCollectionEquals(edge1.getProperties(), edge.getProperties());
 
         BackendEntry entry2 = ser.writeEdge(edge2);
         HugeVertex vertex2 = ser.readVertex(edge1.graph(), parse(entry2));
         Assert.assertEquals(1, vertex2.getEdges().size());
         edge = vertex2.getEdges().iterator().next();
         Assert.assertEquals(edge2, edge);
-        Assert.assertEquals(edge2.getProperties(), edge.getProperties());
+        assertCollectionEquals(edge2.getProperties(), edge.getProperties());
     }
 
     private static BackendEntry parse(BackendEntry originEntry) {

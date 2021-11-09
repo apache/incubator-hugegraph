@@ -270,7 +270,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         List<Property<V>> props = new ArrayList<>(propsCapacity);
 
         if (keys.length == 0) {
-            for (HugeProperty<?> prop : this.getProperties().values()) {
+            for (HugeProperty<?> prop : this.getProperties()) {
                 assert prop instanceof Property;
                 props.add((Property<V>) prop);
             }

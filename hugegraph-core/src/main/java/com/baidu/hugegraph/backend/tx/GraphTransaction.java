@@ -626,7 +626,7 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex vertex = HugeVertex.create(this, id,
                                                   VertexLabel.OLAP_VL);
             ElementHelper.attachProperties(vertex, keyValues);
-            Iterator<HugeProperty<?>> iterator = vertex.getProperties().values()
+            Iterator<HugeProperty<?>> iterator = vertex.getProperties()
                                                        .iterator();
             assert iterator.hasNext();
             if (iterator.next().propertyKey().olap()) {
@@ -687,7 +687,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         return new BatchMapperIterator<>(this.batchSize, edges, batchEdges -> {
-            List<Id> vertexIds = new ArrayList<>();
+            List<Id> vertexIds = new ArrayList<>(batchEdges.size());
             for (Edge edge : batchEdges) {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }
@@ -1261,7 +1261,7 @@ public class GraphTransaction extends IndexableTransaction {
              */
             if (query.containsCondition(HugeKeys.LABEL) ||
                 query.containsCondition(HugeKeys.PROPERTIES) ||
-                query.containsScanCondition()) {
+                query.containsScanRelation()) {
                 return;
             }
         }
@@ -1293,7 +1293,7 @@ public class GraphTransaction extends IndexableTransaction {
              */
             if (query.containsCondition(HugeKeys.LABEL) ||
                 query.containsCondition(HugeKeys.PROPERTIES) ||
-                query.containsScanCondition()) {
+                query.containsScanRelation()) {
                 return;
             }
         }
@@ -1324,9 +1324,10 @@ public class GraphTransaction extends IndexableTransaction {
 
     private <R> QueryList<R> optimizeQueries(Query query,
                                              QueryResults.Fetcher<R> fetcher) {
+        boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
         QueryList<R> queries = new QueryList<>(query, fetcher);
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query)) {
+                                (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
@@ -1531,7 +1532,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private void checkNonnullProperty(HugeVertex vertex) {
-        Set<Id> keys = vertex.getProperties().keySet();
+        Set<Id> keys = vertex.getPropertyKeys();
         VertexLabel vertexLabel = vertex.schemaLabel();
         // Check whether passed all non-null property
         @SuppressWarnings("unchecked")

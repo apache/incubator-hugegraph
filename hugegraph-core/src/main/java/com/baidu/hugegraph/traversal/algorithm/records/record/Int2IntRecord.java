@@ -35,12 +35,12 @@ public class Int2IntRecord implements Record {
     }
 
     @Override
-    public boolean containsKey(int key) {
-        return this.layer.containsKey(key);
+    public boolean containsKey(int node) {
+        return this.layer.containsKey(node);
     }
 
     @Override
-    public IntIterator get(int key) {
+    public IntIterator get(int node) {
         return null;
     }
 
@@ -56,5 +56,10 @@ public class Int2IntRecord implements Record {
 
     public IntIntHashMap layer() {
         return this.layer;
+    }
+
+    @Override
+    public String toString() {
+        return this.layer.toString();
     }
 }

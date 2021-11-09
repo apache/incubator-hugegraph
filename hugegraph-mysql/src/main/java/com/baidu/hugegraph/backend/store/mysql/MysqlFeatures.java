@@ -51,6 +51,11 @@ public class MysqlFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQueryWithInCondition() {
+        return true;
+    }
+
+    @Override
     public boolean supportsQueryWithRangeCondition() {
         return true;
     }

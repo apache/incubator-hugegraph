@@ -484,8 +484,8 @@ public class HugeTraverser {
 
     public static class Node {
 
-        private Id id;
-        private Node parent;
+        private final Id id;
+        private final Node parent;
 
         public Node(Id id) {
             this(id, null);
@@ -554,10 +554,10 @@ public class HugeTraverser {
 
     public static class Path {
 
-        public static final Path EMPTY_PATH = new Path(ImmutableList.of());
+        public static final Path EMPTY = new Path(ImmutableList.of());
 
-        private Id crosspoint;
-        private List<Id> vertices;
+        private final Id crosspoint;
+        private final List<Id> vertices;
 
         public Path(List<Id> vertices) {
             this(null, vertices);
@@ -623,14 +623,28 @@ public class HugeTraverser {
             }
             return this.vertices.equals(((Path) other).vertices);
         }
+
+        @Override
+        public String toString() {
+            return this.vertices.toString();
+        }
     }
 
     public static class PathSet implements Set<Path> {
 
-        private static final long serialVersionUID = -8237531948776524872L;
+        public final static PathSet EMPTY = new PathSet(ImmutableSet.of());
 
-        private Set<Path> paths = newSet();
+        private final Set<Path> paths;
 
+        public PathSet() {
+            this(newSet());
+        }
+
+        private PathSet(Set<Path> paths) {
+            this.paths = paths;
+        }
+
+        @Override
         public boolean add(Path path) {
             return this.paths.add(path);
         }
@@ -705,6 +719,11 @@ public class HugeTraverser {
                 vertices.addAll(path.vertices());
             }
             return vertices;
+        }
+
+        @Override
+        public String toString() {
+            return this.paths.toString();
         }
     }
 }

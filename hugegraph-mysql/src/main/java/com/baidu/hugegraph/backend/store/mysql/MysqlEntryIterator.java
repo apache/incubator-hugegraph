@@ -39,14 +39,14 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class MysqlEntryIterator extends BackendEntryIterator {
 
-    private final ResultSet results;
+    private final ResultSetWrapper results;
     private final BiFunction<BackendEntry, BackendEntry, BackendEntry> merger;
 
     private BackendEntry next;
     private BackendEntry lastest;
     private boolean exceedLimit;
 
-    public MysqlEntryIterator(ResultSet rs, Query query,
+    public MysqlEntryIterator(ResultSetWrapper rs, Query query,
            BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
         this.results = rs;
@@ -65,8 +65,8 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         }
 
         try {
-            while (!this.results.isClosed() && this.results.next()) {
-                MysqlBackendEntry entry = this.row2Entry(this.results);
+            while (this.results.next()) {
+                MysqlBackendEntry entry = this.row2Entry(this.results.resultSet());
                 this.lastest = entry;
                 BackendEntry merged = this.merger.apply(this.current, entry);
                 if (this.current == null) {

@@ -62,9 +62,9 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -231,14 +231,14 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
-        int propsCount = edge.getProperties().size();
+        int propsCount = edge.sizeOfProperties();
         BytesBuffer buffer = BytesBuffer.allocate(4 + 16 * propsCount);
 
         // Write edge id
         //buffer.writeId(edge.id());
 
         // Write edge properties
-        this.formatProperties(edge.getProperties().values(), buffer);
+        this.formatProperties(edge.getProperties(), buffer);
 
         // Write edge expired time if needed
         if (edge.hasTtl()) {
@@ -383,14 +383,14 @@ public class BinarySerializer extends AbstractSerializer {
             return entry;
         }
 
-        int propsCount = vertex.getProperties().size();
+        int propsCount = vertex.sizeOfProperties();
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16 * propsCount);
 
         // Write vertex label
         buffer.writeId(vertex.schemaLabel().id());
 
         // Write all properties of the vertex
-        this.formatProperties(vertex.getProperties().values(), buffer);
+        this.formatProperties(vertex.getProperties(), buffer);
 
         // Write vertex expired time if needed
         if (vertex.hasTtl()) {
@@ -410,11 +410,14 @@ public class BinarySerializer extends AbstractSerializer {
         BinaryBackendEntry entry = newBackendEntry(HugeType.OLAP, vertex.id());
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
-        HugeProperty<?> hugeProperty = vertex.getProperties().values()
-                                             .iterator().next();
-        PropertyKey propertyKey = hugeProperty.propertyKey();
+        Collection<HugeProperty<?>> properties = vertex.getProperties();
+        E.checkArgument(properties.size() == 1,
+                        "Expect only 1 property for olap vertex, but got %s",
+                        properties.size());
+        HugeProperty<?> property = properties.iterator().next();
+        PropertyKey propertyKey = property.propertyKey();
         buffer.writeVInt(SchemaElement.schemaId(propertyKey.id()));
-        buffer.writeProperty(propertyKey, hugeProperty.value());
+        buffer.writeProperty(propertyKey, property.value());
 
         // Fill column
         byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;

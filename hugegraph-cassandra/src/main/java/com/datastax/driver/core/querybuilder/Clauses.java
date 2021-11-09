@@ -32,8 +32,12 @@ public class Clauses {
                ContainsClause.class.isInstance(clause);
     }
 
-    public static AndClause and(Clause left, Clause right) {
+    public static Clause and(Clause left, Clause right) {
         return new AndClause(left, right);
+    }
+
+    public static Clause in(String name, List<?> values) {
+        return new Clause.InClause(name, values);
     }
 
     static class BinClause extends Clause {
@@ -83,6 +87,7 @@ public class Clauses {
     }
 
     static class AndClause extends BinClause {
+
         public AndClause(Clause left, Clause right) {
             super(left, "AND",  right);
         }

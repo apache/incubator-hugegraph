@@ -37,7 +37,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;

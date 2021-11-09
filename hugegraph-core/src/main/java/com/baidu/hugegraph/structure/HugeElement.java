@@ -22,7 +22,6 @@ package com.baidu.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +33,8 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
-import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -54,6 +52,7 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
@@ -201,36 +200,38 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         return this.schemaLabel().ttl() > 0L;
     }
 
-    // TODO: return MutableIntObjectMap<HugeProperty<?>>
-    public Map<Id, HugeProperty<?>> getProperties() {
-        Map<Id, HugeProperty<?>> props = new HashMap<>();
-        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
-            props.put(IdGenerator.of(e.getOne()), e.getTwo());
+    public Set<Id> getPropertyKeys() {
+        Set<Id> propKeys = InsertionOrderUtil.newSet();
+        IntIterator keys = this.properties.keysView().intIterator();
+        while (keys.hasNext()) {
+            propKeys.add(IdGenerator.of(keys.next()));
         }
-        return props;
+        return propKeys;
     }
 
-    // TODO: return MutableIntObjectMap<HugeProperty<?>>
-    public Map<Id, HugeProperty<?>> getFilledProperties() {
+    public Collection<HugeProperty<?>> getProperties() {
+        return this.properties.values();
+    }
+
+    public Collection<HugeProperty<?>> getFilledProperties() {
         this.ensureFilledProperties(true);
         return this.getProperties();
     }
 
-    // TODO: return MutableIntObjectMap<HugeProperty<?>>
     public Map<Id, Object> getPropertiesMap() {
-        Map<Id, Object> props = new HashMap<>();
-        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
-            props.put(IdGenerator.of(e.getOne()), e.getTwo().value());
+        Map<Id, Object> props = InsertionOrderUtil.newMap();
+        for (HugeProperty<?> prop : this.properties.values()) {
+            props.put(prop.propertyKey().id(), prop.value());
         }
+        // TODO: return MutableIntObjectMap<Object> for this method?
         return props;
     }
 
-    // TODO: return MutableIntObjectMap<HugeProperty<?>>
-    public Map<Id, HugeProperty<?>> getAggregateProperties() {
-        Map<Id, HugeProperty<?>> aggrProps = new HashMap<>();
-        for (IntObjectPair<HugeProperty<?>> e : this.properties.keyValuesView()) {
-            if (e.getTwo().type().isAggregateProperty()) {
-                aggrProps.put(IdGenerator.of(e.getOne()), e.getTwo());
+    public Collection<HugeProperty<?>> getAggregateProperties() {
+        List<HugeProperty<?>> aggrProps = InsertionOrderUtil.newList();
+        for (HugeProperty<?> prop : this.properties.values()) {
+            if (prop.type().isAggregateProperty()) {
+                aggrProps.add(prop);
             }
         }
         return aggrProps;

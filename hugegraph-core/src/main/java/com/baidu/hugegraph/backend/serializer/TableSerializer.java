@@ -363,23 +363,8 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     @Override
     protected Query writeQueryEdgeCondition(Query query) {
-        ConditionQuery result = (ConditionQuery) query;
-        for (Condition.Relation r : result.relations()) {
-            Object value = r.value();
-            if (value instanceof Id) {
-                if (r.key() == HugeKeys.OWNER_VERTEX ||
-                    r.key() == HugeKeys.OTHER_VERTEX) {
-                    // Serialize vertex id
-                    r.serialValue(this.writeId((Id) value));
-                } else {
-                    // Serialize label id
-                    r.serialValue(((Id) value).asObject());
-                }
-            } else if (value instanceof Directions) {
-                r.serialValue(((Directions) value).type().code());
-            }
-        }
-        return null;
+        query = this.writeQueryCondition(query);
+        return query.ids().isEmpty() ? query : null;
     }
 
     @Override
@@ -388,27 +373,29 @@ public abstract class TableSerializer extends AbstractSerializer {
         // No user-prop when serialize
         assert result.allSysprop();
         for (Condition.Relation r : result.relations()) {
-            if (!(r.value().equals(r.serialValue()))) {
+            if (!r.value().equals(r.serialValue())) {
+                // Has been serialized before (maybe share a query multi times)
                 continue;
             }
+            HugeKeys key = (HugeKeys) r.key();
             if (r.relation() == Condition.RelationType.IN) {
+                E.checkArgument(r.value() instanceof List,
+                                "Expect list value for IN condition: %s", r);
                 List<?> values = (List<?>) r.value();
                 List<Object> serializedValues = new ArrayList<>(values.size());
                 for (Object v : values) {
-                    serializedValues.add(this.serializeValue(v));
+                    serializedValues.add(this.serializeValue(key, v));
                 }
                 r.serialValue(serializedValues);
+            } else if (r.relation() == Condition.RelationType.CONTAINS_VALUE &&
+                       query.resultType().isGraph()) {
+                r.serialValue(this.writeProperty(null, r.value()));
             } else {
-                r.serialValue(this.serializeValue(r.value()));
-            }
-
-            if (query.resultType().isGraph() &&
-                r.relation() == Condition.RelationType.CONTAINS_VALUE) {
-                r.serialValue(this.writeProperty(null, r.serialValue()));
+                r.serialValue(this.serializeValue(key, r.value()));
             }
         }
 
-        return query;
+        return result;
     }
 
     @Override
@@ -656,10 +643,19 @@ public abstract class TableSerializer extends AbstractSerializer {
         return IdUtil.readStoredString(id.toString());
     }
 
-    protected Object serializeValue(Object value) {
-        if (value instanceof Id) {
-            value = ((Id) value).asObject();
+    protected Object serializeValue(HugeKeys key, Object value) {
+        if (value instanceof Directions) {
+            value = ((Directions) value).type().code();
+        } else if (value instanceof Id) {
+            if (key == HugeKeys.OWNER_VERTEX || key == HugeKeys.OTHER_VERTEX) {
+                // Serialize vertex id
+                value = this.writeId((Id) value);
+            } else {
+                // Serialize other id value, like label id
+                value = ((Id) value).asObject();
+            }
         }
+
         return value;
     }
 

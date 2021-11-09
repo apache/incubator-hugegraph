@@ -1342,6 +1342,7 @@ public class AuthTest extends BaseCoreTest {
         AuthManager authManager = graph().authManager();
 
         HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
+        @SuppressWarnings("unused")
         Id userId = authManager.createUser(user);
 
         // Login

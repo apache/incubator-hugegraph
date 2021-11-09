@@ -14,19 +14,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     env:
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
     strategy:
       fail-fast: false
       matrix:
         BACKEND: [memory, cassandra, scylladb, hbase, rocksdb]
+        JAVA_VERSION: ['8']
     steps:
-      - name: Install JDK 8
+      - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v2
         with:
-          java-version: '8'
-          distribution: 'adopt'
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'zulu'
 
       - name: Cache Maven packages
         uses: actions/cache@v2

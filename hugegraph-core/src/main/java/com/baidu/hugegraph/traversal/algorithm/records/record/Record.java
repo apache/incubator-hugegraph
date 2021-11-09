@@ -23,9 +23,9 @@ public interface Record {
 
     public abstract IntIterator keys();
 
-    public abstract boolean containsKey(int key);
+    public abstract boolean containsKey(int node);
 
-    public abstract IntIterator get(int key);
+    public abstract IntIterator get(int node);
 
     public abstract void addPath(int node, int parent);
 

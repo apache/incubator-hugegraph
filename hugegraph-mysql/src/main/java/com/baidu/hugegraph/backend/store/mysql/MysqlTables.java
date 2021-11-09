@@ -108,10 +108,10 @@ public class MysqlTables {
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
                                           this.table(), schemaCol, type.name());
-            try {
-                ResultSet resultSet = session.select(select);
-                if (resultSet.next()) {
-                    return resultSet.getLong(idCol);
+            try (ResultSetWrapper results = session.select(select)){
+                ResultSet rs = results.resultSet();
+                if (rs.next()) {
+                    return rs.getLong(idCol);
                 } else {
                     return 0L;
                 }

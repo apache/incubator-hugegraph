@@ -53,11 +53,12 @@ public class EdgesApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         final String edgeGetPath = "graphs/hugegraph/graph/edges";
         String vadasId = name2Ids.get("vadas");
-        Map params =  ImmutableMap.of("vertex_id", id2Json(vadasId),
-                                      "direction", "IN");
+        Map<String, Object> params = ImmutableMap.of(
+                                     "vertex_id", id2Json(vadasId),
+                                     "direction", "IN");
         Response r = client().get(edgeGetPath, params);
         String content = assertResponseStatus(200, r);
-        List<Map> edges = assertJsonContains(content, "edges");
+        List<Map<?, ?>> edges = assertJsonContains(content, "edges");
         Assert.assertNotNull(edges);
         Assert.assertFalse(edges.isEmpty());
         String edgeId = assertMapContains(edges.get(0), "id");
@@ -65,7 +66,7 @@ public class EdgesApiTest extends BaseApiTest {
 
         r = client().get(EDGE_PATH, ImmutableMultimap.of("ids", edgeId));
         content = assertResponseStatus(200, r);
-        List edges2 = assertJsonContains(content, "edges");
+        List<?> edges2 = assertJsonContains(content, "edges");
         Assert.assertEquals(1, edges.size());
         Assert.assertEquals(edges.get(0), edges2.get(0));
     }
@@ -75,7 +76,7 @@ public class EdgesApiTest extends BaseApiTest {
         Response r = client().get(SHARES_PATH, ImmutableMap.of("split_size",
                                                                1048576));
         String content = assertResponseStatus(200, r);
-        List<Map> shards = assertJsonContains(content, "shards");
+        List<Map<String, ?>> shards = assertJsonContains(content, "shards");
         Assert.assertNotNull(shards);
         Assert.assertFalse(shards.isEmpty());
         String start = assertMapContains(shards.get(0), "start");

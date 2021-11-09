@@ -61,9 +61,9 @@ public class MultiNodeShortestPathApiTest extends BaseApiTest {
                                        "\"capacity\": 100000000, " +
                                        "\"with_vertex\": true}",
                                        markoId, peterId, joshId, vadasId);
-        Response r = client().post(path, reqBody);
+        Response r = client().post(this.path, reqBody);
         String content = assertResponseStatus(200, r);
-        List paths = assertJsonContains(content, "paths");
+        List<?> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(6, paths.size());
     }
 }

@@ -20,12 +20,13 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordFactory;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.baidu.hugegraph.util.collection.MappingFactory;
+import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
 public abstract class AbstractRecords implements Records {
 
@@ -41,24 +42,35 @@ public abstract class AbstractRecords implements Records {
     }
 
     @Watched
-    protected int code(Id id) {
-        return this.idMapping.object2Code(id);
+    protected final int code(Id id) {
+        if (id.number()) {
+            long l = id.asLong();
+            if (0 <= l && l <= Integer.MAX_VALUE) {
+                return (int) l;
+            }
+        }
+        int code = this.idMapping.object2Code(id);
+        assert code > 0;
+        return -code;
     }
 
     @Watched
-    protected Id id(int code) {
-        return this.idMapping.code2Object(code);
+    protected final Id id(int code) {
+        if (code >= 0) {
+            return IdGenerator.of(code);
+        }
+        return this.idMapping.code2Object(-code);
     }
 
-    protected Record newRecord() {
+    protected final Record newRecord() {
         return RecordFactory.newRecord(this.type, this.concurrent);
     }
 
-    protected Record currentRecord() {
+    protected final Record currentRecord() {
         return this.currentRecord;
     }
 
-    protected void currentRecord(Record record) {
+    protected final void currentRecord(Record record) {
         this.currentRecord = record;
     }
 }

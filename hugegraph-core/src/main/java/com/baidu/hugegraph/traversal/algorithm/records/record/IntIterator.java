@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 public class IntIterator implements Iterator<Integer> {
 
+    private final static int[] EMPTY = new int[0];
     private final org.eclipse.collections.api.iterator.IntIterator iterator;
     private final int[] array;
     private int index;
@@ -33,9 +34,9 @@ public class IntIterator implements Iterator<Integer> {
         this.index = 0;
     }
 
-    public IntIterator(org.eclipse.collections.api.iterator.IntIterator intIterator) {
-        this.iterator = intIterator;
-        this.array = new int[0];
+    public IntIterator(org.eclipse.collections.api.iterator.IntIterator iter) {
+        this.iterator = iter;
+        this.array = EMPTY;
         this.index = 0;
     }
 
@@ -44,7 +45,7 @@ public class IntIterator implements Iterator<Integer> {
         if (this.iterator != null) {
             return this.iterator.next();
         }
-        return this.array[index++];
+        return this.array[this.index++];
     }
 
     @Override

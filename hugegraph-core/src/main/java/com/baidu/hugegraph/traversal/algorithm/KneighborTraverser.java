@@ -29,7 +29,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.records.KneighborRecords;
-import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
@@ -79,8 +78,7 @@ public class KneighborTraverser extends OltpTraverser {
 
         boolean concurrent = maxDepth >= this.concurrentDepth();
 
-        KneighborRecords records = new KneighborRecords(RecordType.INT,
-                                                        concurrent,
+        KneighborRecords records = new KneighborRecords(concurrent,
                                                         source, true);
 
         Consumer<Id> consumer = v -> {

@@ -147,8 +147,8 @@ public abstract class OltpTraverser extends HugeTraverser
         return p.isPresent() && Objects.equal(p.value(), value);
     }
 
-    public class ConcurrentMultiValuedMap<K, V>
-           extends ConcurrentHashMap<K, List<V>> {
+    public static class ConcurrentMultiValuedMap<K, V>
+                  extends ConcurrentHashMap<K, List<V>> {
 
         private static final long serialVersionUID = -7249946839643493614L;
 

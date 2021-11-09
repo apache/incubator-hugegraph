@@ -36,20 +36,22 @@ public class Int2SetRecord implements Record {
     }
 
     @Override
-    public boolean containsKey(int key) {
-        return this.layer.containsKey(key);
+    public boolean containsKey(int node) {
+        return this.layer.containsKey(node);
     }
 
     @Override
-    public IntIterator get(int key) {
-        return new IntIterator(this.layer.get(key).intIterator());
+    public IntIterator get(int node) {
+        return new IntIterator(this.layer.get(node).intIterator());
     }
 
     @Override
     public void addPath(int node, int parent) {
-        if (this.layer.containsKey(node)) {
-            this.layer.get(node).add(parent);
+        IntHashSet values = this.layer.get(node);
+        if (values != null) {
+            values.add(parent);
         } else {
+            // TODO: use one sorted-array instead to store all values
             this.layer.put(node, IntHashSet.newSetWith(parent));
         }
     }
@@ -57,5 +59,10 @@ public class Int2SetRecord implements Record {
     @Override
     public int size() {
         return this.layer.size();
+    }
+
+    @Override
+    public String toString() {
+        return this.layer.toString();
     }
 }

@@ -349,7 +349,7 @@ public abstract class CassandraTable
             case LTE:
                 return QueryBuilder.lte(key, value);
             case IN:
-                return QueryBuilder.in(key, value);
+                return Clauses.in(key, (List<?>) value);
             case CONTAINS_VALUE:
                 return QueryBuilder.contains(key, value);
             case CONTAINS_KEY:

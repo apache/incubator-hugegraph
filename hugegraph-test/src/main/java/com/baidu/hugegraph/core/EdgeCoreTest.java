@@ -1996,11 +1996,23 @@ public class EdgeCoreTest extends BaseCoreTest {
                                 .outE("look").inV()
                                 .inE("authored")
                                 .toList();
-        Assert.assertEquals(4, edges.size());
-        Assert.assertEquals(james, edges.get(0).outVertex());
-        Assert.assertEquals(james, edges.get(1).outVertex());
-        Assert.assertEquals(james, edges.get(2).outVertex());
-        Assert.assertEquals(james, edges.get(2).outVertex());
+        boolean supportIn = storeFeatures().supportsQueryWithInCondition();
+        if (supportIn) {
+            /*
+             * Duplicated results of inE("authored") are removed by backend
+             * store with IN Condition query
+             */
+            Assert.assertEquals(3, edges.size());
+            Assert.assertEquals(james, edges.get(0).outVertex());
+            Assert.assertEquals(james, edges.get(1).outVertex());
+            Assert.assertEquals(james, edges.get(2).outVertex());
+        } else {
+            Assert.assertEquals(4, edges.size());
+            Assert.assertEquals(james, edges.get(0).outVertex());
+            Assert.assertEquals(james, edges.get(1).outVertex());
+            Assert.assertEquals(james, edges.get(2).outVertex());
+            Assert.assertEquals(james, edges.get(3).outVertex());
+        }
 
         edges = graph.traversal().V()
                      .hasLabel("person").has("name", "Louise")
@@ -2010,31 +2022,31 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(3, edges.size());
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(2).inV()
-                .inE("authored").limit(3)
-                .toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").limit(2).inV()
+                     .inE("authored").limit(3)
+                     .toList();
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(3).inV()
-                .inE("authored").limit(2)
-                .toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").limit(3).inV()
+                     .inE("authored").limit(2)
+                     .toList();
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(2).inV()
-                .inE("authored").limit(1)
-                .toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").limit(2).inV()
+                     .inE("authored").limit(1)
+                     .toList();
         Assert.assertEquals(1, edges.size());
 
         edges = graph.traversal().V()
-                .hasLabel("person").has("name", "Louise")
-                .outE("look").limit(1).inV()
-                .inE("authored").limit(2)
-                .toList();
+                     .hasLabel("person").has("name", "Louise")
+                     .outE("look").limit(1).inV()
+                     .inE("authored").limit(2)
+                     .toList();
         Assert.assertEquals(1, edges.size());
     }
 
@@ -2389,13 +2401,16 @@ public class EdgeCoreTest extends BaseCoreTest {
                             .limit(12).toList();
             Assert.assertEquals(11, vertices.size());
 
+            boolean firstLouise = graph.traversal().V(louise, james)
+                                       .outE("write", "look").outV().next()
+                                       .equals(louise);
             vertices = graph.traversal().V(louise, james)
                             .out("write", "look")
                             .limit(12)
                             .has("name", Text.contains("java-1"))
                             .limit(11).toList();
             // two look edges not matched
-            Assert.assertEquals(9, vertices.size());
+            Assert.assertEquals(firstLouise ? 9 : 11, vertices.size());
 
             vertices = graph.traversal().V()
                             .out("write", "look")

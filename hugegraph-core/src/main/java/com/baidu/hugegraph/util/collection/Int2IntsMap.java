@@ -80,7 +80,7 @@ public class Int2IntsMap {
      *                        |     ...       |
      */
 
-    private IntIntHashMap chunkMap;
+    private final IntIntHashMap chunkMap;
     private int[] chunkTable;
 
     private int nextFreeChunk;
@@ -100,7 +100,7 @@ public class Int2IntsMap {
              */
             int nextFree = this.chunkTable[firstChunk + OFFSET_NEXT_FREE];
             if (!this.endOfChunk(nextFree)) {
-                chunkTable[nextFree] = value;
+                this.chunkTable[nextFree] = value;
                 this.chunkTable[firstChunk + OFFSET_NEXT_FREE]++;
             } else {
                 /*
@@ -166,6 +166,30 @@ public class Int2IntsMap {
 
     public int size() {
         return this.chunkMap.size();
+    }
+
+    @Override
+    public String toString() {
+        int capacity = (this.size() + 1) * 64;
+        StringBuilder sb = new StringBuilder(capacity);
+        sb.append("{");
+        for (IntIterator iter = this.keyIterator(); iter.hasNext();) {
+            if (sb.length() > 1) {
+                sb.append(", ");
+            }
+            int key = iter.next();
+            sb.append(key).append(": [");
+            int[] values = this.getValues(key);
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                sb.append(values[i]);
+            }
+            sb.append("]");
+        }
+        sb.append("}");
+        return sb.toString();
     }
 
     private boolean endOfChunk(int position) {

@@ -31,7 +31,6 @@ import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.ResourceObject;
 import com.baidu.hugegraph.auth.ResourceType;
 import com.baidu.hugegraph.auth.RolePermission;
-import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
@@ -503,7 +502,7 @@ public class RolePermissionTest {
         ResourceObject<?> r1 = ResourceObject.of("hugegraph",
                                                  new HugeProject("project1"));
         Assert.assertFalse(all.filter(r1));
-        
+
         HugeResource project = new HugeResource(ResourceType.PROJECT,
                                                 "project1",
                                                 null);

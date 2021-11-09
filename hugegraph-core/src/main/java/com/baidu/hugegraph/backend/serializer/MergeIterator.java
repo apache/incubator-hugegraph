@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.util.E;
 
@@ -86,7 +85,7 @@ public class MergeIterator<T, R> extends WrappedIterator<T> {
                 continue;
             }
 
-            if (merger.apply(next, element)) {
+            if (this.merger.apply(next, element)) {
                 Iterator<R> iter = this.iterators.get(i);
                 if (iter.hasNext()) {
                     this.headElements.set(i, iter.next());
