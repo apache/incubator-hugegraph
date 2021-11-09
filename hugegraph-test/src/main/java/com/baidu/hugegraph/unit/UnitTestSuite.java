@@ -75,72 +75,72 @@ import com.baidu.hugegraph.unit.util.VersionTest;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     /* cache */
-    CacheTest.RamCacheTest.class,
-    CacheTest.OffheapCacheTest.class,
-    CacheTest.LevelCacheTest.class,
-    CachedSchemaTransactionTest.class,
-    CachedGraphTransactionTest.class,
-    CacheManagerTest.class,
-    RamTableTest.class,
-
-    /* types */
-    DataTypeTest.class,
-    DirectionsTest.class,
-    SerialEnumTest.class,
-
-    /* id */
-    IdTest.class,
-    EdgeIdTest.class,
-    IdUtilTest.class,
-    SplicingIdGeneratorTest.class,
-
-    /* core */
-    LocksTableTest.class,
-    RowLockTest.class,
-    AnalyzerTest.class,
-    BackendMutationTest.class,
-    ConditionTest.class,
-    ConditionQueryFlattenTest.class,
-    QueryTest.class,
-    RangeTest.class,
-    SecurityManagerTest.class,
-    RolePermissionTest.class,
-    ExceptionTest.class,
-    BackendStoreSystemInfoTest.class,
-    TraversalUtilTest.class,
-    PageStateTest.class,
-    Int2IntsMapTest.class,
-    ObjectIntMappingTest.class,
-    IdSetTest.class,
-
-    /* serializer */
-    BytesBufferTest.class,
-    SerializerFactoryTest.class,
-    TextBackendEntryTest.class,
-    TableBackendEntryTest.class,
-    BinaryBackendEntryTest.class,
-    BinarySerializerTest.class,
-    BinaryScatterSerializerTest.class,
-    StoreSerializerTest.class,
-
-    /* cassandra */
-    CassandraTest.class,
-
-    /* mysql */
-    MysqlUtilTest.class,
-    WhereBuilderTest.class,
-
-    /* rocksdb */
-    RocksDBSessionsTest.class,
-    RocksDBSessionTest.class,
-    RocksDBCountersTest.class,
-
-    /* utils */
-    VersionTest.class,
-    JsonUtilTest.class,
-    StringEncodingTest.class,
-    CompressUtilTest.class,
-    CollectionFactoryTest.class,
+    //CacheTest.RamCacheTest.class,
+    //CacheTest.OffheapCacheTest.class,
+    //CacheTest.LevelCacheTest.class,
+    //CachedSchemaTransactionTest.class,
+    //CachedGraphTransactionTest.class,
+    //CacheManagerTest.class,
+    //RamTableTest.class,
+    //
+    ///* types */
+    //DataTypeTest.class,
+    //DirectionsTest.class,
+    //SerialEnumTest.class,
+    //
+    ///* id */
+    //IdTest.class,
+    //EdgeIdTest.class,
+    //IdUtilTest.class,
+    //SplicingIdGeneratorTest.class,
+    //
+    ///* core */
+    //LocksTableTest.class,
+    //RowLockTest.class,
+    //AnalyzerTest.class,
+    //BackendMutationTest.class,
+    //ConditionTest.class,
+    //ConditionQueryFlattenTest.class,
+    //QueryTest.class,
+    //RangeTest.class,
+    //SecurityManagerTest.class,
+    //RolePermissionTest.class,
+    //ExceptionTest.class,
+    //BackendStoreSystemInfoTest.class,
+    //TraversalUtilTest.class,
+    //PageStateTest.class,
+    //Int2IntsMapTest.class,
+    //ObjectIntMappingTest.class,
+    //IdSetTest.class,
+    //
+    ///* serializer */
+    //BytesBufferTest.class,
+    //SerializerFactoryTest.class,
+    //TextBackendEntryTest.class,
+    //TableBackendEntryTest.class,
+    //BinaryBackendEntryTest.class,
+    //BinarySerializerTest.class,
+    //BinaryScatterSerializerTest.class,
+    //StoreSerializerTest.class,
+    //
+    ///* cassandra */
+    //CassandraTest.class,
+    //
+    ///* mysql */
+    //MysqlUtilTest.class,
+    //WhereBuilderTest.class,
+    //
+    ///* rocksdb */
+    //RocksDBSessionsTest.class,
+    //RocksDBSessionTest.class,
+    //RocksDBCountersTest.class,
+    //
+    ///* utils */
+    //VersionTest.class,
+    //JsonUtilTest.class,
+    //StringEncodingTest.class,
+    //CompressUtilTest.class,
+    //CollectionFactoryTest.class,
     RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
     RateLimiterTest.FixedWatchWindowRateLimiterTest.class
 })

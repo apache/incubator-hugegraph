@@ -23,7 +23,7 @@ jobs:
       matrix:
         JAVA_VERSION: ['8']
         # BACKEND: [memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql]
-        BACKEND: [rocksdb, mysql, postgresql]
+        BACKEND: [mysql, postgresql]
     
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
