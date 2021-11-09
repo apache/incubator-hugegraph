@@ -17,5 +17,5 @@ sed -i "s/jdbc.reconnect_max_times=.*/jdbc.reconnect_max_times=10/" $CONF
 sed -i "s/jdbc.reconnect_interval=.*/jdbc.reconnect_interval=5/" $CONF
 
 
-#docker pull mysql:5.7
-#docker run -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+docker pull mysql:5.7
+docker run -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7

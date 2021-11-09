@@ -255,11 +255,10 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     private Connection connect(String url) throws SQLException {
+        LOG.info("Connect to the jdbc url: '{}'", url);
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);
-        LOG.info("Connect to the jdbc url: '{}', {}, {}, passwdEmpty {}",
-                 url, username, password, password == null || password.isEmpty());
         try {
             // Register JDBC driver
             Class.forName(driverName);
