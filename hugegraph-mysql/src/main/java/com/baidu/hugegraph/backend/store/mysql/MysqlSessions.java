@@ -258,7 +258,8 @@ public class MysqlSessions extends BackendSessionPool {
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);
-        LOG.info("Connect to the jdbc url: '{}', {}, {}", url, username, password);
+        LOG.info("Connect to the jdbc url: '{}', {}, {}, passwdEmpty {}",
+                 url, username, password, password == null || password.isEmpty());
         try {
             // Register JDBC driver
             Class.forName(driverName);
