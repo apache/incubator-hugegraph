@@ -425,10 +425,11 @@ public class SchemaTransaction extends IndexableTransaction {
         try {
             while (entries.hasNext()) {
                 BackendEntry entry = entries.next();
-                if (entry != null) {
-                    results.add(this.deserialize(entry, type));
-                    Query.checkForceCapacity(results.size());
+                if (entry == null) {
+                    continue;
                 }
+                results.add(this.deserialize(entry, type));
+                Query.checkForceCapacity(results.size());
             }
         } finally {
             CloseableIterator.closeIterator(entries);
