@@ -8,27 +8,27 @@ if [[ $# -ne 1 ]]; then
 fi
 
 BACKEND=$1
-TRAVIS_DIR=`dirname $0`
+TRAVIS_DIR=$(dirname "$0")
 
-if [ ! -d $HOME/downloads ]; then
-    mkdir $HOME/downloads
+if [ ! -d "$HOME"/downloads ]; then
+    mkdir "$HOME"/downloads
 fi
 
 case $BACKEND in
     cassandra)
-        $TRAVIS_DIR/install-cassandra.sh
+        "$TRAVIS_DIR"/install-cassandra.sh
         ;;
     scylladb)
-        $TRAVIS_DIR/install-scylladb.sh
+        "$TRAVIS_DIR"/install-scylladb.sh
         ;;
     hbase)
-        $TRAVIS_DIR/install-hbase.sh
+        "$TRAVIS_DIR"/install-hbase.sh
         ;;
     mysql)
-        $TRAVIS_DIR/install-mysql-via-docker.sh
+        "$TRAVIS_DIR"/install-mysql-via-docker.sh
         ;;
     postgresql)
-        $TRAVIS_DIR/install-postgresql-via-docker.sh
+        "$TRAVIS_DIR"/install-postgresql-via-docker.sh
         ;;
     *)
         # don't need to install for other backends
