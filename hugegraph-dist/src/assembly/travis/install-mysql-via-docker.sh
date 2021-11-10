@@ -10,7 +10,6 @@ MYSQL_USERNAME=root
 
 # Set MySQL configurations
 sed -i "s/jdbc.username=.*/jdbc.username=$MYSQL_USERNAME/" $CONF
-
 sed -i "s/jdbc.reconnect_max_times=.*/jdbc.reconnect_max_times=10/" $CONF
 sed -i "s/jdbc.reconnect_interval=.*/jdbc.reconnect_interval=5/" $CONF
 
