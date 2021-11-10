@@ -20,4 +20,4 @@ sudo service postgresql stop 9.2
 
 docker pull postgres:9.6
 docker volume create pgdata
-docker run --rm -v pgdata:/var/lib/postgresql/data -p 5432:5432 -e POSTGRES_PASSWORD=xxxxxx -d postgres:9.6
+docker run --rm -v pgdata:/var/lib/postgresql/data -p 5432:5432 -e POSTGRES_PASSWORD=777777 -d postgres:9.6
