@@ -29,9 +29,12 @@ import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.CIter;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
+    private static final Logger LOG = Log.logger(BackendEntryIterator.class);
     public static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;
 
     protected final Query query;
@@ -115,8 +118,17 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
     }
 
     protected final boolean reachLimit(long count) {
-        checkInterrupted();
-        return this.query.reachLimit(count);
+        try {
+            checkInterrupted();
+            return this.query.reachLimit(count);
+        } catch (BackendException e) {
+            try {
+                this.close();
+            } catch (Exception ex) {
+                LOG.warn("failed to close backend entry iterator for interrupted query", ex);
+            }
+            throw e;
+        }
     }
 
     protected final long count() {
