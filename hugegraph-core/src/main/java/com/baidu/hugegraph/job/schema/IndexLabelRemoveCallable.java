@@ -55,11 +55,11 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
             // Set index label to "deleting" status
             schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
             try {
+                // Remove label from indexLabels of vertex or edge label
+                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
                 // Remove index data
                 // TODO: use event to replace direct call
                 graphTx.removeIndex(indexLabel);
-                // Remove label from indexLabels of vertex or edge label
-                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
                 removeSchema(schemaTx, indexLabel);
                 /*
                  * Should commit changes to backend store before release
