@@ -340,6 +340,8 @@ public abstract class MysqlTable
                 return IteratorUtils.of(rs.resultSet().getLong(1));
             } catch (SQLException e) {
                 throw new BackendException(e);
+            } finally {
+                rs.close();
             }
         });
         return aggregate.reduce(results);
