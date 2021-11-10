@@ -73,8 +73,8 @@ public class SameNeighborsBatchAPI extends API {
         List<Set<Id>> result = new ArrayList<Set<Id>>();
         for(List<String> vertexPair : req.vertexList) {
             E.checkArgument(vertexPair.size() == 2, "vertex pair length error");
-            Id sourceId = IdGenerator.of(vertexPair.get(0));
-            Id targetId = IdGenerator.of(vertexPair.get(1));
+            Id sourceId = VertexAPI.checkAndParseVertexId(vertexPair.get(0));
+            Id targetId = VertexAPI.checkAndParseVertexId(vertexPair.get(1));
             Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir, 
                 req.label, req.maxDegree, req.limit);
             result.add(neighbors);
