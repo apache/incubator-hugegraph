@@ -70,7 +70,7 @@ public class MysqlOptions extends OptionHolder {
                     "jdbc.password",
                     "The password corresponding to jdbc.username.",
                     null,
-                    "123456"
+                    "******"
             );
 
     public static final ConfigOption<Integer> JDBC_RECONNECT_MAX_TIMES =
