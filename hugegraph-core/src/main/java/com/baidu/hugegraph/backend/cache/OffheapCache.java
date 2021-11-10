@@ -377,7 +377,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             Class<? extends Object> clazz = object.getClass();
             if (Collection.class.isAssignableFrom(clazz)) {
                 return ValueType.LIST;
-            } else if (clazz == HugeVertex.class) {
+            } else if (HugeVertex.class.isAssignableFrom(clazz)) {
                 return ValueType.VERTEX;
             } else if (clazz == HugeEdge.class) {
                 return ValueType.EDGE;
