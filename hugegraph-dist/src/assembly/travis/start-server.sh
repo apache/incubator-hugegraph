@@ -2,8 +2,8 @@
 
 set -ev
 
-HOME_DIR=`pwd`
-TRAVIS_DIR=`dirname $0`
+HOME_DIR=$(pwd)
+TRAVIS_DIR=$(dirname $0)
 BASE_DIR=$1
 BACKEND=$2
 BIN=$BASE_DIR/bin

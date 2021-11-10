@@ -2,7 +2,7 @@
 
 set -ev
 
-TRAVIS_DIR=`dirname $0`
+TRAVIS_DIR=$(dirname "$0")
 CONF=hugegraph-test/src/main/resources/hugegraph.properties
 
 POSTGRESQL_DRIVER=org.postgresql.Driver
