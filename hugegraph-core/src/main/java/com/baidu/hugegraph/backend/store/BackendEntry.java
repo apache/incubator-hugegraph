@@ -102,7 +102,7 @@ public interface BackendEntry extends Idfiable {
         return false;
     }
 
-    public interface BackendIterator<T> extends Iterator<T> {
+    public interface BackendIterator<T> extends Iterator<T>, AutoCloseable {
 
         public void close();
 
