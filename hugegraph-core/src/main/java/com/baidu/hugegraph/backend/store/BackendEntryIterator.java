@@ -120,8 +120,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
     protected final boolean reachLimit(long count) {
         try {
             checkInterrupted();
-            return this.query.reachLimit(count);
-        } catch (BackendException e) {
+        } catch (Throwable e) {
             try {
                 this.close();
             } catch (Exception ex) {
@@ -129,6 +128,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
             }
             throw e;
         }
+        return this.query.reachLimit(count);
     }
 
     protected final long count() {
