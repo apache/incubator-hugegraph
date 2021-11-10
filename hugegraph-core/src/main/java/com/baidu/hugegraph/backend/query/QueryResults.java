@@ -170,7 +170,11 @@ public class QueryResults<R> {
     }
 
     public static <T> ListIterator<T> toList(Iterator<T> iterator) {
-        return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
+        try {
+            return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
     }
 
     public static <T> void fillList(Iterator<T> iterator, List<T> list) {
