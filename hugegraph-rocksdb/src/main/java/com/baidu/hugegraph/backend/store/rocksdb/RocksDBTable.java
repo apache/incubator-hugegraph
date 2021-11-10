@@ -129,11 +129,12 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
         assert aggregate.func() == AggregateFunc.COUNT;
         assert query.noLimit();
-        Iterator<BackendColumn> results = this.queryBy(session, query);
-        if (results instanceof Countable) {
-            return ((Countable) results).count();
+        try (BackendColumnIterator results = this.queryBy(session, query)) {
+            if (results instanceof Countable) {
+                return ((Countable) results).count();
+            }
+            return IteratorUtils.count(results);
         }
-        return IteratorUtils.count(results);
     }
 
     @Override
