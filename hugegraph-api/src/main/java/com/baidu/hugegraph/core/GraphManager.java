@@ -78,6 +78,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 public final class GraphManager {
 
@@ -89,6 +90,7 @@ public final class GraphManager {
     private final boolean graphLoadFromLocalConfig;
     private final boolean authServer;
     private final Map<String, Graph> graphs;
+    private final Set<String> localGraphs;
     private final Set<String> removingGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
@@ -133,7 +135,12 @@ public final class GraphManager {
                 conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
-            this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+            Map<String, String> graphConfigs =
+                                ConfigUtil.scanGraphsDir(this.graphsDir);
+            this.localGraphs = graphConfigs.keySet();
+            this.loadGraphs(graphConfigs);
+        } else {
+            this.localGraphs = ImmutableSet.of();
         }
         this.authServer = conf.get(ServerOptions.AUTH_SERVER);
         if (!this.authServer) {
@@ -365,6 +372,12 @@ public final class GraphManager {
     public void dropGraph(String name, boolean clear) {
         HugeGraph g = this.graph(name);
         E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
+        if (this.localGraphs.contains(name)) {
+            throw new HugeException("Can't delete graph '%s' loaded from " +
+                                    "local config. Please delete config file " +
+                                    "and restart HugeGraphServer if really " +
+                                    "want to delete it.", name);
+        }
 
         if (clear) {
             this.removingGraphs.add(name);
