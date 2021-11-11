@@ -58,7 +58,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Iterator<HugeTask<Object>> iter = scheduler.tasks(null, -1, null);
         while (iter.hasNext()) {
-            scheduler.delete(iter.next().id());
+            scheduler.delete(iter.next().id(), true);
         }
     }
 

@@ -64,6 +64,7 @@ import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -79,6 +80,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     private final ServerInfoManager serverManager;
 
     private final ExecutorService taskExecutor;
+    private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDbExecutor;
 
     private final EventListener eventListener;
@@ -93,6 +95,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,
+                                 ExecutorService backupForLoadTaskExecutor,
                                  ExecutorService taskDbExecutor,
                                  ExecutorService serverInfoDbExecutor) {
         E.checkNotNull(graph, "graph");
@@ -101,6 +104,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         this.graph = graph;
         this.taskExecutor = taskExecutor;
+        this.backupForLoadTaskExecutor = backupForLoadTaskExecutor;
         this.taskDbExecutor = taskDbExecutor;
 
         this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
@@ -258,6 +262,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.initTaskCallable(task);
         assert !this.tasks.containsKey(task.id()) : task;
         this.tasks.put(task.id(), task);
+        if (this.graph().mode().loading()) {
+            LOG.info("Schedule task {} to backup for load task executor", task);
+           return this.backupForLoadTaskExecutor.submit(task);
+        }
         return this.taskExecutor.submit(task);
     }
 

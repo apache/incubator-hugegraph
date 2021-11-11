@@ -45,6 +45,8 @@ public final class TaskManager {
 
     public static final String TASK_WORKER_PREFIX = "task-worker";
     public static final String TASK_WORKER = TASK_WORKER_PREFIX + "-%d";
+    public static final String BACKUP_TASK_WORKER =
+                               "backup-" + TASK_WORKER_PREFIX + "-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String SERVER_INFO_DB_WORKER =
                                "server-info-db-worker-%d";
@@ -57,6 +59,7 @@ public final class TaskManager {
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
 
     private final ExecutorService taskExecutor;
+    private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
@@ -70,6 +73,8 @@ public final class TaskManager {
 
         // For execute tasks
         this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
+        this.backupForLoadTaskExecutor =
+                ExecutorUtil.newFixedThreadPool(pool, BACKUP_TASK_WORKER);
         // For save/query task state, just one thread is ok
         this.taskDbExecutor = ExecutorUtil.newFixedThreadPool(
                               1, TASK_DB_WORKER);
@@ -88,7 +93,9 @@ public final class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
         TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor, this.taskDbExecutor,
+                                  this.taskExecutor,
+                                  this.backupForLoadTaskExecutor,
+                                  this.taskDbExecutor,
                                   this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
     }
