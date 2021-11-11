@@ -123,7 +123,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
         } catch (Throwable e) {
             try {
                 this.close();
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 LOG.warn("Failed to close backend entry iterator for interrupted query", ex);
             }
             throw e;
