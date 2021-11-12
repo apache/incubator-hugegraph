@@ -24,7 +24,15 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 
 public class Text {
 
+    private static final String START_SYMBOL = "(";
+    private static final String END_SYMBOL = ")";
+
     public static ConditionP contains(String value) {
+        // Support entire word match Text.contains("(word)")
+        if (value.startsWith(START_SYMBOL) && value.endsWith(END_SYMBOL)) {
+            String sting = value.substring(1, value.length() - 1);
+            return ConditionP.textContainsEnhance(sting);
+        }
         return ConditionP.textContains(value);
     }
 
