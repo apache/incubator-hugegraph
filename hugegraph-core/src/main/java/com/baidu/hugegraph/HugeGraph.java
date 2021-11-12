@@ -132,6 +132,8 @@ public interface HugeGraph extends Graph {
 
     public Number queryNumber(Query query);
 
+    public String graphSpace();
+    public void graphSpace(String graphSpace);
     public String name();
     public String backend();
     public String backendVersion();
@@ -173,9 +175,6 @@ public interface HugeGraph extends Graph {
     public long now();
 
     public <K, V> V option(TypedOption<K, V> option);
-
-    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
-                                    RpcServiceConfig4Client clientConfig);
 
     public default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());

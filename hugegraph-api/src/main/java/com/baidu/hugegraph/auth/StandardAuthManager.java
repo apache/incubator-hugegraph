@@ -188,8 +188,8 @@ public class StandardAuthManager implements AuthManager {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             V elem = elementFetcher.get();
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of("SYSTEM",
-                    elem);
+            ResourceObject<V> r = (ResourceObject<V>)
+                              ResourceObject.of("SYSTEM", "SYSTEM", elem);
             return r;
         });
     }

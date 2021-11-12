@@ -60,6 +60,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final RolePermission ROLE_ADMIN = RolePermission.admin();
 
     public static final String VAR_PREFIX = "$";
+    public static final String KEY_GRAPHSPACE = VAR_PREFIX + "graphspace";
     public static final String KEY_OWNER = VAR_PREFIX + "owner";
     public static final String KEY_DYNAMIC = VAR_PREFIX + "dynamic";
     public static final String KEY_ACTION = VAR_PREFIX + "action";
@@ -254,14 +255,15 @@ public interface HugeAuthenticator extends Authenticator {
 
     public static class RolePerm {
 
-        @JsonProperty("roles") // graph -> action -> resource
-        private Map<String, Map<HugePermission, Object>> roles;
+        @JsonProperty("roles") // graphspace -> graph -> action -> resource
+        private Map<String, Map<String, Map<HugePermission, Object>>> roles;
 
         public RolePerm() {
             this.roles = new HashMap<>();
         }
 
-        public RolePerm(Map<String, Map<HugePermission, Object>> roles) {
+        public RolePerm(Map<String, Map<String, Map<HugePermission,
+                                                    Object>>> roles) {
             this.roles = roles;
         }
 
@@ -270,11 +272,13 @@ public interface HugeAuthenticator extends Authenticator {
             return JsonUtil.toJson(this);
         }
 
-        private boolean matchOwner(String owner) {
-            if (owner == null) {
+        private boolean matchOwner(String graphSpace, String owner) {
+            if (graphSpace == null && owner == null) {
                 return true;
             }
-            return this.roles.containsKey(owner);
+
+            return this.roles.containsKey(graphSpace) &&
+                   this.roles.get(graphSpace).containsKey(owner);
         }
 
         private boolean matchResource(HugePermission requiredAction,
@@ -290,8 +294,15 @@ public interface HugeAuthenticator extends Authenticator {
                 return true;
             }
 
+            String graphSpace = requiredResource.graphSpace();
             String owner = requiredResource.graph();
-            Map<HugePermission, Object> permissions = this.roles.get(owner);
+            Map<String, Map<HugePermission, Object>> innerRoles =
+                                                     this.roles.get(graphSpace);
+            if (innerRoles == null) {
+                return false;
+            }
+
+            Map<HugePermission, Object> permissions = innerRoles.get(owner);
             if (permissions == null) {
                 return false;
             }
@@ -351,7 +362,8 @@ public interface HugeAuthenticator extends Authenticator {
 
             if (requiredPerm.action() == HugePermission.NONE) {
                 // None action means any action is OK if the owner matched
-                return rolePerm.matchOwner(requiredPerm.owner());
+                return rolePerm.matchOwner(requiredPerm.graphSpace(),
+                                           requiredPerm.owner());
             }
             return rolePerm.matchResource(requiredPerm.action(),
                                           requiredPerm.resourceObject());
@@ -394,6 +406,8 @@ public interface HugeAuthenticator extends Authenticator {
 
     public static class RequiredPerm {
 
+        @JsonProperty("graphspace")
+        private String graphSpace;
         @JsonProperty("owner")
         private String owner;
         @JsonProperty("action")
@@ -402,9 +416,19 @@ public interface HugeAuthenticator extends Authenticator {
         private ResourceType resource;
 
         public RequiredPerm() {
+            this.graphSpace = "";
             this.owner = "";
             this.action = HugePermission.NONE;
             this.resource = ResourceType.NONE;
+        }
+
+        public RequiredPerm graphSpace(String graphSpace) {
+            this.graphSpace = graphSpace;
+            return this;
+        }
+
+        public String graphSpace() {
+            return this.graphSpace;
         }
 
         public RequiredPerm owner(String owner) {
@@ -431,7 +455,8 @@ public interface HugeAuthenticator extends Authenticator {
 
         public ResourceObject<?> resourceObject() {
             Namifiable elem = HugeResource.NameObject.ANY;
-            return ResourceObject.of(this.owner, this.resource, elem);
+            return ResourceObject.of(this.graphSpace, this.owner,
+                                     this.resource, elem);
         }
 
         @Override
@@ -455,7 +480,8 @@ public interface HugeAuthenticator extends Authenticator {
             this.action = HugePermission.valueOf(action.toUpperCase());
         }
 
-        public static String roleFor(String owner, HugePermission perm) {
+        public static String roleFor(String graphSpace, String owner,
+                                     HugePermission perm) {
             /*
              * Construct required permission such as:
              *  $owner=graph1 $action=read
@@ -464,7 +490,9 @@ public interface HugeAuthenticator extends Authenticator {
              * In the future maybe also support:
              *  $owner=graph1 $action=vertex_read
              */
-            return String.format("%s=%s %s=%s", KEY_OWNER, owner,
+            return String.format("%s=%s %s=%s %s=%s",
+                                 KEY_GRAPHSPACE, graphSpace,
+                                 KEY_OWNER, owner,
                                  KEY_ACTION, perm.string());
         }
 
@@ -473,21 +501,27 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static RequiredPerm fromPermission(String permission) {
-            // Permission format like: "$owner=$graph1 $action=vertex-write"
+            // Permission format like: "$graphspace=$default $owner=$graph1 $action=vertex-write"
             RequiredPerm requiredPerm = new RequiredPerm();
-            String[] ownerAndAction = permission.split(" ");
-            String[] ownerKV = ownerAndAction[0].split("=", 2);
+            String[] spaceAndOwnerAndAction = permission.split(" ");
+            String[] spaceKV = spaceAndOwnerAndAction[0].split("=", 2);
+            E.checkState(spaceKV.length == 2 && spaceKV[0].equals(KEY_GRAPHSPACE),
+                         "Bad permission format: '%s'", permission);
+            requiredPerm.graphSpace(spaceKV[1]);
+
+            String[] ownerKV = spaceAndOwnerAndAction[1].split("=", 2);
             E.checkState(ownerKV.length == 2 && ownerKV[0].equals(KEY_OWNER),
                          "Bad permission format: '%s'", permission);
             requiredPerm.owner(ownerKV[1]);
-            if (ownerAndAction.length == 1) {
+
+            if (spaceAndOwnerAndAction.length == 2) {
                 // Return owner if no action (means NONE)
                 return requiredPerm;
             }
 
-            E.checkState(ownerAndAction.length == 2,
+            E.checkState(spaceAndOwnerAndAction.length == 3,
                          "Bad permission format: '%s'", permission);
-            String[] actionKV = ownerAndAction[1].split("=", 2);
+            String[] actionKV = spaceAndOwnerAndAction[2].split("=", 2);
             E.checkState(actionKV.length == 2,
                          "Bad permission format: '%s'", permission);
             E.checkState(actionKV[0].equals(StandardAuthenticator.KEY_ACTION),

@@ -38,6 +38,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 
 public class HugeTarget extends Entity {
 
@@ -154,7 +155,8 @@ public class HugeTarget extends Entity {
                 this.url = (String) value;
                 break;
             case P.RESS:
-                this.resources = (List<HugeResource>) value;
+                // this.resources = (List<HugeResource>) value;
+                this.resources = JsonUtil.fromJson(JsonUtil.toJson(value), new TypeReference<List<HugeResource>>(){});
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -186,7 +188,7 @@ public class HugeTarget extends Entity {
 
         if (this.resources != null && this.resources != EMPTY) {
             list.add(P.RESS);
-            list.add(JsonUtil.toJson(this.resources));
+            list.add(this.resources);
         }
 
         return super.asArray(list);

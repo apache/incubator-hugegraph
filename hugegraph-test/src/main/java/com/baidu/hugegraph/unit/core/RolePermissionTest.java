@@ -313,11 +313,15 @@ public class RolePermissionTest {
         HugeResource all = HugeResource.ALL;
 
         // common
-        ResourceObject<?> r1 = ResourceObject.of("g1", ResourceType.GREMLIN,
+        ResourceObject<?> r1 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 ResourceType.GREMLIN,
                                                  NameObject.ANY);
         Assert.assertTrue(all.filter(r1));
 
-        ResourceObject<?> r2 = ResourceObject.of("g1", ResourceType.META,
+        ResourceObject<?> r2 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 ResourceType.META,
                                                  NameObject.of("test"));
         Assert.assertTrue(all.filter(r2));
 
@@ -325,7 +329,9 @@ public class RolePermissionTest {
                                              "page", null);
         Assert.assertFalse(page.filter(r2));
 
-        ResourceObject<?> r3 = ResourceObject.of("g1", ResourceType.META,
+        ResourceObject<?> r3 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 ResourceType.META,
                                                  NameObject.of("page"));
         Assert.assertTrue(page.filter(r3));
     }
@@ -339,14 +345,15 @@ public class RolePermissionTest {
         HugeResource vlPrefix = new HugeResource(ResourceType.VERTEX_LABEL,
                                                  "p-.*", null);
 
-        ResourceObject<?> r3 = ResourceObject.of("g1",
+        ResourceObject<?> r3 = ResourceObject.of("DEFAULT", "g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("test"));
         Assert.assertTrue(all.filter(r3));
         Assert.assertTrue(schema.filter(r3));
         Assert.assertFalse(vlPrefix.filter(r3));
 
-        ResourceObject<?> r4 = ResourceObject.of("g1",
+        ResourceObject<?> r4 = ResourceObject.of("DEFAULT",
+                                                 "g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("p-test"));
         Assert.assertTrue(all.filter(r4));
@@ -358,7 +365,7 @@ public class RolePermissionTest {
         VertexLabel vl1 = fo.newVertexLabel(IdGenerator.of("id1"), "person",
                                             IdStrategy.PRIMARY_KEY,
                                             IdGenerator.of("1"));
-        ResourceObject<?> r5 = ResourceObject.of("g1", vl1);
+        ResourceObject<?> r5 = ResourceObject.of("DEFAULT", "g1", vl1);
         Assert.assertTrue(all.filter(r5));
         Assert.assertTrue(schema.filter(r5));
         Assert.assertFalse(vlPrefix.filter(r5));
@@ -366,7 +373,7 @@ public class RolePermissionTest {
         VertexLabel vl2 = fo.newVertexLabel(IdGenerator.of("id1"), "p-person",
                                             IdStrategy.PRIMARY_KEY,
                                             IdGenerator.of("1"));
-        ResourceObject<?> r6 = ResourceObject.of("g1", vl2);
+        ResourceObject<?> r6 = ResourceObject.of("DEFAULT", "g1", vl2);
         Assert.assertTrue(all.filter(r6));
         Assert.assertTrue(schema.filter(r6));
         Assert.assertTrue(vlPrefix.filter(r6));
@@ -379,9 +386,15 @@ public class RolePermissionTest {
         // vertex & edge
         FakeObjects fo = new FakeObjects();
         HugeEdge edge = fo.newEdge(1, 2);
-        ResourceObject<?> r1 = ResourceObject.of("g1", edge.sourceVertex());
-        ResourceObject<?> r2 = ResourceObject.of("g1", edge.targetVertex());
-        ResourceObject<?> r3 = ResourceObject.of("g1", edge);
+        ResourceObject<?> r1 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 edge.sourceVertex());
+        ResourceObject<?> r2 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 edge.targetVertex());
+        ResourceObject<?> r3 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 edge);
 
         Assert.assertTrue(all.filter(r1));
         Assert.assertTrue(all.filter(r2));
@@ -465,7 +478,9 @@ public class RolePermissionTest {
         HugeResource all = HugeResource.ALL;
 
         // user
-        ResourceObject<?> r3 = ResourceObject.of("g1", ResourceType.USER_GROUP,
+        ResourceObject<?> r3 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 ResourceType.USER_GROUP,
                                                  NameObject.ANY);
         Assert.assertFalse(all.filter(r3));
 
@@ -473,7 +488,9 @@ public class RolePermissionTest {
                                              HugeResource.ANY, null);
         Assert.assertTrue(user.filter(r3));
 
-        ResourceObject<?> r4 = ResourceObject.of("g1", new HugeUser("fake"));
+        ResourceObject<?> r4 = ResourceObject.of("DEFAULT",
+                                                 "g1",
+                                                 new HugeUser("fake"));
         Assert.assertTrue(user.filter(r4));
 
         HugeResource user2 = new HugeResource(ResourceType.USER_GROUP,
@@ -486,8 +503,10 @@ public class RolePermissionTest {
         Assert.assertTrue(user3.filter(r3));
         Assert.assertTrue(user3.filter(r4));
 
-        ResourceObject<?> r5 = ResourceObject.of("g1", new HugeTarget("g",
-                          BaseCoreTest.DEFAULT_GRAPH_SPACE, ""));
+        ResourceObject<?> r5 = ResourceObject.of("DEFAULT", "g1",
+                               new HugeTarget("g",
+                                              BaseCoreTest.DEFAULT_GRAPH_SPACE,
+                                              ""));
         Assert.assertFalse(user.filter(r5));
 
         HugeResource root = new HugeResource(ResourceType.ROOT,

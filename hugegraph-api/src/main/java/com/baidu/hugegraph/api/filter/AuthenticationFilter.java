@@ -232,17 +232,32 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             boolean valid;
             RequiredPerm requiredPerm;
 
-            if (!required.startsWith(HugeAuthenticator.KEY_OWNER)) {
+            if (!required.startsWith(HugeAuthenticator.KEY_GRAPHSPACE)) {
                 // Permission format like: "admin"
                 requiredPerm = new RequiredPerm();
                 requiredPerm.owner(required);
             } else {
-                // The required like: $owner=graph1 $action=vertex_write
+                // The required like:
+                // $graphspace=graphspace $owner=graph1 $action=vertex_write
                 requiredPerm = RequiredPerm.fromPermission(required);
 
                 /*
+                 * Replace graphspace value (it may be a variable) if the
+                 * permission format like:
+                 * "$graphspace=$graphspace $owner=$graph $action=vertex_write"
+                 */
+                String graphSpace = requiredPerm.graphSpace();
+                if (graphSpace.startsWith(HugeAuthenticator.VAR_PREFIX)) {
+                    int prefixLen = HugeAuthenticator.VAR_PREFIX.length();
+                    assert graphSpace.length() > prefixLen;
+                    graphSpace = graphSpace.substring(prefixLen);
+                    graphSpace = this.getPathParameter(graphSpace);
+                    requiredPerm.graphSpace(graphSpace);
+                }
+
+                /*
                  * Replace owner value(it may be a variable) if the permission
-                 * format like: "$owner=$graph $action=vertex_write"
+                 * format like: "$graphspace=$graphspace $owner=$graph $action=vertex_write"
                  */
                 String owner = requiredPerm.owner();
                 if (owner.startsWith(HugeAuthenticator.VAR_PREFIX)) {

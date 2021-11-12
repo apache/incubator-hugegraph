@@ -27,17 +27,25 @@ import com.baidu.hugegraph.util.E;
 
 public class ResourceObject<V> {
 
+    private final String graphSpace;
     private final String graph;
     private final ResourceType type;
     private final V operated;
 
-    public ResourceObject(String graph, ResourceType type, V operated) {
+    public ResourceObject(String graphSpace, String graph,
+                          ResourceType type, V operated) {
+        E.checkNotNull(graphSpace, "graphSpace");
         E.checkNotNull(graph, "graph");
         E.checkNotNull(type, "type");
         E.checkNotNull(operated, "operated");
+        this.graphSpace = graphSpace;
         this.graph = graph;
         this.type = type;
         this.operated = operated;
+    }
+
+    public String graphSpace() {
+        return this.graphSpace;
     }
 
     public String graph() {
@@ -65,31 +73,35 @@ public class ResourceObject<V> {
                        operatedStr.length() + 36;
 
         StringBuilder sb = new StringBuilder(capacity);
-        return sb.append("Resource{graph=").append(this.graph)
+        return sb.append("Resource{graphspace=").append(this.graphSpace)
+                 .append(",graph=").append(this.graph)
                  .append(",type=").append(typeStr)
                  .append(",operated=").append(operatedStr)
                  .append("}").toString();
     }
 
-    public static ResourceObject<SchemaElement> of(String graph,
+    public static ResourceObject<SchemaElement> of(String graphSpace,
+                                                   String graph,
                                                    SchemaElement elem) {
         ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(graph, resType, elem);
+        return new ResourceObject<>(graphSpace, graph, resType, elem);
     }
 
-    public static ResourceObject<HugeElement> of(String graph,
+    public static ResourceObject<HugeElement> of(String graphSpace,
+                                                 String graph,
                                                  HugeElement elem) {
         ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(graph, resType, elem);
+        return new ResourceObject<>(graphSpace, graph, resType, elem);
     }
 
-    public static ResourceObject<AuthElement> of(String graph,
+    public static ResourceObject<AuthElement> of(String graphSpace,
+                                                 String graph,
                                                  AuthElement elem) {
-        return new ResourceObject<>(graph, elem.type(), elem);
+        return new ResourceObject<>(graphSpace, graph, elem.type(), elem);
     }
 
-    public static ResourceObject<?> of(String graph, ResourceType type,
-                                       Namifiable elem) {
-        return new ResourceObject<>(graph, type, elem);
+    public static ResourceObject<?> of(String graphSpace, String graph,
+                                       ResourceType type, Namifiable elem) {
+        return new ResourceObject<>(graphSpace, graph, type, elem);
     }
 }

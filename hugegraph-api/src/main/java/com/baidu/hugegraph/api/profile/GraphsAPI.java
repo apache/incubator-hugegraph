@@ -83,7 +83,8 @@ public class GraphsAPI extends API {
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
-            String role = RequiredPerm.roleFor(graph, HugePermission.READ);
+            String role = RequiredPerm.roleFor(graphSpace, graph,
+                                               HugePermission.READ);
             if (sc.isUserInRole(role)) {
                 try {
                     graph(manager, graphSpace, graph);
@@ -100,7 +101,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{graph}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Object get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph) {
@@ -134,13 +135,14 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{graph}/conf")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$dynamic"})
     public String getConf(@Context GraphManager manager,
                           @PathParam("graphspace") String graphSpace,
                           @PathParam("graph") String graph) {
         LOG.debug("Get graph configuration by name '{}'", graph);
 
-        HugeGraph g = graph4admin(manager, graphSpace, graph);
+        // HugeGraph g = graph4admin(manager, graphSpace, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         HugeConfig config = (HugeConfig) g.configuration();
         return ConfigUtil.writeConfigToString(config);
@@ -223,7 +225,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{graph}/snapshot_create")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Object createSnapshot(@Context GraphManager manager,
                                  @PathParam("graphspace") String graphSpace,
                                  @PathParam("graph") String graph) {
@@ -238,7 +240,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{graph}/snapshot_resume")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Object resumeSnapshot(@Context GraphManager manager,
                                  @PathParam("graphspace") String graphSpace,
                                  @PathParam("graph") String graph) {
@@ -269,7 +271,7 @@ public class GraphsAPI extends API {
     @Path("{graph}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("graphspace") String graphSpace,
                                        @PathParam("graph") String graph,
@@ -289,7 +291,7 @@ public class GraphsAPI extends API {
     @Path("{graph}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("graphspace") String graphSpace,
                                        @PathParam("graph") String graph) {
@@ -325,7 +327,7 @@ public class GraphsAPI extends API {
     @Path("{graph}/graph_read_mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph"})
     public Map<String, GraphReadMode> graphReadMode(
                                       @Context GraphManager manager,
                                       @PathParam("graphspace") String graphSpace,

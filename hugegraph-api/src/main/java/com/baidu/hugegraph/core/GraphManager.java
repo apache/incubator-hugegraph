@@ -91,7 +91,6 @@ public final class GraphManager {
     private final String graphsDir;
     private final boolean startIgnoreSingleGraphError;
     private final boolean graphLoadFromLocalConfig;
-    private final boolean authServer;
     private final Map<String, GraphSpace> graphSpaces;
     private final Map<String, Graph> graphs;
     private final Set<String> localGraphs;
@@ -150,11 +149,9 @@ public final class GraphManager {
         } else {
             this.localGraphs = ImmutableSet.of();
         }
-        this.authServer = conf.get(ServerOptions.AUTH_SERVER);
-        if (!this.authServer) {
-            // Load graphs configured in etcd
-            this.loadGraphsFromMeta(this.graphConfigs());
-        }
+
+        // Load graphs configured in etcd
+        this.loadGraphsFromMeta(this.graphConfigs());
 
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
@@ -163,9 +160,7 @@ public final class GraphManager {
         this.serverStarted();
         this.addMetrics(conf);
         // listen meta changes, e.g. watch dynamically graph add/remove
-        if (!conf.get(ServerOptions.AUTH_SERVER)) {
-            this.listenMetaChanges();
-        }
+        this.listenMetaChanges();
     }
 
     public void createDefaultGraphSpaceIfNeeded() {
@@ -193,10 +188,8 @@ public final class GraphManager {
             // Load graphs configured in local conf/graphs directory
             this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         }
-        if (!this.authServer) {
-            // Load graphs configured in etcd
-            this.loadGraphsFromMeta(this.graphConfigs());
-        }
+        // Load graphs configured in etcd
+        this.loadGraphsFromMeta(this.graphConfigs());
     }
 
     public void reload(String graphSpace, String name) {
@@ -220,14 +213,13 @@ public final class GraphManager {
                 this.loadGraphs(ImmutableMap.of(name, configs.get(name)));
             }
         }
-        if (!this.authServer) {
-            // Load graphs configured in etcd
-            Map<String, String> configs = this.graphConfigs();
-            String graphName = graphName(graphSpace, name);
-            if (configs.containsKey(graphName)) {
-                this.loadGraphsFromMeta(
-                     ImmutableMap.of(graphName, configs.get(graphName)));
-            }
+
+        // Load graphs configured in etcd
+        Map<String, String> configs = this.graphConfigs();
+        String graphName = graphName(graphSpace, name);
+        if (configs.containsKey(graphName)) {
+            this.loadGraphsFromMeta(
+                    ImmutableMap.of(graphName, configs.get(graphName)));
         }
     }
 
@@ -385,7 +377,7 @@ public final class GraphManager {
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
         HugeGraph graph = this.createGraph(config, init);
-
+        graph.graphSpace(graphSpace);
         String graphName = graphName(graphSpace, name);
         if (init) {
             this.creatingGraphs.add(graphName);
@@ -622,8 +614,9 @@ public final class GraphManager {
     }
 
     private void loadGraph(String name, String path) {
-        final Graph graph = GraphFactory.open(path);
+        final HugeGraph graph = (HugeGraph) GraphFactory.open(path);
         String graphName = graphName(DEFAULT_GRAPH_SPACE_NAME, name);
+        graph.graphSpace(DEFAULT_GRAPH_SPACE_NAME);
         this.graphs.put(graphName, graph);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
 

@@ -95,7 +95,8 @@ public class MetricsAPI extends API {
     @Timed
     @Path("system")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner= " +
+                            "$action=metrics_read"})
     public String system() {
         return JsonUtil.toJson(this.systemMetrics.metrics());
     }
@@ -104,7 +105,8 @@ public class MetricsAPI extends API {
     @Timed
     @Path("backend")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner= " +
+                            "$action=metrics_read"})
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
         for (HugeGraph g : manager.graphs()) {

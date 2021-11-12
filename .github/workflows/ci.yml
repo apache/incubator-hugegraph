@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
+      LIB_DIR: hugegraph-dist/src/assembly/travis/lib
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +49,7 @@ jobs:
 
       - name: Compile
         run: |
-          mvn install:install-file -Dfile=$TRAVIS_DIR/lib/hugegraph-common-1.8.9.jar -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-common -Dversion=1.8.9 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/lib/common-pom.xml
+          mvn install:install-file -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-common -Dversion=1.8.10 -Dpackaging=jar -Dfile=$LIB_DIR/hugegraph-common-1.8.10.jar -DpomFile=$LIB_DIR/common-pom.xml
           mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
 
       - name: Prepare env and service

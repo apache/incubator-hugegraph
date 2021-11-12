@@ -72,7 +72,8 @@ public class PropertyKeyAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=property_key_write"})
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
@@ -93,7 +94,8 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=property_key_write"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=property_key_write"})
     public String update(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
@@ -134,7 +136,8 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=property_key_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
@@ -163,7 +166,8 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=property_key_read"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=property_key_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
@@ -181,7 +185,8 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=property_key_delete"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=property_key_delete"})
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graphspace") String graphSpace,
                                   @PathParam("graph") String graph,

@@ -73,7 +73,8 @@ public class GremlinAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=gremlin_execute"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=gremlin_execute"})
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graphspace") String graphSpace,
                                 @PathParam("graph") String graph,
