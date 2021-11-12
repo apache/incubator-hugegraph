@@ -91,6 +91,6 @@ public class ShortestPathAPI extends API {
                                                          dir, edgeLabels, depth,
                                                          maxDegree, skipDegree,
                                                          capacity);
-        return manager.serializer(g).writeList("path", path.vertices());
+        return manager.serializer().writeList("path", path.vertices());
     }
 }

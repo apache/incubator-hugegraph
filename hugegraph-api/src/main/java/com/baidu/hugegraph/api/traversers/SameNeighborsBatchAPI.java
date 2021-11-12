@@ -81,7 +81,7 @@ public class SameNeighborsBatchAPI extends API {
             result.add(neighbors);
         }
         
-        return manager.serializer(g).writeList("same_neighbors", result);
+        return manager.serializer().writeList("same_neighbors", result);
     }
 
     private static class Request {

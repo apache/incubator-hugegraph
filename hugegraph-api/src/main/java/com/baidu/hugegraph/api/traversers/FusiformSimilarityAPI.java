@@ -117,7 +117,7 @@ public class FusiformSimilarityAPI extends API {
         if (request.withVertex && !result.isEmpty()) {
             iterator = g.vertices(result.vertices().toArray());
         }
-        return manager.serializer(g).writeSimilars(result, iterator);
+        return manager.serializer().writeSimilars(result, iterator);
     }
 
     private static class FusiformSimilarityRequest {

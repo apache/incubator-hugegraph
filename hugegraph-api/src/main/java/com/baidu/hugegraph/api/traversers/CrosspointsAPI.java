@@ -86,6 +86,6 @@ public class CrosspointsAPI extends API {
                                                       dir, edgeLabel, depth,
                                                       maxDegree, capacity,
                                                       limit);
-        return manager.serializer(g).writePaths("crosspoints", paths, true);
+        return manager.serializer().writePaths("crosspoints", paths, true);
     }
 }

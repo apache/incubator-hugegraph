@@ -87,6 +87,6 @@ public class RingsAPI extends API {
         HugeTraverser.PathSet paths = traverser.rings(source, dir, edgeLabel,
                                                       depth, sourceInRing,
                                                       maxDegree, capacity, limit);
-        return manager.serializer(g).writePaths("rings", paths, false);
+        return manager.serializer().writePaths("rings", paths, false);
     }
 }

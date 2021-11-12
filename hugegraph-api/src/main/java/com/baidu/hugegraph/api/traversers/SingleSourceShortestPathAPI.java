@@ -96,6 +96,6 @@ public class SingleSourceShortestPathAPI extends API {
         if (!paths.isEmpty() && withVertex) {
             iterator = g.vertices(paths.vertices().toArray());
         }
-        return manager.serializer(g).writeWeightedPaths(paths, iterator);
+        return manager.serializer().writeWeightedPaths(paths, iterator);
     }
 }

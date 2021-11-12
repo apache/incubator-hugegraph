@@ -90,7 +90,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
         }
 
         if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+            return manager.serializer().writePaths("paths", paths, false);
         }
 
         Set<Id> ids = new HashSet<>();
@@ -101,7 +101,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
+        return manager.serializer().writePaths("paths", paths, false, iter);
     }
 
     private static class Request {

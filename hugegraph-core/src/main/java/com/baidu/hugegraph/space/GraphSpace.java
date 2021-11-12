@@ -36,16 +36,16 @@ public class GraphSpace {
     private static final String MAX_GRAPH_NUMBER = "max_graph_number";
     private static final String MAX_ROLE_NUMBER = "max_role_number";
 
-    private final String name;
-    private final int maxGraphNumber;
-    private final int maxRoleNumber;
-    private final Map<String, Object> config;
+    private String name;
+    private int maxGraphNumber;
+    private int maxRoleNumber;
+    private Map<String, Object> configs;
 
     public GraphSpace(String name) {
         this.name = name;
         this.maxGraphNumber = DEFAULT_MAX_GRAPH_NUMBER;
         this.maxRoleNumber = DEFAULT_MAX_ROLE_NUMBER;
-        this.config = new HashMap<>();
+        this.configs = new HashMap<>();
     }
 
     public GraphSpace(String name, int maxGraphNumber, int maxRoleNumber,
@@ -58,7 +58,7 @@ public class GraphSpace {
         this.maxGraphNumber = maxGraphNumber;
         this.maxRoleNumber = maxRoleNumber;
 
-        this.config = config;
+        this.configs = config;
     }
 
     public String name() {
@@ -69,8 +69,24 @@ public class GraphSpace {
         return this.maxGraphNumber;
     }
 
+    public void maxGraphNumber(int maxGraphNumber) {
+        this.maxGraphNumber = maxGraphNumber;
+    }
+
     public int maxRoleNumber() {
         return this.maxRoleNumber;
+    }
+
+    public void maxRoleNumber(int maxRoleNumber) {
+        this.maxRoleNumber = maxRoleNumber;
+    }
+
+    public Map<String, Object> configs() {
+        return this.configs;
+    }
+
+    public void configs(Map<String, Object> configs) {
+        this.configs.putAll(configs);
     }
 
     public Map<String, Object> info() {
@@ -78,7 +94,7 @@ public class GraphSpace {
         infos.put("name", this.name);
         infos.put(MAX_GRAPH_NUMBER, this.maxGraphNumber);
         infos.put(MAX_ROLE_NUMBER, this.maxRoleNumber);
-        infos.putAll(this.config);
+        infos.putAll(this.configs);
         return infos;
     }
 }

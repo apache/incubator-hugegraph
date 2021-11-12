@@ -124,7 +124,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
             results = traverser.jaccardSimilars(sourceId, step, request.top,
                                                 request.capacity);
         }
-        return manager.serializer(g).writeMap(results);
+        return manager.serializer().writeMap(results);
     }
 
     private static class Request {

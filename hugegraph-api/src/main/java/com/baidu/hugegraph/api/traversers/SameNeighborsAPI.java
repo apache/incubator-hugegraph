@@ -79,6 +79,6 @@ public class SameNeighborsAPI extends API {
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, maxDegree, limit);
-        return manager.serializer(g).writeList("same_neighbors", neighbors);
+        return manager.serializer().writeList("same_neighbors", neighbors);
     }
 }

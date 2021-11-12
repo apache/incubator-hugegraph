@@ -226,7 +226,7 @@ public final class GraphManager {
             String graphName = graphName(graphSpace, name);
             if (configs.containsKey(graphName)) {
                 this.loadGraphsFromMeta(
-                        ImmutableMap.of(graphName, configs.get(graphName)));
+                     ImmutableMap.of(graphName, configs.get(graphName)));
             }
         }
     }
@@ -341,6 +341,11 @@ public final class GraphManager {
                                        Map<String, Object> configs) {
         GraphSpace space = new GraphSpace(name, maxGraphNumber,
                                           maxRoleNumber, configs);
+        return this.createGraphSpace(space);
+    }
+
+    public GraphSpace createGraphSpace(GraphSpace space) {
+        String name = space.name();
         this.metaManager.addGraphSpaceConfig(name, space);
         this.metaManager.addGraphSpace(name);
         this.graphSpaces.put(name, space);
@@ -527,10 +532,6 @@ public final class GraphManager {
         return space;
     }
 
-    public Serializer serializer(Graph g) {
-        return JsonSerializer.instance();
-    }
-
     public Serializer serializer() {
         return JsonSerializer.instance();
     }
@@ -667,8 +668,9 @@ public final class GraphManager {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
                 }
-                LOG.error(String.format("Failed to check backend version for " +
-                          "graph '%s'", ((HugeGraph) g).name()), e);
+                LOG.error(String.format(
+                          "Failed to check backend version for graph '%s'",
+                          ((HugeGraph) g).name()), e);
             }
         }
     }
@@ -683,8 +685,8 @@ public final class GraphManager {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
                 }
-                LOG.error(String.format("Failed to server started for graph " +
-                                        "'%s'", graph), e);
+                LOG.error(String.format(
+                          "Failed to server started for graph '%s'", graph), e);
             }
         }
     }
@@ -716,7 +718,8 @@ public final class GraphManager {
     }
 
     private <T> void graphAddHandler(T response) {
-        List<String> names = this.metaManager.extractGraphsFromResponse(response);
+        List<String> names = this.metaManager
+                                 .extractGraphsFromResponse(response);
         for (String graphName : names) {
             if (this.graphs.containsKey(graphName) ||
                 this.creatingGraphs.contains(graphName)) {
@@ -736,8 +739,8 @@ public final class GraphManager {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
                 }
-                LOG.error(String.format("Failed to create graph '%s'",
-                                        graphName), e);
+                LOG.error(String.format(
+                          "Failed to create graph '%s'", graphName), e);
             }
         }
     }
@@ -757,8 +760,8 @@ public final class GraphManager {
             try {
                 this.dropGraph(parts[0], parts[1], false);
             } catch (HugeException e) {
-                LOG.error(String.format("Failed to drop graph '%s'",
-                                        graphName), e);
+                LOG.error(String.format(
+                          "Failed to drop graph '%s'", graphName), e);
             }
         }
     }

@@ -97,7 +97,7 @@ public class CustomizedCrosspointsAPI extends API {
                                            request.limit);
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (!request.withVertex) {
-            return manager.serializer(g).writeCrosspoints(paths, iter,
+            return manager.serializer().writeCrosspoints(paths, iter,
                                                           request.withPath);
         }
         Set<Id> ids = new HashSet<>();
@@ -111,7 +111,7 @@ public class CustomizedCrosspointsAPI extends API {
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }
-        return manager.serializer(g).writeCrosspoints(paths, iter,
+        return manager.serializer().writeCrosspoints(paths, iter,
                                                       request.withPath);
     }
 

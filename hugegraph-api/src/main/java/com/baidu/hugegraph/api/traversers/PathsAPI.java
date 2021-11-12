@@ -98,7 +98,7 @@ public class PathsAPI extends TraverserAPI {
                                                       dir.opposite(), edgeLabel,
                                                       depth, maxDegree, capacity,
                                                       limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+        return manager.serializer().writePaths("paths", paths, false);
     }
 
     @POST
@@ -139,7 +139,7 @@ public class PathsAPI extends TraverserAPI {
                                 request.limit);
 
         if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+            return manager.serializer().writePaths("paths", paths, false);
         }
 
         Set<Id> ids = new HashSet<>();
@@ -150,7 +150,7 @@ public class PathsAPI extends TraverserAPI {
         if (!ids.isEmpty()) {
             iter = g.vertices(ids.toArray());
         }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
+        return manager.serializer().writePaths("paths", paths, false, iter);
     }
 
     private static class Request {

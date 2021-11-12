@@ -99,6 +99,6 @@ public class WeightedShortestPathAPI extends API {
             assert !path.node().path().isEmpty();
             iterator = g.vertices(path.node().path().toArray());
         }
-        return manager.serializer(g).writeWeightedPath(path, iterator);
+        return manager.serializer().writeWeightedPath(path, iterator);
     }
 }
