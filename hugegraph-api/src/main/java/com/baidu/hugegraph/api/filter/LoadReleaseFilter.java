@@ -19,12 +19,12 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import javax.inject.Singleton;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerResponseContext;
-import javax.ws.rs.container.ContainerResponseFilter;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.ext.Provider;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerResponseContext;
+import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.define.WorkLoad;
 
@@ -33,7 +33,7 @@ import com.baidu.hugegraph.define.WorkLoad;
 public class LoadReleaseFilter implements ContainerResponseFilter {
 
     @Context
-    private javax.inject.Provider<WorkLoad> loadProvider;
+    private jakarta.inject.Provider<WorkLoad> loadProvider;
 
     @Override
     public void filter(ContainerRequestContext requestContext,

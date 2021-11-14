@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.Collections2;
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
 import org.apache.tinkerpop.gremlin.process.traversal.Contains;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
@@ -568,6 +569,15 @@ public final class TraversalUtil {
         List<HasStep> steps =
                       TraversalHelper.getStepsOfAssignableClassRecursively(
                       HasStep.class, traversal);
+        /*
+         * The graph may be null.
+         * For example:
+         *   g.V().hasLabel('person').union(__.<Vertex>has("birth", dates[0]))
+         * Here "__.has" will create a new traversal, but the graph is null
+         */
+        if (steps.isEmpty() || !traversal.getGraph().isPresent()) {
+            return;
+        }
         HugeGraph graph = (HugeGraph) traversal.getGraph().get();
         for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);

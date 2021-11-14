@@ -23,23 +23,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Singleton;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
+
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.MultiException;
@@ -67,7 +68,7 @@ public class ExceptionFilter {
         private static boolean forcedTrace = false;
 
         @Context
-        private javax.inject.Provider<HugeConfig> configProvider;
+        private jakarta.inject.Provider<HugeConfig> configProvider;
 
         protected boolean trace() {
             if (forcedTrace) {
@@ -229,6 +230,10 @@ public class ExceptionFilter {
                            .entity(formatException(exception, this.trace()))
                            .build();
         }
+    }
+
+    public static String formatException(Throwable exception) {
+        return formatException(exception, false);
     }
 
     public static String formatException(Throwable exception, boolean trace) {

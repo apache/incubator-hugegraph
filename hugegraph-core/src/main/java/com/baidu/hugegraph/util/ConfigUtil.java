@@ -19,22 +19,35 @@
 
 package com.baidu.hugegraph.util;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.commons.configuration.tree.ConfigurationNode;
+import com.google.common.collect.Collections2;
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.HierarchicalConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.YAMLConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.tree.ImmutableNode;
+import org.apache.commons.configuration2.tree.NodeHandler;
+import org.apache.commons.configuration2.tree.NodeModel;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
+import org.apache.logging.log4j.core.config.yaml.YamlConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -50,23 +63,35 @@ public final class ConfigUtil {
     private static final String CHARSET = "UTF-8";
 
     public static void checkGremlinConfig(String conf) {
-        YamlConfiguration yamlConfig = new YamlConfiguration();
+        Parameters params = new Parameters();
         try {
-            yamlConfig.load(conf);
+
+            FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
+                new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+                    .configure(params.fileBased().setFileName(conf));
+            YAMLConfiguration config = (YAMLConfiguration) builder
+                                                           .getConfiguration();
+
+            List<HierarchicalConfiguration<ImmutableNode>> nodes =
+                                           config.childConfigurationsAt(
+                                           NODE_GRAPHS);
+            E.checkArgument(nodes == null || nodes.isEmpty()
+                            || nodes.size() == 1,
+              "Not allowed to specify multiple '%s' nodes in " +
+              "config file '%s'", NODE_GRAPHS, conf);
+
+            ImmutableNode root = null;
+            NodeModel<ImmutableNode> nodeModel = null;
+            NodeHandler<ImmutableNode> nodeHandler = null;
+            for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
+                E.checkArgument((nodeModel = node.getNodeModel()) != null
+                  && (nodeHandler = nodeModel.getNodeHandler()) != null
+                  && (root = nodeHandler.getRootNode()) != null,
+                 "Node '%s' must contain root", node);
+            }
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file '%s'",
                                     conf);
-        }
-        List<ConfigurationNode> nodes = yamlConfig.getRootNode()
-                                                  .getChildren(NODE_GRAPHS);
-        E.checkArgument(nodes == null || nodes.size() == 1,
-                        "Not allowed to specify multiple '%s' nodes in " +
-                        "config file '%s'", NODE_GRAPHS, conf);
-        if (nodes != null) {
-            List<ConfigurationNode> graphNames = nodes.get(0).getChildren();
-            E.checkArgument(graphNames.isEmpty(),
-                            "Don't allow to fill value for '%s' node in " +
-                            "config file '%s'", NODE_GRAPHS, conf);
         }
     }
 
@@ -91,23 +116,24 @@ public final class ConfigUtil {
         return graphConfs;
     }
 
-    public static void writeToFile(String dir, String graphName,
+    public static String writeToFile(String dir, String graphName,
                                    HugeConfig config) {
         E.checkArgument(FileUtils.getFile(dir).exists(),
                         "The directory '%s' must exist", dir);
         String fileName = Paths.get(dir, graphName + CONF_SUFFIX).toString();
-        try (OutputStream os = new FileOutputStream(fileName)) {
-            config.save(os, CHARSET);
-            config.setFileName(fileName);
+        try {
+            config.save(new File(fileName));
             LOG.info("Write HugeConfig to file: '{}'", fileName);
-        } catch (IOException | ConfigurationException e) {
+        } catch (ConfigurationException e) {
             throw new HugeException("Failed to write HugeConfig to file '%s'",
                                     e, fileName);
         }
+
+        return fileName;
     }
 
     public static void deleteFile(File file) {
-        if (!file.exists()) {
+        if (file == null || !file.exists()) {
             return;
         }
         try {
@@ -123,10 +149,8 @@ public final class ConfigUtil {
                         "The config text can't be null or empty");
         PropertiesConfiguration propConfig = new PropertiesConfiguration();
         try {
-            InputStream in = new ByteArrayInputStream(configText.getBytes(
-                                                      CHARSET));
-            propConfig.setDelimiterParsingDisabled(true);
-            propConfig.load(in);
+            Reader in = new StringReader(configText);
+            propConfig.read(in);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to read config options", e);
         }

@@ -24,21 +24,21 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Singleton;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.GET;
-import javax.ws.rs.NotSupportedException;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -148,16 +148,8 @@ public class GraphsAPI extends API {
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name) {
         LOG.debug("Get graph configuration by name '{}'", name);
-
-        HugeGraph g = graph4admin(manager, name);
-
-        HugeConfig config = (HugeConfig) g.configuration();
-        File file = config.getFile();
-        if (file == null) {
-            throw new NotSupportedException("Can't access the api in " +
-                      "a node which started with non local file config.");
-        }
-        return file;
+        throw new NotSupportedException("Can't access the api in " +
+                  "a node which started with non local file config.");
     }
 
     @DELETE

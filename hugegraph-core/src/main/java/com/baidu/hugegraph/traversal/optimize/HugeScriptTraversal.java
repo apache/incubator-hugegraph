@@ -25,6 +25,9 @@ import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
+import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.auth.ResourceType;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.jsr223.SingleGremlinScriptEngineManager;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalSource;
