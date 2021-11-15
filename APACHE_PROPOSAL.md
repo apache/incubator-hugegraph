@@ -6,7 +6,7 @@ HugeGraph will be a graph database with high performance and scalability.
 
 ## Proposal
 
-HugeGraph is to provide an large-scale graph database, which achieves availability and balance between performance and cost in the scenario of 100+ billion data,  and has complete HTAP capabilities in an internal system.
+HugeGraph is to provide an large-scale graph database, which achieves availability and balance between performance and cost in the scenario of 100+ billion data, and has complete HTAP capabilities in an internal system.
 
 ### Background
 
@@ -47,3 +47,171 @@ We have checked that the name is [suitable](https://github.com/hugegraph/hugegra
 #### Relationship with Titan/Janus Graph
 
 In the early stage of the project, we referred to the storage structure of Titan/Janus Graph, some folks thought that HugeGraph was forked from Titan/Janus. In fact, HugeGraph is not based on its code, completely self-developed, and addressed many new challenges. Of course, we are still inspired by and thank for Titan/Janus.
+
+### Documentation
+
+HugeGraph documentation is provided on https://hugegraph.github.io/hugegraph-doc/ in Simplified Chinese, the complete English version of the documentation is being prepared.
+
+### Initial Source
+
+This project consists of 2 core sub-projects and 8 complementary sub-projects, all of them are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The address of 10 existed git repositories are as follows:
+
+1. The graph database repository `hugegraph`, core sub-project, including graph server, graph engine and graph storage: https://github.com/hugegraph/hugegraph
+2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithm s: https://github.com/hugegraph/hugegraph-computer
+3. `hugegraph-common`: https://github.com/hugegraph/hugegraph-common
+4. `hugegraph-client`: https://github.com/hugegraph/hugegraph-client
+5. `hugegraph-doc`: https://github.com/hugegraph/hugegraph-doc
+6. `hugegraph-loader`: https://github.com/hugegraph/hugegraph-loader
+7. `hugegraph-tools`: https://github.com/hugegraph/hugegraph-tools
+8. `hugegraph-rpc`: https://github.com/hugegraph/hugegraph-rpc
+9. `hugegraph-hubble`: https://github.com/hugegraph/hugegraph-hubble
+10. `hugegraph-test`: https://github.com/hugegraph/hugegraph-test
+
+### Source and Intellectual Property Submission Plan
+
+The codes are currently under Apache License Version 2.0 and have been verified to there is no intellectual property or license issues before being released to open source by Baidu in 2018. Baidu will provide SGA and all committers will sign ICLA after HugeGraph is accepted into the Incubator.
+
+#### External Dependencies:
+
+As all dependencies are managed using Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except MySQL (GPL-2.0), we will remove MySQL dependencies in future.
+
+HugeGraph has the following external [dependencies](https://github.com/hugegraph/hugegraph/issues/1632):
+
+- Apache License
+
+  - HttpClient
+  - HttpCore
+
+- Apache License 2.0
+
+  - Annotations for Metrics
+  - ansj_seg
+  - Apache Cassandra
+  - Apache Commons
+  - Apache Groovy
+  - Apache HttpClient
+  - Apache HttpCore
+  - Apache Ivy
+  - Apache Log4j
+  - Apache Thrift
+  - Apache TinkerPop
+  - Apache Yetus
+  - Bean Validation API
+  - Caffeine cache
+  - CLI
+  - Sofa
+  - ConcurrentLinkedHashMap
+  - Data Mapper for Jackson
+  - DataStax Java Driver for Apache Cassandra
+  - Disruptor Framework
+  - error-prone annotations
+  - exp4j
+  - fastutil
+  - Findbugs
+  - Google Android Annotations Library
+  - Gson
+  - Guava
+  - Hibernate Validator Engine
+  - HPPC Collections
+  - htrace-core4
+  - IKAnalyzer
+  - io.grpc
+  - J2ObjC Annotations
+  - Jackson
+  - Java Agent for Memory Measurements
+  - Java Concurrency Tools Core Library
+  - JavaPoet
+  - javatuples
+  - jcseg-core
+  - jffi
+  - JJWT
+  - jnr
+  - Joda
+  - jraft
+  - JSON.simple
+  - JVM Integration for Metrics
+  - Lucene
+  - LZ4 and xxHash
+  - Metrics
+  - mmseg4j-core
+  - Netty
+  - Ning-compress-LZF
+  - nlp-lang
+  - Objenesis
+  - OHC core
+  - OpenTracing
+  - perfmark
+  - proto-google-common-protos
+  - sigar
+  - snappy-java
+  - stream-lib
+  - swagger
+  - Thrift Server implementation backed by LMAX Disruptor
+  - jieba for java
+  - Java Native Access
+  - HanLP
+  - SnakeYAML
+
+- BSD License
+
+  - ANTLR 3
+  - ASM
+  - Chinese to Pinyin
+  - Hamcrest
+  - JLine
+  - jcabi
+  - PostgreSQL JDBC Driver - JDBC 4.2
+
+  - Protocol Buffers
+  - StringTemplate
+
+- CDDL + GPL License
+
+  - Grizzly
+  - Jersey
+
+- CDDL + GPLv2 License
+
+  - glassfish
+  - Java Servlet API
+  - javax.ws.rs-api 
+  - jersey-inject-hk2
+  - JSR 353 (JSON Processing) Default Provider
+
+- Commercial License
+
+  - TrueLicense
+
+- Eclipse Distribution License
+
+  - Eclipse Collections
+  - JUnit
+
+- ISC/BSD License
+
+  - jBCrypt
+
+- LGPL 2.1 + MPL 1.1 + Apache License 2.0
+
+  - Javassist
+
+- MIT License
+
+  - Animal Sniffer Annotations
+  - Mockito
+  - SLF4J
+  - Jedis
+  - high-scale-lib
+  - jnr-x86asm
+
+- GPL License
+
+  - MySQL Connector/J
+  - Checker Qual
+  - word
+  - JBoss Logging 3
+  - jnr-posix
+
+#### Cryptography
+
+None
