@@ -243,6 +243,46 @@ public class RocksDBOptions extends OptionHolder {
                     0L
             );
 
+    public static final ConfigOption<Boolean> UNORDERED_WRITE =
+            new ConfigOption<>(
+                    "rocksdb.unordered_write",
+                    "enable unordered write",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> ENABLE_PIPELINE_WRITE =
+            new ConfigOption<>(
+                    "rocksdb.enable_pipeline_write",
+                    "enable pipeline write",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> DISABLE_WAL =
+            new ConfigOption<>(
+                    "rocksdb.disable_wal",
+                    "disable wal for rocksdb",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> RECYCLE_LOG_FILE_NUM =
+            new ConfigOption<>(
+                    "rocksdb.recycle_log_file_num",
+                    "set reuse log file num for saving io-ops",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    0
+            );
+
+    public static final ConfigOption<Boolean> WAIT_FOR_FLUSH =
+            new ConfigOption<>(
+                    "rocksdb.wait_for_flush",
+                    "wait for flush",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Long> DELETE_OBSOLETE_FILE_PERIOD =
             new ConfigOption<>(
                     "rocksdb.delete_obsolete_files_period",

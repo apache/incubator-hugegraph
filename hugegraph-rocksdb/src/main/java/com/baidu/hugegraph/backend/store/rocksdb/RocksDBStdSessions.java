@@ -259,7 +259,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public void flush() {
         try {
-            this.rocksdb().flush(new FlushOptions().setWaitForFlush(false),
+            boolean wait = this.config.get(RocksDBOptions.WAIT_FOR_FLUSH);
+            this.rocksdb().flush(new FlushOptions().setWaitForFlush(wait),
                                  this.rocksdb.cfHandles.values()
                                      .stream().map(CFHandle::get)
                                      .collect(Collectors.toList()));
@@ -551,6 +552,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
 
             db.setDbWriteBufferSize(conf.get(RocksDBOptions.DB_MEMTABLE_SIZE));
+
+            db.setUnorderedWrite(conf.get(RocksDBOptions.UNORDERED_WRITE));
+
+            db.setEnablePipelinedWrite(
+                    conf.get(RocksDBOptions.ENABLE_PIPELINE_WRITE));
+
+            db.setRecycleLogFileNum(
+                    conf.get(RocksDBOptions.RECYCLE_LOG_FILE_NUM));
         }
 
         if (mdb != null) {
@@ -808,6 +817,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         public StdSession(HugeConfig conf) {
             boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
+            boolean pipeline_write = conf.get(RocksDBOptions.ENABLE_PIPELINE_WRITE);
+
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
             /*
@@ -817,6 +828,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (raftMode) {
                 this.writeOptions.setDisableWAL(true);
                 this.writeOptions.setSync(false);
+            } else if (!pipeline_write) {
+                // donot apply disableWal when pipeline_write is true
+                boolean disableWal = conf.get(RocksDBOptions.DISABLE_WAL);
+                this.writeOptions.setDisableWAL(disableWal);
+                if (disableWal) {
+                    this.writeOptions.setSync(false);
+                }
             }
         }
 
