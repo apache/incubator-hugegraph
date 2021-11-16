@@ -8735,7 +8735,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testTextEntireMatch() {
+    public void testEnhanceTextMatch() {
         HugeGraph graph = graph();
 
         graph.schema().indexLabel("personByName").onV("person")
@@ -8749,7 +8749,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                          "city", "Beijing", "age", 21);
         Vertex vertex4 = graph.addVertex(T.label, "person", "name", "秦始皇3",
                                          "city", "Beijing", "age", 23);
-        Vertex vertex5 = graph.addVertex(T.label, "person", "name", "秦始皇4",
+        Vertex vertex5 = graph.addVertex(T.label, "person", "name", "秦始皇帝",
                                          "city", "Beijing", "age", 29);
         graph.tx().commit();
 
@@ -8766,6 +8766,15 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(vertices.contains(vertex3));
         Assert.assertTrue(vertices.contains(vertex4));
         Assert.assertTrue(vertices.contains(vertex5));
+
+        vertices = g.V().has("name", Text.contains("(秦始皇帝)")).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex5));
+
+        vertices = g.V().has("name", Text.contains("秦始皇2|秦始皇3")).toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+        Assert.assertTrue(vertices.contains(vertex4));
     }
 
     private void init10Vertices() {

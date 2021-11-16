@@ -76,10 +76,6 @@ public abstract class Condition {
         TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
             return v1 != null && ((String) v1).contains((String) v2);
         }),
-        TEXT_CONTAINS_ENHANCE("textcontainsenhance", String.class, String.class,
-                              (v1, v2) -> {
-            return v1 != null && ((String) v1).contains((String) v2);
-        }),
         TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,
                           (v1, v2) -> {
             assert v2 != null;
@@ -242,8 +238,7 @@ public abstract class Condition {
         }
 
         public boolean isSearchType() {
-            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY ||
-                   this == TEXT_CONTAINS_ENHANCE;
+            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY;
         }
 
         public boolean isSecondaryType() {

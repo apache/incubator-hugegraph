@@ -38,10 +38,6 @@ public class ConditionP extends P<Object> {
         return new ConditionP(RelationType.TEXT_CONTAINS, value);
     }
 
-    public static ConditionP textContainsEnhance(Object value) {
-        return new ConditionP(RelationType.TEXT_CONTAINS_ENHANCE, value);
-    }
-
     public static ConditionP contains(Object value) {
         return new ConditionP(RelationType.CONTAINS, value);
     }
