@@ -1334,9 +1334,28 @@ public class StandardHugeGraph implements HugeGraph {
 
             Txs txs = this.transactions.get();
             if (txs == null) {
-                // TODO: close SchemaTransaction if GraphTransaction is error
-                txs = new Txs(openSchemaTransaction(), openSystemTransaction(),
-                              openGraphTransaction());
+                SchemaTransaction schemaTransaction = null;
+                SysTransaction sysTransaction = null;
+                GraphTransaction graphTransaction = null;
+                try {
+                    StandardHugeGraph hugeGraph = StandardHugeGraph.this;
+                    schemaTransaction = hugeGraph.openSchemaTransaction();
+                    sysTransaction = hugeGraph.openSystemTransaction();
+                    graphTransaction = hugeGraph.openGraphTransaction();
+                    txs = new Txs(schemaTransaction, sysTransaction,
+                                  graphTransaction);
+                } catch (Throwable e) {
+                    if (schemaTransaction != null) {
+                        schemaTransaction.close();
+                    }
+                    if (sysTransaction != null) {
+                        sysTransaction.close();
+                    }
+                    if (graphTransaction != null) {
+                        graphTransaction.close();
+                    }
+                    throw e;
+                }
                 this.transactions.set(txs);
             }
             return txs;
