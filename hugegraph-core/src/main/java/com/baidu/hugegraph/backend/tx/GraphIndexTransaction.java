@@ -293,19 +293,25 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 value = ConditionQuery.concatValues(allPropValues);
                 assert !value.equals("");
                 Id id = element.id();
+
                 LockUtil.lockRow(this.graphName(),
                                  LockUtil.UNIQUE_INDEX_UPDATE,
                                  id);
-                if (!removed && this.existUniqueValue(indexLabel, value, id)) {
-                    throw new IllegalArgumentException(String.format(
-                              "Unique constraint %s conflict is found for %s",
-                              indexLabel, element));
+                try {
+                    if (!removed &&
+                        this.existUniqueValue(indexLabel, value, id)) {
+                        throw new IllegalArgumentException(String.format(
+                                "Unique constraint %s conflict is found for %s",
+                                indexLabel, element));
+                    }
+                    this.updateIndex(indexLabel, value, element.id(),
+                                     expiredTime, removed);
+                } finally {
+                    LockUtil.unlockRow(this.graphName(),
+                                       LockUtil.UNIQUE_INDEX_UPDATE,
+                                       id);
                 }
-                this.updateIndex(indexLabel, value, element.id(),
-                                 expiredTime, removed);
-                LockUtil.unlockRow(this.graphName(),
-                                   LockUtil.UNIQUE_INDEX_UPDATE,
-                                   id);
+
                 break;
             default:
                 throw new AssertionError(String.format(
