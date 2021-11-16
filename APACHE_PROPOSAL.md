@@ -239,3 +239,69 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
 #### Cryptography
 
 None
+
+### Required Resources
+
+#### Mailing lists:
+
+- hugegraph-dev: [dev@hugegraph.incubator.apache.org](mailto:dev@hugegraph.incubator.apache.org) for development and users discussions.
+- hugegraph-private: [private@hugegraph.incubator.apache.org](mailto:private@hugegraph.incubator.apache.org) for PPMC discussions.
+- hugegraph-commits: [commits@hugegraph.incubator.apache.org](mailto:commits@hugegraph.incubator.apache.org) for commits / [pull requests](https://github.com/hugegraph/hugegraph/pulls) and other notifications like code review comments.
+
+#### [Subversion Directory:](https://cwiki.apache.org/confluence/display/INCUBATOR/New+Podling+Proposal#subversion-directory)
+
+None
+
+#### [Git Repositories:](https://cwiki.apache.org/confluence/display/INCUBATOR/New+Podling+Proposal#git-repositories)
+
+1. `hugegraph`: https://github.com/hugegraph/hugegraph.git
+2. `hugegraph-computer`: https://github.com/hugegraph/hugegraph-computer.git
+3. `hugegraph-common`: https://github.com/hugegraph/hugegraph-common.git
+4. `hugegraph-client`: https://github.com/hugegraph/hugegraph-client.git
+5. `hugegraph-doc`: https://github.com/hugegraph/hugegraph-doc.git
+6. `hugegraph-loader`: https://github.com/hugegraph/hugegraph-loader.git
+7. `hugegraph-tools`: https://github.com/hugegraph/hugegraph-tools.git
+8. `hugegraph-rpc`: https://github.com/hugegraph/hugegraph-rpc.git
+9. `hugegraph-hubble`: https://github.com/hugegraph/hugegraph-hubble.git
+10. `hugegraph-test`: https://github.com/hugegraph/hugegraph-test.git
+
+#### Issue Tracking:
+
+We choose JIRA HugeGraph (HUGEGRAPH), and the community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues).
+
+#### Other Resources:
+
+- The community has already choosed [GitHub actions](https://github.com/hugegraph/hugegraph/actions) as continuous integration tools.
+- The community has already used [codecov](https://github.com/marketplace/codecov) to check code coverage.
+- The community has already used [mvn repository](https://mvnrepository.com/search?q=hugegraph) as binary package release platform.
+
+### Initial Committers
+
+- 李章梅, Jermy Li (javaloveme at gmail dot com)
+- 李凝瑞, linary (liningrui at vip dot qq dot com)
+- 张义, zhoney (zhangyi89817 at 126 dot com)
+- 金子威, imbajin (0x00 at imbajin.com)
+- 章炎, zyxxoo (1318247699 at qq dot com)
+- 刘楠科, liunanke (liunanke at baidu dot com)
+- 赵聪, coderzc (zc1217zc at 126 dot com)
+- 郭守敬, ShouJing (1075185785 at qq dot com)
+- 李小彪, lxb1111 (13703287619 at 163 dot com)
+- 黄海平, hhpcn (954872405 at qq dot com)
+- 江小叶, kidleaf-jiang (kidleaf at 163 dot com)
+
+### Sponsors
+
+#### Champion:
+
+- 姜宁, Willem Ning Jiang (ningjiang at apache dot org)
+
+#### Nominated Mentors:
+
+- 潘娟
+- 代立冬
+- 黄向东
+- 李钰（待确认）
+
+#### Sponsoring Entity:
+
+We are expecting the Apache Incubator could sponsor this project.
