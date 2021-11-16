@@ -20,6 +20,8 @@
 package com.baidu.hugegraph.core;
 
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_MAX_GRAPH_NUMBER;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_MAX_ROLE_NUMBER;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -32,6 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
@@ -167,7 +171,9 @@ public final class GraphManager {
         Map<String, GraphSpace> graphSpaceConfigs =
                                 this.metaManager.graphSpaceConfigs();
         if (!graphSpaceConfigs.containsKey(DEFAULT_GRAPH_SPACE_NAME)) {
-            this.clearGraphSpace(DEFAULT_GRAPH_SPACE_NAME);
+            this.createGraphSpace(DEFAULT_GRAPH_SPACE_NAME,
+                                  DEFAULT_MAX_GRAPH_NUMBER,
+                                  DEFAULT_MAX_ROLE_NUMBER, ImmutableMap.of());
         }
     }
 
@@ -215,7 +221,7 @@ public final class GraphManager {
         }
 
         // Load graphs configured in etcd
-        Map<String, String> configs = this.graphConfigs();
+        Map<String, Map<String, Object>> configs = this.graphConfigs();
         String graphName = graphName(graphSpace, name);
         if (configs.containsKey(graphName)) {
             this.loadGraphsFromMeta(
@@ -223,8 +229,8 @@ public final class GraphManager {
         }
     }
 
-    public synchronized Map<String, String> graphConfigs() {
-        Map<String, String> configs =
+    public synchronized Map<String, Map<String, Object>> graphConfigs() {
+        Map<String, Map<String, Object>> configs =
                     CollectionFactory.newMap(CollectionType.EC);
         Map<String, GraphSpace> graphSpaceConfigs =
                                 this.metaManager.graphSpaceConfigs();
@@ -296,10 +302,11 @@ public final class GraphManager {
         }
     }
 
-    public void loadGraphsFromMeta(final Map<String, String> graphConfs) {
-        for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
+    public void loadGraphsFromMeta(Map<String, Map<String, Object>> graphConfs) {
+        for (Map.Entry<String, Map<String, Object>> conf :
+                graphConfs.entrySet()) {
             String[] parts = conf.getKey().split(DELIMETER);
-            String config = conf.getValue();
+            Map<String, Object> config = conf.getValue();
             HugeFactory.checkGraphName(parts[1], "meta server");
             try {
                 this.createGraph(parts[0], parts[1], config, false);
@@ -364,12 +371,12 @@ public final class GraphManager {
     }
 
     public HugeGraph createGraph(String graphSpace, String name,
-                                 String configText, boolean init) {
+                                 Map<String, Object> configs, boolean init) {
         E.checkArgumentNotNull(name, "The graph name can't be null");
         E.checkArgument(!this.graphs(graphSpace).contains(name),
                         "The graph name '%s' has existed", name);
 
-        PropertiesConfiguration propConfig = this.buildConfig(configText);
+        Configuration propConfig = this.buildConfig(configs);
         String storeName = propConfig.getString(CoreOptions.STORE.name());
         E.checkArgument(name.equals(storeName),
                         "The store name '%s' not match url name '%s'",
@@ -381,7 +388,7 @@ public final class GraphManager {
         String graphName = graphName(graphSpace, name);
         if (init) {
             this.creatingGraphs.add(graphName);
-            this.metaManager.addGraphConfig(graphSpace, name, configText);
+            this.metaManager.addGraphConfig(graphSpace, name, configs);
             this.metaManager.addGraph(graphSpace, name);
         }
         this.graphs.put(graphName, graph);
@@ -424,6 +431,10 @@ public final class GraphManager {
             }
         }
         return graph;
+    }
+
+    private MapConfiguration buildConfig(Map<String, Object> configs) {
+        return new MapConfiguration(configs);
     }
 
     private PropertiesConfiguration buildConfig(String configText) {
@@ -720,11 +731,12 @@ public final class GraphManager {
                 continue;
             }
 
-            String config = this.metaManager.getGraphConfig(graphName);
+            String[] parts = graphName.split(DELIMETER);
+            Map<String, Object> config =
+                    this.metaManager.getGraphConfig(parts[0], parts[1]);
 
             // Create graph without init
             try {
-                String[] parts = graphName.split(DELIMETER);
                 HugeGraph graph = this.createGraph(parts[0], parts[1], config, false);
                 graph.serverStarted(this.serverId, this.serverRole);
                 graph.tx().close();

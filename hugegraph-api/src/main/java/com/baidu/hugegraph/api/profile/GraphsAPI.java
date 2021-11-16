@@ -122,11 +122,11 @@ public class GraphsAPI extends API {
     public Object create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("name") String name,
-                         String configText) {
+                         Map<String, Object> configs) {
         LOG.debug("Create graph {} with config options '{}' in graph space " +
-                  "'{}'", name, configText, graphSpace);
+                  "'{}'", name, configs, graphSpace);
         HugeGraph graph = manager.createGraph(graphSpace, name,
-                                              configText, true);
+                                              configs, true);
         graph.tx().close();
         return ImmutableMap.of("name", name, "backend", graph.backend());
     }

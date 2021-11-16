@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -105,9 +107,13 @@ public final class ConfigUtil {
         String content;
         try {
             if (config.getFileName() == null) {
-                Writer writer = new StringBuilderWriter();
-                config.save(writer);
-                content = writer.toString();
+                Map<String, Object> configMap = new HashMap<>();
+                Iterator<String> iterator = config.getKeys();
+                while (iterator.hasNext()) {
+                    String key = iterator.next();
+                    configMap.put(key, config.getProperty(key));
+                }
+                content = JsonUtil.toJson(configMap);
             } else {
                 File file = config.getFile();
                 if (file == null) {
@@ -117,7 +123,7 @@ public final class ConfigUtil {
                 }
                 content = FileUtils.readFileToString(file);
             }
-        } catch (ConfigurationException | IOException e) {
+        } catch (IOException e) {
             throw new HugeException("Failed to read config of graph", e);
         }
         return content;

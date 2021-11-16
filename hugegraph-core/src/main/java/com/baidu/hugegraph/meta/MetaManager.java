@@ -140,8 +140,8 @@ public class MetaManager {
         return configs;
     }
 
-    public Map<String, String> graphConfigs(String graphSpace) {
-        Map<String, String> configs =
+    public Map<String, Map<String, Object>> graphConfigs(String graphSpace) {
+        Map<String, Map<String, Object>> configs =
                             CollectionFactory.newMap(CollectionType.EC);
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                                         this.graphConfPrefix(graphSpace));
@@ -150,7 +150,7 @@ public class MetaManager {
             String[] parts = key.split(META_PATH_DELIMETER);
             String name = parts[parts.length - 1];
             String graphName = String.join("-", graphSpace, name);
-            configs.put(graphName, entry.getValue());
+            configs.put(graphName, configMap(entry.getValue()));
         }
         return configs;
     }
@@ -168,12 +168,23 @@ public class MetaManager {
         return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
+    public Map<String, Object> getGraphConfig(String graphSpace, String graph) {
+        return configMap(this.metaDriver.get(this.graphConfKey(graphSpace,
+                                                               graph)));
+    }
+
     public String getGraphConfig(String graph) {
         return this.metaDriver.get(this.graphConfKey(graph));
     }
 
     public void addGraphConfig(String graphSpace, String graph, String config) {
         this.metaDriver.put(this.graphConfKey(graphSpace, graph), config);
+    }
+
+    public void addGraphConfig(String graphSpace, String graph,
+                               Map<String, Object> configs) {
+        this.metaDriver.put(this.graphConfKey(graphSpace, graph),
+                            JsonUtil.toJson(configs));
     }
 
     public GraphSpace graphSpace(String name) {
@@ -980,6 +991,11 @@ public class MetaManager {
                                        META_PATH_GRAPHSPACE_LIST,
                                        "DEFAULT");
         this.metaDriver.put(defaultGS, "DEFAULT");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> configMap(String config) {
+        return JsonUtil.fromJson(config, Map.class);
     }
 
     public enum MetaDriverType {
