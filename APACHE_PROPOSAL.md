@@ -8,9 +8,11 @@ HugeGraph will be a graph database with high performance and scalability.
 
 HugeGraph is to provide an large-scale graph database, in the scenario of 100+ billion data which achieves availability and balance between performance and cost, and has complete HTAP capabilities in an internal system.
 
+We believe that bringing HugeGraph into Apache Software Foundation could advance the development of a stronger and more diverse open source community.
+
 ### Background
 
-Graph databases are good at dealing with relational analysis, but relational databases are generally at a disadvantage due to slow join performance, especially in the case of large-scale graph with multiple dimensions and deep association relationships. HugeGraph was born in Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks.
+Graph databases are good at dealing with relational analysis, but relational databases are generally at a disadvantage due to slow join performance, especially in the case of large-scale graph with multiple dimensions and deep association relationships. HugeGraph was born at Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks.
 
 ### Rationale
 
@@ -24,15 +26,15 @@ None
 
 #### Meritocracy
 
-HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project now has 30+ contributors from many companies, some of them become committers, and has hundreds of known users around the world. We have set up the PMC Team and Committer Team, contributions are welcomed and highly valued, new contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
+HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of them become committers, and has hundreds of known users around the world. We have set up the PMC Team and Committer Team, contributions are welcomed and highly valued, new contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
 
 #### Community
 
-Baidu has been building a community around users and developers for the last three years, now we make use of GitHub as code hosting and community communication. There are 10+ contributors from non-Baidu companies like 360, Kedaxunfei, Huyazhibo. We hope to grow the base of contributors by inviting all those who offer contributions through The Apache Way. 
+Baidu has been building a community around users and developers for the last 3 years, now we make use of GitHub as code hosting and community communication. The most of core developers are from Baidu, there are 10+ contributors from non-Baidu companies like 360, Iflytek and Huya. We hope to grow the base of contributors by inviting all those who offer contributions through The Apache Way. 
 
 #### Core Developers
 
-The core developers are already very experienced open source developers, they have managed the hugegraph community for three years, and they are contributors of Linux kernel, OpenStack, Ceph, RocksDB, Apache TinkerPop, Apache Hadoop and Apache Groovy.
+The core developers are already experienced open source developers, they have operated the HugeGraph Community for 3 years, and they are contributors of Linux kernel, OpenStack, Ceph, RocksDB, Apache TinkerPop, Apache Hadoop and Apache Groovy.
 
 #### Alignment
 
@@ -46,11 +48,11 @@ We have checked that the name is [suitable](https://github.com/hugegraph/hugegra
 
 #### Relationship with Titan/Janus Graph
 
-In the early stage of the project, we referred to the storage structure of Titan/Janus Graph, some folks thought that HugeGraph was forked from Titan/Janus. In fact, HugeGraph is not based on its code, completely self-developed, and addressed many new challenges. Of course, we are still inspired by and thank for Titan/Janus.
+In the early stage of the project, we referred to the storage structure of Titan/Janus Graph, some folks thought that HugeGraph was forked from Titan/Janus. In fact, HugeGraph is not based on its code, it's completely self-developed, and addressed many new challenges. Of course, we are still inspired by and thank for Titan/Janus.
 
 ### Orphaned products
 
-Due to about 10+ committers, the project has a relatively small risk of becoming an orphan. However, the contributors have been operating in the spirit of open source for 3 years, and continue to develop new contributors to participate.
+Due to only about 10 committers, the project has a relatively small risk of becoming an orphan. However, the committers have been operating the HugeGraph Community for 3 years in the spirit of open source, and continue to develop new contributors to participate.
 
 #### Inexperience with Open Source:
 
@@ -62,7 +64,7 @@ Expect to enter incubation in 4 months and graduate in about 2 years.
 
 #### Homogenous Developers:
 
-The current list of committers includes developers from several different companies plus many independent volunteers. The committers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source project, e.g. OpenStack.
+The current list of developers from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source project, e.g. OpenStack.
 
 #### Reliance on Salaried Developers:
 
@@ -82,7 +84,7 @@ HugeGraph documentation is provided on https://hugegraph.github.io/hugegraph-doc
 
 ### Initial Source
 
-This project consists of 2 core sub-projects and 8 complementary sub-projects, all of them are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The address of 10 existed git repositories are as follows:
+This project consists of 2 core sub-projects and 8 complementary sub-projects, all of them are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018, the codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
 
 1. The graph database repository `hugegraph`, core sub-project, including graph server, graph engine and graph storage: https://github.com/hugegraph/hugegraph
 2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithm s: https://github.com/hugegraph/hugegraph-computer
@@ -317,7 +319,7 @@ We choose JIRA HugeGraph (HUGEGRAPH), and the community would like to continue u
 - 潘娟
 - 代立冬
 - 黄向东
-- 李钰（待确认）
+- 李钰
 
 #### Sponsoring Entity:
 
