@@ -169,6 +169,7 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - OHC core
   - OpenTracing
   - perfmark
+  - picocli
   - proto-google-common-protos
   - sigar
   - snappy-java
@@ -180,6 +181,10 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - HanLP
   - SnakeYAML
 
+- Apache License 2.0 + GPLv2 License
+
+  - RocksDB JNI
+
 - BSD License
 
   - ANTLR 3
@@ -189,7 +194,6 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - JLine
   - jcabi
   - PostgreSQL JDBC Driver - JDBC 4.2
-
   - Protocol Buffers
   - StringTemplate
 
@@ -206,7 +210,7 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - jersey-inject-hk2
   - JSR 353 (JSON Processing) Default Provider
 
-- Commercial License
+- Commercial License + AGPL License
 
   - TrueLicense
 
@@ -218,6 +222,14 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
 - ISC/BSD License
 
   - jBCrypt
+
+- LGPL License
+
+  - JBoss Logging 3
+
+- LGPL + GPL License License
+
+  - jnr-posix
 
 - LGPL 2.1 + MPL 1.1 + Apache License 2.0
 
@@ -232,13 +244,14 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - high-scale-lib
   - jnr-x86asm
 
+- GPL + MIT License
+
+  - Checker Qual
+
 - GPL License
 
   - MySQL Connector/J
-  - Checker Qual
   - word
-  - JBoss Logging 3
-  - jnr-posix
 
 #### Cryptography
 
