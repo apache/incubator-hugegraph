@@ -2,7 +2,7 @@
 
 ## Abstract
 
-HugeGraph will be a graph database with high performance and scalability.
+HugeGraph is a graph database with high performance and scalability.
 
 ## Proposal
 
