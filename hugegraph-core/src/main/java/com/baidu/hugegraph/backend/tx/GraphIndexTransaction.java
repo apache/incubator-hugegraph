@@ -294,22 +294,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 assert !value.equals("");
                 Id id = element.id();
 
-                LockUtil.lockRow(this.graphName(),
-                                 LockUtil.UNIQUE_INDEX_UPDATE,
-                                 id);
+                LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
                 try {
+                    locks.lockWrites(LockUtil.UNIQUE_INDEX_UPDATE, id);
                     if (!removed &&
                         this.existUniqueValue(indexLabel, value, id)) {
                         throw new IllegalArgumentException(String.format(
-                                "Unique constraint %s conflict is found for %s",
-                                indexLabel, element));
+                              "Unique constraint %s conflict is found for %s",
+                              indexLabel, element));
                     }
                     this.updateIndex(indexLabel, value, element.id(),
                                      expiredTime, removed);
                 } finally {
-                    LockUtil.unlockRow(this.graphName(),
-                                       LockUtil.UNIQUE_INDEX_UPDATE,
-                                       id);
+                    locks.unlock();
                 }
 
                 break;

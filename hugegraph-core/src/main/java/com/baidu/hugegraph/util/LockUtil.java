@@ -58,7 +58,7 @@ public final class LockUtil {
     public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
-    public static final String UNIQUE_INDEX_UPDATE = "uqindex_update";
+    public static final String UNIQUE_INDEX_UPDATE = "unique_index_update";
     public static final String PROJECT_UPDATE = "project_update";
     public static final String KEY_LOCK = "key_lock";
     public static final String ROW_LOCK = "row_lock";
