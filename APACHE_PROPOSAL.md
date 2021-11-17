@@ -6,11 +6,11 @@ HugeGraph will be a graph database with high performance and scalability.
 
 ## Proposal
 
-HugeGraph is to provide an large-scale graph database, which achieves availability and balance between performance and cost in the scenario of 100+ billion data, and has complete HTAP capabilities in an internal system.
+HugeGraph is to provide an large-scale graph database, in the scenario of 100+ billion data which achieves availability and balance between performance and cost, and has complete HTAP capabilities in an internal system.
 
 ### Background
 
-Graph databases are good at dealing with relational analysis, but relational databases are generally not good at due to slow join performance, especially in the case of large-scale data with multiple dimensions and deep association relationships. HugeGraph was born in Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks.
+Graph databases are good at dealing with relational analysis, but relational databases are generally at a disadvantage due to slow join performance, especially in the case of large-scale graph with multiple dimensions and deep association relationships. HugeGraph was born in Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks.
 
 ### Rationale
 
@@ -70,7 +70,7 @@ Most of the developers are paid by their employer to contribute to this project,
 
 #### Relationships with Other Apache Products:
 
-HugeGraph follows the Apache TinkerPop specification, uses Apache Cassandra as the storage backend, and uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the framework and basic functions.
+HugeGraph follows the Apache TinkerPop specification, uses Apache Cassandra and Apache HBase as one of the storage backends, and uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the basic functions.
 
 #### A Excessive Fascination with the Apache Brand:
 
