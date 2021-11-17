@@ -44,17 +44,21 @@ HugeGraph is compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) f
 
 We have checked that the name is [suitable](https://github.com/hugegraph/hugegraph/issues/1646) and the project has legal permission to continuing using its current name. There is no one else found using this name through Google search.
 
-#### Orphaned products
+#### Relationship with Titan/Janus Graph
 
-Due to the relatively small number of contributors, the project has a relatively small risk of becoming an orphan. However, the contributors have been operating in the spirit of open source for 3 years, and continue to develop new contributors to participate.
+In the early stage of the project, we referred to the storage structure of Titan/Janus Graph, some folks thought that HugeGraph was forked from Titan/Janus. In fact, HugeGraph is not based on its code, completely self-developed, and addressed many new challenges. Of course, we are still inspired by and thank for Titan/Janus.
+
+### Orphaned products
+
+Due to about 10+ committers, the project has a relatively small risk of becoming an orphan. However, the contributors have been operating in the spirit of open source for 3 years, and continue to develop new contributors to participate.
 
 #### Inexperience with Open Source:
 
-HugeGraph has been open sourced on GitHub for 3 years, during which contributors submitted code and documents in full compliance with open source specifications and requirements
+HugeGraph has been open sourced on GitHub for 3 years, during which committers submitted code and documents in full compliance with open source specifications and requirements.
 
 #### Length of Incubation:
 
-Expect to enter incubation in 6 months and graduate in about 2 years
+Expect to enter incubation in 4 months and graduate in about 2 years.
 
 #### Homogenous Developers:
 
@@ -64,9 +68,9 @@ The current list of committers includes developers from several different compan
 
 Most of the developers are paid by their employer to contribute to this project, but given some volunteer developers and the committers' sense of ownership for the code, the project would continue without issue if no salaried developers contributed to the project.
 
-#### Relationship with Titan/Janus Graph
+#### Relationships with Other Apache Products:
 
-In the early stage of the project, we referred to the storage structure of Titan/Janus Graph, some folks thought that HugeGraph was forked from Titan/Janus. In fact, HugeGraph is not based on its code, completely self-developed, and addressed many new challenges. Of course, we are still inspired by and thank for Titan/Janus.
+HugeGraph follows the Apache TinkerPop specification, uses Apache Cassandra as the storage backend, and uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the framework and basic functions.
 
 #### A Excessive Fascination with the Apache Brand:
 
