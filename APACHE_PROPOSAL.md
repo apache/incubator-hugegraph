@@ -286,7 +286,7 @@ None
 
 #### Issue Tracking:
 
-We choose JIRA HugeGraph (HUGEGRAPH), and the community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues).
+The community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues).
 
 #### Other Resources:
 
