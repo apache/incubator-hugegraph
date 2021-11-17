@@ -70,7 +70,7 @@ Most of the developers are paid by their employer to contribute to this project,
 
 #### Relationships with Other Apache Products:
 
-HugeGraph follows the Apache TinkerPop specification, uses Apache Cassandra and Apache HBase as one of the storage backends, and uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the basic functions.
+HugeGraph follows the Apache TinkerPop specification, uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the basic functions. Users can choose Apache Cassandra or Apache HBase as one of the storage backends of HugeGraph.
 
 #### A Excessive Fascination with the Apache Brand:
 
