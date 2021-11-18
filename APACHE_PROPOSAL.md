@@ -6,7 +6,7 @@ HugeGraph is a graph database with high performance and scalability.
 
 ## Proposal
 
-HugeGraph is to provide an large-scale graph database, in the scenario of 100+ billion data which achieves availability and balance between performance and cost, and has complete HTAP capabilities in an internal system.
+HugeGraph is to provide a large-scale graph database, in the scenario of 100+ billion data which achieves availability and balance between performance and cost, and has complete HTAP capabilities in the internal system.
 
 We believe that bringing HugeGraph into Apache Software Foundation could advance the development of a stronger and more diverse open source community.
 
@@ -16,7 +16,7 @@ Graph databases are good at dealing with relational analysis, but relational dat
 
 ### Rationale
 
-In the industry, graph databases can generally handle 1-billion-scale graphs, there is a lack of systems for processing 100-billion-scale graphs, and some graph databases may only support online query (OLTP), some graph platforms only support graph computing (OLAP). HugeGraph supports both online query and graph computing in the scenario of 100+ billion data.
+In the industry, graph databases can generally handle 1-billion-scale graphs, but there is a lack of systems for processing 100-billion-scale graphs, and some graph databases may only support online query (OLTP), some graph platforms only support graph computing (OLAP). HugeGraph supports both online query and graph computing in the scenario of 100+ billion data.
 
 ### Initial Goals
 
@@ -26,11 +26,11 @@ None
 
 #### Meritocracy
 
-HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of them become committers, and has hundreds of known users around the world. We have set up the PMC Team and Committer Team, contributions are welcomed and highly valued, new contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
+HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of which become committers, and the project has hundreds of known users around the world. We have set up the PMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
 
 #### Community
 
-Baidu has been building a community around users and developers for the last 3 years, now we make use of GitHub as code hosting and community communication. The most of core developers are from Baidu, there are 10+ contributors from non-Baidu companies like 360, Iflytek and Huya. We hope to grow the base of contributors by inviting all those who offer contributions through The Apache Way. 
+Baidu has been building a community around users and developers for the last 3 years, and now we make use of GitHub as code hosting and community communication. The most of core developers are from Baidu. Besides, there are 10+ contributors from non-Baidu companies like 360, Iflytek and Huya. We hope to grow the base of contributors by inviting all those who offer contributions through The Apache Way. 
 
 #### Core Developers
 
@@ -68,7 +68,7 @@ The current list of developers from several different companies plus many indepe
 
 #### Reliance on Salaried Developers:
 
-Most of the developers are paid by their employer to contribute to this project, but given some volunteer developers and the committers' sense of ownership for the code, the project would continue without issue if no salaried developers contributed to the project.
+Most of the developers are paid by their employer to contribute to this project, but given some volunteer developers and the committers' sense of ownership for the code, the project would continue without issue even if no salaried developers contributed to the project.
 
 #### Relationships with Other Apache Products:
 
@@ -286,7 +286,7 @@ None
 
 #### Issue Tracking:
 
-The community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues).
+The community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues) (but will moved to github.com/apache/).
 
 #### Other Resources:
 
@@ -318,7 +318,7 @@ The community would like to continue using [GitHub Issues](https://github.com/hu
 
 - 潘娟
 - 代立冬
-- 黄向东
+- 黄向东，Xiangdong Huang (hxd at apache)
 - 李钰
 
 #### Sponsoring Entity:
