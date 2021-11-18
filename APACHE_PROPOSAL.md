@@ -26,7 +26,7 @@ None
 
 #### Meritocracy
 
-HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of which become committers, and the project has hundreds of known users around the world. We will follow Apache's Meritocracy way to re-organize the community roles. We have set up the PMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team. 
+HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of which become committers, and the project has hundreds of known users around the world. We will follow Apache's Meritocracy way to re-organize the community roles. We have set up the PMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
 
 #### Community
 
@@ -38,7 +38,7 @@ The core developers are already experienced open source developers, they have op
 
 #### Alignment
 
-HugeGraph is compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html), a powerful graph traversal language. The TinkerPop ecosystem based on Java is relatively mature in terms of graph databases, we use Java language which is develop efficient and stable to develop upper-level components like graph engine, graph computing, graph api and graph tools; and we manage storage through JNI which is able to freely manage memory and execute efficiently.
+HugeGraph implements the API of [Apache TinkerPop](https://tinkerpop.apache.org/), which defines the [Gremlin](https://tinkerpop.apache.org/gremlin.html). Gremlin is a powerful graph traversal language, and various complicated graph queries can be accomplished through Gremlin. The TinkerPop ecosystem based on Java is relatively mature in terms of graph databases, we use Java language which is develop efficient and stable to develop upper-level components like graph engine, graph computing, graph api and graph tools; and we manage storage through JNI which is able to freely manage memory and execute efficiently.
 
 ### Known Risks
 
