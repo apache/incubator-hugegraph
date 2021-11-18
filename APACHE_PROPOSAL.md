@@ -6,7 +6,7 @@ HugeGraph is a graph database with high performance and scalability.
 
 ## Proposal
 
-HugeGraph is to provide a large-scale graph database, in the scenario of 100+ billion data which achieves availability and balance between performance and cost, and has complete HTAP capabilities in the internal system.
+HugeGraph is to provide a large-scale graph database, in the scenario of 100+ billion data (vertexes and edges) which achieves availability and balance between performance and cost, and has complete HTAP capabilities in the internal system.
 
 We believe that bringing HugeGraph into Apache Software Foundation could advance the development of a stronger and more diverse open source community.
 
@@ -26,7 +26,7 @@ None
 
 #### Meritocracy
 
-HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of which become committers, and the project has hundreds of known users around the world. We have set up the PMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
+HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies, some of which become committers, and the project has hundreds of known users around the world. We will follow Apache's Meritocracy way to re-organize the community roles. We have set up the PMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existed PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team. 
 
 #### Community
 
