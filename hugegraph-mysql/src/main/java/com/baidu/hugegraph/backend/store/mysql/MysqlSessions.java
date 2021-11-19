@@ -469,7 +469,7 @@ public class MysqlSessions extends BackendSessionPool {
             }
             try {
                 this.doClose();
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOG.warn("Failed to reset connection", e);
             }
         }
