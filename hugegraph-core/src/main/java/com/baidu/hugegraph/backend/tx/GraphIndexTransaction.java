@@ -886,7 +886,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private Set<String> segmentWords(String text) {
-        return this.textAnalyzer.segment(text);
+        Set<String> words = this.textAnalyzer.segment(text);
+        for (char ch = INDEX_SYM_ENDING; ch <= INDEX_SYM_MAX; ch++) {
+            words.remove(ch);
+        }
+        return words;
     }
 
     private boolean needIndexForLabel() {
