@@ -877,11 +877,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return CollectionUtil.hasIntersection(propValues, words);
     }
 
-    private boolean enhanceMatchSearchIndexWords(String propValue,
-                                                 String fieldValue) {
-        return propValue.contains(fieldValue);
-    }
-
     private Set<String> segmentWords(String text) {
         /*
          * Support 3 kinds of query:
@@ -896,7 +891,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
             String[] texts = StringUtils.split(text, WORD_DELIMITER);
             return ImmutableSet.copyOf(texts);
         }
+
         Set<String> segments = this.textAnalyzer.segment(text);
+
+        /*
+         * Add original text to segments at the insertion stage,
+         * in order to can match fully words at the query stage.
+         */
         segments.add(text);
 
         // Ignore unicode \u0000 to \u0003
