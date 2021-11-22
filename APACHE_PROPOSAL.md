@@ -304,17 +304,17 @@ The community would like to continue using [GitHub Issues](https://github.com/hu
 
 ### Initial Committers
 
-- 李章梅, Jermy Li (javaloveme at gmail dot com)
-- 李凝瑞, linary (liningrui at vip dot qq dot com)
-- 张义, zhoney (zhangyi89817 at 126 dot com)
-- 金子威, imbajin (0x00 at imbajin.com)
-- 章炎, zyxxoo (1318247699 at qq dot com)
-- 刘楠科, liunanke (liunanke at baidu dot com)
-- 赵聪, coderzc (zc1217zc at 126 dot com)
-- 郭守敬, ShouJing (1075185785 at qq dot com)
-- 李小彪, lxb1111 (13703287619 at 163 dot com)
-- 黄海平, hhpcn (954872405 at qq dot com)
-- 江小叶, kidleaf-jiang (kidleaf at 163 dot com)
+- Jermy Li (javaloveme at gmail dot com)
+- Linary (liningrui at vip dot qq dot com)
+- Zhoney (zhangyi89817 at 126 dot com)
+- Imbajin (0x00 at imbajin.com)
+- Vaughn (1318247699 at qq dot com)
+- LiuNanke (liunanke at baidu dot com)
+- Coderzc (zc1217zc at 126 dot com)
+- ShouJing (1075185785 at qq dot com)
+- Xiaobiao Li (13703287619 at 163 dot com)
+- Haiping Huang (954872405 at qq dot com)
+- Kidleaf Jiang (kidleaf at 163 dot com)
 
 ### Sponsors
 
