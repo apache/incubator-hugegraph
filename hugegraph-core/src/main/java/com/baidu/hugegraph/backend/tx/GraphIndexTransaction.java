@@ -98,6 +98,18 @@ import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
+    public static final char INDEX_SYM_ENDING = '\u0000';
+    public static final char INDEX_SYM_MAX = '\u0003';
+    public static final Set<String> IGNORE_SYM_SET;
+
+    static {
+        List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_ENDING);
+        for (char ch = INDEX_SYM_ENDING; ch <= INDEX_SYM_MAX; ch++) {
+            list.add(String.valueOf(ch));
+        }
+        IGNORE_SYM_SET = ImmutableSet.copyOf(list);
+    }
+
     private final Analyzer textAnalyzer;
     private final int indexIntersectThresh;
 
@@ -875,10 +887,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private Set<String> segmentWords(String text) {
         Set<String> words = this.textAnalyzer.segment(text);
-        for (char ch = ConditionQuery.INDEX_SYM_MIN;
-             ch <= ConditionQuery.INDEX_SYM_MAX; ch++) {
-            words.remove(String.valueOf(ch));
-        }
+
+        // Ignore unicode \u0000 to \u0003
+        words.removeAll(IGNORE_SYM_SET);
         return words;
     }
 
