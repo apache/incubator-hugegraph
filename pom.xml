@@ -277,6 +277,37 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>1.19</version>
+                    <executions>
+                        <execution>
+                            <id>default-cli</id>
+                            <configuration>
+                                <!-- Accept the pom module -->
+                                <acceptPomPackaging>true</acceptPomPackaging>
+                                <!-- Using the template which is grouped by License file -->
+                                <fileTemplate>/org/codehaus/mojo/license/third-party-file-groupByMultiLicense.ftl</fileTemplate>
+                                <licenseMerges>
+                                    <licenseMerge>The Apache Software License, Version 2.0|The Apache License, Version 2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License, Version 2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache Public License 2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache 2</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache 2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache-2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License 2.0</licenseMerge>
+                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License, version 2.0</licenseMerge>
+                                    <licenseMerge>3-Clause BSD License|BSD 3-clause</licenseMerge>
+                                    <licenseMerge>3-Clause BSD License|BSD 3-Clause</licenseMerge>
+                                    <licenseMerge>Eclipse Public License v1.0|Eclipse Public License 1.0</licenseMerge>
+                                    <licenseMerge>Eclipse Public License v1.0|Eclipse Public License - v 1.0</licenseMerge>
+                                    <licenseMerge>The MIT License|MIT License</licenseMerge>
+                                </licenseMerges>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.1</version>
                     <configuration>
