@@ -296,7 +296,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
                 LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
                 try {
-                    locks.lockWrites(LockUtil.UNIQUE_INDEX_UPDATE, id);
+                    if (element.isVertex()) {
+                        locks.lockWrites(LockUtil.VERTEX_UPDATE, id);
+                    } else {
+                        locks.lockWrites(LockUtil.EDGE_UPDATE, id);
+                    }
                     if (!removed &&
                         this.existUniqueValue(indexLabel, value, id)) {
                         throw new IllegalArgumentException(String.format(

@@ -58,7 +58,8 @@ public final class LockUtil {
     public static final String EDGE_LABEL_ADD_UPDATE = "el_add_update";
     public static final String VERTEX_LABEL_ADD_UPDATE = "vl_add_update";
     public static final String PROPERTY_KEY_ADD_UPDATE = "pk_add_update";
-    public static final String UNIQUE_INDEX_UPDATE = "unique_index_update";
+    public static final String VERTEX_UPDATE = "vertex_update";
+    public static final String EDGE_UPDATE = "edge_update";
     public static final String PROJECT_UPDATE = "project_update";
     public static final String KEY_LOCK = "key_lock";
     public static final String ROW_LOCK = "row_lock";
@@ -82,7 +83,8 @@ public final class LockUtil {
         LockManager.instance().create(join(graph, ROW_LOCK));
         LockManager.instance().create(join(graph, REENTRANT_LOCK));
         LockManager.instance().create(join(graph, PROJECT_UPDATE));
-        LockManager.instance().create(join(graph, UNIQUE_INDEX_UPDATE));
+        LockManager.instance().create(join(graph, VERTEX_UPDATE));
+        LockManager.instance().create(join(graph, EDGE_UPDATE));
     }
 
     public static void destroy(String graph) {
@@ -99,7 +101,8 @@ public final class LockUtil {
         LockManager.instance().destroy(join(graph, ROW_LOCK));
         LockManager.instance().destroy(join(graph, REENTRANT_LOCK));
         LockManager.instance().destroy(join(graph, PROJECT_UPDATE));
-        LockManager.instance().destroy(join(graph, UNIQUE_INDEX_UPDATE));
+        LockManager.instance().destroy(join(graph, VERTEX_UPDATE));
+        LockManager.instance().destroy(join(graph, EDGE_UPDATE));
     }
 
     private static String join(String graph, String group) {

@@ -390,6 +390,10 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     public abstract Object sysprop(HugeKeys key);
 
+    public boolean isVertex() {
+        return this.schemaLabel().type() == HugeType.VERTEX_LABEL;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Element)) {
