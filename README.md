@@ -2,7 +2,8 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Build Status](https://github.com/hugegraph/hugegraph/actions/workflows/ci.yml/badge.svg)](https://github.com/hugegraph/hugegraph/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/hugegraph/hugegraph/branch/master/graph/badge.svg)](https://codecov.io/gh/hugegraph/hugegraph)
+[![Codecov](https://codecov.io/gh/hugegraph/hugegraph/branch/master/graph/badge.svg)](https://codecov.io/gh/hugegraph/hugegraph)
+[![Github Releases Downloads](https://img.shields.io/github/downloads/hugegraph/hugegraph/total.svg)](https://github.com/hugegraph/hugegraph/releases)
 
 HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
 
