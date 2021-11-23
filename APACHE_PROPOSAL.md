@@ -320,14 +320,14 @@ The community would like to continue using [GitHub Issues](https://github.com/hu
 
 #### Champion:
 
-- 姜宁, Willem Ning Jiang (ningjiang at apache dot org)
+- Willem Ning Jiang (ningjiang at apache dot org)
 
 #### Nominated Mentors:
 
-- 潘娟
-- 代立冬
-- 黄向东，Xiangdong Huang (hxd at apache)
-- 李钰
+- Trista Pan (panjuan at apache dot org)
+- Lidong Dai (lidongdai at apache dot org)
+- Xiangdong Huang (hxd at apache dot org)
+- Yu Li (liyu at apache dot org)
 
 #### Sponsoring Entity:
 
