@@ -5647,10 +5647,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         long current = System.currentTimeMillis();
-        louise.addEdge("strike", sean, "id", 0,
-                       "timestamp", current, "place", "park",
-                       "tool", "a\u0000", "reason", "jeer",
-                       "arrested", false);
         louise.addEdge("strike", sean, "id", 1,
                        "timestamp", current, "place", "park",
                        "tool", "b\u0001", "reason", "jeer",
@@ -5666,9 +5662,6 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         List<Edge> edges;
-        edges = graph.traversal().E().has("tool", "a\u0000").toList();
-        Assert.assertEquals(1, edges.size());
-        Assert.assertEquals(0, edges.get(0).value("id"));
 
         edges = graph.traversal().E().has("tool", "b\u0001").toList();
         Assert.assertEquals(1, edges.size());
@@ -5681,6 +5674,31 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().has("tool", "d\u0003").toList();
         Assert.assertEquals(1, edges.size());
         Assert.assertEquals(3, edges.get(0).value("id"));
+
+        String backend = graph.backend();
+        Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
+                                                      "rocksdb", "hbase");
+        if (nonZeroBackends.contains(backend)) {
+            Assert.assertThrows(Exception.class, () -> {
+                louise.addEdge("strike", sean, "id", 4,
+                               "timestamp", current, "place", "park",
+                               "tool", "a\u0000", "reason", "jeer",
+                               "arrested", false);
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("0x00", e.getMessage());
+            });
+        } else {
+            louise.addEdge("strike", sean, "id", 0,
+                           "timestamp", current, "place", "park",
+                           "tool", "a\u0000", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+
+            edges = graph.traversal().E().has("tool", "a\u0000").toList();
+            Assert.assertEquals(1, edges.size());
+            Assert.assertEquals(0, edges.get(0).value("id"));
+        }
     }
 
     @Test

@@ -5993,8 +5993,6 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         initPersonIndex(true);
 
-        graph.addVertex(T.label, "person", "name", "0",
-                        "city", "a\u0000", "age", 0);
         graph.addVertex(T.label, "person", "name", "1",
                         "city", "b\u0001", "age", 1);
         graph.addVertex(T.label, "person", "name", "2",
@@ -6004,9 +6002,6 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         List<Vertex> vertices;
-        vertices = graph.traversal().V().has("city", "a\u0000").toList();
-        Assert.assertEquals(1, vertices.size());
-        Assert.assertEquals("0", vertices.get(0).value("name"));
 
         vertices = graph.traversal().V().has("city", "b\u0001").toList();
         Assert.assertEquals(1, vertices.size());
@@ -6019,6 +6014,27 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V().has("city", "d\u0003").toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals("3", vertices.get(0).value("name"));
+
+        String backend = graph.backend();
+        Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
+                                                      "rocksdb", "hbase");
+        if (nonZeroBackends.contains(backend)) {
+            Assert.assertThrows(Exception.class, () -> {
+                graph.addVertex(T.label, "person", "name", "0",
+                                "city", "a\u0000", "age", 0);
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("0x00", e.getMessage());
+            });
+        } else {
+            graph.addVertex(T.label, "person", "name", "0",
+                            "city", "a\u0000", "age", 0);
+            graph.tx().commit();
+
+            vertices = graph.traversal().V().has("city", "a\u0000").toList();
+            Assert.assertEquals(1, vertices.size());
+            Assert.assertEquals("0", vertices.get(0).value("name"));
+        }
     }
 
     @Test
