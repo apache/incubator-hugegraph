@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
@@ -43,6 +42,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.version.ApiVersion;
@@ -64,8 +64,7 @@ public class RestServer {
         String url = this.conf.get(ServerOptions.REST_SERVER_URL);
         URI uri = UriBuilder.fromUri(url).build();
         String k8sApiEnable = this.conf.get(ServerOptions.K8S_API_ENABLE);
-        if (!StringUtils.isEmpty(k8sApiEnable) &&
-                k8sApiEnable.equals("true")) {
+        if (!StringUtils.isEmpty(k8sApiEnable) && "true".equals(k8sApiEnable)) {
             String namespace = this.conf.get(ServerOptions.K8S_NAMESPACE);
             String kubeConfigPath = this.conf.get(
                    ServerOptions.K8S_KUBE_CONFIG);
@@ -100,7 +99,7 @@ public class RestServer {
     private HttpServer configHttpServer(URI uri, ResourceConfig rc) {
         String protocol = uri.getScheme();
         final HttpServer server;
-        if (protocol != null && protocol.equals("https")) {
+        if ("https".equals(protocol)) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
             String keystoreFile = this.conf.get(
                                   ServerOptions.SSL_KEYSTORE_FILE);

@@ -1,17 +1,18 @@
 package com.baidu.hugegraph.k8s;
 
-import com.baidu.hugegraph.computer.k8s.driver.KubernetesDriver;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
-import com.baidu.hugegraph.util.Log;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.configuration.MapConfiguration;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+
+import com.baidu.hugegraph.computer.k8s.driver.KubernetesDriver;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.OptionSpace;
+import com.baidu.hugegraph.util.Log;
 
 public class K8sDriverProxy {
 
@@ -22,7 +23,7 @@ public class K8sDriverProxy {
     private static boolean K8S_API_ENABLED = false;
 
     private static String NAMESPACE = "";
-    private static String CUBE_CONFIG_PATH = "";
+    private static String KUBE_CONFIG_PATH = "";
     private static String HUGEGRAPH_URL = "";
     private static String ENABLE_INTERNAL_ALGORITHM = "";
     private static String INTERNAL_ALGORITHM_IMAGE_URL = "";
@@ -30,7 +31,7 @@ public class K8sDriverProxy {
     private static String INTERNAL_ALGORITHM = "[]";
 
     protected HugeConfig config;
-    protected KubernetesDriver driver;
+    protected static KubernetesDriver driver;
 
     static {
         OptionSpace.register("computer-driver",
@@ -44,21 +45,26 @@ public class K8sDriverProxy {
                              ".KubeSpecOptions");
     }
 
-    public static void setConfig(String namespace, String cubeConfigPath,
+    public static void setConfig(String namespace, String kubeConfigPath,
                                  String hugegraphUrl,
                                  String enableInternalAlgorithm,
                                  String internalAlgorithmImageUrl,
                                  String internalAlgorithm,
                                  Map<String, String> algorithms)
                                  throws IOException {
-        File kubeConfigFile = new File(USER_DIR + "/" + cubeConfigPath);
+        File kubeConfigFile;
+        if (!kubeConfigPath.startsWith("/")) {
+            kubeConfigFile = new File(USER_DIR + "/" + kubeConfigPath);
+        } else {
+            kubeConfigFile = new File(kubeConfigPath);
+        }
         if (!kubeConfigFile.exists() || StringUtils.isEmpty(hugegraphUrl)) {
             throw new IOException("[K8s API] k8s config fail");
         }
 
         K8S_API_ENABLED = true;
         NAMESPACE = namespace;
-        CUBE_CONFIG_PATH = USER_DIR + "/" + cubeConfigPath;
+        KUBE_CONFIG_PATH = kubeConfigFile.getAbsolutePath();
         HUGEGRAPH_URL = hugegraphUrl;
         ENABLE_INTERNAL_ALGORITHM = enableInternalAlgorithm;
         INTERNAL_ALGORITHM_IMAGE_URL = internalAlgorithmImageUrl;
@@ -74,6 +80,10 @@ public class K8sDriverProxy {
         return ALGORITHM_PARAMS.containsKey(algorithm);
     }
 
+    public static String getAlgorithmClass(String algorithm) {
+        return ALGORITHM_PARAMS.get(algorithm);
+    }
+
     public K8sDriverProxy(String partitionsCount, String algorithm) {
         try {
             if (!K8sDriverProxy.K8S_API_ENABLED) {
@@ -82,7 +92,7 @@ public class K8sDriverProxy {
             }
             String paramsClass = ALGORITHM_PARAMS.get(algorithm);
             this.initConfig(partitionsCount, INTERNAL_ALGORITHM, paramsClass);
-            this.initKubernetesDriver();
+            this.initK8sDriver();
         } catch (Throwable throwable) {
             LOG.error("Failed to start K8sDriverProxy ", throwable);
         }
@@ -95,7 +105,7 @@ public class K8sDriverProxy {
 
         // from configuration
         options.put("k8s.namespace", K8sDriverProxy.NAMESPACE);
-        options.put("k8s.kube_config", K8sDriverProxy.CUBE_CONFIG_PATH);
+        options.put("k8s.kube_config", K8sDriverProxy.KUBE_CONFIG_PATH);
         options.put("hugegraph.url", K8sDriverProxy.HUGEGRAPH_URL);
         options.put("k8s.enable_internal_algorithm",
                     K8sDriverProxy.ENABLE_INTERNAL_ALGORITHM);
@@ -111,15 +121,22 @@ public class K8sDriverProxy {
         this.config = new HugeConfig(mapConfig);
     }
 
-    protected void initKubernetesDriver() {
-        this.driver = new KubernetesDriver(this.config);
+    /**
+     * Reuse K8s driver for task to operate, init only if it was null
+     * TODO: use singleton for it
+     */
+    private void initK8sDriver() {
+        if (driver == null) {
+            driver = new KubernetesDriver(this.config);
+        }
     }
 
-    public KubernetesDriver getKubernetesDriver() {
-        return this.driver;
+    public KubernetesDriver getK8sDriver() {
+        return driver;
     }
 
     public void close() {
-        this.driver.close();
+        // TODO: Comment now & delete this method after ensuring it
+        //driver.close();
     }
 }

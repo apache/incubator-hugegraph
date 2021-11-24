@@ -45,6 +45,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.LimitExceedException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.job.ComputerDisJob;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.type.define.SerialEnum;
@@ -94,7 +95,6 @@ public class HugeTask<V> extends FutureTask<V> {
         E.checkArgumentNotNull(id, "Task id can't be null");
         E.checkArgument(id.number(), "Invalid task id type, it must be number");
 
-        assert callable != null;
         this.callable = callable;
         this.type = null;
         this.name = null;
@@ -222,7 +222,7 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.result;
     }
 
-    private synchronized boolean result(TaskStatus status, String result) {
+    public synchronized boolean result(TaskStatus status, String result) {
         checkPropertySize(result, P.RESULT);
         if (this.status(status)) {
             this.result = result;
@@ -264,7 +264,8 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public boolean computer() {
-        return ComputerJob.COMPUTER.equals(this.type);
+        return ComputerDisJob.COMPUTER_DIS.equals(this.type) ||
+               ComputerJob.COMPUTER.equals(this.type);
     }
 
     @Override
@@ -300,7 +301,7 @@ public class HugeTask<V> extends FutureTask<V> {
         // https://mrhaki.blogspot.com/2016/10/groovy-goodness-interrupted-sleeping.html
         boolean cancelled = super.cancel(mayInterruptIfRunning);
         if (!cancelled) {
-            return cancelled;
+            return false;
         }
 
         try {
@@ -323,9 +324,7 @@ public class HugeTask<V> extends FutureTask<V> {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
-            if (this.result(TaskStatus.FAILED, e.toString())) {
-                return true;
-            }
+            return this.result(TaskStatus.FAILED, e.toString());
         }
         return false;
     }
@@ -417,7 +416,8 @@ public class HugeTask<V> extends FutureTask<V> {
             E.checkState(this.type != null, "Task type can't be null");
             E.checkState(this.name != null, "Task name can't be null");
         }
-        if (!this.completed()) {
+        // Allow computer task change completed status (better to unify later)
+        if (!this.completed() || this.computer()) {
             assert this.status.code() < status.code() ||
                    status == TaskStatus.RESTORING :
                    this.status + " => " + status + " (task " + this.id + ")";
@@ -653,7 +653,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public void syncWait() {
         // This method is just called by tests
-        HugeTask<?> task = null;
+        HugeTask<?> task;
         try {
             task = this.scheduler().waitUntilTaskCompleted(this.id());
         } catch (Throwable e) {

@@ -19,6 +19,19 @@
 
 package com.baidu.hugegraph.core;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeoutException;
+
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.computer.driver.DefaultJobState;
 import com.baidu.hugegraph.computer.driver.JobObserver;
@@ -27,18 +40,6 @@ import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.ExecutorUtil;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeoutException;
 
 public class K8sDriverProxyCoreTest extends BaseCoreTest {
 
@@ -128,13 +129,13 @@ public class K8sDriverProxyCoreTest extends BaseCoreTest {
         Map<String, String> params = new HashMap<>();
         params.put("k8s.worker_instances", "2");
         K8sDriverProxy k8sDriverProxy = new K8sDriverProxy("2", COMPUTER);
-        String jobId = k8sDriverProxy.getKubernetesDriver()
+        String jobId = k8sDriverProxy.getK8sDriver()
                                      .submitJob(COMPUTER, params);
 
         JobObserver jobObserver = Mockito.mock(JobObserver.class);
         CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            k8sDriverProxy.getKubernetesDriver()
-                          .waitJob(jobId, params, jobObserver);
+            k8sDriverProxy.getK8sDriver()
+                          .waitJobAsync(jobId, params, jobObserver);
         }, POOL);
 
         DefaultJobState jobState = new DefaultJobState();
