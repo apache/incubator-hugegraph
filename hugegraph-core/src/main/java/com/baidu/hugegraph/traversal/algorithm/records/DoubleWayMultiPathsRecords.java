@@ -95,6 +95,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         return this.id(this.currentKey);
     }
 
+    @Override
     @Watched
     public PathSet findPath(Id target, Function<Id, Boolean> filter,
                             boolean all, boolean ring) {

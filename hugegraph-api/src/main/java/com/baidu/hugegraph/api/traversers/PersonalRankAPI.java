@@ -54,6 +54,10 @@ public class PersonalRankAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
+    private static final double DEFAULT_DIFF = 0.0001;
+    private static final double DEFAULT_SAMPLE = 0.85;
+    private static final int DEFAULT_DEPTH = 5;
+
     @POST
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -68,16 +72,19 @@ public class PersonalRankAPI extends API {
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
                         "The alpha of rank request must be in range (0, 1], " +
                         "but got '%s'", request.alpha);
+        E.checkArgument(request.maxDiff > 0 && request.maxDiff <= 1.0,
+                        "The max diff of rank request must be in range " +
+                        "(0, 1], but got '%s'", request.maxDiff);
         E.checkArgument(request.maxDegree > 0L || request.maxDegree == NO_LIMIT,
                         "The max degree of rank request must be > 0 " +
                         "or == -1, but got: %s", request.maxDegree);
         E.checkArgument(request.limit > 0L || request.limit == NO_LIMIT,
                         "The limit of rank request must be > 0 or == -1, " +
                         "but got: %s", request.limit);
-        E.checkArgument(request.maxDepth > 0L &&
+        E.checkArgument(request.maxDepth > 1L &&
                         request.maxDepth <= Long.parseLong(DEFAULT_MAX_DEPTH),
                         "The max depth of rank request must be " +
-                        "in range (0, %s], but got '%s'",
+                        "in range (1, %s], but got '%s'",
                         DEFAULT_MAX_DEPTH, request.maxDepth);
 
         LOG.debug("Graph [{}] get personal rank from '{}' with " +
@@ -105,13 +112,15 @@ public class PersonalRankAPI extends API {
         @JsonProperty("label")
         private String label;
         @JsonProperty("alpha")
-        private double alpha;
+        private double alpha = DEFAULT_SAMPLE;
+        @JsonProperty("max_diff")
+        private double maxDiff = DEFAULT_DIFF;
         @JsonProperty("max_degree")
         private long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
         private long limit = Long.parseLong(DEFAULT_LIMIT);
         @JsonProperty("max_depth")
-        private int maxDepth;
+        private int maxDepth = DEFAULT_DEPTH;
         @JsonProperty("with_label")
         private PersonalRankTraverser.WithLabel withLabel =
                 PersonalRankTraverser.WithLabel.BOTH_LABEL;
@@ -121,11 +130,11 @@ public class PersonalRankAPI extends API {
         @Override
         public String toString() {
             return String.format("RankRequest{source=%s,label=%s,alpha=%s," +
-                                 "maxDegree=%s,limit=%s,maxDepth=%s," +
-                                 "withLabel=%s,sorted=%s}",
+                                 "maxDiff=%s,maxDegree=%s,limit=%s," +
+                                 "maxDepth=%s,withLabel=%s,sorted=%s}",
                                  this.source, this.label, this.alpha,
-                                 this.maxDegree, this.limit, this.maxDepth,
-                                 this.withLabel, this.sorted);
+                                 this.maxDiff, this.maxDegree, this.limit,
+                                 this.maxDepth, this.withLabel, this.sorted);
         }
     }
 }

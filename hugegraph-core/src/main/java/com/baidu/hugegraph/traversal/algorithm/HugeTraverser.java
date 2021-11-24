@@ -35,6 +35,7 @@ import javax.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -64,6 +65,7 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -71,6 +73,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 
 public class HugeTraverser {
+
+    public static final Logger LOG = Log.logger(HugeTraverser.class);
 
     private HugeGraph graph;
 
@@ -93,7 +97,7 @@ public class HugeTraverser {
 
     public static final long NO_LIMIT = -1L;
 
-    // for debugMesure
+    // for debugMeasure
     public long edgeIterCounter = 0;
     public long vertexIterCounter = 0;
 
@@ -874,7 +878,7 @@ public class HugeTraverser {
          */
         @Override
         public boolean equals(Object other) {
-            if (other == null || !(other instanceof Path)) {
+            if (!(other instanceof Path)) {
                 return false;
             }
             return this.vertices.equals(((Path) other).vertices);
@@ -887,6 +891,7 @@ public class HugeTraverser {
 
         private Set<Path> paths = newSet();
 
+        @Override
         public boolean add(Path path) {
             return this.paths.add(path);
         }

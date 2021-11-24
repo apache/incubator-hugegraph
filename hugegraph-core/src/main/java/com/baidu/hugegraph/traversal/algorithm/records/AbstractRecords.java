@@ -19,15 +19,20 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordFactory;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 import com.baidu.hugegraph.util.collection.MappingFactory;
 
 public abstract class AbstractRecords implements Records {
+
+    public static final Logger LOG = Log.logger(AbstractRecords.class);
 
     private final ObjectIntMapping<Id> idMapping;
     private final RecordType type;
