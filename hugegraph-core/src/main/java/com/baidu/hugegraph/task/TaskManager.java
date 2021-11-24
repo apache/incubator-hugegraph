@@ -137,6 +137,10 @@ public final class TaskManager {
         }
     }
 
+    public void forceRemoveScheduler(HugeGraphParams params) {
+        this.schedulers.remove(params);
+    }
+
     private void closeTaskTx(HugeGraphParams graph) {
         final boolean selfIsTaskWorker = Thread.currentThread().getName()
                                                .startsWith(TASK_WORKER_PREFIX);

@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
@@ -322,7 +323,13 @@ public final class GraphManager {
 
     private HugeGraph createGraph(HugeConfig config, boolean init) {
         // open succeed will fill graph instance into HugeFactory graphs(map)
-        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
+        HugeGraph graph;
+        try {
+            graph = (HugeGraph) GraphFactory.open(config);
+        } catch (Throwable e) {
+            LOG.error("Exception occur when open graph", e);
+            throw e;
+        }
         if (this.requireAuthentication()) {
             /*
              * The main purpose is to call method
@@ -336,6 +343,13 @@ public final class GraphManager {
                 graph.initBackend();
                 graph.serverStarted(this.serverId, this.serverRole);
             } catch (BackendException e) {
+                try {
+                    graph.close();
+                } catch (Exception e1) {
+                    if (graph instanceof StandardHugeGraph) {
+                        ((StandardHugeGraph) graph).clearSchedulerAndLock();
+                    }
+                }
                 HugeFactory.remove(graph);
                 throw e;
             }
