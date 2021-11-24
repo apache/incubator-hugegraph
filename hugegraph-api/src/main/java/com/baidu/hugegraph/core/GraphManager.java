@@ -219,14 +219,14 @@ public final class GraphManager {
 
     private void listenChanges() {
         this.eventHub.listen(Events.GRAPH_CREATE, event -> {
-            LOG.debug("RestServer accepts event 'graph.create'");
+            LOG.info("RestServer accepts event 'graph.create'");
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
             this.graphs.putIfAbsent(graph.name(), graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
-            LOG.debug("RestServer accepts event 'graph.drop'");
+            LOG.info("RestServer accepts event 'graph.drop'");
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
             HugeGraph graph = (HugeGraph) this.graphs.remove(name);
@@ -341,6 +341,7 @@ public final class GraphManager {
             }
         }
         // Let gremlin server and rest server context add graph
+        LOG.info("Notify create graph {} by GRAPH_CREATE event", graph);
         this.eventHub.notify(Events.GRAPH_CREATE, graph);
         return graph;
     }
@@ -396,6 +397,7 @@ public final class GraphManager {
             }
         }
         // Let gremlin server and rest server context remove graph
+        LOG.info("Notify remove graph {} by GRAPH_DROP event", name);
         this.eventHub.notify(Events.GRAPH_DROP, name);
     }
 

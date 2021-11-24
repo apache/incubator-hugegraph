@@ -327,6 +327,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     }
 
     @Override
+    public void clear() {
+        FileUtils.deleteQuietly(Paths.get(this.dataPath).toFile());
+        FileUtils.deleteQuietly(Paths.get(this.walPath).toFile());
+    }
+
+    @Override
     public String hardLinkSnapshot(String snapshotPath) throws RocksDBException {
         String snapshotLinkPath = this.dataPath + "_temp";
         try (RocksDB rocksdb = openRocksDB(this.config, ImmutableList.of(),

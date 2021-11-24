@@ -230,7 +230,7 @@ public final class Consumers<V> {
         for (int i = 0; i < totalThreads; i++) {
             tasks.add(task);
         }
-        executor.invokeAll(tasks);
+        executor.invokeAll(tasks, 5, TimeUnit.SECONDS);
     }
 
     public static ExecutorService newThreadPool(String prefix, int workers) {

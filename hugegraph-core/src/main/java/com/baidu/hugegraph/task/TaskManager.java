@@ -45,9 +45,11 @@ public final class TaskManager {
     private static final Logger LOG = Log.logger(TaskManager.class);
 
     public static final String TASK_WORKER_PREFIX = "task-worker";
+    public static final String BACKUP_TASK_WORKER_PREFIX =
+                               "backup-" + TASK_WORKER_PREFIX;
     public static final String TASK_WORKER = TASK_WORKER_PREFIX + "-%d";
     public static final String BACKUP_TASK_WORKER =
-                               "backup-" + TASK_WORKER_PREFIX + "-%d";
+                               BACKUP_TASK_WORKER_PREFIX + "-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String SERVER_INFO_DB_WORKER =
                                "server-info-db-worker-%d";
@@ -126,6 +128,10 @@ public final class TaskManager {
             this.closeTaskTx(graph);
         }
 
+        if (!this.backupForLoadTaskExecutor.isTerminated()) {
+            this.closeBackupForLoadTaskTx(graph);
+        }
+
         if (!this.schedulerExecutor.isTerminated()) {
             this.closeSchedulerTx(graph);
         }
@@ -145,6 +151,23 @@ public final class TaskManager {
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
+        }
+    }
+
+    private void closeBackupForLoadTaskTx(HugeGraphParams graph) {
+        final boolean selfIsTaskWorker = Thread.currentThread().getName()
+                                         .startsWith(BACKUP_TASK_WORKER_PREFIX);
+        final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
+        try {
+            if (selfIsTaskWorker) {
+                // Call closeTx directly if myself is task thread(ignore others)
+                graph.closeTx();
+            } else {
+                Consumers.executeOncePerThread(this.backupForLoadTaskExecutor,
+                                               totalThreads, graph::closeTx);
+            }
+        } catch (Exception e) {
+            throw new HugeException("Exception when closing backup task tx", e);
         }
     }
 
@@ -205,6 +228,16 @@ public final class TaskManager {
             this.taskExecutor.shutdown();
             try {
                 terminated = this.taskExecutor.awaitTermination(timeout, unit);
+            } catch (Throwable e) {
+                ex = e;
+            }
+        }
+
+        if (terminated && !this.backupForLoadTaskExecutor.isShutdown()) {
+            this.backupForLoadTaskExecutor.shutdown();
+            try {
+                terminated = this.backupForLoadTaskExecutor
+                                 .awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }

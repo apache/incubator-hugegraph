@@ -198,6 +198,11 @@ public class RocksDBSstSessions extends RocksDBSessions {
         throw new UnsupportedOperationException("forceCloseRocksDB");
     }
 
+    @Override
+    public void clear() {
+        FileUtils.deleteQuietly(Paths.get(this.dataPath).toFile());
+    }
+
     private SstFileWriter table(String table) {
         SstFileWriter sst = this.tables.get(table);
         if (sst == null) {

@@ -62,14 +62,14 @@ public class ContextGremlinServer extends GremlinServer {
 
     private void listenChanges() {
         this.eventHub.listen(Events.GRAPH_CREATE, event -> {
-            LOG.debug("GremlinServer accepts event 'graph.create'");
+            LOG.info("GremlinServer accepts event 'graph.create'");
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
             this.injectGraph(graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
-            LOG.debug("GremlinServer accepts event 'graph.drop'");
+            LOG.info("GremlinServer accepts event 'graph.drop'");
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
             this.removeGraph(name);

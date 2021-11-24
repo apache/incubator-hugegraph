@@ -62,6 +62,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract void forceCloseRocksDB();
 
+    public abstract void clear();
+
     @Override
     public abstract Session session();
 

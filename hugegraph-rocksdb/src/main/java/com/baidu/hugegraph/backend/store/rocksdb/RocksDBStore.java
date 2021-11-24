@@ -581,6 +581,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             // Drop tables with main disk
             this.dropTable(this.sessions,
                            this.tableNames().toArray(new String[0]));
+            if (clearSpace) {
+                this.sessions.clear();
+            }
 
             // Drop tables with optimized disk
             Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
@@ -588,9 +591,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 if (e.getKey().equals(HugeType.OLAP.string())) {
                     for (String olapTable : this.olapTables()) {
                         this.dropTable(e.getValue(), olapTable);
+                        if (clearSpace) {
+                            e.getValue().clear();
+                        }
                     }
                 } else {
                     this.dropTable(e.getValue(), e.getKey());
+                    if (clearSpace) {
+                        e.getValue().clear();
+                    }
                 }
             }
 
