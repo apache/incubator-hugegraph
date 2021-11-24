@@ -6024,7 +6024,11 @@ public class VertexCoreTest extends BaseCoreTest {
                                 "city", "a\u0000", "age", 0);
                 graph.tx().commit();
             }, e -> {
-                Assert.assertContains("0x00", e.getMessage());
+                if (e instanceof BackendException) {
+                    Assert.assertContains("0x00", e.getCause().getMessage());
+                } else {
+                    Assert.assertContains("0x00", e.getMessage());
+                }
             });
         } else {
             graph.addVertex(T.label, "person", "name", "0",

@@ -5686,7 +5686,11 @@ public class EdgeCoreTest extends BaseCoreTest {
                                "arrested", false);
                 graph.tx().commit();
             }, e -> {
-                Assert.assertContains("0x00", e.getMessage());
+                if (e instanceof BackendException) {
+                    Assert.assertContains("0x00", e.getCause().getMessage());
+                } else {
+                    Assert.assertContains("0x00", e.getMessage());
+                }
             });
         } else {
             louise.addEdge("strike", sean, "id", 0,
