@@ -42,7 +42,6 @@ import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.IdRangeQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.GraphIndexTransaction;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -75,7 +74,7 @@ public class TextSerializer extends AbstractSerializer {
 
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
     private static final String EDGE_NAME_ENDING =
-                                GraphIndexTransaction.INDEX_SYM_ENDING + "";
+                                ConditionQuery.INDEX_SYM_ENDING;
 
     private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
 

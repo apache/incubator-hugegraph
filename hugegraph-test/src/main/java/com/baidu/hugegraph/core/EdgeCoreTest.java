@@ -208,7 +208,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         schema.indexLabel("strikeByTimestamp").onE("strike").range()
               .by("timestamp").create();
-        schema.indexLabel("strikeByPlace").onE("strike").secondary()
+        schema.indexLabel("strikeByTool").onE("strike").secondary()
               .by("tool").create();
         schema.indexLabel("strikeByPlaceToolReason").onE("strike").secondary()
               .by("place", "tool", "reason").create();
@@ -5636,7 +5636,55 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddEdgePropertyWithIllegalValueForIndex() {
+    public void testAddEdgePropertyWithSpecialValueForSecondaryIndex() {
+        HugeGraph graph = graph();
+        initStrikeIndex();
+
+        Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
+                                        "city", "Beijing", "age", 21);
+        Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
+                                      "city", "Beijing", "age", 23);
+        graph.tx().commit();
+
+        long current = System.currentTimeMillis();
+        louise.addEdge("strike", sean, "id", 0,
+                       "timestamp", current, "place", "park",
+                       "tool", "a\u0000", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 1,
+                       "timestamp", current, "place", "park",
+                       "tool", "b\u0001", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 2,
+                       "timestamp", current, "place", "park",
+                       "tool", "c\u0002", "reason", "jeer",
+                       "arrested", false);
+        louise.addEdge("strike", sean, "id", 3,
+                       "timestamp", current, "place", "park",
+                       "tool", "d\u0003", "reason", "jeer",
+                       "arrested", false);
+        graph.tx().commit();
+
+        List<Edge> edges;
+        edges = graph.traversal().E().has("tool", "a\u0000").toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(0, edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("tool", "b\u0001").toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(1, edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("tool", "c\u0002").toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(2, edges.get(0).value("id"));
+
+        edges = graph.traversal().E().has("tool", "d\u0003").toList();
+        Assert.assertEquals(1, edges.size());
+        Assert.assertEquals(3, edges.get(0).value("id"));
+    }
+
+    @Test
+    public void testAddEdgePropertyWithIllegalValueForSecondaryIndex() {
         HugeGraph graph = graph();
         initStrikeIndex();
 
@@ -5648,68 +5696,91 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         long current = System.currentTimeMillis();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
+                           "timestamp", current, "place", "park",
+                           "tool", "\u0000", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u0' " +
+                                  "in index property:",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 4,
+                           "timestamp", current, "place", "park",
+                           "tool", "\u0001", "reason", "jeer",
+                           "arrested", false);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
                            "tool", "\u0002", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0002' in index property:",
+            Assert.assertContains("Illegal leading char '\\u2' in index",
                                   e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
-                           "tool", "a\u0000", "reason", "jeer",
+                           "tool", "\u0003", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0000' in index property:",
+            Assert.assertContains("Illegal leading char '\\u3' in index",
                                   e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
-                           "tool", "a\u0001", "reason", "jeer",
+                           "tool", "\u0000a", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0001' in index property:",
+            Assert.assertContains("Illegal leading char '\\u0' in index",
                                   e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
-                           "tool", "a\u0002", "reason", "jeer",
+                           "tool", "\u0001a", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0002' in index property:",
+            Assert.assertContains("Illegal leading char '\\u1' in index",
                                   e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
-                           "tool", "a\u0003", "reason", "jeer",
+                           "tool", "\u0002a", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0003' in index property:",
+            Assert.assertContains("Illegal leading char '\\u2' in index",
                                   e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            louise.addEdge("strike", sean, "id", 1,
+            louise.addEdge("strike", sean, "id", 4,
                            "timestamp", current, "place", "park",
-                           "tool", "\u0002", "reason", "jeer",
+                           "tool", "\u0003a", "reason", "jeer",
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("Illegal char '\\u0002' in index property:",
+            Assert.assertContains("Illegal leading char '\\u3' in index",
                                   e.getMessage());
         });
     }

@@ -1993,7 +1993,8 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "fan", "name", "Baby12",
                           "age", 5, "city", "Shanghai");
 
-        Iterator<Vertex> vertices = graph().traversal().V().has("city", "Shanghai");
+        Iterator<Vertex> vertices = graph().traversal().V()
+                                           .has("city", "Shanghai");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
 
@@ -5988,6 +5989,81 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexPropertyWithSpecialValueForSecondaryIndex() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+
+        graph.addVertex(T.label, "person", "name", "0",
+                        "city", "a\u0000", "age", 0);
+        graph.addVertex(T.label, "person", "name", "1",
+                        "city", "b\u0001", "age", 1);
+        graph.addVertex(T.label, "person", "name", "2",
+                        "city", "c\u0002", "age", 2);
+        graph.addVertex(T.label, "person", "name", "3",
+                        "city", "d\u0003", "age", 3);
+        graph.tx().commit();
+
+        List<Vertex> vertices;
+        vertices = graph.traversal().V().has("city", "a\u0000").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("0", vertices.get(0).value("name"));
+
+        vertices = graph.traversal().V().has("city", "b\u0001").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("1", vertices.get(0).value("name"));
+
+        vertices = graph.traversal().V().has("city", "c\u0002").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("2", vertices.get(0).value("name"));
+
+        vertices = graph.traversal().V().has("city", "d\u0003").toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals("3", vertices.get(0).value("name"));
+    }
+
+    @Test
+    public void testAddVertexPropertyWithIllegalValueForSecondaryIndex() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name", "Baby",
+                            "city", "\u0000", "age", 3);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name", "Baby",
+                            "city", "\u0001", "age", 3);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name", "Baby",
+                            "city", "\u0002", "age", 3);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name", "Baby",
+                            "city", "\u0003", "age", 3);
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
+    }
+
+    @Test
     public void testAddVertexMultiTimesWithMergedProperties() {
         Assume.assumeTrue("Not support merge vertex property",
                           storeFeatures().supportsMergeVertexProperty());
@@ -6099,21 +6175,6 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Baby", "lived", "Hongkong");
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("name").remove();
-        });
-    }
-
-    @Test
-    public void testAddVertexPropertyWithIllegalValueForIndex() {
-        HugeGraph graph = graph();
-        initPersonIndex(true);
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            graph.addVertex(T.label, "person", "name", "Baby",
-                            "city", "\u0000", "age", 3);
-            graph.tx().commit();
-        }, e -> {
-            Assert.assertContains("Illegal char '\\u0000' in index property:",
-                                  e.getMessage());
         });
     }
 

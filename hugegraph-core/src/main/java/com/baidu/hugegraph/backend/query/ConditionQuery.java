@@ -52,6 +52,15 @@ import com.google.common.collect.Sets;
 
 public class ConditionQuery extends IdQuery {
 
+    public static final char INDEX_SYM_MIN = '\u0000';
+    public static final String INDEX_SYM_ENDING = "\u0000";
+    public static final String INDEX_SYM_NULL = "\u0001";
+    public static final String INDEX_SYM_EMPTY = "\u0002";
+    public static final char INDEX_SYM_MAX = '\u0003';
+
+    public static final String INDEX_VALUE_NULL = new String("<null>");
+    public static final String INDEX_VALUE_EMPTY = new String("<empty>");
+
     private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
 
     // Conditions will be concated with `and` by default
@@ -579,34 +588,54 @@ public class ConditionQuery extends IdQuery {
     }
 
     public static String concatValues(List<?> values) {
+        assert !values.isEmpty();
         List<Object> newValues = new ArrayList<>(values.size());
         for (Object v : values) {
-            newValues.add(convertNumberIfNeeded(v));
+            newValues.add(concatValues(v));
         }
         return SplicingIdGenerator.concatValues(newValues);
     }
 
     public static String concatValues(Object value) {
-        if (value instanceof List) {
+        if (value instanceof String) {
+            return escapeSpecialValueIfNeeded((String) value);
+        } if (value instanceof List) {
             return concatValues((List<?>) value);
-        }
-
-        if (needConvertNumber(value)) {
+        } else if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
+        } else if (value == INDEX_VALUE_NULL) {
+            return INDEX_SYM_NULL;
+        } else {
+            return escapeSpecialValueIfNeeded(value.toString());
         }
-        return value.toString();
-    }
-
-    private static Object convertNumberIfNeeded(Object value) {
-        if (needConvertNumber(value)) {
-            return LongEncoding.encodeNumber(value);
-        }
-        return value;
     }
 
     private static boolean needConvertNumber(Object value) {
         // Numeric or date values should be converted to number from string
         return NumericUtil.isNumber(value) || value instanceof Date;
+    }
+
+    private static String escapeSpecialValueIfNeeded(String value) {
+        if (value.isEmpty()) {
+            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
+            value = INDEX_SYM_EMPTY;
+        } else if (value == INDEX_VALUE_EMPTY) {
+            value = "";
+        } else {
+            char ch = value.charAt(0);
+            if (ch <= INDEX_SYM_MAX) {
+                /*
+                 * Special symbols can't be used due to impossible to parse,
+                 * and treat it as illegal value for the origin text property.
+                 * TODO: escape special symbols
+                 */
+                E.checkArgument(false,
+                                "Illegal leading char '\\u%s' " +
+                                "in index property: '%s'",
+                                (int) ch, value);
+            }
+        }
+        return value;
     }
 
     public enum OptimizedType {

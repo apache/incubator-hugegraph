@@ -34,7 +34,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -98,11 +97,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
-
-    public static final char INDEX_SYM_ENDING = '\u0000';
-    public static final String INDEX_SYM_NULL = "\u0001";
-    public static final String INDEX_SYM_EMPTY = "\u0002";
-    public static final char INDEX_SYM_MAX = '\u0003';
 
     private final Analyzer textAnalyzer;
     private final int indexIntersectThresh;
@@ -217,11 +211,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 if (firstNullField == fieldsNum) {
                     firstNullField = allPropValues.size();
                 }
-                allPropValues.add(INDEX_SYM_NULL);
+                allPropValues.add(ConditionQuery.INDEX_VALUE_NULL);
             } else {
-                E.checkArgument(!INDEX_SYM_NULL.equals(property.value()),
-                                "Illegal value of index property: '%s'",
-                                INDEX_SYM_NULL);
                 allPropValues.add(property.value());
             }
         }
@@ -231,7 +222,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return;
         }
         // Not build index for record with nullable field (except unique index)
-        List<Object> propValues = allPropValues.subList(0, firstNullField);
+        List<Object> nnPropValues = allPropValues.subList(0, firstNullField);
 
         // Expired time
         long expiredTime = element.expiredTime();
@@ -242,16 +233,16 @@ public class GraphIndexTransaction extends AbstractTransaction {
             case RANGE_FLOAT:
             case RANGE_LONG:
             case RANGE_DOUBLE:
-                E.checkState(propValues.size() == 1,
+                E.checkState(nnPropValues.size() == 1,
                              "Expect only one property in range index");
-                Object value = NumericUtil.convertToNumber(propValues.get(0));
+                Object value = NumericUtil.convertToNumber(nnPropValues.get(0));
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
                 break;
             case SEARCH:
-                E.checkState(propValues.size() == 1,
+                E.checkState(nnPropValues.size() == 1,
                              "Expect only one property in search index");
-                value = propValues.get(0);
+                value = nnPropValues.get(0);
                 Set<String> words =
                             this.segmentWords(propertyValueToString(value));
                 for (String word : words) {
@@ -261,31 +252,28 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             case SECONDARY:
                 // Secondary index maybe include multi prefix index
-                if (isCollectionIndex(propValues)) {
+                if (isCollectionIndex(nnPropValues)) {
                     /*
                      * Property value is a collection
                      * we should create index for each item
                      */
-                    for (Object propValue : (Collection<?>) propValues.get(0)) {
+                    for (Object propValue : (Collection<?>) nnPropValues.get(0)) {
                         value = ConditionQuery.concatValues(propValue);
-                        value = escapeIndexValueIfNeeded((String) value);
                         this.updateIndex(indexLabel, value, element.id(),
                                          expiredTime, removed);
                     }
                 } else {
-                    for (int i = 0, n = propValues.size(); i < n; i++) {
+                    for (int i = 0, n = nnPropValues.size(); i < n; i++) {
                         List<Object> prefixValues =
-                                     propValues.subList(0, i + 1);
+                                     nnPropValues.subList(0, i + 1);
                         value = ConditionQuery.concatValues(prefixValues);
-                        value = escapeIndexValueIfNeeded((String) value);
                         this.updateIndex(indexLabel, value, element.id(),
                                          expiredTime, removed);
                     }
                 }
                 break;
             case SHARD:
-                value = ConditionQuery.concatValues(propValues);
-                value = escapeIndexValueIfNeeded((String) value);
+                value = ConditionQuery.concatValues(nnPropValues);
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
                 break;
@@ -887,8 +875,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private Set<String> segmentWords(String text) {
         Set<String> words = this.textAnalyzer.segment(text);
-        for (char ch = INDEX_SYM_ENDING; ch <= INDEX_SYM_MAX; ch++) {
-            words.remove(ch);
+        for (char ch = ConditionQuery.INDEX_SYM_MIN;
+             ch <= ConditionQuery.INDEX_SYM_MAX; ch++) {
+            words.remove(String.valueOf(ch));
         }
         return words;
     }
@@ -1210,20 +1199,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              indexType, indexFields);
                 Object fieldValue = query.userpropValue(indexFields.get(0));
                 assert fieldValue instanceof String;
-                fieldValue = escapeIndexValueIfNeeded((String) fieldValue);
+                // Will escape special char inside concatValues()
+                fieldValue = ConditionQuery.concatValues(fieldValue);
 
-                // Query search index from SECONDARY_INDEX table
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, fieldValue);
                 break;
             case SECONDARY:
                 List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
+                // Will escape special char inside userpropValuesString()
                 String joinedValues = query.userpropValuesString(joinedKeys);
-                joinedValues = escapeIndexValueIfNeeded(joinedValues);
 
                 indexQuery = new ConditionQuery(indexType.type(), query);
-                indexQuery.olap(indexLabel.olap());
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
                 indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
                 break;
@@ -1239,7 +1227,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Replace the query key with PROPERTY_VALUES, set number value
                 indexQuery = new ConditionQuery(indexType.type(), query);
                 indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-                indexQuery.olap(indexLabel.olap());
                 for (Condition condition : query.userpropConditions()) {
                     assert condition instanceof Condition.Relation;
                     Condition.Relation r = (Condition.Relation) condition;
@@ -1274,6 +1261,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         indexQuery.page(query.page());
         indexQuery.limit(query.total());
         indexQuery.capacity(query.capacity());
+        indexQuery.olap(indexLabel.olap());
 
         return indexQuery;
     }
@@ -1350,22 +1338,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
         String joinedValues;
         // 2.1 All fields have equal-conditions
         if (prefixes.size() == fields.size()) {
-            // Prefix numeric values should be converted to sortable string
+            // Prefix numeric values should be converted to sort-able string
             joinedValues = ConditionQuery.concatValues(prefixes);
             conditions.add(Condition.eq(key, joinedValues));
             return conditions;
         }
         // 2.2 Prefix fields have equal-conditions
         /*
-         * Append "" to 'values' to ensure FIELD_VALUES suffix
+         * Append EMPTY to 'values' to ensure FIELD_VALUES suffix
          * with IdGenerator.NAME_SPLITOR
          */
-        prefixes.add(Strings.EMPTY);
+        prefixes.add(ConditionQuery.INDEX_VALUE_EMPTY);
         joinedValues = ConditionQuery.concatValues(prefixes);
         Condition min = Condition.gte(key, joinedValues);
         conditions.add(min);
 
-        // Increase one on prefix to get next
+        // Increase 1 on prefix to get the next prefix
         Condition max = Condition.lt(key, increaseString(joinedValues));
         conditions.add(max);
         return conditions;
@@ -1375,6 +1363,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                       List<Object> prefixes,
                                                       Object number,
                                                       RelationType type) {
+        List<Object> values = new ArrayList<>(prefixes);
         String num = LongEncoding.encodeNumber(number);
         if (type == RelationType.LTE) {
             type = RelationType.LT;
@@ -1383,8 +1372,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             type = RelationType.GTE;
             num = increaseString(num);
         }
-        List<Object> values = new ArrayList<>(prefixes);
         values.add(num);
+        // Will escape special char inside concatValues()
         String value = ConditionQuery.concatValues(values);
         return new Condition.SyspropRelation(key, type, value);
     }
@@ -1392,10 +1381,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static String increaseString(String value) {
         int length = value.length();
         CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
-        char last = cbuf.charAt(length - 1);
+        int lastIndex = length - 1;
+        char last = cbuf.charAt(lastIndex);
         E.checkArgument(last == '!' || LongEncoding.validB64Char(last),
-                        "Invalid character '%s' for String index", last);
-        cbuf.put(length - 1,  (char) (last + 1));
+                        "Illegal ending char '\\u%s' for String Index",
+                        (int) last);
+        cbuf.put(lastIndex, (char) (last + 1));
         return cbuf.toString();
     }
 
@@ -1471,25 +1462,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
          */
         return value instanceof Collection ?
                StringUtils.join(((Iterable<?>) value), " ") : value.toString();
-    }
-
-    private static String escapeIndexValueIfNeeded(String value) {
-        for (int i = 0; i < value.length(); i++) {
-            char ch = value.charAt(i);
-            if (ch <= INDEX_SYM_MAX) {
-                /*
-                 * Escape symbols can't be used due to impossible to parse,
-                 * and treat it as illegal value for the origin text property
-                 */
-                E.checkArgument(false, "Illegal char '\\u000%s' " +
-                                "in index property: '%s'", (int) ch, value);
-            }
-        }
-        if (value.isEmpty()) {
-            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
-            value = INDEX_SYM_EMPTY;
-        }
-        return value;
     }
 
     private static NoIndexException noIndexException(HugeGraph graph,
