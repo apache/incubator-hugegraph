@@ -12,7 +12,7 @@ We have reason to believe that the development of open source community will be 
 
 ### Background
 
-HugeGraph graph database was founded at Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks. Relational databases are usually at a disadvantage in dealing with relational analysis, due to slow join performance, especially in the case of a large-scale graph with multiple dimensions and deep association relationships. Graph databases are good at dealing with relational analysis. 
+HugeGraph graph database was founded at Baidu, the dominant search engine company in China, used to solve the large-scale graph analysis requirements of anti-fraud and protection from black market attacks. Relational databases are usually at a disadvantage in dealing with relational analysis, due to slow join performance, especially in the case of a large-scale graph with multiple dimensions and deep association relationships. Graph databases are good at dealing with relational analysis.
 
 ### Rationale
 
@@ -52,7 +52,7 @@ HugeGraph implements the API of [Apache TinkerPop](https://tinkerpop.apache.org/
 
 #### Project Name
 
-We have checked that the name is [suitable](https://github.com/hugegraph/hugegraph/issues/1646) and the project has legal permission to continuing using its current name. There is no one else found using this name through Google search.
+We have checked that the name is [suitable](https://github.com/hugegraph/hugegraph/issues/1646) and the project has legal permission to continue using its current name. There is no one else found using this name through Google search.
 
 #### Relationship with Titan/Janus Graph
 
@@ -72,7 +72,7 @@ Expect to enter incubation in 4 months and graduate in about 2 years.
 
 #### Homogenous Developers:
 
-The current list of developers from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source project, e.g. OpenStack.
+The current list of developers from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source projects, e.g. OpenStack.
 
 #### Reliance on Salaried Developers:
 
@@ -92,10 +92,10 @@ HugeGraph documentation is provided on https://hugegraph.github.io/hugegraph-doc
 
 ### Initial Source
 
-This project consists of 2 core sub-projects and 8 complementary sub-projects, all of them are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018, the codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
+This project consists of 2 core sub-projects and 8 complementary sub-projects, all of which are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018, the codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
 
 1. The graph database repository `hugegraph`, core sub-project, including graph server, graph engine and graph storage: https://github.com/hugegraph/hugegraph
-2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithm s: https://github.com/hugegraph/hugegraph-computer
+2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithms: https://github.com/hugegraph/hugegraph-computer
 3. `hugegraph-common`: https://github.com/hugegraph/hugegraph-common
 4. `hugegraph-client`: https://github.com/hugegraph/hugegraph-client
 5. `hugegraph-doc`: https://github.com/hugegraph/hugegraph-doc
