@@ -1338,7 +1338,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         String joinedValues;
         // 2.1 All fields have equal-conditions
         if (prefixes.size() == fields.size()) {
-            // Prefix numeric values should be converted to sort-able string
+            // Prefix numeric values should be converted to sortable string
             joinedValues = ConditionQuery.concatValues(prefixes);
             conditions.add(Condition.eq(key, joinedValues));
             return conditions;
