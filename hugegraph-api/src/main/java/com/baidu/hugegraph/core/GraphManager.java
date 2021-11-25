@@ -308,6 +308,10 @@ public final class GraphManager {
                         "The graph name '%s' has existed", name);
 
         PropertiesConfiguration propConfig = this.buildConfig(configText);
+        String storeName = propConfig.getString(CoreOptions.STORE.name());
+        E.checkArgument(name.equals(storeName),
+                        "The store name '%s' not match url name '%s'",
+                        storeName, name);
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
         HugeGraph graph = this.createGraph(config, init);

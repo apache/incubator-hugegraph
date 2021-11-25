@@ -66,6 +66,14 @@ public class ServerOptions extends OptionHolder {
                     "master"
             );
 
+    public static final ConfigOption<Integer> SERVER_EVENT_HUB_THREADS =
+            new ConfigOption<>(
+                    "server.event_hub_threads",
+                    "The event hub threads of server.",
+                    rangeInt(1, 2 * CoreOptions.CPUS),
+                    1
+            );
+
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
