@@ -103,5 +103,5 @@ public interface Serializer {
     public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
                                      Iterator<Vertex> vertices,
-                                     Iterator<Edge> edges);
+                                     Iterator<Edge> edges, List<Integer> sizes);
 }

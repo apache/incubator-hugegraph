@@ -1015,33 +1015,39 @@ public class HugeTraverser {
         }
 
         protected boolean fetch() {
-            if (this.cache.size() == this.cachePointer) {
-                this.cache.clear();
-                this.cachePointer = 0;
-                // fill cache from parent
-                while (this.parentIterator.hasNext() &&
-                       this.cache.size() < MAX_CACHED_COUNT) {
-                    HugeEdge e = (HugeEdge) parentIterator.next();
-                    traverser.edgeIterCounter++;
-                    Id vid = e.id().otherVertexId();
-                    if (!visited.contains(vid)) {
-                        this.cache.add(e);
-                        if (visited.size() < MAX_VISITED_COUNT) {
-                            // skip over limit visited vertices.
-                            this.visited.add(vid);
-                        }
-                    }
-                }
-                if (this.cache.size() == 0) {
+            while (this.currentIterator == null ||
+                    !this.currentIterator.hasNext()) {
+                if (this.cache.size() == this.cachePointer &&
+                        !this.fillCache() ) {
                     return false;
                 }
+                this.currentEdge = this.cache.get(this.cachePointer);
+                this.cachePointer++;
+                this.currentIterator = traverser.edgesOfVertexAF(
+                        this.currentEdge.id().otherVertexId(),
+                        steps);
             }
-            this.currentEdge = this.cache.get(this.cachePointer);
-            this.cachePointer ++;
-            this.currentIterator = traverser.edgesOfVertexAF(
-                                   this.currentEdge.id().otherVertexId(),
-                                   steps);
             return true;
+        }
+
+        protected boolean fillCache() {
+            this.cache.clear();
+            this.cachePointer = 0;
+            // fill cache from parent
+            while (this.parentIterator.hasNext() &&
+                    this.cache.size() < MAX_CACHED_COUNT) {
+                HugeEdge e = (HugeEdge) parentIterator.next();
+                traverser.edgeIterCounter++;
+                Id vid = e.id().otherVertexId();
+                if (!visited.contains(vid)) {
+                    this.cache.add(e);
+                    if (visited.size() < MAX_VISITED_COUNT) {
+                        // skip over limit visited vertices.
+                        this.visited.add(vid);
+                    }
+                }
+            }
+            return this.cache.size() > 0;
         }
 
         public List<HugeEdge> getPathEdges(List<HugeEdge> edges) {

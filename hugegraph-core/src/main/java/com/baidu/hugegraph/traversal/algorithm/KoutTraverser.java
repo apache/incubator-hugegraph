@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -32,7 +34,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.records.KoutRecords;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 
@@ -124,6 +125,7 @@ public class KoutTraverser extends OltpTraverser {
             while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
+                this.edgeIterCounter ++;
                 Id target = edge.id().otherVertexId();
                 records.addPath(v, target);
                 if(withEdge) {
@@ -180,6 +182,58 @@ public class KoutTraverser extends OltpTraverser {
                 break;
         }
         return records;
+    }
+
+    public ArrayList<Integer> koutCount(Id source, Steps steps, int maxDepth,
+                                        long capacity, long limit) {
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
+        checkPositive(maxDepth, "k-out max_depth");
+        checkCapacity(capacity);
+        checkLimit(limit);
+        long[] depth = new long[1];
+        depth[0] = maxDepth;
+        boolean concurrent = maxDepth >= this.concurrentDepth();
+
+        Set<Id> visited = newIdSet();
+        Set<Id> sources = newIdSet();
+        sources.add(source);
+        Set<Id> cur = newIdSet();
+
+        Consumer<Id> consumer = v -> {
+            if (this.reachLimit(limit, depth[0], cur.size())) {
+                return;
+            }
+
+            Iterator<Edge> edges = edgesOfVertexAF(v, steps);
+            while (!this.reachLimit(limit, depth[0], cur.size()) &&
+                    edges.hasNext()) {
+                HugeEdge edge = (HugeEdge) edges.next();
+                this.edgeIterCounter ++;
+                Id target = edge.id().otherVertexId();
+                if( !visited.contains(target) && !sources.contains(target)) {
+                    cur.add(target);
+                }
+                this.checkCapacity(capacity, visited.size() + sources.size()
+                        + cur.size(), depth[0]);
+            }
+        };
+
+        ArrayList<Integer> results = new ArrayList<>();
+
+        while (depth[0]-- > 0) {
+            Iterator<Id> it = new FilterIterator<>(
+                    sources.iterator(), id -> !visited.contains(id));
+            traverseIds(it, consumer, concurrent);
+            visited.addAll(sources);
+            sources.clear();
+            sources.addAll(cur);
+            results.add(cur.size());
+//            LOG.info(cur.toString());
+            cur.clear();
+        }
+
+        return results;
     }
 
     private void checkCapacity(long capacity, long accessed, long depth) {

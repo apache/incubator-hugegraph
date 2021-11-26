@@ -156,9 +156,16 @@ public class KoutAPI extends TraverserAPI {
         Id sourceId = HugeVertex.getIdValue(request.source);
         Steps steps = steps(g, request.steps);
 
-        KoutRecords results;
+        KoutRecords results = null;
+        List<Integer> countResults = null;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
-            if (HugeTraverser.isDeepFirstAlgorithm(request.algorithm)) {
+            if( request.countOnly ) {
+                // optimize for count, with breadfirst
+                countResults = traverser.koutCount(sourceId, steps,
+                                                        request.maxDepth,
+                                                        request.capacity,
+                                                        request.limit);
+            } else if (HugeTraverser.isDeepFirstAlgorithm(request.algorithm)) {
                 results = traverser.deepFirstKout(sourceId, steps,
                                                   request.maxDepth,
                                                   request.nearest,
@@ -177,7 +184,9 @@ public class KoutAPI extends TraverserAPI {
                                  traverser.edgeIterCounter);
         }
 
-        long size = results.size();
+        long size = request.countOnly ?
+                    countResults.get(request.maxDepth-1) : results.size();
+
         if (request.limit != Query.NO_LIMIT && size > request.limit) {
             size = request.limit;
         }
@@ -185,7 +194,7 @@ public class KoutAPI extends TraverserAPI {
                              ImmutableList.of() : results.ids(request.limit);
 
         HugeTraverser.PathSet paths = new HugeTraverser.PathSet();
-        if (request.withPath) {
+        if (request.withPath && !request.countOnly) {
             paths.addAll(results.paths(request.limit));
         }
         Iterator<Vertex> iterVertex = QueryResults.emptyIterator();
@@ -215,9 +224,17 @@ public class KoutAPI extends TraverserAPI {
                 iterEdge = iter;
             }
         }
+
+        if(request.countOnly) {
+            assert countResults != null;
+            LOG.info(String.format("kout-count for %s: %s",
+                                   request.source,
+                                   countResults.toString()));
+        }
         return manager.serializer(g, measure.getResult())
                       .writeNodesWithPath("kout", neighbors, size,
-                                          paths, iterVertex, iterEdge);
+                                          paths, iterVertex, iterEdge,
+                                          countResults);
     }
 
     private static class Request {

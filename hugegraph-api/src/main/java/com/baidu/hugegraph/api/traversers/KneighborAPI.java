@@ -185,7 +185,7 @@ public class KneighborAPI extends TraverserAPI {
         }
         return manager.serializer(g, measure.getResult())
                       .writeNodesWithPath("kneighbor", neighbors, size,
-                                          paths, iterVertice, iterEdge);
+                                          paths, iterVertice, iterEdge, null);
     }
 
     private static class Request {
