@@ -324,7 +324,7 @@ public class JsonSerializer implements Serializer {
     public String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
                                      Iterator<Vertex> vertices,
-                                     Iterator<Edge> edges) {
+                                     Iterator<Edge> edges, List<Integer> sizes) {
         List<Map<String, Object>> pathList = new ArrayList<>();
         for (HugeTraverser.Path path : paths) {
             pathList.add(path.toMap(false));
@@ -339,6 +339,9 @@ public class JsonSerializer implements Serializer {
 
         if (this.debugMeasure != null) {
             build.put(MEASURE_KEY, this.debugMeasure);
+        }
+        if (sizes != null ) {
+            build.put("sizes", sizes);
         }
         return JsonUtil.toJson(build.build());
     }

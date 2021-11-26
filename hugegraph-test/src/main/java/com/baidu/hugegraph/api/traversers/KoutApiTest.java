@@ -49,12 +49,23 @@ public class KoutApiTest extends BaseApiTest {
                                      " \"max_degree\": 10000, " +
                                      " \"skip_degree\": 100000}, " +
                                      "\"max_depth\": 1, " +
+                                     "\"count_only\": false, " +
                                      "\"nearest\": true, " +
                                      "\"limit\": 10000, " +
                                      "\"with_vertex\": true, " +
                                      "\"with_path\": true, " +
                                      "\"with_edge\": true, " +
                                      "\"algorithm\": \"%s\" }";
+    final static String postParamsForCountOnly = "{ " +
+            "\"source\": \"%s\", " +
+            "\"steps\": { " +
+            " \"direction\": \"%s\", " +
+            " \"max_degree\": 10000, " +
+            " \"skip_degree\": 100000}, " +
+            "\"max_depth\": 2, " +
+            "\"count_only\": true, " +
+            "\"nearest\": true, " +
+            "\"limit\": 10000}";
 
     @Before
     public void prepareSchema() {
@@ -126,6 +137,18 @@ public class KoutApiTest extends BaseApiTest {
         content = assertResponseStatus(200, resp);
         size = assertJsonContains(content, "size");
         Assert.assertEquals(2, size);
+        assertJsonContains(content, "kout");
+        assertJsonContains(content, "paths");
+        assertJsonContains(content, "vertices");
+        assertJsonContains(content, "edges");
+        assertJsonContains(content, "measure");
+
+        // for count-only
+        reqBody = String.format(postParamsForCountOnly, markoId, "BOTH");
+        resp = client().post(path, reqBody);
+        content = assertResponseStatus(200, resp);
+        size = assertJsonContains(content, "size");
+        Assert.assertEquals(1, size);
         assertJsonContains(content, "kout");
         assertJsonContains(content, "paths");
         assertJsonContains(content, "vertices");
