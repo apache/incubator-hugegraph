@@ -98,10 +98,20 @@ public class MysqlOptions extends OptionHolder {
                     "false"
             );
 
+    public static final ConfigOption<Boolean> AUTO_RECONNECT =
+            new ConfigOption<>(
+                    "jdbc.auto_reconnect",
+                    "Whether to auto reconnect mysql server if it meet " +
+                    "some problems",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<String> STORAGE_ENGINE =
             new ConfigOption<>(
                    "jdbc.storage_engine",
-                   "The storage engine of backend store database, like InnoDB/MyISAM/RocksDB for MySQL.",
+                   "The storage engine of backend store database, " +
+                   "like InnoDB/MyISAM/RocksDB for MySQL.",
                     disallowEmpty(),
                     "InnoDB"
             );
