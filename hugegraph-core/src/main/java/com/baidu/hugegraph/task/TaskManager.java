@@ -56,7 +56,7 @@ public final class TaskManager {
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     protected static final int SCHEDULE_PERIOD = 3; // Unit second
-    private static final int THREADS = CoreOptions.CPUS;
+    private static final int THREADS = CoreOptions.CPUS / 2;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
@@ -287,8 +287,7 @@ public final class TaskManager {
     }
 
     protected void notifyNewTask(HugeTask<?> task) {
-        Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
-                                                          .getQueue();
+        Queue<Runnable> queue = this.schedulerExecutor.getQueue();
         if (queue.size() <= 1) {
             /*
              * Notify to schedule tasks initiatively when have new task
@@ -319,6 +318,9 @@ public final class TaskManager {
     private void scheduleOrExecuteJobForGraph(StandardTaskScheduler scheduler) {
         E.checkNotNull(scheduler, "scheduler");
 
+        if (!scheduler.graph().started()) {
+            return;
+        }
         ServerInfoManager serverManager = scheduler.serverManager();
         String graph = scheduler.graphName();
 
