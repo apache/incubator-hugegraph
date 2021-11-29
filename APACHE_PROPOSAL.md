@@ -20,9 +20,9 @@ Generally, most graph databases can only process up to 1-billion-scale graphs, b
 
 ### Initial Goals
 
-Although most of the main development of HugeGraph has been completed, there are still several areas that still need future development. Some areas we want to focus on in the Apache incubation stage include:
+Although most of the main development of HugeGraph has been completed, there are several areas that still need future development. Some areas we want to focus on in the Apache incubation stage include:
 
-- Higher graph computing loading performance: the current architecture (especially  the separation of computing and storage) brings greater flexibility and cost savings, but with some performance overhead, which needs to be improved.
+- Higher graph computing loading performance: the current architecture (especially the separation of computing and storage) brings greater flexibility and cost savings, but with some performance overhead, which needs to be improved.
 - RocksDB-based sharding storage development, based on the affinity architecture of query and storage. Since RocksDB is known for its good performance, but currently HugeGraph only supports the raft-based replication mode. We plan to support scale-out and distributed atomic transactions for RocksDB-based storage.
 - Parallel OLTP query: at present, HugeGraph can perform parallel OLAP graph-computing, but the OLTP query is only supported for parallel execution on a single machine. In certain scenarios, the OLTP query needs to be implemented in parallel on multiple machines.
 - Higher-performance queries: such as supporting faster query optimization, parallel primitive collections, and fine-grained caching strategies.
