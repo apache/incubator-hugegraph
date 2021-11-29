@@ -58,7 +58,7 @@ jobs:
           character set server: 'utf8mb4' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
           collation server: 'utf8mb4_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
           mysql version: '5.7' # Optional, default value is "latest". The version of the MySQL
-          mysql database: 'hugegraph' # Optional, default value is "test". The specified database which will be create
+          #mysql database: 'hugegraph' # Optional, default value is "test". The specified database which will be create
           mysql root password: "******" # Required if "mysql user" is empty, default is empty. The root superuser password
 
       - name: Run test

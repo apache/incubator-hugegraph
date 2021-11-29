@@ -199,6 +199,8 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                 this.sessions.resetConnections();
             } else {
                 this.sessions.dropDatabase();
+                // TODO: test now, del later
+                LOG.info("ClearSpace = true, drop mysql db {}", this.store);
             }
         }
 

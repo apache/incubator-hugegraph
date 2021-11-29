@@ -112,8 +112,8 @@ public abstract class AbstractBackendStoreProvider
             store.init();
         }
         this.notifyAndWaitEvent(Events.STORE_INIT);
-
-        LOG.debug("Graph '{}' store has been initialized", this.graph);
+        // TODO: test now, del later
+        LOG.info("Graph '{}' store has been initialized", this.graph);
     }
 
     @Override
