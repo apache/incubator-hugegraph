@@ -1338,10 +1338,9 @@ public class StandardHugeGraph implements HugeGraph {
                 SysTransaction sysTransaction = null;
                 GraphTransaction graphTransaction = null;
                 try {
-                    StandardHugeGraph hugeGraph = StandardHugeGraph.this;
-                    schemaTransaction = hugeGraph.openSchemaTransaction();
-                    sysTransaction = hugeGraph.openSystemTransaction();
-                    graphTransaction = hugeGraph.openGraphTransaction();
+                    schemaTransaction = openSchemaTransaction();
+                    sysTransaction = openSystemTransaction();
+                    graphTransaction = openGraphTransaction();
                     txs = new Txs(schemaTransaction, sysTransaction,
                                   graphTransaction);
                 } catch (Throwable e) {
