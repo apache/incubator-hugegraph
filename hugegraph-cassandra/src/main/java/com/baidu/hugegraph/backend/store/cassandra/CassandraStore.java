@@ -743,25 +743,28 @@ public abstract class CassandraStore
             return false;
         }
 
+        /**
+         * TODO: can we remove this method since createOlapTable would register?
+         */
         @Override
-        public void createOlapTable(Id pkId) {
-            CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
-            table.init(this.session());
-            registerTableManager(this.olapTableName(pkId), table);
-        }
-
-        @Override
-        public void checkAndRegisterOlapTable(Id pkId) {
-            CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
+        public void checkAndRegisterOlapTable(Id id) {
+            CassandraTable table = new CassandraTables.Olap(this.store(), id);
             if (!this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", table.table());
             }
-            registerTableManager(this.olapTableName(pkId), table);
+            registerTableManager(this.olapTableName(id), table);
         }
 
         @Override
-        public void clearOlapTable(Id pkId) {
-            String name = this.olapTableName(pkId);
+        public void createOlapTable(Id id) {
+            CassandraTable table = new CassandraTables.Olap(this.store(), id);
+            table.init(this.session());
+            registerTableManager(this.olapTableName(id), table);
+        }
+
+        @Override
+        public void clearOlapTable(Id id) {
+            String name = this.olapTableName(id);
             CassandraTable table = this.table(name);
             if (table == null || !this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);
@@ -770,8 +773,8 @@ public abstract class CassandraStore
         }
 
         @Override
-        public void removeOlapTable(Id pkId) {
-            String name = this.olapTableName(pkId);
+        public void removeOlapTable(Id id) {
+            String name = this.olapTableName(id);
             CassandraTable table = this.table(name);
             if (table == null || !this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);

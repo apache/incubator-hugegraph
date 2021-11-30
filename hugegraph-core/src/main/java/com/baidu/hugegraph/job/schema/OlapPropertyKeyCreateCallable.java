@@ -33,8 +33,10 @@ public class OlapPropertyKeyCreateCallable extends SchemaCallable {
     public Object execute() {
         SchemaTransaction schemaTx = this.params().schemaTransaction();
         PropertyKey propertyKey = schemaTx.getPropertyKey(this.schemaId());
+        // Create olap index label schema
         schemaTx.createIndexLabelForOlapPk(propertyKey);
-        schemaTx.createOlapPk(this.schemaId());
+        // Create olap data table
+        this.params().graphTransaction().createOlapPk(propertyKey.id());
         return null;
     }
 }

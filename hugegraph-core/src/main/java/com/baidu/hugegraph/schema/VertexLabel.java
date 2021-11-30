@@ -27,6 +27,7 @@ import java.util.Map;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.IdStrategy;
@@ -36,9 +37,13 @@ public class VertexLabel extends SchemaLabel {
 
     public static final VertexLabel NONE = new VertexLabel(null, NONE_ID, UNDEF);
 
+    // OLAP_VL_ID means all of vertex label ids
+    private static final Id OLAP_VL_ID = IdGenerator.of(SchemaLabel.OLAP_VL_ID);
+    // OLAP_VL_NAME means all of vertex label names
+    private static final String OLAP_VL_NAME = "~olap";
     // OLAP_VL means all of vertex labels
-    public static final VertexLabel OLAP_VL = new VertexLabel(null, OLAP_ID,
-                                                              SchemaElement.OLAP);
+    public static final VertexLabel OLAP_VL = new VertexLabel(null, OLAP_VL_ID,
+                                                              OLAP_VL_NAME);
 
     private IdStrategy idStrategy;
     private List<Id> primaryKeys;
@@ -52,6 +57,10 @@ public class VertexLabel extends SchemaLabel {
     @Override
     public HugeType type() {
         return HugeType.VERTEX_LABEL;
+    }
+
+    public boolean olap() {
+        return VertexLabel.OLAP_VL.id().equals(this.id());
     }
 
     public IdStrategy idStrategy() {

@@ -35,14 +35,14 @@ public class OlapPropertyKeyRemoveCallable
     public Object execute() {
         Id olap = this.schemaId();
 
+        // Remove olap data table
+        this.params().graphTransaction().removeOlapPk(olap);
+
         // Remove corresponding index label and index data
         Id indexLabel = findOlapIndexLabel(this.params(), olap);
         if (indexLabel != null) {
             removeIndexLabel(this.params(), indexLabel);
         }
-
-        // Remove olap table
-        this.params().schemaTransaction().removeOlapPk(olap);
 
         // Remove olap property key
         SchemaTransaction schemaTx = this.params().schemaTransaction();

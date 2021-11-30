@@ -613,7 +613,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public boolean olap() {
-        return VertexLabel.OLAP_VL.equals(this.label);
+        return this.label.olap();
     }
 
     @Override
