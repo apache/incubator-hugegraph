@@ -63,7 +63,7 @@ public class ConditionQuery extends IdQuery {
 
     public static final Set<String> IGNORE_SYM_SET;
     static {
-        List<String> list = new ArrayList<>(INDEX_SYM_MIN - INDEX_SYM_MAX);
+        List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_MIN);
         for (char ch = INDEX_SYM_MIN; ch <= INDEX_SYM_MAX; ch++) {
             list.add(String.valueOf(ch));
         }
