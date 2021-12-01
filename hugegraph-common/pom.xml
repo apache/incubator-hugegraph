@@ -3,11 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.baidu.hugegraph</groupId>
+        <artifactId>hugegraph-commons</artifactId>
+        <version>1.8.10</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
 
-    <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph-common</artifactId>
-    <version>1.8.10</version>
-
     <name>hugegraph-common</name>
     <url>https://github.com/hugegraph/hugegraph-common</url>
     <description>
@@ -16,61 +19,8 @@
         numeric or collection util classes to simplify the development of HugeGraph and its components.
     </description>
 
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>7</version>
-    </parent>
-
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <scm>
-        <url>https://github.com/hugegraph/hugegraph-common</url>
-        <connection>https://github.com/hugegraph/hugegraph-common</connection>
-        <developerConnection>https://github.com/hugegraph/hugegraph-common</developerConnection>
-    </scm>
-
-    <developers>
-        <developer>
-            <name>lizhangmei</name>
-            <email>javaloveme@gmail.com</email>
-        </developer>
-        <developer>
-            <name>zhoney</name>
-            <email>zhangyi89817@126.com</email>
-        </developer>
-        <developer>
-            <name>liningrui</name>
-            <email>liningrui@vip.qq.com</email>
-        </developer>
-    </developers>
-
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <top.level.dir>${project.basedir}/..</top.level.dir>
-        <compiler.source>1.8</compiler.source>
-        <compiler.target>1.8</compiler.target>
-        <log4j2.version>2.13.3</log4j2.version>
-        <commons.configuration.version>1.10</commons.configuration.version>
-        <commons.configuration2.version>2.1.1</commons.configuration2.version>
-        <commons.collections.version>3.2.2</commons.collections.version>
-        <commons.io.version>2.7</commons.io.version>
-        <commons.codec.version>1.11</commons.codec.version>
-        <guava.version>25.1-jre</guava.version>
-        <javax.json.version>1.0</javax.json.version>
-        <jsr305.version>3.0.1</jsr305.version>
-        <javassist.version>3.21.0-GA</javassist.version>
-        <jersey.version>2.22</jersey.version>
-        <jersey.hk2.version>2.27</jersey.hk2.version>
-        <jackson.version>2.12.1</jackson.version>
-        <junit.version>4.12</junit.version>
-        <mockito.version>2.25.1</mockito.version>
+        <!-- Use parent params -->
     </properties>
 
     <dependencies>
@@ -311,7 +261,7 @@
                             <goal>report</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <outputDirectory>${project.parent.build.directory}</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>

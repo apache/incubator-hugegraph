@@ -3,89 +3,81 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.baidu.hugegraph</groupId>
+    <artifactId>hugegraph-commons</artifactId>
+    <version>1.8.10</version>
+    <packaging>pom</packaging>
+
+    <name>hugegraph-commons</name>
+    <url>https://github.com/hugegraph/hugegraph-commons</url>
+    <description>
+        hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their peripheral components.
+        It includes rpc frame, locks, configurations, events, iterators, rest and some
+        numeric or collection util classes to simplify the development of HugeGraph and its components.
+    </description>
+
     <parent>
-        <groupId>com.baidu.hugegraph</groupId>
-        <artifactId>hugegraph-commons</artifactId>
-        <version>1.8.10</version>
-        <relativePath>../pom.xml</relativePath>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
     </parent>
 
-    <artifactId>hugegraph-rpc</artifactId>
-    <version>1.0.1</version>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
-    <name>hugegraph-rpc</name>
-    <description>HugeGraph Database RPC component</description>
+    <scm>
+        <url>https://github.com/hugegraph/hugegraph-commons</url>
+        <connection>https://github.com/hugegraph/hugegraph-commons</connection>
+        <developerConnection>https://github.com/hugegraph/hugegraph-commons</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>lizhangmei</name>
+            <email>javaloveme@gmail.com</email>
+        </developer>
+        <developer>
+            <name>zhoney</name>
+            <email>zhangyi89817@126.com</email>
+        </developer>
+        <developer>
+            <name>liningrui</name>
+            <email>liningrui@vip.qq.com</email>
+        </developer>
+    </developers>
 
     <properties>
-        <!-- Use parent params -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <top.level.dir>${project.basedir}/..</top.level.dir>
+        <compiler.source>1.8</compiler.source>
+        <compiler.target>1.8</compiler.target>
+        <log4j2.version>2.13.3</log4j2.version>
+        <commons.configuration.version>1.10</commons.configuration.version>
+        <commons.configuration2.version>2.1.1</commons.configuration2.version>
+        <commons.collections.version>3.2.2</commons.collections.version>
+        <commons.io.version>2.7</commons.io.version>
+        <commons.codec.version>1.11</commons.codec.version>
+        <guava.version>25.1-jre</guava.version>
+        <javax.json.version>1.0</javax.json.version>
+        <jsr305.version>3.0.1</jsr305.version>
+        <javassist.version>3.21.0-GA</javassist.version>
+        <jersey.version>2.22</jersey.version>
+        <jersey.hk2.version>2.27</jersey.hk2.version>
+        <jackson.version>2.12.1</jackson.version>
+        <junit.version>4.12</junit.version>
+        <mockito.version>2.25.1</mockito.version>
     </properties>
 
-    <dependencies>
-        <!-- hugegraph-common -->
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-common</artifactId>
-            <!-- TODO: use commons latest version ${project.version}?-->
-            <version>1.8.5</version>
-        </dependency>
-
-        <!-- sofa rpc -->
-        <dependency>
-            <groupId>com.lmax</groupId>
-            <artifactId>disruptor</artifactId>
-            <version>3.3.7</version>
-        </dependency>
-        <dependency>
-            <groupId>com.alipay.sofa</groupId>
-            <artifactId>bolt</artifactId>
-            <version>1.6.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.alipay.sofa</groupId>
-            <artifactId>sofa-rpc-all</artifactId>
-            <version>5.7.6</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.resteasy</groupId>
-                    <artifactId>resteasy-client</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jboss.resteasy</groupId>
-                    <artifactId>resteasy-netty4</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jboss.resteasy</groupId>
-                    <artifactId>resteasy-jackson2-provider</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpcore</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpmime</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jboss.logging</groupId>
-                    <artifactId>jboss-logging</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>hugegraph-common</module>
+        <module>hugegraph-rpc</module>
+    </modules>
 
     <build>
         <plugins>
@@ -103,7 +95,6 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
@@ -126,7 +117,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -145,7 +135,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.0.0.0</Implementation-Version>
+                            <Implementation-Version>1.8.9.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -169,7 +159,7 @@
                             <goal>report</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.parent.build.directory}</outputDirectory>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
