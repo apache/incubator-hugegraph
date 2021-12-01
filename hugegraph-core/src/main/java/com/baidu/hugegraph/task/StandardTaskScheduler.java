@@ -119,6 +119,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.graph.graph();
     }
 
+    public boolean started() {
+        return this.graph.started();
+    }
+
     public String graphName() {
         return this.graph.name();
     }

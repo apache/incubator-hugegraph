@@ -318,7 +318,7 @@ public final class TaskManager {
     private void scheduleOrExecuteJobForGraph(StandardTaskScheduler scheduler) {
         E.checkNotNull(scheduler, "scheduler");
 
-        if (!scheduler.graph().started()) {
+        if (!scheduler.started()) {
             return;
         }
         ServerInfoManager serverManager = scheduler.serverManager();
