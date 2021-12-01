@@ -875,10 +875,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private Set<String> segmentWords(String text) {
         Set<String> words = this.textAnalyzer.segment(text);
-        for (char ch = ConditionQuery.INDEX_SYM_MIN;
-             ch <= ConditionQuery.INDEX_SYM_MAX; ch++) {
-            words.remove(String.valueOf(ch));
-        }
+
+        // Ignore unicode \u0000 to \u0003
+        words.removeAll(ConditionQuery.IGNORE_SYM_SET);
         return words;
     }
 

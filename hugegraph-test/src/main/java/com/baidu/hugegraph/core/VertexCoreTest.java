@@ -8663,6 +8663,77 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertNull(page);
     }
 
+    @Test
+    public void testQueryBySearchIndexWithSpecialSymbol() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("personByName").onV("person")
+             .by("name").search().ifNotExist().create();
+
+        Vertex vertex = graph.addVertex(T.label, "person", "name",
+                                        "xyz\u0002abc", "city", "Hongkong",
+                                        "age", 15);
+        Vertex vertex2 = graph.addVertex(T.label, "person", "name",
+                                         "\u0002", "city", "Hongkong",
+                                         "age", 15);
+        Vertex vertex3 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0003abc", "city", "Hongkong",
+                                         "age", 15);
+        Vertex vertex4 = graph.addVertex(T.label, "person", "name",
+                                         "\u0003", "city", "Hongkong",
+                                         "age", 15);
+        Vertex vertex5 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0001abc", "city", "Hongkong",
+                                         "age", 15);
+        Vertex vertex6 = graph.addVertex(T.label, "person", "name",
+                                         "\u0001", "city", "Hongkong",
+                                         "age", 15);
+        graph.tx().commit();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices;
+        vertices = g.V().has("name", Text.contains("abc")).toList();
+        Assert.assertEquals(3, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex));
+        Assert.assertTrue(vertices.contains(vertex3));
+        Assert.assertTrue(vertices.contains(vertex5));
+
+        vertices = g.V().has("name", Text.contains("\u0002")).toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = g.V().has("name", Text.contains("\u0003")).toList();
+        Assert.assertEquals(0, vertices.size());
+
+        vertices = g.V().has("name", Text.contains("\u0001")).toList();
+        Assert.assertEquals(0, vertices.size());
+
+        if (graph.backend().equals("postgresql")) {
+            Assert.assertThrows(BackendException.class, () -> {
+                graph.addVertex(T.label, "person", "name",
+                                "\u0000", "city", "Hongkong",
+                                "age", 15);
+                graph.tx().commit();
+            }, e -> {
+                graph.tx().rollback();
+                Assert.assertContains("invalid byte sequence for encoding " +
+                                      "\"UTF8\": 0x00",
+                                      e.getCause().getMessage());
+            });
+        } else {
+            graph.addVertex(T.label, "person", "name",
+                            "xyz\u0000abc", "city", "Hongkong",
+                            "age", 15);
+
+            graph.addVertex(T.label, "person", "name",
+                            "\u0000", "city", "Hongkong",
+                            "age", 15);
+
+            vertices = g.V().has("name", Text.contains("\u0000")).toList();
+            Assert.assertEquals(0, vertices.size());
+        }
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 

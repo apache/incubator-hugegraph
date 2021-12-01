@@ -61,6 +61,15 @@ public class ConditionQuery extends IdQuery {
     public static final String INDEX_VALUE_NULL = new String("<null>");
     public static final String INDEX_VALUE_EMPTY = new String("<empty>");
 
+    public static final Set<String> IGNORE_SYM_SET;
+    static {
+        List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_MIN);
+        for (char ch = INDEX_SYM_MIN; ch <= INDEX_SYM_MAX; ch++) {
+            list.add(String.valueOf(ch));
+        }
+        IGNORE_SYM_SET = ImmutableSet.copyOf(list);
+    }
+
     private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
 
     // Conditions will be concated with `and` by default
