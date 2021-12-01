@@ -92,18 +92,12 @@ HugeGraph documentation is provided on https://hugegraph.github.io/hugegraph-doc
 
 ### Initial Source
 
-This project consists of 2 core sub-projects and 8 complementary sub-projects, all of which are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
+This project consists of 2 core sub-projects and 2 ecosystem sub-projects, all of which are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
 
 1. The graph database repository `hugegraph`, core sub-project, including graph server, graph engine and graph storage: https://github.com/hugegraph/hugegraph
 2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithms: https://github.com/hugegraph/hugegraph-computer
-3. `hugegraph-common`: https://github.com/hugegraph/hugegraph-common
-4. `hugegraph-client`: https://github.com/hugegraph/hugegraph-client
-5. `hugegraph-doc`: https://github.com/hugegraph/hugegraph-doc
-6. `hugegraph-loader`: https://github.com/hugegraph/hugegraph-loader
-7. `hugegraph-tools`: https://github.com/hugegraph/hugegraph-tools
-8. `hugegraph-rpc`: https://github.com/hugegraph/hugegraph-rpc
-9. `hugegraph-hubble`: https://github.com/hugegraph/hugegraph-hubble
-10. `hugegraph-test`: https://github.com/hugegraph/hugegraph-test
+3. `hugegraph-commons`: https://github.com/hugegraph/hugegraph-commons
+4. `hugegraph-toolchain`: https://github.com/hugegraph/hugegraph-toolchain
 
 ### Source and Intellectual Property Submission Plan
 
@@ -283,14 +277,8 @@ None
 
 1. `hugegraph`: https://github.com/hugegraph/hugegraph.git
 2. `hugegraph-computer`: https://github.com/hugegraph/hugegraph-computer.git
-3. `hugegraph-common`: https://github.com/hugegraph/hugegraph-common.git
-4. `hugegraph-client`: https://github.com/hugegraph/hugegraph-client.git
-5. `hugegraph-doc`: https://github.com/hugegraph/hugegraph-doc.git
-6. `hugegraph-loader`: https://github.com/hugegraph/hugegraph-loader.git
-7. `hugegraph-tools`: https://github.com/hugegraph/hugegraph-tools.git
-8. `hugegraph-rpc`: https://github.com/hugegraph/hugegraph-rpc.git
-9. `hugegraph-hubble`: https://github.com/hugegraph/hugegraph-hubble.git
-10. `hugegraph-test`: https://github.com/hugegraph/hugegraph-test.git
+3. `hugegraph-commons`: https://github.com/hugegraph/hugegraph-commons.git
+4. `hugegraph-toolchain`: https://github.com/hugegraph/hugegraph-toolchain.git
 
 #### Issue Tracking:
 
