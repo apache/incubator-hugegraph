@@ -29,6 +29,7 @@ jobs:
 
       - name: Compile
         run: |
+          mvn install:install-file -Dfile=$TRAVIS_DIR/lib/hugegraph-common-1.8.9.jar -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-common -Dversion=1.8.9 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/lib/common-pom.xml
           mvn package -DskipTests
 
       - name: Upload the artifacts
