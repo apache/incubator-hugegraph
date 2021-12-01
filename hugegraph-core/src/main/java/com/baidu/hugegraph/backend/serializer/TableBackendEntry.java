@@ -195,6 +195,7 @@ public class TableBackendEntry implements BackendEntry {
         this.olap = olap;
     }
 
+    @Override
     public boolean olap() {
         return this.olap;
     }

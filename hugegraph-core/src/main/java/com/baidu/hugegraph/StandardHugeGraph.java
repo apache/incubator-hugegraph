@@ -289,7 +289,7 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void mode(GraphMode mode) {
         if (this.mode.loading() && mode == GraphMode.NONE &&
-            this.storeProvider.type().equalsIgnoreCase("rocksdb")) {
+            "rocksdb".equalsIgnoreCase(this.storeProvider.type())) {
             // Flush WAL to sst file after load data for rocksdb backend
             this.metadata(null, "flush");
         }
@@ -497,11 +497,7 @@ public class StandardHugeGraph implements HugeGraph {
     private AbstractSerializer serializer() {
         String name = this.configuration.get(CoreOptions.SERIALIZER);
         LOG.debug("Loading serializer '{}' for graph '{}'", name, this.name);
-        AbstractSerializer serializer = SerializerFactory.serializer(name);
-        if (serializer == null) {
-            throw new HugeException("Can't load serializer with name " + name);
-        }
-        return serializer;
+        return SerializerFactory.serializer(name);
     }
 
     private Analyzer analyzer() {
@@ -732,6 +728,11 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public boolean existsPropertyKey(String name) {
         return this.schemaTransaction().getPropertyKey(name) != null;
+    }
+
+    @Override
+    public boolean existsOlapTable(PropertyKey pkey) {
+        return this.schemaTransaction().existOlapTable(pkey.id());
     }
 
     @Override

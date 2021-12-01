@@ -33,8 +33,8 @@ public enum WriteType implements SerialEnum {
     // OLAP property key with range index
     OLAP_RANGE(4, "olap_range");
 
-    private byte code = 0;
-    private String name = null;
+    private final byte code;
+    private final String name;
 
     static {
         SerialEnum.register(WriteType.class);

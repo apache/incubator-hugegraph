@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -477,10 +476,7 @@ public abstract class CassandraStore
     protected boolean existsTable(String table) {
          KeyspaceMetadata keyspace = this.cluster().getMetadata()
                                          .getKeyspace(this.keyspace);
-         if (keyspace != null && keyspace.getTable(table) != null) {
-             return true;
-         }
-         return false;
+        return keyspace != null && keyspace.getTable(table) != null;
     }
 
     protected void initKeyspace() {
@@ -536,7 +532,7 @@ public abstract class CassandraStore
 
     private static int convertFactor(String factor) {
         try {
-            return Integer.valueOf(factor);
+            return Integer.parseInt(factor);
         } catch (NumberFormatException e) {
             throw new BackendException(
                       "Expect int factor value for SimpleStrategy, " +
@@ -597,9 +593,17 @@ public abstract class CassandraStore
         assert name != null;
         CassandraTable table = this.tables.get(name);
         if (table == null) {
-            throw new BackendException("Unsupported table: %s", name);
+            throw new BackendException("Can't find table '%s', after " +
+                                       "check it carefully, you could try to " +
+                                       "restart the server manually then " +
+                                       "redo the action", name);
         }
         return table;
+    }
+
+    protected final CassandraTable olapTable(String name) {
+        assert name != null;
+        return this.tables.get(name);
     }
 
     @Override
@@ -748,36 +752,58 @@ public abstract class CassandraStore
             CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
             table.init(this.session());
             registerTableManager(this.olapTableName(pkId), table);
+            LOG.info("OLAP table {} has been created", table.table());
         }
 
         @Override
         public void checkAndRegisterOlapTable(Id pkId) {
             CassandraTable table = new CassandraTables.Olap(this.store(), pkId);
             if (!this.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s'", table.table());
+                LOG.error("Found exception: Table '{}' doesn't exist, we'll " +
+                          "recreate it now. Please carefully check the recent" +
+                          "operation in server and computer, then ensure the " +
+                          "integrity of store file.", table.table());
+                this.createOlapTable(pkId);
+            } else {
+                registerTableManager(this.olapTableName(pkId), table);
             }
-            registerTableManager(this.olapTableName(pkId), table);
         }
 
         @Override
         public void clearOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
-            CassandraTable table = this.table(name);
+            CassandraTable table = this.olapTable(name);
             if (table == null || !this.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s'", name);
+                LOG.error("Found exception: Table '{}' doesn't exist, we'll " +
+                          "recreate it now. Please carefully check the recent" +
+                          "operation in server and computer, then ensure the " +
+                          "integrity of store file.", name);
+                this.createOlapTable(pkId);
+            } else {
+                table.truncate(this.session());
             }
-            table.truncate(this.session());
         }
 
         @Override
         public void removeOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
-            CassandraTable table = this.table(name);
+            CassandraTable table = this.olapTable(name);
             if (table == null || !this.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s'", name);
+                LOG.error("Found exception: Table '{}' already doesn't " +
+                          "exist, ignore it now. Please carefully check the " +
+                          "recent operation in server and computer, then " +
+                          "ensure the integrity of store file.", name);
+            } else {
+                table.dropTable(this.session());
+                this.unregisterTableManager(name);
             }
-            table.dropTable(this.session());
-            this.unregisterTableManager(name);
+        }
+
+        @Override
+        public boolean existOlapTable(Id pkId) {
+            String name = this.olapTableName(pkId);
+            CassandraTable table = this.olapTable(name);
+            return table != null && this.existsTable(table.table());
         }
     }
 }

@@ -75,6 +75,11 @@ public interface BackendStoreProvider {
                   "BackendStoreProvider.removeOlapTable()");
     }
 
+    public default boolean existOlapTable(HugeGraph graph, Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.existOlapTable()");
+    }
+
     public void createSnapshot();
 
     public void resumeSnapshot();

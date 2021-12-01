@@ -134,7 +134,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             PropertyKey propertyKey = this.propertyKeyOrNull(name);
-            if (propertyKey != null) {
+            if (propertyKey != null && propertyKey.oltp()) {
                 if (this.checkExist || !hasSameProperties(propertyKey)) {
                     throw new ExistedException(type, name);
                 }
@@ -146,6 +146,15 @@ public class PropertyKeyBuilder extends AbstractBuilder
             Userdata.check(this.userdata, Action.INSERT);
             this.checkAggregateType();
             this.checkOlap();
+
+            // Rebuild olap table if propertyKey exists but table miss
+            if (propertyKey != null && propertyKey.olap()) {
+                if (!this.graph().existsOlapTable(propertyKey)) {
+                    this.graph().addPropertyKey(propertyKey);
+                }
+                return new SchemaElement.TaskWithSchema(propertyKey,
+                                                        IdGenerator.ZERO);
+            }
 
             propertyKey = this.build();
             assert propertyKey.name().equals(name);

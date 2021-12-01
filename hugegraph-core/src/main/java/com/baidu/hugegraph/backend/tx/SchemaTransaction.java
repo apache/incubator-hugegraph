@@ -328,6 +328,10 @@ public class SchemaTransaction extends IndexableTransaction {
         this.store().provider().createOlapTable(this.graph(), id);
     }
 
+    public boolean existOlapTable(Id id) {
+        return this.store().provider().existOlapTable(this.graph(), id);
+    }
+
     public void initAndRegisterOlapTables() {
         for (PropertyKey pk : this.getPropertyKeys()) {
             if (pk.olap()) {

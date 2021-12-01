@@ -48,7 +48,6 @@ import org.apache.commons.io.FileUtils;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -107,7 +106,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     public RocksDBStore(final BackendStoreProvider provider,
                         final String database, final String store) {
         this.tables = new HashMap<>();
-        this.olapTables = new HashMap<>();
+        this.olapTables = new ConcurrentHashMap<>();
 
         this.provider = provider;
         this.database = database;
@@ -160,7 +159,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected final RocksDBTable table(HugeType type) {
         RocksDBTable table = this.tables.get(type);
         if (table == null) {
-            throw new BackendException("Unsupported table: '%s'", type);
+            throw new BackendException("Can't find table '%s', after " +
+                                       "check it carefully, you could try to " +
+                                       "restart the server manually then " +
+                                       "redo the action", type);
         }
         return table;
     }
@@ -168,9 +170,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected final RocksDBTable table(String name) {
         RocksDBTable table = this.olapTables.get(name);
         if (table == null) {
-            throw new BackendException("Unsupported table: '%s'", name);
+            throw new BackendException("Can't find table '%s', after " +
+                                       "check it carefully, you could try to " +
+                                       "restart the server manually then " +
+                                       "redo the action", name);
         }
         return table;
+    }
+
+    protected final RocksDBTable olapTable(String name) {
+        return this.olapTables.get(name);
     }
 
     protected List<String> tableNames() {
@@ -1073,39 +1082,62 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
             this.createTable(this.db(HugeType.OLAP), table.table());
             registerTableManager(this.olapTableName(pkId), table);
+            LOG.info("OLAP table {} has been created", table.table());
         }
 
         @Override
         public void checkAndRegisterOlapTable(Id pkId) {
             RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
             if (!super.sessions.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s''", table.table());
+                LOG.error("Found exception: Table '{}' doesn't exist, we'll " +
+                          "recreate it now. Please carefully check the recent" +
+                          "operation in server and computer, then ensure the " +
+                          "integrity of store file.", table.table());
+                this.createOlapTable(pkId);
+            } else {
+                registerTableManager(this.olapTableName(pkId), table);
             }
-            registerTableManager(this.olapTableName(pkId), table);
         }
 
         @Override
         public void clearOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
-            RocksDBTable table = this.table(name);
+            RocksDBTable table = this.olapTable(name);
             RocksDBSessions db = this.db(HugeType.OLAP);
             if (table == null || !db.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s''", name);
+                LOG.error("Found exception: Table '{}' doesn't exist, we'll " +
+                          "recreate it now. Please carefully check the recent" +
+                          "operation in server and computer, then ensure the " +
+                          "integrity of store file.", name);
+                this.createOlapTable(pkId);
+            } else {
+                this.dropTable(db, table.table());
+                this.createTable(db, table.table());
             }
-            this.dropTable(db, table.table());
-            this.createTable(db, table.table());
         }
 
         @Override
         public void removeOlapTable(Id pkId) {
             String name = this.olapTableName(pkId);
-            RocksDBTable table = this.table(name);
+            RocksDBTable table = this.olapTable(name);
             RocksDBSessions db = this.db(HugeType.OLAP);
             if (table == null || !db.existsTable(table.table())) {
-                throw new HugeException("Not exist table '%s''", name);
+                LOG.error("Found exception: Table '{}' already doesn't " +
+                          "exist, ignore it now. Please carefully check the " +
+                          "recent operation in server and computer, then " +
+                          "ensure the integrity of store file.", name);
+            } else {
+                this.dropTable(db, table.table());
+                this.unregisterTableManager(this.olapTableName(pkId));
             }
-            this.dropTable(db, table.table());
-            this.unregisterTableManager(this.olapTableName(pkId));
+        }
+
+        @Override
+        public boolean existOlapTable(Id pkId) {
+            String name = this.olapTableName(pkId);
+            RocksDBTable table = this.olapTable(name);
+            RocksDBSessions db = this.db(HugeType.OLAP);
+            return table != null && db.existsTable(table.table());
         }
     }
 }

@@ -161,6 +161,11 @@ public interface BackendStore {
                   "BackendStore.removeOlapTable()");
     }
 
+    public default boolean existOlapTable(Id pkId) {
+        throw new UnsupportedOperationException(
+                  "BackendStore.removeOlapTable()");
+    }
+
     public default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");
     }

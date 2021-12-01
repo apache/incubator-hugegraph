@@ -75,7 +75,7 @@ public class MysqlSessions extends BackendSessionPool {
      */
     @Override
     public synchronized void open() throws Exception {
-        try (Connection conn = this.open(false)) {
+        try (Connection ignored = this.open(false)) {
             this.opened = true;
         }
     }

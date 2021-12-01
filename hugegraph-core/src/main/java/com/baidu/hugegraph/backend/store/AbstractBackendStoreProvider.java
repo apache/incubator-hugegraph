@@ -30,7 +30,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
 import com.baidu.hugegraph.config.CoreOptions;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -180,6 +179,13 @@ public abstract class AbstractBackendStoreProvider
         String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
         store.removeOlapTable(pkId);
+    }
+
+    @Override
+    public boolean existOlapTable(HugeGraph graph, Id pkId) {
+        String g = graph.option(CoreOptions.STORE_GRAPH);
+        BackendStore store = this.stores.get(g);
+        return store.existOlapTable(pkId);
     }
 
     @Override

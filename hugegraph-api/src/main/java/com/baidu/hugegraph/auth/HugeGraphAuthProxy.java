@@ -230,6 +230,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public boolean existsOlapTable(PropertyKey key) {
+        verifySchemaPermission(HugePermission.READ, key);
+        return this.hugegraph.existsOlapTable(key);
+    }
+
+    @Override
     public void addVertexLabel(VertexLabel label) {
         verifySchemaPermission(HugePermission.WRITE, label);
         this.hugegraph.addVertexLabel(label);
