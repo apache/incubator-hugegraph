@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.type.define;
 
+import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CollectionUtil;
@@ -65,5 +66,6 @@ public interface SerialEnum {
         SerialEnum.register(IdStrategy.class);
         SerialEnum.register(IndexType.class);
         SerialEnum.register(SchemaStatus.class);
+        SerialEnum.register(HugePermission.class);
     }
 }

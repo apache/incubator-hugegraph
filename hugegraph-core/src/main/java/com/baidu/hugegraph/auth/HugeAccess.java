@@ -131,8 +131,7 @@ public class HugeAccess extends Relationship {
                 this.target = IdGenerator.of((String) value);
                 break;
             case P.PERMISSION:
-                Integer code = (Integer) value;
-                this.permission = HugePermission.fromCode(code.byteValue());
+                this.permission = HugePermission.valueOf(value.toString());
                 break;
             case P.DESCRIPTION:
                 this.description = (String) value;
@@ -163,7 +162,7 @@ public class HugeAccess extends Relationship {
         list.add(this.target);
 
         list.add(P.PERMISSION);
-        list.add(this.permission.code());
+        list.add(this.permission);
 
         if (this.description != null) {
             list.add(P.DESCRIPTION);
@@ -183,8 +182,7 @@ public class HugeAccess extends Relationship {
         map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         map.put(Hidden.unHide(P.GROUP), this.group);
         map.put(Hidden.unHide(P.TARGET), this.target);
-
-        map.put(Hidden.unHide(P.PERMISSION), this.permission.code());
+        map.put(Hidden.unHide(P.PERMISSION), this.permission);
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
