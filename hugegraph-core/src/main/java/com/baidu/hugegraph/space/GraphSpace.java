@@ -30,39 +30,186 @@ import com.baidu.hugegraph.util.E;
 public class GraphSpace {
 
     public static final String DEFAULT_GRAPH_SPACE_NAME = "DEFAULT";
+    public static final String DEFAULT_GRAPH_SPACE_DESCRIPTION =
+                               "The system default graph space";
+
+    public static final int DEFAULT_CPU_LIMIT = 4;
+    public static final int DEFAULT_MEMORY_LIMIT = 8;
+    public static final int DEFAULT_STORAGE_LIMIT = 100;
+
     public static final int DEFAULT_MAX_GRAPH_NUMBER = 100;
     public static final int DEFAULT_MAX_ROLE_NUMBER = 100;
 
-    private static final String MAX_GRAPH_NUMBER = "max_graph_number";
-    private static final String MAX_ROLE_NUMBER = "max_role_number";
-
     private String name;
+    private String description;
+
+    private int cpuLimit;
+    private int memoryLimit; // GB
+    public int storageLimit; // GB
+
+    public String oltpNamespace;
+    private String olapNamespace;
+    private String storageNamespace;
+
     private int maxGraphNumber;
     private int maxRoleNumber;
     private Map<String, Object> configs;
 
+    private int cpuUsed;
+    private int memoryUsed; // GB
+    private int storageUsed; // GB
+    private int graphNumberUsed;
+    private int roleNumberUsed;
+
     public GraphSpace(String name) {
+        E.checkArgument(name != null && !StringUtils.isEmpty(name),
+                        "The name of graph space can't be null or empty");
         this.name = name;
+
         this.maxGraphNumber = DEFAULT_MAX_GRAPH_NUMBER;
         this.maxRoleNumber = DEFAULT_MAX_ROLE_NUMBER;
+
+        this.cpuLimit = DEFAULT_CPU_LIMIT;
+        this.memoryLimit = DEFAULT_MEMORY_LIMIT;
+        this.storageLimit = DEFAULT_STORAGE_LIMIT;
+
         this.configs = new HashMap<>();
     }
 
-    public GraphSpace(String name, int maxGraphNumber, int maxRoleNumber,
-                      Map<String, Object> config) {
+    public GraphSpace(String name, String description, int cpuLimit,
+                      int memoryLimit, int storageLimit, int maxGraphNumber,
+                      int maxRoleNumber, Map<String, Object> config) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
+        E.checkArgument(cpuLimit > 0, "The cpu limit must > 0");
+        E.checkArgument(memoryLimit > 0, "The memory limit must > 0");
+        E.checkArgument(storageLimit > 0, "The storage limit must > 0");
         E.checkArgument(maxGraphNumber > 0, "The max graph number must > 0");
         E.checkArgument(maxRoleNumber > 0, "The max role number must > 0");
         this.name = name;
+        this.description = description;
+        this.cpuLimit = cpuLimit;
+        this.memoryLimit = memoryLimit;
+        this.storageLimit = storageLimit;
         this.maxGraphNumber = maxGraphNumber;
         this.maxRoleNumber = maxRoleNumber;
 
         this.configs = config;
     }
 
+    public GraphSpace(String name, String description, int cpuLimit,
+                      int memoryLimit, int storageLimit, int maxGraphNumber,
+                      int maxRoleNumber, String oltpNamespace,
+                      String olapNamespace, String storageNamespace,
+                      int cpuUsed, int memoryUsed, int storageUsed,
+                      int graphNumberUsed, int roleNumberUsed,
+                      Map<String, Object> config) {
+        E.checkArgument(name != null && !StringUtils.isEmpty(name),
+                        "The name of graph space can't be null or empty");
+        E.checkArgument(cpuLimit > 0, "The cpu limit must > 0");
+        E.checkArgument(memoryLimit > 0, "The memory limit must > 0");
+        E.checkArgument(storageLimit > 0, "The storage limit must > 0");
+        E.checkArgument(maxGraphNumber > 0, "The max graph number must > 0");
+        E.checkArgument(maxRoleNumber > 0, "The max role number must > 0");
+        this.name = name;
+        this.description = description;
+
+        this.cpuLimit = cpuLimit;
+        this.memoryLimit = memoryLimit;
+        this.storageLimit = storageLimit;
+
+        this.maxGraphNumber = maxGraphNumber;
+        this.maxRoleNumber = maxRoleNumber;
+
+        this.oltpNamespace = oltpNamespace;
+        this.olapNamespace = olapNamespace;
+        this.storageNamespace = storageNamespace;
+
+        this.cpuUsed = cpuUsed;
+        this.memoryUsed = memoryUsed;
+        this.storageUsed = storageUsed;
+
+        this.graphNumberUsed = graphNumberUsed;
+        this.roleNumberUsed = roleNumberUsed;
+
+        this.configs = config;
+    }
+
     public String name() {
         return this.name;
+    }
+
+    public String description() {
+        return this.description;
+    }
+
+    public void description(String description) {
+        this.description = description;
+    }
+
+    public int cpuLimit() {
+        return this.cpuLimit;
+    }
+
+    public void cpuLimit(int cpuLimit) {
+        E.checkArgument(cpuLimit > 0,
+                        "The cpu limit must be > 0, but got: %s", cpuLimit);
+        this.cpuLimit = cpuLimit;
+    }
+
+    public int memoryLimit() {
+        return this.memoryLimit;
+    }
+
+    public void memoryLimit(int memoryLimit) {
+        E.checkArgument(memoryLimit > 0,
+                        "The memory limit must be > 0, but got: %s",
+                        memoryLimit);
+        this.memoryLimit = memoryLimit;
+    }
+
+    public int storageLimit() {
+        return this.storageLimit;
+    }
+
+    public void storageLimit(int storageLimit) {
+        E.checkArgument(storageLimit > 0,
+                        "The storage limit must be > 0, but got: %s",
+                        storageLimit);
+        this.storageLimit = storageLimit;
+    }
+
+    public String oltpNamespace() {
+        return this.olapNamespace;
+    }
+
+    public void oltpNamespace(String oltpNamespace) {
+        E.checkArgument(oltpNamespace != null &&
+                        !StringUtils.isEmpty(oltpNamespace),
+                        "The oltp graph space can't be null or empty");
+        this.oltpNamespace = oltpNamespace;
+    }
+
+    public String olapNamespace() {
+        return this.olapNamespace;
+    }
+
+    public void olapNamespace(String olapNamespace) {
+        E.checkArgument(olapNamespace != null &&
+                        !StringUtils.isEmpty(olapNamespace),
+                        "The olap graph space can't be null or empty");
+        this.olapNamespace = olapNamespace;
+    }
+
+    public String storageNamespace() {
+        return this.storageNamespace;
+    }
+
+    public void storageNamespace(String storageNamespace) {
+        E.checkArgument(storageNamespace != null &&
+                        !StringUtils.isEmpty(storageNamespace),
+                        "The storage graph space can't be null or empty");
+        this.storageNamespace = storageNamespace;
     }
 
     public int maxGraphNumber() {
@@ -92,9 +239,86 @@ public class GraphSpace {
     public Map<String, Object> info() {
         Map<String, Object> infos = new LinkedHashMap<>();
         infos.put("name", this.name);
-        infos.put(MAX_GRAPH_NUMBER, this.maxGraphNumber);
-        infos.put(MAX_ROLE_NUMBER, this.maxRoleNumber);
+        infos.put("description", this.description);
+
+        infos.put("cpu_limit", this.cpuLimit);
+        infos.put("memory_limit", this.memoryLimit);
+        infos.put("storage_limit", this.storageLimit);
+
+        infos.put("oltp_namespace", this.oltpNamespace);
+        infos.put("olap_namespace", this.olapNamespace);
+        infos.put("storage_namespace", this.storageNamespace);
+
+        infos.put("max_graph_number", this.maxGraphNumber);
+        infos.put("max_role_number", this.maxRoleNumber);
+
+        infos.put("cpu_used", this.cpuUsed);
+        infos.put("memory_used", this.memoryUsed);
+        infos.put("storage_used", this.storageUsed);
+
+        infos.put("graph_number_used", this.graphNumberUsed);
+        infos.put("role_number_used", this.roleNumberUsed);
+
         infos.putAll(this.configs);
         return infos;
+    }
+
+    public boolean tryOfferResourceFor(Service service) {
+        int count = service.count();
+        int leftCpu = this.cpuLimit - this.cpuUsed;
+        int leftMemory = this.memoryLimit - this.memoryUsed;
+        if (service.cpuLimit() * count > leftCpu ||
+            service.memoryLimit() * count > leftMemory) {
+            return false;
+        }
+        this.cpuUsed += service.cpuLimit() * count;
+        this.memoryUsed += service.memoryLimit() * count;
+        return true;
+    }
+
+    public void recycleResourceFor(Service service) {
+        int count = service.count();
+        this.cpuUsed -= service.cpuLimit() * count;
+        this.memoryUsed -= service.memoryLimit() * count;
+    }
+
+    public boolean tryOfferGraph() {
+        return this.tryOfferGraph(1);
+    }
+
+    public boolean tryOfferGraph(int count) {
+        if (this.graphNumberUsed + count > this.maxGraphNumber) {
+            return false;
+        }
+        this.graphNumberUsed += count;
+        return true;
+    }
+
+    public void recycleGraph() {
+        this.recycleGraph(1);
+    }
+
+    public void recycleGraph(int count) {
+        this.graphNumberUsed -= count;
+    }
+
+    public boolean tryOfferRole() {
+        return this.tryOfferRole(1);
+    }
+
+    public boolean tryOfferRole(int count) {
+        if (this.roleNumberUsed + count > this.maxRoleNumber) {
+            return false;
+        }
+        this.roleNumberUsed += count;
+        return true;
+    }
+
+    public void recycleRole() {
+        this.recycleRole(1);
+    }
+
+    public void recycleRole(int count) {
+        this.roleNumberUsed -= count;
     }
 }

@@ -23,8 +23,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import com.baidu.hugegraph.auth.HugeAccess;
@@ -36,6 +38,7 @@ import com.baidu.hugegraph.auth.SchemaDefine;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.space.GraphSpace;
+import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
@@ -43,6 +46,8 @@ import org.apache.logging.log4j.util.Strings;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
+
+import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
 
@@ -52,6 +57,8 @@ public class MetaManager {
     public static final String META_PATH_HUGEGRAPH = "HUGEGRAPH";
     public static final String META_PATH_GRAPHSPACE = "GRAPHSPACE";
     public static final String META_PATH_GRAPHSPACE_LIST = "GRAPHSPACE_LIST";
+    public static final String META_PATH_SERVICE = "SERVICE";
+    public static final String META_PATH_SERVICE_CONF = "SERVICE_CONF";
     public static final String META_PATH_GRAPH_CONF = "GRAPH_CONF";
     public static final String META_PATH_CONF = "CONF";
     public static final String META_PATH_GRAPH = "GRAPH";
@@ -61,11 +68,13 @@ public class MetaManager {
     public static final String META_PATH_TARGET = "TARGET";
     public static final String META_PATH_BELONG = "BELONG";
     public static final String META_PATH_ACCESS = "ACCESS";
+    public static final String META_PATH_K8S_BINDINGS = "BINDING";
+    private static final String META_PATH_URLS = "URLS";
 
     public static final String META_PATH_EVENT = "EVENT";
     public static final String META_PATH_ADD = "ADD";
     public static final String META_PATH_REMOVE = "REMOVE";
-    public static final String META_PATH_CHANGE = "CHANGE";
+    public static final String META_PATH_UPDATE = "UPDATE";
 
     public static final String DEFAULT_NAMESPACE = "default_ns";
 
@@ -110,7 +119,19 @@ public class MetaManager {
         this.listen(this.graphSpaceRemoveKey(), consumer);
     }
 
-    public <T> void listenGraphSpaceChange(Consumer<T> consumer) {
+    public <T> void listenGraphSpaceUpdate(Consumer<T> consumer) {
+        this.listen(this.graphSpaceUpdateKey(), consumer);
+    }
+
+    public <T> void listenServiceAdd(Consumer<T> consumer) {
+        this.listen(this.graphSpaceAddKey(), consumer);
+    }
+
+    public <T> void listenServiceRemove(Consumer<T> consumer) {
+        this.listen(this.graphSpaceRemoveKey(), consumer);
+    }
+
+    public <T> void listenServiceUpdate(Consumer<T> consumer) {
         this.listen(this.graphSpaceUpdateKey(), consumer);
     }
 
@@ -126,6 +147,25 @@ public class MetaManager {
         this.metaDriver.listen(key, consumer);
     }
 
+    public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {
+        this.bindNamespace(graphSpace, namespace, BindingType.OLTP);
+    }
+
+    public void bindOlapNamespace(GraphSpace graphSpace, Namespace namespace) {
+        this.bindNamespace(graphSpace, namespace, BindingType.OLAP);
+    }
+
+    public void bindStorageNamespace(GraphSpace graphSpace,
+                                     Namespace namespace) {
+        this.bindNamespace(graphSpace, namespace, BindingType.STORAGE);
+    }
+
+    private void bindNamespace(GraphSpace graphSpace, Namespace namespace,
+                               BindingType type) {
+        this.metaDriver.put(this.graphSpaceBindingsKey(graphSpace.name(), type),
+                            JsonUtil.toJson(namespace.getMetadata().getName()));
+    }
+
     public Map<String, GraphSpace> graphSpaceConfigs() {
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                                         this.graphSpaceConfPrefix());
@@ -138,6 +178,19 @@ public class MetaManager {
                         JsonUtil.fromJson(entry.getValue(), GraphSpace.class));
         }
         return configs;
+    }
+
+    public Map<String, Service> services(String graphSpace) {
+        Map<String, Service> serviceMap =  new HashMap<>();
+        Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
+                            this.serviceConfPrefix(graphSpace));
+        for (Map.Entry<String, String> entry : keyValues.entrySet()) {
+            String key = entry.getKey();
+            String[] parts = key.split(META_PATH_DELIMETER);
+            serviceMap.put(parts[parts.length - 1],
+                           JsonUtil.fromJson(entry.getValue(), Service.class));
+        }
+        return serviceMap;
     }
 
     public Map<String, Map<String, Object>> graphConfigs(String graphSpace) {
@@ -159,6 +212,10 @@ public class MetaManager {
         return this.metaDriver.extractValuesFromResponse(response);
     }
 
+    public <T> List<String> extractServicesFromResponse(T response) {
+        return this.metaDriver.extractValuesFromResponse(response);
+    }
+
     public <T> List<String> extractGraphsFromResponse(T response) {
         return this.metaDriver.extractValuesFromResponse(response);
     }
@@ -168,17 +225,14 @@ public class MetaManager {
         return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
+    public Service getServiceConfig(String graphSpace, String service) {
+        String s = this.metaDriver.get(this.serviceConfKey(graphSpace, service));
+        return JsonUtil.fromJson(s, Service.class);
+    }
+
     public Map<String, Object> getGraphConfig(String graphSpace, String graph) {
         return configMap(this.metaDriver.get(this.graphConfKey(graphSpace,
                                                                graph)));
-    }
-
-    public String getGraphConfig(String graph) {
-        return this.metaDriver.get(this.graphConfKey(graph));
-    }
-
-    public void addGraphConfig(String graphSpace, String graph, String config) {
-        this.metaDriver.put(this.graphConfKey(graphSpace, graph), config);
     }
 
     public void addGraphConfig(String graphSpace, String graph,
@@ -213,6 +267,21 @@ public class MetaManager {
         this.metaDriver.put(this.graphSpaceAddKey(), graphSpace);
     }
 
+    public void addService(String graphSpace, String name) {
+        this.metaDriver.put(this.serviceAddKey(),
+                            this.serviceName(graphSpace, name));
+    }
+
+    public void removeService(String graphSpace, String name) {
+        this.metaDriver.put(this.serviceRemoveKey(),
+                            this.serviceName(graphSpace, name));
+    }
+
+    public void updateService(String graphSpace, String name) {
+        this.metaDriver.put(this.serviceUpdateKey(),
+                            this.serviceName(graphSpace, name));
+    }
+
     public void removeGraphSpace(String graphSpace) {
         this.metaDriver.put(this.graphSpaceRemoveKey(), graphSpace);
     }
@@ -221,18 +290,40 @@ public class MetaManager {
         this.metaDriver.put(this.graphSpaceUpdateKey(), graphSpace);
     }
 
+    public Service service(String graphSpace, String name) {
+        String service = this.metaDriver.get(this.serviceConfKey(graphSpace,
+                                                                 name));
+        if (service == null) {
+            return null;
+        }
+        return JsonUtil.fromJson(service, Service.class);
+    }
+
+    public void addServiceConfig(String graphSpace, Service service) {
+        this.metaDriver.put(this.serviceConfKey(graphSpace, service.name()),
+                            JsonUtil.toJson(service));
+    }
+
+    public void removeServiceConfig(String graphSpace, String service) {
+        this.metaDriver.delete(this.serviceConfKey(graphSpace, service));
+    }
+
+    public void updateServiceConfig(String graphSpace, Service service) {
+        this.addServiceConfig(graphSpace, service);
+    }
+
     public void removeGraphConfig(String graphSpace, String graph) {
         this.metaDriver.delete(this.graphConfKey(graphSpace, graph));
     }
 
     public void addGraph(String graphSpace, String graph) {
         this.metaDriver.put(this.graphAddKey(),
-                            this.nsGraphName(graphSpace, graph));
+                            this.graphName(graphSpace, graph));
     }
 
     public void removeGraph(String graphSpace, String graph) {
         this.metaDriver.put(this.graphRemoveKey(),
-                            this.nsGraphName(graphSpace, graph));
+                            this.graphName(graphSpace, graph));
     }
 
     private String graphSpaceAddKey() {
@@ -250,7 +341,25 @@ public class MetaManager {
     private String graphSpaceUpdateKey() {
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
-                           META_PATH_GRAPHSPACE, META_PATH_CHANGE);
+                           META_PATH_GRAPHSPACE, META_PATH_UPDATE);
+    }
+
+    private String serviceAddKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_SERVICE, META_PATH_ADD);
+    }
+
+    private String serviceRemoveKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_SERVICE, META_PATH_REMOVE);
+    }
+
+    private String serviceUpdateKey() {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_SERVICE, META_PATH_UPDATE);
     }
 
     private String graphAddKey() {
@@ -267,8 +376,11 @@ public class MetaManager {
                            META_PATH_GRAPH, META_PATH_REMOVE);
     }
 
-    private String graphConfPrefix(String graphSpace) {
-        return this.graphConfKey(graphSpace, Strings.EMPTY);
+    private String graphSpaceConfKey(String name) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE,
+                           META_PATH_CONF, name);
     }
 
     private String graphSpaceConfPrefix() {
@@ -277,16 +389,33 @@ public class MetaManager {
                            META_PATH_CONF);
     }
 
-    private String graphSpaceConfKey(String name) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
-                           this.cluster, META_PATH_GRAPHSPACE,
-                           META_PATH_CONF, name);
+    private String serviceConfPrefix(String graphSpace) {
+        return this.serviceConfKey(graphSpace, Strings.EMPTY);
     }
 
-    // TODO: remove after support namespace
-    private String graphConfKey(String graph) {
-        return this.graphConfKey(DEFAULT_NAMESPACE, graph);
+    private String graphConfPrefix(String graphSpace) {
+        return this.graphConfKey(graphSpace, Strings.EMPTY);
+    }
+
+    private String graphSpaceBindingsKey(String name, BindingType type) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE, name,
+                           META_PATH_K8S_BINDINGS, type.name());
+    }
+
+    private String graphSpaceBindingsServer(String name, BindingType type) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE, name,
+                           META_PATH_K8S_BINDINGS, type.name(), META_PATH_URLS);
+    }
+
+    private String serviceConfKey(String graphSpace, String name) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE_CONF
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_GRAPHSPACE,
+                           graphSpace, META_PATH_SERVICE_CONF, name);
     }
 
     private String graphConfKey(String graphSpace, String graph) {
@@ -400,8 +529,12 @@ public class MetaManager {
                            this.cluster, META_PATH_GRAPHSPACE_LIST);
     }
 
-    private String nsGraphName(String namespace, String name) {
-        return String.join(META_PATH_JOIN, namespace, name);
+    private String graphName(String graphSpace, String name) {
+        return String.join(META_PATH_JOIN, graphSpace, name);
+    }
+
+    private String serviceName(String graphSpace, String name) {
+        return String.join(META_PATH_JOIN, graphSpace, name);
     }
 
     private String serialize(SchemaDefine.AuthElement element) throws IOException {
@@ -998,8 +1131,39 @@ public class MetaManager {
         return JsonUtil.fromJson(config, Map.class);
     }
 
+    public void registerStorageServerUrls(GraphSpace graphSpace,
+                                          Set<String> serverUrls) {
+        this.registerServerUrls(graphSpace, BindingType.STORAGE, serverUrls);
+    }
+
+    public void registerOlapServerUrls(GraphSpace graphSpace,
+                                       Set<String> serverUrls) {
+        this.registerServerUrls(graphSpace, BindingType.OLAP, serverUrls);
+    }
+
+    public void registerOltpServerUrls(GraphSpace graphSpace,
+                                       Set<String> serverUrls) {
+        this.registerServerUrls(graphSpace, BindingType.OLTP, serverUrls);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerServerUrls(GraphSpace graphSpace, BindingType type,
+                                    Set<String> serverUrls) {
+        String key = this.graphSpaceBindingsServer(graphSpace.name(), type);
+        Set<String> exists = JsonUtil.fromJson(this.metaDriver.get(key),
+                                                Set.class);
+        exists.addAll(serverUrls);
+        this.metaDriver.put(key, JsonUtil.toJson(serverUrls));
+    }
+
     public enum MetaDriverType {
         ETCD,
         PD
+    }
+
+    public enum BindingType {
+        OLTP,
+        OLAP,
+        STORAGE
     }
 }

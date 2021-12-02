@@ -23,8 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -66,6 +68,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.space.GraphSpace;
+import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
@@ -217,6 +220,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         module.addDeserializer(GraphSpace.class, new GraphSpaceDeserializer());
     }
 
+    public static void registerServiceSerializers(SimpleModule module) {
+        module.addSerializer(Service.class, new ServiceSerializer());
+        module.addDeserializer(Service.class, new ServiceDeserializer());
+    }
+
     @SuppressWarnings("rawtypes")
     private static class OptionalSerializer extends StdSerializer<Optional> {
 
@@ -270,30 +278,170 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                       DeserializationContext ctxt)
                                       throws IOException {
             if (jsonParser.getCurrentToken() != JsonToken.START_OBJECT) {
-                throw new HugeException("invalid start marker");
+                throw new HugeException("Invalid start marker");
             }
 
             String name = null;
+            String description = null;
+
             Number maxGraphNumber = 0;
             Number maxRoleNumber = 0;
+
+            Number cpuLimit = 0;
+            Number memoryLimit = 0;
+            Number storageLimit = 0;
+
+            String oltpNamespace = null;
+            String olapNamespace = null;
+            String storageNamespace = null;
+
+            Number cpuUsed = 0;
+            Number memoryUsed = 0;
+            Number storageUsed = 0;
+            Number graphNumberUsed = 0;
+            Number roleNumberUsed = 0;
+
             Map<String, Object> configs = new HashMap<>();
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
-                String fieldname = jsonParser.getCurrentName();
+                String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
-                if ("name".equals(fieldname)) {
+                if ("name".equals(fieldName)) {
                     name = jsonParser.getText();
-                } else if ("max_graph_number".equals(fieldname)) {
+                } else if ("description".equals(fieldName)) {
+                    description = jsonParser.getText();
+                } else if ("max_graph_number".equals(fieldName)) {
                     maxGraphNumber = jsonParser.getNumberValue();
-                } else if ("max_role_number".equals(fieldname)) {
+                } else if ("max_role_number".equals(fieldName)) {
                     maxRoleNumber = jsonParser.getNumberValue();
+                } else if ("cpu_limit".equals(fieldName)) {
+                    cpuLimit = jsonParser.getNumberValue();
+                } else if ("memory_limit".equals(fieldName)) {
+                    memoryLimit = jsonParser.getNumberValue();
+                } else if ("storage_limit".equals(fieldName)) {
+                    storageLimit = jsonParser.getNumberValue();
+                } else if ("oltp_namespace".equals(fieldName)) {
+                    oltpNamespace = jsonParser.getText();
+                } else if ("olap_namespace".equals(fieldName)) {
+                    olapNamespace = jsonParser.getText();
+                } else if ("storage_namespace".equals(fieldName)) {
+                    storageNamespace = jsonParser.getText();
+                } else if ("cpu_used".equals(fieldName)) {
+                    cpuUsed = jsonParser.getNumberValue();
+                } else if ("memory_used".equals(fieldName)) {
+                    memoryUsed = jsonParser.getNumberValue();
+                } else if ("storage_used".equals(fieldName)) {
+                    storageUsed = jsonParser.getNumberValue();
+                } else if ("graph_number_used".equals(fieldName)) {
+                    graphNumberUsed = jsonParser.getNumberValue();
+                } else if ("role_number_used".equals(fieldName)) {
+                    roleNumberUsed = jsonParser.getNumberValue();
                 } else {
-                    configs.put(fieldname, jsonParser.getValueAsString());
+                    configs.put(fieldName, jsonParser.getValueAsString());
                 }
             }
             jsonParser.close();
 
-            return new GraphSpace(name, maxGraphNumber.intValue(),
-                                  maxRoleNumber.intValue(), configs);
+            return new GraphSpace(name, description,
+                                  cpuLimit.intValue(),
+                                  memoryLimit.intValue(),
+                                  storageLimit.intValue(),
+                                  maxGraphNumber.intValue(),
+                                  maxRoleNumber.intValue(),
+                                  oltpNamespace,
+                                  olapNamespace,
+                                  storageNamespace,
+                                  cpuUsed.intValue(),
+                                  memoryUsed.intValue(),
+                                  storageUsed.intValue(),
+                                  graphNumberUsed.intValue(),
+                                  roleNumberUsed.intValue(),
+                                  configs);
+        }
+    }
+
+    private static class ServiceSerializer
+            extends StdSerializer<Service> {
+
+        public ServiceSerializer() {
+            super(Service.class);
+        }
+
+        @Override
+        public void serialize(Service service,
+                              JsonGenerator jsonGenerator,
+                              SerializerProvider provider)
+                throws IOException {
+            jsonGenerator.writeStartObject();
+            for (Map.Entry<String, Object> entry : service.info().entrySet()) {
+                jsonGenerator.writeFieldName(entry.getKey());
+                jsonGenerator.writeObject(entry.getValue());
+            }
+            jsonGenerator.writeEndObject();
+        }
+    }
+
+    private static class ServiceDeserializer
+            extends StdDeserializer<Service> {
+
+        public ServiceDeserializer() {
+            super(Service.class);
+        }
+
+        @Override
+        public Service deserialize(JsonParser jsonParser,
+                                   DeserializationContext ctxt)
+                throws IOException {
+            if (jsonParser.getCurrentToken() != JsonToken.START_OBJECT) {
+                throw new HugeException("Invalid start marker");
+            }
+
+            String name = null;
+            String description = null;
+            String type = null;
+
+            Number count = 0;
+
+            Number cpuLimit = 0;
+            Number memoryLimit = 0;
+            Number storageLimit = 0;
+
+            Set<String> urls = new HashSet<>();
+
+            while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
+                String fieldName = jsonParser.getCurrentName();
+                jsonParser.nextToken();
+                if ("name".equals(fieldName)) {
+                    name = jsonParser.getText();
+                } else if ("description".equals(fieldName)) {
+                    description = jsonParser.getText();
+                } else if ("type".equals(fieldName)) {
+                    type = jsonParser.getText();
+                } else if ("count".equals(fieldName)) {
+                    count = jsonParser.getNumberValue();
+                } else if ("cpu_limit".equals(fieldName)) {
+                    cpuLimit = jsonParser.getNumberValue();
+                } else if ("memory_limit".equals(fieldName)) {
+                    memoryLimit = jsonParser.getNumberValue();
+                } else if ("storage_limit".equals(fieldName)) {
+                    storageLimit = jsonParser.getNumberValue();
+                } else if ("urls".equals(fieldName)) {
+                    while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
+                        String urlString = jsonParser.getText();
+                        urls.addAll(Arrays.asList(urlString.split(",")));
+                    }
+                } else {
+                    throw new HugeException("Invalid field '%s'", fieldName);
+                }
+            }
+            jsonParser.close();
+
+            return new Service(name, description,
+                               Service.ServiceType.valueOf(type),
+                               count.intValue(),
+                               cpuLimit.intValue(),
+                               memoryLimit.intValue(),
+                               storageLimit.intValue(),
+                               urls);
         }
     }
 

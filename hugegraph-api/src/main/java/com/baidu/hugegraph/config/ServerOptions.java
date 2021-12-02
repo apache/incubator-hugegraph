@@ -159,6 +159,54 @@ public class ServerOptions extends OptionHolder {
                     "hg-test"
             );
 
+    public static final ConfigOption<Boolean> SERVER_USE_K8S =
+            new ConfigOption<>(
+                    "server.use_k8s",
+                    "Whether to use k8s to support multiple tenancy.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_URL =
+            new ConfigOption<>(
+                    "server.k8s_url",
+                    "The url of k8s.",
+                    disallowEmpty(),
+                    "https://127.0.0.1:8888"
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_OLTP_IMAGE =
+            new ConfigOption<>(
+                    "server.k8s_oltp_image",
+                    "The oltp server image of k8s.",
+                    disallowEmpty(),
+                    "hugegraph/hugegraph-server:v1"
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_OLAP_IMAGE =
+            new ConfigOption<>(
+                    "server.k8s_olap_image",
+                    "The olap server image of k8s.",
+                    disallowEmpty(),
+                    "hugegraph/hugegraph-server:v1"
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_STORAGE_IMAGE =
+            new ConfigOption<>(
+                    "server.k8s_storage_image",
+                    "The storage server image of k8s.",
+                    disallowEmpty(),
+                    "hugegraph/hugegraph-server:v1"
+            );
+
+    public static final ConfigOption<String> SERVER_DEFAULT_K8S_NAMESPACE =
+            new ConfigOption<>(
+                    "server.default_k8s_namespace",
+                    "The default namespace for HugeGraph default graph space.",
+                    disallowEmpty(),
+                    "hugegraph-server"
+            );
+
     public static final ConfigOption<Boolean> GRAPH_LOAD_FROM_LOCAL_CONFIG =
             new ConfigOption<>(
                     "graph.load_from_local_config",

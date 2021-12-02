@@ -40,6 +40,7 @@ import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.space.GraphSpace;
+import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
@@ -130,6 +131,16 @@ public class API {
         if (s == null) {
             throw new NotFoundException(String.format(
                       "Graph space '%s' does not exist", space));
+        }
+        return s;
+    }
+
+    public static Service service(GraphManager manager, String graphSpace,
+                                  String service) {
+        Service s = manager.service(graphSpace, service);
+        if (s == null) {
+            throw new NotFoundException(String.format(
+                      "Service '%s' does not exist", service));
         }
         return s;
     }
