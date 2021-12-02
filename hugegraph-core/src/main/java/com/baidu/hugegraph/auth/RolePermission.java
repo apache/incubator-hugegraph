@@ -47,8 +47,6 @@ public class RolePermission {
                                               "SYSTEM", HugePermission.NONE);
     public static final RolePermission ADMIN = RolePermission.role("SYSTEM",
                                                "SYSTEM", HugePermission.ANY);
-    public static final RolePermission SPACE = RolePermission.role("SYSTEM",
-                                               "SYSTEM", HugePermission.SPACE);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -200,10 +198,6 @@ public class RolePermission {
         return ADMIN;
     }
 
-    public static RolePermission space() {
-        return SPACE;
-    }
-
     public static RolePermission builtin(RolePermission role) {
         E.checkNotNull(role, "role");
         if (role == ADMIN || role.equals(ADMIN)) {
@@ -211,9 +205,6 @@ public class RolePermission {
         }
         if (role == NONE || role.equals(NONE)) {
             return NONE;
-        }
-        if (role == SPACE || role.equals(SPACE)) {
-            return SPACE;
         }
         return role;
     }
