@@ -259,7 +259,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
         // TODO: check necessary?
-        LOG.info("Init olap property-keys for graph '{}'", this.name);
+        LOG.info("Check olap property-key tables for graph '{}'", this.name);
         for (PropertyKey pk : this.schemaTransaction().getPropertyKeys()) {
             if (pk.olap()) {
                 this.graphTransaction().initAndRegisterOlapTable(pk.id());
