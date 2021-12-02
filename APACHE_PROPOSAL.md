@@ -24,7 +24,7 @@ Although most of the main development of HugeGraph has been completed, there are
 
 - Higher graph computing loading performance: the current architecture (especially the separation of computing and storage) brings greater flexibility and cost savings, but with some performance overhead, which needs to be improved.
 - RocksDB-based sharding storage development, based on the affinity architecture of query and storage. Since RocksDB is known for its good performance, but currently HugeGraph only supports the raft-based replication mode. We plan to support scale-out and distributed atomic transactions for RocksDB-based storage.
-- Parallel OLTP query: at present, HugeGraph can perform parallel OLAP graph-computing, but the OLTP query is only supported for parallel execution on a single machine. In certain scenarios, the OLTP query needs to be implemented in parallel on multiple machines.
+- Parallel OLTP query: at present, HugeGraph can perform parallel OLAP graph-computing, but the OLTP query only supports parallel execution on a single machine. In certain scenarios, the OLTP query needs to be implemented in parallel on multiple machines.
 - Higher-performance queries: such as supporting faster query optimization, parallel primitive collections, and fine-grained caching strategies.
 - Better usability: more OLTP/OLAP algorithms, APIs and toolchains, rich UI, etc...
 - More language clients: such as supporting Python and Go languages.
@@ -34,7 +34,7 @@ Although most of the main development of HugeGraph has been completed, there are
 
 #### Meritocracy
 
-HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies. Some of these contributors become committers, and the project has hundreds of known users around the world. We will follow Apache's Meritocracy way to re-organize the community roles. We have set up the PPMC Team and Committer Team. Contributions are welcomed and highly valued. New contributors are guided and reviewed by existing PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
+HugeGraph was incubated at Baidu in 2016 and open sourced on [GitHub](https://github.com/hugegraph/hugegraph) in 2018. The project(include sub-projects) now has 30+ contributors from many companies. Some of these contributors become committers, and the project has hundreds of known users around the world. We will follow Apache's Meritocracy way to re-organize the community roles. We have set up the PPMC Team and Committer Team. Of course, contributions are welcomed and highly valued. New contributors are guided and reviewed by existing PMC members. When an active contributor has submitted enough good patches, PMC will start a vote to promote him/her to become a member of Committer Team or PMC Team.
 
 #### Community
 
@@ -72,7 +72,7 @@ Expect to enter incubation in 4 months and graduate in about 2 years.
 
 #### Homogenous Developers:
 
-The current list of developers from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source projects, e.g. OpenStack.
+The developers on the current list come from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source projects, e.g. OpenStack.
 
 #### Reliance on Salaried Developers:
 
@@ -92,20 +92,20 @@ HugeGraph documentation is provided on https://hugegraph.github.io/hugegraph-doc
 
 ### Initial Source
 
-This project consists of 2 core sub-projects and 2 ecosystem sub-projects, all of which are hosted by [GitHub  hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
+This project consists of 2 core sub-projects and 2 other sub-projects, all of which are hosted by [GitHub hugegraph organization](https://github.com/orgs/hugegraph/repositories) since 2018. The codes are already under Apache License Version 2.0. The git address of sub-project repositories are as follows:
 
 1. The graph database repository `hugegraph`, core sub-project, including graph server, graph engine and graph storage: https://github.com/hugegraph/hugegraph
 2. The graph computing repository `hugegraph-computer`, core sub-project, including graph computing and graph algorithms: https://github.com/hugegraph/hugegraph-computer
-3. `hugegraph-commons`: https://github.com/hugegraph/hugegraph-commons
-4. `hugegraph-toolchain`: https://github.com/hugegraph/hugegraph-toolchain
+3. The common functions repository `hugegraph-commons`: https://github.com/hugegraph/hugegraph-commons
+4. The ecosystem repository `hugegraph-toolchain`, including `hugegraph-client`, `hugegraph-loader`, `hugegraph-tools`, `hugegraph-hubble`, `hugegraph-test`, `hugegraph-doc`: https://github.com/hugegraph/hugegraph-toolchain
 
 ### Source and Intellectual Property Submission Plan
 
-The codes are currently under Apache License Version 2.0 and have been verified to there is no intellectual property or license issues before being released to open source by Baidu in 2018. Baidu will provide SGA and all committers will sign ICLA after HugeGraph is accepted into the Incubator.
+The codes are currently under Apache License Version 2.0, and have been verified there is no intellectual property or license issues when being released to open source by Baidu in 2018. Baidu will provide SGA and all committers will sign ICLA after HugeGraph is accepted into the Incubator.
 
 #### External Dependencies:
 
-As all dependencies are managed using Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except for 5 dependencies: MySQL Connector(GPL), word(GPL), TrueLicense(AGPL), JBoss Logging 3(LGPL) and jnr-posix(LGPL+GPL), we will remove these dependencies in future.
+As all dependencies are managed by Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except for 5 dependencies: MySQL Connector(GPL), word(GPL), TrueLicense(AGPL), JBoss Logging 3(LGPL) and jnr-posix(LGPL+GPL), we will remove these dependencies in future.
 
 HugeGraph has the following external [dependencies](https://github.com/hugegraph/hugegraph/issues/1632):
 
