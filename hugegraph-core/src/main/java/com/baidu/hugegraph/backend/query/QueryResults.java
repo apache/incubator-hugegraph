@@ -115,7 +115,7 @@ public class QueryResults<R> {
         }
 
         // Fill map with all elements
-        Map<Id, T> map = new LinkedHashMap<>();
+        Map<Id, T> map = InsertionOrderUtil.newMap();
         QueryResults.fillMap(origin, map);
 
         if (map.size() > ids.size()) {
