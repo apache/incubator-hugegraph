@@ -31,6 +31,8 @@ import com.baidu.hugegraph.util.E;
 public class Service {
 
     public static final int DEFAULT_COUNT = 1;
+    public static final String DEFAULT_ROUTE_TYPE = "ClusterIP";
+    public static final int DEFAULT_PORT = 8080;
 
     public static final int DEFAULT_CPU_LIMIT = 4;
     public static final int DEFAULT_MEMORY_LIMIT = 8;
@@ -45,6 +47,9 @@ public class Service {
     private int memoryLimit; // GB
     private int storageLimit; // GB
 
+    private String routeType;
+    private int port;
+
     private Set<String> urls;
 
     public Service(String name, ServiceType type) {
@@ -54,6 +59,8 @@ public class Service {
         this.name = name;
         this.type = type;
         this.count = DEFAULT_COUNT;
+        this.routeType = DEFAULT_ROUTE_TYPE;
+        this.port = DEFAULT_PORT;
         this.cpuLimit = DEFAULT_CPU_LIMIT;
         this.memoryLimit = DEFAULT_MEMORY_LIMIT;
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
@@ -61,7 +68,7 @@ public class Service {
 
     public Service(String name, String description, ServiceType type,
                    int count, int cpuLimit, int memoryLimit, int storageLimit,
-                   Set<String> urls) {
+                   String routeType, int port, Set<String> urls) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of service can't be null or empty");
         E.checkArgumentNotNull(type, "The type of service can't be null");
@@ -72,6 +79,8 @@ public class Service {
         this.cpuLimit = cpuLimit;
         this.memoryLimit = memoryLimit;
         this.storageLimit = storageLimit;
+        this.routeType = routeType;
+        this.port = port;
         this.urls = urls;
     }
 
@@ -106,7 +115,6 @@ public class Service {
     }
 
     public int cpuLimit() {
-
         return this.cpuLimit;
     }
 
@@ -138,6 +146,24 @@ public class Service {
         this.storageLimit = storageLimit;
     }
 
+    public String routeType() {
+        return this.routeType;
+    }
+
+    public void routeType(String routeType) {
+        this.routeType = routeType;
+    }
+
+    public int port() {
+        return this.port;
+    }
+
+    public void port(int port) {
+        E.checkArgument(port > 0,
+                        "The port must be > 0, but got: %s", port);
+        this.port = port;
+    }
+
     public Set<String> urls() {
         return this.urls;
     }
@@ -164,6 +190,8 @@ public class Service {
         infos.put("memory_limit", this.memoryLimit);
         infos.put("storage_limit", this.storageLimit);
 
+        infos.put("route_type", this.routeType);
+        infos.put("port", this.port);
         infos.put("urls", this.urls);
 
         return infos;

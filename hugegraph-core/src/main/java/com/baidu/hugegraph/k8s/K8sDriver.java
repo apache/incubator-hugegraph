@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.k8s;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +28,9 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.Service;
+import com.google.common.collect.ImmutableSet;
 
+import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -38,6 +40,7 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -51,6 +54,12 @@ public class K8sDriver {
 
     private static final String CONTAINER = "container";
     private static final String APP = "app";
+    private static final String PORT_SUFFIX = "-port";
+    private static final String TCP = "TCP";
+    private static final String CLUSTER_IP = "ClusterIP";
+    private static final String LOAD_BALANCER = "LoadBalancer";
+    private static final String NODE_PORT = "NodePort";
+    private static final int HG_PORT = 8080;
 
     private KubernetesClient client;
 
@@ -157,10 +166,22 @@ public class K8sDriver {
 
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service) {
-        Deployment deployment = this.constructDeployment(graphSpace, service);
+        this.createDeployment(graphSpace, service);
+        return this.createService(graphSpace, service);
+    }
+
+    public void stopOltpService(GraphSpace graphSpace, Service service) {
+        String deploymentName = serviceName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
         this.client.apps().deployments().inNamespace(namespace)
-                   .createOrReplace(deployment);
+                   .withName(deploymentName).delete();
+    }
+
+    public Deployment createDeployment(GraphSpace graphSpace, Service service) {
+        Deployment deployment = this.constructDeployment(graphSpace, service);
+        String namespace = namespace(graphSpace, service);
+        deployment = this.client.apps().deployments().inNamespace(namespace)
+                                .createOrReplace(deployment);
 
         ListOptions options = new ListOptions();
         options.setLabelSelector(APP + "=" + serviceName(graphSpace, service));
@@ -174,32 +195,57 @@ public class K8sDriver {
             sleepAWhile(1);
         }
         if (hugegraphservers.isEmpty()) {
-            throw new HugeException("Failed to start oltp server");
+            throw new HugeException("Failed to start oltp server pod");
         }
-        Set<String> urls = new HashSet<>();
-
-        for (Pod hugegraphserver : hugegraphservers) {
-            String podIP = hugegraphserver.getStatus().getPodIP();
-            int times = 0;
-            String podName = hugegraphserver.getMetadata().getName();
-            while (podIP == null && times++ < 10) {
-                sleepAWhile(1);
-                hugegraphserver = this.pod(namespace, podName);
-                podIP = hugegraphserver.getStatus().getPodIP();
-            }
-            if (podIP == null) {
-                throw new HugeException("Failed to get pod ip for %s", podName);
-            }
-            urls.add(podIP + ":8080");
-        }
-        return urls;
+        return deployment;
     }
 
-    public void stopOltpService(GraphSpace graphSpace, Service service) {
-        String deploymentName = serviceName(graphSpace, service);
-        String namespace = namespace(graphSpace, service);
-        this.client.apps().deployments().inNamespace(namespace)
-                   .withName(deploymentName).delete();
+    public Set<String> createService(GraphSpace graphSpace, Service svc) {
+        String serviceName = serviceName(graphSpace, svc);
+        String namespace = namespace(graphSpace, svc);
+        String portName = serviceName + PORT_SUFFIX;
+        io.fabric8.kubernetes.api.model.Service service;
+        if (NODE_PORT.equals(svc.routeType())) {
+            service = new ServiceBuilder()
+                    .withNewMetadata()
+                    .withName(serviceName)
+                    .endMetadata()
+                    .withNewSpec()
+                    .withSelector(Collections.singletonMap(APP, serviceName))
+                    .addNewPort()
+                    .withName(portName)
+                    .withProtocol(TCP)
+                    .withPort(HG_PORT)
+                    .withTargetPort(new IntOrString(HG_PORT))
+                    .withNodePort(svc.port())
+                    .endPort()
+                    .withType(NODE_PORT)
+                    .endSpec()
+                    .build();
+        } else {
+            service = new ServiceBuilder()
+                    .withNewMetadata()
+                    .withName(serviceName)
+                    .endMetadata()
+                    .withNewSpec()
+                    .withSelector(Collections.singletonMap(APP, serviceName))
+                    .addNewPort()
+                    .withName(portName)
+                    .withProtocol(TCP)
+                    .withPort(HG_PORT)
+                    .withTargetPort(new IntOrString(HG_PORT))
+                    .endPort()
+                    .withType(svc.routeType())
+                    .endSpec()
+                    .build();
+        }
+
+        this.client.services().inNamespace(namespace).create(service);
+
+        return ImmutableSet.of(this.client.services()
+                                          .inNamespace(namespace)
+                                          .withName(serviceName)
+                                          .getURL(portName));
     }
 
     private Deployment constructDeployment(GraphSpace graphSpace,
@@ -214,7 +260,7 @@ public class K8sDriver {
                 .addToLimits("memory", memory)
                 .build();
 
-        Deployment deployment = new DeploymentBuilder()
+        return new DeploymentBuilder()
                 .withNewMetadata()
                 .withName(deploymentName)
                 .addToLabels(APP, deploymentName)
@@ -231,7 +277,7 @@ public class K8sDriver {
                 .withImage(this.image(service))
                 .withResources(rr)
                 .addNewPort()
-                .withContainerPort(80)
+                .withContainerPort(HG_PORT)
                 .endPort()
                 .endContainer()
                 .endSpec()
@@ -241,7 +287,6 @@ public class K8sDriver {
                 .endSelector()
                 .endSpec()
                 .build();
-        return deployment;
     }
 
     private static String namespace(GraphSpace graphSpace, Service service) {

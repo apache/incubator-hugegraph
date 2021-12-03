@@ -57,6 +57,10 @@ public class ServiceApi extends API {
 
     private static final String CONFIRM_DROP = "I'm sure to delete the service";
 
+    private static final String CLUSTER_IP = "ClusterIP";
+    private static final String LOAD_BALANCER = "LoadBalancer";
+    private static final String NODE_PORT = "NodePort";
+
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
@@ -137,6 +141,11 @@ public class ServiceApi extends API {
         @JsonProperty("storage_limit")
         public int storageLimit;
 
+        @JsonProperty("route_type")
+        public String routeType;
+        @JsonProperty("port")
+        public int port;
+
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgument(this.name != null &&
@@ -159,6 +168,19 @@ public class ServiceApi extends API {
             E.checkArgument(this.storageLimit > 0,
                             "The storage limit must be > 0, but got: %s",
                             this.storageLimit);
+
+            E.checkArgument(this.routeType != null &&
+                            !StringUtils.isEmpty(this.routeType),
+                            "The route type of service can't be null or empty");
+            E.checkArgument(NODE_PORT.equals(this.routeType) ||
+                            CLUSTER_IP.equals(this.routeType) ||
+                            LOAD_BALANCER.equals(this.routeType),
+                            "Invalid route type '%s'", this.routeType);
+            if (isNodePort(this.routeType)) {
+                E.checkArgument(this.port > 0,
+                                "The port must be > 0, but got: %s",
+                                this.port);
+            }
         }
 
         public Service toService() {
@@ -170,16 +192,25 @@ public class ServiceApi extends API {
             service.memoryLimit(this.memoryLimit);
             service.storageLimit(this.storageLimit);
 
+            service.routeType(this.routeType);
+            if (isNodePort(this.routeType)) {
+                service.port(this.port);
+            }
+
             return service;
         }
 
         public String toString() {
             return String.format("JsonService{name=%s, type=%s, " +
                                  "description=%s, count=%s, cpuLimit=%s, " +
-                                 "memoryLimit=%s, storageLimit=%s}",
+                                 "memoryLimit=%s, storageLimit=%s, port=%s}",
                                  this.name, this.serviceType, this.description,
                                  this.count, this.cpuLimit, this.memoryLimit,
-                                 this.storageLimit);
+                                 this.storageLimit, this.port);
+        }
+
+        public static boolean isNodePort(String routeType) {
+            return NODE_PORT.equals(routeType);
         }
     }
 }

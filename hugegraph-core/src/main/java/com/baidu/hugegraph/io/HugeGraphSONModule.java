@@ -405,6 +405,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number memoryLimit = 0;
             Number storageLimit = 0;
 
+            String routeType = null;
+            Number port = 8080;
+
             Set<String> urls = new HashSet<>();
 
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
@@ -424,6 +427,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     memoryLimit = jsonParser.getNumberValue();
                 } else if ("storage_limit".equals(fieldName)) {
                     storageLimit = jsonParser.getNumberValue();
+                } else if ("route_type".equals(fieldName)) {
+                    routeType = jsonParser.getText();
+                } else if ("port".equals(fieldName)) {
+                    port = jsonParser.getNumberValue();
                 } else if ("urls".equals(fieldName)) {
                     while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
                         String urlString = jsonParser.getText();
@@ -441,6 +448,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                cpuLimit.intValue(),
                                memoryLimit.intValue(),
                                storageLimit.intValue(),
+                               routeType,
+                               port.intValue(),
                                urls);
         }
     }
