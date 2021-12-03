@@ -1021,6 +1021,33 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         /**
+         * Get records by a list of keys from a table
+         */
+        @Override
+        public BackendColumnIterator get(String table, List<byte[]> keys) {
+            assert !this.hasChanges();
+
+            try (CFHandle cf = cf(table)) {
+                // Fill ColumnFamilyHandle list
+                List<ColumnFamilyHandle> cfs = new ArrayList<>(keys.size());
+                ColumnFamilyHandle cfh = cf.get();
+                for (int i = 0; i < keys.size(); i++) {
+                    cfs.add(cfh);
+                }
+                /*
+                 * Do multi-get
+                 * NOTE: the multiGetAsList() is just for consistent version,
+                 * the batching version with io_uring support for performance
+                 * is not ready, see #9224
+                 */
+                List<byte[]> values = rocksdb().multiGetAsList(cfs, keys);
+                return new MgetIterator(keys, values);
+            } catch (RocksDBException e) {
+                throw new BackendException(e);
+            }
+        }
+
+        /**
          * Scan all records from a table
          */
         @Override
@@ -1028,7 +1055,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             assert !this.hasChanges();
             try (CFHandle cf = cf(table)) {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
-                return new ColumnIterator(table, iter, null, null, SCAN_ANY);
+                return new ScanIterator(table, iter, null, null, SCAN_ANY);
             }
         }
 
@@ -1046,8 +1073,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
              */
             try (CFHandle cf = cf(table)) {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
-                return new ColumnIterator(table, iter, prefix, null,
-                                          SCAN_PREFIX_BEGIN);
+                return new ScanIterator(table, iter, prefix, null,
+                                        SCAN_PREFIX_BEGIN);
             }
         }
 
@@ -1065,8 +1092,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
              */
             try (CFHandle cf = cf(table)) {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
-                return new ColumnIterator(table, iter, keyFrom,
-                                          keyTo, scanType);
+                return new ScanIterator(table, iter, keyFrom, keyTo, scanType);
             }
         }
     }
@@ -1074,8 +1100,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
     /**
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
-    private static class ColumnIterator implements BackendColumnIterator,
-                                                   Countable {
+    private static class ScanIterator implements BackendColumnIterator,
+                                                 Countable {
 
         private final String table;
         private final RocksIterator iter;
@@ -1086,8 +1112,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private byte[] position;
         private boolean matched;
 
-        public ColumnIterator(String table, RocksIterator iter,
-                              byte[] keyBegin, byte[] keyEnd, int scanType) {
+        public ScanIterator(String table, RocksIterator iter,
+                            byte[] keyBegin, byte[] keyEnd, int scanType) {
             E.checkNotNull(iter, "iter");
             this.table = table;
 
@@ -1296,6 +1322,59 @@ public class RocksDBStdSessions extends RocksDBSessions {
             if (this.iter.isOwningHandle()) {
                 this.iter.close();
             }
+        }
+    }
+
+    private static class MgetIterator implements BackendColumnIterator {
+
+        private final List<byte[]> keys;
+        private final List<byte[]> values;
+        private int current;
+        private byte[] currentValue;
+
+        public MgetIterator(List<byte[]> keys, List<byte[]> values) {
+            E.checkNotEmpty(keys, "keys");
+            E.checkNotEmpty(values, "values");
+            E.checkArgument(keys.size() == values.size(),
+                            "Expect the same size between keys and values");
+            this.keys = keys;
+            this.values = values;
+            this.current = 0;
+            this.currentValue = null;
+        }
+
+        @Override
+        public void close() {
+            // pass
+        }
+
+        @Override
+        public byte[] position() {
+            return null;
+        }
+
+        @Override
+        public boolean hasNext() {
+            for (; this.current < this.values.size(); this.current++) {
+                this.currentValue = this.values.get(this.current);
+                if (this.currentValue != null) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public BackendColumn next() {
+            if (this.currentValue == null) {
+                if (!this.hasNext()) {
+                    throw new NoSuchElementException();
+                }
+            }
+            byte[] key = this.keys.get(this.current++);
+            byte[] value = this.currentValue;
+            this.currentValue = null;
+            return BackendColumn.of(key, value);
         }
     }
 }

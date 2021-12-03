@@ -403,6 +403,15 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
 
         /**
+         * Get records by a list of keys from a table
+         */
+        @Override
+        public BackendColumnIterator get(String table, List<byte[]> keys) {
+            assert !this.hasChanges();
+            return BackendColumnIterator.empty();
+        }
+
+        /**
          * Scan all records from a table
          */
         @Override

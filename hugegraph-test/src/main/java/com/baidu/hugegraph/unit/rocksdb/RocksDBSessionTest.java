@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.unit.rocksdb;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,13 +31,14 @@ import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.testutil.Assert;
 
 public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
     @Test
-    public void testPutGet() throws RocksDBException {
+    public void testPutAndGet() throws RocksDBException {
         String value = s(this.rocks.session().get(TABLE, b("person:1gname")));
         Assert.assertEquals(null, value);
 
@@ -56,7 +58,57 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testPutGetWithMultiTables() throws RocksDBException {
+    public void testPutAndMultiGet() throws RocksDBException {
+        BackendColumnIterator values = this.rocks.session().get(TABLE,
+                                       Arrays.asList(b("person:1gname")));
+        Assert.assertFalse(values.hasNext());
+
+        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
+        this.rocks.session().put(TABLE, b("person:1gage"), b(19));
+        this.rocks.session().put(TABLE, b("person:1gcity"), b("Beijing"));
+        this.commit();
+
+        values = this.rocks.session().get(TABLE, Arrays.asList(
+                                                 b("person:1gname"),
+                                                 b("person:1gage")));
+        Assert.assertTrue(values.hasNext());
+        Assert.assertEquals("James", s(values.next().value));
+        Assert.assertEquals(19, l(values.next().value));
+        Assert.assertFalse(values.hasNext());
+
+        values = this.rocks.session().get(TABLE, Arrays.asList(
+                                                 b("person:1gname"),
+                                                 b("person:1gage"),
+                                                 b("person:1gcity")));
+        Assert.assertTrue(values.hasNext());
+        Assert.assertEquals("James", s(values.next().value));
+        Assert.assertEquals(19, l(values.next().value));
+        Assert.assertEquals("Beijing", s(values.next().value));
+        Assert.assertFalse(values.hasNext());
+
+        values = this.rocks.session().get(TABLE, Arrays.asList(
+                                                 b("person:1gname"),
+                                                 b("person:1gage-non-exist"),
+                                                 b("person:1gcity")));
+        Assert.assertTrue(values.hasNext());
+        Assert.assertEquals("James", s(values.next().value));
+        Assert.assertEquals("Beijing", s(values.next().value));
+        Assert.assertFalse(values.hasNext());
+
+        values = this.rocks.session().get(TABLE, Arrays.asList(
+                                                 b("person:1gname"),
+                                                 b("person:1gage-non-exist"),
+                                                 b("person:1gcity"),
+                                                 b("person:1gname")));
+        Assert.assertTrue(values.hasNext());
+        Assert.assertEquals("James", s(values.next().value));
+        Assert.assertEquals("Beijing", s(values.next().value));
+        Assert.assertEquals("James", s(values.next().value));
+        Assert.assertFalse(values.hasNext());
+    }
+
+    @Test
+    public void testPutAndGetWithMultiTables() throws RocksDBException {
         final String TABLE2 = "test-table2";
 
         this.rocks.createTable(TABLE2);
