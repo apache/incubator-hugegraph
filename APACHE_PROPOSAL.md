@@ -269,11 +269,11 @@ None
 - hugegraph-private: [private@hugegraph.incubator.apache.org](mailto:private@hugegraph.incubator.apache.org) for PPMC discussions.
 - hugegraph-commits: [commits@hugegraph.incubator.apache.org](mailto:commits@hugegraph.incubator.apache.org) for commits / [pull requests](https://github.com/hugegraph/hugegraph/pulls) and other notifications like code review comments.
 
-#### [Subversion Directory:](https://cwiki.apache.org/confluence/display/INCUBATOR/New+Podling+Proposal#subversion-directory)
+#### Subversion Directory
 
 None
 
-#### [Git Repositories:](https://cwiki.apache.org/confluence/display/INCUBATOR/New+Podling+Proposal#git-repositories)
+#### Git Repositories
 
 1. `hugegraph`: https://github.com/hugegraph/hugegraph.git
 2. `hugegraph-computer`: https://github.com/hugegraph/hugegraph-computer.git
