@@ -19,9 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
-import java.io.Closeable;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,14 +30,12 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
-import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -66,6 +62,8 @@ import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
+import com.baidu.hugegraph.backend.store.rocksdb.OpenedRocksDB.CFHandle;
+import com.baidu.hugegraph.backend.store.rocksdb.RocksDBIteratorPool.ReusedRocksIterator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Bytes;
@@ -162,7 +160,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         for (ColumnFamilyHandle cfh : cfhs) {
             String table = decode(cfh.getName());
-            this.rocksdb.addCf(table, new CFHandle(cfh));
+            this.rocksdb.addCf(table, new CFHandle(this.rocksdb(), cfh));
         }
 
         this.ingestExternalFile();
@@ -228,7 +226,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public List<String> property(String property) {
         try {
             if (property.equals(RocksDBMetrics.KEY_DISK_USAGE)) {
-                long size = this.rocksdb.sstFileManager.getTotalSize();
+                long size = this.rocksdb.totalSize();
                 return ImmutableList.of(String.valueOf(size));
             }
             List<String> values = new ArrayList<>();
@@ -262,7 +260,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public void createSnapshot(String snapshotPath) {
-        RocksDBStdSessions.createCheckpoint(this.rocksdb(), snapshotPath);
+        this.rocksdb.createCheckpoint(snapshotPath);
     }
 
     @Override
@@ -313,9 +311,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public String hardLinkSnapshot(String snapshotPath) throws RocksDBException {
         String snapshotLinkPath = this.dataPath + "_temp";
-        try (RocksDB rocksdb = openRocksDB(this.config, ImmutableList.of(),
-                                           snapshotPath, null).rocksdb) {
-            RocksDBStdSessions.createCheckpoint(rocksdb, snapshotLinkPath);
+        try (OpenedRocksDB rocksdb = openRocksDB(this.config,
+                                                 ImmutableList.of(),
+                                                 snapshotPath, null)) {
+            rocksdb.createCheckpoint(snapshotLinkPath);
         }
         LOG.info("The snapshot {} has been hard linked to {}",
                  snapshotPath, snapshotLinkPath);
@@ -352,7 +351,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     private RocksDB rocksdb() {
         this.checkValid();
-        return this.rocksdb.rocksdb;
+        return this.rocksdb.rocksdb();
     }
 
     private CFHandle cf(String cfName) {
@@ -437,7 +436,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         // Collect CF Handles
         Map<String, CFHandle> cfHandles = new ConcurrentHashMap<>();
         for (int i = 0; i < cfs.size(); i++) {
-            cfHandles.put(cfs.get(i), new CFHandle(cfhs.get(i)));
+            cfHandles.put(cfs.get(i), new CFHandle(rocksdb, cfhs.get(i)));
         }
         return new OpenedRocksDB(rocksdb, cfHandles, sstFileManager);
     }
@@ -447,31 +446,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
         Set<String> cfs = listCFs(path);
         cfs.addAll(cfNames);
         return cfs;
-    }
-
-    private static void createCheckpoint(RocksDB rocksdb, String targetPath) {
-        Path parentName = Paths.get(targetPath).getParent().getFileName();
-        assert parentName.toString().startsWith("snapshot") : targetPath;
-        // https://github.com/facebook/rocksdb/wiki/Checkpoints
-        try (Checkpoint checkpoint = Checkpoint.create(rocksdb)) {
-            String tempPath = targetPath + "_temp";
-            File tempFile = new File(tempPath);
-            FileUtils.deleteDirectory(tempFile);
-            LOG.debug("Deleted temp directory {}", tempFile);
-
-            FileUtils.forceMkdir(tempFile.getParentFile());
-            checkpoint.createCheckpoint(tempPath);
-            File snapshotFile = new File(targetPath);
-            FileUtils.deleteDirectory(snapshotFile);
-            LOG.debug("Deleted stale directory {}", snapshotFile);
-            if (!tempFile.renameTo(snapshotFile)) {
-                throw new IOException(String.format("Failed to rename %s to %s",
-                                                    tempFile, snapshotFile));
-            }
-        } catch (Exception e) {
-            throw new BackendException("Failed to create checkpoint at path %s",
-                                       e, targetPath);
-        }
     }
 
     public static Set<String> listCFs(String path) throws RocksDBException {
@@ -677,110 +651,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     public static final String decode(byte[] bytes) {
         return StringEncoding.decode(bytes);
-    }
-
-    private static class OpenedRocksDB {
-
-        private final RocksDB rocksdb;
-        private final Map<String, CFHandle> cfHandles;
-        private final SstFileManager sstFileManager;
-
-        public OpenedRocksDB(RocksDB rocksdb, Map<String, CFHandle> cfHandles,
-                             SstFileManager sstFileManager) {
-            this.rocksdb = rocksdb;
-            this.cfHandles = cfHandles;
-            this.sstFileManager = sstFileManager;
-        }
-
-        public Set<String> cfs() {
-            return this.cfHandles.keySet();
-        }
-
-        public CFHandle cf(String cfName) {
-            return this.cfHandles.get(cfName);
-        }
-
-        public void addCf(String cfName, CFHandle cfHandle) {
-            this.cfHandles.put(cfName, cfHandle);
-        }
-
-        public CFHandle removeCf(String cfName) {
-            return this.cfHandles.remove(cfName);
-        }
-
-        public boolean existCf(String cfName) {
-            return this.cfHandles.containsKey(cfName);
-        }
-
-        public boolean isOwningHandle() {
-            return this.rocksdb.isOwningHandle();
-        }
-
-        public void close() {
-            if (!this.isOwningHandle()) {
-                return;
-            }
-            for (CFHandle cf : this.cfHandles.values()) {
-                cf.close();
-            }
-            this.cfHandles.clear();
-
-            this.rocksdb.close();
-        }
-    }
-
-    private static class CFHandle implements Closeable {
-
-        private final ColumnFamilyHandle handle;
-        private final AtomicInteger refs;
-
-        public CFHandle(ColumnFamilyHandle handle) {
-            E.checkNotNull(handle, "handle");
-            this.handle = handle;
-            this.refs = new AtomicInteger(1);
-        }
-
-        public synchronized ColumnFamilyHandle get() {
-            E.checkState(this.handle.isOwningHandle(),
-                         "It seems CF has been closed");
-            return this.handle;
-        }
-
-        public synchronized void open() {
-            this.refs.incrementAndGet();
-        }
-
-        @Override
-        public void close() {
-            if (this.refs.decrementAndGet() <= 0) {
-                this.handle.close();
-            }
-        }
-
-        public synchronized ColumnFamilyHandle waitForDrop() {
-            assert this.refs.get() >= 1;
-            // When entering this method, the refs won't increase any more
-            final long timeout = TimeUnit.MINUTES.toMillis(30L);
-            final long unit = 100L;
-            for (long i = 1; this.refs.get() > 1; i++) {
-                try {
-                    Thread.sleep(unit);
-                } catch (InterruptedException ignored) {
-                    // 30s rest api timeout may cause InterruptedException
-                }
-                if (i * unit > timeout) {
-                    throw new BackendException("Timeout after %sms to drop CF",
-                                               timeout);
-                }
-            }
-            assert this.refs.get() == 1;
-            return this.handle;
-        }
-
-        public synchronized void destroy() {
-            this.close();
-            assert this.refs.get() == 0 && !this.handle.isOwningHandle();
-        }
     }
 
     /**
@@ -1054,7 +924,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         public BackendColumnIterator scan(String table) {
             assert !this.hasChanges();
             try (CFHandle cf = cf(table)) {
-                RocksIterator iter = rocksdb().newIterator(cf.get());
+                ReusedRocksIterator iter = cf.newIterator();
                 return new ScanIterator(table, iter, null, null, SCAN_ANY);
             }
         }
@@ -1072,7 +942,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
              * options.setPrefixSameAsStart(true);
              */
             try (CFHandle cf = cf(table)) {
-                RocksIterator iter = rocksdb().newIterator(cf.get());
+                ReusedRocksIterator iter = cf.newIterator();
                 return new ScanIterator(table, iter, prefix, null,
                                         SCAN_PREFIX_BEGIN);
             }
@@ -1091,7 +961,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
              * options.setTotalOrderSeek(true);
              */
             try (CFHandle cf = cf(table)) {
-                RocksIterator iter = rocksdb().newIterator(cf.get());
+                ReusedRocksIterator iter = cf.newIterator();
                 return new ScanIterator(table, iter, keyFrom, keyTo, scanType);
             }
         }
@@ -1104,6 +974,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                                  Countable {
 
         private final String table;
+        private final ReusedRocksIterator reusedIter;
         private final RocksIterator iter;
         private final byte[] keyBegin;
         private final byte[] keyEnd;
@@ -1112,12 +983,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private byte[] position;
         private boolean matched;
 
-        public ScanIterator(String table, RocksIterator iter,
+        public ScanIterator(String table, ReusedRocksIterator reusedIter,
                             byte[] keyBegin, byte[] keyEnd, int scanType) {
-            E.checkNotNull(iter, "iter");
+            E.checkNotNull(reusedIter, "reusedIter");
             this.table = table;
 
-            this.iter = iter;
+            this.reusedIter = reusedIter;
+            this.iter = reusedIter.iterator();
             this.keyBegin = keyBegin;
             this.keyEnd = keyEnd;
             this.scanType = scanType;
@@ -1319,9 +1191,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public void close() {
-            if (this.iter.isOwningHandle()) {
-                this.iter.close();
-            }
+            this.reusedIter.close();
         }
     }
 
