@@ -184,7 +184,7 @@ public class OpenedRocksDB implements AutoCloseable {
         public synchronized ReusedRocksIterator newIterator() {
             assert this.handle.isOwningHandle();
             assert this.refs.get() >= 1;
-            return new ReusedRocksIterator(this.iterPool);
+            return this.iterPool.newIterator();
         }
     }
 }
