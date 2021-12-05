@@ -177,7 +177,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         }
         Assert.assertEquals(2, results.size());
 
-        // add new keys
+        // add some keys then scan again
         put("person:3gname", "Tom");
         put("person:4gname", "Mike");
 
@@ -189,7 +189,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         }
         Assert.assertEquals(4, results.size());
 
-        // delete some keys
+        // delete some keys then scan again
         this.rocks.session().delete(TABLE, b("person:2gname"));
         this.rocks.session().commit();
         runWithThreads(1, () ->{
@@ -205,6 +205,18 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
             results.put(s(col.name), s(col.value));
         }
         Assert.assertEquals(2, results.size());
+
+        // delete some keys by prefix then scan again
+        this.rocks.session().deletePrefix(TABLE, b("person:1"));
+        this.rocks.session().commit();
+
+        results = new HashMap<>();
+        iter = session.scan(TABLE);
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
+            results.put(s(col.name), s(col.value));
+        }
+        Assert.assertEquals(1, results.size());
     }
 
     @Test
