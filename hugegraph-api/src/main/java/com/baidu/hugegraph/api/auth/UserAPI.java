@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -65,6 +66,7 @@ public class UserAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
     public String create(@Context GraphManager manager,
                          JsonUser jsonUser) {
         LOG.debug("Create user: {}", jsonUser);
@@ -141,6 +143,7 @@ public class UserAPI extends API {
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
                        @PathParam("id") String id) {
         LOG.debug("Delete user: {}", id);

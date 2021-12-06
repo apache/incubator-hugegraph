@@ -497,7 +497,7 @@ public final class GraphManager {
                         storeName, name);
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
-        HugeGraph graph = this.createGraph(config, init);
+        HugeGraph graph = this.createGraph(graphSpace, config, init);
         graph.graphSpace(graphSpace);
         String graphName = graphName(graphSpace, name);
         if (init) {
@@ -512,7 +512,8 @@ public final class GraphManager {
         return graph;
     }
 
-    private HugeGraph createGraph(HugeConfig config, boolean init) {
+    private HugeGraph createGraph(String graphSpace, HugeConfig config,
+                                  boolean init) {
         // open succeed will fill graph instance into HugeFactory graphs(map)
         HugeGraph graph;
         try {
@@ -521,6 +522,7 @@ public final class GraphManager {
             LOG.error("Exception occur when open graph", e);
             throw e;
         }
+        graph.graphSpace(graphSpace);
         if (this.requireAuthentication()) {
             /*
              * The main purpose is to call method

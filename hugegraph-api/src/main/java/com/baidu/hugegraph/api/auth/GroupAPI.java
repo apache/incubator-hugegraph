@@ -98,7 +98,6 @@ public class GroupAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list groups", graphSpace);
 
-        AuthManager authManager = manager.authManager();
         List<HugeGroup> groups = manager.authManager()
                                         .listAllGroups(graphSpace,
                                                        limit,

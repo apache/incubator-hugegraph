@@ -123,7 +123,8 @@ public class StandardAuthManager implements AuthManager {
         return null;
     }
 
-    private <V> V verifyResPermission(HugePermission actionPerm,
+    private <V> V verifyResPermission(String graphSpace,
+                                      HugePermission actionPerm,
                                       boolean throwIfNoPerm,
                                       Supplier<ResourceObject<V>> fetcher,
                                       Supplier<Boolean> checker) {
@@ -144,26 +145,8 @@ public class StandardAuthManager implements AuthManager {
 
         V result = ro.operated();
         // Verify role permission
-        if (!HugeAuthenticator.RolePerm.match(role, actionPerm, ro)) {
+        if (!HugeAuthenticator.RolePerm.matchAuth(role, actionPerm, ro)) {
             result = null;
-        }
-        // Verify permission for one access another, like: granted <= user role
-        else if (ro.type().isGrantOrUser()) {
-            AuthElement element = (AuthElement) ro.operated();
-            RolePermission grant = rolePermission(element);
-            if (!HugeAuthenticator.RolePerm.match(role, grant, ro)) {
-                result = null;
-            }
-        }
-
-        // Check resource detail if needed
-        if (result != null && checker != null && !checker.get()) {
-            result = null;
-        }
-
-        if (!(actionPerm == HugePermission.READ && ro.type().isSchema())) {
-            String status = result == null ? "denied" : "allowed";
-            LOG.info("User '{}' is {} to {} {}", username, status, action, ro);
         }
 
         // result = null means no permission, throw if needed
@@ -175,37 +158,45 @@ public class StandardAuthManager implements AuthManager {
         return result;
     }
 
-    private <V> V verifyResPermission(HugePermission actionPerm,
+    private <V> V verifyResPermission(String graphSpace,
+                                      HugePermission actionPerm,
                                       boolean throwIfNoPerm,
                                       Supplier<ResourceObject<V>> fetcher) {
-        return verifyResPermission(actionPerm, throwIfNoPerm, fetcher, null);
+        return verifyResPermission(graphSpace, actionPerm,
+                                   throwIfNoPerm, fetcher, null);
     }
 
     private <V extends AuthElement> V verifyUserPermission(
+            String graphSpace,
             HugePermission actionPerm,
             boolean throwIfNoPerm,
             Supplier<V> elementFetcher) {
-        return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
+        return verifyResPermission(graphSpace, actionPerm, throwIfNoPerm,
+                                   () -> {
             V elem = elementFetcher.get();
             @SuppressWarnings("unchecked")
             ResourceObject<V> r = (ResourceObject<V>)
-                              ResourceObject.of("SYSTEM", "SYSTEM", elem);
+                              ResourceObject.of(graphSpace, "SYSTEM", elem);
             return r;
         });
     }
 
     private <V extends AuthElement> V verifyUserPermission(
+            String graphSpace,
             HugePermission actionPerm,
             V elementFetcher) {
-        return verifyUserPermission(actionPerm, true, () -> elementFetcher);
+        return verifyUserPermission(graphSpace, actionPerm,
+                                    true, () -> elementFetcher);
     }
 
     private <V extends AuthElement> List<V> verifyUserPermission(
+                                            String graphSpace,
                                             HugePermission actionPerm,
                                             List<V> elems) {
         List<V> results = new ArrayList<>();
         for (V elem : elems) {
-            V r = verifyUserPermission(actionPerm, false, () -> elem);
+            V r = verifyUserPermission(graphSpace, actionPerm,
+                                       false, () -> elem);
             if (r != null) {
                 results.add(r);
             }
@@ -215,9 +206,6 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public Id createUser(HugeUser user, boolean required) {
-        if (required) {
-            verifyUserPermission(HugePermission.WRITE, user);
-        }
         Id username = IdGenerator.of(user.name());
         HugeUser existed = this.usersCache.get(username);
         E.checkArgument(existed == null,
@@ -240,7 +228,8 @@ public class StandardAuthManager implements AuthManager {
         try {
             HugeUser existed = this.findUser(user.name(), false);
             if (required && !existed.name().equals(currentUsername())) {
-                verifyUserPermission(HugePermission.WRITE, user);
+                // Only admin could update user
+                verifyUserPermission("", HugePermission.ANY, user);
             }
 
             this.updateCreator(user);
@@ -284,10 +273,6 @@ public class StandardAuthManager implements AuthManager {
                             id.asString());
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
-            if (required) {
-                verifyUserPermission(HugePermission.DELETE, user);
-            }
-
             this.deleteBelongsByUser(id);
             return this.metaManager.deleteUser(id);
         } catch (IOException e) {
@@ -326,18 +311,18 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public HugeUser getUser(Id id, boolean required) {
-        if (required) {
-            return verifyUserPermission(HugePermission.READ,
-                                        this.findUser(id.asString(), false));
+        HugeUser user = this.findUser(id.asString(), false);
+        if (required && !user.name().equals(currentUsername())) {
+            verifyUserPermission("", HugePermission.READ, user);
         }
-        return this.findUser(id.asString(), false);
+        return user;
     }
 
     @Override
     public List<HugeUser> listUsers(List<Id> ids, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission("", HugePermission.READ,
                                             this.metaManager.listUsers(ids));
             }
             return this.metaManager.listUsers(ids);
@@ -354,7 +339,7 @@ public class StandardAuthManager implements AuthManager {
     public List<HugeUser> listAllUsers(long limit, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission("", HugePermission.READ,
                        this.metaManager.listAllUsers(limit));
             }
             return this.metaManager.listAllUsers(limit);
@@ -372,7 +357,7 @@ public class StandardAuthManager implements AuthManager {
                           boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, group);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, group);
             }
             this.updateCreator(group);
             Id result = this.metaManager.createGroup(graphSpace, group);
@@ -390,7 +375,7 @@ public class StandardAuthManager implements AuthManager {
         this.invalidateUserCache();
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, group);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, group);
             }
             this.updateCreator(group);
             return this.metaManager.updateGroup(graphSpace, group);
@@ -404,7 +389,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeGroup deleteGroup(String graphSpace, Id id, boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.DELETE,
+                verifyUserPermission(graphSpace, HugePermission.DELETE,
                                      this.metaManager.getGroup(graphSpace,
                                                                id));
             }
@@ -437,7 +422,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeGroup getGroup(String graphSpace, Id id, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.getGroup(graphSpace, id));
             }
             return this.metaManager.getGroup(graphSpace, id);
@@ -455,7 +440,7 @@ public class StandardAuthManager implements AuthManager {
                                       boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listGroups(graphSpace, ids));
             }
             return this.metaManager.listGroups(graphSpace, ids);
@@ -473,7 +458,7 @@ public class StandardAuthManager implements AuthManager {
                                          boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAllGroups(graphSpace, limit));
             }
             return this.metaManager.listAllGroups(graphSpace, limit);
@@ -491,7 +476,7 @@ public class StandardAuthManager implements AuthManager {
                            boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, target);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, target);
             }
             this.updateCreator(target);
             Id result = this.metaManager.createTarget(graphSpace, target);
@@ -509,7 +494,7 @@ public class StandardAuthManager implements AuthManager {
         try {
             this.updateCreator(target);
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, target);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, target);
             }
             Id result = this.metaManager.updateTarget(graphSpace, target);
             this.invalidateUserCache();
@@ -525,7 +510,7 @@ public class StandardAuthManager implements AuthManager {
                                    boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.DELETE,
+                verifyUserPermission(graphSpace, HugePermission.DELETE,
                                      this.metaManager.getTarget(graphSpace,
                                                                 id));
             }
@@ -550,7 +535,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeTarget getTarget(String graphSpace, Id id, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.getTarget(graphSpace, id));
             }
             return this.metaManager.getTarget(graphSpace, id);
@@ -568,7 +553,7 @@ public class StandardAuthManager implements AuthManager {
                                         boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listTargets(graphSpace, ids));
             }
             return this.metaManager.listTargets(graphSpace, ids);
@@ -586,7 +571,7 @@ public class StandardAuthManager implements AuthManager {
                                            boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAllTargets(graphSpace, limit));
             }
             return this.metaManager.listAllTargets(graphSpace, limit);
@@ -604,7 +589,7 @@ public class StandardAuthManager implements AuthManager {
                            boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, belong);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, belong);
             }
             this.updateCreator(belong);
             this.invalidateUserCache();
@@ -623,7 +608,7 @@ public class StandardAuthManager implements AuthManager {
                            boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, belong);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, belong);
             }
             this.updateCreator(belong);
             Id result = this.metaManager.updateBelong(graphSpace, belong);
@@ -643,7 +628,7 @@ public class StandardAuthManager implements AuthManager {
                                    boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.DELETE,
+                verifyUserPermission(graphSpace, HugePermission.DELETE,
                                      this.metaManager.getBelong(graphSpace,
                                                                 id));
             }
@@ -663,7 +648,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeBelong getBelong(String graphSpace, Id id, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.getBelong(graphSpace, id));
             }
             return this.metaManager.getBelong(graphSpace, id);
@@ -681,7 +666,7 @@ public class StandardAuthManager implements AuthManager {
                                        boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listBelong(graphSpace, ids));
             }
             return this.metaManager.listBelong(graphSpace, ids);
@@ -699,7 +684,7 @@ public class StandardAuthManager implements AuthManager {
                                           boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAllBelong(graphSpace, limit));
             }
             return this.metaManager.listAllBelong(graphSpace, limit);
@@ -717,7 +702,7 @@ public class StandardAuthManager implements AuthManager {
                                              long limit, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listBelongByUser(graphSpace, user,
                                                          limit));
             }
@@ -736,7 +721,7 @@ public class StandardAuthManager implements AuthManager {
                                               long limit, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listBelongByGroup(graphSpace, group,
                                                           limit));
             }
@@ -755,7 +740,7 @@ public class StandardAuthManager implements AuthManager {
                            boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, access);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, access);
             }
             this.updateCreator(access);
             Id result = this.metaManager.createAccess(graphSpace, access);
@@ -775,7 +760,7 @@ public class StandardAuthManager implements AuthManager {
                            boolean required) {
         try {
             if (required) {
-                verifyUserPermission(HugePermission.WRITE, access);
+                verifyUserPermission(graphSpace, HugePermission.WRITE, access);
             }
             this.updateCreator(access);
             Id result = this.metaManager.updateAccess(graphSpace, access);
@@ -796,7 +781,7 @@ public class StandardAuthManager implements AuthManager {
 
         try {
             if (required) {
-                verifyUserPermission(HugePermission.DELETE,
+                verifyUserPermission(graphSpace, HugePermission.DELETE,
                                      this.metaManager.getAccess(graphSpace,
                                                                 id));
             }
@@ -816,7 +801,7 @@ public class StandardAuthManager implements AuthManager {
     public HugeAccess getAccess(String graphSpace, Id id, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.getAccess(graphSpace, id));
             }
             return this.metaManager.getAccess(graphSpace, id);
@@ -834,7 +819,7 @@ public class StandardAuthManager implements AuthManager {
                                        boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAccess(graphSpace, ids));
             }
             return this.metaManager.listAccess(graphSpace, ids);
@@ -852,7 +837,7 @@ public class StandardAuthManager implements AuthManager {
                                           boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAllAccess(graphSpace, limit));
             }
             return this.metaManager.listAllAccess(graphSpace, limit);
@@ -870,7 +855,7 @@ public class StandardAuthManager implements AuthManager {
                                               long limit, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAccessByGroup(graphSpace, group,
                                                           limit));
             }
@@ -890,7 +875,7 @@ public class StandardAuthManager implements AuthManager {
                                                long limit, boolean required) {
         try {
             if (required) {
-                return verifyUserPermission(HugePermission.READ,
+                return verifyUserPermission(graphSpace, HugePermission.READ,
                        this.metaManager.listAccessByTarget(graphSpace, target,
                                                            limit));
             }
@@ -933,11 +918,6 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public RolePermission rolePermission(AuthElement element) {
-        /*
-        if (!(element instanceof HugeUser) ||
-                !((HugeUser) element).name().equals(username)) {
-            verifyUserPermission(HugePermission.READ, element);
-        } */
         return this.rolePermissionInner(element);
     }
 

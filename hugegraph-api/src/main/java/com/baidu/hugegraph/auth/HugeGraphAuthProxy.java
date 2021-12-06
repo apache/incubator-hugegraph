@@ -119,7 +119,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         this.hugegraph = hugegraph;
         this.taskScheduler = new TaskSchedulerProxy(hugegraph.taskScheduler());
-        // this.authManager = new AuthManagerProxy(hugegraph.authManager());
         this.auditLimiters = this.cache("audit-log-limiter", capacity, -1L);
         this.usersRoleCache = this.cache("users-role", capacity, expired);
         this.hugegraph.proxy(this);

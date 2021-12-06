@@ -281,6 +281,30 @@ public interface HugeAuthenticator extends Authenticator {
                    this.roles.get(graphSpace).containsKey(owner);
         }
 
+        private boolean matchSpace(String graphSpace) {
+            if (graphSpace == null) {
+                return true;
+            }
+
+            return this.roles.containsKey(graphSpace) &&
+                    this.roles.get(graphSpace).containsKey("*") &&
+                    this.roles.get(graphSpace).get("*")
+                            .containsKey(HugePermission.SPACE);
+        }
+
+        public static boolean matchAuth(Object role, HugePermission required,
+                                    ResourceObject<?> resourceObject) {
+            if (role == ROLE_ADMIN) {
+                return true;
+            }
+
+            RolePerm rolePerm = RolePerm.fromJson(role);
+            if (rolePerm.matchSpace(resourceObject.graphSpace())) {
+                return true;
+            }
+            return false;
+        }
+
         private boolean matchResource(HugePermission requiredAction,
                                       ResourceObject<?> requiredResource) {
             E.checkNotNull(requiredResource, "resource object");
@@ -359,6 +383,9 @@ public interface HugeAuthenticator extends Authenticator {
             }
 
             RolePerm rolePerm = RolePerm.fromJson(role);
+            if (rolePerm.matchSpace(requiredPerm.graphSpace())) {
+                return true;
+            }
 
             if (requiredPerm.action() == HugePermission.NONE) {
                 // None action means any action is OK if the owner matched
@@ -378,6 +405,9 @@ public interface HugeAuthenticator extends Authenticator {
                 return false;
             }
             RolePerm rolePerm = RolePerm.fromJson(role);
+            if (rolePerm.matchSpace(resourceObject.graphSpace())) {
+                return true;
+            }
             return rolePerm.matchResource(required, resourceObject);
         }
 

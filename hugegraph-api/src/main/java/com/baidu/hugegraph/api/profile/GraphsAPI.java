@@ -118,7 +118,7 @@ public class GraphsAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public Object create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("name") String name,
@@ -153,7 +153,7 @@ public class GraphsAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"admin", "$dynamic"})
     public Map<String, String> manage(
                                @Context GraphManager manager,
                                @PathParam("graphspace") String graphSpace,
@@ -188,7 +188,7 @@ public class GraphsAPI extends API {
     @Path("{name}")
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
                        @PathParam("graphspace") String graphSpace,
