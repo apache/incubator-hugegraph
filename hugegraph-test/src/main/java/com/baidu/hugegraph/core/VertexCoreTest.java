@@ -8771,7 +8771,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
         Assert.assertTrue(vertices.contains(vertex5));
 
-        vertices = g.V().has("name", Text.contains("秦始皇2|秦始皇3")).toList();
+        vertices = g.V().has("name", Text.contains("(秦始皇2|秦始皇3)")).toList();
         Assert.assertEquals(2, vertices.size());
         Assert.assertTrue(vertices.contains(vertex3));
         Assert.assertTrue(vertices.contains(vertex4));
