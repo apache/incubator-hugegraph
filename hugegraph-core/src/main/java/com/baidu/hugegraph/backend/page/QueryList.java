@@ -221,7 +221,10 @@ public final class QueryList<R> {
             Query bindQuery = holder.query();
             this.updateOffsetIfNeeded(bindQuery);
 
-            // Iterate by all
+            /*
+             * The search or joint index query may come here.
+             * Iterate by all
+             */
             if (holder instanceof FixedIdHolder) {
                 Set<Id> ids = holder.all();
                 ids = bindQuery.skipOffsetIfNeeded(ids);
@@ -234,7 +237,7 @@ public final class QueryList<R> {
                  * in order by ids weight. In addition all the ids (IdQuery)
                  * can be collected by upper layer.
                  */
-                return this.queryByIndexIds(ids, true);
+                return this.queryByIndexIds(ids, holder.keepOrder());
             }
 
             // Iterate by batch

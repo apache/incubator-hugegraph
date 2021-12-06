@@ -59,6 +59,10 @@ public abstract class IdHolder {
 
     public abstract boolean paging();
 
+    public boolean keepOrder() {
+        return false;
+    }
+
     public abstract Set<Id> all();
 
     public abstract PageIds fetchNext(String page, long pageSize);
