@@ -11,7 +11,7 @@ body:
         ### Note (特别注意) : 
 
         > 1. 请先**搜索**现有的[Server-Issues](https://github.com/hugegraph/hugegraph/issues) 与
-        [Common-Issues](https://github.com/hugegraph/hugegraph-common/issues) 中没有与您相同
+        [Commons-Issues](https://github.com/hugegraph/hugegraph-commons/issues) 中没有与您相同
         / 相关的问题 (请勿重复提交)
 
         > 2. 我们需要尽可能**详细**的信息来**复现**问题, 越详细的信息 (包括**日志 / 截图 / 配置**等)
@@ -35,7 +35,7 @@ body:
     attributes:
       label: Before submit
       options:
-        - label: 我已经确认现有的 [Server-Issues](https://github.com/hugegraph/hugegraph/issues) 与 [Common-Issues](https://github.com/hugegraph/hugegraph-common/issues) 中没有相同 / 重复问题
+        - label: 我已经确认现有的 [Server-Issues](https://github.com/hugegraph/hugegraph/issues) 与 [Commons-Issues](https://github.com/hugegraph/hugegraph-commons/issues) 中没有相同 / 重复问题
           required: true
 
   - type: textarea
