@@ -75,6 +75,11 @@ public class SortByCountIdHolderList extends IdHolderList {
         }
 
         @Override
+        public boolean keepOrder() {
+            return true;
+        }
+
+        @Override
         public Set<Id> all() {
             return CollectionUtil.sortByValue(this.ids, false).keySet();
         }
