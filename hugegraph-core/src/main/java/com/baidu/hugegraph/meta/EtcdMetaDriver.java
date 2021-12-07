@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.meta;
 
+import java.io.File;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
+import org.apache.commons.io.FileUtils;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
@@ -34,24 +37,44 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
+import io.etcd.jetcd.ClientBuilder;
 import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.kv.GetResponse;
 import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.watch.WatchEvent;
 import io.etcd.jetcd.watch.WatchResponse;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolNames;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 
 public class EtcdMetaDriver implements MetaDriver {
 
     private Client client;
 
-    @SuppressWarnings("unchecked")
+    public EtcdMetaDriver(String trustFile, String clientCertFile,
+                          String clientKeyFile, Object... endpoints) {
+        ClientBuilder builder = this.etcdMetaDriverBuilder(endpoints);
+
+        SslContext sslContext = openSslContext(trustFile, clientCertFile,
+                                               clientKeyFile);
+        this.client = builder.sslContext(sslContext).build();
+    }
+
     public EtcdMetaDriver(Object... endpoints) {
+        ClientBuilder builder = this.etcdMetaDriverBuilder(endpoints);
+        this.client = builder.build();
+    }
+
+    public ClientBuilder etcdMetaDriverBuilder(Object... endpoints) {
         int length = endpoints.length;
+        ClientBuilder builder = null;
         if (endpoints[0] instanceof List && endpoints.length == 1) {
-            this.client = Client.builder()
-                                .endpoints(((List<String>) endpoints[0])
-                                           .toArray(new String[0])).build();
+            builder = Client.builder()
+                            .endpoints(((List<String>) endpoints[0])
+                            .toArray(new String[0]));
         } else if (endpoints[0] instanceof String) {
             for (int i = 1; i < length; i++) {
                 E.checkArgument(endpoints[i] instanceof String,
@@ -59,9 +82,7 @@ public class EtcdMetaDriver implements MetaDriver {
                                 endpoints[i], endpoints[i].getClass(),
                                 endpoints[0], endpoints[0].getClass());
             }
-            this.client = Client.builder()
-                                .endpoints((String[]) endpoints)
-                                .build();
+            builder = Client.builder().endpoints((String[]) endpoints);
         } else if (endpoints[0] instanceof URI) {
             for (int i = 1; i < length; i++) {
                 E.checkArgument(endpoints[i] instanceof String,
@@ -69,13 +90,12 @@ public class EtcdMetaDriver implements MetaDriver {
                                 endpoints[i], endpoints[i].getClass(),
                                 endpoints[0], endpoints[0].getClass());
             }
-            this.client = Client.builder()
-                                .endpoints((URI[]) endpoints)
-                                .build();
+            builder = Client.builder().endpoints((URI[]) endpoints);
         } else {
             E.checkArgument(false, "Invalid endpoint %s(%s)",
                             endpoints[0], endpoints[0].getClass());
         }
+        return builder;
     }
 
     @Override
@@ -178,5 +198,33 @@ public class EtcdMetaDriver implements MetaDriver {
 
     private static boolean isEtcdPut(WatchEvent event) {
         return event.getEventType() == WatchEvent.EventType.PUT;
+    }
+
+    public static SslContext openSslContext(String trustFile,
+                                            String clientCertFile,
+                                            String clientKeyFile) {
+        SslContext ssl;
+        try {
+            File trustManagerFile = FileUtils.getFile(trustFile);
+            File keyCertChainFile = FileUtils.getFile(clientCertFile);
+            File KeyFile = FileUtils.getFile(clientKeyFile);
+            ApplicationProtocolConfig alpn = new ApplicationProtocolConfig(
+                    ApplicationProtocolConfig.Protocol.ALPN,
+                    ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+
+                    ApplicationProtocolConfig.SelectedListenerFailureBehavior
+                            .ACCEPT,
+                    ApplicationProtocolNames.HTTP_2);
+
+            ssl = SslContextBuilder.forClient()
+                                   .applicationProtocolConfig(alpn)
+                                   .sslProvider(SslProvider.OPENSSL)
+                                   .trustManager(trustManagerFile)
+                                   .keyManager(keyCertChainFile, KeyFile)
+                                   .build();
+        } catch (Exception e) {
+            throw new HugeException("Failed to open ssl context", e);
+        }
+        return ssl;
     }
 }

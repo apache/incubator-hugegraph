@@ -151,6 +151,38 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:2379"
             );
 
+    public static final ConfigOption<Boolean> META_USE_CA =
+            new ConfigOption<>(
+                    "meta.use_ca",
+                    "Whether to use ca to meta server.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> META_CA =
+            new ConfigOption<>(
+                    "meta.ca",
+                    "The ca file of meta server.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> META_CLIENT_CA =
+            new ConfigOption<>(
+                    "meta.client_ca",
+                    "The client ca file of meta server.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> META_CLIENT_KEY =
+            new ConfigOption<>(
+                    "meta.client_key",
+                    "The client key file of meta server.",
+                    null,
+                    ""
+            );
+
     public static final ConfigOption<String> CLUSTER =
             new ConfigOption<>(
                     "cluster",

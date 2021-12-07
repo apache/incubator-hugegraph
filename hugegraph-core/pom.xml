@@ -202,7 +202,25 @@
             <groupId>io.etcd</groupId>
             <artifactId>jetcd-core</artifactId>
             <version>0.5.2</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>netty-handler</artifactId>
+                    <groupId>io.netty</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <version>2.0.26.Final</version> <!-- See table for correct version -->
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>4.1.42.Final</version>
+        </dependency>
+
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>

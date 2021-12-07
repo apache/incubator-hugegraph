@@ -138,8 +138,17 @@ public final class GraphManager {
 
         // Init etcd client
         List<String> endpoints = conf.get(ServerOptions.META_ENDPOINTS);
+        boolean useCa = conf.get(ServerOptions.META_USE_CA);
+        String ca = null;
+        String clientCa = null;
+        String clientKey = null;
+        if (useCa) {
+            ca = conf.get(ServerOptions.META_CA);
+            clientCa = conf.get(ServerOptions.META_CLIENT_CA);
+            clientKey = conf.get(ServerOptions.META_CLIENT_KEY);
+        }
         this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.ETCD,
-                                 endpoints);
+                                 ca, clientCa, clientKey, endpoints);
         String k8sUrl = conf.get(ServerOptions.SERVER_K8S_URL);
         String oltpImage = conf.get(ServerOptions.SERVER_K8S_OLTP_IMAGE);
         String olapImage = conf.get(ServerOptions.SERVER_K8S_OLAP_IMAGE);

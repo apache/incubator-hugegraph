@@ -85,7 +85,7 @@ public class CoreTestSuite {
         List<String> endpoints = new ArrayList<>();
         endpoints.add("http://127.0.0.1:2379");
         metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
-                            endpoints);
+                            null, null, null, endpoints);
         authManager = new StandardAuthManager(metaManager,
                       "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg");
         authManager.initAdmin();

@@ -90,7 +90,9 @@ public class MetaManager {
     private MetaManager() {
     }
 
-    public void connect(String cluster, MetaDriverType type, Object... args) {
+    public void connect(String cluster, MetaDriverType type, String trustFile,
+                        String clientCertFile, String clientKeyFile,
+                        Object... args) {
         E.checkArgument(cluster != null && !cluster.isEmpty(),
                         "The cluster can't be null or empty");
         if (this.metaDriver == null) {
@@ -98,7 +100,11 @@ public class MetaManager {
 
             switch (type) {
                 case ETCD:
-                    this.metaDriver = new EtcdMetaDriver(args);
+                    this.metaDriver = trustFile == null || trustFile.isEmpty() ?
+                                      new EtcdMetaDriver(args) :
+                                      new EtcdMetaDriver(trustFile,
+                                                         clientCertFile,
+                                                         clientKeyFile, args);
                     break;
                 case PD:
                     // TODO: uncomment after implement PdMetaDriver

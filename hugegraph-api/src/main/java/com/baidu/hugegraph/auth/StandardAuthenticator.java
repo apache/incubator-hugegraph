@@ -40,9 +40,18 @@ public class StandardAuthenticator implements HugeAuthenticator {
     public void setup(HugeConfig config) {
         String cluster = config.get(ServerOptions.CLUSTER);
         List<String> endpoints = config.get(ServerOptions.META_ENDPOINTS);
+        boolean useCa = config.get(ServerOptions.META_USE_CA);
+        String ca = null;
+        String clientCa = null;
+        String clientKey = null;
+        if (useCa) {
+            ca = config.get(ServerOptions.META_CA);
+            clientCa = config.get(ServerOptions.META_CLIENT_CA);
+            clientKey = config.get(ServerOptions.META_CLIENT_KEY);
+        }
         MetaManager metaManager = MetaManager.instance();
         metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD,
-                            endpoints);
+                            ca, clientCa, clientKey, endpoints);
         this.authManager = new StandardAuthManager(metaManager,
                                                    config);
     }
@@ -102,9 +111,18 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
 
         List<String> endpoints = config.get(ServerOptions.META_ENDPOINTS);
+        boolean useCa = config.get(ServerOptions.META_USE_CA);
+        String ca = null;
+        String clientCa = null;
+        String clientKey = null;
+        if (useCa) {
+            ca = config.get(ServerOptions.META_CA);
+            clientCa = config.get(ServerOptions.META_CLIENT_CA);
+            clientKey = config.get(ServerOptions.META_CLIENT_KEY);
+        }
         String cluster = config.get(ServerOptions.CLUSTER);
         metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD,
-                            endpoints);
+                            ca, clientCa, clientKey, endpoints);
         StandardAuthManager authManager = new StandardAuthManager(metaManager,
                                                                   config);
         authManager.initAdmin();
