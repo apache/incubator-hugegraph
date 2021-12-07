@@ -8734,6 +8734,49 @@ public class VertexCoreTest extends BaseCoreTest {
         }
     }
 
+    @Test
+    public void testEnhanceTextMatch() {
+        HugeGraph graph = graph();
+
+        graph.schema().indexLabel("personByName").onV("person")
+             .by("name").search().ifNotExist().create();
+
+        Vertex vertex1 = graph.addVertex(T.label, "person", "name", "秦始皇",
+                                         "city", "Hongkong", "age", 15);
+        Vertex vertex2 = graph.addVertex(T.label, "person", "name", "始皇",
+                                         "city", "Hongkong", "age", 18);
+        Vertex vertex3 = graph.addVertex(T.label, "person", "name", "秦始皇2",
+                                         "city", "Beijing", "age", 21);
+        Vertex vertex4 = graph.addVertex(T.label, "person", "name", "秦始皇3",
+                                         "city", "Beijing", "age", 23);
+        Vertex vertex5 = graph.addVertex(T.label, "person", "name", "秦始皇帝",
+                                         "city", "Beijing", "age", 29);
+        graph.tx().commit();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices;
+        vertices = g.V().has("name", Text.contains("秦始皇")).toList();
+        Assert.assertEquals(5, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex2));
+
+        vertices = g.V().has("name", Text.contains("(秦始皇)")).toList();
+        Assert.assertEquals(4, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex1));
+        Assert.assertTrue(vertices.contains(vertex3));
+        Assert.assertTrue(vertices.contains(vertex4));
+        Assert.assertTrue(vertices.contains(vertex5));
+
+        vertices = g.V().has("name", Text.contains("(秦始皇帝)")).toList();
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex5));
+
+        vertices = g.V().has("name", Text.contains("(秦始皇2|秦始皇3)")).toList();
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertTrue(vertices.contains(vertex3));
+        Assert.assertTrue(vertices.contains(vertex4));
+    }
+
     private void init10Vertices() {
         HugeGraph graph = graph();
 

@@ -98,6 +98,10 @@ import com.google.common.collect.ImmutableSet;
 
 public class GraphIndexTransaction extends AbstractTransaction {
 
+    public static final String START_SYMBOL = "(";
+    public static final String END_SYMBOL = ")";
+    public static final String WORD_DELIMITER = "|";
+
     private final Analyzer textAnalyzer;
     private final int indexIntersectThresh;
 
@@ -874,11 +878,33 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private Set<String> segmentWords(String text) {
-        Set<String> words = this.textAnalyzer.segment(text);
+        /*
+         Support 3 kinds of query:
+         - Text.contains("(word)"): query by user-specified word;
+         - Text.contains("(word1|word2|word3)"): query by user-specified words;
+         - Text.contains("words"): query by words splitted from analyzer;
+         Note: all kinds support words exact match
+         */
+        if (text.startsWith(START_SYMBOL) && text.endsWith(END_SYMBOL)) {
+            String subText = text.substring(1, text.length() - 1);
+            if (subText.contains(WORD_DELIMITER)) {
+                String[] texts = StringUtils.split(subText, WORD_DELIMITER);
+                return ImmutableSet.copyOf(texts);
+            } else {
+                return ImmutableSet.of(subText);
+            }
+        }
+        Set<String> segments = this.textAnalyzer.segment(text);
+
+        /*
+         * Add original text to segments at the insertion stage,
+         * in order to can match fully words at the query stage.
+         */
+        segments.add(text);
 
         // Ignore unicode \u0000 to \u0003
-        words.removeAll(ConditionQuery.IGNORE_SYM_SET);
-        return words;
+        segments.removeAll(ConditionQuery.IGNORE_SYM_SET);
+        return segments;
     }
 
     private boolean needIndexForLabel() {
