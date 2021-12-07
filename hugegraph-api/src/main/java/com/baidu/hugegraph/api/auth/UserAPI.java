@@ -97,7 +97,7 @@ public class UserAPI extends API {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
-        authManager.updateUser(user, true);
+        user = authManager.updateUser(user, true);
         return manager.serializer().writeAuthElement(user);
     }
 

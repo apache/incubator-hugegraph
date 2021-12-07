@@ -99,7 +99,7 @@ public class AccessAPI extends API {
             throw new IllegalArgumentException("Invalid access id: " + id);
         }
         access = jsonAccess.build(access);
-        authManager.updateAccess(graphSpace, access, true);
+        access = authManager.updateAccess(graphSpace, access, true);
         return manager.serializer().writeAuthElement(access);
     }
 

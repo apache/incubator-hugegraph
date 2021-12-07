@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -548,15 +549,6 @@ public class MetaManager {
         return JsonUtil.toJson(objectMap);
     }
 
-    private <T> T deserialize(String content)
-            throws IOException, ClassNotFoundException {
-        byte[] source = content.getBytes();
-        ByteArrayInputStream bis = new ByteArrayInputStream(source);
-        ObjectInputStream ois = new ObjectInputStream(bis);
-        return (T) ois.readObject();
-        //Map<String, Object> map = JsonUtil.fromJson(content, Map.class);
-    }
-
     public void createUser(HugeUser user) throws IOException {
         String result = this.metaDriver.get(userKey(user.name()));
         E.checkArgument(StringUtils.isEmpty(result),
@@ -565,12 +557,20 @@ public class MetaManager {
 
     }
 
-    public void updateUser(HugeUser user) throws IOException {
+    public HugeUser updateUser(HugeUser user) throws IOException {
         String result = this.metaDriver.get(userKey(user.name()));
         E.checkArgument(StringUtils.isNotEmpty(result),
                         "The user name '%s' does not existed", user.name());
 
-        this.metaDriver.put(userKey(user.name()), serialize(user));
+        HugeUser ori = HugeUser.fromMap(JsonUtil.fromJson(result, Map.class));
+        ori.update(new Date());
+        ori.password(user.password());
+        ori.phone(user.phone());
+        ori.email(user.email());
+        ori.avatar(user.avatar());
+        ori.description(user.description());
+        this.metaDriver.put(userKey(user.name()), serialize(ori));
+        return ori;
     }
 
     public HugeUser deleteUser(Id id) throws IOException,
@@ -640,14 +640,20 @@ public class MetaManager {
         return IdGenerator.of(group.name());
     }
 
-    public Id updateGroup(String graphSpace, HugeGroup group)
+    public HugeGroup updateGroup(String graphSpace, HugeGroup group)
                           throws IOException {
         String result = this.metaDriver.get(groupKey(graphSpace, group.name()));
         E.checkArgument(StringUtils.isNotEmpty(result),
                         "The group name '%s' is not existed", group.name());
-        this.metaDriver.put(groupKey(graphSpace, group.name()),
-                            serialize(group));
-        return group.id();
+
+        // only description and update-time could be updated
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        HugeGroup ori = HugeGroup.fromMap(map);
+        ori.update(new Date());
+        ori.description(group.description());
+        this.metaDriver.put(groupKey(graphSpace, ori.name()),
+                            serialize(ori));
+        return ori;
     }
 
     public HugeGroup deleteGroup(String graphSpace, Id id)
@@ -723,15 +729,21 @@ public class MetaManager {
         return target.id();
     }
 
-    public Id updateTarget(String graphSpace, HugeTarget target)
+    public HugeTarget updateTarget(String graphSpace, HugeTarget target)
                            throws IOException {
         String result = this.metaDriver.get(targetKey(graphSpace,
                                                       target.name()));
         E.checkArgument(StringUtils.isNotEmpty(result),
                         "The target name '%s' is not existed", target.name());
+
+        // only resources and update-time could be updated
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        HugeTarget ori = HugeTarget.fromMap(map);
+        ori.update(new Date());
+        ori.resources(target.resources());
         this.metaDriver.put(targetKey(graphSpace, target.name()),
-                            serialize(target));
-        return target.id();
+                            serialize(ori));
+        return ori;
     }
 
     public HugeTarget deleteTarget(String graphSpace, Id id)
@@ -815,7 +827,7 @@ public class MetaManager {
         return IdGenerator.of(belongId);
     }
 
-    public Id updateBelong(String graphSpace, HugeBelong belong)
+    public HugeBelong updateBelong(String graphSpace, HugeBelong belong)
                            throws IOException, ClassNotFoundException {
         HugeUser user = this.findUser(belong.source().asString());
         E.checkArgument(user != null,
@@ -830,8 +842,14 @@ public class MetaManager {
         String result = this.metaDriver.get(belongKey(graphSpace, belongId));
         E.checkArgument(StringUtils.isNotEmpty(result),
                         "The belong name '%s' is not existed", belongId);
-        this.metaDriver.put(belongKey(graphSpace, belongId), serialize(belong));
-        return belong.id();
+
+        // only description and update-time could be updated
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        HugeBelong ori = HugeBelong.fromMap(map);
+        ori.update(new Date());
+        ori.description(belong.description());
+        this.metaDriver.put(belongKey(graphSpace, belongId), serialize(ori));
+        return ori;
     }
 
     public HugeBelong deleteBelong(String graphSpace, Id id)
@@ -972,7 +990,7 @@ public class MetaManager {
         return IdGenerator.of(accessId);
     }
 
-    public Id updateAccess(String graphSpace, HugeAccess access)
+    public HugeAccess updateAccess(String graphSpace, HugeAccess access)
                            throws IOException, ClassNotFoundException {
         HugeGroup group = this.getGroup(graphSpace, access.source());
         E.checkArgument(group != null,
@@ -994,8 +1012,14 @@ public class MetaManager {
         E.checkArgument(existed.permission().code() ==
                         access.permission().code(),
                         "The access name '%s' has existed", accessId);
-        this.metaDriver.put(accessKey(graphSpace, accessId), serialize(access));
-        return access.id();
+
+        // only description and update-time could be updated
+        Map<String, Object> oriMap = JsonUtil.fromJson(result, Map.class);
+        HugeAccess ori = HugeAccess.fromMap(oriMap);
+        ori.update(new Date());
+        ori.description(access.description());
+        this.metaDriver.put(accessKey(graphSpace, accessId), serialize(ori));
+        return ori;
     }
 
     public HugeAccess deleteAccess(String graphSpace, Id id)

@@ -98,7 +98,7 @@ public class BelongAPI extends API {
             throw new IllegalArgumentException("Invalid belong id: " + id);
         }
         belong = jsonBelong.build(belong);
-        authManager.updateBelong(graphSpace, belong, true);
+        belong = authManager.updateBelong(graphSpace, belong, true);
         return manager.serializer().writeAuthElement(belong);
     }
 

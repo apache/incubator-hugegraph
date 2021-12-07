@@ -96,7 +96,7 @@ public class TargetAPI extends API {
             throw new IllegalArgumentException("Invalid target id: " + id);
         }
         target = jsonTarget.build(target);
-        authManager.updateTarget(graphSpace, target, true);
+        target = authManager.updateTarget(graphSpace, target, true);
         return manager.serializer().writeAuthElement(target);
     }
 

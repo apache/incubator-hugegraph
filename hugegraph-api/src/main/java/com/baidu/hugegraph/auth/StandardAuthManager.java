@@ -223,8 +223,8 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id updateUser(HugeUser user, boolean required) {
-        Id username = IdGenerator.of(user.name());
+    public HugeUser updateUser(HugeUser user, boolean required) {
+        HugeUser result = null;
         try {
             HugeUser existed = this.findUser(user.name(), false);
             if (required && !existed.name().equals(currentUsername())) {
@@ -233,15 +233,14 @@ public class StandardAuthManager implements AuthManager {
             }
 
             this.updateCreator(user);
-            this.metaManager.updateUser(user);
+            result = this.metaManager.updateUser(user);
             this.invalidateUserCache();
             this.invalidatePasswordCache(user.id());
+            return result;
         } catch (IOException e) {
             throw new HugeException("IOException occurs when " +
                                     "serialize user", e);
         }
-
-        return username;
     }
 
     protected void deleteBelongsByUser(Id id) {
@@ -260,20 +259,17 @@ public class StandardAuthManager implements AuthManager {
         if (id.asString().equals("admin")) {
             throw new HugeException("admin could not be removed");
         }
-        HugeUser user = this.usersCache.get(id);
-        if (user != null) {
-            this.invalidateUserCache();
-            this.invalidatePasswordCache(id);
-        }
 
         try {
-            user = this.findUser(id.asString(), false);
+            HugeUser user = this.findUser(id.asString(), false);
             E.checkArgument(user != null,
                             "The user name '%s' is not existed",
                             id.asString());
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             this.deleteBelongsByUser(id);
+            this.invalidateUserCache();
+            this.invalidatePasswordCache(id);
             return this.metaManager.deleteUser(id);
         } catch (IOException e) {
             throw new HugeException("IOException occurs when " +
@@ -312,6 +308,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public HugeUser getUser(Id id, boolean required) {
         HugeUser user = this.findUser(id.asString(), false);
+        E.checkArgument(user != null, "The user is not existed");
         if (required && !user.name().equals(currentUsername())) {
             verifyUserPermission("", HugePermission.READ, user);
         }
@@ -370,7 +367,7 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id updateGroup(String graphSpace, HugeGroup group,
+    public HugeGroup updateGroup(String graphSpace, HugeGroup group,
                           boolean required) {
         this.invalidateUserCache();
         try {
@@ -489,14 +486,14 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id updateTarget(String graphSpace, HugeTarget target,
+    public HugeTarget updateTarget(String graphSpace, HugeTarget target,
                            boolean required) {
         try {
             this.updateCreator(target);
             if (required) {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, target);
             }
-            Id result = this.metaManager.updateTarget(graphSpace, target);
+            HugeTarget result = this.metaManager.updateTarget(graphSpace, target);
             this.invalidateUserCache();
             return result;
         } catch (IOException e) {
@@ -604,14 +601,14 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id updateBelong(String graphSpace, HugeBelong belong,
+    public HugeBelong updateBelong(String graphSpace, HugeBelong belong,
                            boolean required) {
         try {
             if (required) {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, belong);
             }
             this.updateCreator(belong);
-            Id result = this.metaManager.updateBelong(graphSpace, belong);
+            HugeBelong result = this.metaManager.updateBelong(graphSpace, belong);
             this.invalidateUserCache();
             return result;
         } catch (IOException e) {
@@ -756,14 +753,14 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public Id updateAccess(String graphSpace, HugeAccess access,
+    public HugeAccess updateAccess(String graphSpace, HugeAccess access,
                            boolean required) {
         try {
             if (required) {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, access);
             }
             this.updateCreator(access);
-            Id result = this.metaManager.updateAccess(graphSpace, access);
+            HugeAccess result = this.metaManager.updateAccess(graphSpace, access);
             this.invalidateUserCache();
             return result;
         } catch (IOException e) {

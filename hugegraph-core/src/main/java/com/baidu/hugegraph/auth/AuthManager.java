@@ -30,7 +30,7 @@ public interface AuthManager {
     public boolean close();
 
     public Id createUser(HugeUser user, boolean required);
-    public Id updateUser(HugeUser user, boolean required);
+    public HugeUser updateUser(HugeUser user, boolean required);
     public HugeUser deleteUser(Id id, boolean required);
     public HugeUser findUser(String name, boolean required);
     public HugeUser getUser(Id id, boolean required);
@@ -39,8 +39,8 @@ public interface AuthManager {
 
     public Id createGroup(String graphSpace, HugeGroup group,
                           boolean required);
-    public Id updateGroup(String graphSpace, HugeGroup group,
-                          boolean required);
+    public HugeGroup updateGroup(String graphSpace, HugeGroup group,
+                                 boolean required);
     public HugeGroup deleteGroup(String graphSpace, Id id, boolean required);
     public HugeGroup getGroup(String graphSpace, Id id, boolean required);
     public List<HugeGroup> listGroups(String graphSpace, List<Id> ids,
@@ -50,8 +50,8 @@ public interface AuthManager {
 
     public Id createTarget(String graphSpace, HugeTarget target,
                            boolean required);
-    public Id updateTarget(String graphSpace, HugeTarget target,
-                           boolean required);
+    public HugeTarget updateTarget(String graphSpace, HugeTarget target,
+                                   boolean required);
     public HugeTarget deleteTarget(String graphSpace, Id id, boolean required);
     public HugeTarget getTarget(String graphSpace, Id id, boolean required);
     public List<HugeTarget> listTargets(String graphSpace, List<Id> ids,
@@ -61,8 +61,8 @@ public interface AuthManager {
 
     public Id createBelong(String graphSpace, HugeBelong belong,
                            boolean required);
-    public Id updateBelong(String graphSpace, HugeBelong belong,
-                           boolean required);
+    public HugeBelong updateBelong(String graphSpace, HugeBelong belong,
+                                   boolean required);
     public HugeBelong deleteBelong(String graphSpace, Id id, boolean required);
     public HugeBelong getBelong(String graphSpace, Id id, boolean required);
     public List<HugeBelong> listBelong(String graphSpace, List<Id> ids,
@@ -76,8 +76,8 @@ public interface AuthManager {
 
     public Id createAccess(String graphSpace, HugeAccess access,
                            boolean required);
-    public Id updateAccess(String graphSpace, HugeAccess access,
-                           boolean required);
+    public HugeAccess updateAccess(String graphSpace, HugeAccess access,
+                                   boolean required);
     public HugeAccess deleteAccess(String graphSpace, Id id, boolean required);
     public HugeAccess getAccess(String graphSpace, Id id, boolean required);
     public List<HugeAccess> listAccess(String graphSpace, List<Id> ids,

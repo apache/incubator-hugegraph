@@ -197,7 +197,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("tom002", user.name());
         Assert.assertEquals("pass2", user.password());
 
-        Assert.assertNull(authManager.getUser(IdGenerator.of("fake"), false));
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            authManager.getUser(IdGenerator.of("fake"), false);
+        });
 
         Assert.assertThrows(NullPointerException.class, () -> {
             authManager.getUser(null, false);
@@ -582,7 +584,7 @@ public class AuthTest extends BaseCoreTest {
                                                    id,
                                                    false);
         Assert.assertEquals("target1", target2.name());
-        Assert.assertEquals("url2", target2.url());
+        Assert.assertEquals("url1", target2.url());
         Assert.assertEquals(oldUpdateTime, target2.create());
         Assert.assertNotEquals(oldUpdateTime, target2.update());
     }
@@ -1203,10 +1205,10 @@ public class AuthTest extends BaseCoreTest {
 
         access.permission(HugePermission.READ);
         access.description("description updated");
-        id = authManager.updateAccess(DEFAULT_GRAPH_SPACE, access, false);
+        HugeAccess access1 = authManager.updateAccess(DEFAULT_GRAPH_SPACE, access, false);
 
         HugeAccess access3 = authManager.getAccess(DEFAULT_GRAPH_SPACE,
-                                                   id, false);
+                                                   access1.id(), false);
         Assert.assertEquals(group, access3.source());
         Assert.assertEquals(target, access3.target());
         Assert.assertEquals("description updated", access3.description());
@@ -1458,7 +1460,7 @@ public class AuthTest extends BaseCoreTest {
         authManager.deleteUser(userId, false);
         userWithRole = authManager.validateUser(token);
         Assert.assertEquals("test001", userWithRole.username());
-        Assert.assertEquals("{\"roles\":{}}", userWithRole.role().toJson());
+        Assert.assertEquals(null, userWithRole.role());
     }
 
     @Test

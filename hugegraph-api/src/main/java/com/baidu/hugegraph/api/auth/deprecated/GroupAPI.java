@@ -86,7 +86,7 @@ public class GroupAPI extends API {
 
         HugeGroup group = jsonGroup.build(graphSpace);
         AuthManager authManager = manager.authManager();
-        authManager.updateGroup(graphSpace, group, true);
+        group = authManager.updateGroup(graphSpace, group, true);
         return manager.serializer().writeAuthElement(group);
     }
 
