@@ -38,11 +38,11 @@ public class OlapPropertyKeyClearCallable extends IndexLabelRemoveCallable {
     public Object execute() {
         Id olap = this.schemaId();
 
+        // Clear olap data table
+        this.params().graphTransaction().clearOlapPk(olap);
+
         // Clear corresponding index data
         clearIndexLabel(this.params(), olap);
-
-        // Clear olap table
-        this.params().schemaTransaction().clearOlapPk(olap);
         return null;
     }
 
@@ -60,9 +60,9 @@ public class OlapPropertyKeyClearCallable extends IndexLabelRemoveCallable {
         }
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_CLEAR, olapIndexLabel);
-            // Set index label to "clearing" status
-            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.CLEARING);
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, olapIndexLabel);
+            // Set index label to "rebuilding" status
+            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.REBUILDING);
             try {
                 // Remove index data
                 graphTx.removeIndex(indexLabel);

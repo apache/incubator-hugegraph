@@ -60,8 +60,8 @@ import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LockUtil;
@@ -181,7 +181,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(Id id) {
         E.checkArgumentNotNull(id, "Vertex label id can't be null");
-        if (SchemaElement.OLAP_ID.equals(id)) {
+        if (VertexLabel.OLAP_VL.id().equals(id)) {
             return VertexLabel.OLAP_VL;
         }
         return this.getSchema(HugeType.VERTEX_LABEL, id);
@@ -191,7 +191,7 @@ public class SchemaTransaction extends IndexableTransaction {
     public VertexLabel getVertexLabel(String name) {
         E.checkArgumentNotNull(name, "Vertex label name can't be null");
         E.checkArgument(!name.isEmpty(), "Vertex label name can't be empty");
-        if (SchemaElement.OLAP.equals(name)) {
+        if (VertexLabel.OLAP_VL.name().equals(name)) {
             return VertexLabel.OLAP_VL;
         }
         return this.getSchema(HugeType.VERTEX_LABEL, name);
@@ -239,8 +239,7 @@ public class SchemaTransaction extends IndexableTransaction {
          * Update index name in base-label(VL/EL)
          * TODO: should wrap update base-label and create index in one tx.
          */
-        if (schemaLabel instanceof VertexLabel &&
-            schemaLabel.equals(VertexLabel.OLAP_VL)) {
+        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
         schemaLabel.indexLabel(indexLabel.id());
@@ -288,10 +287,11 @@ public class SchemaTransaction extends IndexableTransaction {
             return;
         }
 
-        String indexName = SchemaElement.OLAP + "_by_" + propertyKey.name();
+        String indexName = VertexLabel.OLAP_VL.name() + "_by_" +
+                           propertyKey.name();
         IndexLabel.Builder builder = this.graph().schema()
                                          .indexLabel(indexName)
-                                         .onV(SchemaElement.OLAP)
+                                         .onV(VertexLabel.OLAP_VL.name())
                                          .by(propertyKey.name());
         if (propertyKey.writeType() == WriteType.OLAP_SECONDARY) {
             builder.secondary();
@@ -299,7 +299,6 @@ public class SchemaTransaction extends IndexableTransaction {
             assert propertyKey.writeType() == WriteType.OLAP_RANGE;
             builder.range();
         }
-        builder.build();
         this.graph().addIndexLabel(VertexLabel.OLAP_VL, builder.build());
     }
 
@@ -322,27 +321,6 @@ public class SchemaTransaction extends IndexableTransaction {
                   propertyKey.name(), propertyKey.id());
         SchemaCallable callable = new OlapPropertyKeyRemoveCallable();
         return asyncRun(this.graph(), propertyKey, callable);
-    }
-
-    public void createOlapPk(Id id) {
-        this.store().provider().createOlapTable(this.graph(), id);
-    }
-
-    public void initAndRegisterOlapTables() {
-        for (PropertyKey pk : this.getPropertyKeys()) {
-            if (pk.olap()) {
-                this.store().provider().initAndRegisterOlapTable(this.graph(),
-                                                                 pk.id());
-            }
-        }
-    }
-
-    public void clearOlapPk(Id id) {
-        this.store().provider().clearOlapTable(this.graph(), id);
-    }
-
-    public void removeOlapPk(Id id) {
-        this.store().provider().removeOlapTable(this.graph(), id);
     }
 
     @Watched(prefix = "schema")

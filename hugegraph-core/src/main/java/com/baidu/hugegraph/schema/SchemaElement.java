@@ -40,14 +40,18 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
     public static final int NEXT_PRIMITIVE_SYS_ID = 8;
 
+    // ABS of system schema id must be below MAX_PRIMITIVE_SYS_ID
+    protected static final int VL_IL_ID = -1;
+    protected static final int EL_IL_ID = -2;
+    protected static final int PKN_IL_ID = -3;
+    protected static final int VLN_IL_ID = -4;
+    protected static final int ELN_IL_ID = -5;
+    protected static final int ILN_IL_ID = -6;
+    protected static final int OLAP_VL_ID = -7;
+
     public static final Id NONE_ID = IdGenerator.ZERO;
 
     public static final String UNDEF = "~undefined";
-
-    // OLAP_ID means all of vertex label ids
-    public static final Id OLAP_ID = IdGenerator.of(-7);
-    // OLAP means all of vertex label names
-    public static final String OLAP = "~olap";
 
     protected final HugeGraph graph;
 

@@ -2060,4 +2060,20 @@ public class GraphTransaction extends IndexableTransaction {
             } while (page != null);
         }
     }
+
+    public void createOlapPk(Id pkId) {
+        this.store().createOlapTable(pkId);
+    }
+
+    public void initAndRegisterOlapTable(Id pkId) {
+        this.store().checkAndRegisterOlapTable(pkId);
+    }
+
+    public void clearOlapPk(Id pkId) {
+        this.store().clearOlapTable(pkId);
+    }
+
+    public void removeOlapPk(Id pkId) {
+        this.store().removeOlapTable(pkId);
+    }
 }

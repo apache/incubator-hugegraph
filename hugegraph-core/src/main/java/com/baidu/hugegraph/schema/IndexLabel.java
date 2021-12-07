@@ -131,7 +131,7 @@ public class IndexLabel extends SchemaElement {
     }
 
     public boolean olap() {
-        return OLAP_ID.equals(this.baseValue);
+        return VertexLabel.OLAP_VL.id().equals(this.baseValue);
     }
 
     public Object validValue(Object value) {
@@ -153,14 +153,6 @@ public class IndexLabel extends SchemaElement {
                 return value;
         }
     }
-
-    // ABS of System index id must be below SchemaElement.MAX_PRIMITIVE_SYS_ID
-    private static final int VL_IL_ID = -1;
-    private static final int EL_IL_ID = -2;
-    private static final int PKN_IL_ID = -3;
-    private static final int VLN_IL_ID = -4;
-    private static final int ELN_IL_ID = -5;
-    private static final int ILN_IL_ID = -6;
 
     // Label index
     private static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");

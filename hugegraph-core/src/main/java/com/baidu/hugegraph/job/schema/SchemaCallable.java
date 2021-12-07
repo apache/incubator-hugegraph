@@ -10,6 +10,7 @@ import com.baidu.hugegraph.job.SysJob;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 
@@ -65,7 +66,7 @@ public abstract class SchemaCallable extends SysJob<Object> {
         Id baseValue = label.baseValue();
         SchemaLabel schemaLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            if (SchemaElement.OLAP_ID.equals(baseValue)) {
+            if (VertexLabel.OLAP_VL.id().equals(baseValue)) {
                 return;
             }
             schemaLabel = tx.getVertexLabel(baseValue);

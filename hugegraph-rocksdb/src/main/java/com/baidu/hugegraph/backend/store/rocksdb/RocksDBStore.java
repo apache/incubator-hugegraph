@@ -1050,25 +1050,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                       "RocksDBGraphStore.getCounter()");
         }
 
+        /**
+         * TODO: can we remove this method since createOlapTable would register?
+         */
         @Override
-        public void createOlapTable(Id pkId) {
-            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
-            this.createTable(this.db(HugeType.OLAP), table.table());
-            registerTableManager(this.olapTableName(pkId), table);
-        }
-
-        @Override
-        public void checkAndRegisterOlapTable(Id pkId) {
-            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), pkId);
+        public void checkAndRegisterOlapTable(Id id) {
+            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), id);
             if (!super.sessions.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", table.table());
             }
-            registerTableManager(this.olapTableName(pkId), table);
+            registerTableManager(this.olapTableName(id), table);
         }
 
         @Override
-        public void clearOlapTable(Id pkId) {
-            String name = this.olapTableName(pkId);
+        public void createOlapTable(Id id) {
+            RocksDBTable table = new RocksDBTables.OlapTable(this.store(), id);
+            this.createTable(this.db(HugeType.OLAP), table.table());
+            registerTableManager(this.olapTableName(id), table);
+        }
+
+        @Override
+        public void clearOlapTable(Id id) {
+            String name = this.olapTableName(id);
             RocksDBTable table = this.table(name);
             RocksDBSessions db = this.db(HugeType.OLAP);
             if (table == null || !db.existsTable(table.table())) {
@@ -1079,15 +1082,15 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
 
         @Override
-        public void removeOlapTable(Id pkId) {
-            String name = this.olapTableName(pkId);
+        public void removeOlapTable(Id id) {
+            String name = this.olapTableName(id);
             RocksDBTable table = this.table(name);
             RocksDBSessions db = this.db(HugeType.OLAP);
             if (table == null || !db.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s''", name);
             }
             this.dropTable(db, table.table());
-            this.unregisterTableManager(this.olapTableName(pkId));
+            this.unregisterTableManager(this.olapTableName(id));
         }
     }
 }
