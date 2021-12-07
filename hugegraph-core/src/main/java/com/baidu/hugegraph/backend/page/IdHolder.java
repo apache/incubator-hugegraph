@@ -50,6 +50,10 @@ public abstract class IdHolder {
         return this.query;
     }
 
+    public boolean keepOrder() {
+        return false;
+    }
+
     @Override
     public String toString() {
         return String.format("%s{origin:%s,final:%s}",
@@ -58,10 +62,6 @@ public abstract class IdHolder {
     }
 
     public abstract boolean paging();
-
-    public boolean keepOrder() {
-        return false;
-    }
 
     public abstract Set<Id> all();
 
