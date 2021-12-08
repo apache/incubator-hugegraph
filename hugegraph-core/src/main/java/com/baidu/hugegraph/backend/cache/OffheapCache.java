@@ -111,16 +111,24 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     @Override
     protected boolean write(Id id, Object value, long timeOffset) {
         Value serializedValue = new Value(value);
-        int serializedSize = serializedValue.serializedSize();
-        if (serializedSize > VALUE_SIZE_TO_SKIP) {
-            LOG.info("Skip to cache '{}' due to value size {} > limit {}",
-                      id, serializedSize, VALUE_SIZE_TO_SKIP);
+        int serializedSize;
+        try {
+            serializedSize = serializedValue.serializedSize();
+        } catch (Throwable e) {
+            // May can't cache value that failed to serialize, like 0x00 byte
+            LOG.warn("Can't cache '{}' due to {}", id, e.toString());
             return false;
         }
+        if (serializedSize > VALUE_SIZE_TO_SKIP) {
+            LOG.info("Skip to cache '{}' due to value size {} > limit {}",
+                    id, serializedSize, VALUE_SIZE_TO_SKIP);
+            return false;
+        }
+
         long expireTime = this.expire();
         boolean success;
         if (expireTime <= 0L) {
-             success = this.cache.put(id, serializedValue);
+            success = this.cache.put(id, serializedValue);
         } else {
             expireTime += now() + timeOffset;
             /*
@@ -146,11 +154,11 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     private OHCacheBuilder<Id, Value> builder() {
         return OHCacheBuilder.<Id, Value>newBuilder()
-                             .keySerializer(new IdSerializer())
-                             .valueSerializer(new ValueSerializer())
-                             .eviction(Eviction.LRU)
-                             .throwOOME(true)
-                             .timeouts(true);
+                .keySerializer(new IdSerializer())
+                .valueSerializer(new ValueSerializer())
+                .eviction(Eviction.LRU)
+                .throwOOME(true)
+                .timeouts(true);
     }
 
     private class IdSerializer implements CacheSerializer<Id> {
@@ -169,7 +177,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         public int serializedSize(Id id) {
             // NOTE: return size must be == actual bytes to write
             return BytesBuffer.allocate(id.length() + 2)
-                              .writeId(id, true).position();
+                    .writeId(id, true).position();
         }
     }
 
@@ -222,10 +230,15 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 if (this.value instanceof List) {
                     listSize = ((List<?>) this.value).size();
                 }
-                this.svalue = BytesBuffer.allocate(64 * listSize);
-                this.serialize(this.value, this.svalue);
-                this.serializedSize = this.svalue.position();
-                this.svalue.forReadWritten();
+
+                BytesBuffer buffer = BytesBuffer.allocate(64 * listSize);
+
+                // May fail to serialize and throw exception here
+                this.serialize(this.value, buffer);
+
+                this.serializedSize = buffer.position();
+                buffer.forReadWritten();
+                this.svalue = buffer;
             }
             return this.svalue.asByteBuffer();
         }
@@ -323,13 +336,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private HugeException unsupported(ValueType type) {
             throw new HugeException(
-                      "Unsupported deserialize type: %s", type);
+                    "Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
             throw new HugeException(
-                      "Unsupported type of serialize value: '%s'(%s)",
-                      value, value.getClass());
+                    "Unsupported type of serialize value: '%s'(%s)",
+                    value, value.getClass());
         }
     }
 
@@ -368,7 +381,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         public static ValueType valueOf(int index) {
             ValueType[] values = values();
             E.checkArgument(0 <= index && index < values.length,
-                            "Invalid ValueType index %s", index);
+                    "Invalid ValueType index %s", index);
             return values[index];
         }
 
