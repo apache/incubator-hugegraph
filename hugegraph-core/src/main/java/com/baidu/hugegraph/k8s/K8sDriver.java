@@ -67,6 +67,17 @@ public class K8sDriver {
     private String olapImage;
     private String storageImage;
 
+    public K8sDriver(String url, String caFile, String clientCaFile,
+                     String clientKeyFile) {
+        Config config = new ConfigBuilder().withMasterUrl(url)
+                                           .withTrustCerts(true)
+                                           .withCaCertFile(caFile)
+                                           .withClientCertFile(clientCaFile)
+                                           .withClientKeyFile(clientKeyFile)
+                                           .build();
+        this.client = new DefaultKubernetesClient(config);
+    }
+
     public K8sDriver(String url) {
         Config config = new ConfigBuilder().withMasterUrl(url).build();
         this.client = new DefaultKubernetesClient(config);

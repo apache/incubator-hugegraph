@@ -207,6 +207,38 @@ public class ServerOptions extends OptionHolder {
                     "https://127.0.0.1:8888"
             );
 
+    public static final ConfigOption<Boolean> SERVER_K8S_USE_CA =
+            new ConfigOption<>(
+                    "server.k8s_use_ca",
+                    "Whether to use ca to k8s api server.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_CA =
+            new ConfigOption<>(
+                    "server.k8s_ca",
+                    "The ca file of ks8 api server.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_CLIENT_CA =
+            new ConfigOption<>(
+                    "server.k8s_client_ca",
+                    "The client ca file of k8s api server.",
+                    null,
+                    ""
+            );
+
+    public static final ConfigOption<String> SERVER_K8S_CLIENT_KEY =
+            new ConfigOption<>(
+                    "server.k8s_client_key",
+                    "The client key file of k8s api server.",
+                    null,
+                    ""
+            );
+
     public static final ConfigOption<String> SERVER_K8S_OLTP_IMAGE =
             new ConfigOption<>(
                     "server.k8s_oltp_image",

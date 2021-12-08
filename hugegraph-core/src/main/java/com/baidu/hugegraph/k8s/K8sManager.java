@@ -40,11 +40,14 @@ public class K8sManager {
     private K8sManager() {
     }
 
-    public void connect(String url, String oltpImage,
+    public void connect(String url, String caFile, String clientCaFile,
+                        String clientKeyFile, String oltpImage,
                         String olapImage, String storageImage) {
         E.checkArgument(url != null && !url.isEmpty(),
                         "The url of k8s can't be null or empty");
-        this.k8sDriver = new K8sDriver(url);
+        this.k8sDriver = caFile == null || caFile.isEmpty() ?
+                         new K8sDriver(url) :
+                         new K8sDriver(url, caFile, clientCaFile, clientKeyFile);
         this.k8sDriver.oltpImage(oltpImage);
         this.k8sDriver.olapImage(olapImage);
         this.k8sDriver.storageImage(storageImage);
