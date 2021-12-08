@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -485,13 +486,32 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
-                                       "name", "James Gosling", "age", 62,
-                                       "lived", "Canadian");
+                "name", "James Gosling", "age", 62,
+                "lived", "Canadian");
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
         graph.tx().commit();
 
+        HugeConfig config = (HugeConfig) graph.configuration();
+        boolean l2Cache = config.get(CoreOptions.EDGE_CACHE_TYPE).equals("l2");
         String backend = graph.backend();
-        if (backend.equals("postgresql")) {
+        if (l2Cache || backend.equals("rocksdb") || backend.equals("hbase")) {
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                james.addEdge("write", book, "time", "2017-5-27\u0000");
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                        e.getMessage());
+            });
+
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                graph.traversal().V(james.id())
+                        .outE("write").has("time", "2017-5-27\u0000")
+                        .toList();
+            }, e -> {
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                        e.getMessage());
+            });
+        } else if (backend.equals("postgresql")) {
             Assert.assertThrows(BackendException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
@@ -499,43 +519,26 @@ public class EdgeCoreTest extends BaseCoreTest {
                 // pgsql need to clear and reset state (like auto-commit)
                 graph.tx().rollback();
                 Assert.assertContains("invalid byte sequence for encoding " +
-                                      "\"UTF8\": 0x00",
-                                      e.getCause().getMessage());
+                                "\"UTF8\": 0x00",
+                        e.getCause().getMessage());
             });
 
             Assert.assertThrows(BackendException.class, () -> {
                 graph.traversal().V(james.id())
-                     .outE("write").has("time", "2017-5-27\u0000")
-                     .toList();
+                        .outE("write").has("time", "2017-5-27\u0000")
+                        .toList();
             }, e -> {
                 Assert.assertContains("Zero bytes may not occur in string " +
-                                      "parameters", e.getCause().getMessage());
-            });
-        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
-            Assert.assertThrows(IllegalArgumentException.class, () -> {
-                james.addEdge("write", book, "time", "2017-5-27\u0000");
-                graph.tx().commit();
-            }, e -> {
-                Assert.assertContains("Can't contains byte '0x00' in string",
-                                      e.getMessage());
-            });
-
-            Assert.assertThrows(IllegalArgumentException.class, () -> {
-                graph.traversal().V(james.id())
-                     .outE("write").has("time", "2017-5-27\u0000")
-                     .toList();
-            }, e -> {
-                Assert.assertContains("Can't contains byte '0x00' in string",
-                                      e.getMessage());
+                        "parameters", e.getCause().getMessage());
             });
         } else {
             james.addEdge("write", book, "time", "2017-5-27\u0000");
             graph.tx().commit();
 
             List<Edge> edges = graph.traversal().V(james.id())
-                                                .outE("write")
-                                                .has("time", "2017-5-27\u0000")
-                                                .toList();
+                    .outE("write")
+                    .has("time", "2017-5-27\u0000")
+                    .toList();
             Assert.assertEquals(1, edges.size());
             Assert.assertEquals("2017-5-27\u0000", edges.get(0).value("time"));
         }
