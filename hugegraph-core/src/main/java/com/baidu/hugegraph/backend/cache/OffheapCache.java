@@ -121,14 +121,14 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
         if (serializedSize > VALUE_SIZE_TO_SKIP) {
             LOG.info("Skip to cache '{}' due to value size {} > limit {}",
-                    id, serializedSize, VALUE_SIZE_TO_SKIP);
+                      id, serializedSize, VALUE_SIZE_TO_SKIP);
             return false;
         }
 
         long expireTime = this.expire();
         boolean success;
         if (expireTime <= 0L) {
-            success = this.cache.put(id, serializedValue);
+             success = this.cache.put(id, serializedValue);
         } else {
             expireTime += now() + timeOffset;
             /*
@@ -154,11 +154,11 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     private OHCacheBuilder<Id, Value> builder() {
         return OHCacheBuilder.<Id, Value>newBuilder()
-                .keySerializer(new IdSerializer())
-                .valueSerializer(new ValueSerializer())
-                .eviction(Eviction.LRU)
-                .throwOOME(true)
-                .timeouts(true);
+                             .keySerializer(new IdSerializer())
+                             .valueSerializer(new ValueSerializer())
+                             .eviction(Eviction.LRU)
+                             .throwOOME(true)
+                             .timeouts(true);
     }
 
     private class IdSerializer implements CacheSerializer<Id> {
@@ -177,7 +177,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         public int serializedSize(Id id) {
             // NOTE: return size must be == actual bytes to write
             return BytesBuffer.allocate(id.length() + 2)
-                    .writeId(id, true).position();
+                              .writeId(id, true).position();
         }
     }
 
@@ -336,13 +336,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private HugeException unsupported(ValueType type) {
             throw new HugeException(
-                    "Unsupported deserialize type: %s", type);
+                      "Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
             throw new HugeException(
-                    "Unsupported type of serialize value: '%s'(%s)",
-                    value, value.getClass());
+                      "Unsupported type of serialize value: '%s'(%s)",
+                      value, value.getClass());
         }
     }
 
@@ -352,13 +352,16 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         LIST,
         VERTEX,
         EDGE,
-        BYTES(DataType.BLOB),
+        BOOLEAN(DataType.BOOLEAN),
+        BYTE(DataType.BYTE),
+        BLOB(DataType.BLOB),
         STRING(DataType.TEXT),
         INT(DataType.INT),
         LONG(DataType.LONG),
         FLOAT(DataType.FLOAT),
         DOUBLE(DataType.DOUBLE),
-        DATE(DataType.DATE);
+        DATE(DataType.DATE),
+        UUID(DataType.UUID);
 
         private DataType dataType;
 
@@ -381,7 +384,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         public static ValueType valueOf(int index) {
             ValueType[] values = values();
             E.checkArgument(0 <= index && index < values.length,
-                    "Invalid ValueType index %s", index);
+                            "Invalid ValueType index %s", index);
             return values[index];
         }
 
@@ -392,7 +395,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 return ValueType.LIST;
             } else if (HugeVertex.class.isAssignableFrom(clazz)) {
                 return ValueType.VERTEX;
-            } else if (clazz == HugeEdge.class) {
+            } else if (HugeEdge.class.isAssignableFrom(clazz)) {
                 return ValueType.EDGE;
             } else {
                 for (ValueType type : values()) {

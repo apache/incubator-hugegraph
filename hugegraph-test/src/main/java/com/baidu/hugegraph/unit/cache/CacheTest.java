@@ -24,13 +24,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.LevelCache;
@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
@@ -183,25 +184,22 @@ public abstract class CacheTest extends BaseUnitTest {
             return this.graph;
         }
 
-        @Override
         @Test
-        public void testUpdateAndGetWithDataType() {
+        public void testUpdateAndGetWithInvalidDataType() {
             Cache<Id, Object> cache = newCache();
             Id id = IdGenerator.of("1");
 
-            Assert.assertThrows(HugeException.class, () -> {
-                cache.update(id, 'c');
-            }, e -> {
-                Assert.assertContains("Unsupported type of serialize value",
-                                      e.getMessage());
-            });
+            cache.update(id, 'c');
+            Assert.assertNull(cache.get(id));
 
-            Assert.assertThrows(HugeException.class, () -> {
-                cache.update(id, true);
-            }, e -> {
-                Assert.assertContains("Unsupported type of serialize value",
-                                      e.getMessage());
-            });
+            cache.update(id, new Object());
+            Assert.assertNull(cache.get(id));
+
+            cache.update(id, new byte[]{1});
+            Assert.assertNull(cache.get(id));
+
+            cache.update(id, "string");
+            Assert.assertEquals("string", cache.get(id));
         }
     }
 
@@ -240,15 +238,26 @@ public abstract class CacheTest extends BaseUnitTest {
         Assert.assertNull(cache.get(id));
 
         /*
+         * BOOLEAN
+         * BYTE
          * STRING
          * INT
          * LONG
          * FLOAT
          * DOUBLE
          * DATE
-         * BYTES
+         * UUID
+         * BLOB
          * LIST
          */
+        cache.update(id, true);
+        Assert.assertEquals(true, cache.get(id));
+        cache.update(id, false);
+        Assert.assertEquals(false, cache.get(id));
+
+        cache.update(id, (byte) 123);
+        Assert.assertEquals((byte) 123, cache.get(id));
+
         cache.update(id, "string");
         Assert.assertEquals("string", cache.get(id));
 
@@ -268,9 +277,13 @@ public abstract class CacheTest extends BaseUnitTest {
         cache.update(id, now);
         Assert.assertEquals(now, cache.get(id));
 
+        UUID uuid = UUID.randomUUID();
+        cache.update(id, uuid);
+        Assert.assertEquals(uuid, cache.get(id));
+
         byte[] bytes = new byte[]{1, 33, 88};
-        cache.update(id, bytes);
-        Assert.assertArrayEquals(bytes, (byte[]) cache.get(id));
+        cache.update(id, Blob.wrap(bytes));
+        Assert.assertEquals(Blob.wrap(bytes), cache.get(id));
 
         List<Integer> list = ImmutableList.of(1, 3, 5);
         cache.update(id, list);
