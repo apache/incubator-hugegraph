@@ -8729,9 +8729,6 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testAddVertexWithSpecialSymbolInPrimaryValues() {
         HugeGraph graph = graph();
 
-        Vertex vertex0 = graph.addVertex(T.label, "person", "name",
-                                         "xyz\u0000abc", "city", "Hongkong",
-                                         "age", 10);
         Vertex vertex1 = graph.addVertex(T.label, "person", "name",
                                          "xyz\u0001abc", "city", "Hongkong",
                                          "age", 11);
@@ -8744,14 +8741,21 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         GraphTraversalSource g = graph.traversal();
-        Assert.assertEquals(vertex0, g.V().hasLabel("person")
-                                      .has("name", "xyz\u0000abc").next());
+
         Assert.assertEquals(vertex1, g.V().hasLabel("person")
                                       .has("name", "xyz\u0001abc").next());
         Assert.assertEquals(vertex2, g.V().hasLabel("person")
                                       .has("name", "xyz\u0002abc").next());
         Assert.assertEquals(vertex3, g.V().hasLabel("person")
                                       .has("name", "xyz\u0003abc").next());
+
+        if (!graph.backend().equals("postgresql")) {
+            Vertex vertex0 = graph.addVertex(T.label, "person", "name",
+                                             "xyz\u0000abc", "city", "Hongkong",
+                                             "age", 10);
+            Assert.assertEquals(vertex0, g.V().hasLabel("person")
+                                          .has("name", "xyz\u0000abc").next());
+        }
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name",
@@ -8867,10 +8871,20 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = g.V().has("city", Text.contains("\u0001")).toList();
         Assert.assertEquals(0, vertices.size());
 
-        if (graph.backend().equals("postgresql")) {
+        String backend = graph.backend();
+        if (ImmutableSet.of("rocksdb", "hbase").contains(backend)) {
+            Assert.assertThrows(Exception.class, () -> {
+                graph.addVertex(T.label, "person", "name", "0",
+                                "city", "xyz\u0000efg", "age", 0);
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("can't contains byte '0x00'",
+                                      e.getMessage());
+            });
+        } else if (backend.equals("postgresql")) {
             Assert.assertThrows(BackendException.class, () -> {
                 graph.addVertex(T.label, "person", "name", "7",
-                                "city", "\u0000",
+                                "city", "xyz\u0000efg",
                                 "age", 15);
                 graph.tx().commit();
             }, e -> {
