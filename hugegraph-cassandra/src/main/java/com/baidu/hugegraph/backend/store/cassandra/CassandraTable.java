@@ -186,7 +186,7 @@ public abstract class CassandraTable
         // Is query by id?
         List<Select> ids = this.queryId2Select(query, select);
 
-        if (query.conditions().isEmpty()) {
+        if (query.conditionsSize() == 0) {
             // Query only by id
             this.setPageState(query, ids);
             LOG.debug("Query only by id(s): {}", ids);
@@ -251,13 +251,13 @@ public abstract class CassandraTable
 
     protected List<Select> queryId2Select(Query query, Select select) {
         // Query by id(s)
-        if (query.ids().isEmpty()) {
+        if (query.idsSize() == 0) {
             return ImmutableList.of(select);
         }
 
         List<HugeKeys> nameParts = this.idColumnName();
 
-        List<List<Object>> ids = new ArrayList<>(query.ids().size());
+        List<List<Object>> ids = new ArrayList<>(query.idsSize());
         for (Id id : query.ids()) {
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {

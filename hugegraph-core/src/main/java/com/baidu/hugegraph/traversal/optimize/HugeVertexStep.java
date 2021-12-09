@@ -159,7 +159,7 @@ public class HugeVertexStep<E extends Element>
         }
 
         // Query by has(id)
-        if (!query.ids().isEmpty()) {
+        if (query.idsSize() > 0) {
             // Ignore conditions if query by edge id in has-containers
             // FIXME: should check that the edge id matches the `vertex`
             query.resetConditions();

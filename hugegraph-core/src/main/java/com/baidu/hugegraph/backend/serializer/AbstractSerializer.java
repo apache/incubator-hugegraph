@@ -47,8 +47,8 @@ public abstract class AbstractSerializer
         HugeType type = query.resultType();
 
         // Serialize edge condition query (TODO: add VEQ(for EOUT/EIN))
-        if (type.isEdge() && !query.conditions().isEmpty()) {
-            if (!query.ids().isEmpty()) {
+        if (type.isEdge() && query.conditionsSize() > 0) {
+            if (query.idsSize() > 0) {
                 throw new BackendException("Not supported query edge by id " +
                                            "and by condition at the same time");
             }
@@ -60,7 +60,11 @@ public abstract class AbstractSerializer
         }
 
         // Serialize id in query
-        if (query instanceof IdQuery && !query.ids().isEmpty()) {
+        if (query.idsSize() == 1 && query instanceof IdQuery.OneIdQuery) {
+            IdQuery.OneIdQuery result = (IdQuery.OneIdQuery) query.copy();
+            result.resetId(this.writeQueryId(type, result.id()));
+            query = result;
+        } else if (query.idsSize() > 0 && query instanceof IdQuery) {
             IdQuery result = (IdQuery) query.copy();
             result.resetIds();
             for (Id id : query.ids()) {
@@ -70,7 +74,7 @@ public abstract class AbstractSerializer
         }
 
         // Serialize condition(key/value) in query
-        if (query instanceof ConditionQuery && !query.conditions().isEmpty()) {
+        if (query instanceof ConditionQuery && query.conditionsSize() > 0) {
             query = this.writeQueryCondition(query);
         }
 

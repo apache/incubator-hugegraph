@@ -75,6 +75,11 @@ public class IdQuery extends Query {
     }
 
     @Override
+    public int idsSize() {
+        return this.ids.size();
+    }
+
+    @Override
     public Set<Id> ids() {
         return Collections.unmodifiableSet(this.ids);
     }
@@ -111,5 +116,66 @@ public class IdQuery extends Query {
         query.ids = this.ids == EMPTY_IDS ? EMPTY_IDS :
                     InsertionOrderUtil.newSet(this.ids);
         return query;
+    }
+
+    public static final class OneIdQuery extends IdQuery {
+
+        private Id id;
+
+        public OneIdQuery(HugeType resultType, Id id) {
+            super(resultType);
+            super.mustSortByInput = false;
+            this.id = id;
+        }
+        public OneIdQuery(Query originQuery, Id id) {
+            super(originQuery.resultType(), originQuery);
+            super.mustSortByInput = false;
+            this.id = id;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public void resetId(Id id) {
+            this.id = id;
+        }
+
+        @Override
+        public int idsSize() {
+            return 1;
+        }
+
+        @Override
+        public Set<Id> ids() {
+            return ImmutableSet.of(this.id);
+        }
+
+        @Override
+        public void resetIds() {
+            throw new UnsupportedOperationException("OneIdQuery.resetIds()");
+        }
+
+        @Override
+        public IdQuery query(Id id) {
+            throw new UnsupportedOperationException("OneIdQuery.query(id)");
+        }
+
+        @Override
+        public IdQuery query(Set<Id> ids) {
+            throw new UnsupportedOperationException("OneIdQuery.query(ids)");
+        }
+
+        @Override
+        public boolean test(HugeElement element) {
+            return this.id.equals(element.id());
+        }
+
+        @Override
+        public IdQuery copy() {
+            OneIdQuery query = (OneIdQuery) super.copy();
+            assert this.id.equals(query.id);
+            return query;
+        }
     }
 }

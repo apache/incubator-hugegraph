@@ -262,7 +262,7 @@ public class RocksDBTables {
         @Override
         protected BackendColumnIterator queryByCond(Session session,
                                                     ConditionQuery query) {
-            assert !query.conditions().isEmpty();
+            assert query.conditionsSize() > 0;
 
             List<Condition> conds = query.syspropConditions(HugeKeys.ID);
             E.checkArgument(!conds.isEmpty(),

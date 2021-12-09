@@ -671,7 +671,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         if (count > 0) {
-            assert count == cq.conditions().size();
+            assert count == cq.conditionsSize();
             return prefixQuery(cq, new BinaryId(buffer.bytes(), null));
         }
 
@@ -700,7 +700,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     private Query writeStringIndexQuery(ConditionQuery query) {
         E.checkArgument(query.allSysprop() &&
-                        query.conditions().size() == 2,
+                        query.conditionsSize() == 2,
                         "There should be two conditions: " +
                         "INDEX_LABEL_ID and FIELD_VALUES" +
                         "in secondary index query");

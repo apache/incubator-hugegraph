@@ -450,8 +450,16 @@ public class Query implements Cloneable {
         return ImmutableSet.of();
     }
 
+    public int idsSize() {
+        return 0;
+    }
+
+    public int conditionsSize() {
+        return 0;
+    }
+
     public boolean empty() {
-        return this.ids().isEmpty() && this.conditions().isEmpty();
+        return this.idsSize() == 0 && this.conditionsSize() == 0;
     }
 
     public boolean test(HugeElement element) {

@@ -397,7 +397,7 @@ public abstract class MysqlTable
 
         List<StringBuilder> selections;
 
-        if (query.conditions().isEmpty()) {
+        if (query.conditionsSize() == 0) {
             // Query only by id
             LOG.debug("Query only by id(s): {}", ids);
             selections = ids;
@@ -489,13 +489,13 @@ public abstract class MysqlTable
     protected List<StringBuilder> queryId2Select(Query query,
                                                  StringBuilder select) {
         // Query by id(s)
-        if (query.ids().isEmpty()) {
+        if (query.idsSize() == 0) {
             return ImmutableList.of(select);
         }
 
         List<HugeKeys> nameParts = this.idColumnName();
 
-        List<List<Object>> ids = new ArrayList<>(query.ids().size());
+        List<List<Object>> ids = new ArrayList<>(query.idsSize());
         for (Id id : query.ids()) {
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
@@ -635,7 +635,7 @@ public abstract class MysqlTable
             }
 
             // Need add `where` to `select` when query is IdQuery
-            boolean expectWhere = scan || query.conditions().isEmpty();
+            boolean expectWhere = scan || query.conditionsSize() == 0;
             WhereBuilder where = this.newWhereBuilder(expectWhere);
             if (!expectWhere) {
                 where.and();

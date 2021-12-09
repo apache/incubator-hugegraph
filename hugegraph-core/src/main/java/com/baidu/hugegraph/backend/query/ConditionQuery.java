@@ -152,6 +152,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     @Override
+    public int conditionsSize() {
+        return this.conditions.size();
+    }
+
+    @Override
     public Set<Condition> conditions() {
         return Collections.unmodifiableSet(this.conditions);
     }

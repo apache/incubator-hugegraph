@@ -166,8 +166,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         // Query by id
-        if (query.conditions().isEmpty()) {
-            assert !query.ids().isEmpty();
+        if (query.conditionsSize() == 0) {
+            assert query.idsSize() > 0;
             return this.queryByIds(session, query.ids());
         }
 

@@ -269,7 +269,7 @@ public final class RamTable {
 
         ConditionQuery cq = (ConditionQuery) query;
 
-        int conditionsSize = cq.conditions().size();
+        int conditionsSize = cq.conditionsSize();
         Object owner = cq.condition(HugeKeys.OWNER_VERTEX);
         Directions direction = cq.condition(HugeKeys.DIRECTION);
         Id label = cq.condition(HugeKeys.LABEL);
@@ -294,7 +294,7 @@ public final class RamTable {
         if (label != null) {
             matchedConds++;
         }
-        return matchedConds == cq.conditions().size();
+        return matchedConds == cq.conditionsSize();
     }
 
     @Watched

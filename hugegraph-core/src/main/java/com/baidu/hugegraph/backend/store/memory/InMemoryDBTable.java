@@ -171,12 +171,12 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         }
 
         // Query by id(s)
-        if (!query.ids().isEmpty()) {
+        if (query.idsSize() > 0) {
             rs = this.queryById(query.ids(), rs);
         }
 
         // Query by condition(s)
-        if (!query.conditions().isEmpty()) {
+        if (query.conditionsSize() > 0) {
             ConditionQuery condQuery = (ConditionQuery) query;
             if (condQuery.containsScanRelation()) {
                 return this.queryByRange(condQuery);
