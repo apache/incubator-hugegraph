@@ -522,7 +522,7 @@ public class CoreOptions extends OptionHolder {
                     "vertex.cache_type",
                     "The type of vertex cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
-                    "l1"
+                    "l2"
             );
 
     public static final ConfigOption<Long> VERTEX_CACHE_CAPACITY =
@@ -546,7 +546,7 @@ public class CoreOptions extends OptionHolder {
                     "edge.cache_type",
                     "The type of edge cache, allowed values are [l1, l2].",
                     allowValues("l1", "l2"),
-                    "l1"
+                    "l2"
             );
 
     public static final ConfigOption<Long> EDGE_CACHE_CAPACITY =

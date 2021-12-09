@@ -111,12 +111,20 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     @Override
     protected boolean write(Id id, Object value, long timeOffset) {
         Value serializedValue = new Value(value);
-        int serializedSize = serializedValue.serializedSize();
+        int serializedSize;
+        try {
+            serializedSize = serializedValue.serializedSize();
+        } catch (Throwable e) {
+            // May can't cache value that failed to serialize, like 0x00 byte
+            LOG.warn("Can't cache '{}' due to {}", id, e.toString());
+            return false;
+        }
         if (serializedSize > VALUE_SIZE_TO_SKIP) {
             LOG.info("Skip to cache '{}' due to value size {} > limit {}",
                       id, serializedSize, VALUE_SIZE_TO_SKIP);
             return false;
         }
+
         long expireTime = this.expire();
         boolean success;
         if (expireTime <= 0L) {
@@ -222,10 +230,15 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 if (this.value instanceof List) {
                     listSize = ((List<?>) this.value).size();
                 }
-                this.svalue = BytesBuffer.allocate(64 * listSize);
-                this.serialize(this.value, this.svalue);
-                this.serializedSize = this.svalue.position();
-                this.svalue.forReadWritten();
+
+                BytesBuffer buffer = BytesBuffer.allocate(64 * listSize);
+
+                // May fail to serialize and throw exception here
+                this.serialize(this.value, buffer);
+
+                this.serializedSize = buffer.position();
+                buffer.forReadWritten();
+                this.svalue = buffer;
             }
             return this.svalue.asByteBuffer();
         }
@@ -339,13 +352,16 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         LIST,
         VERTEX,
         EDGE,
-        BYTES(DataType.BLOB),
+        BOOLEAN(DataType.BOOLEAN),
+        BYTE(DataType.BYTE),
+        BLOB(DataType.BLOB),
         STRING(DataType.TEXT),
         INT(DataType.INT),
         LONG(DataType.LONG),
         FLOAT(DataType.FLOAT),
         DOUBLE(DataType.DOUBLE),
-        DATE(DataType.DATE);
+        DATE(DataType.DATE),
+        UUID(DataType.UUID);
 
         private DataType dataType;
 
@@ -379,7 +395,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 return ValueType.LIST;
             } else if (HugeVertex.class.isAssignableFrom(clazz)) {
                 return ValueType.VERTEX;
-            } else if (clazz == HugeEdge.class) {
+            } else if (HugeEdge.class.isAssignableFrom(clazz)) {
                 return ValueType.EDGE;
             } else {
                 for (ValueType type : values()) {
