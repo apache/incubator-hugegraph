@@ -1064,11 +1064,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Scan all records from a table
          */
         @Override
-        public BackendColumnIterator scan(String table) {
+        public BackendColumnIterator scan(String table, boolean keyOnly) {
             assert !this.hasChanges();
             try (CFHandle cf = cf(table)) {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
-                return new ColumnIterator(table, iter, null, null, SCAN_ANY);
+                int scanType = SCAN_ANY | (keyOnly ? SCAN_KEYONLY : 0);
+                return new ColumnIterator(table, iter, null, null, scanType);
             }
         }
 
@@ -1076,7 +1077,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
          * Scan records by key prefix from a table
          */
         @Override
-        public BackendColumnIterator scan(String table, byte[] prefix) {
+        public BackendColumnIterator scan(String table, byte[] prefix,
+                                          boolean keyOnly) {
             assert !this.hasChanges();
             /*
              * NOTE: Options.prefix_extractor is a prerequisite for
@@ -1086,8 +1088,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
              */
             try (CFHandle cf = cf(table)) {
                 RocksIterator iter = rocksdb().newIterator(cf.get());
-                return new ColumnIterator(table, iter, prefix, null,
-                                          SCAN_PREFIX_BEGIN);
+                int scanType = SCAN_PREFIX_BEGIN | (keyOnly ? SCAN_KEYONLY : 0);
+                return new ColumnIterator(table, iter, prefix, null, scanType);
             }
         }
 
@@ -1116,7 +1118,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
      */
     private static class ColumnIterator implements BackendColumnIterator,
                                                    Countable {
-
+        private static final byte[] EMPTY_VALUE = new byte[0];
         private final String table;
         private final RocksIterator iter;
         private final byte[] keyBegin;
@@ -1306,8 +1308,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 }
             }
 
-            BackendColumn col = BackendColumn.of(this.iter.key(),
-                                                 this.iter.value());
+            // for index, there is no value
+            // for edge, sometimes we do not need value
+            byte[] value = this.match(Session.SCAN_KEYONLY) ? EMPTY_VALUE :
+                    this.iter.value();
+//            byte[] value = this.iter.value();
+            BackendColumn col = BackendColumn.of(this.iter.key(), value);
             this.iter.next();
             this.matched = false;
 

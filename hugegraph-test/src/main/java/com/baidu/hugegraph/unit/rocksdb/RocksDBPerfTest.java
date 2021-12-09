@@ -92,7 +92,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
+            Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"), false);
             while (iter.hasNext()) {
                 BackendColumn col = iter.next();
                 s(col.name);
@@ -164,7 +164,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
         for (int j = 0; j < queryTimes; j++) {
             for (int i = 0; i < n; i++) {
                 String key = String.format("index:%3d", i);
-                Iterator<BackendColumn> iter = session.scan(TABLE, b(key));
+                Iterator<BackendColumn> iter = session.scan(TABLE, b(key), false);
                 while (iter.hasNext()) {
                     iter.next();
                 }

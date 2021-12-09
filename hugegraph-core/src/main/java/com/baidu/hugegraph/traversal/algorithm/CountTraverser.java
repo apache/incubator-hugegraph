@@ -99,7 +99,7 @@ public class CountTraverser extends HugeTraverser {
         if (this.dedup(source)) {
             return QueryResults.emptyIterator();
         }
-        Iterator<Edge> flatten = this.edgesOfVertex(source, step);
+        Iterator<Edge> flatten = this.edgesOfVertex(source, step, false);
         return new FilterIterator<>(flatten, e -> {
             if (this.containsTraversed) {
                 // Count intermediate vertices

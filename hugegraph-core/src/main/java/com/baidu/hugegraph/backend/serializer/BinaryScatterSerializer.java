@@ -56,7 +56,8 @@ public class BinaryScatterSerializer extends BinarySerializer {
     }
 
     @Override
-    public HugeVertex readVertex(HugeGraph graph, BackendEntry bytesEntry) {
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry bytesEntry,
+                                 boolean withEdgeProperties) {
         if (bytesEntry == null) {
             return null;
         }
@@ -77,7 +78,7 @@ public class BinaryScatterSerializer extends BinarySerializer {
 
         // Parse all properties and edges of a Vertex
         for (BackendColumn col : entry.columns()) {
-            this.parseColumn(col, vertex);
+            this.parseColumn(col, vertex, withEdgeProperties);
         }
 
         return vertex;

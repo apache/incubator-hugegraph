@@ -80,7 +80,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                 // Traversal vertices of previous level
                 for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                     List<Node> adjacency = newList();
-                    edges = this.edgesOfVertex(entry.getKey(), step.edgeStep);
+                    edges = this.edgesOfVertex(entry.getKey(), step.edgeStep, false);
                     while (edges.hasNext()) {
                         HugeEdge edge = (HugeEdge) edges.next();
                         Id target = edge.id().otherVertexId();

@@ -79,6 +79,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_GTE_BEGIN = 0x0c;
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
+        public static final int SCAN_KEYONLY = 0x40;
 
         public abstract String dataPath();
         public abstract String walPath();
@@ -99,9 +100,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public abstract byte[] get(String table, byte[] key);
 
-        public abstract BackendColumnIterator scan(String table);
         public abstract BackendColumnIterator scan(String table,
-                                                   byte[] prefix);
+                                                   boolean keyOnly);
+        public abstract BackendColumnIterator scan(String table,
+                                                   byte[] prefix,
+                                                   boolean keyOnly);
         public abstract BackendColumnIterator scan(String table,
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
@@ -109,8 +112,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public BackendColumnIterator scan(String table,
                                           byte[] keyFrom,
-                                          byte[] keyTo) {
-            return this.scan(table, keyFrom, keyTo, SCAN_LT_END);
+                                          byte[] keyTo,
+                                          boolean keyOnly) {
+            int scanType = SCAN_LT_END | (keyOnly ? SCAN_KEYONLY : 0);
+            return this.scan(table, keyFrom, keyTo, scanType);
         }
 
         public static boolean matchScanType(int expected, int actual) {

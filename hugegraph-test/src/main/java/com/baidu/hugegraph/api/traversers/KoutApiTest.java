@@ -120,39 +120,38 @@ public class KoutApiTest extends BaseApiTest {
     public void testPost() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
+
         String reqBody = String.format(postParams, markoId, "breadth_first");
-        Response resp = client().post(path, reqBody);
-        String content = assertResponseStatus(200, resp);
+        String content = doPost(reqBody);
         Object size = assertJsonContains(content, "size");
         Assert.assertEquals(2, size);
-        assertJsonContains(content, "kout");
-        assertJsonContains(content, "paths");
-        assertJsonContains(content, "vertices");
-        assertJsonContains(content, "edges");
-        assertJsonContains(content, "measure");
 
         // for deep-first
         reqBody = String.format(postParams, markoId, "deep_first");
-        resp = client().post(path, reqBody);
-        content = assertResponseStatus(200, resp);
+        content = doPost(reqBody);
         size = assertJsonContains(content, "size");
         Assert.assertEquals(2, size);
-        assertJsonContains(content, "kout");
-        assertJsonContains(content, "paths");
-        assertJsonContains(content, "vertices");
-        assertJsonContains(content, "edges");
-        assertJsonContains(content, "measure");
 
         // for count-only
         reqBody = String.format(postParamsForCountOnly, markoId, "BOTH");
-        resp = client().post(path, reqBody);
-        content = assertResponseStatus(200, resp);
+        content = doPost(reqBody);
         size = assertJsonContains(content, "size");
         Assert.assertEquals(1, size);
+
+        reqBody = String.format(postParamsForCountOnly, markoId, "OUT");
+        content = doPost(reqBody);
+        size = assertJsonContains(content, "size");
+        Assert.assertEquals(1, size);
+    }
+
+    public String doPost(String reqBody) {
+        Response resp = client().post(path, reqBody);
+        String content = assertResponseStatus(200, resp);
         assertJsonContains(content, "kout");
         assertJsonContains(content, "paths");
         assertJsonContains(content, "vertices");
         assertJsonContains(content, "edges");
         assertJsonContains(content, "measure");
+        return content;
     }
 }

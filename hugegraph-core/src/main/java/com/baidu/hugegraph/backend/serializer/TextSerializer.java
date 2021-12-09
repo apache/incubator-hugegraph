@@ -294,7 +294,8 @@ public class TextSerializer extends AbstractSerializer {
     }
 
     @Override
-    public HugeVertex readVertex(HugeGraph graph, BackendEntry backendEntry) {
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry backendEntry,
+                                 boolean withEdgeProperties) {
         E.checkNotNull(graph, "serializer graph");
         if (backendEntry == null) {
             return null;

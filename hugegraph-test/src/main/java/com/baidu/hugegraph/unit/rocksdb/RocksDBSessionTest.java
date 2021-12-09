@@ -123,7 +123,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
         Map<String, String> results = new HashMap<>();
         Session session = this.rocks.session();
-        Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
+        Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"), false);
         while (iter.hasNext()) {
             BackendColumn col = iter.next();
             results.put(s(col.name), s(col.value));
@@ -155,7 +155,8 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Session session = this.rocks.session();
         Iterator<BackendColumn> iter = session.scan(TABLE,
                                                     b("person:1"),
-                                                    b("person:3"));
+                                                    b("person:3"),
+                                                    false);
         while (iter.hasNext()) {
             BackendColumn col = iter.next();
             results.put(s(col.name), s(col.value));
@@ -202,7 +203,8 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Map<ByteBuffer, byte[]> results = new HashMap<>();
         Iterator<BackendColumn> iter = session.scan(TABLE,
                                                     new byte[]{1, 0},
-                                                    new byte[]{2, 3});
+                                                    new byte[]{2, 3},
+                                                    false);
         while (iter.hasNext()) {
             BackendColumn col = iter.next();
             results.put(ByteBuffer.wrap(col.name), col.value);
@@ -241,10 +243,10 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
         Iterator<BackendColumn> iter;
 
-        iter = session.scan(TABLE, new byte[]{1, -1}, new byte[]{1, 3});
+        iter = session.scan(TABLE, new byte[]{1, -1}, new byte[]{1, 3}, false);
         Assert.assertFalse(iter.hasNext());
 
-        iter = session.scan(TABLE, new byte[]{1, 1}, new byte[]{1, -1});
+        iter = session.scan(TABLE, new byte[]{1, 1}, new byte[]{1, -1}, false);
         Map<ByteBuffer, byte[]> results = new HashMap<>();
         while (iter.hasNext()) {
             BackendColumn col = iter.next();

@@ -142,7 +142,7 @@ public class SubGraphTraverser extends HugeTraverser {
                 Id vid = entry.getKey();
                 // Record edgeList to determine if multiple edges exist
                 List<Edge> edgeList = IteratorUtils.list(edgesOfVertex(
-                                      vid, direction, this.label, this.degree));
+                                      vid, direction, this.label, this.degree, false));
                 edges = edgeList.iterator();
 
                 if (!edges.hasNext()) {

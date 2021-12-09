@@ -168,8 +168,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             assert !query.ids().isEmpty();
             // NOTE: this will lead to lazy create rocksdb iterator
             return new BackendColumnIteratorWrapper(new FlatMapperIterator<>(
-                   query.ids().iterator(), id -> this.queryById(session, id)
-            ));
+                   query.ids().iterator(), id -> this.queryById(session, id)));
         }
 
         // Query by condition (or condition + id)
@@ -181,15 +180,17 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
             byte[] begin = page.position();
-            return session.scan(this.table(), begin, null, Session.SCAN_ANY);
+            int scanType = Session.SCAN_ANY |
+                    (query.withProperties() ? 0 : Session.SCAN_KEYONLY);
+            return session.scan(this.table(), begin, null, scanType);
         } else {
-            return session.scan(this.table());
+            return session.scan(this.table(), !query.withProperties());
         }
     }
 
     protected BackendColumnIterator queryById(Session session, Id id) {
         // TODO: change to get() after vertex and schema don't use id prefix
-        return session.scan(this.table(), id.asBytes());
+        return session.scan(this.table(), id.asBytes(), false);
     }
 
     protected BackendColumnIterator getById(Session session, Id id) {
@@ -206,6 +207,9 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
         type |= Session.SCAN_PREFIX_END;
+        if (!query.withProperties()) {
+            type |= Session.SCAN_KEYONLY;
+        }
         return session.scan(this.table(), query.start().asBytes(),
                             query.prefix().asBytes(), type);
     }
@@ -219,6 +223,9 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         if (end != null) {
             type |= query.inclusiveEnd() ?
                     Session.SCAN_LTE_END : Session.SCAN_LT_END;
+        }
+        if (!query.withProperties()) {
+            type |= Session.SCAN_KEYONLY;
         }
         return session.scan(this.table(), start, end, type);
     }

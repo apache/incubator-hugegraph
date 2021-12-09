@@ -143,7 +143,7 @@ public abstract class PathTraverser {
             return;
         }
 
-        Iterator<Edge> edges = this.traverser.edgesOfVertex(v, step);
+        Iterator<Edge> edges = this.traverser.edgesOfVertex(v, step, false);
         while (edges.hasNext()) {
             HugeEdge edge = (HugeEdge) edges.next();
             Id target = edge.id().otherVertexId();

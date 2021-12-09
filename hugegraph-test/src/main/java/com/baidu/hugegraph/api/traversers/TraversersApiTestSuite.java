@@ -28,6 +28,7 @@ import org.junit.runners.Suite;
     CountApiTest.class,
     CrosspointsApiTest.class,
     CustomizedCrosspointsApiTest.class,
+    CustomizedPathsApiTest.class,
     EdgesApiTest.class,
     FusiformSimilarityApiTest.class,
     JaccardSimilarityApiTest.class,

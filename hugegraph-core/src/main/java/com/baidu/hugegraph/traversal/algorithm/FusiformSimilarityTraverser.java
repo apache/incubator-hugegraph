@@ -103,7 +103,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         Id labelId = this.getEdgeLabelId(label);
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
-                                                  labelId, degree);
+                                                  labelId, degree, false);
         Map<Id, MutableInt> similars = newMap();
         MultivaluedMap<Id, Id> intermediaries = new MultivaluedHashMap<>();
         Set<Id> neighbors = newIdSet();
@@ -117,7 +117,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
-                                                          labelId, degree);
+                                                          labelId, degree, false);
             Set<Id> currentSimilars = newIdSet();
             while (backEdges.hasNext()) {
                 Id node = ((HugeEdge) backEdges.next()).id().otherVertexId();
@@ -220,10 +220,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         }
         if (edgeLabel != null && edgeLabel.frequency() == Frequency.SINGLE) {
             edges = this.edgesOfVertex(vertex.id(), direction,
-                                       labelId, minNeighbors);
+                                       labelId, minNeighbors, false);
             neighborCount = IteratorUtils.count(edges);
         } else {
-            edges = this.edgesOfVertex(vertex.id(), direction, labelId, degree);
+            edges = this.edgesOfVertex(vertex.id(), direction, labelId, degree, false);
             Set<Id> neighbors = newIdSet();
             while (edges.hasNext()) {
                 Id target = ((HugeEdge) edges.next()).id().otherVertexId();

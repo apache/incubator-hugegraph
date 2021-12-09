@@ -504,7 +504,10 @@ public class BaseApiTest {
             List<Object> ids = list.stream().map(e -> e.get("id"))
                                    .collect(Collectors.toList());
             ids.forEach(id -> {
-                client.delete(path, (String) id);
+                if( id instanceof Integer )
+                    client.delete(path, String.format("%d", id));
+                else
+                    client.delete(path, (String)id);
             });
         };
 

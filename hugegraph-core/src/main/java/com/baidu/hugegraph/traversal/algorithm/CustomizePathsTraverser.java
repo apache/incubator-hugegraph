@@ -70,11 +70,12 @@ public class CustomizePathsTraverser extends HugeTraverser {
             stepNum--;
             newVertices = newMultivalueMap();
             Iterator<Edge> edges;
+            boolean withProperties = sorted && step.weightBy() != null;
 
             // Traversal vertices of previous level
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                 List<Node> adjacency = newList();
-                edges = this.edgesOfVertex(entry.getKey(), step.step());
+                edges = this.edgesOfVertex(entry.getKey(), step.step(), withProperties);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();

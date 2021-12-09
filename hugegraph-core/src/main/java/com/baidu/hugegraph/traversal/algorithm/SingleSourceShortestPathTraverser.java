@@ -136,10 +136,12 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
          */
         public void forward() {
             long degree = this.skipDegree > 0L ? this.skipDegree : this.degree;
+            boolean withEdgeProperties = this.weight != null;
             for (NodeWithWeight node : this.sources) {
                 Iterator<Edge> edges = edgesOfVertex(node.node().id(),
                                                      this.direction,
-                                                     this.label, degree);
+                                                     this.label, degree,
+                                                     withEdgeProperties);
                 edges = this.skipSuperNodeIfNeeded(edges);
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();

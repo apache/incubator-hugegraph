@@ -121,7 +121,7 @@ public class KoutTraverser extends OltpTraverser {
                 return;
             }
 
-            Iterator<Edge> edges = edgesOfVertexAF(v, steps);
+            Iterator<Edge> edges = edgesOfVertexAF(v, steps, false);
             while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
@@ -167,7 +167,7 @@ public class KoutTraverser extends OltpTraverser {
                                               sourceV, nearest, depth);
 
         Iterator<Edge> it = this.createNestedIterator(sourceV, steps,
-                                                      depth, all);
+                                                      depth, all, false);
         while (it.hasNext()) {
             this.edgeIterCounter++;
             HugeEdge edge = (HugeEdge) it.next();
@@ -205,7 +205,7 @@ public class KoutTraverser extends OltpTraverser {
                 return;
             }
 
-            Iterator<Edge> edges = edgesOfVertexAF(v, steps);
+            Iterator<Edge> edges = edgesOfVertexAF(v, steps, false);
             while (!this.reachLimit(limit, depth[0], cur.size()) &&
                     edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();

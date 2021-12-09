@@ -982,7 +982,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         Iterator<HugeEdge> edges = new FlatMapperIterator<>(entries, entry -> {
             // Edges are in a vertex
-            HugeVertex vertex = this.parseEntry(entry);
+            HugeVertex vertex = this.parseEntry(entry, query.withProperties());
             if (vertex == null) {
                 return null;
             }
@@ -1893,8 +1893,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private HugeVertex parseEntry(BackendEntry entry) {
+        return this.parseEntry(entry, true);
+    }
+
+    private HugeVertex parseEntry(BackendEntry entry, boolean withProperty) {
         try {
-            HugeVertex vertex = this.serializer.readVertex(graph(), entry);
+            HugeVertex vertex = this.serializer.readVertex(graph(), entry, withProperty);
             assert vertex != null;
             return vertex;
         } catch (ForbiddenException | SecurityException e) {

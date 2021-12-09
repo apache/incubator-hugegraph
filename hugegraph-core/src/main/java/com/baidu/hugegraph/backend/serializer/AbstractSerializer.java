@@ -19,12 +19,14 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.HugeType;
 
 public abstract class AbstractSerializer
@@ -75,5 +77,10 @@ public abstract class AbstractSerializer
         }
 
         return query;
+    }
+
+    @Override
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry entry) {
+        return readVertex(graph, entry, true);
     }
 }

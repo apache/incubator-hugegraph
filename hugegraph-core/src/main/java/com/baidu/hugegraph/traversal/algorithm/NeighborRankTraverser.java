@@ -73,7 +73,7 @@ public class NeighborRankTraverser extends HugeTraverser {
             for (Map.Entry<Id, List<Node>> entry : sources.entrySet()) {
                 Id vertex = entry.getKey();
                 Iterator<Edge> edges = this.edgesOfVertex(vertex,
-                                                          step.edgeStep);
+                                                          step.edgeStep, false);
 
                 Adjacencies adjacenciesV = new Adjacencies(vertex);
                 Set<Id> sameLayerNodesV = newIdSet();

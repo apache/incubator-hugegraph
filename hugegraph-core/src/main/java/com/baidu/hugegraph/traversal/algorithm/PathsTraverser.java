@@ -112,7 +112,7 @@ public class PathsTraverser extends HugeTraverser {
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
 
-                edges = edgesOfVertex(vid, direction, this.label, this.degree);
+                edges = edgesOfVertex(vid, direction, this.label, this.degree, false);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
@@ -141,7 +141,7 @@ public class PathsTraverser extends HugeTraverser {
             this.record.startOneLayer(false);
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
-                edges = edgesOfVertex(vid, direction, this.label, this.degree);
+                edges = edgesOfVertex(vid, direction, this.label, this.degree, false);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();

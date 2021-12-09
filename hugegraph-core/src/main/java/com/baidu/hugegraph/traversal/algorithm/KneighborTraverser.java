@@ -87,10 +87,11 @@ public class KneighborTraverser extends OltpTraverser {
             if (this.reachLimit(limit, records.size())) {
                 return;
             }
-            Iterator<Edge> edges = edgesOfVertexAF(v, steps);
+            Iterator<Edge> edges = edgesOfVertexAF(v, steps, false);
             while (!this.reachLimit(limit, records.size())
                    && edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();
+                this.edgeIterCounter ++;
                 Id target = edge.id().otherVertexId();
                 records.addPath(v, target);
                 if(withEdge) {

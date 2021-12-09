@@ -37,6 +37,8 @@ public interface GraphSerializer {
     public BackendEntry writeOlapVertex(HugeVertex vertex);
     public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
     public HugeVertex readVertex(HugeGraph graph, BackendEntry entry);
+    public HugeVertex readVertex(HugeGraph graph, BackendEntry entry,
+                                 boolean withEdgeProperties);
 
     public BackendEntry writeEdge(HugeEdge edge);
     public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop);

@@ -416,7 +416,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Scan all records from a table
          */
         @Override
-        public BackendColumnIterator scan(String table) {
+        public BackendColumnIterator scan(String table, boolean keyOnly) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
         }
@@ -425,7 +425,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Scan records by key prefix from a table
          */
         @Override
-        public BackendColumnIterator scan(String table, byte[] prefix) {
+        public BackendColumnIterator scan(String table, byte[] prefix,
+                                          boolean keyOnly) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
         }
