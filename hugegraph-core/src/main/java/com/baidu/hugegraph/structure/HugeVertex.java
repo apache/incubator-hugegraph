@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -42,6 +43,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.id.SnowflakeIdGenerator;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
@@ -121,7 +123,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkState(!propValues.isEmpty(),
                          "Primary values must not be empty " +
                          "(has properties %s)", hasProperties());
-            name = SplicingIdGenerator.concatValues(propValues);
+            name = ConditionQuery.concatValues(propValues);
             E.checkArgument(!name.isEmpty(),
                             "The value of primary key can't be empty");
         }
@@ -193,7 +195,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     @Watched(prefix = "vertex")
-    public List<Object> primaryValues() {
+    protected List<Object> primaryValues() {
         E.checkArgument(this.label.idStrategy() == IdStrategy.PRIMARY_KEY,
                         "The id strategy '%s' don't have primary keys",
                         this.label.idStrategy());
@@ -210,7 +212,11 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkState(property != null,
                          "The value of primary key '%s' can't be null",
                          this.graph().propertyKey(pk).name());
-            propValues.add(property.serialValue(encodeNumber));
+            Object propValue = property.serialValue(encodeNumber);
+            if (Strings.EMPTY.equals(propValue)) {
+                propValue = ConditionQuery.INDEX_VALUE_EMPTY;
+            }
+            propValues.add(propValue);
         }
         return propValues;
     }

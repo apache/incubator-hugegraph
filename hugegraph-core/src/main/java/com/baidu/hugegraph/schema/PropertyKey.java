@@ -255,9 +255,12 @@ public class PropertyKey extends SchemaElement implements Propfiable {
         E.checkArgument(this.cardinality.single(),
                         "The cardinality can't be '%s' for navigation key '%s'",
                         this.cardinality, this.name());
-        if (encodeNumber &&
-            (this.dataType.isNumber() || this.dataType.isDate())) {
-            return LongEncoding.encodeNumber(validValue);
+        if (this.dataType.isNumber() || this.dataType.isDate()) {
+            if (encodeNumber) {
+                return LongEncoding.encodeNumber(validValue);
+            } else {
+                return validValue.toString();
+            }
         }
         return validValue;
     }

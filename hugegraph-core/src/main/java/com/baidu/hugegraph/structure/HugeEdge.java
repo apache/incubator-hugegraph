@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -33,7 +34,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
@@ -98,7 +99,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public String name() {
         if (this.name == null) {
-            this.name = SplicingIdGenerator.concatValues(sortValues());
+            List<Object> sortValues = this.sortValues();
+            if (sortValues.isEmpty()) {
+                this.name = Strings.EMPTY;
+            } else {
+                this.name = ConditionQuery.concatValues(sortValues);
+            }
         }
         return this.name;
     }
@@ -154,7 +160,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     }
 
     @Watched(prefix = "edge")
-    public List<Object> sortValues() {
+    protected List<Object> sortValues() {
         List<Id> sortKeys = this.schemaLabel().sortKeys();
         if (sortKeys.isEmpty()) {
             return ImmutableList.of();
@@ -164,7 +170,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             HugeProperty<?> property = this.getProperty(sk);
             E.checkState(property != null,
                          "The value of sort key '%s' can't be null", sk);
-            propValues.add(property.serialValue(true));
+            Object propValue = property.serialValue(true);
+            if (Strings.EMPTY.equals(propValue)) {
+                propValue = ConditionQuery.INDEX_VALUE_EMPTY;
+            }
+            propValues.add(propValue);
         }
         return propValues;
     }
