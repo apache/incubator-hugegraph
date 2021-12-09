@@ -32,6 +32,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
 
@@ -111,6 +112,8 @@ public class HugeGraphServer {
         if (restServerConfig.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG)) {
             graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         }
+
+        TaskManager.instance(restServerConfig.get(ServerOptions.TASK_THREADS));
 
         try {
             // Start GremlinServer

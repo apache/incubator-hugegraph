@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.concurrent.PausableScheduledThreadPool;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Consumers;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
@@ -56,8 +55,8 @@ public final class TaskManager {
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     protected static final int SCHEDULE_PERIOD = 3; // Unit second
-    private static final int THREADS = CoreOptions.CPUS / 2;
-    private static final TaskManager MANAGER = new TaskManager(THREADS);
+    private static int THREADS;
+    private static TaskManager MANAGER;
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
 
@@ -66,6 +65,14 @@ public final class TaskManager {
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
+
+    public static TaskManager instance(int threads) {
+        THREADS = threads;
+        if (MANAGER == null) {
+            MANAGER = new TaskManager(THREADS);
+        }
+        return MANAGER;
+    }
 
     public static TaskManager instance() {
         return MANAGER;

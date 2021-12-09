@@ -38,6 +38,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -84,6 +85,8 @@ public class InitStore {
                      ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name());
             return;
         }
+
+        TaskManager.instance(restServerConfig.get(ServerOptions.TASK_THREADS));
 
         RegisterUtil.registerBackends();
         RegisterUtil.registerPlugins();

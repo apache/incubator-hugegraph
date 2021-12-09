@@ -47,6 +47,7 @@ import com.baidu.hugegraph.job.GremlinJob;
 import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.security.HugeSecurityManager;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.unit.FakeObjects;
@@ -60,6 +61,7 @@ public class SecurityManagerTest {
 
     @BeforeClass
     public static void init() {
+        TaskManager.instance(4);
         graph = loadGraph(false);
         runGremlinJob("1 + 1");
         System.setSecurityManager(new HugeSecurityManager());

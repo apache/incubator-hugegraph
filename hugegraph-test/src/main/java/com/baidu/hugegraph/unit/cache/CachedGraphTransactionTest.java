@@ -20,7 +20,9 @@
 package com.baidu.hugegraph.unit.cache;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeFactory;
@@ -31,6 +33,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
@@ -43,6 +46,11 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     private CachedGraphTransaction cache;
     private HugeGraphParams params;
+
+    @BeforeClass
+    public static void initTaskManager() {
+        TaskManager.instance(4);
+    }
 
     @Before
     public void setup() {

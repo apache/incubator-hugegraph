@@ -154,8 +154,8 @@ public abstract class AbstractTransaction implements Transaction {
             if (time > 0) {
                 LOG.debug("Waited for {}s to query", time);
             }
-            BackendEntryIterator.checkInterrupted();
         }
+        BackendEntryIterator.checkInterrupted();
 
         this.beforeRead();
         try {
@@ -228,8 +228,8 @@ public abstract class AbstractTransaction implements Transaction {
             if (time > 0) {
                 LOG.debug("Waited for {}s to mutate {} item(s)", time, size);
             }
-            BackendEntryIterator.checkInterrupted();
         }
+        BackendEntryIterator.checkInterrupted();
 
         // Do commit
         assert !this.committing : "Not allowed to commit when it's committing";

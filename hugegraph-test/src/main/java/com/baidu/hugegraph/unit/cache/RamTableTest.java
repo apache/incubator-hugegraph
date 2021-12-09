@@ -22,7 +22,9 @@ package com.baidu.hugegraph.unit.cache;
 import java.util.Iterator;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.baidu.hugegraph.HugeException;
@@ -35,6 +37,7 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.unit.FakeObjects;
@@ -46,6 +49,11 @@ public class RamTableTest {
     private static final int EDGE_SIZE = 20000000;
 
     private HugeGraph graph;
+
+    @BeforeClass
+    public static void initTaskManager() {
+        TaskManager.instance(4);
+    }
 
     @Before
     public void setup() {
