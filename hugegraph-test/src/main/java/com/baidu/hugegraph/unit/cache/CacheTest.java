@@ -216,6 +216,28 @@ public abstract class CacheTest extends BaseUnitTest {
             OffheapCache l2cache = (OffheapCache) super.newCache(capacity);
             return new LevelCache(l1cache, l2cache);
         }
+
+        @Test
+        @Override
+        public void testUpdateAndGetWithInvalidDataType() {
+            // LevelCache includes level-1 RamCache, which can cache any object
+            Cache<Id, Object> cache = newCache();
+            Id id = IdGenerator.of("1");
+
+            cache.update(id, 'c');
+            Assert.assertEquals('c', cache.get(id));
+
+            Object obj = new Object();
+            cache.update(id, obj);
+            Assert.assertEquals(obj, cache.get(id));
+
+            byte[] bytes = new byte[]{1};
+            cache.update(id, bytes);
+            Assert.assertArrayEquals(bytes, (byte[]) cache.get(id));
+
+            cache.update(id, "string");
+            Assert.assertEquals("string", cache.get(id));
+        }
     }
 
     @Test
