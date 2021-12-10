@@ -97,7 +97,7 @@ public class ServerOptions extends OptionHolder {
                     "restserver.task_threads",
                     "The task threads of rest server.",
                     rangeInt(1, Math.max(4, CoreOptions.CPUS * 2)),
-                    4
+                    Math.max(4, CoreOptions.CPUS / 2)
             );
 
     public static final ConfigOption<Integer> REQUEST_TIMEOUT =
