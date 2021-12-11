@@ -21,13 +21,13 @@ package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -105,7 +105,7 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryById(
-                                        Set<Id> ids,
+                                        Collection<Id> ids,
                                         Map<Id, BackendEntry> entries) {
             // Query edge(in a vertex) by id
             return this.queryEdgeById(ids, false, entries);
@@ -180,7 +180,7 @@ public class InMemoryDBTables {
         }
 
         private Map<Id, BackendEntry> queryEdgeById(
-                                      Set<Id> ids, boolean prefix,
+                                      Collection<Id> ids, boolean prefix,
                                       Map<Id, BackendEntry> entries) {
             assert ids.size() > 0;
             Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
@@ -231,7 +231,7 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryByFilter(
-                                        Set<Condition> conditions,
+                                        Collection<Condition> conditions,
                                         Map<Id, BackendEntry> entries) {
             if (conditions.isEmpty()) {
                 return entries;
@@ -368,7 +368,7 @@ public class InMemoryDBTables {
         @Override
         public Iterator<BackendEntry> query(BackendSession session,
                                             Query query) {
-            Set<Condition> conditions = query.conditions();
+            Collection<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          conditions.size() == 2,
                          "Secondary index query must be condition query " +
@@ -445,7 +445,7 @@ public class InMemoryDBTables {
         @Override
         public Iterator<BackendEntry> query(BackendSession session,
                                             Query query) {
-            Set<Condition> conditions = query.conditions();
+            Collection<Condition> conditions = query.conditions();
             E.checkState(query instanceof ConditionQuery &&
                          (conditions.size() == 3 || conditions.size() == 2),
                          "Range index query must be condition query" +

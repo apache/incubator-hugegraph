@@ -23,10 +23,10 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.util.Strings;
@@ -547,7 +547,7 @@ public abstract class MysqlTable
     protected List<StringBuilder> queryCondition2Select(Query query,
                                                         StringBuilder select) {
         // Query by conditions
-        Set<Condition> conditions = query.conditions();
+        Collection<Condition> conditions = query.conditions();
         List<StringBuilder> clauses = new ArrayList<>(conditions.size());
         for (Condition condition : conditions) {
             clauses.add(this.condition2Sql(condition));

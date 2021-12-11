@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,13 +41,13 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
-import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -70,10 +71,10 @@ public class ConditionQuery extends IdQuery {
         IGNORE_SYM_SET = ImmutableSet.copyOf(list);
     }
 
-    private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
+    private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
 
     // Conditions will be concated with `and` by default
-    private Set<Condition> conditions = EMPTY_CONDITIONS;
+    private List<Condition> conditions = EMPTY_CONDITIONS;
 
     private OptimizedType optimizedType = OptimizedType.NONE;
     private Function<HugeElement, Boolean> resultsFilter = null;
@@ -101,7 +102,7 @@ public class ConditionQuery extends IdQuery {
         }
 
         if (this.conditions == EMPTY_CONDITIONS) {
-            this.conditions = CollectionFactory.newSet(CollectionType.EC);
+            this.conditions = InsertionOrderUtil.newList();
         }
         this.conditions.add(condition);
         return this;
@@ -157,16 +158,16 @@ public class ConditionQuery extends IdQuery {
     }
 
     @Override
-    public Set<Condition> conditions() {
-        return Collections.unmodifiableSet(this.conditions);
+    public Collection<Condition> conditions() {
+        return Collections.unmodifiableList(this.conditions);
     }
 
-    public void resetConditions(Set<Condition> conditions) {
+    public void resetConditions(List<Condition> conditions) {
         this.conditions = conditions;
     }
 
     public void resetConditions() {
-        this.conditions = new LinkedHashSet<>();
+        this.conditions = EMPTY_CONDITIONS;
     }
 
     public void recordIndexValue(Id propertyId, Id id, Object indexValue) {
@@ -480,11 +481,9 @@ public class ConditionQuery extends IdQuery {
     public ConditionQuery copy() {
         ConditionQuery query = (ConditionQuery) super.copy();
         query.originQuery(this);
-        query.conditions = this.conditions == EMPTY_CONDITIONS ?
-                           EMPTY_CONDITIONS :
-                           CollectionFactory.newSet(CollectionType.EC,
-                                                    this.conditions);
-
+        if (query.conditions != EMPTY_CONDITIONS) {
+            query.conditions = InsertionOrderUtil.newList(this.conditions);
+        }
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
 
@@ -509,7 +508,7 @@ public class ConditionQuery extends IdQuery {
             return this.resultsFilter.apply(element);
         }
         boolean valid = true;
-        for (Condition cond : this.conditions()) {
+        for (Condition cond : this.conditions) {
             valid &= cond.test(element);
             valid &= (this.element2IndexValueMap == null ||
                       this.element2IndexValueMap.validRangeIndex(element,  cond));
@@ -533,7 +532,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean mayHasDupKeys(Set<HugeKeys> keys) {
         Map<HugeKeys, Integer> keyCounts = new HashMap<>();
-        for (Condition condition : this.conditions()) {
+        for (Condition condition : this.conditions) {
             if (!condition.isRelation()) {
                 // Assume may exist duplicate keys when has nested conditions
                 return true;

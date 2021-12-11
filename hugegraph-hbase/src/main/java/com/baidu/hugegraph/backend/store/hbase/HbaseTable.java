@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -210,7 +211,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         return session.get(this.table(), null, id.asBytes());
     }
 
-    protected <R> R queryByIds(HbaseSession<R> session, Set<Id> ids) {
+    protected <R> R queryByIds(HbaseSession<R> session, Collection<Id> ids) {
         Set<byte[]> rowkeys = InsertionOrderUtil.newSet();
         for (Id id : ids) {
             rowkeys.add(id.asBytes());

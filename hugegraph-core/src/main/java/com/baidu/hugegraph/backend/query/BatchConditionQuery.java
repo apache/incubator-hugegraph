@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
@@ -43,7 +42,7 @@ public class BatchConditionQuery extends ConditionQuery {
         Object value = query.condition(key);
         if (this.in == null) {
             assert !this.containsRelation(RelationType.IN);
-            this.resetConditions(new LinkedHashSet<>(query.conditions()));
+            this.resetConditions((List<Condition>) query.conditions());
             this.unsetCondition(key);
 
             List<Object> list = new ArrayList<>(this.batchSize);

@@ -304,7 +304,7 @@ public abstract class CassandraTable
     protected Collection<Select> queryCondition2Select(Query query,
                                                        Select select) {
         // Query by conditions
-        Set<Condition> conditions = query.conditions();
+        Collection<Condition> conditions = query.conditions();
         for (Condition condition : conditions) {
             Clause clause = condition2Cql(condition);
             select.where(clause);
