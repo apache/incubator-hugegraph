@@ -443,16 +443,28 @@ public class VertexAPI extends BatchAPI {
         @Override
         public Object[] properties() {
             Object[] props = API.properties(this.properties);
-            List<Object> list = new ArrayList<>(Arrays.asList(props));
+            int newSize = props.length;
+            int appendIndex = newSize;
             if (this.label != null) {
-                list.add(T.label);
-                list.add(this.label);
+                newSize += 2;
             }
             if (this.id != null) {
-                list.add(T.id);
-                list.add(this.id);
+                newSize += 2;
             }
-            return list.toArray();
+            if (newSize == props.length) {
+                return props;
+            }
+
+            Object[] newProps = Arrays.copyOf(props, newSize);
+            if (this.label != null) {
+                newProps[appendIndex++] = T.label;
+                newProps[appendIndex++] = this.label;
+            }
+            if (this.id != null) {
+                newProps[appendIndex++] = T.id;
+                newProps[appendIndex++] = this.id;
+            }
+            return newProps;
         }
 
         @Override
