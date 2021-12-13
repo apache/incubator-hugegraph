@@ -116,7 +116,6 @@ public class HugeSecurityManager extends SecurityManager {
             "com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder"
     );
 
-
     private static final Set<String> SOFA_RPC_CLASSES = ImmutableSet.of(
             "com.alipay.sofa.rpc.tracer.sofatracer.RpcSofaTracer",
             "com.alipay.sofa.rpc.client.AbstractCluster"
