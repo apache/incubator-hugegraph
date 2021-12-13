@@ -45,6 +45,10 @@ public class K8sDriverProxy {
                              ".KubeSpecOptions");
     }
 
+    public static void disable() {
+        K8S_API_ENABLED = false;
+    }
+
     public static void setConfig(String namespace, String kubeConfigPath,
                                  String hugegraphUrl,
                                  String enableInternalAlgorithm,

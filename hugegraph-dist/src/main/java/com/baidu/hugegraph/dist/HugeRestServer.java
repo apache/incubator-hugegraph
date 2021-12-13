@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.dist;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.event.EventHub;
@@ -30,6 +31,11 @@ public class HugeRestServer {
     private static final Logger LOG = Log.logger(HugeRestServer.class);
 
     public static RestServer start(String conf, EventHub hub) throws Exception {
+        // Start RestServer
+        return RestServer.start(conf, hub);
+    }
+
+    public static RestServer start(HugeConfig conf, EventHub hub) throws Exception {
         // Start RestServer
         return RestServer.start(conf, hub);
     }

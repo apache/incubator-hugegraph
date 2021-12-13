@@ -383,13 +383,45 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph"
             );
 
-    public static final ConfigOption<String> K8S_API_ENABLE =
+    public static final ConfigOption<String> SERVICE_GRAPH_SPACE =
+            new ConfigOption<>(
+                    "server.graphspace",
+                    "The graph space of the server.",
+                    null,
+                    "DEFAULT"
+            );
+
+    public static final ConfigOption<String> SERVICE_ID =
+            new ConfigOption<>(
+                    "server.service_id",
+                    "The service id of the server.",
+                    null,
+                    "DEFAULT"
+            );
+
+    public static final ConfigOption<String> NODE_ID =
+            new ConfigOption<>(
+                    "server.node_id",
+                    "The node id of the server.",
+                    null,
+                    "node-id1"
+            );
+
+    public static final ConfigOption<String> NODE_ROLE =
+            new ConfigOption<>(
+                    "server.node_role",
+                    "The node role of the server.",
+                    null,
+                    "worker"
+            );
+
+    public static final ConfigOption<Boolean> K8S_API_ENABLE =
             new ConfigOption<>(
                     "k8s.api",
                     "The k8s api start status " +
                     "when the computer service is enabled.",
                     null,
-                    "false"
+                    false
             );
 
     public static final ConfigOption<String> K8S_KUBE_CONFIG =

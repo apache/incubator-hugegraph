@@ -23,8 +23,10 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTI
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +35,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.baidu.hugegraph.k8s.K8sDriverProxy;
+import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -108,6 +113,10 @@ public final class GraphManager {
     private final AuthManager authManager;
     private final MetaManager metaManager = MetaManager.instance();
     private final K8sManager k8sManager = K8sManager.instance();
+    private final String serviceGraphSpace;
+    private final String serviceID;
+    private final String nodeId;
+    private final String nodeRole;
 
     private final EventHub eventHub;
 
@@ -133,6 +142,10 @@ public final class GraphManager {
         this.removingGraphs = ConcurrentHashMap.newKeySet();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
+        this.serviceGraphSpace = conf.get(ServerOptions.SERVICE_GRAPH_SPACE);
+        this.serviceID = conf.get(ServerOptions.SERVICE_ID);
+        this.nodeId = conf.get(ServerOptions.NODE_ID);
+        this.nodeRole = conf.get(ServerOptions.NODE_ROLE);
         this.eventHub = hub;
         this.listenChanges();
 
@@ -178,7 +191,7 @@ public final class GraphManager {
         }
 
         this.graphLoadFromLocalConfig =
-                conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
+             conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
             Map<String, String> graphConfigs =
@@ -355,6 +368,14 @@ public final class GraphManager {
 
         this.metaManager.listenGraphAdd(this::graphAddHandler);
         this.metaManager.listenGraphRemove(this::graphRemoveHandler);
+
+        this.metaManager.listenRestPropertiesUpdate(
+                         this.serviceGraphSpace, this.serviceID,
+                         this::restPropertiesHandler);
+        this.metaManager.listenGremlinYamlUpdate(
+                         this.serviceGraphSpace, this.serviceID,
+                         this::gremlinYamlHandler);
+        this.metaManager.listenAuthEvent(this::authHandler);
     }
 
     public void loadGraphs(final Map<String, String> graphConfs) {
@@ -1046,4 +1067,96 @@ public final class GraphManager {
     private static String graphName(String graphSpace, String graph) {
         return String.join(DELIMETER, graphSpace, graph);
     }
+
+    private <T> void restPropertiesHandler(T response) {
+        List<String> events = this.metaManager
+                                  .extractGraphsFromResponse(response);
+        try {
+            for (String event : events) {
+                if (StringUtils.isNotEmpty(event)) {
+                    Map<String, Object> properties = JsonUtil.fromJson(event, Map.class);
+                    HugeConfig conf = new HugeConfig(properties);
+                    Boolean k8sApiEnable = conf.get(ServerOptions.K8S_API_ENABLE);
+                    if (k8sApiEnable) {
+                        String namespace = conf.get(ServerOptions.K8S_NAMESPACE);
+                        String kubeConfigPath = conf.get(
+                               ServerOptions.K8S_KUBE_CONFIG);
+                        String hugegraphUrl = conf.get(
+                               ServerOptions.K8S_HUGEGRAPH_URL);
+                        String enableInternalAlgorithm = conf.get(
+                               ServerOptions.K8S_ENABLE_INTERNAL_ALGORITHM);
+                        String internalAlgorithmImageUrl = conf.get(
+                               ServerOptions.K8S_INTERNAL_ALGORITHM_IMAGE_URL);
+                        String internalAlgorithm = conf.get(
+                               ServerOptions.K8S_INTERNAL_ALGORITHM);
+                        Map<String, String> algorithms = conf.getMap(
+                                    ServerOptions.K8S_ALGORITHMS);
+                        K8sDriverProxy.setConfig(namespace,
+                                                 kubeConfigPath,
+                                                 hugegraphUrl,
+                                                 enableInternalAlgorithm,
+                                                 internalAlgorithmImageUrl,
+                                                 internalAlgorithm,
+                                                 algorithms);
+                    } else {
+                        K8sDriverProxy.disable();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOG.warn(e.toString());
+        }
+    }
+
+    private <T> void gremlinYamlHandler(T response) {
+        List<String> events = this.metaManager
+                                  .extractGraphsFromResponse(response);
+        for (String event : events) {
+            // TODO: Restart gremlin server
+        }
+    }
+
+    private <T> void authHandler(T response) {
+        List<String> events = this.metaManager
+                                  .extractGraphsFromResponse(response);
+        for (String event : events) {
+            Map<String, Object> properties =
+                        JsonUtil.fromJson(event, Map.class);
+            MetaManager.AuthEvent authEvent = new MetaManager.AuthEvent(properties);
+            if (this.authManager != null) {
+                this.authManager.processEvent(authEvent);
+            }
+        }
+    }
+
+    public Map<String, Object> restProperties(String graphSpace) {
+        Map<String, Object> map;
+        map = this.metaManager.restProperties(graphSpace, this.serviceID);
+        return map == null ? new HashMap<>() : map;
+    }
+
+    public Map<String, Object> restProperties(String graphSpace,
+                                              Map<String, Object> properties) {
+        return this.metaManager.restProperties(graphSpace,
+                                               this.serviceID,
+                                               properties);
+    }
+
+    public Map<String, Object> deleteRestProperties(String graphSpace,
+                                                    String key) {
+        Map<String, Object> map;
+        map = this.metaManager.deleteRestProperties(graphSpace,
+                                                    this.serviceID,
+                                                    key);
+        return map == null ? new HashMap<>() : map;
+    }
+
+    public String gremlinYaml(String graphSpace) {
+        return this.metaManager.gremlinYaml(graphSpace, this.serviceID);
+    }
+
+    public String gremlinYaml(String graphSpace, String yaml) {
+        return this.metaManager.gremlinYaml(graphSpace, this.serviceID, yaml);
+    }
+
 }

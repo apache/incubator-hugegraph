@@ -22,6 +22,7 @@ package com.baidu.hugegraph.dist;
 import static com.baidu.hugegraph.core.GraphManager.DELIMETER;
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
 
+import java.io.InputStream;
 import java.util.Map;
 
 import org.apache.tinkerpop.gremlin.GraphManager;
@@ -65,6 +66,46 @@ public class HugeGremlinServer {
         }
 
         LOG.info("Configuring Gremlin Server from {}", conf);
+        ContextGremlinServer server = new ContextGremlinServer(settings, hub);
+
+        // Inject customized traversal source
+        server.injectTraversalSource();
+
+        server.start().exceptionally(t -> {
+            LOG.error("Gremlin Server was unable to start and will " +
+                      "shutdown now: {}", t.getMessage());
+            server.stop().join();
+            throw new HugeException("Failed to start Gremlin Server");
+        }).join();
+
+        return server;
+    }
+
+    public static GremlinServer start(InputStream is, String graphsDir,
+                                       EventHub hub) throws Exception {
+        // Start GremlinServer with inject traversal source
+        LOG.info(GremlinServer.getHeader());
+        final Settings settings;
+        try {
+            settings = Settings.read(is);
+        } catch (Exception e) {
+            LOG.error("The input stream is parsed error: [{}]",
+                      e.getMessage());
+            throw e;
+        }
+        // Scan graph confs and inject into gremlin server context
+        E.checkState(settings.graphs != null,
+                     "The GremlinServer's settings.graphs is null");
+        if (graphsDir != null) {
+            Map<String, String> configs = ConfigUtil.scanGraphsDir(graphsDir);
+            for (Map.Entry<String, String> entry : configs.entrySet()) {
+                String key = String.join(DELIMETER, DEFAULT_GRAPH_SPACE_NAME,
+                                         entry.getKey());
+                settings.graphs.put(key, entry.getValue());
+            }
+        }
+
+        LOG.info("Configuring Gremlin Server from meta server");
         ContextGremlinServer server = new ContextGremlinServer(settings, hub);
 
         // Inject customized traversal source

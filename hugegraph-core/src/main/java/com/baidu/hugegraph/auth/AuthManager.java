@@ -24,6 +24,7 @@ import javax.security.sasl.AuthenticationException;
 
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.meta.MetaManager;
 
 public interface AuthManager {
 
@@ -98,6 +99,8 @@ public interface AuthManager {
                             throws AuthenticationException;
     public void logoutUser(String token);
     public String createToken(String username);
+
+    public void processEvent(MetaManager.AuthEvent event);
 
     public UserWithRole validateUser(String username, String password);
     public UserWithRole validateUser(String token);

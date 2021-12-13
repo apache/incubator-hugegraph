@@ -213,6 +213,7 @@ public class StandardAuthManager implements AuthManager {
 
         try {
             this.updateCreator(user);
+            user.create(user.update());
             this.metaManager.createUser(user);
         } catch (IOException e) {
             throw new HugeException("IOException occurs when " +
@@ -357,6 +358,7 @@ public class StandardAuthManager implements AuthManager {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, group);
             }
             this.updateCreator(group);
+            group.create(group.update());
             Id result = this.metaManager.createGroup(graphSpace, group);
             this.invalidateUserCache();
             return result;
@@ -476,6 +478,7 @@ public class StandardAuthManager implements AuthManager {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, target);
             }
             this.updateCreator(target);
+            target.create(target.update());
             Id result = this.metaManager.createTarget(graphSpace, target);
             this.invalidateUserCache();
             return result;
@@ -589,6 +592,7 @@ public class StandardAuthManager implements AuthManager {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, belong);
             }
             this.updateCreator(belong);
+            belong.create(belong.update());
             this.invalidateUserCache();
             return this.metaManager.createBelong(graphSpace, belong);
         } catch (IOException e) {
@@ -740,6 +744,7 @@ public class StandardAuthManager implements AuthManager {
                 verifyUserPermission(graphSpace, HugePermission.WRITE, access);
             }
             this.updateCreator(access);
+            access.create(access.update());
             Id result = this.metaManager.createAccess(graphSpace, access);
             this.invalidateUserCache();
             return result;
@@ -1036,6 +1041,27 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public void processEvent(MetaManager.AuthEvent event) {
+        if (event.op().equals("DELETE") && event.type().equals("USER")) {
+
+        } else if (event.op().equals("DELETE") && event.type().equals("GROUP")) {
+
+        } else if (event.op().equals("UPDATE") && event.type().equals("TARGET")) {
+
+        } else if (event.op().equals("DELETE") && event.type().equals("TARGET")) {
+
+        } else if (event.op().equals("CREATE") && event.type().equals("BELONG")) {
+
+        } else if (event.op().equals("DELETE") && event.type().equals("BELONG")) {
+
+        } else if (event.op().equals("CREATE") && event.type().equals("ACCESS")) {
+
+        } else if (event.op().equals("DELETE") && event.type().equals("ACCESS")) {
+
+        }
+    }
+
+    @Override
     public UserWithRole validateUser(String username, String password) {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
@@ -1083,7 +1109,7 @@ public class StandardAuthManager implements AuthManager {
             this.metaManager.createUser(user);
             this.metaManager.initDefaultGraphSpace();
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.info(e.getMessage());
         }
     }
 

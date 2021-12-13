@@ -63,8 +63,8 @@ public class RestServer {
     public void start() throws IOException {
         String url = this.conf.get(ServerOptions.REST_SERVER_URL);
         URI uri = UriBuilder.fromUri(url).build();
-        String k8sApiEnable = this.conf.get(ServerOptions.K8S_API_ENABLE);
-        if (!StringUtils.isEmpty(k8sApiEnable) && "true".equals(k8sApiEnable)) {
+        Boolean k8sApiEnable = this.conf.get(ServerOptions.K8S_API_ENABLE);
+        if (k8sApiEnable) {
             String namespace = this.conf.get(ServerOptions.K8S_NAMESPACE);
             String kubeConfigPath = this.conf.get(
                    ServerOptions.K8S_KUBE_CONFIG);
@@ -194,6 +194,17 @@ public class RestServer {
         ApiVersion.check();
 
         HugeConfig config = new HugeConfig(conf);
+        RestServer server = new RestServer(config, hub);
+        server.start();
+        LOG.info("RestServer started");
+
+        return server;
+    }
+
+    public static RestServer start(HugeConfig config, EventHub hub) throws Exception {
+        LOG.info("RestServer starting...");
+        ApiVersion.check();
+
         RestServer server = new RestServer(config, hub);
         server.start();
         LOG.info("RestServer started");

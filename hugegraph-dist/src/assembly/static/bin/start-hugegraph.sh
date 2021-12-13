@@ -7,14 +7,35 @@ GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "g:m:s:j:v" arg; do
+GRAPH_SPACE="DEFAULT"
+SERVICE_ID="DEFAULT"
+NODE_ID="node-1"
+NODE_ROLE="worker"
+META_SERVERS="http://127.0.0.1:2379"
+CLUSTER="hg"
+WITH_CA="false"
+CA_FILE=""
+CLIENT_CA=""
+CLIENT_KEY=""
+
+while getopts "g:m:s:j:G:S:N:R:M:E:W:C:A:K:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
+        G) GRAPH_SPACE="$OPTARG" ;;
+        S) SERVICE_ID="$OPTARG" ;;
+        N) NODE_ID="$OPTARG" ;;
+        R) NODE_ROLE="$OPTARG" ;;
+        M) META_SERVERS="$OPTARG" ;;
+        E) CLUSTER="$OPTARG" ;;
+        W) WITH_CA="$OPTARG" ;;
+        C) CA_FILE="$OPTARG" ;;
+        A) CLIENT_CA="$OPTARG" ;;
+        K) CLIENT_KEY="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v] [-G graphspace] [-S serviceId] [-N nodeId] [-R nodeRole] [-M metaServer] [-E cluster] [-W true|false] [-C caFile] [-A clientCa] [-K clientKey]" && exit 1 ;;
     esac
 done
 
@@ -44,6 +65,16 @@ CONF="$TOP/conf"
 LOGS="$TOP/logs"
 PID_FILE="$BIN/pid"
 
+if [ "$CA_FILE" = "" ];then
+    CA_FILE="${CONF}/ca_file"
+fi
+if [ "$CLIENT_CA" = "" ];then
+    CLIENT_CA="${CONF}/client_ca"
+fi
+if [ "$CLIENT_KEY" = "" ];then
+    CLIENT_KEY="${CONF}/client_ca"
+fi
+
 . "$BIN"/util.sh
 
 GREMLIN_SERVER_URL=$(read_property "$CONF/rest-server.properties" "gremlinserver.url")
@@ -64,6 +95,8 @@ fi
 echo "Starting HugeGraphServer..."
 
 ${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \
+${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} \
+${CLUSTER} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY} \
 ${OPEN_SECURITY_CHECK} ${USER_OPTION} ${GC_OPTION} >>${LOGS}/hugegraph-server.log 2>&1 &
 
 PID="$!"
