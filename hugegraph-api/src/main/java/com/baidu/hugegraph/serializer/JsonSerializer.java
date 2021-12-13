@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.baidu.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -51,11 +52,12 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
 
 public class JsonSerializer implements Serializer {
 
     private static final int LBUF_SIZE = 1024;
-
+    private static final Logger LOG = Log.logger(JsonSerializer.class);
     private static JsonSerializer INSTANCE = new JsonSerializer();
 
     private JsonSerializer() {
@@ -85,7 +87,13 @@ public class JsonSerializer implements Serializer {
     private String writeIterator(String label, Iterator<?> iter,
                                  boolean paging) {
         // Early throw if needed
-        iter.hasNext();
+        try{
+            iter.hasNext();
+        }catch (NullPointerException e){
+            e.printStackTrace();
+        }catch (RuntimeException e){
+            e.printStackTrace();
+        }
 
         // Serialize Iterator
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(LBUF_SIZE)) {

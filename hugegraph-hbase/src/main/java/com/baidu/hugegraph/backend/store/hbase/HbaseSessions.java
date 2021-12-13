@@ -712,7 +712,11 @@ public class HbaseSessions extends BackendSessionPool {
                                 byte[] stopRow, boolean inclusiveStop) {
             assert !this.hasChanges();
 
-            Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
+            Scan scan = new Scan();
+            if (startRow != null) {
+                // Bug https://issues.apache.org/jira/browse/HBASE-16498
+                scan.withStartRow(startRow, inclusiveStart);
+            }
             if (stopRow != null) {
                 String version = VersionInfo.getVersion();
                 if (inclusiveStop && !VersionUtil.gte(version, "2.0")) {
