@@ -121,6 +121,11 @@ public class HugeSecurityManager extends SecurityManager {
             "com.alipay.sofa.rpc.client.AbstractCluster"
     );
 
+    private static final Map<String, Set<String>> NEW_SECURITY_EXCEPTION = ImmutableMap.of(
+            "com.baidu.hugegraph.security.HugeSecurityManager",
+            ImmutableSet.of("newSecurityException")
+    );
+
     @Override
     public void checkPermission(Permission permission) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
@@ -321,7 +326,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkPropertiesAccess() {
-        if (callFromGremlin() && !callFromSofaRpc()) {
+        if (callFromGremlin() && !callFromSofaRpc() &&
+            !callFromNewSecurityException()) {
             throw newSecurityException(
                   "Not allowed to access system properties via Gremlin");
         }
@@ -463,6 +469,10 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromSofaRpc() {
         return callFromWorkerWithClass(SOFA_RPC_CLASSES);
+    }
+
+    private static boolean callFromNewSecurityException() {
+        return callFromMethods(NEW_SECURITY_EXCEPTION);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
