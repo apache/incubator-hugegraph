@@ -471,7 +471,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             final int LEN = BytesBuffer.BIG_ID_LEN_MAX;
-            String largeTime = new String(new byte[LEN]) + "{large-time}";
+            String largeTime = "{large-time}" + new String(new byte[LEN]);
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
         }, e -> {
@@ -489,6 +489,14 @@ public class EdgeCoreTest extends BaseCoreTest {
                                        "lived", "Canadian");
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
         graph.tx().commit();
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            james.addEdge("write", book, "time", "\u00002017-5-27");
+            graph.tx().commit();
+        }, e -> {
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
 
         String backend = graph.backend();
         if (backend.equals("postgresql")) {
@@ -2620,6 +2628,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Object id = graph.traversal().E().toList().get(0).id();
         List<Edge> edges = ImmutableList.copyOf(graph.edges(id));
         Assert.assertEquals(1, edges.size());
+
+        edges = ImmutableList.copyOf(graph.edges(id, id));
+        Assert.assertEquals(2, edges.size());
     }
 
     @Test
@@ -2630,12 +2641,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         Edge edge = graph.traversal().E().hasLabel("look").toList().get(0);
         Object id = edge.id();
         Assert.assertTrue(graph.edges(id).hasNext());
+        Assert.assertTrue(graph.edges(id, id).hasNext());
 
         edge.property("score", 101);
 
         List<Edge> edges = ImmutableList.copyOf(graph.edges(id));
         Assert.assertEquals(1, edges.size());
         Assert.assertEquals(101, (int) edges.get(0).value("score"));
+
+        edges = ImmutableList.copyOf(graph.edges(id, id));
+        Assert.assertEquals(2, edges.size());
+        Assert.assertEquals(101, (int) edges.get(1).value("score"));
     }
 
     @Test
@@ -2643,15 +2659,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         init18Edges();
 
-        Edge edge = graph.traversal().E().toList().get(0);
-        Object id = edge.id();
-        Assert.assertTrue(graph.edges(id).hasNext());
+        List<Edge> edges = graph.traversal().E().toList();
 
-        edge.remove();
-        Assert.assertFalse(graph.edges(id).hasNext());
+        Edge edge1 = edges.get(0);
+        Edge edge2 = edges.get(1);
+        Assert.assertTrue(graph.edges(edge1.id()).hasNext());
+        Assert.assertTrue(graph.edges(edge2.id()).hasNext());
+
+        edge1.remove();
+        edge2.remove();
+        Assert.assertFalse(graph.edges(edge1.id()).hasNext());
+        Assert.assertFalse(graph.edges(edge2.id()).hasNext());
+        Assert.assertFalse(graph.edges(edge1.id(), edge2.id()).hasNext());
 
         graph.tx().rollback();
-        Assert.assertTrue(graph.edges(id).hasNext());
+        Assert.assertTrue(graph.edges(edge1.id()).hasNext());
+        Assert.assertTrue(graph.edges(edge2.id()).hasNext());
+        Assert.assertTrue(graph.edges(edge1.id(), edge2.id()).hasNext());
     }
 
     @Test

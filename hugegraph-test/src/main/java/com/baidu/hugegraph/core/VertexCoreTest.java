@@ -2939,6 +2939,68 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByIdWithGraphAPI() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Object id = graph.traversal().V().toList().get(0).id();
+        List<Vertex> vertices = ImmutableList.copyOf(graph.vertices(id));
+        Assert.assertEquals(1, vertices.size());
+
+        vertices = ImmutableList.copyOf(graph.vertices(id, id));
+        Assert.assertEquals(2, vertices.size());
+    }
+
+    @Test
+    public void testQueryByIdWithGraphAPIAndNotCommitedUpdate() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Vertex vertex = graph.traversal().V()
+                             .hasLabel("author")
+                             .has("id", 1).next();
+        Object id = vertex.id();
+        Assert.assertTrue(graph.vertices(id).hasNext());
+        Assert.assertTrue(graph.vertices(id, id).hasNext());
+
+        vertex.property("age", 66);
+
+        List<Vertex> vertices = ImmutableList.copyOf(graph.vertices(id));
+        Assert.assertEquals(1, vertices.size());
+        Assert.assertEquals(66, (int) vertices.get(0).value("age"));
+
+        vertices = ImmutableList.copyOf(graph.vertices(id, id));
+        Assert.assertEquals(2, vertices.size());
+        Assert.assertEquals(66, (int) vertices.get(1).value("age"));
+    }
+
+    @Test
+    public void testQueryByIdWithGraphAPIAndNotCommitedRemoved() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel("author").toList();
+
+        Vertex vertex1 = vertices.get(0);
+        Vertex vertex2 = vertices.get(1);
+        Assert.assertTrue(graph.vertices(vertex1.id()).hasNext());
+        Assert.assertTrue(graph.vertices(vertex2.id()).hasNext());
+
+        vertex1.remove();
+        vertex2.remove();
+        Assert.assertFalse(graph.vertices(vertex1.id()).hasNext());
+        Assert.assertFalse(graph.vertices(vertex2.id()).hasNext());
+        Assert.assertFalse(graph.vertices(vertex1.id(), vertex2.id())
+                                .hasNext());
+
+        graph.tx().rollback();
+        Assert.assertTrue(graph.vertices(vertex1.id()).hasNext());
+        Assert.assertTrue(graph.vertices(vertex2.id()).hasNext());
+        Assert.assertTrue(graph.vertices(vertex1.id(), vertex2.id()).hasNext());
+    }
+
+    @Test
     public void testQueryByInvalidSysprop() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -8664,54 +8726,165 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testAddVertexWithSpecialSymbolInPrimaryValues() {
+        HugeGraph graph = graph();
+
+        Vertex vertex1 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0001abc", "city", "Hongkong",
+                                         "age", 11);
+        Vertex vertex2 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0002abc", "city", "Hongkong",
+                                         "age", 12);
+        Vertex vertex3 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0003abc", "city", "Hongkong",
+                                         "age", 13);
+        graph.tx().commit();
+
+        GraphTraversalSource g = graph.traversal();
+
+        Assert.assertEquals(vertex1, g.V().hasLabel("person")
+                                      .has("name", "xyz\u0001abc").next());
+        Assert.assertEquals(vertex2, g.V().hasLabel("person")
+                                      .has("name", "xyz\u0002abc").next());
+        Assert.assertEquals(vertex3, g.V().hasLabel("person")
+                                      .has("name", "xyz\u0003abc").next());
+
+        if (!graph.backend().equals("postgresql")) {
+            Vertex vertex0 = graph.addVertex(T.label, "person", "name",
+                                             "xyz\u0000abc", "city", "Hongkong",
+                                             "age", 10);
+            Assert.assertEquals(vertex0, g.V().hasLabel("person")
+                                          .has("name", "xyz\u0000abc").next());
+        }
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name",
+                            "\u0000", "city", "Hongkong",
+                            "age", 15);
+        }, e -> {
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name",
+                            "\u0001", "city", "Hongkong",
+                            "age", 15);
+        }, e -> {
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name",
+                            "\u0002", "city", "Hongkong",
+                            "age", 15);
+        }, e -> {
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.addVertex(T.label, "person", "name",
+                            "\u0003", "city", "Hongkong",
+                            "age", 15);
+        }, e -> {
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
+    }
+
+    @Test
     public void testQueryBySearchIndexWithSpecialSymbol() {
         HugeGraph graph = graph();
 
-        graph.schema().indexLabel("personByName").onV("person")
-             .by("name").search().ifNotExist().create();
+        graph.schema().indexLabel("personByCity")
+                      .onV("person")
+                      .by("city")
+                      .search()
+                      .ifNotExist().create();
 
-        Vertex vertex = graph.addVertex(T.label, "person", "name",
-                                        "xyz\u0002abc", "city", "Hongkong",
-                                        "age", 15);
-        Vertex vertex2 = graph.addVertex(T.label, "person", "name",
-                                         "\u0002", "city", "Hongkong",
+        Vertex vertex1 = graph.addVertex(T.label, "person", "name", "1",
+                                         "city", "xyz\u0002abc",
                                          "age", 15);
-        Vertex vertex3 = graph.addVertex(T.label, "person", "name",
-                                         "xyz\u0003abc", "city", "Hongkong",
+        Vertex vertex2 = graph.addVertex(T.label, "person", "name", "2",
+                                         "city", "\u0002",
                                          "age", 15);
-        Vertex vertex4 = graph.addVertex(T.label, "person", "name",
-                                         "\u0003", "city", "Hongkong",
+        Vertex vertex3 = graph.addVertex(T.label, "person", "name", "3",
+                                         "city", "xyz\u0003abc",
                                          "age", 15);
-        Vertex vertex5 = graph.addVertex(T.label, "person", "name",
-                                         "xyz\u0001abc", "city", "Hongkong",
+        Vertex vertex4 = graph.addVertex(T.label, "person", "name", "4",
+                                         "city", "\u0003",
                                          "age", 15);
-        Vertex vertex6 = graph.addVertex(T.label, "person", "name",
-                                         "\u0001", "city", "Hongkong",
+        Vertex vertex5 = graph.addVertex(T.label, "person", "name", "5",
+                                         "city", "xyz\u0001abc",
+                                         "age", 15);
+        Vertex vertex6 = graph.addVertex(T.label, "person", "name", "6",
+                                         "city", "\u0001",
                                          "age", 15);
         graph.tx().commit();
 
         GraphTraversalSource g = graph.traversal();
 
+        String city;;
+        city = g.V().hasLabel("person").has("name", "1")
+                    .next().value("city");
+        Assert.assertEquals(vertex1.value("city"), city);
+
+        city = g.V().hasLabel("person").has("name", "2")
+                    .next().value("city");
+        Assert.assertEquals(vertex2.value("city"), city);
+
+        city = g.V().hasLabel("person").has("name", "3")
+                    .next().value("city");
+        Assert.assertEquals(vertex3.value("city"), city);
+
+        city = g.V().hasLabel("person").has("name", "4")
+                    .next().value("city");
+        Assert.assertEquals(vertex4.value("city"), city);
+
+        city = g.V().hasLabel("person").has("name", "5")
+                    .next().value("city");
+        Assert.assertEquals(vertex5.value("city"), city);
+
+        city = g.V().hasLabel("person").has("name", "6")
+                    .next().value("city");
+        Assert.assertEquals(vertex6.value("city"), city);
+
         List<Vertex> vertices;
-        vertices = g.V().has("name", Text.contains("abc")).toList();
+        vertices = g.V().has("city", Text.contains("abc")).toList();
         Assert.assertEquals(3, vertices.size());
-        Assert.assertTrue(vertices.contains(vertex));
+        Assert.assertTrue(vertices.contains(vertex1));
         Assert.assertTrue(vertices.contains(vertex3));
         Assert.assertTrue(vertices.contains(vertex5));
 
-        vertices = g.V().has("name", Text.contains("\u0002")).toList();
+        vertices = g.V().has("city", Text.contains("\u0002")).toList();
         Assert.assertEquals(0, vertices.size());
 
-        vertices = g.V().has("name", Text.contains("\u0003")).toList();
+        vertices = g.V().has("city", Text.contains("\u0003")).toList();
         Assert.assertEquals(0, vertices.size());
 
-        vertices = g.V().has("name", Text.contains("\u0001")).toList();
+        vertices = g.V().has("city", Text.contains("\u0001")).toList();
         Assert.assertEquals(0, vertices.size());
 
-        if (graph.backend().equals("postgresql")) {
+        String backend = graph.backend();
+        if (ImmutableSet.of("rocksdb", "hbase").contains(backend)) {
+            Assert.assertThrows(Exception.class, () -> {
+                graph.addVertex(T.label, "person", "name", "0",
+                                "city", "xyz\u0000efg", "age", 0);
+                graph.tx().commit();
+            }, e -> {
+                Assert.assertContains("can't contains byte '0x00'",
+                                      e.getMessage());
+            });
+        } else if (backend.equals("postgresql")) {
             Assert.assertThrows(BackendException.class, () -> {
-                graph.addVertex(T.label, "person", "name",
-                                "\u0000", "city", "Hongkong",
+                graph.addVertex(T.label, "person", "name", "7",
+                                "city", "xyz\u0000efg",
                                 "age", 15);
                 graph.tx().commit();
             }, e -> {
@@ -8721,16 +8894,20 @@ public class VertexCoreTest extends BaseCoreTest {
                                       e.getCause().getMessage());
             });
         } else {
-            graph.addVertex(T.label, "person", "name",
-                            "xyz\u0000abc", "city", "Hongkong",
+            graph.addVertex(T.label, "person", "name", "8",
+                            "city", "xyz\u0000efg",
                             "age", 15);
-
-            graph.addVertex(T.label, "person", "name",
-                            "\u0000", "city", "Hongkong",
+            graph.addVertex(T.label, "person", "name", "9",
+                            "city", "\u0000",
                             "age", 15);
+            graph.tx().commit();
 
-            vertices = g.V().has("name", Text.contains("\u0000")).toList();
-            Assert.assertEquals(0, vertices.size());
+            Assert.assertTrue(g.V().hasLabel("person")
+                                   .has("city", Text.contains("efg"))
+                                   .hasNext());
+            Assert.assertFalse(g.V().hasLabel("person")
+                                    .has("city", Text.contains("u0000"))
+                                    .hasNext());
         }
     }
 
