@@ -108,6 +108,11 @@ public class HugeSecurityManager extends SecurityManager {
             "com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder"
     );
 
+    private static final Map<String, Set<String>> NEW_SECURITY_EXCEPTION = ImmutableMap.of(
+            "com.baidu.hugegraph.security.HugeSecurityManager",
+            ImmutableSet.of("newSecurityException")
+    );
+
     @Override
     public void checkPermission(Permission permission) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
@@ -306,7 +311,7 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkPropertiesAccess() {
-        if (callFromGremlin()) {
+        if (callFromGremlin() && !callFromNewSecurityException()) {
             throw newSecurityException(
                   "Not allowed to access system properties via Gremlin");
         }
@@ -439,6 +444,10 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromRaft() {
         return callFromWorkerWithClass(RAFT_CLASSES);
+    }
+
+    private static boolean callFromNewSecurityException() {
+        return callFromMethods(NEW_SECURITY_EXCEPTION);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
