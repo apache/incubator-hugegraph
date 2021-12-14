@@ -254,7 +254,7 @@ public final class GraphManager {
     public void loadServices() {
         for (String graphSpace : this.graphSpaces.keySet()) {
             Map<String, Service> services = this.metaManager
-                                                .services(graphSpace);
+                                                .serviceConfigs(graphSpace);
             for (Map.Entry<String, Service> entry : services.entrySet()) {
                 this.services.put(serviceName(graphSpace, entry.getKey()),
                                   entry.getValue());
@@ -444,7 +444,7 @@ public final class GraphManager {
     public GraphSpace updateGraphSpace(GraphSpace space) {
         String name = space.name();
         this.metaManager.addGraphSpaceConfig(name, space);
-        this.metaManager.updateGraphSpace(name);
+        this.metaManager.notifyGraphSpaceUpdate(name);
         this.graphSpaces.put(name, space);
         return space;
     }
@@ -452,7 +452,7 @@ public final class GraphManager {
     public GraphSpace createGraphSpace(GraphSpace space) {
         String name = space.name();
         this.metaManager.addGraphSpaceConfig(name, space);
-        this.metaManager.addGraphSpace(name);
+        this.metaManager.notifyGraphSpaceAdd(name);
         this.graphSpaces.put(name, space);
         return space;
     }
@@ -480,7 +480,7 @@ public final class GraphManager {
     public void dropGraphSpace(String name) {
         this.clearGraphSpace(name);
         this.metaManager.removeGraphSpaceConfig(name);
-        this.metaManager.removeGraphSpace(name);
+        this.metaManager.notifyGraphSpaceRemove(name);
         this.graphSpaces.remove(name);
     }
 
@@ -489,22 +489,28 @@ public final class GraphManager {
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
 
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace);
-        if (gs.tryOfferResourceFor(service)) {
-            this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
-            this.metaManager.updateGraphSpace(graphSpace);
-        } else {
-            throw new HugeException("Not enough resources for service '%s'",
-                                    service);
+        try {
+            if (gs.tryOfferResourceFor(service)) {
+                this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
+                this.metaManager.notifyGraphSpaceUpdate(graphSpace);
+            } else {
+                throw new HugeException("Not enough resources for service '%s'",
+                                        service);
+            }
+        } finally {
+            this.metaManager.unlock(lock, this.cluster, graphSpace);
         }
-        this.metaManager.unlock(lock, this.cluster, graphSpace);
 
         lock = this.metaManager.lock(this.cluster, graphSpace, name);
-        Set<String> urls = this.k8sManager.startService(gs, service);
-        service.urls(urls);
-        this.metaManager.addServiceConfig(graphSpace, service);
-        this.metaManager.addService(graphSpace, name);
-        this.services.put(serviceName(graphSpace, name), service);
-        this.metaManager.unlock(lock, this.cluster, graphSpace, name);
+        try {
+            Set<String> urls = this.k8sManager.startService(gs, service);
+            service.urls(urls);
+            this.metaManager.addServiceConfig(graphSpace, service);
+            this.metaManager.notifyServiceAdd(graphSpace, name);
+            this.services.put(serviceName(graphSpace, name), service);
+        } finally {
+            this.metaManager.unlock(lock, this.cluster, graphSpace, name);
+        }
 
         return service;
     }
@@ -515,14 +521,14 @@ public final class GraphManager {
         this.k8sManager.stopService(gs, service);
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace, name);
         this.metaManager.removeServiceConfig(graphSpace, name);
-        this.metaManager.removeService(graphSpace, name);
+        this.metaManager.notifyServiceRemove(graphSpace, name);
         this.services.remove(serviceName(graphSpace, name));
         this.metaManager.unlock(lock, this.cluster, graphSpace, name);
 
         lock = this.metaManager.lock(this.cluster, graphSpace);
         gs.recycleResourceFor(service);
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
-        this.metaManager.updateGraphSpace(graphSpace);
+        this.metaManager.notifyGraphSpaceUpdate(graphSpace);
         this.metaManager.unlock(lock, this.cluster, graphSpace);
     }
 
@@ -550,7 +556,7 @@ public final class GraphManager {
         if (init) {
             this.creatingGraphs.add(graphName);
             this.metaManager.addGraphConfig(graphSpace, name, configs);
-            this.metaManager.addGraph(graphSpace, name);
+            this.metaManager.notifyGraphAdd(graphSpace, name);
         }
         this.graphs.put(graphName, graph);
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
@@ -640,7 +646,7 @@ public final class GraphManager {
             this.removingGraphs.add(graphName);
             try {
                 this.metaManager.removeGraphConfig(graphSpace, name);
-                this.metaManager.removeGraph(graphSpace, name);
+                this.metaManager.notifyGraphRemove(graphSpace, name);
             } catch (Exception e) {
                 throw new HugeException(
                           "Failed to remove graph config of '%s'", name, e);

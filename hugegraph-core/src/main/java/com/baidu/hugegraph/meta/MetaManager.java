@@ -207,7 +207,7 @@ public class MetaManager {
         return configs;
     }
 
-    public Map<String, Service> services(String graphSpace) {
+    public Map<String, Service> serviceConfigs(String graphSpace) {
         Map<String, Service> serviceMap =  new HashMap<>();
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                             this.serviceConfPrefix(graphSpace));
@@ -290,30 +290,30 @@ public class MetaManager {
                             JsonUtil.toJson(space));
     }
 
-    public void addGraphSpace(String graphSpace) {
+    public void notifyGraphSpaceAdd(String graphSpace) {
         this.metaDriver.put(this.graphSpaceAddKey(), graphSpace);
     }
 
-    public void addService(String graphSpace, String name) {
+    public void notifyServiceAdd(String graphSpace, String name) {
         this.metaDriver.put(this.serviceAddKey(),
                             this.serviceName(graphSpace, name));
     }
 
-    public void removeService(String graphSpace, String name) {
+    public void notifyServiceRemove(String graphSpace, String name) {
         this.metaDriver.put(this.serviceRemoveKey(),
                             this.serviceName(graphSpace, name));
     }
 
-    public void updateService(String graphSpace, String name) {
+    public void notifyServiceUpdate(String graphSpace, String name) {
         this.metaDriver.put(this.serviceUpdateKey(),
                             this.serviceName(graphSpace, name));
     }
 
-    public void removeGraphSpace(String graphSpace) {
+    public void notifyGraphSpaceRemove(String graphSpace) {
         this.metaDriver.put(this.graphSpaceRemoveKey(), graphSpace);
     }
 
-    public void updateGraphSpace(String graphSpace) {
+    public void notifyGraphSpaceUpdate(String graphSpace) {
         this.metaDriver.put(this.graphSpaceUpdateKey(), graphSpace);
     }
 
@@ -343,12 +343,12 @@ public class MetaManager {
         this.metaDriver.delete(this.graphConfKey(graphSpace, graph));
     }
 
-    public void addGraph(String graphSpace, String graph) {
+    public void notifyGraphAdd(String graphSpace, String graph) {
         this.metaDriver.put(this.graphAddKey(),
                             this.graphName(graphSpace, graph));
     }
 
-    public void removeGraph(String graphSpace, String graph) {
+    public void notifyGraphRemove(String graphSpace, String graph) {
         this.metaDriver.put(this.graphRemoveKey(),
                             this.graphName(graphSpace, graph));
     }
