@@ -31,6 +31,8 @@ import java.util.function.Consumer;
 import org.apache.commons.io.FileUtils;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.meta.lock.DistributedLock;
+import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
@@ -53,6 +55,7 @@ import io.netty.handler.ssl.SslProvider;
 public class EtcdMetaDriver implements MetaDriver {
 
     private Client client;
+    private DistributedLock lock;
 
     public EtcdMetaDriver(String trustFile, String clientCertFile,
                           String clientKeyFile, Object... endpoints) {
@@ -61,11 +64,13 @@ public class EtcdMetaDriver implements MetaDriver {
         SslContext sslContext = openSslContext(trustFile, clientCertFile,
                                                clientKeyFile);
         this.client = builder.sslContext(sslContext).build();
+        this.lock = DistributedLock.getInstance(this.client);
     }
 
     public EtcdMetaDriver(Object... endpoints) {
         ClientBuilder builder = this.etcdMetaDriverBuilder(endpoints);
         this.client = builder.build();
+        this.lock = DistributedLock.getInstance(this.client);
     }
 
     public ClientBuilder etcdMetaDriverBuilder(Object... endpoints) {
@@ -184,6 +189,16 @@ public class EtcdMetaDriver implements MetaDriver {
         return values;
     }
 
+    @Override
+    public LockResult lock(String key, long ttl) {
+        return this.lock.lock(key, ttl);
+    }
+
+    @Override
+    public void unlock(String key, LockResult lockResult) {
+        this.lock.unLock(key, lockResult);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public <T> void listen(String key, Consumer<T> consumer) {
@@ -227,4 +242,6 @@ public class EtcdMetaDriver implements MetaDriver {
         }
         return ssl;
     }
+
+
 }

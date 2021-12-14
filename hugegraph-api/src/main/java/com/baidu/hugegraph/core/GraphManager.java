@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
+import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.MapConfiguration;
@@ -487,7 +488,7 @@ public final class GraphManager {
         String name = service.name();
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
 
-        // TODO: grab distributed etcd lock
+        LockResult lock = this.metaManager.lock(this.cluster, graphSpace);
         if (gs.tryOfferResourceFor(service)) {
             this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
             this.metaManager.updateGraphSpace(graphSpace);
@@ -495,12 +496,15 @@ public final class GraphManager {
             throw new HugeException("Not enough resources for service '%s'",
                                     service);
         }
+        this.metaManager.unlock(lock, this.cluster, graphSpace);
 
+        lock = this.metaManager.lock(this.cluster, graphSpace, name);
         Set<String> urls = this.k8sManager.startService(gs, service);
         service.urls(urls);
         this.metaManager.addServiceConfig(graphSpace, service);
         this.metaManager.addService(graphSpace, name);
         this.services.put(serviceName(graphSpace, name), service);
+        this.metaManager.unlock(lock, this.cluster, graphSpace, name);
 
         return service;
     }
@@ -509,14 +513,17 @@ public final class GraphManager {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
         this.k8sManager.stopService(gs, service);
+        LockResult lock = this.metaManager.lock(this.cluster, graphSpace, name);
         this.metaManager.removeServiceConfig(graphSpace, name);
         this.metaManager.removeService(graphSpace, name);
         this.services.remove(serviceName(graphSpace, name));
+        this.metaManager.unlock(lock, this.cluster, graphSpace, name);
 
-        // TODO: grab distributed etcd lock
+        lock = this.metaManager.lock(this.cluster, graphSpace);
         gs.recycleResourceFor(service);
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         this.metaManager.updateGraphSpace(graphSpace);
+        this.metaManager.unlock(lock, this.cluster, graphSpace);
     }
 
     public HugeGraph createGraph(String graphSpace, String name,

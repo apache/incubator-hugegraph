@@ -17,29 +17,37 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.meta;
+package com.baidu.hugegraph.meta.lock;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import java.util.concurrent.ScheduledExecutorService;
 
-import com.baidu.hugegraph.meta.lock.LockResult;
+public class LockResult {
 
-public interface MetaDriver {
+    private boolean lockSuccess;
+    private long leaseId;
+    private ScheduledExecutorService service;
 
-    public void put(String key, String value);
+    public void lockSuccess(boolean isLockSuccess) {
+        this.lockSuccess = isLockSuccess;
+    }
 
-    public String get(String key);
+    public void setLeaseId(long leaseId) {
+        this.leaseId = leaseId;
+    }
 
-    public void delete(String key);
+    public void setService(ScheduledExecutorService service) {
+        this.service = service;
+    }
 
-    public Map<String, String> scanWithPrefix(String prefix);
+    public boolean lockSuccess() {
+        return this.lockSuccess;
+    }
 
-    public <T> void listen(String key, Consumer<T> consumer);
+    public long getLeaseId() {
+        return this.leaseId;
+    }
 
-    public <T> List<String> extractValuesFromResponse(T response);
-
-    public LockResult lock(String key, long ttl);
-
-    public void unlock(String key, LockResult lockResult);
+    public ScheduledExecutorService getService() {
+        return this.service;
+    }
 }
