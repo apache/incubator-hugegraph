@@ -618,7 +618,7 @@ public class HugeTraverser {
          */
         @Override
         public boolean equals(Object other) {
-            if (other == null || !(other instanceof Path)) {
+            if (!(other instanceof Path)) {
                 return false;
             }
             return this.vertices.equals(((Path) other).vertices);
@@ -724,6 +724,17 @@ public class HugeTraverser {
         @Override
         public String toString() {
             return this.paths.toString();
+        }
+
+        public void append(Id current) {
+            for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
+                Path path = iter.next();
+                if (path.vertices().contains(current)) {
+                    iter.remove();
+                    continue;
+                }
+                path.addToLast(current);
+            }
         }
     }
 }

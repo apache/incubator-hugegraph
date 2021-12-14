@@ -40,7 +40,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     private final Stack<Record> sourceRecords;
     private final Stack<Record> targetRecords;
 
-    private IntIterator lastRecordKeys;
+    private IntIterator parentRecordKeys;
     private int currentKey;
     private boolean movingForward;
     private long accessed;
@@ -65,10 +65,11 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Override
     public void startOneLayer(boolean forward) {
         this.movingForward = forward;
-        this.currentRecord(this.newRecord());
-        this.lastRecordKeys = this.movingForward ?
-                              this.sourceRecords.peek().keys() :
-                              this.targetRecords.peek().keys();
+        Record parentRecord = this.movingForward ?
+                              this.sourceRecords.peek() :
+                              this.targetRecords.peek();
+        this.currentRecord(this.newRecord(), parentRecord);
+        this.parentRecordKeys = parentRecord.keys();
     }
 
     @Override
@@ -85,14 +86,31 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Watched
     @Override
     public boolean hasNextKey() {
-        return this.lastRecordKeys.hasNext();
+        return this.parentRecordKeys.hasNext();
     }
 
     @Watched
     @Override
     public Id nextKey() {
-        this.currentKey = this.lastRecordKeys.next();
+        this.currentKey = this.parentRecordKeys.next();
         return this.id(this.currentKey);
+    }
+
+    public boolean parentsContain(int id) {
+        Record parentRecord = this.parentRecord();
+        if (parentRecord == null) {
+            return false;
+        }
+
+        IntIterator parents = parentRecord.get(this.currentKey);
+        while (parents.hasNext()) {
+            int parent = parents.next();
+            if (parent == id) {
+                // find backtrace path, stop
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -147,21 +165,13 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
             return results;
         }
 
-        Id sid = this.id(id);
+        Id current = this.id(id);
         Record layer = all.elementAt(layerIndex);
         IntIterator iterator = layer.get(id);
         while (iterator.hasNext()) {
             int parent = iterator.next();
             PathSet paths = this.linkPathLayer(all, parent, layerIndex - 1);
-            for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
-                Path path = iter.next();
-                if (path.vertices().contains(sid)) {
-                    iter.remove();
-                    continue;
-                }
-                path.addToLast(sid);
-            }
-
+            paths.append(current);
             results.addAll(paths);
         }
         return results;

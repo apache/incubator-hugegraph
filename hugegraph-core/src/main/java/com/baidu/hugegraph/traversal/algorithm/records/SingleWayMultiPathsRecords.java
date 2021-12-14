@@ -50,7 +50,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     private final boolean nearest;
     private final MutableIntSet accessedVertices;
 
-    private IntIterator lastRecordKeys;
+    private IntIterator parentRecordKeys;
 
     public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
                                       Id source, boolean nearest) {
@@ -70,8 +70,9 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public void startOneLayer(boolean forward) {
-        this.currentRecord(this.newRecord());
-        this.lastRecordKeys = this.records.peek().keys();
+        Record parentRecord = this.records.peek();
+        this.currentRecord(this.newRecord(), parentRecord);
+        this.parentRecordKeys = parentRecord.keys();
     }
 
     @Override
@@ -81,12 +82,12 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public boolean hasNextKey() {
-        return this.lastRecordKeys.hasNext();
+        return this.parentRecordKeys.hasNext();
     }
 
     @Override
     public Id nextKey() {
-        return this.id(this.lastRecordKeys.next());
+        return this.id(this.parentRecordKeys.next());
     }
 
     @Override
@@ -108,7 +109,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     }
 
     public Iterator<Id> keys() {
-        return new MapperIterator<>(this.lastRecordKeys, this::id);
+        return new MapperIterator<>(this.parentRecordKeys, this::id);
     }
 
     @Watched
@@ -174,8 +175,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     protected final IntIntHashMap layer(int layerIndex) {
         Record record = this.records.elementAt(layerIndex);
-        IntIntHashMap layer = ((Int2IntRecord) record).layer();
-        return layer;
+        return ((Int2IntRecord) record).layer();
     }
 
     protected final Stack<Record> records() {
