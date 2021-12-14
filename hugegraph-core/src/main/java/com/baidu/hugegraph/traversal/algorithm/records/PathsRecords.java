@@ -41,6 +41,7 @@ public class PathsRecords extends DoubleWayMultiPathsRecords {
         int parentCode = this.current();
         PathSet paths = PathSet.EMPTY;
 
+        // Traverse backtrace is not allowed, stop now
         if (this.parentsContain(targetCode)) {
             return paths;
         }

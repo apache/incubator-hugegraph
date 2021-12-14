@@ -124,9 +124,11 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
+                        if (Objects.equals(target, targetV)) {
+                            continue;
+                        }
                         this.paths.add(path);
-                        if ( this.reachLimit() ||
-                             Objects.equals(target, targetV)) {
+                        if (this.reachLimit()) {
                             return;
                         }
                     }
@@ -158,9 +160,11 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
+                        if (Objects.equals(target, sourceV)) {
+                            continue;
+                        }
                         this.paths.add(path);
-                        if (this.reachLimit() ||
-                            Objects.equals(target, sourceV)) {
+                        if (this.reachLimit()) {
                             return;
                         }
                     }

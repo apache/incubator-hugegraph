@@ -22,7 +22,9 @@ package com.baidu.hugegraph.util.collection;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-// TODO: move to common-module
+/**
+ * TODO: move to common-module
+ */
 public class Int2IntsMap {
 
     private static final int[] EMPTY = new int[0];

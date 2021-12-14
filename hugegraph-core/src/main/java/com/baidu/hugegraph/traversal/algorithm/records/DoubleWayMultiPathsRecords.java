@@ -106,7 +106,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         while (parents.hasNext()) {
             int parent = parents.next();
             if (parent == id) {
-                // find backtrace path, stop
+                // Find backtrace path, stop
                 return true;
             }
         }
