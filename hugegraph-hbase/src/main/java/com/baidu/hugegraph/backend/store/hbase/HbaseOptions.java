@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.hbase;
 import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import static com.baidu.hugegraph.config.OptionChecker.positiveInt;
 import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+import static com.baidu.hugegraph.config.OptionChecker.nonNegativeInt;
 
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.OptionHolder;
@@ -136,5 +137,29 @@ public class HbaseOptions extends OptionHolder {
                     "The HBase's key tab file for kerberos authentication.",
                     null,
                     ""
+            );
+
+    public static final ConfigOption<Boolean> HBASE_ENABLE_PARTITION =
+            new ConfigOption<>(
+                    "hbase.enable_partition",
+                    "Is pre-split partitions enabled for HBase.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> HBASE_VERTEX_PARTITION =
+            new ConfigOption<>(
+                    "hbase.vertex_partitions",
+                    "The number of partitions of the HBase vertex table",
+                    nonNegativeInt(),
+                    10
+            );
+
+    public static final ConfigOption<Integer> HBASE_EDGE_PARTITION =
+            new ConfigOption<>(
+                    "hbase.edge_partitions",
+                    "The number of partitions of the HBase edge table",
+                    nonNegativeInt(),
+                    30
             );
 }

@@ -24,6 +24,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -32,8 +33,8 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class BinaryScatterSerializer extends BinarySerializer {
 
-    public BinaryScatterSerializer() {
-        super(true, true);
+    public BinaryScatterSerializer(HugeConfig config) {
+        super(true, true, false);
     }
 
     @Override

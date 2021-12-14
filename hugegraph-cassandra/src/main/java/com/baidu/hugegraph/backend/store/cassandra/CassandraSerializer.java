@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
 import com.baidu.hugegraph.backend.serializer.TableSerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -50,6 +51,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class CassandraSerializer extends TableSerializer {
+
+    public CassandraSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     public CassandraBackendEntry newBackendEntry(HugeType type, Id id) {

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.HugeException;
@@ -77,6 +78,10 @@ public class TextSerializer extends AbstractSerializer {
                                 ConditionQuery.INDEX_SYM_ENDING;
 
     private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
+
+    public TextSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     public TextBackendEntry newBackendEntry(HugeType type, Id id) {

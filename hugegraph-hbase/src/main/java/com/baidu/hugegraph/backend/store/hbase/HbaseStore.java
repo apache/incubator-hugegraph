@@ -61,6 +61,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private final BackendStoreProvider provider;
     private final Map<HugeType, HbaseTable> tables;
+    private short vertexLogicPartitions;
+    private short edgeLogicPartitions;
 
     private HbaseSessions sessions;
 
@@ -141,6 +143,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     @Override
     public synchronized void open(HugeConfig config) {
         E.checkNotNull(config, "config");
+        this.vertexLogicPartitions = config.get(HbaseOptions.HBASE_VERTEX_PARTITION).shortValue();
+        this.edgeLogicPartitions = config.get(HbaseOptions.HBASE_EDGE_PARTITION).shortValue();
 
         if (this.sessions == null) {
             this.sessions = new HbaseSessions(config, this.namespace, this.store);
@@ -252,7 +256,14 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         // Create tables
         for (String table : this.tableNames()) {
             try {
-                this.sessions.createTable(table, HbaseTable.cfs());
+                if (table.equals("g_oe") || table.equals("g_ie")) {
+                    this.sessions.createPreSplitTable(table, HbaseTable.cfs(), this.edgeLogicPartitions);
+                } else if (table.equals("g_v")) {
+                    this.sessions.createPreSplitTable(table, HbaseTable.cfs(), this.vertexLogicPartitions);
+                } else {
+                    this.sessions.createTable(table, HbaseTable.cfs());
+                }
+
             } catch (TableExistsException ignored) {
                 continue;
             } catch (IOException e) {
@@ -477,18 +488,18 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     }
 
     public static class HbaseGraphStore extends HbaseStore {
-
-        public HbaseGraphStore(BackendStoreProvider provider,
+        private boolean enablePartition;
+        public HbaseGraphStore(HugeConfig config, BackendStoreProvider provider,
                                String namespace, String store) {
             super(provider, namespace, store);
-
+            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue();
             registerTableManager(HugeType.VERTEX,
-                                 new HbaseTables.Vertex(store));
+                                 new HbaseTables.Vertex(store, enablePartition));
 
             registerTableManager(HugeType.EDGE_OUT,
-                                 HbaseTables.Edge.out(store));
+                                 HbaseTables.Edge.out(store, enablePartition));
             registerTableManager(HugeType.EDGE_IN,
-                                 HbaseTables.Edge.in(store));
+                                 HbaseTables.Edge.in(store, enablePartition));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new HbaseTables.SecondaryIndex(store));

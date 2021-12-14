@@ -172,4 +172,47 @@ public final class FakeObjects {
 
         return edge;
     }
+
+    public HugeEdge newEdge(String sourceVertexId, String targetVertexId) {
+        PropertyKey name = this.newPropertyKey(IdGenerator.of(1), "name");
+        PropertyKey age = this.newPropertyKey(IdGenerator.of(2), "age",
+                                              DataType.INT,
+                                              Cardinality.SINGLE);
+        PropertyKey city = this.newPropertyKey(IdGenerator.of(3), "city");
+        PropertyKey date = this.newPropertyKey(IdGenerator.of(4), "date",
+                                               DataType.DATE);
+        PropertyKey weight = this.newPropertyKey(IdGenerator.of(5),
+                                                "weight", DataType.DOUBLE);
+
+        VertexLabel vl = this.newVertexLabel(IdGenerator.of(1), "person",
+                                             IdStrategy.CUSTOMIZE_NUMBER,
+                                             name.id(), age.id(), city.id());
+
+        EdgeLabel el = this.newEdgeLabel(IdGenerator.of(1), "knows",
+                                         Frequency.SINGLE,  vl.id(), vl.id(),
+                                         date.id(), weight.id());
+
+        HugeVertex source = new HugeVertex(this.graph(),
+                                           IdGenerator.of(sourceVertexId), vl);
+        source.addProperty(name, "tom");
+        source.addProperty(age, 18);
+        source.addProperty(city, "Beijing");
+
+        HugeVertex target = new HugeVertex(this.graph(),
+                                           IdGenerator.of(targetVertexId), vl);
+        target.addProperty(name, "cat");
+        target.addProperty(age, 20);
+        target.addProperty(city, "Shanghai");
+
+        Id id = EdgeId.parse("L123456>1>>L987654");
+        HugeEdge edge = new HugeEdge(this.graph(), id, el);
+
+        Whitebox.setInternalState(edge, "sourceVertex", source);
+        Whitebox.setInternalState(edge, "targetVertex", target);
+        edge.assignId();
+        edge.addProperty(date, new Date());
+        edge.addProperty(weight, 0.75);
+
+        return edge;
+    }
 }

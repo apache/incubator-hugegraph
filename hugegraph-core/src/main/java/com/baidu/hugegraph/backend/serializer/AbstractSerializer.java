@@ -25,10 +25,19 @@ import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 
 public abstract class AbstractSerializer
                 implements GraphSerializer, SchemaSerializer {
+
+    public AbstractSerializer() {
+        // TODO: default constructor
+    }
+
+    public AbstractSerializer(HugeConfig config) {
+        // TODO: use the config
+    }
 
     protected BackendEntry convertEntry(BackendEntry entry) {
         return entry;

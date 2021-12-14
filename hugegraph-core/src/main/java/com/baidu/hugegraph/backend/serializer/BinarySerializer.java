@@ -19,11 +19,9 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -81,29 +79,54 @@ public class BinarySerializer extends AbstractSerializer {
      */
     private final boolean keyWithIdPrefix;
     private final boolean indexWithIdPrefix;
+    private final boolean enablePartition;
 
     public BinarySerializer() {
-        this(true, true);
+        this(true, true, false);
+    }
+
+    public BinarySerializer(HugeConfig config) {
+        this(true, true, false);
     }
 
     public BinarySerializer(boolean keyWithIdPrefix,
-                            boolean indexWithIdPrefix) {
+                            boolean indexWithIdPrefix,
+                            boolean enablePartition) {
         this.keyWithIdPrefix = keyWithIdPrefix;
         this.indexWithIdPrefix = indexWithIdPrefix;
+        this.enablePartition = enablePartition;
     }
 
     @Override
     protected BinaryBackendEntry newBackendEntry(HugeType type, Id id) {
+        if (type.isVertex()) {
+            BytesBuffer buffer = BytesBuffer.allocate(2 + 1 + id.length());
+            writePartitionedId(HugeType.VERTEX, id, buffer);
+            return new BinaryBackendEntry(type, new BinaryId(buffer.bytes(), id));
+        }
+
         if (type.isEdge()) {
             E.checkState(id instanceof BinaryId,
                          "Expect a BinaryId for BackendEntry with edge id");
             return new BinaryBackendEntry(type, (BinaryId) id);
         }
 
+        if (type.isIndex()) {
+            if (this.enablePartition) {
+                if (type.isStringIndex()) {
+                    // TODO: add string index partition
+                }
+                if (type.isNumericIndex()) {
+                    // TODO: add numeric index partition
+                }
+            }
+            BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
+            byte[] idBytes = buffer.writeIndexId(id, type).bytes();
+            return new BinaryBackendEntry(type, new BinaryId(idBytes, id));
+        }
+
         BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
-        byte[] idBytes = type.isIndex() ?
-                         buffer.writeIndexId(id, type).bytes() :
-                         buffer.writeId(id).bytes();
+        byte[] idBytes = buffer.writeId(id).bytes();
         return new BinaryBackendEntry(type, new BinaryId(idBytes, id));
     }
 
@@ -112,8 +135,7 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected final BinaryBackendEntry newBackendEntry(HugeEdge edge) {
-        BinaryId id = new BinaryId(formatEdgeName(edge),
-                                   edge.idWithDirection());
+        BinaryId id = writeEdgeId(edge.idWithDirection());
         return newBackendEntry(edge.type(), id);
     }
 
@@ -222,12 +244,6 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected void parseExpiredTime(BytesBuffer buffer, HugeElement element) {
         element.expiredTime(buffer.readVLong());
-    }
-
-    protected byte[] formatEdgeName(HugeEdge edge) {
-        // owner-vertex + dir + edge-label + sort-values + other-vertex
-        return BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID)
-                          .writeEdgeId(edge.id()).bytes();
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
@@ -477,7 +493,8 @@ public class BinarySerializer extends AbstractSerializer {
     public BackendEntry writeEdge(HugeEdge edge) {
         BinaryBackendEntry entry = newBackendEntry(edge);
         byte[] name = this.keyWithIdPrefix ?
-                      this.formatEdgeName(edge) : EMPTY_BYTES;
+                      entry.id().asBytes() : EMPTY_BYTES;
+
         byte[] value = this.formatEdgeValue(edge);
         entry.column(name, value);
 
@@ -571,6 +588,10 @@ public class BinarySerializer extends AbstractSerializer {
     protected Id writeQueryId(HugeType type, Id id) {
         if (type.isEdge()) {
             id = writeEdgeId(id);
+        } else if (type.isVertex()) {
+            BytesBuffer buffer = BytesBuffer.allocate(2 + 1 + id.length());
+            writePartitionedId(HugeType.VERTEX, id, buffer);
+            id = new BinaryId(buffer.bytes(), id);
         } else {
             BytesBuffer buffer = BytesBuffer.allocate(1 + id.length());
             id = new BinaryId(buffer.writeId(id).bytes(), id);
@@ -600,13 +621,12 @@ public class BinarySerializer extends AbstractSerializer {
         }
         Id label = cq.condition(HugeKeys.LABEL);
 
-        int size = 1 + vertex.length() + 1 + label.length() + 16;
-        BytesBuffer start = BytesBuffer.allocate(size);
-        start.writeId(vertex);
+        BytesBuffer start = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
+        writePartitionedId(HugeType.EDGE, vertex, start);
         start.write(direction.type().code());
         start.writeId(label);
 
-        BytesBuffer end = BytesBuffer.allocate(size);
+        BytesBuffer end = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         end.copyFrom(start);
 
         RangeConditions range = new RangeConditions(sortValues);
@@ -655,7 +675,7 @@ public class BinarySerializer extends AbstractSerializer {
 
             if (key == HugeKeys.OWNER_VERTEX ||
                 key == HugeKeys.OTHER_VERTEX) {
-                buffer.writeId((Id) value);
+                writePartitionedId(HugeType.EDGE, (Id) value, buffer);
             } else if (key == HugeKeys.DIRECTION) {
                 byte t = ((Directions) value).type().code();
                 buffer.write(t);
@@ -800,16 +820,56 @@ public class BinarySerializer extends AbstractSerializer {
         return entry;
     }
 
-    private static BinaryId writeEdgeId(Id id) {
+    private BinaryId writeEdgeId(Id id) {
         EdgeId edgeId;
         if (id instanceof EdgeId) {
             edgeId = (EdgeId) id;
         } else {
             edgeId = EdgeId.parse(id.asString());
         }
-        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID)
-                                        .writeEdgeId(edgeId);
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
+        if (this.enablePartition) {
+            buffer.writeShort(getPartition(HugeType.EDGE, edgeId.ownerVertexId()));
+            buffer.writeEdgeId(edgeId);
+        } else {
+            buffer.writeEdgeId(edgeId);
+        }
         return new BinaryId(buffer.bytes(), id);
+    }
+
+    private void writePartitionedId(HugeType type, Id id, BytesBuffer buffer) {
+        if (this.enablePartition) {
+            buffer.writeShort(getPartition(type, id));
+            buffer.writeId(id);
+        } else {
+            buffer.writeId(id);
+        }
+    }
+
+    protected short getPartition(HugeType type, Id id) {
+        return 0;
+    }
+
+    public BackendEntry parse(BackendEntry originEntry) {
+        byte[] bytes = originEntry.id().asBytes();
+        BinaryBackendEntry parsedEntry = new BinaryBackendEntry(originEntry.type(),
+                                                                bytes,
+                                                                this.enablePartition);
+        if (this.enablePartition) {
+            bytes = Arrays.copyOfRange(bytes, parsedEntry.id().length() + 2, bytes.length);
+        } else {
+            bytes = Arrays.copyOfRange(bytes, parsedEntry.id().length(), bytes.length);
+        }
+        BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
+        buffer.write(parsedEntry.id().asBytes());
+        buffer.write(bytes);
+        parsedEntry = new BinaryBackendEntry(originEntry.type(),
+                                             new BinaryId(buffer.bytes(),
+                                                          BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+        for (BackendEntry.BackendColumn col : originEntry.columns()) {
+            parsedEntry.column(buffer.bytes(), col.value);
+        }
+        return parsedEntry;
     }
 
     private static Query prefixQuery(ConditionQuery query, Id prefix) {

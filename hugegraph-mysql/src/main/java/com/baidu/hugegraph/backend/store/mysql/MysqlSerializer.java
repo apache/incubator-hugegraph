@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -42,6 +43,10 @@ import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public class MysqlSerializer extends TableSerializer {
+
+    public MysqlSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     public MysqlBackendEntry newBackendEntry(HugeType type, Id id) {

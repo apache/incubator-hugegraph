@@ -45,7 +45,11 @@ public class BinaryBackendEntry implements BackendEntry {
     private boolean olap;
 
     public BinaryBackendEntry(HugeType type, byte[] bytes) {
-        this(type, BytesBuffer.wrap(bytes).parseId(type));
+        this(type, BytesBuffer.wrap(bytes).parseId(type, false));
+    }
+
+    public BinaryBackendEntry(HugeType type, byte[] bytes, boolean enablePartition) {
+        this(type, BytesBuffer.wrap(bytes).parseId(type, enablePartition));
     }
 
     public BinaryBackendEntry(HugeType type, BinaryId id) {

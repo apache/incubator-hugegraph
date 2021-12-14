@@ -200,6 +200,7 @@ public final class RamTable {
         Id lastId = IdGenerator.ZERO;
         while (vertices.hasNext()) {
             Id vertex = (Id) vertices.next().id();
+            LOG.info("scan from hbase {} loadfromDB", vertex);
             if (vertex.compareTo(lastId) < 0) {
                 throw new HugeException("The ramtable feature is not " +
                                         "supported by %s backend",
@@ -541,6 +542,7 @@ public final class RamTable {
             if (this.vertices.size() > 0) {
                 lastId = this.vertices.get(this.vertices.size() - 1);
             }
+            LOG.info("scan from hbase source {} lastId value: {} compare {} size {}", vertex, lastId, vertex.compareTo(lastId), this.vertices.size());
             if (vertex.compareTo(lastId) < 0) {
                 throw new HugeException("The ramtable feature is not " +
                                         "supported by %s backend",
