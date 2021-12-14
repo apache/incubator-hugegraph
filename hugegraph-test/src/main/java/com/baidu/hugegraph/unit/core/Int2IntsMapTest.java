@@ -190,6 +190,5 @@ public class Int2IntsMapTest {
 
         ints = map.getValues(2);
         Assert.assertArrayEquals(new int[0], ints);
-
     }
 }
