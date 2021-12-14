@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -28,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.ArrayUtils;
 
@@ -75,6 +77,38 @@ public abstract class Condition {
         }),
         TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
             return v1 != null && ((String) v1).contains((String) v2);
+        }),
+        TEXT_NOT_CONTAINS("textnotcontains", String.class,
+                          String.class, (v1, v2) -> {
+            return v1 != null && !((String) v1).contains((String) v2);
+        }),
+        TEXT_STARTING_WITH("textstartingwith", String.class, String.class,
+                           (v1, v2) -> {
+            return v1 != null && ((String) v1).startsWith((String) v2);
+        }),
+        TEXT_NOT_STARTING_WITH("textnotstartingwith", String.class,
+                               String.class, (v1, v2) -> {
+            return v1 != null && !((String) v1).startsWith((String) v2);
+        }),
+        TEXT_ENDING_WITH("textendingwith", String.class, String.class,
+                         (v1, v2) -> {
+            return v1 != null && ((String) v1).endsWith((String) v2);
+        }),
+        TEXT_NOT_ENDING_WITH("textnotendingwith", String.class, String.class,
+                             (v1, v2) -> {
+            return v1 != null && !((String) v1).endsWith((String) v2);
+        }),
+        TEXT_MATCH_REGEX("textmatchregex", String.class, String.class,
+                         (v1, v2) -> {
+            return Pattern.matches((String) v2, (String) v1);
+        }),
+        TEXT_MATCH_EDIT_DISTANCE("texteditdistance", String.class,
+                                 String.class, (v1, v2) -> {
+            String content = (String) v2;
+            String distanceStr = content.substring(0, content.indexOf("#"));
+            int distance = Integer.valueOf(distanceStr);
+            String target = content.substring(content.indexOf("#") + 1);
+            return minEditDistance((String) v1, target) <= distance;
         }),
         TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,
                           (v1, v2) -> {
@@ -132,6 +166,43 @@ public abstract class Condition {
 
         public String string() {
             return this.operator;
+        }
+
+        protected static int minEditDistance(String source, String target) {
+            E.checkArgument(source != null, "The source could not be null");
+            E.checkArgument(target != null, "The target could not be null");
+
+            int sourceLen = source.length();
+            int targetLen = target.length();
+            if(sourceLen == 0){
+                return targetLen;
+            }
+            if(targetLen == 0){
+                return sourceLen;
+            }
+
+            int[][]  arr = new int[sourceLen + 1][targetLen + 1];
+            for(int i = 0; i < sourceLen + 1; i++){
+                arr[i][0] = i;
+            }
+            for(int j = 0; j < targetLen + 1; j++){
+                arr[0][j] = j;
+            }
+            Character sourceChar = null;
+            Character targetChar = null;
+            for(int i = 1; i < sourceLen + 1; i++){
+                sourceChar = source.charAt(i - 1);
+                for(int j = 1; j < targetLen + 1; j++){
+                    targetChar = target.charAt(j - 1);
+                    if(sourceChar.equals(targetChar)){
+                        arr[i][j] = arr[i - 1][j - 1];
+                    }else{
+                        arr[i][j] = (Math.min(Math.min(arr[i - 1][j],
+                                     arr[i][j - 1]), arr[i - 1][j - 1])) + 1;
+                    }
+                }
+            }
+            return arr[sourceLen][targetLen];
         }
 
         /**
@@ -238,7 +309,11 @@ public abstract class Condition {
         }
 
         public boolean isSearchType() {
-            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY;
+            return this == TEXT_CONTAINS || this == TEXT_NOT_CONTAINS ||
+                   this == TEXT_STARTING_WITH || this == TEXT_ENDING_WITH ||
+                   this == TEXT_NOT_STARTING_WITH || this == TEXT_MATCH_REGEX ||
+                   this == TEXT_NOT_ENDING_WITH || this == TEXT_CONTAINS_ANY ||
+                   this == TEXT_MATCH_EDIT_DISTANCE;
         }
 
         public boolean isSecondaryType() {

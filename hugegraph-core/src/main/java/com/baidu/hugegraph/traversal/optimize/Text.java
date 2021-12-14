@@ -21,11 +21,48 @@ package com.baidu.hugegraph.traversal.optimize;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.util.E;
+
+import java.util.regex.Pattern;
 
 public class Text {
 
+    public static ConditionP startingWith(String value) {
+        return ConditionP.textStartingWith(value);
+    }
+
+    public static ConditionP notStartingWith(String value) {
+        return ConditionP.textNotStartingWith(value);
+    }
+
+    public static ConditionP endingWith(String value) {
+        return ConditionP.textEndingWith(value);
+    }
+
+    public static ConditionP notEndingWith(String value) {
+        return ConditionP.textNotEndingWith(value);
+    }
+
     public static ConditionP contains(String value) {
         return ConditionP.textContains(value);
+    }
+
+    public static ConditionP containing(String value) {
+        return ConditionP.textContains(value);
+    }
+
+    public static ConditionP notContaining(String value) {
+        return ConditionP.textNotContains(value);
+    }
+
+    public static ConditionP matchRegex(String value) {
+        return ConditionP.textMatchRegex(value);
+    }
+
+    public static ConditionP matchEditDistance(String value, int distance) {
+        E.checkArgument(distance >= 0, "The distance should be >= 0");
+        String prefix = String.valueOf(distance) + "#";
+        return ConditionP.textMatchEditDistance(prefix + value);
     }
 
     public static Id uuid(String id) {

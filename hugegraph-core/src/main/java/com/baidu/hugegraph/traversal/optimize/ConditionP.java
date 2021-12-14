@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.traversal.optimize;
 
 import java.util.function.BiPredicate;
+import java.util.regex.Pattern;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 
@@ -36,6 +37,34 @@ public class ConditionP extends P<Object> {
 
     public static ConditionP textContains(Object value) {
         return new ConditionP(RelationType.TEXT_CONTAINS, value);
+    }
+
+    public static ConditionP textNotContains(Object value) {
+        return new ConditionP(RelationType.TEXT_NOT_CONTAINS, value);
+    }
+
+    public static ConditionP textStartingWith(Object value) {
+        return new ConditionP(RelationType.TEXT_STARTING_WITH, value);
+    }
+
+    public static ConditionP textNotStartingWith(Object value) {
+        return new ConditionP(RelationType.TEXT_NOT_STARTING_WITH, value);
+    }
+
+    public static ConditionP textEndingWith(Object value) {
+        return new ConditionP(RelationType.TEXT_ENDING_WITH, value);
+    }
+
+    public static ConditionP textNotEndingWith(Object value) {
+        return new ConditionP(RelationType.TEXT_NOT_ENDING_WITH, value);
+    }
+
+    public static ConditionP textMatchRegex(Object value) {
+        return new ConditionP(RelationType.TEXT_MATCH_REGEX, value);
+    }
+
+    public static ConditionP textMatchEditDistance(Object value) {
+        return new ConditionP(RelationType.TEXT_MATCH_EDIT_DISTANCE, value);
     }
 
     public static ConditionP contains(Object value) {
