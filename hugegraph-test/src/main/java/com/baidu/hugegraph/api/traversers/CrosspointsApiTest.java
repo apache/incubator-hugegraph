@@ -58,7 +58,6 @@ public class CrosspointsApiTest extends BaseApiTest {
         String content = assertResponseStatus(200, r);
         List<Map<String, Object>> crosspoints = assertJsonContains(
                                                 content, "crosspoints");
-        //Assert.assertEquals(2, crosspoints.size());
-        Assert.assertEquals(0, crosspoints.size());
+        Assert.assertEquals(2, crosspoints.size());
     }
 }
