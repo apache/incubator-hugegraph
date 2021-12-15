@@ -69,7 +69,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class HugeTraverser {
 
-    public static final Logger LOG = Log.logger(HugeTraverser.class);
+    protected static final Logger LOG = Log.logger(HugeTraverser.class);
 
     private HugeGraph graph;
 

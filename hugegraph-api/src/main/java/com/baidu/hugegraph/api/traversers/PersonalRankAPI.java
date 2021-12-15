@@ -55,7 +55,7 @@ public class PersonalRankAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final double DEFAULT_DIFF = 0.0001;
-    private static final double DEFAULT_SAMPLE = 0.85;
+    private static final double DEFAULT_ALPHA = 0.85;
     private static final int DEFAULT_DEPTH = 5;
 
     @POST
@@ -112,7 +112,7 @@ public class PersonalRankAPI extends API {
         @JsonProperty("label")
         private String label;
         @JsonProperty("alpha")
-        private double alpha = DEFAULT_SAMPLE;
+        private double alpha = DEFAULT_ALPHA;
         // TODO: used for future enhancement
         @JsonProperty("max_diff")
         private double maxDiff = DEFAULT_DIFF;
