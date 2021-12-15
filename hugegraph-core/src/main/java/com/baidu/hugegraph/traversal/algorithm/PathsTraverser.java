@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -64,16 +65,18 @@ public class PathsTraverser extends HugeTraverser {
         Id labelId = this.getEdgeLabelId(label);
         Traverser traverser = new Traverser(sourceV, targetV, labelId,
                                             degree, capacity, limit);
+        // We should stop early if find cycle or reach limit
         while (true) {
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            traverser.forward(sourceDir);
+            traverser.forward(targetV, sourceDir);
 
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            traverser.backward(targetDir);
+
+            traverser.backward(sourceV, targetDir);
         }
         paths.addAll(traverser.paths());
         return paths;
@@ -105,12 +108,16 @@ public class PathsTraverser extends HugeTraverser {
          * Search forward from source
          */
         @Watched
-        public void forward(Directions direction) {
+        public void forward(Id targetV, Directions direction) {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(true);
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
+                if (vid.equals(targetV)) {
+                    LOG.debug("out of index, cur {}. targetV {}", vid, targetV);
+                    continue;
+                }
 
                 edges = edgesOfVertex(vid, direction, this.label, this.degree, false);
 
@@ -118,9 +125,17 @@ public class PathsTraverser extends HugeTraverser {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
+                    LOG.debug("Go forward, vid {}, edge {}, targetId {}",
+                              vid, edge, target);
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
+                    LOG.debug("current depth's path size= {}", results.size());
                     for (Path path : results) {
+                        if (Objects.equals(target, targetV)) {
+                            LOG.debug("Find cycle, cur vid is {}, target is {}",
+                                      target, targetV);
+                            continue;
+                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;
@@ -135,21 +150,33 @@ public class PathsTraverser extends HugeTraverser {
          * Search backward from target
          */
         @Watched
-        public void backward(Directions direction) {
+        public void backward(Id sourceV, Directions direction) {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(false);
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
+                if (vid.equals(sourceV)) {
+                    LOG.debug("out of index, cur {}. source {}", vid, sourceV);
+                    continue;
+                }
+
                 edges = edgesOfVertex(vid, direction, this.label, this.degree, false);
 
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
+                    LOG.debug("Go back, vid {}, edge {}, targetId {}",
+                              vid, edge, target);
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
+                        if (Objects.equals(target, sourceV)) {
+                            LOG.debug("Find cycle, cur vid is {}, source is {}",
+                                      target, sourceV);
+                            continue;
+                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;

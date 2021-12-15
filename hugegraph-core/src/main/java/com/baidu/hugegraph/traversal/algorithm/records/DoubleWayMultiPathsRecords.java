@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
@@ -41,7 +40,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     private final Stack<Record> sourceRecords;
     private final Stack<Record> targetRecords;
 
-    private IntIterator lastRecordKeys;
+    private IntIterator parentRecordKeys;
     private int currentKey;
     private boolean forward;
     private int accessed;
@@ -66,9 +65,10 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Override
     public void startOneLayer(boolean forward) {
         this.forward = forward;
-        this.currentRecord(this.newRecord());
-        this.lastRecordKeys = this.forward ? this.sourceRecords.peek().keys() :
-                                             this.targetRecords.peek().keys();
+        Record parentRecord = forward ? this.sourceRecords.peek() :
+                                        this.targetRecords.peek();
+        this.currentRecord(this.newRecord(), parentRecord);
+        this.parentRecordKeys = parentRecord.keys();
     }
 
     @Override
@@ -85,14 +85,33 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     @Watched
     @Override
     public boolean hasNextKey() {
-        return this.lastRecordKeys.hasNext();
+        return this.parentRecordKeys.hasNext();
     }
 
     @Watched
     @Override
     public Id nextKey() {
-        this.currentKey = this.lastRecordKeys.next();
+        this.currentKey = this.parentRecordKeys.next();
         return this.id(this.currentKey);
+    }
+
+    public boolean parentsContain(int id) {
+        Record parentRecord = this.parentRecord();
+        if (parentRecord == null) {
+            return false;
+        }
+
+        IntIterator parents = parentRecord.get(this.currentKey);
+        while (parents.hasNext()) {
+            int parent = parents.next();
+            LOG.debug("parent = {}, curId = {}", this.id(parent), this.id(id));
+            if (parent == id) {
+                // find loop, stop
+                return true;
+            }
+        }
+        LOG.debug("parent = null, curId = {}", this.id(id));
+        return false;
     }
 
     @Override
@@ -102,6 +121,10 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         assert all;
         PathSet results = new PathSet();
         int targetCode = this.code(target);
+
+        if (this.parentsContain(targetCode)) {
+            return results;
+        }
         // If cross point exists, path found, concat them
         if (this.forward && this.targetContains(targetCode)) {
             results = this.linkPath(this.currentKey, targetCode, ring);
@@ -173,21 +196,13 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
             return results;
         }
 
-        Id sid = this.id(id);
+        Id current = this.id(id);
         Record layer = all.elementAt(layerIndex);
         IntIterator iterator = layer.get(id);
         while (iterator.hasNext()) {
             int parent = iterator.next();
             PathSet paths = this.linkPath(all, parent, layerIndex - 1);
-            for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
-                Path path = iter.next();
-                if (path.vertices().contains(sid)) {
-                    iter.remove();
-                    continue;
-                }
-                path.addToLast(sid);
-            }
-
+            paths.append(current);
             results.addAll(paths);
         }
         return results;

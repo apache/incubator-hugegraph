@@ -52,7 +52,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
         }
         assert (this.records().size() == (depth + 1));
         // top most layer
-        this.currentRecord(this.records().peek());
+        this.currentRecord(this.records().peek(), null);
     }
 
     @Override

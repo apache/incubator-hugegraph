@@ -29,17 +29,17 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.backend.id.EdgeId;
-import com.baidu.hugegraph.structure.HugeEdge;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
+import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
@@ -55,7 +55,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     private final boolean nearest;
     private final MutableIntSet accessedVertices;
 
-    private IntIterator lastRecordKeys;
+    private IntIterator parentRecordKeys;
 
     // collection of edges
     private HashSet<Id> edgeIds = new HashSet<>();
@@ -78,8 +78,9 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public void startOneLayer(boolean forward) {
-        this.currentRecord(this.newRecord());
-        this.lastRecordKeys = this.records.peek().keys();
+        Record parentRecord = this.records.peek();
+        this.currentRecord(this.newRecord(), parentRecord);
+        this.parentRecordKeys = parentRecord.keys();
     }
 
     @Override
@@ -89,12 +90,12 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Override
     public boolean hasNextKey() {
-        return this.lastRecordKeys.hasNext();
+        return this.parentRecordKeys.hasNext();
     }
 
     @Override
     public Id nextKey() {
-        return this.id(this.lastRecordKeys.next());
+        return this.id(this.parentRecordKeys.next());
     }
 
     @Override
@@ -116,7 +117,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     }
 
     public Iterator<Id> keys() {
-        return new MapperIterator<>(this.lastRecordKeys, this::id);
+        return new MapperIterator<>(this.parentRecordKeys, this::id);
     }
 
     @Watched
