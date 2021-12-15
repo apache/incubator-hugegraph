@@ -231,6 +231,11 @@
             <artifactId>computer-k8s</artifactId>
             <version>0.1.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.9</version>
+        </dependency>
     </dependencies>
 
     <build>

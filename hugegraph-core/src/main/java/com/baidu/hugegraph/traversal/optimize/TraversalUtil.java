@@ -35,6 +35,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Contains;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
+import org.apache.tinkerpop.gremlin.process.traversal.TextP;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
@@ -83,6 +84,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -295,6 +297,8 @@ public final class TraversalUtil {
         Condition condition;
         if (keyForContainsKeyOrValue(has.getKey())) {
             condition = convContains2Relation(graph, has);
+        } else if (p instanceof TextP) {
+            condition = convTextP2Relation(graph, type, has);
         } else if (bp instanceof Compare) {
             condition = convCompare2Relation(graph, type, has);
         } else if (bp instanceof RelationType) {
@@ -428,6 +432,45 @@ public final class TraversalUtil {
         }
 
         throw newUnsupportedPredicate(has.getPredicate());
+    }
+
+    private static Condition convTextP2Relation(HugeGraph graph,
+                                                HugeType type,
+                                                HasContainer has) {
+        assert type.isGraph();
+        BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
+        assert bp instanceof TextP;
+
+        String key = has.getKey();
+        PropertyKey pkey = graph.propertyKey(key);
+        Id pkeyId = pkey.id();
+        Object value = validPropertyValue(has.getValue(), pkey);
+        RelationType rtype;
+        String name = Whitebox.getInternalState(bp, "name");
+        switch (name) {
+            case "startingWith":
+                rtype = RelationType.TEXT_PREFIX;
+                break;
+            case "endingWith":
+                rtype = RelationType.TEXT_SUFFIX;
+                break;
+            case "containing":
+                rtype = RelationType.TEXT_CONTAINS;
+                break;
+            case "notStartingWith":
+                rtype = RelationType.TEXT_NOT_PREFIX;
+                break;
+            case "notEndingWith":
+                rtype = RelationType.TEXT_NOT_SUFFIX;
+                break;
+            case "notContaining":
+                rtype = RelationType.TEXT_NOT_CONTAINS;
+                break;
+            default:
+                throw new AssertionError(
+                          String.format("Unsupported TextP: %s", name));
+        }
+        return new Condition.UserpropRelation(pkeyId, rtype, value);
     }
 
     private static Condition convRelationType2Relation(HugeGraph graph,

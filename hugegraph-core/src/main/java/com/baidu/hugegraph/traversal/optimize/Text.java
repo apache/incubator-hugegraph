@@ -27,32 +27,8 @@ import java.util.regex.Pattern;
 
 public class Text {
 
-    public static ConditionP startingWith(String value) {
-        return ConditionP.textStartingWith(value);
-    }
-
-    public static ConditionP notStartingWith(String value) {
-        return ConditionP.textNotStartingWith(value);
-    }
-
-    public static ConditionP endingWith(String value) {
-        return ConditionP.textEndingWith(value);
-    }
-
-    public static ConditionP notEndingWith(String value) {
-        return ConditionP.textNotEndingWith(value);
-    }
-
     public static ConditionP contains(String value) {
         return ConditionP.textContains(value);
-    }
-
-    public static ConditionP containing(String value) {
-        return ConditionP.textContains(value);
-    }
-
-    public static ConditionP notContaining(String value) {
-        return ConditionP.textNotContains(value);
     }
 
     public static ConditionP matchRegex(String value) {
@@ -63,6 +39,42 @@ public class Text {
         E.checkArgument(distance >= 0, "The distance should be >= 0");
         String prefix = String.valueOf(distance) + "#";
         return ConditionP.textMatchEditDistance(prefix + value);
+    }
+
+    public static ConditionP notContains(String value) {
+        return ConditionP.textNotContains(value);
+    }
+
+    public static ConditionP prefix(String value) {
+        return ConditionP.prefix(value);
+    }
+
+    public static ConditionP notPrefix(String value) {
+        return ConditionP.notPrefix(value);
+    }
+
+    public static ConditionP suffix(String value) {
+        return ConditionP.suffix(value);
+    }
+
+    public static ConditionP notSuffix(String value) {
+        return ConditionP.notSuffix(value);
+    }
+
+    public static ConditionP containsFuzzy(String value) {
+        return ConditionP.containsFuzzy(value);
+    }
+
+    public static ConditionP containsRegex(String value) {
+        return ConditionP.containsRegex(value);
+    }
+
+    public static ConditionP fuzzy(String value) {
+        return ConditionP.fuzzy(value);
+    }
+
+    public static ConditionP regex(String value) {
+        return ConditionP.regex(value);
     }
 
     public static Id uuid(String id) {

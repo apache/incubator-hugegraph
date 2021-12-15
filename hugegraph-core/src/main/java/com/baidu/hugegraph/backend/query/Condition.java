@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.query;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -32,6 +31,7 @@ import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.store.Shard;
@@ -78,26 +78,6 @@ public abstract class Condition {
         TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
             return v1 != null && ((String) v1).contains((String) v2);
         }),
-        TEXT_NOT_CONTAINS("textnotcontains", String.class,
-                          String.class, (v1, v2) -> {
-            return v1 != null && !((String) v1).contains((String) v2);
-        }),
-        TEXT_STARTING_WITH("textstartingwith", String.class, String.class,
-                           (v1, v2) -> {
-            return v1 != null && ((String) v1).startsWith((String) v2);
-        }),
-        TEXT_NOT_STARTING_WITH("textnotstartingwith", String.class,
-                               String.class, (v1, v2) -> {
-            return v1 != null && !((String) v1).startsWith((String) v2);
-        }),
-        TEXT_ENDING_WITH("textendingwith", String.class, String.class,
-                         (v1, v2) -> {
-            return v1 != null && ((String) v1).endsWith((String) v2);
-        }),
-        TEXT_NOT_ENDING_WITH("textnotendingwith", String.class, String.class,
-                             (v1, v2) -> {
-            return v1 != null && !((String) v1).endsWith((String) v2);
-        }),
         TEXT_MATCH_REGEX("textmatchregex", String.class, String.class,
                          (v1, v2) -> {
             return Pattern.matches((String) v2, (String) v1);
@@ -109,6 +89,25 @@ public abstract class Condition {
             int distance = Integer.valueOf(distanceStr);
             String target = content.substring(content.indexOf("#") + 1);
             return minEditDistance((String) v1, target) <= distance;
+        }),
+        TEXT_NOT_CONTAINS("textnotcontains", String.class,
+                          String.class, (v1, v2) -> {
+            return v1 == null && v2 != null ||
+                   !((String) v1).contains((String) v2);
+        }),
+        TEXT_PREFIX("textprefix", String.class, String.class, (v1, v2) -> {
+            return ((String) v1).startsWith((String) v2);
+        }),
+        TEXT_NOT_PREFIX("textnotprefix", String.class,
+                        String.class, (v1, v2) -> {
+            return !((String) v1).startsWith((String) v2);
+        }),
+        TEXT_SUFFIX("textsuffix", String.class, String.class, (v1, v2) -> {
+            return ((String) v1).endsWith((String) v2);
+        }),
+        TEXT_NOT_SUFFIX("textnotsuffix", String.class,
+                        String.class, (v1, v2) -> {
+            return !((String) v1).endsWith((String) v2);
         }),
         TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,
                           (v1, v2) -> {
@@ -136,6 +135,30 @@ public abstract class Condition {
         CONTAINS_KEY("containsk", Map.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
+        }),
+        TEXT_CONTAINS_FUZZY("textcontainsfuzzy", String.class,
+                            String.class, (v1, v2) -> {
+            for (String token : tokenize(((String) v1).toLowerCase())) {
+                if (isFuzzy(((String) v2).toLowerCase(), token)) {
+                    return true;
+                }
+            }
+            return false;
+        }),
+        TEXT_FUZZY("textfuzzy", String.class, String.class, (v1, v2) -> {
+            return isFuzzy((String) v2, (String) v1);
+        }),
+        TEXT_CONTAINS_REGEX("textcontainsregex", String.class,
+                            String.class, (v1, v2) -> {
+            for (String token : tokenize(((String) v1).toLowerCase())) {
+                if (token.matches((String) v2)) {
+                    return true;
+                }
+            }
+            return false;
+        }),
+        TEXT_REGEX("textregex", String.class, String.class, (v1, v2) -> {
+            return ((String) v1).matches((String) v2);
         }),
         SCAN("scan", (v1, v2) -> {
             assert v2 != null;
@@ -268,6 +291,43 @@ public abstract class Condition {
                       second, second.getClass().getSimpleName()));
         }
 
+        public static List<String> tokenize(String str) {
+            final ArrayList<String> tokens = new ArrayList<>();
+            int previous = 0;
+            for (int p = 0; p < str.length(); p++) {
+                if (!Character.isLetterOrDigit(str.charAt(p))) {
+                    if (p > previous + 1) {
+                        tokens.add(str.substring(previous, p));
+                    }
+                    previous = p + 1;
+                }
+            }
+            if (previous + 1 < str.length()) {
+                tokens.add(str.substring(previous));
+            }
+            return tokens;
+        }
+
+        private static final LevenshteinDistance ONE_LEVENSHTEIN_DISTANCE =
+                new LevenshteinDistance(1);
+        private static final LevenshteinDistance TWO_LEVENSHTEIN_DISTANCE =
+                new LevenshteinDistance(2);
+
+        private static boolean isFuzzy(String term, String value){
+            int distance;
+            term = term.trim();
+            int length = term.length();
+            if (length < 3) {
+                return term.equals(value);
+            } else if (length < 6) {
+                distance = ONE_LEVENSHTEIN_DISTANCE.apply(value, term);
+                return distance <= 1 && distance >= 0;
+            } else {
+                distance = TWO_LEVENSHTEIN_DISTANCE.apply(value, term);
+                return distance <= 2 && distance >= 0;
+            }
+        }
+
         private void checkBaseType(Object value, Class<?> clazz) {
             if (!clazz.isInstance(value)) {
                 String valueClass = value == null ? "null" :
@@ -310,9 +370,11 @@ public abstract class Condition {
 
         public boolean isSearchType() {
             return this == TEXT_CONTAINS || this == TEXT_NOT_CONTAINS ||
-                   this == TEXT_STARTING_WITH || this == TEXT_ENDING_WITH ||
-                   this == TEXT_NOT_STARTING_WITH || this == TEXT_MATCH_REGEX ||
-                   this == TEXT_NOT_ENDING_WITH || this == TEXT_CONTAINS_ANY ||
+                   this == TEXT_PREFIX || this == TEXT_NOT_PREFIX ||
+                   this == TEXT_SUFFIX || this == TEXT_NOT_SUFFIX ||
+                   this == TEXT_CONTAINS_FUZZY || this == TEXT_FUZZY ||
+                   this == TEXT_CONTAINS_REGEX || this == TEXT_REGEX ||
+                   this == TEXT_CONTAINS_ANY || this == TEXT_MATCH_REGEX ||
                    this == TEXT_MATCH_EDIT_DISTANCE;
         }
 
