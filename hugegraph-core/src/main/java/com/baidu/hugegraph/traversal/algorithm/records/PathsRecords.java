@@ -39,10 +39,16 @@ public class PathsRecords extends DoubleWayMultiPathsRecords {
         assert all;
         int targetCode = this.code(target);
         int parentCode = this.current();
+        PathSet paths = PathSet.EMPTY;
+
+        // Traverse backtrace is not allowed, stop now
+        if (this.parentsContain(targetCode)) {
+            return paths;
+        }
+
         // Add to current layer
         this.addPath(targetCode, parentCode);
         // If cross point exists, path found, concat them
-        PathSet paths = PathSet.EMPTY;
         if (this.movingForward() && this.targetContains(targetCode)) {
             paths = this.linkPath(parentCode, targetCode, ring);
         }

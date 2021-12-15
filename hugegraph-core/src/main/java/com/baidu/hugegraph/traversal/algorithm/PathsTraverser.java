@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -63,16 +64,17 @@ public class PathsTraverser extends HugeTraverser {
         Id labelId = this.getEdgeLabelId(label);
         Traverser traverser = new Traverser(sourceV, targetV, labelId,
                                             degree, capacity, limit);
+        // We should stop early if walk backtrace or reach limit
         while (true) {
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            traverser.forward(sourceDir);
+            traverser.forward(targetV, sourceDir);
 
             if (--depth < 0 || traverser.reachLimit()) {
                 break;
             }
-            traverser.backward(targetDir);
+            traverser.backward(sourceV, targetDir);
         }
         return traverser.paths();
     }
@@ -103,12 +105,15 @@ public class PathsTraverser extends HugeTraverser {
          * Search forward from source
          */
         @Watched
-        public void forward(Directions direction) {
+        public void forward(Id targetV, Directions direction) {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(true);
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
+                if (vid.equals(targetV)) {
+                    continue;
+                }
 
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
@@ -119,6 +124,9 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
+                        if (Objects.equals(target, targetV)) {
+                            continue;
+                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;
@@ -133,12 +141,16 @@ public class PathsTraverser extends HugeTraverser {
          * Search backward from target
          */
         @Watched
-        public void backward(Directions direction) {
+        public void backward(Id sourceV, Directions direction) {
             Iterator<Edge> edges;
 
             this.record.startOneLayer(false);
             while (this.record.hasNextKey()) {
                 Id vid = this.record.nextKey();
+                if (vid.equals(sourceV)) {
+                    continue;
+                }
+
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
 
                 while (edges.hasNext()) {
@@ -148,6 +160,9 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
+                        if (Objects.equals(target, sourceV)) {
+                            continue;
+                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;

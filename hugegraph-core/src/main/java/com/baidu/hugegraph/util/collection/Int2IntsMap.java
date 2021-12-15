@@ -22,8 +22,12 @@ package com.baidu.hugegraph.util.collection;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-// TODO: move to common-module
+/**
+ * TODO: move to common-module
+ */
 public class Int2IntsMap {
+
+    private static final int[] EMPTY = new int[0];
 
     private static final int INIT_KEY_CAPACITY = 16;
     private static final int CHUNK_SIZE = 10;
@@ -145,7 +149,11 @@ public class Int2IntsMap {
     }
 
     public int[] getValues(int key) {
-        int firstChunk = this.chunkMap.get(key);
+        int firstChunk = this.chunkMap.getIfAbsent(key, -1);
+        if (firstChunk == -1) {
+            return EMPTY;
+        }
+
         int size = this.chunkTable[firstChunk + OFFSET_SIZE];
         int[] values = new int[size];
         int position = firstChunk + OFFSET_FIRST_CHUNK_DATA;

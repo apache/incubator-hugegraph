@@ -174,4 +174,21 @@ public class Int2IntsMapTest {
         Assert.assertEquals(VALUE_NUMBER, all.size());
         Assert.assertEquals(KEY_NUMBER, map.size());
     }
+
+    @Test
+    public void testEmptyInt2IntsMap() {
+        Int2IntsMap map = new Int2IntsMap();
+
+        int[] ints = map.getValues(-1);
+        Assert.assertEquals(0, map.size());
+        Assert.assertArrayEquals(new int[0], ints);
+
+        map.add(1, 1);
+        ints = map.getValues(1);
+        Assert.assertEquals(1, map.size());
+        Assert.assertEquals(1, ints[0]);
+
+        ints = map.getValues(2);
+        Assert.assertArrayEquals(new int[0], ints);
+    }
 }

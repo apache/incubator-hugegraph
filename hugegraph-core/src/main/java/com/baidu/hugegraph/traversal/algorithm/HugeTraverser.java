@@ -729,5 +729,16 @@ public class HugeTraverser {
         public String toString() {
             return this.paths.toString();
         }
+
+        public void append(Id current) {
+            for (Iterator<Path> iter = paths.iterator(); iter.hasNext();) {
+                Path path = iter.next();
+                if (path.vertices().contains(current)) {
+                    iter.remove();
+                    continue;
+                }
+                path.addToLast(current);
+            }
+        }
     }
 }
