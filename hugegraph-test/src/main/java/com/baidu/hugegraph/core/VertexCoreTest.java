@@ -2114,7 +2114,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        String olapPropName = "olap";
+        String olapPropName = "olap_x";
         schema.propertyKey(olapPropName)
               .asText().valueSingle()
               .writeType(WriteType.OLAP_COMMON)
@@ -2192,7 +2192,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        String olapPropName = "wcc";
+        String olapPropName = "olap_wcc";
         schema.propertyKey(olapPropName)
               .asText().valueSingle()
               .writeType(WriteType.OLAP_SECONDARY)
@@ -2278,7 +2278,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        String olapPropName = "pagerank";
+        String olapPropName = "olap_pagerank";
         schema.propertyKey(olapPropName)
               .asDouble().valueSingle()
               .writeType(WriteType.OLAP_RANGE)
@@ -2399,11 +2399,11 @@ public class VertexCoreTest extends BaseCoreTest {
 
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
-        schema.propertyKey("pagerank")
+        schema.propertyKey("olap_pagerank")
               .asDouble().valueSingle()
               .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
-        schema.propertyKey("wcc")
+        schema.propertyKey("olap_wcc")
               .asText().valueSingle()
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
@@ -2427,37 +2427,37 @@ public class VertexCoreTest extends BaseCoreTest {
         Id id9 = SplicingIdGenerator.splicing(book, "java-4");
         Id id10 = SplicingIdGenerator.splicing(book, "java-5");
 
-        graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
-        graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
-        graph.addVertex(T.id, id3.asObject(), "pagerank", 0.3D);
-        graph.addVertex(T.id, id4.asObject(), "pagerank", 0.4D);
-        graph.addVertex(T.id, id5.asObject(), "pagerank", 0.5D);
-        graph.addVertex(T.id, id6.asObject(), "pagerank", 0.6D);
-        graph.addVertex(T.id, id7.asObject(), "pagerank", 0.7D);
-        graph.addVertex(T.id, id8.asObject(), "pagerank", 0.8D);
-        graph.addVertex(T.id, id9.asObject(), "pagerank", 0.9D);
-        graph.addVertex(T.id, id10.asObject(), "pagerank", 1.0D);
+        graph.addVertex(T.id, id1.asObject(), "olap_pagerank", 0.1D);
+        graph.addVertex(T.id, id2.asObject(), "olap_pagerank", 0.2D);
+        graph.addVertex(T.id, id3.asObject(), "olap_pagerank", 0.3D);
+        graph.addVertex(T.id, id4.asObject(), "olap_pagerank", 0.4D);
+        graph.addVertex(T.id, id5.asObject(), "olap_pagerank", 0.5D);
+        graph.addVertex(T.id, id6.asObject(), "olap_pagerank", 0.6D);
+        graph.addVertex(T.id, id7.asObject(), "olap_pagerank", 0.7D);
+        graph.addVertex(T.id, id8.asObject(), "olap_pagerank", 0.8D);
+        graph.addVertex(T.id, id9.asObject(), "olap_pagerank", 0.9D);
+        graph.addVertex(T.id, id10.asObject(), "olap_pagerank", 1.0D);
 
         graph.tx().commit();
 
-        graph.addVertex(T.id, id1.asObject(), "wcc", "a");
-        graph.addVertex(T.id, id2.asObject(), "wcc", "a");
-        graph.addVertex(T.id, id3.asObject(), "wcc", "c");
-        graph.addVertex(T.id, id4.asObject(), "wcc", "c");
-        graph.addVertex(T.id, id5.asObject(), "wcc", "c");
-        graph.addVertex(T.id, id6.asObject(), "wcc", "f");
-        graph.addVertex(T.id, id7.asObject(), "wcc", "f");
-        graph.addVertex(T.id, id8.asObject(), "wcc", "f");
-        graph.addVertex(T.id, id9.asObject(), "wcc", "f");
-        graph.addVertex(T.id, id10.asObject(), "wcc", "f");
+        graph.addVertex(T.id, id1.asObject(), "olap_wcc", "a");
+        graph.addVertex(T.id, id2.asObject(), "olap_wcc", "a");
+        graph.addVertex(T.id, id3.asObject(), "olap_wcc", "c");
+        graph.addVertex(T.id, id4.asObject(), "olap_wcc", "c");
+        graph.addVertex(T.id, id5.asObject(), "olap_wcc", "c");
+        graph.addVertex(T.id, id6.asObject(), "olap_wcc", "f");
+        graph.addVertex(T.id, id7.asObject(), "olap_wcc", "f");
+        graph.addVertex(T.id, id8.asObject(), "olap_wcc", "f");
+        graph.addVertex(T.id, id9.asObject(), "olap_wcc", "f");
+        graph.addVertex(T.id, id10.asObject(), "olap_wcc", "f");
 
         graph.tx().commit();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("pagerank", 0.1D)
-                 .has("wcc", "a")
+                 .has("olap_pagerank", 0.1D)
+                 .has("olap_wcc", "a")
                  .hasNext();
         }, e -> {
             Assert.assertContains("Not allowed to query by olap property key",
@@ -2467,8 +2467,8 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("pagerank", 0.3D)
-                 .has("wcc", "b")
+                 .has("olap_pagerank", 0.3D)
+                 .has("olap_wcc", "b")
                  .hasNext();
         }, e -> {
             Assert.assertContains("Not allowed to query by olap property key",
@@ -2478,8 +2478,8 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("pagerank", 0.6D)
-                 .has("wcc", "f")
+                 .has("olap_pagerank", 0.6D)
+                 .has("olap_wcc", "f")
                  .hasNext();
         }, e -> {
             Assert.assertContains("Not allowed to query by olap property key",
@@ -2489,60 +2489,60 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.readMode(GraphReadMode.ALL);
 
         List<Vertex> vertices = graph.traversal().V()
-                                     .has("pagerank", 0.1D)
-                                     .has("wcc", "a")
+                                     .has("olap_pagerank", 0.1D)
+                                     .has("olap_wcc", "a")
                                      .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", 0.3D)
-                        .has("wcc", "c")
+                        .has("olap_pagerank", 0.3D)
+                        .has("olap_wcc", "c")
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id3).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", 0.6D)
-                        .has("wcc", "f")
+                        .has("olap_pagerank", 0.6D)
+                        .has("olap_wcc", "f")
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id6).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.gt(0.9D))
-                        .has("wcc", "f")
+                        .has("olap_pagerank", P.gt(0.9D))
+                        .has("olap_wcc", "f")
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id10).next(),
                             vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.lt(0.2D))
-                        .has("wcc", "a")
+                        .has("olap_pagerank", P.lt(0.2D))
+                        .has("olap_wcc", "a")
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                          .has("pagerank", P.gte(0.9D))
-                          .has("wcc", "f")
+                          .has("olap_pagerank", P.gte(0.9D))
+                          .has("olap_wcc", "f")
                           .toList();
         Assert.assertEquals(2, vertices.size());
         Assert.assertTrue(vertices.contains(graph.traversal().V(id9).next()));
         Assert.assertTrue(vertices.contains(graph.traversal().V(id10).next()));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.lte(0.2D))
-                        .has("wcc", "a")
+                        .has("olap_pagerank", P.lte(0.2D))
+                        .has("olap_wcc", "a")
                         .toList();
         Assert.assertEquals(2, vertices.size());
         Assert.assertTrue(vertices.contains(graph.traversal().V(id1).next()));
         Assert.assertTrue(vertices.contains(graph.traversal().V(id2).next()));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.inside(0.2D, 0.9D))
-                        .has("wcc", "c")
+                        .has("olap_pagerank", P.inside(0.2D, 0.9D))
+                        .has("olap_wcc", "c")
                         .toList();
         Assert.assertEquals(3, vertices.size());
         Assert.assertTrue(vertices.contains(graph.traversal().V(id3).next()));
@@ -2550,8 +2550,8 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(vertices.contains(graph.traversal().V(id5).next()));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.inside(0.2D, 0.9D))
-                        .has("wcc", "f")
+                        .has("olap_pagerank", P.inside(0.2D, 0.9D))
+                        .has("olap_wcc", "f")
                         .toList();
         Assert.assertEquals(3, vertices.size());
         Assert.assertTrue(vertices.contains(graph.traversal().V(id6).next()));
@@ -2573,11 +2573,11 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("authorByLived").onV("author").secondary()
               .by("lived").create();
 
-        schema.propertyKey("pagerank")
+        schema.propertyKey("olap_pagerank")
               .asDouble().valueSingle()
               .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
-        schema.propertyKey("wcc")
+        schema.propertyKey("olap_wcc")
               .asText().valueSingle()
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
@@ -2589,20 +2589,20 @@ public class VertexCoreTest extends BaseCoreTest {
         Id id2 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(2));
 
-        graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
-        graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
+        graph.addVertex(T.id, id1.asObject(), "olap_pagerank", 0.1D);
+        graph.addVertex(T.id, id2.asObject(), "olap_pagerank", 0.2D);
 
         graph.tx().commit();
 
-        graph.addVertex(T.id, id1.asObject(), "wcc", "a");
-        graph.addVertex(T.id, id2.asObject(), "wcc", "b");
+        graph.addVertex(T.id, id1.asObject(), "olap_wcc", "a");
+        graph.addVertex(T.id, id2.asObject(), "olap_wcc", "b");
 
         graph.tx().commit();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("pagerank", 0.1D)
+                 .has("olap_pagerank", 0.1D)
                  .has("lived", "Canadian")
                  .hasNext();
         }, e -> {
@@ -2613,7 +2613,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("wcc", "a")
+                 .has("olap_wcc", "a")
                  .has("age", 62)
                  .hasNext();
         }, e -> {
@@ -2624,7 +2624,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V()
-                 .has("pagerank", 0.1D)
+                 .has("olap_pagerank", 0.1D)
                  .has("age", 62)
                  .hasNext();
         }, e -> {
@@ -2635,21 +2635,21 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.readMode(GraphReadMode.ALL);
 
         List<Vertex> vertices = graph.traversal().V()
-                                     .has("pagerank", 0.1D)
+                                     .has("olap_pagerank", 0.1D)
                                      .has("lived", "Canadian")
                                      .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.lte(0.1D))
+                        .has("olap_pagerank", P.lte(0.1D))
                         .has("age", P.gte(62))
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id1).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.lte(0.1D))
+                        .has("olap_pagerank", P.lte(0.1D))
                         .has("age", P.gte(62))
                         .has("lived", "Canadian")
                         .toList();
@@ -2658,13 +2658,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         vertices = graph.traversal().V()
                         .has("age", P.gt(5))
-                        .has("wcc", "b")
+                        .has("olap_wcc", "b")
                         .toList();
         Assert.assertEquals(1, vertices.size());
         Assert.assertEquals(graph.traversal().V(id2).next(), vertices.get(0));
 
         vertices = graph.traversal().V()
-                        .has("pagerank", P.gte(0.1D))
+                        .has("olap_pagerank", P.gte(0.1D))
                         .has("age", P.gte(10))
                         .toList();
         Assert.assertEquals(2, vertices.size());
@@ -2672,8 +2672,8 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(vertices.contains(graph.traversal().V(id2).next()));
 
         Set<Vertex> vertexSet = graph.traversal().V()
-                                     .has("pagerank", P.lte(0.9D))
-                                     .has("wcc", P.within("a", "b"))
+                                     .has("olap_pagerank", P.lte(0.9D))
+                                     .has("olap_wcc", P.within("a", "b"))
                                      .has("age", P.gt(20))
                                      .has("lived", P.within("Canadian",
                                                             "California"))

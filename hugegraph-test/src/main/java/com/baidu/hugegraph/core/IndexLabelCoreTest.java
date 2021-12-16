@@ -1189,18 +1189,19 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         schema.vertexLabel("person").properties("name", "age", "city")
               .primaryKeys("name").create();
 
-        schema.propertyKey("pagerank")
+        schema.propertyKey("olap_pagerank")
               .asDouble().valueSingle()
               .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
-        schema.propertyKey("wcc")
+        schema.propertyKey("olap_wcc")
               .asText().valueSingle()
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByPagerankAndWcc").onV("person")
-                  .secondary().by("pagerank", "wcc").ifNotExist().create();
+                  .secondary().by("olap_pagerank", "olap_wcc").ifNotExist()
+                  .create();
         }, e -> {
             Assert.assertContains("Can't build index on multiple olap " +
                                   "properties,", e.getMessage());
@@ -1208,7 +1209,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByPagerankAndCity").onV("person")
-                  .secondary().by("pagerank", "city").ifNotExist().create();
+                  .secondary().by("olap_pagerank", "city").ifNotExist().create();
         }, e -> {
             Assert.assertContains("Can't build index on olap properties and " +
                                   "oltp properties in one index label,",
@@ -1217,7 +1218,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByWcc").onV("person")
-                  .search().by("wcc").ifNotExist().create();
+                  .search().by("olap_wcc").ifNotExist().create();
         }, e -> {
             Assert.assertContains("Only secondary and range index can be " +
                                   "built on olap property,", e.getMessage());
@@ -1225,7 +1226,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByPagerank").onV("person")
-                  .shard().by("pagerank").ifNotExist().create();
+                  .shard().by("olap_pagerank").ifNotExist().create();
         }, e -> {
             Assert.assertContains("Only secondary and range index can be " +
                                   "built on olap property,", e.getMessage());

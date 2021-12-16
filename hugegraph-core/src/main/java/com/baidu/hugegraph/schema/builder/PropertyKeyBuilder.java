@@ -46,6 +46,8 @@ import com.baidu.hugegraph.util.E;
 public class PropertyKeyBuilder extends AbstractBuilder
                                 implements PropertyKey.Builder {
 
+    public static final String OLAP_PREFIX = "olap_";
+
     private Id id;
     private String name;
     private DataType dataType;
@@ -130,7 +132,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     @Override
     public SchemaElement.TaskWithSchema createWithTask() {
         HugeType type = HugeType.PROPERTY_KEY;
-        this.checkSchemaName(this.name);
+        this.checkSchemaName();
 
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             PropertyKey propertyKey = this.propertyKeyOrNull(name);
@@ -399,6 +401,21 @@ public class PropertyKeyBuilder extends AbstractBuilder
     public PropertyKeyBuilder checkExist(boolean checkExist) {
         this.checkExist = checkExist;
         return this;
+    }
+
+    protected void checkSchemaName() {
+        if (this.writeType.oltp()) {
+            E.checkArgument(!this.name.startsWith(OLAP_PREFIX),
+                            "Invalid oltp property key name: '%s', " +
+                            "'%s' is kept prefix for olap property key",
+                            this.name, OLAP_PREFIX);
+        } else {
+            E.checkArgument(this.name.startsWith(OLAP_PREFIX),
+                            "Invalid olap property key name: '%s', " +
+                            "olap property key must prefix with '%s'",
+                            this.name, OLAP_PREFIX);
+        }
+        super.checkSchemaName(this.name);
     }
 
     private void checkStableVars() {
