@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -316,7 +315,7 @@ public class SecurityManagerTest {
                .job(new GremlinJob());
         HugeTask<?> task = builder.schedule();
         try {
-            task = graph.taskScheduler().waitUntilTaskCompleted(task.id(), 15);
+            task = graph.taskScheduler().waitUntilTaskCompleted(task.id(), 10);
         } catch (TimeoutException e) {
             throw new HugeException("Wait for task timeout: %s", e, task);
         }
