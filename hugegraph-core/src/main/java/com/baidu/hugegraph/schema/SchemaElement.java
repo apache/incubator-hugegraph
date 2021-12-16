@@ -40,6 +40,8 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
     public static final int NEXT_PRIMITIVE_SYS_ID = 8;
 
+    protected static final String SCHEMA_PREFIX = "graph.schema().";
+
     public static final Id NONE_ID = IdGenerator.ZERO;
 
     public static final String UNDEF = "~undefined";

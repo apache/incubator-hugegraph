@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -91,6 +94,120 @@ public class VertexLabel extends SchemaLabel {
 
     public static VertexLabel undefined(HugeGraph graph, Id id) {
         return new VertexLabel(graph, id, UNDEF);
+    }
+
+    public String convert2Groovy() {
+        StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
+        // Name
+        builder.append("vertexLabel").append("(\"")
+               .append(this.name())
+               .append("\")");
+
+        // Properties
+        Set<Id> properties = this.properties();
+        if (!properties.isEmpty()) {
+            builder.append(".").append("properties(");
+
+            int size = properties.size();
+            for (Id id : this.properties()) {
+                PropertyKey pk = this.graph.propertyKey(id);
+                builder.append("\"")
+                       .append(pk.name())
+                       .append("\"");
+                if (--size > 0) {
+                    builder.append(",");
+                }
+            }
+            builder.append(")");
+        }
+
+        // Id strategy
+        switch (this.idStrategy()) {
+            case PRIMARY_KEY:
+                builder.append(".primaryKeys(");
+                List<Id> pks = this.primaryKeys();
+                int size = pks.size();
+                for (Id id : pks) {
+                    PropertyKey pk = this.graph.propertyKey(id);
+                    builder.append("\"")
+                           .append(pk.name())
+                           .append("\"");
+                    if (--size > 0) {
+                        builder.append(",");
+                    }
+                }
+                builder.append(")");
+                break;
+            case CUSTOMIZE_STRING:
+                builder.append("useCustomizeStringId()");
+                break;
+            case CUSTOMIZE_NUMBER:
+                builder.append("useCustomizeNumberId()");
+                break;
+            case CUSTOMIZE_UUID:
+                builder.append("useCustomizeUuidId()");
+                break;
+            case AUTOMATIC:
+                builder.append("useAutomaticId()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid id strategy '%s'", this.idStrategy()));
+        }
+
+        // Nullable keys
+        properties = this.nullableKeys();
+        if (!properties.isEmpty()) {
+            builder.append(".").append("nullableKeys(");
+            int size = properties.size();
+            for (Id id : properties) {
+                PropertyKey pk = this.graph.propertyKey(id);
+                builder.append("\"")
+                       .append(pk.name())
+                       .append("\"");
+                if (--size > 0) {
+                    builder.append(",");
+                }
+            }
+            builder.append(")");
+        }
+
+        // TTL
+        if (this.ttl() != 0) {
+            builder.append(".ttl(")
+                   .append(this.ttl())
+                   .append(")");
+            if (this.ttlStartTime() != null) {
+                PropertyKey pk = this.graph.propertyKey(this.ttlStartTime());
+                builder.append(".ttlStartTime(\"")
+                       .append(pk.name())
+                       .append("\")");
+            }
+        }
+
+        // Enable label index
+        if (this.enableLabelIndex()) {
+            builder.append(".enableLabelIndex(true)");
+        }
+
+        // User data
+        Map<String, Object> userdata = this.userdata();
+        if (userdata.isEmpty()) {
+            return builder.toString();
+        }
+        for (Map.Entry<String, Object> entry : userdata.entrySet()) {
+            if (Graph.Hidden.isHidden(entry.getKey())) {
+                continue;
+            }
+            builder.append(".userdata(\"")
+                   .append(entry.getKey())
+                   .append("\",")
+                   .append(entry.getValue())
+                   .append(")");
+        }
+
+        builder.append(".ifNotExist().create();");
+        return builder.toString();
     }
 
     public interface Builder extends SchemaBuilder<VertexLabel> {

@@ -24,6 +24,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
@@ -132,6 +135,128 @@ public class EdgeLabel extends SchemaLabel {
 
     public static EdgeLabel undefined(HugeGraph graph, Id id) {
         return new EdgeLabel(graph, id, UNDEF);
+    }
+
+    public String convert2Groovy() {
+        StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
+        // Name
+        builder.append("edgeLabel").append("(\"")
+               .append(this.name())
+               .append("\")");
+
+        // Source label
+        VertexLabel vl = this.graph.vertexLabel(this.sourceLabel);
+        builder.append(".sourceLabel(\"")
+               .append(vl.name())
+               .append("\")");
+
+        // Target label
+        vl = this.graph.vertexLabel(this.targetLabel);
+        builder.append(".targetLabel(\"")
+               .append(vl.name())
+               .append("\")");
+
+        // Properties
+        Set<Id> properties = this.properties();
+        if (!properties.isEmpty()) {
+            builder.append(".").append("properties(");
+
+            int size = properties.size();
+            for (Id id : this.properties()) {
+                PropertyKey pk = this.graph.propertyKey(id);
+                builder.append("\"")
+                       .append(pk.name())
+                       .append("\"");
+                if (--size > 0) {
+                    builder.append(",");
+                }
+            }
+            builder.append(")");
+        }
+
+        // Frequency
+        switch (this.frequency) {
+            case SINGLE:
+                // Single is default, prefer not output
+                break;
+            case MULTIPLE:
+                builder.append(".multiTimes()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid frequency '%s'", this.frequency));
+        }
+
+        // Sort keys
+        List<Id> sks = this.sortKeys();
+        if (!sks.isEmpty()) {
+            builder.append(".sortKeys(");
+            int size = sks.size();
+            for (Id id : sks) {
+                PropertyKey pk = this.graph.propertyKey(id);
+                builder.append("\"")
+                       .append(pk.name())
+                       .append("\"");
+                if (--size > 0) {
+                    builder.append(",");
+                }
+            }
+            builder.append(")");
+        }
+
+        // Nullable keys
+        properties = this.nullableKeys();
+        if (!properties.isEmpty()) {
+            builder.append(".").append("nullableKeys(");
+            int size = properties.size();
+            for (Id id : properties) {
+                PropertyKey pk = this.graph.propertyKey(id);
+                builder.append("\"")
+                       .append(pk.name())
+                       .append("\"");
+                if (--size > 0) {
+                    builder.append(",");
+                }
+            }
+            builder.append(")");
+        }
+
+        // TTL
+        if (this.ttl() != 0) {
+            builder.append(".ttl(")
+                   .append(this.ttl())
+                   .append(")");
+            if (this.ttlStartTime() != null) {
+                PropertyKey pk = this.graph.propertyKey(this.ttlStartTime());
+                builder.append(".ttlStartTime(\"")
+                       .append(pk.name())
+                       .append("\")");
+            }
+        }
+
+        // Enable label index
+        if (this.enableLabelIndex()) {
+            builder.append(".enableLabelIndex(true)");
+        }
+
+        // User data
+        Map<String, Object> userdata = this.userdata();
+        if (userdata.isEmpty()) {
+            return builder.toString();
+        }
+        for (Map.Entry<String, Object> entry : userdata.entrySet()) {
+            if (Graph.Hidden.isHidden(entry.getKey())) {
+                continue;
+            }
+            builder.append(".userdata(\"")
+                   .append(entry.getKey())
+                   .append("\",")
+                   .append(entry.getValue())
+                   .append(")");
+        }
+
+        builder.append(".ifNotExist().create();");
+        return builder.toString();
     }
 
     public interface Builder extends SchemaBuilder<EdgeLabel> {

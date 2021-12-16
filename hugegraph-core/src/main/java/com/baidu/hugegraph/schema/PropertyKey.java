@@ -19,6 +19,10 @@
 
 package com.baidu.hugegraph.schema;
 
+import static com.baidu.hugegraph.type.define.WriteType.OLAP_COMMON;
+import static com.baidu.hugegraph.type.define.WriteType.OLAP_RANGE;
+import static com.baidu.hugegraph.type.define.WriteType.OLAP_SECONDARY;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +30,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -352,6 +358,142 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             return value;
         }
         return null;
+    }
+
+    public String convert2Groovy() {
+        StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
+        // Name
+        builder.append("propertyKey").append("(\"")
+               .append(this.name())
+               .append("\")");
+
+        // DataType
+        switch (this.dataType()) {
+            case INT:
+                builder.append(".asInt()");
+                break;
+            case LONG:
+                builder.append(".asLong()");
+                break;
+            case DOUBLE:
+                builder.append(".asDouble()");
+                break;
+            case BYTE:
+                builder.append(".asByte()");
+                break;
+            case DATE:
+                builder.append(".asDate()");
+                break;
+            case FLOAT:
+                builder.append(".asFloat()");
+                break;
+            case BLOB:
+                builder.append(".asBlob()");
+                break;
+            case TEXT:
+                builder.append(".asText()");
+                break;
+            case UUID:
+                builder.append(".asUUID()");
+                break;
+            case OBJECT:
+                builder.append(".asObject()");
+                break;
+            case BOOLEAN:
+                builder.append(".asBoolean()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid data type '%s'", this.dataType()));
+        }
+
+        // Cardinality
+        switch (this.cardinality()) {
+            case SINGLE:
+                // Single is default, prefer not output
+                break;
+            case SET:
+                builder.append(".valueSet()");
+                break;
+            case LIST:
+                builder.append(".valueList()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid cardinality '%s'", this.cardinality()));
+        }
+
+        // Aggregate type
+        switch (this.aggregateType()) {
+            case NONE:
+                // NONE is default, prefer not output
+                break;
+            case MAX:
+                builder.append(".calcMax()");
+                break;
+            case MIN:
+                builder.append(".calcMin()");
+                break;
+            case SUM:
+                builder.append(".calcSum()");
+                break;
+            case LIST:
+                builder.append(".calcList()");
+                break;
+            case SET:
+                builder.append(".calcSet()");
+                break;
+            case OLD:
+                builder.append(".calcOld()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid cardinality '%s'", this.aggregateType()));
+        }
+
+        // Write type
+        switch (this.writeType()) {
+            case OLTP:
+                // OLTP is default, prefer not output
+                break;
+            case OLAP_COMMON:
+                builder.append(".writeType(\"")
+                       .append(OLAP_COMMON)
+                       .append("\")");
+                break;
+            case OLAP_RANGE:
+                builder.append(".writeType(\"")
+                       .append(OLAP_RANGE)
+                       .append("\")");
+                break;
+            case OLAP_SECONDARY:
+                builder.append(".writeType(\"")
+                       .append(OLAP_SECONDARY)
+                       .append("\")");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid write type '%s'", this.writeType()));
+        }
+
+        // User data
+        Map<String, Object> userdata = this.userdata();
+        if (userdata.isEmpty()) {
+            return builder.toString();
+        }
+        for (Map.Entry<String, Object> entry : userdata.entrySet()) {
+            if (Graph.Hidden.isHidden(entry.getKey())) {
+                continue;
+            }
+            builder.append(".userdata(\"")
+                   .append(entry.getKey())
+                   .append("\",")
+                   .append(entry.getValue())
+                   .append(")");
+        }
+
+        builder.append(".ifNotExist().create();");
+        return builder.toString();
     }
 
     public interface Builder extends SchemaBuilder<PropertyKey> {

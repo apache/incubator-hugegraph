@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -254,6 +256,94 @@ public class IndexLabel extends SchemaElement {
         E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
                                baseType.readableName(), baseValue);
         return label;
+    }
+
+    public String convert2Groovy() {
+        StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
+
+        // Name
+        builder.append("indexLabel").append("(\"")
+               .append(this.name())
+               .append("\")");
+
+        // On
+        switch (this.baseType()) {
+            case VERTEX_LABEL:
+                VertexLabel vl = this.graph.vertexLabel(this.baseValue);
+                builder.append(".onV(\"")
+                       .append(vl.name())
+                       .append("\")");
+                break;
+            case EDGE_LABEL:
+                EdgeLabel el = this.graph.edgeLabel(this.baseValue);
+                builder.append(".onE(\"")
+                       .append(el.name())
+                       .append("\")");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid base type '%s'", this.baseType()));
+        }
+
+        // By
+        builder.append(".by(");
+        List<Id> properties = this.indexFields();
+        int size = properties.size();
+        for (Id id : properties) {
+            PropertyKey pk = this.graph.propertyKey(id);
+            builder.append("\"")
+                   .append(pk.name())
+                   .append("\"");
+            if (--size > 0) {
+                builder.append(",");
+            }
+        }
+        builder.append(")");
+
+        // Index type
+        builder.append(".");
+        switch (this.indexType()) {
+            case SECONDARY:
+                builder.append("secondary()");
+                break;
+            case RANGE_INT:
+            case RANGE_LONG:
+            case RANGE_FLOAT:
+            case RANGE_DOUBLE:
+                builder.append("range()");
+                break;
+            case SEARCH:
+                builder.append("search()");
+                break;
+            case SHARD:
+                builder.append("shard()");
+                break;
+            case UNIQUE:
+                builder.append("unique()");
+                break;
+            default:
+                throw new AssertionError(String.format(
+                          "Invalid index type '%s'", this.indexType()));
+        }
+
+        // User data
+        Map<String, Object> userdata = this.userdata();
+        if (userdata.isEmpty()) {
+            return builder.toString();
+        }
+        for (Map.Entry<String, Object> entry : userdata.entrySet()) {
+            if (Graph.Hidden.isHidden(entry.getKey())) {
+                continue;
+            }
+            builder.append(".userdata(\"")
+                   .append(entry.getKey())
+                   .append("\",")
+                   .append(entry.getValue())
+                   .append(")");
+        }
+
+        builder.append(".ifNotExist().create();");
+        return builder.toString();
     }
 
     public interface Builder extends SchemaBuilder<IndexLabel> {
