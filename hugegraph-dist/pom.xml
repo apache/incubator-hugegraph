@@ -75,6 +75,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.prometheus.jmx/jmx_prometheus_javaagent -->
+        <dependency>
+            <groupId>io.prometheus.jmx</groupId>
+            <artifactId>jmx_prometheus_javaagent</artifactId>
+            <version>0.16.1</version>
+        </dependency>
     </dependencies>
 
     <build>

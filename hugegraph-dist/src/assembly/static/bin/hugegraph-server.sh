@@ -24,6 +24,8 @@ EXT="$TOP/ext"
 PLUGINS="$TOP/plugins"
 LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-server.log
+## set jmx_export port for prometheus, 0 or unset represents not start jmx_export
+JMX_EXPORT_PORT=8001
 
 export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
@@ -126,6 +128,9 @@ case "$GC_OPTION" in
 esac
 
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
+if [ "${JMX_EXPORT_PORT}" != "" ] && [ ${JMX_EXPORT_PORT} -ne 0 ] ; then
+  JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:${LIB}/jmx_prometheus_javaagent-0.16.1.jar=${JMX_EXPORT_PORT}:${CONF}/jmx_exporter.yml"
+fi
 if [[ ${OPEN_SECURITY_CHECK} == "true" ]]; then
     JVM_OPTIONS="${JVM_OPTIONS} -Djava.security.manager=com.baidu.hugegraph.security.HugeSecurityManager"
 fi
