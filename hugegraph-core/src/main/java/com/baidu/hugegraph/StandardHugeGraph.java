@@ -328,6 +328,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void initBackend() {
+        LOG.info("Initializing Graph '{}' ...", this.name);
         this.loadSchemaStore().open(this.configuration);
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);

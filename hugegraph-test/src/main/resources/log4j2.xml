@@ -16,7 +16,7 @@
         <!-- Normal server log config -->
         <RollingRandomAccessFile name="file" fileName="${LOG_PATH}/${FILE_NAME}.log"
             filePattern="${LOG_PATH}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log"
-            immediateFlush="false">
+            bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
             <!-- Trigger after exceeding 1day or 50MB -->
