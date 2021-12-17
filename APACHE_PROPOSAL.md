@@ -105,7 +105,7 @@ The codes are currently under Apache License Version 2.0, and have been verified
 
 #### External Dependencies:
 
-As all dependencies are managed by Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except for 5 dependencies: MySQL Connector(GPL), word(GPL), TrueLicense(AGPL), JBoss Logging 3(LGPL) and jnr-posix(LGPL+GPL), we will remove these dependencies in future.
+As all dependencies are managed by Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except for 4 dependencies: MySQL Connector(GPL), word(GPL), JBoss Logging 3(LGPL) and jnr-posix(LGPL+GPL), we will remove these dependencies in future.
 
 HugeGraph has the following external [dependencies](https://github.com/hugegraph/hugegraph/issues/1632):
 
@@ -214,10 +214,6 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
   - jersey-inject-hk2
   - JSR 353 (JSON Processing) Default Provider
 
-- Commercial License + AGPL License
-
-  - TrueLicense
-
 - Eclipse Distribution License
 
   - Eclipse Collections
@@ -231,7 +227,7 @@ HugeGraph has the following external [dependencies](https://github.com/hugegraph
 
   - JBoss Logging 3
 
-- LGPL + GPL License License
+- LGPL + GPL License
 
   - jnr-posix
 
