@@ -43,6 +43,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.space.GraphSpace;
+import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser.CrosspointsPaths;
 import com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
@@ -53,6 +54,8 @@ import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import afu.org.checkerframework.checker.oigj.qual.O;
 
 public class JsonSerializer implements Serializer {
 
@@ -356,5 +359,10 @@ public class JsonSerializer implements Serializer {
     @Override
     public String writeService(Service service) {
         return JsonUtil.toJson(service);
+    }
+
+    @Override
+    public String writeSchemaTemplate(SchemaTemplate template) {
+        return JsonUtil.toJson(template.asMap());
     }
 }

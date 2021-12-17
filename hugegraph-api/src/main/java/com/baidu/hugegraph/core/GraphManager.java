@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
+import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.MapConfiguration;
@@ -1172,4 +1173,21 @@ public final class GraphManager {
         return this.metaManager.gremlinYaml(graphSpace, this.serviceID, yaml);
     }
 
+    public Set<String> schemaTemplates(String graphSpace) {
+        return this.metaManager.schemaTemplates(graphSpace);
+    }
+
+    public SchemaTemplate schemaTemplate(String graphSpace,
+                                         String schemaTemplate) {
+        return this.metaManager.schemaTemplate(graphSpace, schemaTemplate);
+    }
+
+    public void createSchemaTemplate(String graphSpace,
+                                     SchemaTemplate schemaTemplate) {
+        this.metaManager.addSchemaTemplate(graphSpace, schemaTemplate);
+    }
+
+    public void dropSchemaTemplate(String graphSpace, String name) {
+        this.metaManager.removeSchemaTemplate(graphSpace, name);
+    }
 }

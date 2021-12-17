@@ -40,6 +40,7 @@ import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.space.GraphSpace;
+import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -143,6 +144,17 @@ public class API {
                       "Service '%s' does not exist", service));
         }
         return s;
+    }
+
+    public static SchemaTemplate schemaTemplate(GraphManager manager,
+                                                String graphSpace,
+                                                String schemaTemplate) {
+        SchemaTemplate st = manager.schemaTemplate(graphSpace, schemaTemplate);
+        if (st == null) {
+            throw new NotFoundException(String.format(
+                      "Schema template '%s' does not exist", schemaTemplate));
+        }
+        return st;
     }
 
     public static HugeGraph graph4admin(GraphManager manager, String graphSpace,
