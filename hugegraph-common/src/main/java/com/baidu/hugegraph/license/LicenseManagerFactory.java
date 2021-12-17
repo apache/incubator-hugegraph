@@ -17,15 +17,16 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.license;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import org.apache.commons.lang.NotImplementedException;
 
-public class CommonVersion {
+import com.baidu.hugegraph.license.LicenseManager.VerifyCallback;
 
-    public static final String NAME = "hugegraph-common";
+public class LicenseManagerFactory {
 
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "2.0.0");
+    public static LicenseManager create(LicenseInstallParam param,
+                                        VerifyCallback veryfyCallback) {
+        throw new NotImplementedException("No LicenseManager available");
+    }
 }

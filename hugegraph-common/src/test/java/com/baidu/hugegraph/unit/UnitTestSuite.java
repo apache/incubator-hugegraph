@@ -45,8 +45,8 @@ import com.baidu.hugegraph.unit.iterator.ListIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
 import com.baidu.hugegraph.unit.license.ExtraParamTest;
 import com.baidu.hugegraph.unit.license.LicenseCreateParamTest;
-import com.baidu.hugegraph.unit.license.LicenseManagerTest;
-import com.baidu.hugegraph.unit.license.LicenseVerifyParamTest;
+import com.baidu.hugegraph.unit.license.LicenseInstallParamTest;
+import com.baidu.hugegraph.unit.license.LicenseParamsTest;
 import com.baidu.hugegraph.unit.license.MachineInfoTest;
 import com.baidu.hugegraph.unit.perf.PerfUtilTest;
 import com.baidu.hugegraph.unit.perf.StopwatchTest;
@@ -116,9 +116,9 @@ import com.baidu.hugegraph.unit.version.VersionTest;
 
     ExtraParamTest.class,
     LicenseCreateParamTest.class,
-    LicenseVerifyParamTest.class,
+    LicenseInstallParamTest.class,
+    LicenseParamsTest.class,
     MachineInfoTest.class,
-    LicenseManagerTest.class,
 
     AssertTest.class,
     WhiteboxTest.class

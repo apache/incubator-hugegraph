@@ -17,15 +17,31 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.version;
+package com.baidu.hugegraph.license;
 
-import com.baidu.hugegraph.util.VersionUtil.Version;
+import java.util.Date;
+import java.util.List;
 
-public class CommonVersion {
+public class LicenseParams extends LicenseCommonParam {
 
-    public static final String NAME = "hugegraph-common";
+    public LicenseParams() {
+        super();
+    }
 
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class,
-                                                     "2.0.0");
+    public LicenseParams(String subject, String description,
+                         Date issued, Date notBefore, Date notAfter,
+                         String consumerType, int consumerAmount,
+                         List<LicenseExtraParam> extraParams) {
+        super(subject, description, issued, notBefore, notAfter,
+              consumerType, consumerAmount, extraParams);
+    }
+
+    public LicenseExtraParam matchParam(String id) {
+        for (LicenseExtraParam param : this.extraParams()) {
+            if (param.id().equals(id)) {
+                return param;
+            }
+        }
+        return null;
+    }
 }

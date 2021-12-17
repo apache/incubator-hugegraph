@@ -22,7 +22,7 @@ package com.baidu.hugegraph.license;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class LicenseVerifyParam {
+public class LicenseInstallParam {
 
     @JsonProperty("subject")
     private String subject;

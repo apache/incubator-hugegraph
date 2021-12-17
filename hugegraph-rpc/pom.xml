@@ -6,12 +6,12 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph-commons</artifactId>
-        <version>1.8.10</version>
+        <version>2.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>hugegraph-rpc</artifactId>
-    <version>1.0.1</version>
+    <version>2.0.0</version>
 
     <name>hugegraph-rpc</name>
     <description>HugeGraph Database RPC component</description>
@@ -25,8 +25,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <!-- TODO: use commons latest version ${project.version}?-->
-            <version>1.8.5</version>
+            <version>2.0.0</version>
         </dependency>
 
         <!-- sofa rpc -->
@@ -145,7 +144,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.0.0.0</Implementation-Version>
+                            <Implementation-Version>2.0.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

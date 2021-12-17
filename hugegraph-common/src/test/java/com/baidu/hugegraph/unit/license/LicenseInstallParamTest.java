@@ -23,11 +23,11 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import com.baidu.hugegraph.license.LicenseVerifyParam;
+import com.baidu.hugegraph.license.LicenseInstallParam;
 import com.baidu.hugegraph.testutil.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class LicenseVerifyParamTest {
+public class LicenseInstallParamTest {
 
     @Test
     public void testDeserializeLicenseVerifyParam() throws IOException {
@@ -39,8 +39,8 @@ public class LicenseVerifyParamTest {
                 + "\"license_path\":\"./hugegraph-evaluation.license\""
                 + "}";
         ObjectMapper mapper = new ObjectMapper();
-        LicenseVerifyParam param = mapper.readValue(json,
-                                                    LicenseVerifyParam.class);
+        LicenseInstallParam param = mapper.readValue(json,
+                                                    LicenseInstallParam.class);
         Assert.assertEquals("hugegraph-evaluation", param.subject());
         Assert.assertEquals("publiccert", param.publicAlias());
         Assert.assertEquals("a123456", param.storePassword());

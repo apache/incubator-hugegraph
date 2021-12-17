@@ -19,19 +19,10 @@
 
 package com.baidu.hugegraph.license;
 
-import java.util.Date;
-import java.util.List;
-
-import org.apache.commons.lang3.time.DateUtils;
-
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class LicenseCreateParam {
-
-    @JsonProperty("subject")
-    private String subject;
+public class LicenseCreateParam extends LicenseCommonParam {
 
     @JsonProperty("private_alias")
     private String privateAlias;
@@ -49,34 +40,6 @@ public class LicenseCreateParam {
 
     @JsonProperty("license_path")
     private String licensePath;
-
-    @JsonProperty("issued_time")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date issuedTime = new Date();
-
-    @JsonProperty("not_before")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date notBefore = this.issuedTime;
-
-    @JsonProperty("not_after")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date notAfter = DateUtils.addDays(this.notBefore, 30);
-
-    @JsonProperty("consumer_type")
-    private String consumerType = "user";
-
-    @JsonProperty("consumer_amount")
-    private Integer consumerAmount = 1;
-
-    @JsonProperty("description")
-    private String description = "";
-
-    @JsonProperty("extra_params")
-    private List<ExtraParam> extraParams;
-
-    public String subject() {
-        return this.subject;
-    }
 
     public String privateAlias() {
         return this.privateAlias;
@@ -96,33 +59,5 @@ public class LicenseCreateParam {
 
     public String licensePath() {
         return this.licensePath;
-    }
-
-    public Date issuedTime() {
-        return this.issuedTime;
-    }
-
-    public Date notBefore() {
-        return this.notBefore;
-    }
-
-    public Date notAfter() {
-        return this.notAfter;
-    }
-
-    public String consumerType() {
-        return this.consumerType;
-    }
-
-    public Integer consumerAmount() {
-        return this.consumerAmount;
-    }
-
-    public String description() {
-        return this.description;
-    }
-
-    public List<ExtraParam> extraParams() {
-        return this.extraParams;
     }
 }

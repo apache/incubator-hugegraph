@@ -21,7 +21,9 @@ package com.baidu.hugegraph.license;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ExtraParam {
+public class LicenseExtraParam {
+
+    public static final int NO_LIMIT = -1;
 
     @JsonProperty("id")
     private String id;

@@ -24,16 +24,26 @@ import java.io.IOException;
 import org.junit.Test;
 
 import com.baidu.hugegraph.license.LicenseExtraParam;
+import com.baidu.hugegraph.license.LicenseParams;
 import com.baidu.hugegraph.testutil.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class ExtraParamTest {
+public class LicenseParamsTest {
 
     @Test
-    public void testDeserializeExtraParam() throws IOException {
+    public void testLicenseParams() throws IOException {
         String json = "{"
+                + "\"subject\":\"hugegraph-evaluation\","
+                + "\"issued_time\":\"2019-08-10 00:00:00\","
+                + "\"not_before\":\"2019-08-10 00:00:00\","
+                + "\"not_after\":\"2020-08-10 00:00:00\","
+                + "\"consumer_type\":\"user\","
+                + "\"consumer_amount\":1,"
+                + "\"description\":\"hugegraph license\","
+                + "\"extra_params\":["
+                + "{"
                 + "\"id\":\"server-1\","
-                + "\"version\":\"0.10.2\","
+                + "\"version\":\"0.9.2\","
                 + "\"graphs\":3,"
                 + "\"ip\":\"127.0.0.1\","
                 + "\"mac\":\"00-01-6C-06-A6-29\","
@@ -45,21 +55,34 @@ public class ExtraParamTest {
                 + "\"data_size\":1024,"
                 + "\"vertices\":1000,"
                 + "\"edges\":2000"
+                + "},"
+                + "{"
+                + "\"id\":\"server-2\","
+                + "\"version\":\"0.10.2\","
+                + "\"graphs\":3,"
+                + "\"ip\":\"127.0.0.1\","
+                + "\"mac\":\"00-02-6C-06-A6-29\","
+                + "\"cpus\":64,"
+                + "\"ram\":65536,"
+                + "\"threads\":96,"
+                + "\"memory\":65536,"
+                + "\"nodes\":30,"
+                + "\"data_size\":10240,"
+                + "\"vertices\":10000,"
+                + "\"edges\":20000"
+                + "}"
+                + "]"
                 + "}";
         ObjectMapper mapper = new ObjectMapper();
-        LicenseExtraParam param = mapper.readValue(json, LicenseExtraParam.class);
-        Assert.assertEquals("server-1", param.id());
-        Assert.assertEquals("0.10.2", param.version());
-        Assert.assertEquals(3, param.graphs());
-        Assert.assertEquals("127.0.0.1", param.ip());
-        Assert.assertEquals("00-01-6C-06-A6-29", param.mac());
-        Assert.assertEquals(32, param.cpus());
-        Assert.assertEquals(65536, param.ram());
-        Assert.assertEquals(96, param.threads());
-        Assert.assertEquals(32768, param.memory());
-        Assert.assertEquals(3, param.nodes());
-        Assert.assertEquals(1024, param.dataSize());
-        Assert.assertEquals(1000, param.vertices());
-        Assert.assertEquals(2000, param.edges());
+        LicenseParams param = mapper.readValue(json, LicenseParams.class);
+
+        LicenseExtraParam extraParam = param.matchParam("server-not-exist");
+        Assert.assertNull(extraParam);
+
+        extraParam = param.matchParam("server-1");
+        Assert.assertEquals("00-01-6C-06-A6-29", extraParam.mac());
+
+        extraParam = param.matchParam("server-2");
+        Assert.assertEquals("00-02-6C-06-A6-29", extraParam.mac());
     }
 }

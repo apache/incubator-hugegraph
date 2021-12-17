@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.baidu.hugegraph</groupId>
         <artifactId>hugegraph-commons</artifactId>
-        <version>1.8.10</version>
+        <version>2.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -173,12 +173,6 @@
             <artifactId>jersey-hk2</artifactId>
             <version>${jersey.hk2.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>de.schlichtherle.truelicense</groupId>
-            <artifactId>truelicense-core</artifactId>
-            <version>1.33</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -237,7 +231,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>1.8.9.0</Implementation-Version>
+                            <Implementation-Version>2.0.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

@@ -33,7 +33,7 @@ public class LicenseCreateParamTest {
 
     @Test
     public void testDeserializeLicenseCreateParam()
-           throws IOException, ParseException {
+                throws IOException, ParseException {
         String json = "{"
                 + "\"subject\":\"hugegraph-evaluation\","
                 + "\"private_alias\":\"privatekey\","
