@@ -35,7 +35,6 @@ public class BarrierEvent {
 
     /**
      * Wait forever until the signal is received.
-     * @return true if signal is received
      * @throws InterruptedException if interrupted.
      */
     public void await() throws InterruptedException {
@@ -53,6 +52,7 @@ public class BarrierEvent {
      * Wait specified time in milliseconds.
      * @param timeout: the time in millisecond to wait.
      * @return true if signal is received, false if time out.
+     * @throws InterruptedException if interrupted.
      */
     public boolean await(long timeout) throws InterruptedException {
         E.checkArgument(timeout >= 0L,
