@@ -53,6 +53,11 @@ public interface BackendStoreProvider {
 
     public void truncate();
 
+    public default void truncateGraph(HugeGraph graph) {
+        throw new UnsupportedOperationException(
+                  "BackendStoreProvider.truncateGraph()");
+    }
+
     public void initSystemInfo(HugeGraph graph);
 
     public default void createOlapTable(HugeGraph graph, Id pkId) {

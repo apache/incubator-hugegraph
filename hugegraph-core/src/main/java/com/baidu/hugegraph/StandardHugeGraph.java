@@ -364,6 +364,16 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void truncateGraph() {
+        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        try {
+            this.storeProvider.truncateGraph(this);
+        } finally {
+            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+        }
+    }
+
+    @Override
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 

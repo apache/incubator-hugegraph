@@ -488,6 +488,14 @@ public class CoreOptions extends OptionHolder {
                     20000000
             );
 
+    public static final ConfigOption<String> SCHEMA_INIT_TEMPLATE =
+            new ConfigOption<>(
+                    "schema.init_template",
+                    "The template schema used to init graph",
+                    null,
+                    ""
+            );
+
     /**
      * The schema name rule:
      * 1、Not allowed end with spaces

@@ -26,8 +26,10 @@ import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -56,6 +59,7 @@ public class SchemaAPI extends API {
 
     private static final Logger LOG = Log.logger(SchemaAPI.class);
 
+    private static final String SCHEMA = "schema";
     private static final String JSON = "json";
     private static final String GROOVY = "groovy";
 
@@ -121,5 +125,28 @@ public class SchemaAPI extends API {
             return manager.serializer().writeMap(
                            ImmutableMap.of("schema", builder.toString()));
         }
+    }
+
+    @PUT
+    @Timed
+    @Status(Status.ACCEPTED)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                   "$action=schema_write"})
+    public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
+                         @PathParam("graph") String graph,
+                         @QueryParam("action") String action,
+                         Map<String, String> schemaMap) {
+        LOG.debug("Graph [{}] set schema '{}'", graph, schemaMap);
+
+        HugeGraph g = graph(manager, graphSpace, graph);
+        E.checkArgument(schemaMap.size() == 1 &&
+                        schemaMap.containsKey(SCHEMA),
+                        "Must provide 'schema' in request body");
+        GraphManager.prepareSchema(g, schemaMap.get(SCHEMA));
+        return manager.serializer().writeMap(ImmutableMap.of(SCHEMA,
+                                                             "inited"));
     }
 }

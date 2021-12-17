@@ -65,11 +65,10 @@ public class GraphsAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String GRAPH_ACTION = "action";
-    private static final String CONFIRM_MESSAGE = "confirm_message";
+    private static final String CLEAR_SCHEMA = "clear_schema";
     private static final String GRAPH_ACTION_CLEAR = "clear";
     private static final String GRAPH_ACTION_RELOAD = "reload";
 
-    private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";
 
     @GET
@@ -158,19 +157,23 @@ public class GraphsAPI extends API {
                                @Context GraphManager manager,
                                @PathParam("graphspace") String graphSpace,
                                @PathParam("name") String name,
-                               Map<String, String> actionMap) {
+                               Map<String, Object> actionMap) {
         LOG.debug("Clear graph by name '{}'", name);
         E.checkArgument(actionMap != null &&
                         actionMap.containsKey(GRAPH_ACTION),
                         "Please pass '%s' for graph manage", GRAPH_ACTION);
-        String action = actionMap.get(GRAPH_ACTION);
+        String action = (String) actionMap.get(GRAPH_ACTION);
         switch (action) {
             case GRAPH_ACTION_CLEAR:
-                String message = actionMap.get(CONFIRM_MESSAGE);
-                E.checkArgument(CONFIRM_CLEAR.equals(message),
-                                "Please take the message: %s", CONFIRM_CLEAR);
+                boolean clearSchema = (Boolean) actionMap.get(CLEAR_SCHEMA);
+
+
                 HugeGraph g = graph(manager, graphSpace, name);
-                g.truncateBackend();
+                if (!clearSchema) {
+                    g.truncateGraph();
+                } else {
+                    g.truncateBackend();
+                }
                 // truncateBackend() will open tx, so must close here(commit)
                 g.tx().commit();
                 return ImmutableMap.of(name, "cleared");

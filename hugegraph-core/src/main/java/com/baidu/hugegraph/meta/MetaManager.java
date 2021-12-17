@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,9 +239,14 @@ public class MetaManager {
     }
 
     public Set<String> schemaTemplates(String graphSpace) {
+        Set<String> result = new HashSet<>();
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                 this.schemaTemplatePrefix(graphSpace));
-        return keyValues.keySet();
+        for (String key : keyValues.keySet()) {
+            String[] parts = key.split(META_PATH_DELIMETER);
+            result.add(parts[parts.length - 1]);
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")

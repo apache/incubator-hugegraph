@@ -25,6 +25,7 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,11 +34,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.baidu.hugegraph.api.job.GremlinAPI;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.job.GremlinJob;
+import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.SchemaTemplate;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.MapConfiguration;
@@ -563,7 +571,33 @@ public final class GraphManager {
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         // Let gremlin server and rest server context add graph
         this.eventHub.notify(Events.GRAPH_CREATE, graphName, graph);
+
+        String schema = propConfig.getString(
+                        CoreOptions.SCHEMA_INIT_TEMPLATE.name());
+        if (schema == null || schema.isEmpty()) {
+            return graph;
+        }
+        String schemas = this.schemaTemplate(graphSpace, schema).schema();
+        prepareSchema(graph, schemas);
         return graph;
+    }
+
+    public static void prepareSchema(HugeGraph graph, String gremlin) {
+        Map<String, Object> bindings = ImmutableMap.of(
+                                       "graph", graph,
+                                       "schema", graph.schema());
+        HugeScriptTraversal<?, ?> traversal = new HugeScriptTraversal<>(
+                                              graph.traversal(),
+                                              "gremlin-groovy", gremlin,
+                                              bindings, ImmutableMap.of());
+        while (traversal.hasNext()) {
+            traversal.next();
+        }
+        try {
+            traversal.close();
+        } catch (Exception e) {
+            throw new HugeException("Failed to init schema", e);
+        }
     }
 
     private HugeGraph createGraph(String graphSpace, HugeConfig config,

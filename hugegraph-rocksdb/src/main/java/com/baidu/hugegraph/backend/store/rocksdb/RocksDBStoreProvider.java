@@ -19,11 +19,15 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBGraphStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSchemaStore;
+
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.util.Events;
 
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
 
@@ -52,6 +56,17 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
         for (BackendStore store : this.stores.values()) {
             store.close(true);
         }
+    }
+
+    @Override
+    public void truncateGraph(HugeGraph graph) {
+        this.checkOpened();
+        String g = graph.option(CoreOptions.STORE_GRAPH);
+        BackendStore store = this.stores.get(g);
+        store.truncate();
+        this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
+
+        LOG.debug("Graph '{}' store has been truncated", graph.name());
     }
 
     @Override

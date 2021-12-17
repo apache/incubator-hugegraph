@@ -740,6 +740,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void truncateGraph() {
+        this.verifyAdminPermission();
+        AuthManager userManager = this.hugegraph.authManager();
+        HugeUser admin = userManager.findUser(HugeAuthenticator.USER_ADMIN, false);
+        try {
+            this.hugegraph.truncateGraph();
+        } finally {
+            if (admin != null && StandardAuthManager.isLocal(userManager)) {
+                // Restore admin user to continue to do any operation
+                userManager.createUser(admin, false);
+            }
+        }
+    }
+
+    @Override
     public void createSnapshot() {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
         this.hugegraph.createSnapshot();
