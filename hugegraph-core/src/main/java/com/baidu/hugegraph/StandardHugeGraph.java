@@ -296,7 +296,7 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void mode(GraphMode mode) {
         if (this.mode.loading() && mode == GraphMode.NONE &&
-            "rocksdb".equalsIgnoreCase(this.storeProvider.type())) {
+            "rocksdb".equalsIgnoreCase(this.backend())) {
             // Flush WAL to sst file after load data for rocksdb backend
             this.metadata(null, "flush");
         }
@@ -907,6 +907,9 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Close graph {}", this);
         this.taskManager.closeScheduler(this.params);
+        if ("rocksdb".equalsIgnoreCase(this.backend())) {
+            this.metadata(null, "flush");
+        }
         try {
             this.closeTx();
         } finally {
