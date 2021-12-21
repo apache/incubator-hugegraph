@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -112,9 +113,10 @@ public class PostgresqlSessions extends MysqlSessions {
     }
 
     @Override
-    protected URIBuilder newConnectionURIBuilder() {
+    protected URIBuilder newConnectionURIBuilder(String url)
+                                                 throws URISyntaxException {
         // Suppress error log when database does not exist
-        return new URIBuilder().addParameter("loggerLevel", "OFF");
+        return new URIBuilder(url).addParameter("loggerLevel", "OFF");
     }
 
     @Override

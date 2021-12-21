@@ -20,12 +20,13 @@
 package com.baidu.hugegraph.backend.store.mysql;
 
 import java.net.SocketTimeoutException;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -38,11 +39,14 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import com.baidu.hugegraph.backend.store.BackendSessionPool;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 public class MysqlSessions extends BackendSessionPool {
 
     private static final Logger LOG = Log.logger(MysqlStore.class);
+
+    private static final String JDBC_PREFIX = "jdbc:";
 
     private static final int DROP_DB_TIMEOUT = 10000;
 
@@ -221,8 +225,17 @@ public class MysqlSessions extends BackendSessionPool {
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
         String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
 
-        URIBuilder builder = this.newConnectionURIBuilder();
-        builder.setPath(url).setParameter("useSSL", sslMode);
+        E.checkArgument(url.startsWith(JDBC_PREFIX),
+                        "The url must start with '%s': '%s'",
+                        JDBC_PREFIX, url);
+        String urlWithoutJdbc = url.substring(JDBC_PREFIX.length());
+        URIBuilder builder;
+        try {
+            builder = this.newConnectionURIBuilder(urlWithoutJdbc);
+        } catch (URISyntaxException e) {
+            throw new BackendException("Invalid url '%s'", e, url);
+        }
+        builder.setParameter("useSSL", sslMode);
         if (withConnParams) {
             builder.setParameter("characterEncoding", "utf-8")
                    .setParameter("rewriteBatchedStatements", "true")
@@ -234,7 +247,7 @@ public class MysqlSessions extends BackendSessionPool {
         if (timeout != null) {
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
-        return builder.toString();
+        return JDBC_PREFIX + builder.toString();
     }
 
     protected String buildUrlPrefix(boolean withDB) {
@@ -250,8 +263,9 @@ public class MysqlSessions extends BackendSessionPool {
         return Strings.EMPTY;
     }
 
-    protected URIBuilder newConnectionURIBuilder() {
-        return new URIBuilder();
+    protected URIBuilder newConnectionURIBuilder(String url)
+                                                 throws URISyntaxException {
+        return new URIBuilder(url);
     }
 
     private Connection connect(String url) throws SQLException {
@@ -494,7 +508,7 @@ public class MysqlSessions extends BackendSessionPool {
             if (!this.conn.getAutoCommit()) {
                 this.end();
             }
-            
+
             try (Statement statement = this.conn.createStatement()) {
                 return statement.execute(sql);
             }
