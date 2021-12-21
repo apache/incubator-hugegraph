@@ -43,7 +43,7 @@ import com.baidu.hugegraph.unit.iterator.FlatMapperIteratorTest;
 import com.baidu.hugegraph.unit.iterator.LimitIteratorTest;
 import com.baidu.hugegraph.unit.iterator.ListIteratorTest;
 import com.baidu.hugegraph.unit.iterator.MapperIteratorTest;
-import com.baidu.hugegraph.unit.license.ExtraParamTest;
+import com.baidu.hugegraph.unit.license.LicenseExtraParamTest;
 import com.baidu.hugegraph.unit.license.LicenseCreateParamTest;
 import com.baidu.hugegraph.unit.license.LicenseInstallParamTest;
 import com.baidu.hugegraph.unit.license.LicenseParamsTest;
@@ -114,7 +114,7 @@ import com.baidu.hugegraph.unit.version.VersionTest;
     DateUtilTest.class,
     UnitUtilTest.class,
 
-    ExtraParamTest.class,
+    LicenseExtraParamTest.class,
     LicenseCreateParamTest.class,
     LicenseInstallParamTest.class,
     LicenseParamsTest.class,

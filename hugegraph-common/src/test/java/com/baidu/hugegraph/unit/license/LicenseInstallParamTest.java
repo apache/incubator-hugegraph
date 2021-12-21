@@ -40,7 +40,7 @@ public class LicenseInstallParamTest {
                 + "}";
         ObjectMapper mapper = new ObjectMapper();
         LicenseInstallParam param = mapper.readValue(json,
-                                                    LicenseInstallParam.class);
+                                                     LicenseInstallParam.class);
         Assert.assertEquals("hugegraph-evaluation", param.subject());
         Assert.assertEquals("publiccert", param.publicAlias());
         Assert.assertEquals("a123456", param.storePassword());

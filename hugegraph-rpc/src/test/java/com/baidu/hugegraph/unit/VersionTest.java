@@ -28,7 +28,7 @@ import com.baidu.hugegraph.version.RpcVersion;
 public class VersionTest {
 
     @Test
-    public void testGetCommonVersion() {
+    public void testGetRpcVersion() {
         String pomVersion = VersionUtil.getPomVersion();
         Assert.assertNotNull(pomVersion);
         String version = RpcVersion.VERSION.get();

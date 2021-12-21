@@ -27,7 +27,7 @@ import com.baidu.hugegraph.license.LicenseExtraParam;
 import com.baidu.hugegraph.testutil.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class ExtraParamTest {
+public class LicenseExtraParamTest {
 
     @Test
     public void testDeserializeExtraParam() throws IOException {
