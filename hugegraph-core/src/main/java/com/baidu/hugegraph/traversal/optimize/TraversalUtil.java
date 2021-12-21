@@ -869,7 +869,7 @@ public final class TraversalUtil {
             case "within":
                 List<T> values = predicateArgs(value);
                 List<T> validValues = new ArrayList<>(values.size());
-                for (T v : validValues) {
+                for (T v : values) {
                     validValues.add(validPropertyValue(v, pk));
                 }
                 return Condition.in(pk.id(), validValues);
