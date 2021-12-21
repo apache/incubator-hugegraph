@@ -95,6 +95,8 @@ public abstract class RocksDBSessions extends BackendSessionPool {
                                          byte[] keyFrom, byte[] keyTo);
 
         public abstract byte[] get(String table, byte[] key);
+        public abstract BackendColumnIterator get(String table,
+                                                  List<byte[]> keys);
 
         public abstract BackendColumnIterator scan(String table);
         public abstract BackendColumnIterator scan(String table,

@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.unit.rocksdb;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -28,6 +30,7 @@ import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 
 public class RocksDBPerfTest extends BaseRocksDBUnitTest {
@@ -54,9 +57,33 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            s(session.get(TABLE, b("person:1gname")));
-            s(session.get(TABLE, b("person:1gage")));
-            s(session.get(TABLE, b("person:1gcity")));
+            session.get(TABLE, b("person:1gname"));
+            session.get(TABLE, b("person:1gage"));
+            session.get(TABLE, b("person:1gcity"));
+        }
+    }
+
+    @Test
+    public void testMultiGet3Keys() throws RocksDBException {
+
+        put("person:1gname", "James");
+        put("person:1gage", "19");
+        put("person:1gcity", "Beijing");
+
+        put("person:2gname", "Lisa");
+        put("person:2gage", "20");
+        put("person:2gcity", "Beijing");
+
+        Session session = this.rocks.session();
+        BackendColumnIterator iter;
+        for (int i = 0; i < TIMES; i++) {
+            List<byte[]> keys = Arrays.asList(b("person:1gname"),
+                                              b("person:1gage"),
+                                              b("person:1gcity"));
+            iter = session.get(TABLE, keys);
+            iter.next();
+            iter.next();
+            iter.next();
         }
     }
 
@@ -75,7 +102,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            s(session.get(TABLE, b("person:2all")));
+            session.get(TABLE, b("person:2all"));
         }
     }
 
@@ -94,9 +121,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
         for (int i = 0; i < TIMES; i++) {
             Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
             while (iter.hasNext()) {
-                BackendColumn col = iter.next();
-                s(col.name);
-                s(col.value);
+                iter.next();
             }
         }
     }
@@ -105,6 +130,12 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     public void testGet3KeysWithData() throws RocksDBException {
         testPut();
         testGet3Keys();
+    }
+
+    @Test
+    public void testMultiGet3KeysWithData() throws RocksDBException {
+        testPut();
+        testMultiGet3Keys();
     }
 
     @Test
