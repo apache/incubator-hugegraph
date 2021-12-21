@@ -300,6 +300,23 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
+    @Path("{graph}/flush")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
+    public String flush(@Context GraphManager manager,
+                        @PathParam("graph") String graph) {
+        LOG.debug("Manually flush graph '{}'", graph);
+
+        HugeGraph g = graph(manager, graph);
+        if (g.backend().equals("rocksdb")) {
+            g.metadata(null, "flush");
+        }
+        return JsonUtil.toJson(ImmutableMap.of(graph, "flushed"));
+    }
+
+    @PUT
+    @Timed
     @Path("{graph}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
