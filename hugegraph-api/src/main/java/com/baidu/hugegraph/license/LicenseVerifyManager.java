@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.license;
 
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -38,28 +37,26 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.VersionUtil;
 import com.baidu.hugegraph.version.CoreVersion;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.management.OperatingSystemMXBean;
 
-import de.schlichtherle.license.LicenseContent;
-import de.schlichtherle.license.LicenseContentException;
-import de.schlichtherle.license.LicenseParam;
-
-public class LicenseVerifyManager extends CommonLicenseManager {
+public class LicenseVerifyManager {
 
     private static final Logger LOG = Log.logger(LicenseVerifyManager.class);
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final int NO_LIMIT = -1;
+    private final LicenseManager licenseManager;
+    private final MachineInfo machineInfo;
 
     private HugeConfig config;
     private GraphManager graphManager;
-    private final MachineInfo machineInfo;
 
-    public LicenseVerifyManager(LicenseParam param) {
-        super(param);
+    public LicenseVerifyManager(LicenseInstallParam param) {
+        this.licenseManager = LicenseManagerFactory.create(param,
+                                                           this::validate);
         this.machineInfo = new MachineInfo();
+    }
+
+    public LicenseManager licenseManager() {
+        return this.licenseManager;
     }
 
     public void config(HugeConfig config) {
@@ -82,32 +79,13 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         return this.graphManager;
     }
 
-    @Override
-    protected synchronized void validate(LicenseContent content) {
-        // Call super validate firstly to verify the common license parameters
-        try {
-            super.validate(content);
-        } catch (LicenseContentException e) {
-            LOG.error("Failed to verify license", e);
-            throw new HugeException("Failed to verify license", e);
-        }
-
+    private synchronized void validate(LicenseParams params) {
         // Verify the customized license parameters.
-        List<ExtraParam> extraParams;
-        try {
-            TypeReference<List<ExtraParam>> type;
-            type = new TypeReference<List<ExtraParam>>() {};
-            extraParams = MAPPER.readValue((String) content.getExtra(), type);
-        } catch (IOException e) {
-            LOG.error("Failed to read extra params", e);
-            throw new HugeException("Failed to read extra params", e);
-        }
-
         String serverId = this.getServerId();
-        LOG.debug("server id is {}", serverId);
-        ExtraParam param = this.matchParam(serverId, extraParams);
+        LOG.debug("Verify server id '{}'", serverId);
+        LicenseExtraParam param = params.matchParam(serverId);
         if (param == null) {
-            throw new HugeException("The current server's id is not authorized");
+            throw new HugeException("The current server id is not authorized");
         }
 
         this.checkVersion(param);
@@ -123,16 +101,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         return this.config().get(ServerOptions.SERVER_ID);
     }
 
-    private ExtraParam matchParam(String id, List<ExtraParam> extraParams) {
-        for (ExtraParam param : extraParams) {
-            if (param.id().equals(id)) {
-                return param;
-            }
-        }
-        return null;
-    }
-
-    private void checkVersion(ExtraParam param) {
+    private void checkVersion(LicenseExtraParam param) {
         String expectVersion = param.version();
         if (StringUtils.isEmpty(expectVersion)) {
             return;
@@ -145,9 +114,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkGraphs(ExtraParam param) {
+    private void checkGraphs(LicenseExtraParam param) {
         int expectGraphs = param.graphs();
-        if (expectGraphs == NO_LIMIT) {
+        if (expectGraphs == LicenseExtraParam.NO_LIMIT) {
             return;
         }
         int actualGraphs = this.graphManager().graphs().size();
@@ -158,7 +127,7 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkIpAndMac(ExtraParam param) {
+    private void checkIpAndMac(LicenseExtraParam param) {
         String expectIp = param.ip();
         boolean matched = false;
         List<String> actualIps = this.machineInfo.getIpAddress();
@@ -216,9 +185,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkCpu(ExtraParam param) {
+    private void checkCpu(LicenseExtraParam param) {
         int expectCpus = param.cpus();
-        if (expectCpus == NO_LIMIT) {
+        if (expectCpus == LicenseExtraParam.NO_LIMIT) {
             return;
         }
         int actualCpus = CoreOptions.CPUS;
@@ -229,10 +198,10 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkRam(ExtraParam param) {
+    private void checkRam(LicenseExtraParam param) {
         // Unit MB
         int expectRam = param.ram();
-        if (expectRam == NO_LIMIT) {
+        if (expectRam == LicenseExtraParam.NO_LIMIT) {
             return;
         }
         OperatingSystemMXBean mxBean = (OperatingSystemMXBean) ManagementFactory
@@ -245,9 +214,9 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkThreads(ExtraParam param) {
+    private void checkThreads(LicenseExtraParam param) {
         int expectThreads = param.threads();
-        if (expectThreads == NO_LIMIT) {
+        if (expectThreads == LicenseExtraParam.NO_LIMIT) {
             return;
         }
         int actualThreads = this.config().get(ServerOptions.MAX_WORKER_THREADS);
@@ -258,10 +227,10 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         }
     }
 
-    private void checkMemory(ExtraParam param) {
+    private void checkMemory(LicenseExtraParam param) {
         // Unit MB
         int expectMemory = param.memory();
-        if (expectMemory == NO_LIMIT) {
+        if (expectMemory == LicenseExtraParam.NO_LIMIT) {
             return;
         }
         /*

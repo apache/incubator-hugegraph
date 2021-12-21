@@ -19,12 +19,10 @@
 
 package com.baidu.hugegraph.license;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.prefs.Preferences;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
@@ -35,14 +33,6 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.Log;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import de.schlichtherle.license.CipherParam;
-import de.schlichtherle.license.DefaultCipherParam;
-import de.schlichtherle.license.DefaultKeyStoreParam;
-import de.schlichtherle.license.DefaultLicenseParam;
-import de.schlichtherle.license.KeyStoreParam;
-import de.schlichtherle.license.LicenseContent;
-import de.schlichtherle.license.LicenseParam;
 
 public class LicenseVerifier {
 
@@ -55,13 +45,12 @@ public class LicenseVerifier {
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
     private volatile Instant lastCheckTime = Instant.now();
 
-    private final LicenseVerifyParam verifyParam;
+    private final LicenseInstallParam installParam;
     private final LicenseVerifyManager manager;
 
     private LicenseVerifier() {
-        this.verifyParam = buildVerifyParam(LICENSE_PARAM_PATH);
-        LicenseParam licenseParam = this.initLicenseParam(this.verifyParam);
-        this.manager = new LicenseVerifyManager(licenseParam);
+        this.installParam = buildInstallParam(LICENSE_PARAM_PATH);
+        this.manager = new LicenseVerifyManager(this.installParam);
     }
 
     public static LicenseVerifier instance() {
@@ -75,6 +64,26 @@ public class LicenseVerifier {
         return INSTANCE;
     }
 
+    public synchronized void install(HugeConfig config,
+                                     GraphManager graphManager,
+                                     String md5) {
+        this.manager.config(config);
+        this.manager.graphManager(graphManager);
+        LicenseManager licenseManager = this.manager.licenseManager();
+        try {
+            licenseManager.uninstallLicense();
+            this.verifyPublicCert(md5);
+            LicenseParams params = licenseManager.installLicense();
+            LOG.info("The license '{}' is successfully installed for '{}', " +
+                     "the term of validity is from {} to {}",
+                     params.subject(), params.consumerType(),
+                     params.notBefore(), params.notAfter());
+        } catch (Exception e) {
+            LOG.error("Failed to install license", e);
+            throw new HugeException("Failed to install license", e);
+        }
+    }
+
     public void verifyIfNeeded() {
         Instant now = Instant.now();
         Duration interval = Duration.between(this.lastCheckTime, now);
@@ -84,29 +93,13 @@ public class LicenseVerifier {
         }
     }
 
-    public synchronized void install(HugeConfig config,
-                                     GraphManager graphManager,
-                                     String md5) {
-        this.manager.config(config);
-        this.manager.graphManager(graphManager);
-        try {
-            this.manager.uninstall();
-            File licenseFile = new File(this.verifyParam.licensePath());
-            this.verifyPublicCert(md5);
-            LicenseContent content = this.manager.install(licenseFile);
-            LOG.info("The license is successfully installed, valid for {} - {}",
-                     content.getNotBefore(), content.getNotAfter());
-        } catch (Exception e) {
-            LOG.error("Failed to install license", e);
-            throw new HugeException("Failed to install license", e);
-        }
-    }
-
     public void verify() {
         try {
-            LicenseContent content = this.manager.verify();
-            LOG.info("The license verification passed, valid for {} - {}",
-                     content.getNotBefore(), content.getNotAfter());
+            LicenseParams params = this.manager.licenseManager()
+                                               .verifyLicense();
+            LOG.info("The license verification passed, " +
+                     "the term of validity is from {} to {}",
+                     params.notBefore(), params.notAfter());
         } catch (Exception e) {
             LOG.error("Failed to verify license", e);
             throw new HugeException("Failed to verify license", e);
@@ -114,7 +107,7 @@ public class LicenseVerifier {
     }
 
     private void verifyPublicCert(String expectMD5) {
-        String path = this.verifyParam.publicKeyPath();
+        String path = this.installParam.publicKeyPath();
         try (InputStream is = LicenseVerifier.class.getResourceAsStream(path)) {
             String actualMD5 = DigestUtils.md5Hex(is);
             if (!actualMD5.equals(expectMD5)) {
@@ -126,30 +119,15 @@ public class LicenseVerifier {
         }
     }
 
-    private LicenseParam initLicenseParam(LicenseVerifyParam param) {
-        Preferences preferences = Preferences.userNodeForPackage(
-                                  LicenseVerifier.class);
-        CipherParam cipherParam = new DefaultCipherParam(
-                                  param.storePassword());
-        KeyStoreParam keyStoreParam = new DefaultKeyStoreParam(
-                                      LicenseVerifier.class,
-                                      param.publicKeyPath(),
-                                      param.publicAlias(),
-                                      param.storePassword(),
-                                      null);
-        return new DefaultLicenseParam(param.subject(), preferences,
-                                       keyStoreParam, cipherParam);
-    }
-
-    private static LicenseVerifyParam buildVerifyParam(String path) {
+    private static LicenseInstallParam buildInstallParam(String path) {
         // NOTE: can't use JsonUtil due to it bind tinkerpop jackson
         ObjectMapper mapper = new ObjectMapper();
         try (InputStream stream =
              LicenseVerifier.class.getResourceAsStream(path)) {
-            return mapper.readValue(stream, LicenseVerifyParam.class);
+            return mapper.readValue(stream, LicenseInstallParam.class);
         } catch (IOException e) {
             throw new HugeException("Failed to read json stream to %s",
-                                    LicenseVerifyParam.class);
+                                    LicenseInstallParam.class);
         }
     }
 }
