@@ -141,7 +141,14 @@ public class OpenedRocksDB implements AutoCloseable {
         public synchronized ColumnFamilyHandle get() {
             E.checkState(this.handle.isOwningHandle(),
                          "It seems CF has been closed");
+            assert this.refs.get() >= 1;
             return this.handle;
+        }
+
+        public synchronized ReusedRocksIterator newIterator() {
+            assert this.handle.isOwningHandle();
+            assert this.refs.get() >= 1;
+            return this.iterPool.newIterator();
         }
 
         public synchronized void open() {
@@ -179,12 +186,6 @@ public class OpenedRocksDB implements AutoCloseable {
         public synchronized void destroy() {
             this.close();
             assert this.refs.get() == 0 && !this.handle.isOwningHandle();
-        }
-
-        public synchronized ReusedRocksIterator newIterator() {
-            assert this.handle.isOwningHandle();
-            assert this.refs.get() >= 1;
-            return this.iterPool.newIterator();
         }
     }
 }

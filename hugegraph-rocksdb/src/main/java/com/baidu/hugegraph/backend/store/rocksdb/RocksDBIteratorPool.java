@@ -29,41 +29,70 @@ import org.rocksdb.RocksIterator;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public final class RocksDBIteratorPool implements AutoCloseable {
 
     private static final Logger LOG = Log.logger(RocksDBIteratorPool.class);
 
-    private static final int ITERATOR_POOL_CAPACITY = 1;//CoreOptions.CPUS * 2;
+    private static final int ITERATOR_POOL_CAPACITY = CoreOptions.CPUS * 2;
 
     private final Queue<RocksIterator> pool;
     private final RocksDB rocksdb;
     private final ColumnFamilyHandle cfh;
+    private final String cfName;
 
     public RocksDBIteratorPool(RocksDB rocksdb, ColumnFamilyHandle cfh) {
         this.pool = new ArrayBlockingQueue<>(ITERATOR_POOL_CAPACITY);
         this.rocksdb = rocksdb;
         this.cfh = cfh;
-    }
 
-//    private RocksIterator allocIterator() {
-//        return this.rocksdb.newIterator(this.cfh);
-//    }
-//
-//    private void releaseIterator(RocksIterator iter) {
-//        iter.close();
-//    }
+        String cfName;
+        try {
+            cfName = StringEncoding.decode(this.cfh.getName());
+        } catch (RocksDBException e) {
+            LOG.warn("Can't get column family name", e);
+            cfName = "CF-" + cfh.getID();
+        }
+        this.cfName = cfName;
+    }
 
     public ReusedRocksIterator newIterator() {
         return new ReusedRocksIterator();
     }
 
+    @Override
+    public void close() {
+        LOG.debug("Close IteratorPool with pool size {} ({})",
+                  this.pool.size(), this);
+        for (RocksIterator iter; (iter = this.pool.poll()) != null;) {
+            this.closeIterator(iter);
+        }
+        assert this.pool.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return "IteratorPool-" + this.cfName;
+    }
+
     private RocksIterator allocIterator() {
+        /*
+         * NOTE: Seems there is a bug if share RocksIterator between threads
+         * RocksIterator iter = this.pool.poll();
+         */
         RocksIterator iter = this.pool.poll();
-        if (iter != null && refreshIterator(iter)) {
-            // Must refresh when an iterator is reused
-            return iter;
+
+        if (iter != null) {
+            if (this.refreshIterator(iter)) {
+                // Must refresh when an iterator is reused
+                return iter;
+            } else {
+                // Close it if can't fresh, and create a new one later
+                this.closeIterator(iter);
+            }
         }
         /*
          * Create a new iterator if:
@@ -71,13 +100,12 @@ public final class RocksDBIteratorPool implements AutoCloseable {
          *  - or the iterator obtained from the pool is closed,
          *  - or the iterator can't refresh.
          */
-        iter = this.rocksdb.newIterator(this.cfh);
-        LOG.debug("New iterator: {}", iter);
+        iter = this.createIterator();
         try {
             iter.status();
             return iter;
         } catch (RocksDBException e) {
-            iter.close();
+            this.closeIterator(iter);
             throw new BackendException(e);
         }
     }
@@ -87,29 +115,16 @@ public final class RocksDBIteratorPool implements AutoCloseable {
         boolean added = this.pool.offer(iter);
         if (!added) {
             // Really close iterator if the pool is full
-            LOG.debug("Really close iterator {} since the pool is full", iter);
-            if (iter.isOwningHandle()) {
-                iter.close();
-            }
+            LOG.debug("Really close iterator {} since the pool is full({})",
+                      iter, this.pool.size());
+            this.closeIterator(iter);
         } else {
             // Not sure whether it needs to refresh
-            assert refreshIterator(iter);
+            assert this.refreshIterator(iter);
         }
     }
 
-    @Override
-    public void close() {
-        LOG.debug("Close IteratorPool with size {} ({})",
-                  this.pool.size(), this);
-        for (RocksIterator iter; (iter = this.pool.poll()) != null;) {
-            if (iter.isOwningHandle()) {
-                iter.close();
-            }
-        }
-        assert this.pool.isEmpty();
-    }
-
-    private static boolean refreshIterator(RocksIterator iter) {
+    private boolean refreshIterator(RocksIterator iter) {
         if (iter.isOwningHandle()) {
             try {
                 iter.refresh();
@@ -121,14 +136,32 @@ public final class RocksDBIteratorPool implements AutoCloseable {
         return false;
     }
 
+    private RocksIterator createIterator() {
+        RocksIterator iter = this.rocksdb.newIterator(this.cfh);
+        LOG.debug("Create iterator: {}", iter);
+        return iter;
+    }
+
+    private void closeIterator(RocksIterator iter) {
+        LOG.debug("Really close iterator {}", iter);
+        if (iter.isOwningHandle()) {
+            iter.close();
+        }
+    }
+
     protected final class ReusedRocksIterator {
 
+        private static final boolean EREUSING_ENABLED = false;
         private final RocksIterator iterator;
         private boolean closed;
 
         public ReusedRocksIterator() {
-            this.iterator = allocIterator();
             this.closed = false;
+            if (EREUSING_ENABLED) {
+                this.iterator = allocIterator();
+            } else {
+                this.iterator = createIterator();
+            }
         }
 
         public RocksIterator iterator() {
@@ -141,7 +174,12 @@ public final class RocksDBIteratorPool implements AutoCloseable {
                 return;
             }
             this.closed = true;
-            releaseIterator(this.iterator);
+
+            if (EREUSING_ENABLED) {
+                releaseIterator(this.iterator);
+            } else {
+                closeIterator(this.iterator);
+            }
         }
     }
 }
