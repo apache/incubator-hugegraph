@@ -40,8 +40,10 @@ public class Service {
 
     private String name;
     private ServiceType type;
+    private DeploymentType deploymentType;
     private String description;
     private int count;
+    private int running;
 
     private int cpuLimit;
     private int memoryLimit; // GB
@@ -52,13 +54,18 @@ public class Service {
 
     private Set<String> urls;
 
-    public Service(String name, ServiceType type) {
+    public Service(String name, ServiceType type,
+                   DeploymentType deploymentType) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of service can't be null or empty");
         E.checkArgumentNotNull(type, "The type of service can't be null");
+        E.checkArgumentNotNull(deploymentType,
+                               "The deployment type of service can't be null");
         this.name = name;
         this.type = type;
+        this.deploymentType = deploymentType;
         this.count = DEFAULT_COUNT;
+        this.running = 0;
         this.routeType = DEFAULT_ROUTE_TYPE;
         this.port = DEFAULT_PORT;
         this.cpuLimit = DEFAULT_CPU_LIMIT;
@@ -67,7 +74,8 @@ public class Service {
     }
 
     public Service(String name, String description, ServiceType type,
-                   int count, int cpuLimit, int memoryLimit, int storageLimit,
+                   DeploymentType deploymentType, int count, int running,
+                   int cpuLimit, int memoryLimit, int storageLimit,
                    String routeType, int port, Set<String> urls) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of service can't be null or empty");
@@ -75,7 +83,9 @@ public class Service {
         this.name = name;
         this.description = description;
         this.type = type;
+        this.deploymentType = deploymentType;
         this.count = count;
+        this.running = running;
         this.cpuLimit = cpuLimit;
         this.memoryLimit = memoryLimit;
         this.storageLimit = storageLimit;
@@ -104,6 +114,14 @@ public class Service {
         this.type = type;
     }
 
+    public DeploymentType deploymentType() {
+        return this.deploymentType;
+    }
+
+    public void deploymentType(DeploymentType deploymentType) {
+        this.deploymentType = deploymentType;
+    }
+
     public int count() {
         return this.count;
     }
@@ -112,6 +130,17 @@ public class Service {
         E.checkArgument(count > 0,
                         "The service count must be > 0, but got: %s", count);
         this.count = count;
+    }
+
+    public int running() {
+        return this.running;
+    }
+
+    public void running(int running) {
+        E.checkArgument(running <= this.count,
+                        "The running count must be < count %s, but got: %s",
+                        this.count, running);
+        this.running = running;
     }
 
     public int cpuLimit() {
@@ -179,12 +208,22 @@ public class Service {
         this.urls.add(url);
     }
 
+    public boolean manual() {
+        return this.deploymentType == DeploymentType.MANUAL;
+    }
+
+    public boolean k8s() {
+        return this.deploymentType == DeploymentType.K8S;
+    }
+
     public Map<String, Object> info() {
         Map<String, Object> infos = new LinkedHashMap<>();
         infos.put("name", this.name);
         infos.put("type", this.type);
+        infos.put("deployment_type", this.deploymentType);
         infos.put("description", this.description);
         infos.put("count", this.count);
+        infos.put("running", this.running);
 
         infos.put("cpu_limit", this.cpuLimit);
         infos.put("memory_limit", this.memoryLimit);
@@ -195,6 +234,11 @@ public class Service {
         infos.put("urls", this.urls);
 
         return infos;
+    }
+
+    public enum DeploymentType {
+        MANUAL,
+        K8S,
     }
 
     public enum ServiceType {

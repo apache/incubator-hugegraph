@@ -165,14 +165,11 @@ public class GraphsAPI extends API {
         String action = (String) actionMap.get(GRAPH_ACTION);
         switch (action) {
             case GRAPH_ACTION_CLEAR:
-                boolean clearSchema = (Boolean) actionMap.get(CLEAR_SCHEMA);
-
-
                 HugeGraph g = graph(manager, graphSpace, name);
-                if (!clearSchema) {
-                    g.truncateGraph();
-                } else {
+                if ((Boolean) actionMap.get(CLEAR_SCHEMA)) {
                     g.truncateBackend();
+                } else {
+                    g.truncateGraph();
                 }
                 // truncateBackend() will open tx, so must close here(commit)
                 g.tx().commit();

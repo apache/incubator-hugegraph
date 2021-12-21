@@ -129,6 +129,8 @@ public class ServiceApi extends API {
         public String name;
         @JsonProperty("type")
         public Service.ServiceType serviceType;
+        @JsonProperty("deployment_type")
+        public Service.DeploymentType deploymentType;
         @JsonProperty("description")
         public String description;
         @JsonProperty("count")
@@ -146,6 +148,9 @@ public class ServiceApi extends API {
         @JsonProperty("port")
         public int port;
 
+        @JsonProperty("urls")
+        public Set<String> urls;
+
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgument(this.name != null &&
@@ -154,6 +159,9 @@ public class ServiceApi extends API {
 
             E.checkArgument(this.serviceType != null,
                             "The type of service can't be null");
+
+            E.checkArgument(this.deploymentType != null,
+                            "The deployment type of service can't be null");
 
             E.checkArgument(this.count > 0,
                             "The service count must be > 0, but got: %s",
@@ -169,22 +177,40 @@ public class ServiceApi extends API {
                             "The storage limit must be > 0, but got: %s",
                             this.storageLimit);
 
-            E.checkArgument(this.routeType != null &&
-                            !StringUtils.isEmpty(this.routeType),
-                            "The route type of service can't be null or empty");
-            E.checkArgument(NODE_PORT.equals(this.routeType) ||
-                            CLUSTER_IP.equals(this.routeType) ||
-                            LOAD_BALANCER.equals(this.routeType),
-                            "Invalid route type '%s'", this.routeType);
-            if (isNodePort(this.routeType)) {
-                E.checkArgument(this.port > 0,
-                                "The port must be > 0, but got: %s",
-                                this.port);
+            if (this.deploymentType == Service.DeploymentType.MANUAL) {
+                E.checkArgument(this.urls != null && !this.urls.isEmpty(),
+                                "The urls can't be null or empty when " +
+                                "deployment type is %s",
+                                Service.DeploymentType.MANUAL);
+                E.checkArgument(this.routeType == null,
+                                "Can't set route type of manual service");
+                E.checkArgument(this.port == 0,
+                                "Can't set port of manual service, but got: " +
+                                "%s", this.port);
+            } else {
+                E.checkArgument(this.urls == null || this.urls.isEmpty(),
+                                "The urls must be null or empty when " +
+                                "deployment type is %s",
+                                Service.DeploymentType.MANUAL);
+                E.checkArgument(this.routeType != null &&
+                                !StringUtils.isEmpty(this.routeType),
+                                "The route type of service can't be null or " +
+                                "empty");
+                E.checkArgument(NODE_PORT.equals(this.routeType) ||
+                                CLUSTER_IP.equals(this.routeType) ||
+                                LOAD_BALANCER.equals(this.routeType),
+                                "Invalid route type '%s'", this.routeType);
+                if (isNodePort(this.routeType)) {
+                    E.checkArgument(this.port > 0,
+                                    "The port must be > 0, but got: %s",
+                                    this.port);
+                }
             }
         }
 
         public Service toService() {
-            Service service = new Service(this.name, this.serviceType);
+            Service service = new Service(this.name, this.serviceType,
+                                          this.deploymentType);
             service.description(this.description);
             service.count(this.count);
 
@@ -197,16 +223,22 @@ public class ServiceApi extends API {
                 service.port(this.port);
             }
 
+            if (this.deploymentType == Service.DeploymentType.MANUAL) {
+                service.urls(this.urls);
+            }
+
             return service;
         }
 
         public String toString() {
             return String.format("JsonService{name=%s, type=%s, " +
-                                 "description=%s, count=%s, cpuLimit=%s, " +
-                                 "memoryLimit=%s, storageLimit=%s, port=%s}",
-                                 this.name, this.serviceType, this.description,
+                                 "deploymentType=%s, description=%s, " +
+                                 "count=%s, cpuLimit=%s, memoryLimit=%s, " +
+                                 "storageLimit=%s, port=%s, urls=%s}",
+                                 this.name, this.serviceType,
+                                 this.deploymentType, this.description,
                                  this.count, this.cpuLimit, this.memoryLimit,
-                                 this.storageLimit, this.port);
+                                 this.storageLimit, this.port, this.urls);
         }
 
         public static boolean isNodePort(String routeType) {

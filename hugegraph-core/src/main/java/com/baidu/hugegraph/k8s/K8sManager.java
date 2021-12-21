@@ -77,4 +77,8 @@ public class K8sManager {
     public void stopService(GraphSpace graphSpace, Service service) {
         this.k8sDriver.stopOltpService(graphSpace, service);
     }
+
+    public int podsRunning(GraphSpace graphSpace, Service service) {
+        return this.k8sDriver.podsRunning(graphSpace, service);
+    }
 }

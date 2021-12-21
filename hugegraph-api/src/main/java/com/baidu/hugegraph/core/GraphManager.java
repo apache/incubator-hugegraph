@@ -25,7 +25,6 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,17 +33,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.baidu.hugegraph.api.job.GremlinAPI;
-import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.job.GremlinJob;
-import com.baidu.hugegraph.job.JobBuilder;
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.SchemaTemplate;
-import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
@@ -512,8 +505,10 @@ public final class GraphManager {
 
         lock = this.metaManager.lock(this.cluster, graphSpace, name);
         try {
-            Set<String> urls = this.k8sManager.startService(gs, service);
-            service.urls(urls);
+            if (service.k8s()) {
+                Set<String> urls = this.k8sManager.startService(gs, service);
+                service.urls(urls);
+            }
             this.metaManager.addServiceConfig(graphSpace, service);
             this.metaManager.notifyServiceAdd(graphSpace, name);
             this.services.put(serviceName(graphSpace, name), service);
@@ -721,6 +716,15 @@ public final class GraphManager {
         Service service = this.services.get(key);
         if (service == null) {
             service = this.metaManager.service(graphSpace, name);
+        }
+        if (service.manual()) {
+            return service;
+        }
+        GraphSpace gs = this.graphSpace(graphSpace);
+        int running = this.k8sManager.podsRunning(gs, service);
+        if (service.running() != running) {
+            service.running(running);
+            this.metaManager.updateServiceConfig(graphSpace, service);
         }
         return service;
     }

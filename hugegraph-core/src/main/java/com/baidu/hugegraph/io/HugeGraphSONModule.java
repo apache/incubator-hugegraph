@@ -398,8 +398,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             String name = null;
             String description = null;
             String type = null;
+            String deploymentType = null;
 
             Number count = 0;
+            Number running = 0;
 
             Number cpuLimit = 0;
             Number memoryLimit = 0;
@@ -419,8 +421,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     description = jsonParser.getText();
                 } else if ("type".equals(fieldName)) {
                     type = jsonParser.getText();
+                } else if ("deployment_type".equals(fieldName)) {
+                    deploymentType = jsonParser.getText();
                 } else if ("count".equals(fieldName)) {
                     count = jsonParser.getNumberValue();
+                } else if ("running".equals(fieldName)) {
+                    running = jsonParser.getNumberValue();
                 } else if ("cpu_limit".equals(fieldName)) {
                     cpuLimit = jsonParser.getNumberValue();
                 } else if ("memory_limit".equals(fieldName)) {
@@ -444,7 +450,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             return new Service(name, description,
                                Service.ServiceType.valueOf(type),
+                               Service.DeploymentType.valueOf(deploymentType),
                                count.intValue(),
+                               running.intValue(),
                                cpuLimit.intValue(),
                                memoryLimit.intValue(),
                                storageLimit.intValue(),
