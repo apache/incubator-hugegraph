@@ -433,7 +433,7 @@ public interface IntMap {
 
         private static final int segmentSize(long capacity, int segments) {
             long eachSize = capacity / segments;
-            eachSize = IntIterator.size2PowerOf2Size((int) eachSize);
+            eachSize = IntIterator.sizeToPowerOf2Size((int) eachSize);
             /*
              * Supply total size
              * like capacity=20 and segments=19, then eachSize=1
@@ -545,7 +545,7 @@ public interface IntMap {
         private final int segmentMask;
 
         public IntMapByEcSegment(int segments) {
-            segments = IntIterator.size2PowerOf2Size(segments);
+            segments = IntIterator.sizeToPowerOf2Size(segments);
             this.segmentMask = segments - 1;
             this.maps = new MutableIntIntMap[segments];
             for (int i = 0; i < segments; i++) {
@@ -607,7 +607,7 @@ public interface IntMap {
         public Iterator<Integer> keys() {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
             for (MutableIntIntMap map : this.maps) {
-                iters.extend(new IntIterator(map.keySet().intIterator()));
+                iters.extend(IntIterator.wrap(map.keySet().intIterator()));
             }
             return iters;
         }
@@ -616,7 +616,7 @@ public interface IntMap {
         public Iterator<Integer> values() {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
             for (MutableIntIntMap map : this.maps) {
-                iters.extend(new IntIterator(map.values().intIterator()));
+                iters.extend(IntIterator.wrap(map.values().intIterator()));
             }
             return iters;
         }

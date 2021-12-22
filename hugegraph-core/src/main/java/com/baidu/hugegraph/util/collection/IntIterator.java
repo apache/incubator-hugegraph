@@ -21,42 +21,73 @@ package com.baidu.hugegraph.util.collection;
 
 import java.util.Iterator;
 
-public class IntIterator implements Iterator<Integer> {
+public interface IntIterator extends Iterator<Integer> {
 
-    private final static int[] EMPTY = new int[0];
-    private final org.eclipse.collections.api.iterator.IntIterator iterator;
-    private final int[] array;
-    private int index;
+    public final static int[] EMPTY = new int[0];
 
-    public IntIterator(int[] array) {
-        this.iterator = null;
-        this.array = array;
-        this.index = 0;
+    public int nextInt();
+
+    public static IntIterator wrap(
+                  org.eclipse.collections.api.iterator.IntIterator iter) {
+        return new EcIntIterator(iter);
     }
 
-    public IntIterator(org.eclipse.collections.api.iterator.IntIterator iter) {
-        this.iterator = iter;
-        this.array = EMPTY;
-        this.index = 0;
+    public static IntIterator wrap(int[] values) {
+        return new ArrayIntIterator(values);
     }
 
-    @Override
-    public Integer next() {
-        if (this.iterator != null) {
+    public static final class ArrayIntIterator implements IntIterator {
+
+        private final int[] array;
+        private int index;
+
+        public ArrayIntIterator(int[] array) {
+            this.array = array;
+            this.index = 0;
+        }
+
+        @Override
+        public int nextInt() {
+            return this.array[this.index++];
+        }
+
+        @Override
+        public Integer next() {
+            return this.nextInt();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.index < this.array.length;
+        }
+    }
+
+    public static final class EcIntIterator implements IntIterator {
+
+        private final org.eclipse.collections.api.iterator.IntIterator iterator;
+
+        public EcIntIterator(org.eclipse.collections.api.iterator.IntIterator
+                             iterator) {
+            this.iterator = iterator;
+        }
+
+        @Override
+        public int nextInt() {
             return this.iterator.next();
         }
-        return this.array[this.index++];
-    }
 
-    @Override
-    public boolean hasNext() {
-        if (this.iterator != null) {
+        @Override
+        public Integer next() {
+            return this.nextInt();
+        }
+
+        @Override
+        public boolean hasNext() {
             return this.iterator.hasNext();
         }
-        return this.index < this.array.length;
     }
 
-    public static int size2PowerOf2Size(int size) {
+    public static int sizeToPowerOf2Size(int size) {
         if (size < 1) {
             size = 1;
         }

@@ -32,7 +32,7 @@ public class Int2ArrayRecord implements Record {
 
     @Override
     public IntIterator keys() {
-        return new IntIterator(this.layer.keyIterator());
+        return IntIterator.wrap(this.layer.keyIterator());
     }
 
     @Override
@@ -42,7 +42,7 @@ public class Int2ArrayRecord implements Record {
 
     @Override
     public IntIterator get(int node) {
-        return new IntIterator(this.layer.getValues(node));
+        return IntIterator.wrap(this.layer.getValues(node));
     }
 
     @Override

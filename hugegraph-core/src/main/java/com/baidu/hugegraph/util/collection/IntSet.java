@@ -364,7 +364,7 @@ public interface IntSet {
         private final int segmentMask;
 
         public IntSetByEcSegment(int segments) {
-            segments = IntIterator.size2PowerOf2Size(segments);
+            segments = IntIterator.sizeToPowerOf2Size(segments);
             this.segmentMask = segments - 1;
             this.sets = new MutableIntCollection[segments];
             for (int i = 0; i < segments; i++) {

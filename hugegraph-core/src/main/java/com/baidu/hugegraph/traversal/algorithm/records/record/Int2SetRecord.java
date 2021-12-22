@@ -34,7 +34,7 @@ public class Int2SetRecord implements Record {
 
     @Override
     public IntIterator keys() {
-        return new IntIterator(this.layer.keySet().intIterator());
+        return IntIterator.wrap(this.layer.keySet().intIterator());
     }
 
     @Override
@@ -44,7 +44,7 @@ public class Int2SetRecord implements Record {
 
     @Override
     public IntIterator get(int node) {
-        return new IntIterator(this.layer.get(node).intIterator());
+        return IntIterator.wrap(this.layer.get(node).intIterator());
     }
 
     @Override

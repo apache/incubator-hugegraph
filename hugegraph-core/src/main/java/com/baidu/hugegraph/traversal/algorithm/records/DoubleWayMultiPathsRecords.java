@@ -104,7 +104,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
 
         IntIterator parents = parentRecord.get(this.currentKey);
         while (parents.hasNext()) {
-            int parent = parents.next();
+            int parent = parents.nextInt();
             if (parent == id) {
                 // Find backtrace path, stop
                 return true;
@@ -169,7 +169,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         Record layer = all.elementAt(layerIndex);
         IntIterator iterator = layer.get(id);
         while (iterator.hasNext()) {
-            int parent = iterator.next();
+            int parent = iterator.nextInt();
             PathSet paths = this.linkPathLayer(all, parent, layerIndex - 1);
             paths.append(current);
             results.addAll(paths);
