@@ -1,4 +1,4 @@
-name: release maven package
+name: release package
 
 on:
   release:
@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    env:
+      TAG_NAME: ${{ github.ref_name }}
     steps:
       - name: Install JDK 8
         uses: actions/setup-java@v2
@@ -25,6 +27,21 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
+
+      - name: Package
+        run: |
+          mvn clean package -DskipTests
+          mv "$(find hugegraph-*.tar.gz | head -1)" hugegraph-${TAG_NAME/#v/}.tar.gz
+
+      - uses: xresloader/upload-to-github-release@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: "hugegraph-*.tar.gz"
+          tag_name: ${{ github.ref_name }}
+          overwrite: true
+          verbose: true
+          update_latest_release: true
 
       - name: Release Maven package
         uses: samuelmeuli/action-maven-publish@v1
