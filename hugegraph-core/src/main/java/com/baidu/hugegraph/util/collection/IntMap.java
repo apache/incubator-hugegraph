@@ -48,95 +48,10 @@ public interface IntMap {
     public void clear();
     public int size();
 
-    public default boolean concurrent() {
-        return true;
-    }
+    public boolean concurrent();
 
     public static final int NULL = Integer.MIN_VALUE;
     public static final int CPUS = Runtime.getRuntime().availableProcessors();
-
-    public static final class IntMapByEcSegment implements IntMap {
-
-        private final MutableIntIntMap[] maps;
-        private final int segmentMask;
-
-        public IntMapByEcSegment(int segments) {
-            segments = IntIterator.size2PowerOf2Size(segments);
-            this.segmentMask = segments - 1;
-            this.maps = new MutableIntIntMap[segments];
-            for (int i = 0; i < segments; i++) {
-                /*
-                 * NOTE: asSynchronized() is:
-                 * - about slower 3x for single thread;
-                 * - about slower 5x for 4 threads, 4x operations with 20x cost;
-                 * - about faster 2x than global-lock for 4 threads;
-                 */
-                this.maps[i] = new IntIntHashMap().asSynchronized();
-            }
-        }
-
-        private MutableIntIntMap map(int key) {
-            // NOTE '%' is slower 20% ~ 50% than '&': key % this.maps.length;
-            int index = key & this.segmentMask;
-            return this.maps[index];
-        }
-
-        @Override
-        public boolean put(int key, int value) {
-            map(key).put(key, value);
-            return true;
-        }
-
-        @Override
-        public int get(int key) {
-            return map(key).get(key);
-        }
-
-        @Override
-        public boolean containsKey(int key) {
-            return map(key).containsKey(key);
-        }
-
-        @Override
-        public boolean remove(int key) {
-            map(key).remove(key);
-            return true;
-        }
-
-        @Override
-        public void clear() {
-            for (MutableIntIntMap map : this.maps) {
-                map.clear();
-            }
-        }
-
-        @Override
-        public int size() {
-            int size = 0;
-            for (MutableIntIntMap map : this.maps) {
-                size += map.size();
-            }
-            return size;
-        }
-
-        @Override
-        public Iterator<Integer> keys() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
-            for (MutableIntIntMap map : this.maps) {
-                iters.extend(new IntIterator(map.keySet().intIterator()));
-            }
-            return iters;
-        }
-
-        @Override
-        public Iterator<Integer> values() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
-            for (MutableIntIntMap map : this.maps) {
-                iters.extend(new IntIterator(map.values().intIterator()));
-            }
-            return iters;
-        }
-    }
 
     /**
      * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:
@@ -267,6 +182,11 @@ public interface IntMap {
                 }
             }
             return iters;
+        }
+
+        @Override
+        public boolean concurrent() {
+            return true;
         }
 
         private final IntMap map(int key) {
@@ -494,6 +414,11 @@ public interface IntMap {
             return new ValueIterator();
         }
 
+        @Override
+        public boolean concurrent() {
+            return true;
+        }
+
         private final int offset(int key) {
             if (key >= this.capacity || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
@@ -612,6 +537,93 @@ public interface IntMap {
                 this.current = NULL;
                 return result;
             }
+        }
+    }
+    public static final class IntMapByEcSegment implements IntMap {
+
+        private final MutableIntIntMap[] maps;
+        private final int segmentMask;
+
+        public IntMapByEcSegment(int segments) {
+            segments = IntIterator.size2PowerOf2Size(segments);
+            this.segmentMask = segments - 1;
+            this.maps = new MutableIntIntMap[segments];
+            for (int i = 0; i < segments; i++) {
+                /*
+                 * NOTE: asSynchronized() is:
+                 * - about slower 3x for single thread;
+                 * - about slower 5x for 4 threads, 4x operations with 20x cost;
+                 * - about faster 2x than global-lock for 4 threads;
+                 */
+                this.maps[i] = new IntIntHashMap().asSynchronized();
+            }
+        }
+
+        private MutableIntIntMap map(int key) {
+            // NOTE '%' is slower 20% ~ 50% than '&': key % this.maps.length;
+            int index = key & this.segmentMask;
+            return this.maps[index];
+        }
+
+        @Override
+        public boolean put(int key, int value) {
+            map(key).put(key, value);
+            return true;
+        }
+
+        @Override
+        public int get(int key) {
+            return map(key).get(key);
+        }
+
+        @Override
+        public boolean containsKey(int key) {
+            return map(key).containsKey(key);
+        }
+
+        @Override
+        public boolean remove(int key) {
+            map(key).remove(key);
+            return true;
+        }
+
+        @Override
+        public void clear() {
+            for (MutableIntIntMap map : this.maps) {
+                map.clear();
+            }
+        }
+
+        @Override
+        public int size() {
+            int size = 0;
+            for (MutableIntIntMap map : this.maps) {
+                size += map.size();
+            }
+            return size;
+        }
+
+        @Override
+        public Iterator<Integer> keys() {
+            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+            for (MutableIntIntMap map : this.maps) {
+                iters.extend(new IntIterator(map.keySet().intIterator()));
+            }
+            return iters;
+        }
+
+        @Override
+        public Iterator<Integer> values() {
+            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+            for (MutableIntIntMap map : this.maps) {
+                iters.extend(new IntIterator(map.values().intIterator()));
+            }
+            return iters;
+        }
+
+        @Override
+        public boolean concurrent() {
+            return false;
         }
     }
 }

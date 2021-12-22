@@ -38,68 +38,7 @@ public interface IntSet {
     public void clear();
     public int size();
 
-    public default boolean concurrent() {
-        return true;
-    }
-
-    public static final class IntSetByEcSegment implements IntSet {
-
-        private final MutableIntCollection[] sets;
-        private final int segmentMask;
-
-        public IntSetByEcSegment(int segments) {
-            segments = IntIterator.size2PowerOf2Size(segments);
-            this.segmentMask = segments - 1;
-            this.sets = new MutableIntCollection[segments];
-            for (int i = 0; i < segments; i++) {
-                /*
-                 * NOTE: asSynchronized() is:
-                 * - about slower 2x for single thread;
-                 * - about slower 4x for 4 threads, 4x operations with 16x cost;
-                 * - about faster 20x than global-lock for 4 threads;
-                 */
-                this.sets[i] = new IntHashSet().asSynchronized();
-//                this.sets[i] = new IntHashSet();
-            }
-        }
-
-        private final MutableIntCollection set(int key) {
-            // NOTE '%' is slower 20% ~ 50% than '&': key % this.sets.length;
-            int index = key & this.segmentMask;
-            return this.sets[index];
-        }
-
-        @Override
-        public boolean add(int key) {
-            return set(key).add(key);
-        }
-
-        @Override
-        public boolean contains(int key) {
-            return set(key).contains(key);
-        }
-
-        @Override
-        public boolean remove(int key) {
-            return set(key).remove(key);
-        }
-
-        @Override
-        public void clear() {
-            for (MutableIntCollection set : this.sets) {
-                set.clear();
-            }
-        }
-
-        @Override
-        public int size() {
-            int size = 0;
-            for (MutableIntCollection set : this.sets) {
-                size += set.size();
-            }
-            return size;
-        }
-    }
+    public boolean concurrent();
 
     /**
      * NOTE: IntSetByFixedAddr is:
@@ -220,6 +159,11 @@ public interface IntSet {
         public int size() {
             return this.size.get();
 //            return (int) this.size.sum();
+        }
+
+        @Override
+        public boolean concurrent() {
+            return true;
         }
 
         private final long offset(long key) {
@@ -348,6 +292,11 @@ public interface IntSet {
 //            return (int) this.size.sum();
         }
 
+        @Override
+        public boolean concurrent() {
+            return true;
+        }
+
         public int nextKey(int key) {
             if (key < 0) {
                 key = 0;
@@ -409,6 +358,70 @@ public interface IntSet {
         }
     }
 
+    public static final class IntSetByEcSegment implements IntSet {
+
+        private final MutableIntCollection[] sets;
+        private final int segmentMask;
+
+        public IntSetByEcSegment(int segments) {
+            segments = IntIterator.size2PowerOf2Size(segments);
+            this.segmentMask = segments - 1;
+            this.sets = new MutableIntCollection[segments];
+            for (int i = 0; i < segments; i++) {
+                /*
+                 * NOTE: asSynchronized() is:
+                 * - about slower 2x for single thread;
+                 * - about slower 4x for 4 threads, 4x operations with 16x cost;
+                 * - about faster 20x than global-lock for 4 threads;
+                 */
+                this.sets[i] = new IntHashSet().asSynchronized();
+//                this.sets[i] = new IntHashSet();
+            }
+        }
+
+        private final MutableIntCollection set(int key) {
+            // NOTE '%' is slower 20% ~ 50% than '&': key % this.sets.length;
+            int index = key & this.segmentMask;
+            return this.sets[index];
+        }
+
+        @Override
+        public boolean add(int key) {
+            return set(key).add(key);
+        }
+
+        @Override
+        public boolean contains(int key) {
+            return set(key).contains(key);
+        }
+
+        @Override
+        public boolean remove(int key) {
+            return set(key).remove(key);
+        }
+
+        @Override
+        public void clear() {
+            for (MutableIntCollection set : this.sets) {
+                set.clear();
+            }
+        }
+
+        @Override
+        public int size() {
+            int size = 0;
+            for (MutableIntCollection set : this.sets) {
+                size += set.size();
+            }
+            return size;
+        }
+
+        @Override
+        public boolean concurrent() {
+            return false;
+        }
+    }
+
     public static final class IntSetByFixedAddrByHppc implements IntSet {
 
         private final com.carrotsearch.hppc.BitSet bits;
@@ -442,6 +455,11 @@ public interface IntSet {
         @Override
         public int size() {
             return (int) this.bits.size();
+        }
+
+        @Override
+        public boolean concurrent() {
+            return false;
         }
     }
 }
