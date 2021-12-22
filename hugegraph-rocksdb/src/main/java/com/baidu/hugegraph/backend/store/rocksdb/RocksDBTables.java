@@ -85,7 +85,21 @@ public class RocksDBTables {
         @Override
         public void delete(Session session, BackendEntry entry) {
             assert entry.columns().isEmpty();
-            session.deletePrefix(this.table(), entry.id().asBytes());
+            /*
+             * Use `scanPrefix + delete` instead of `deletePrefix` due to
+             * the bug that reused iterator can't see deleteRange: #9255
+             * `deletePrefix`: session.deletePrefix(prefix)
+             * `scanPrefix + delete`: session.delete(scanPrefix(prefix))
+             */
+            byte[] prefix = entry.id().asBytes();
+            try (BackendColumnIterator results = session.scan(this.table(),
+                                                              prefix)) {
+                while (results.hasNext()) {
+                    byte[] column = results.next().name;
+                    session.delete(this.table(), column);
+                }
+                session.commit();
+            }
         }
     }
 

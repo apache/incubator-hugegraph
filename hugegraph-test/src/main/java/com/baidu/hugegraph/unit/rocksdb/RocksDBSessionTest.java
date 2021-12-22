@@ -164,6 +164,62 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
+    public void testScanByAll() throws RocksDBException {
+        put("person:1gname", "James");
+        put("person:2gname", "Lisa");
+
+        Map<String, String> results = new HashMap<>();
+        Session session = this.rocks.session();
+        Iterator<BackendColumn> iter = session.scan(TABLE);
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
+            results.put(s(col.name), s(col.value));
+        }
+        Assert.assertEquals(2, results.size());
+
+        // add some keys then scan again
+        put("person:3gname", "Tom");
+        put("person:4gname", "Mike");
+
+        results = new HashMap<>();
+        iter = session.scan(TABLE);
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
+            results.put(s(col.name), s(col.value));
+        }
+        Assert.assertEquals(4, results.size());
+
+        // delete some keys then scan again
+        this.rocks.session().delete(TABLE, b("person:2gname"));
+        this.rocks.session().commit();
+        runWithThreads(1, () ->{
+            this.rocks.session().delete(TABLE, b("person:3gname"));
+            this.rocks.session().commit();
+            this.rocks.close();
+        });
+
+        results = new HashMap<>();
+        iter = session.scan(TABLE);
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
+            results.put(s(col.name), s(col.value));
+        }
+        Assert.assertEquals(2, results.size());
+
+        // delete some keys by prefix then scan again
+        this.rocks.session().deletePrefix(TABLE, b("person:1"));
+        this.rocks.session().commit();
+
+        results = new HashMap<>();
+        iter = session.scan(TABLE);
+        while (iter.hasNext()) {
+            BackendColumn col = iter.next();
+            results.put(s(col.name), s(col.value));
+        }
+        Assert.assertEquals(1, results.size());
+    }
+
+    @Test
     public void testScanByPrefix() throws RocksDBException {
         put("person:1gname", "James");
         put("person:1gage", "19");
