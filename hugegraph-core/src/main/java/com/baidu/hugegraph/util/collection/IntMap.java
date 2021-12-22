@@ -55,7 +55,7 @@ public interface IntMap {
     public static final int NULL = Integer.MIN_VALUE;
     public static final int CPUS = Runtime.getRuntime().availableProcessors();
 
-    public static class IntMapByEcSegment implements IntMap {
+    public static final class IntMapByEcSegment implements IntMap {
 
         private final MutableIntIntMap[] maps;
         private final int segmentMask;
@@ -144,7 +144,7 @@ public interface IntMap {
      * - faster 10x than ec IntIntHashMap-segment-lock for 4 threads;
      * - faster 20x than ec IntIntHashMap-global-lock for 4 threads;
      */
-    public static class IntMapBySegments implements IntMap {
+    public static final class IntMapBySegments implements IntMap {
 
         private final IntMap[] maps;
         private final long capacity;
@@ -269,7 +269,7 @@ public interface IntMap {
             return iters;
         }
 
-        private IntMap map(int key) {
+        private final IntMap map(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
                 E.checkArgument(false,
@@ -310,7 +310,7 @@ public interface IntMap {
      * - faster 8x than ec IntIntHashMap for 4 threads, 4x operations
      *   with 0.5x cost;
      */
-    public static class IntMapByFixedAddr implements IntMap {
+    public static final class IntMapByFixedAddr implements IntMap {
 
         private final int[] values;
         private final int capacity;
@@ -320,7 +320,7 @@ public interface IntMap {
         private final int indexBlocksNum;
         private final int indexBlockSize;
         private final int indexBlockSizeShift;
-        private final IntSet.IntSetByFixedAddrUnsigned indexBlocksSet;
+        private final IntSet.IntSetByFixedAddr4Unsigned indexBlocksSet;
 
         private static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
         @SuppressWarnings("static-access")
@@ -351,7 +351,7 @@ public interface IntMap {
                                   capacity, this.indexBlocksNum);
             this.indexBlockSizeShift = Integer.numberOfTrailingZeros(
                                        this.indexBlockSize);
-            this.indexBlocksSet = new IntSet.IntSetByFixedAddrUnsigned(
+            this.indexBlocksSet = new IntSet.IntSetByFixedAddr4Unsigned(
                                   this.indexBlocksNum);
 
             this.clear();
@@ -494,7 +494,7 @@ public interface IntMap {
             return new ValueIterator();
         }
 
-        private int offset(int key) {
+        private final int offset(int key) {
             if (key >= this.capacity || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.capacity);
@@ -506,7 +506,7 @@ public interface IntMap {
             return offset;
         }
 
-        private static int segmentSize(long capacity, int segments) {
+        private static final int segmentSize(long capacity, int segments) {
             long eachSize = capacity / segments;
             eachSize = IntIterator.size2PowerOf2Size((int) eachSize);
             /*
@@ -520,7 +520,7 @@ public interface IntMap {
             return (int) eachSize;
         }
 
-        private class KeyIterator implements Iterator<Integer> {
+        private final class KeyIterator implements Iterator<Integer> {
 
             private final int INVALID = -1;
 
@@ -568,7 +568,7 @@ public interface IntMap {
             }
         }
 
-        private class ValueIterator implements Iterator<Integer> {
+        private final class ValueIterator implements Iterator<Integer> {
 
             private int indexOfBlock = 0;
             private int indexInBlock = 0;

@@ -42,7 +42,7 @@ public interface IntSet {
         return true;
     }
 
-    public static class IntSetByEcSegment implements IntSet {
+    public static final class IntSetByEcSegment implements IntSet {
 
         private final MutableIntCollection[] sets;
         private final int segmentMask;
@@ -63,7 +63,7 @@ public interface IntSet {
             }
         }
 
-        private MutableIntCollection set(int key) {
+        private final MutableIntCollection set(int key) {
             // NOTE '%' is slower 20% ~ 50% than '&': key % this.sets.length;
             int index = key & this.segmentMask;
             return this.sets[index];
@@ -109,7 +109,7 @@ public interface IntSet {
      * - faster 20x than ec IntIntHashSet-segment-lock for 4 threads;
      * - faster 60x than ec IntIntHashSet-global-lock for 4 threads;
      */
-    public static class IntSetByFixedAddr implements IntSet {
+    public static final class IntSetByFixedAddr implements IntSet {
 
         private final long[] bits;
         private final long numBits;
@@ -222,7 +222,7 @@ public interface IntSet {
 //            return (int) this.size.sum();
         }
 
-        private long offset(long key) {
+        private final long offset(long key) {
             long ukey = key + this.numBitsUnsigned;
             if (ukey >= this.numBits || ukey < 0L) {
                 E.checkArgument(false, "The key %s is out of bound %s",
@@ -235,12 +235,12 @@ public interface IntSet {
             return offset;
         }
 
-        private static int bits2words(long numBits) {
+        private static final int bits2words(long numBits) {
             return (int) ((numBits - 1) >>> 6) + 1;
         }
     }
 
-    public static class IntSetByFixedAddrUnsigned implements IntSet {
+    public static final class IntSetByFixedAddr4Unsigned implements IntSet {
 
         private final long[] bits;
         private final int numBits;
@@ -255,7 +255,7 @@ public interface IntSet {
                                               UNSAFE.ARRAY_LONG_INDEX_SCALE);
         private static final int MOD64 = 0x3f;
 
-        public IntSetByFixedAddrUnsigned(int numBits) {
+        public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;
             this.bits = new long[bits2words(numBits)];;
 //            this.size = new LongAdder();
@@ -392,7 +392,7 @@ public interface IntSet {
             return key;
         }
 
-        private int offset(int key) {
+        private final int offset(int key) {
             if (key >= this.numBits || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.numBits);
@@ -404,16 +404,16 @@ public interface IntSet {
             return offset;
         }
 
-        private static int bits2words(long numBits) {
+        private static final int bits2words(long numBits) {
             return (int) ((numBits - 1) >>> 6) + 1;
         }
     }
 
-    public class IntSetByFixedAddr2 implements IntSet {
+    public static final class IntSetByFixedAddrByHppc implements IntSet {
 
         private final com.carrotsearch.hppc.BitSet bits;
 
-        public IntSetByFixedAddr2(int numBits) {
+        public IntSetByFixedAddrByHppc(int numBits) {
             this.bits = new com.carrotsearch.hppc.BitSet(numBits);
         }
 
