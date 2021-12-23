@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import java.util.Iterator;
-
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.baidu.hugegraph.util.collection.IntIterator;
@@ -35,7 +33,7 @@ public class Int2IntRecord implements Record {
     }
 
     @Override
-    public Iterator<Integer> keys() {
+    public IntIterator keys() {
         return this.layer.keys();
     }
 

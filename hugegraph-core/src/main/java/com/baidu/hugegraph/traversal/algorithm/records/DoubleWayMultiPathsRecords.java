@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm.records;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 
@@ -40,7 +39,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
     private final Stack<Record> sourceRecords;
     private final Stack<Record> targetRecords;
 
-    private Iterator<Integer> parentRecordKeys;
+    private IntIterator parentRecordKeys;
     private int currentKey;
     private boolean movingForward;
     private long accessed;
@@ -104,7 +103,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
 
         IntIterator parents = parentRecord.get(this.currentKey);
         while (parents.hasNext()) {
-            int parent = parents.nextInt();
+            int parent = parents.next();
             if (parent == id) {
                 // Find backtrace path, stop
                 return true;
@@ -169,7 +168,7 @@ public abstract class DoubleWayMultiPathsRecords extends AbstractRecords {
         Record layer = all.elementAt(layerIndex);
         IntIterator iterator = layer.get(id);
         while (iterator.hasNext()) {
-            int parent = iterator.nextInt();
+            int parent = iterator.next();
             PathSet paths = this.linkPathLayer(all, parent, layerIndex - 1);
             paths.append(current);
             results.addAll(paths);

@@ -19,17 +19,18 @@
 
 package com.baidu.hugegraph.unit.util;
 
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.BiFunction;
 
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.util.collection.IntIterator;
 import com.baidu.hugegraph.util.collection.IntMap;
 
 public class IntMapTest extends BaseUnitTest {
@@ -126,7 +127,7 @@ public class IntMapTest extends BaseUnitTest {
                 Assert.assertEquals(false, map.containsKey(u - 1));
             }
 
-            Iterator<Integer> values = map.values();
+            IntIterator values = map.values();
             for (int i = -capacity; i < 0; i++) {
                 Assert.assertTrue(values.hasNext());
                 Assert.assertEquals(i, values.next());
@@ -136,7 +137,7 @@ public class IntMapTest extends BaseUnitTest {
                 Assert.assertEquals(i * i, values.next());
             }
 
-            Iterator<Integer> keys = map.keys();
+            IntIterator keys = map.keys();
             for (int i = -capacity; i < 0; i++) {
                 Assert.assertTrue(keys.hasNext());
                 Assert.assertEquals(i, keys.next());
@@ -238,8 +239,10 @@ public class IntMapTest extends BaseUnitTest {
         IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
+        Assert.assertEquals(1, IteratorUtils.count(map.keys().asIterator()));
+
         for (int i = 0; i < 10000; i++) {
-            Iterator<Integer> iter = map.keys();
+            IntIterator iter = map.keys();
             Assert.assertTrue(iter.hasNext());
             Assert.assertEquals(Integer.MAX_VALUE - 1, iter.next());
             Assert.assertFalse(iter.hasNext());
@@ -262,8 +265,11 @@ public class IntMapTest extends BaseUnitTest {
             map.put(segmentSize * k, k);
         }
 
+        Assert.assertEquals(map.size(),
+                            IteratorUtils.count(map.keys().asIterator()));
+
         for (int i = 0; i < 10; i++) {
-            Iterator<Integer> iter = map.keys();
+            IntIterator iter = map.keys();
             for (int k = 0; k < segments; k += step) {
                 Assert.assertTrue(iter.hasNext());
                 Assert.assertEquals(segmentSize * k, iter.next());
@@ -283,8 +289,10 @@ public class IntMapTest extends BaseUnitTest {
         IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
+        Assert.assertEquals(1, IteratorUtils.count(map.values().asIterator()));
+
         for (int i = 0; i < 10; i++) {
-            Iterator<Integer> iter = map.values();
+            IntIterator iter = map.values();
             Assert.assertTrue(iter.hasNext());
             Assert.assertEquals(1, iter.next());
             Assert.assertFalse(iter.hasNext());
@@ -307,8 +315,11 @@ public class IntMapTest extends BaseUnitTest {
             map.put(segmentSize * k, k);
         }
 
+        Assert.assertEquals(map.size(),
+                            IteratorUtils.count(map.values().asIterator()));
+
         for (int i = 0; i < 10; i++) {
-            Iterator<Integer> iter = map.values();
+            IntIterator iter = map.values();
             for (int k = 0; k < segments; k += step) {
                 Assert.assertTrue(iter.hasNext());
                 Assert.assertEquals(k, iter.next());

@@ -19,13 +19,11 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import java.util.Iterator;
-
 import com.baidu.hugegraph.util.collection.IntIterator;
 
 public interface Record {
 
-    public Iterator<Integer> keys();
+    public IntIterator keys();
 
     public boolean containsKey(int node);
 

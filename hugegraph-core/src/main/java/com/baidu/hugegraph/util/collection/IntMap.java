@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.util.collection;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -28,9 +27,9 @@ import java.util.function.Function;
 import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
 import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
-import com.baidu.hugegraph.iterator.ExtendableIterator;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.collection.IntIterator.IntIterators;
+import com.baidu.hugegraph.util.collection.IntIterator.MapperInt2IntIterator;
 
 import sun.misc.Unsafe;
 
@@ -41,8 +40,8 @@ public interface IntMap {
     public boolean remove(int key);
     public boolean containsKey(int key);
 
-    public Iterator<Integer> keys();
-    public Iterator<Integer> values();
+    public IntIterator keys();
+    public IntIterator values();
 
     public void clear();
     public int size();
@@ -163,15 +162,15 @@ public interface IntMap {
         }
 
         @Override
-        public Iterator<Integer> keys() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+        public IntIterator keys() {
+            IntIterators iters = new IntIterators(this.maps.length);
             for (int i = 0; i < this.maps.length; i++) {
                 IntMap map = this.segmentAt(i);
                 if (map == null || map.size() == 0) {
                     continue;
                 }
                 int base = this.segmentSize * i;
-                iters.extend(new MapperIterator<>(map.keys(), k -> {
+                iters.extend(new MapperInt2IntIterator(map.keys(), k -> {
                     return (int) (k + base - this.unsignedSize);
                 }));
             }
@@ -179,8 +178,8 @@ public interface IntMap {
         }
 
         @Override
-        public Iterator<Integer> values() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+        public IntIterator values() {
+            IntIterators iters = new IntIterators(this.maps.length);
             for (int i = 0; i < this.maps.length; i++) {
                 IntMap map = this.segmentAt(i);
                 if (map != null && map.size() > 0) {
@@ -413,13 +412,13 @@ public interface IntMap {
         }
 
         @Override
-        public Iterator<Integer> keys() {
+        public IntIterator keys() {
             // NOTE: it's slow to scan KVs when a large number of empty slots
             return new KeyIterator();
         }
 
         @Override
-        public Iterator<Integer> values() {
+        public IntIterator values() {
             // NOTE: it's slow to scan KVs when a large number of empty slots
             return new ValueIterator();
         }
@@ -443,22 +442,24 @@ public interface IntMap {
             return offset;
         }
 
-        private final class KeyIterator implements Iterator<Integer> {
+        private final class KeyIterator implements IntIterator {
 
-            private final int INVALID = -1;
+            private int indexOfBlock;
+            private int indexInBlock;
 
-            private int indexOfBlock = 0;
-            private int indexInBlock = 0;
-
-            private int current = this.INVALID;
+            private boolean fetched;
+            private int current;
 
             public KeyIterator() {
-                this.indexOfBlock = indexBlocksSet.nextKey(this.indexOfBlock);
+                this.indexOfBlock = indexBlocksSet.nextKey(0);
+                this.indexInBlock = 0;
+                this.fetched = false;
+                this.current = 0;
             }
 
             @Override
             public boolean hasNext() {
-                if (this.current != this.INVALID) {
+                if (this.fetched) {
                     return true;
                 }
                 while (this.indexOfBlock < indexBlocksNum) {
@@ -467,6 +468,7 @@ public interface IntMap {
                         index += this.indexInBlock++;
                         int value = get(index);
                         if (value != NULL_VALUE) {
+                            this.fetched = true;
                             this.current = index;
                             return true;
                         }
@@ -475,23 +477,23 @@ public interface IntMap {
                                         this.indexOfBlock + 1);
                     this.indexInBlock = 0;
                 }
+                assert !this.fetched;
                 return false;
             }
 
             @Override
-            public Integer next() {
-                if (this.current == this.INVALID) {
+            public int next() {
+                if (!fetched) {
                     if (!this.hasNext()) {
                         throw new NoSuchElementException();
                     }
                 }
-                Integer result = this.current;
-                this.current = this.INVALID;
-                return result;
+                this.fetched = false;
+                return this.current;
             }
         }
 
-        private final class ValueIterator implements Iterator<Integer> {
+        private final class ValueIterator implements IntIterator {
 
             private int indexOfBlock = 0;
             private int indexInBlock = 0;
@@ -525,13 +527,13 @@ public interface IntMap {
             }
 
             @Override
-            public Integer next() {
+            public int next() {
                 if (this.current == NULL_VALUE) {
                     if (!this.hasNext()) {
                         throw new NoSuchElementException();
                     }
                 }
-                Integer result = this.current;
+                int result = this.current;
                 this.current = NULL_VALUE;
                 return result;
             }
@@ -602,8 +604,8 @@ public interface IntMap {
         }
 
         @Override
-        public Iterator<Integer> keys() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+        public IntIterator keys() {
+            IntIterators iters = new IntIterators(this.maps.length);
             for (MutableIntIntMap map : this.maps) {
                 iters.extend(IntIterator.wrap(map.keySet().intIterator()));
             }
@@ -611,8 +613,8 @@ public interface IntMap {
         }
 
         @Override
-        public Iterator<Integer> values() {
-            ExtendableIterator<Integer> iters = new ExtendableIterator<>();
+        public IntIterator values() {
+            IntIterators iters = new IntIterators(this.maps.length);
             for (MutableIntIntMap map : this.maps) {
                 iters.extend(IntIterator.wrap(map.values().intIterator()));
             }

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import java.util.Iterator;
-
 import com.baidu.hugegraph.util.collection.IntIterator;
 
 public class SyncRecord implements Record {
@@ -43,7 +41,7 @@ public class SyncRecord implements Record {
     }
 
     @Override
-    public Iterator<Integer> keys() {
+    public IntIterator keys() {
         /*
          * Another threads call addPath() will change IntIterator inner array,
          * but in kout/kneighbor scenario it's ok because keys() and addPath()

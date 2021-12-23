@@ -27,7 +27,6 @@ import java.util.function.Function;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
@@ -36,6 +35,8 @@ import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
+import com.baidu.hugegraph.util.collection.IntIterator;
+import com.baidu.hugegraph.util.collection.IntIterator.MapperInt2ObjectIterator;
 import com.baidu.hugegraph.util.collection.IntMap;
 import com.baidu.hugegraph.util.collection.IntSet;
 
@@ -47,7 +48,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     private final boolean nearest;
     private final IntSet accessedVertices;
 
-    private Iterator<Integer> parentRecordKeys;
+    private IntIterator parentRecordKeys;
 
     public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
                                       Id source, boolean nearest) {
@@ -91,7 +92,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
                             boolean all, boolean ring) {
         PathSet paths = new PathSet();
         for (int i = 1; i < this.records.size(); i++) {
-            Iterator<Integer> iterator = this.records.get(i).keys();
+            IntIterator iterator = this.records.get(i).keys();
             while (iterator.hasNext()) {
                 paths.add(this.linkPath(i, iterator.next()));
             }
@@ -105,7 +106,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     }
 
     public Iterator<Id> keys() {
-        return new MapperIterator<>(this.parentRecordKeys, this::id);
+        return new MapperInt2ObjectIterator<>(this.parentRecordKeys, this::id);
     }
 
     @Watched
