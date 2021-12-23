@@ -31,14 +31,14 @@ import org.junit.Test;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.util.collection.MappingFactory;
+import com.baidu.hugegraph.util.collection.ObjectIntMappingFactory;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
 public class ObjectIntMappingTest {
 
     private static final int OBJECT_NUMBER = 1000000;
     private static ObjectIntMapping<Id> mapping =
-                                        MappingFactory.newObjectIntMapping();
+                                        ObjectIntMappingFactory.newObjectIntMapping();
 
     @After
     public void clear() {
