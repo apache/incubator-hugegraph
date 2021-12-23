@@ -111,7 +111,7 @@ public class EtcdMetaDriver implements MetaDriver {
             keyValues = kvClient.get(toByteSequence(key))
                                 .get().getKvs();
         } catch (InterruptedException | ExecutionException e) {
-            throw new HugeException("Failed to get key '%s' from etcd", key, e);
+            throw new HugeException("Failed to get key '%s' from etcd", e, key);
         }
 
         if (keyValues.size() > 0) {
@@ -130,8 +130,8 @@ public class EtcdMetaDriver implements MetaDriver {
             try {
                 kvClient.delete(toByteSequence(key)).get();
             } catch (Throwable t) {
-                throw new HugeException("Failed to put '%s:%s' to etcd",
-                                        key, value, e);
+                throw new HugeException("Failed to put '%s:%s' to etcd", e,
+                                        key, value);
             }
         }
     }
@@ -143,7 +143,7 @@ public class EtcdMetaDriver implements MetaDriver {
             kvClient.delete(toByteSequence(key)).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new HugeException(
-                      "Failed to delete key '%s' from etcd", key, e);
+                      "Failed to delete key '%s' from etcd", e, key);
         }
     }
 
@@ -157,8 +157,8 @@ public class EtcdMetaDriver implements MetaDriver {
             response = this.client.getKVClient().get(toByteSequence(prefix),
                                                      getOption).get();
         } catch (InterruptedException | ExecutionException e) {
-            throw new HugeException("Failed to scan etcd with prefix " +
-                                    prefix, e);
+            throw new HugeException("Failed to scan etcd with prefix %s",
+                                    e, prefix);
         }
         int size = (int) response.getCount();
         Map<String, String> keyValues = CollectionFactory.newMap(
