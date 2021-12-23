@@ -51,7 +51,8 @@ public interface IntMap {
 
     /**
      * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:
-     * - slower 4x than IntMapByFixedAddr for 4 threads;
+     * - slower 5x than IntMapByFixedAddr for single thread;
+     * - slower 5x than IntMapByFixedAddr for 4 threads;
      * - faster 10x than ec IntIntHashMap-segment-lock for 4 threads;
      * - faster 20x than ec IntIntHashMap-global-lock for 4 threads;
      */
@@ -65,7 +66,7 @@ public interface IntMap {
         private final int segmentMask;
         private final Function<Integer, IntMap> creator;
 
-        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 10;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
                              size -> new IntMapByFixedAddr(size);
 
@@ -77,6 +78,10 @@ public interface IntMap {
 
         public IntMapBySegments(int capacity) {
             this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
+        }
+
+        public IntMapBySegments(int capacity, int segments) {
+            this(capacity, segments, DEFAULT_CREATOR);
         }
 
         public IntMapBySegments(int capacity, int segments,
@@ -137,7 +142,8 @@ public interface IntMap {
 
         @Override
         public void clear() {
-            for (IntMap map : this.maps) {
+            for (int i = 0; i < this.maps.length; i++) {
+                IntMap map = this.segmentAt(i);
                 if (map != null) {
                     map.clear();
                 }
@@ -147,7 +153,8 @@ public interface IntMap {
         @Override
         public int size() {
             int size = 0;
-            for (IntMap map : this.maps) {
+            for (int i = 0; i < this.maps.length; i++) {
+                IntMap map = this.segmentAt(i);
                 if (map != null) {
                     size += map.size();
                 }
@@ -159,7 +166,7 @@ public interface IntMap {
         public Iterator<Integer> keys() {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
             for (int i = 0; i < this.maps.length; i++) {
-                IntMap map = this.maps[i];
+                IntMap map = this.segmentAt(i);
                 if (map == null || map.size() == 0) {
                     continue;
                 }
@@ -174,7 +181,8 @@ public interface IntMap {
         @Override
         public Iterator<Integer> values() {
             ExtendableIterator<Integer> iters = new ExtendableIterator<>();
-            for (IntMap map : this.maps) {
+            for (int i = 0; i < this.maps.length; i++) {
+                IntMap map = this.segmentAt(i);
                 if (map != null && map.size() > 0) {
                     iters.extend(map.values());
                 }
@@ -219,6 +227,13 @@ public interface IntMap {
                     return (IntMap) old;
                 }
             }
+        }
+
+        private final IntMap segmentAt(int index) {
+            // volatile get this.maps[index]
+            long offset = (index << SHIFT) + BASE_OFFSET;
+            IntMap map = (IntMap) UNSAFE.getObjectVolatile(this.maps, offset);
+            return map;
         }
     }
 

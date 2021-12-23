@@ -48,6 +48,37 @@ public class IntSetTest extends BaseUnitTest {
     @Test
     public void testIntFixedSet() {
         IntSet set = fixed(eachCount);
+        testIntSet(set);
+    }
+
+    @Test
+    public void testIntFixedSetBySegments() {
+        IntSet set = fixedBySegments(eachCount, 4);
+        testIntSet(set);
+
+        set = fixedBySegments(eachCount, 400);
+        testIntSet(set);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            fixedBySegments(eachCount, eachCount + 1);
+        }, e -> {
+            Assert.assertContains("Invalid capacity", e.getMessage());
+        });
+    }
+
+    @Test
+    public void testIntFixedSeConcurrent() {
+        IntSet set = fixed(eachCount);
+        testIntSetConcurrent(set);
+    }
+
+    @Test
+    public void testIntFixedSetBySegmentsConcurrent() {
+        IntSet set = fixedBySegments(Integer.MAX_VALUE, 400);
+        testIntSetConcurrent(set);
+    }
+
+    private void testIntSet(IntSet set) {
         int mod = new Random().nextInt(100);
         for (int i = 0; i < batchCount; i++) {
             for (int k = 0; k < eachCount; k++) {
@@ -110,16 +141,12 @@ public class IntSetTest extends BaseUnitTest {
         });
     }
 
-    @Test
-    public void testInttFixedSeConcurrent() {
-        IntSet set = fixed(eachCount);
-
+    private void testIntSetConcurrent(IntSet set) {
         runWithThreads(THREADS_NUM, () -> {
             for (int i = 0; i < batchCount; i++) {
                 for (int k = 0; k < eachCount; k++) {
                     set.contains(k);
                     set.add(k);
-                    set.size();
                 }
                 set.contains(i);
                 Assert.assertEquals(eachCount, set.size());
@@ -134,5 +161,9 @@ public class IntSetTest extends BaseUnitTest {
 
     private IntSet fixed(int size) {
         return new IntSet.IntSetByFixedAddr(size);
+    }
+
+    private IntSet fixedBySegments(int size, int segments) {
+        return new IntSet.IntSetBySegments(size, segments);
     }
 }

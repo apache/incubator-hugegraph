@@ -265,7 +265,7 @@ public class CollectionFactory {
     public static IntSet newIntSet(CollectionType type) {
 //        return concurrent ? new IntHashSet().asSynchronized() : new IntHashSet();
 //        return new IntSet.IntSetByEcSegment(IntMap.CPUS * 2);
-        return new IntSet.IntSetByFixedAddr(Integer.MAX_VALUE);
+        return new IntSet.IntSetBySegments(Integer.MAX_VALUE);
     }
 
     public static IntMap newIntMap(CollectionType type) {

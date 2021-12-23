@@ -89,8 +89,8 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapConcurrentSegment() {
-        IntMap map = fixed(eachCount, 4);
+    public void testIntFixedMapSegmentConcurrent() {
+        IntMap map = fixedBySegments(eachCount, 4);
 
         runWithThreads(THREADS_NUM, () -> {
             for (int i = 0; i < batchCount; i++) {
@@ -111,7 +111,7 @@ public class IntMapTest extends BaseUnitTest {
     @Test
     public void testIntFixedMapSegmentPut() {
         BiFunction<Integer, Integer, Integer> testMap = (capacity, segs) -> {
-            IntMap map = fixed(capacity, segs);
+            IntMap map = fixedBySegments(capacity, segs);
 
             for (int i = 0; i < capacity; i++) {
                 Assert.assertTrue(map.put(i, i * i));
@@ -205,7 +205,7 @@ public class IntMapTest extends BaseUnitTest {
     public void testIntFixedMapSegmentPutRandom() {
         int count = 100;
         BiFunction<Integer, Integer, Integer> testMap = (capacity, segs) -> {
-            IntMap map = fixed(capacity, segs);
+            IntMap map = fixedBySegments(capacity, segs);
 
             Random random = new Random();
             for (int i = 0; i < count; i++) {
@@ -235,7 +235,7 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntFixedMapSegmentKeys() {
-        IntMap map = fixed(Integer.MAX_VALUE, 40);
+        IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
         for (int i = 0; i < 10000; i++) {
@@ -257,7 +257,7 @@ public class IntMapTest extends BaseUnitTest {
         int segments = 400;
         int segmentSize = Integer.MAX_VALUE / segments;
         int step = 50;
-        IntMap map = fixed(Integer.MAX_VALUE, segments);
+        IntMap map = fixedBySegments(Integer.MAX_VALUE, segments);
         for (int k = 0; k < segments; k += step) {
             map.put(segmentSize * k, k);
         }
@@ -280,7 +280,7 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntFixedMapSegmentValues() {
-        IntMap map = fixed(Integer.MAX_VALUE, 40);
+        IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
         for (int i = 0; i < 10; i++) {
@@ -302,7 +302,7 @@ public class IntMapTest extends BaseUnitTest {
         int segments = 400;
         int segmentSize = Integer.MAX_VALUE / segments;
         int step = 50;
-        IntMap map = fixed(Integer.MAX_VALUE, segments);
+        IntMap map = fixedBySegments(Integer.MAX_VALUE, segments);
         for (int k = 0; k < segments; k += step) {
             map.put(segmentSize * k, k);
         }
@@ -323,12 +323,11 @@ public class IntMapTest extends BaseUnitTest {
         }
     }
 
-    private IntMap fixed(int capacity, int segments) {
-        return new IntMap.IntMapBySegments(capacity, segments, size ->
-                                           new IntMap.IntMapByFixedAddr(size));
-    }
-
     private IntMap fixed(int capacity) {
         return new IntMap.IntMapByFixedAddr(capacity);
+    }
+
+    private IntMap fixedBySegments(int capacity, int segments) {
+        return new IntMap.IntMapBySegments(capacity, segments);
     }
 }

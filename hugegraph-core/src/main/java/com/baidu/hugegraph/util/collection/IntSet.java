@@ -21,6 +21,7 @@ package com.baidu.hugegraph.util.collection;
 
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.eclipse.collections.api.collection.primitive.MutableIntCollection;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
@@ -39,6 +40,155 @@ public interface IntSet {
     public int size();
 
     public boolean concurrent();
+
+    /**
+     * NOTE: IntSetBySegments(backend by IntSetByFixedAddr) is:
+     * - slower 2.5x than IntSetByFixedAddr for single thread;
+     * - slower 2.0x than IntSetByFixedAddr for 4 threads;
+     */
+    public static final class IntSetBySegments implements IntSet {
+
+        private final IntSet[] sets;
+        private final long capacity;
+        private final long unsignedSize;
+        private final int segmentSize;
+        private final int segmentShift;
+        private final int segmentMask;
+        private final Function<Integer, IntSet> creator;
+
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 10;
+        private static final Function<Integer, IntSet> DEFAULT_CREATOR =
+                             size -> new IntSetByFixedAddr4Unsigned(size);
+
+        @SuppressWarnings("static-access")
+        private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
+        @SuppressWarnings("static-access")
+        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
+                                              UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
+
+        public IntSetBySegments(int capacity) {
+            this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
+        }
+
+        public IntSetBySegments(int capacity, int segments) {
+            this(capacity, segments, DEFAULT_CREATOR);
+        }
+
+        public IntSetBySegments(int capacity, int segments,
+                                Function<Integer, IntSet> creator) {
+            E.checkArgument(segments >= 1,
+                            "Invalid segments %s", segments);
+            E.checkArgument(capacity >= segments,
+                            "Invalid capacity %s, expect >= segments %s",
+                            capacity, segments);
+
+            this.sets = new IntSet[segments];
+            // include signed and unsigned number
+            this.unsignedSize = capacity;
+            this.capacity = this.unsignedSize * 2L;
+            this.segmentSize = IntSet.segmentSize(this.capacity, segments);
+            this.segmentShift = Integer.numberOfTrailingZeros(this.segmentSize);
+            /*
+             * The mask is lower bits of each segment size, like
+             * segmentSize=4096 (0x1000), segmentMask=4095 (0xfff),
+             * NOTE: `-1 >>> 0` or `-1 >>> 32` is -1.
+             */
+            this.segmentMask = this.segmentShift == 0 ?
+                               0 : -1 >>> (32 - this.segmentShift);
+            this.creator = creator;
+        }
+
+        @Override
+        public boolean add(int key) {
+            int innerKey = (int) ((key + this.unsignedSize) & this.segmentMask);
+            return segment(key).add(innerKey);
+        }
+
+        @Override
+        public boolean remove(int key) {
+            int innerKey = (int) ((key + this.unsignedSize) & this.segmentMask);
+            return segment(key).remove(innerKey);
+        }
+
+        @Override
+        public boolean contains(int key) {
+            long ukey = key + this.unsignedSize;
+            if (ukey >= this.capacity || ukey < 0L) {
+                return false;
+            }
+            int innerKey = (int) (ukey & this.segmentMask);
+            return segment(key).contains(innerKey);
+        }
+
+        @Override
+        public void clear() {
+            for (int i = 0; i < this.sets.length; i++) {
+                IntSet set = this.segmentAt(i);
+                if (set != null) {
+                    set.clear();
+                }
+            }
+        }
+
+        @Override
+        public int size() {
+            int size = 0;
+            for (int i = 0; i < this.sets.length; i++) {
+                IntSet set = this.segmentAt(i);
+                if (set != null) {
+                    size += set.size();
+                }
+                // TODO: can we assume all the remaining sets are null here
+            }
+            return size;
+        }
+
+        @Override
+        public boolean concurrent() {
+            return true;
+        }
+
+        private final IntSet segment(int key) {
+            long ukey = key + this.unsignedSize;
+            if (ukey >= this.capacity || ukey < 0L) {
+                E.checkArgument(false,
+                                "The key %s is out of bound %s",
+                                key, this.capacity);
+            }
+
+            long index = ukey >>> this.segmentShift;
+            IntSet exist = this.sets[(int) index];
+            if (exist != null) {
+                return exist;
+            }
+
+            // volatile get this.sets[index]
+            long offset = (index << SHIFT) + BASE_OFFSET;
+            Object old = UNSAFE.getObjectVolatile(this.sets, offset);
+            if (old != null) {
+                return (IntSet) old;
+            }
+
+            // set this.sets[index] = new IntSet()
+            IntSet set = this.creator.apply(this.segmentSize);
+            while (true) {
+                if (UNSAFE.compareAndSwapObject(this.sets, offset, null, set)) {
+                    return set;
+                }
+                old = UNSAFE.getObjectVolatile(this.sets, offset);
+                if (old != null) {
+                    return (IntSet) old;
+                }
+            }
+        }
+
+        private final IntSet segmentAt(int index) {
+            // volatile get this.sets[index]
+            long offset = (index << SHIFT) + BASE_OFFSET;
+            IntSet set = (IntSet) UNSAFE.getObjectVolatile(this.sets, offset);
+            return set;
+        }
+    }
 
     /**
      * NOTE: IntSetByFixedAddr is:
