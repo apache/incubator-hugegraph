@@ -25,7 +25,7 @@ PLUGINS="$TOP/plugins"
 LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-server.log
 ## set jmx_export port for prometheus, 0 or unset represents not start jmx_export
-JMX_EXPORT_PORT=8001
+JMX_EXPORT_PORT=0
 
 export HUGEGRAPH_HOME="$TOP"
 . ${BIN}/util.sh
