@@ -203,14 +203,12 @@ public interface IntSet {
         private final long[] bits;
         private final long numBits;
         private final long numBitsUnsigned;
-//        private final LongAdder size;
         private final AtomicInteger size;
 
         public IntSetByFixedAddr(int numBits) {
             this.numBitsUnsigned = numBits;
             this.numBits = numBits * 2L;
             this.bits = new long[IntSet.bits2words(this.numBits)];;
-//            this.size = new LongAdder();
             this.size = new AtomicInteger();
         }
 
@@ -229,7 +227,6 @@ public interface IntSet {
                 // this.bits[index] |= bitmask;
                 if (UNSAFE.compareAndSwapLong(this.bits, offset, oldV, newV)) {
                     this.size.incrementAndGet();
-//                    this.size.increment();
                     return true;
                 }
             }
@@ -237,14 +234,6 @@ public interface IntSet {
 
         @Override
         public boolean contains(int key) {
-//            int index = key >> 6; // div 64
-//            if (index >= this.bits.length) {
-//                return false;
-//            }
-//
-//            int bit = key & MOD64; // mod 64
-//            long bitmask = 1L << bit;
-//            return (this.bits[index] & bitmask) != 0;
             long ukey = key + this.numBitsUnsigned;
             if (ukey >= this.numBits || ukey < 0L) {
                 return false;
@@ -258,16 +247,6 @@ public interface IntSet {
 
         @Override
         public boolean remove(int key) {
-//            int index = key >> 6; // div 64
-//            if (index >= this.bits.length) {
-//                return false;
-//            }
-//            int bit = key & MOD64; // mod 64
-//            long bitmask = 1L << bit;
-//            this.bits[index] &= ~bitmask;
-//
-//            this.length.decrement();
-//            return true;
             long ukey = key + this.numBitsUnsigned;
             long offset = this.offset(key);
             long bitmask = IntSetByFixedAddr4Unsigned.bitmaskOfKey(ukey);
@@ -281,7 +260,6 @@ public interface IntSet {
                 // this.bits[index] &= ~bitmask
                 if (UNSAFE.compareAndSwapLong(this.bits, offset, oldV, newV)) {
                     this.size.decrementAndGet();
-//                    this.size.decrement();
                     return true;
                 }
             }
@@ -291,13 +269,11 @@ public interface IntSet {
         public void clear() {
             Arrays.fill(this.bits, 0);
             this.size.set(0);
-//            this.size.reset();
         }
 
         @Override
         public int size() {
             return this.size.get();
-//            return (int) this.size.sum();
         }
 
         @Override
@@ -319,7 +295,6 @@ public interface IntSet {
 
         private final long[] bits;
         private final int numBits;
-//        private final LongAdder size;
         private final AtomicInteger size;
 
         @SuppressWarnings("static-access")
@@ -331,7 +306,6 @@ public interface IntSet {
         public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;
             this.bits = new long[IntSet.bits2words(numBits)];;
-//            this.size = new LongAdder();
             this.size = new AtomicInteger();
         }
 
@@ -349,7 +323,6 @@ public interface IntSet {
                 // this.bits[index] |= bitmask;
                 if (UNSAFE.compareAndSwapLong(this.bits, offset, oldV, newV)) {
                     this.size.incrementAndGet();
-//                    this.size.increment();
                     return true;
                 }
             }
@@ -357,14 +330,6 @@ public interface IntSet {
 
         @Override
         public boolean contains(int key) {
-//            int index = key >> 6; // div 64
-//            if (index >= this.bits.length) {
-//                return false;
-//            }
-//
-//            int bit = key & MOD64; // mod 64
-//            long bitmask = 1L << bit;
-//            return (this.bits[index] & bitmask) != 0;
             if (key >= this.numBits || key < 0) {
                 return false;
             }
@@ -377,16 +342,6 @@ public interface IntSet {
 
         @Override
         public boolean remove(int key) {
-//            int index = key >> 6; // div 64
-//            if (index >= this.bits.length) {
-//                return false;
-//            }
-//            int bit = key & MOD64; // mod 64
-//            long bitmask = 1L << bit;
-//            this.bits[index] &= ~bitmask;
-//
-//            this.length.decrement();
-//            return true;
             long offset = this.offset(key);
             long bitmask = bitmaskOfKey(key);
 
@@ -399,7 +354,6 @@ public interface IntSet {
                 // this.bits[index] &= ~bitmask
                 if (UNSAFE.compareAndSwapLong(this.bits, offset, oldV, newV)) {
                     this.size.decrementAndGet();
-//                    this.size.decrement();
                     return true;
                 }
             }
@@ -409,13 +363,11 @@ public interface IntSet {
         public void clear() {
             Arrays.fill(this.bits, 0);
             this.size.set(0);
-//            this.size.reset();
         }
 
         @Override
         public int size() {
             return this.size.get();
-//            return (int) this.size.sum();
         }
 
         @Override
@@ -509,7 +461,6 @@ public interface IntSet {
                  * - about faster 20x than global-lock for 4 threads;
                  */
                 this.sets[i] = new IntHashSet().asSynchronized();
-//                this.sets[i] = new IntHashSet();
             }
         }
 

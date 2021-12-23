@@ -246,7 +246,6 @@ public interface IntMap {
 
         private final int[] values;
         private final int capacity;
-//        private final LongAdder size;
         private final AtomicInteger size;
 
         private final int indexBlocksNum;
@@ -263,7 +262,6 @@ public interface IntMap {
         public IntMapByFixedAddr(int capacity) {
             this.capacity = capacity;
             this.values = new int[capacity];
-//            this.size = new LongAdder();
             this.size = new AtomicInteger();
 
             // each block at least >= 1kb
@@ -293,35 +291,6 @@ public interface IntMap {
                 return false;
             }
             long offset = this.offset(key);
-//            int oldV = UNSAFE.getAndSetInt(this.values, offset, value);
-//            if (oldV == NULL) {
-//                this.size.incrementAndGet();
-//            }
-//            return true;
-
-//            int oldV = UNSAFE.getIntVolatile(this.values, offset);
-//            if (oldV == NULL) {
-//                this.size.incrementAndGet();
-//            }
-//            UNSAFE.putIntVolatile(this.values, offset, value);
-//            return true;
-
-//            while (true) {
-//                int oldV = UNSAFE.getIntVolatile(this.values, offset);
-//                int newV = value;
-//                if (newV == oldV) {
-//                    // the origin value is newV or other threads set to newV
-//                    return false;
-//                }
-//                if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
-//                    if (oldV == NULL) {
-//                        this.size.incrementAndGet();
-////                        this.size.increment();
-//                    }
-//                    return true;
-//                }
-//            }
-
             int oldV = UNSAFE.getIntVolatile(this.values, offset);
             int newV = value;
             if (newV == oldV) {
@@ -332,7 +301,6 @@ public interface IntMap {
             } else {
                 if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
                     this.size.incrementAndGet();
-//                    this.size.increment();
                     this.indexBlocksSet.add(key >>> this.indexBlockSizeShift);
                 }
             }
@@ -351,7 +319,6 @@ public interface IntMap {
             if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
                 assert oldV == NULL_VALUE;
                 this.size.incrementAndGet();
-//                this.size.increment();
                 this.indexBlocksSet.add(key >>> this.indexBlockSizeShift);
                 return true;
             }
@@ -391,7 +358,6 @@ public interface IntMap {
                 assert oldV != NULL_VALUE;
                 if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
                     this.size.decrementAndGet();
-//                    this.size.decrement();
                     return true;
                 }
             }
@@ -401,14 +367,12 @@ public interface IntMap {
         public void clear() {
             Arrays.fill(this.values, NULL_VALUE);
             this.size.set(0);
-//            this.size.reset();
             this.indexBlocksSet.clear();
         }
 
         @Override
         public int size() {
             return this.size.get();
-//            return (int) this.size.sum();
         }
 
         @Override
@@ -539,6 +503,7 @@ public interface IntMap {
             }
         }
     }
+
     public static final class IntMapByEcSegment implements IntMap {
 
         private final MutableIntIntMap[] maps;
