@@ -86,20 +86,4 @@ public interface IntIterator extends Iterator<Integer> {
             return this.iterator.hasNext();
         }
     }
-
-    public static int sizeToPowerOf2Size(int size) {
-        if (size < 1) {
-            size = 1;
-        }
-
-        int n = size - 1;
-        n |= n >>> 1;
-        n |= n >>> 2;
-        n |= n >>> 4;
-        n |= n >>> 8;
-        n |= n >>> 16;
-        size = n + 1;
-
-        return size;
-    }
 }

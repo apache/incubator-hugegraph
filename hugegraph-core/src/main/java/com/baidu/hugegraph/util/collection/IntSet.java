@@ -56,18 +56,10 @@ public interface IntSet {
 //        private final LongAdder size;
         private final AtomicInteger size;
 
-        private static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
-        @SuppressWarnings("static-access")
-        private static final int BASE_OFFSET = UNSAFE.ARRAY_LONG_BASE_OFFSET;
-        @SuppressWarnings("static-access")
-        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_LONG_INDEX_SCALE);
-        private static final int MOD64 = 0x3f;
-
         public IntSetByFixedAddr(int numBits) {
             this.numBitsUnsigned = numBits;
             this.numBits = numBits * 2L;
-            this.bits = new long[bits2words(this.numBits)];;
+            this.bits = new long[IntSet.bits2words(this.numBits)];;
 //            this.size = new LongAdder();
             this.size = new AtomicInteger();
         }
@@ -76,8 +68,7 @@ public interface IntSet {
         public boolean add(int key) {
             long ukey = key + this.numBitsUnsigned;
             long offset = this.offset(key);
-            long bit = ukey & MOD64;
-            long bitmask = 1L << bit;
+            long bitmask = IntSetByFixedAddr4Unsigned.bitmaskOfKey(ukey);
 
             while (true) {
                 long oldV = UNSAFE.getLongVolatile(this.bits, offset);
@@ -109,8 +100,7 @@ public interface IntSet {
                 return false;
             }
             long offset = this.offset(key);
-            long bit = ukey & MOD64;
-            long bitmask = 1L << bit;
+            long bitmask = IntSetByFixedAddr4Unsigned.bitmaskOfKey(ukey);
 
             long value = UNSAFE.getLongVolatile(this.bits, offset);
             return (value & bitmask) != 0L;
@@ -130,8 +120,7 @@ public interface IntSet {
 //            return true;
             long ukey = key + this.numBitsUnsigned;
             long offset = this.offset(key);
-            long bit = ukey & MOD64;
-            long bitmask = 1L << bit;
+            long bitmask = IntSetByFixedAddr4Unsigned.bitmaskOfKey(ukey);
 
             while (true) {
                 long oldV = UNSAFE.getLongVolatile(this.bits, offset);
@@ -172,15 +161,7 @@ public interface IntSet {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.numBits);
             }
-            // bits to long offset
-            long index = ukey >> 6;
-            // long offset to byte offset, and add the array base offset
-            long offset = (index << SHIFT) + BASE_OFFSET;
-            return offset;
-        }
-
-        private static final int bits2words(long numBits) {
-            return (int) ((numBits - 1) >>> 6) + 1;
+            return IntSetByFixedAddr4Unsigned.bitOffsetToByteOffset(ukey);
         }
     }
 
@@ -191,26 +172,23 @@ public interface IntSet {
 //        private final LongAdder size;
         private final AtomicInteger size;
 
-        private static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_LONG_BASE_OFFSET;
         @SuppressWarnings("static-access")
-        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_LONG_INDEX_SCALE);
-        private static final int MOD64 = 0x3f;
+        private static final int MUL8 = 31 - Integer.numberOfLeadingZeros(
+                                             UNSAFE.ARRAY_LONG_INDEX_SCALE);
 
         public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;
-            this.bits = new long[bits2words(numBits)];;
+            this.bits = new long[IntSet.bits2words(numBits)];;
 //            this.size = new LongAdder();
             this.size = new AtomicInteger();
         }
 
         @Override
         public boolean add(int key) {
-            int offset = this.offset(key);
-            int bit = key & MOD64;
-            long bitmask = 1L << bit;
+            long offset = this.offset(key);
+            long bitmask = bitmaskOfKey(key);
 
             while (true) {
                 long oldV = UNSAFE.getLongVolatile(this.bits, offset);
@@ -240,9 +218,8 @@ public interface IntSet {
             if (key >= this.numBits || key < 0) {
                 return false;
             }
-            int offset = this.offset(key);
-            int bit = key & MOD64;
-            long bitmask = 1L << bit;
+            long offset = this.offset(key);
+            long bitmask = bitmaskOfKey(key);
 
             long value = UNSAFE.getLongVolatile(this.bits, offset);
             return (value & bitmask) != 0L;
@@ -260,9 +237,8 @@ public interface IntSet {
 //
 //            this.length.decrement();
 //            return true;
-            int offset = this.offset(key);
-            int bit = key & MOD64;
-            long bitmask = 1L << bit;
+            long offset = this.offset(key);
+            long bitmask = bitmaskOfKey(key);
 
             while (true) {
                 long oldV = UNSAFE.getLongVolatile(this.bits, offset);
@@ -305,8 +281,8 @@ public interface IntSet {
                 return key;
             }
 
-            int offset = this.offset(key);
-            int startBit = key & MOD64;
+            long offset = this.offset(key);
+            int startBit = key & (int) MOD64;
             int bitsEachLong = 64;
             int bytesEachLong = 8;
             key -= startBit;
@@ -341,20 +317,28 @@ public interface IntSet {
             return key;
         }
 
-        private final int offset(int key) {
+        private final long offset(int key) {
             if (key >= this.numBits || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.numBits);
             }
+            return bitOffsetToByteOffset(key);
+        }
+
+        private static final long bitOffsetToByteOffset(long key) {
             // bits to long offset
-            int index = key >> 6;
-            // long offset to byte offset, and add the array base offset
-            int offset = (index << SHIFT) + BASE_OFFSET;
+            long index = key >> DIV64;
+            // long offset to byte offset
+            long offset = index << MUL8;
+            // add the array base offset
+            offset += BASE_OFFSET;
             return offset;
         }
 
-        private static final int bits2words(long numBits) {
-            return (int) ((numBits - 1) >>> 6) + 1;
+        private static final long bitmaskOfKey(long key) {
+            long bitIndex = key & MOD64;
+            long bitmask = 1L << bitIndex;
+            return bitmask;
         }
     }
 
@@ -364,7 +348,7 @@ public interface IntSet {
         private final int segmentMask;
 
         public IntSetByEcSegment(int segments) {
-            segments = IntIterator.sizeToPowerOf2Size(segments);
+            segments = IntSet.sizeToPowerOf2Size(segments);
             this.segmentMask = segments - 1;
             this.sets = new MutableIntCollection[segments];
             for (int i = 0; i < segments; i++) {
@@ -461,5 +445,45 @@ public interface IntSet {
         public boolean concurrent() {
             return false;
         }
+    }
+
+    public static final int CPUS = Runtime.getRuntime().availableProcessors();
+    public static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
+
+    public static final long MOD64 = 0x3fL;
+    public static final int DIV64 = 6;
+
+    public static int segmentSize(long capacity, int segments) {
+        long eachSize = capacity / segments;
+        eachSize = IntSet.sizeToPowerOf2Size((int) eachSize);
+        /*
+         * Supply total size
+         * like capacity=20 and segments=19, then eachSize=1
+         * should increase eachSize to eachSize * 2.
+         */
+        while (eachSize * segments < capacity) {
+            eachSize <<= 1;
+        }
+        return (int) eachSize;
+    }
+
+    public static int sizeToPowerOf2Size(int size) {
+        if (size < 1) {
+            size = 1;
+        }
+
+        int n = size - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        size = n + 1;
+
+        return size;
+    }
+
+    public static int bits2words(long numBits) {
+        return (int) ((numBits - 1) >>> DIV64) + 1;
     }
 }

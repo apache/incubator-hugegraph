@@ -32,7 +32,6 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.util.E;
 
-import io.netty.util.internal.shaded.org.jctools.util.UnsafeAccess;
 import sun.misc.Unsafe;
 
 public interface IntMap {
@@ -50,9 +49,6 @@ public interface IntMap {
 
     public boolean concurrent();
 
-    public static final int NULL = Integer.MIN_VALUE;
-    public static final int CPUS = Runtime.getRuntime().availableProcessors();
-
     /**
      * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:
      * - slower 4x than IntMapByFixedAddr for 4 threads;
@@ -69,7 +65,10 @@ public interface IntMap {
         private final int segmentMask;
         private final Function<Integer, IntMap> creator;
 
-        private static final Unsafe UNSAFE = IntMapByFixedAddr.UNSAFE;
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
+        private static final Function<Integer, IntMap> DEFAULT_CREATOR =
+                             size -> new IntMapByFixedAddr(size);
+
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
         @SuppressWarnings("static-access")
@@ -77,7 +76,7 @@ public interface IntMap {
                                               UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
 
         public IntMapBySegments(int capacity) {
-            this(capacity, CPUS * 100, size -> new IntMapByFixedAddr(size));
+            this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
         }
 
         public IntMapBySegments(int capacity, int segments,
@@ -92,8 +91,7 @@ public interface IntMap {
             // include signed and unsigned number
             this.unsignedSize = capacity;
             this.capacity = this.unsignedSize * 2L;
-            this.segmentSize = IntMapByFixedAddr.segmentSize(
-                               this.capacity, segments);
+            this.segmentSize = IntSet.segmentSize(this.capacity, segments);
             this.segmentShift = Integer.numberOfTrailingZeros(this.segmentSize);
             /*
              * The mask is lower bits of each segment size, like
@@ -108,23 +106,23 @@ public interface IntMap {
         @Override
         public boolean put(int key, int value) {
             int innerKey = (int) ((key + this.unsignedSize) & this.segmentMask);
-            return map(key).put(innerKey, value);
+            return segment(key).put(innerKey, value);
         }
 
         @Override
         public boolean remove(int key) {
             int innerKey = (int) ((key + this.unsignedSize) & this.segmentMask);
-            return map(key).remove(innerKey);
+            return segment(key).remove(innerKey);
         }
 
         @Override
         public int get(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
-                return NULL;
+                return NULL_VALUE;
             }
             int innerKey = (int) (ukey & this.segmentMask);
-            return map(key).get(innerKey);
+            return segment(key).get(innerKey);
         }
 
         @Override
@@ -134,7 +132,7 @@ public interface IntMap {
                 return false;
             }
             int innerKey = (int) (ukey & this.segmentMask);
-            return map(key).containsKey(innerKey);
+            return segment(key).containsKey(innerKey);
         }
 
         @Override
@@ -189,7 +187,7 @@ public interface IntMap {
             return true;
         }
 
-        private final IntMap map(int key) {
+        private final IntMap segment(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
                 E.checkArgument(false,
@@ -242,12 +240,11 @@ public interface IntMap {
         private final int indexBlockSizeShift;
         private final IntSet.IntSetByFixedAddr4Unsigned indexBlocksSet;
 
-        private static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_INT_BASE_OFFSET;
         @SuppressWarnings("static-access")
-        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_INT_INDEX_SCALE);
+        private static final int MUL4 = 31 - Integer.numberOfLeadingZeros(
+                                             UNSAFE.ARRAY_INT_INDEX_SCALE);
 
         public IntMapByFixedAddr(int capacity) {
             this.capacity = capacity;
@@ -259,16 +256,14 @@ public interface IntMap {
             int minBlockSize = 1 << 10;
             // 64k index blocks by default (indexBlocksSet will cost 8kb memory)
             int indexBlocksNum = 1 << 16;
-            int indexBlockSize = IntMapByFixedAddr.segmentSize(
-                                 capacity, indexBlocksNum);
+            int indexBlockSize = IntSet.segmentSize(capacity, indexBlocksNum);
             if (indexBlockSize < minBlockSize) {
                 indexBlockSize = minBlockSize;
-                indexBlocksNum = IntMapByFixedAddr.segmentSize(
-                                 capacity, indexBlockSize);
+                indexBlocksNum = IntSet.segmentSize(capacity, indexBlockSize);
             }
             this.indexBlocksNum = indexBlocksNum;
-            this.indexBlockSize = IntMapByFixedAddr.segmentSize(
-                                  capacity, this.indexBlocksNum);
+            this.indexBlockSize = IntSet.segmentSize(capacity,
+                                                     this.indexBlocksNum);
             this.indexBlockSizeShift = Integer.numberOfTrailingZeros(
                                        this.indexBlockSize);
             this.indexBlocksSet = new IntSet.IntSetByFixedAddr4Unsigned(
@@ -279,11 +274,11 @@ public interface IntMap {
 
         @Override
         public boolean put(int key, int value) {
-            assert value != NULL : "put value can't be " + NULL;
-            if (value == NULL) {
+            assert value != NULL_VALUE : "put value can't be " + NULL_VALUE;
+            if (value == NULL_VALUE) {
                 return false;
             }
-            int offset = this.offset(key);
+            long offset = this.offset(key);
 //            int oldV = UNSAFE.getAndSetInt(this.values, offset, value);
 //            if (oldV == NULL) {
 //                this.size.incrementAndGet();
@@ -318,7 +313,7 @@ public interface IntMap {
             if (newV == oldV) {
                 return true;
             }
-            if (oldV != NULL) {
+            if (oldV != NULL_VALUE) {
                 UNSAFE.putIntVolatile(this.values, offset, newV);
             } else {
                 if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
@@ -331,16 +326,16 @@ public interface IntMap {
         }
 
         public boolean putIfAbsent(int key, int value) {
-            assert value != NULL;
-            int offset = this.offset(key);
+            assert value != NULL_VALUE;
+            long offset = this.offset(key);
 
             int oldV = UNSAFE.getIntVolatile(this.values, offset);
             int newV = value;
-            if (newV == oldV || oldV != NULL) {
+            if (newV == oldV || oldV != NULL_VALUE) {
                 return false;
             }
             if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
-                assert oldV == NULL;
+                assert oldV == NULL_VALUE;
                 this.size.incrementAndGet();
 //                this.size.increment();
                 this.indexBlocksSet.add(key >>> this.indexBlockSizeShift);
@@ -352,9 +347,9 @@ public interface IntMap {
         @Override
         public int get(int key) {
             if (key >= this.capacity) {
-                return NULL;
+                return NULL_VALUE;
             }
-            int offset = this.offset(key);
+            long offset = this.offset(key);
             int value = UNSAFE.getIntVolatile(this.values, offset);
             return value;
         }
@@ -364,22 +359,22 @@ public interface IntMap {
             if (key >= this.capacity) {
                 return false;
             }
-            int offset = this.offset(key);
+            long offset = this.offset(key);
             int value = UNSAFE.getIntVolatile(this.values, offset);
-            return value != NULL;
+            return value != NULL_VALUE;
         }
 
         @Override
         public boolean remove(int key) {
-            int offset = this.offset(key);
+            long offset = this.offset(key);
 
             while (true) {
                 int oldV = UNSAFE.getIntVolatile(this.values, offset);
-                int newV = NULL;
+                int newV = NULL_VALUE;
                 if (newV == oldV) {
                     return false;
                 }
-                assert oldV != NULL;
+                assert oldV != NULL_VALUE;
                 if (UNSAFE.compareAndSwapInt(this.values, offset, oldV, newV)) {
                     this.size.decrementAndGet();
 //                    this.size.decrement();
@@ -390,7 +385,7 @@ public interface IntMap {
 
         @Override
         public void clear() {
-            Arrays.fill(this.values, NULL);
+            Arrays.fill(this.values, NULL_VALUE);
             this.size.set(0);
 //            this.size.reset();
             this.indexBlocksSet.clear();
@@ -419,30 +414,18 @@ public interface IntMap {
             return true;
         }
 
-        private final int offset(int key) {
+        private final long offset(int key) {
             if (key >= this.capacity || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.capacity);
             }
             // int key to int offset
-            int index = key;
-            // int offset to byte offset, and add the array base offset
-            int offset = (index << SHIFT) + BASE_OFFSET;
+            long index = key;
+            // int offset to byte offset
+            long offset = index << MUL4;
+            // add the array base offset
+            offset += BASE_OFFSET;
             return offset;
-        }
-
-        private static final int segmentSize(long capacity, int segments) {
-            long eachSize = capacity / segments;
-            eachSize = IntIterator.sizeToPowerOf2Size((int) eachSize);
-            /*
-             * Supply total size
-             * like capacity=20 and segments=19, then eachSize=1
-             * should increase eachSize to eachSize * 2.
-             */
-            while (eachSize * segments < capacity) {
-                eachSize <<= 1;
-            }
-            return (int) eachSize;
         }
 
         private final class KeyIterator implements Iterator<Integer> {
@@ -468,7 +451,7 @@ public interface IntMap {
                         int index = this.indexOfBlock << indexBlockSizeShift;
                         index += this.indexInBlock++;
                         int value = get(index);
-                        if (value != NULL) {
+                        if (value != NULL_VALUE) {
                             this.current = index;
                             return true;
                         }
@@ -498,7 +481,7 @@ public interface IntMap {
             private int indexOfBlock = 0;
             private int indexInBlock = 0;
 
-            private int current = NULL;
+            private int current = NULL_VALUE;
 
             public ValueIterator() {
                 this.indexOfBlock = indexBlocksSet.nextKey(this.indexOfBlock);
@@ -506,7 +489,7 @@ public interface IntMap {
 
             @Override
             public boolean hasNext() {
-                if (this.current != NULL) {
+                if (this.current != NULL_VALUE) {
                     return true;
                 }
                 while (this.indexOfBlock < indexBlocksNum) {
@@ -514,7 +497,7 @@ public interface IntMap {
                         int index = this.indexOfBlock << indexBlockSizeShift;
                         index += this.indexInBlock++;
                         int value = get(index);
-                        if (value != NULL) {
+                        if (value != NULL_VALUE) {
                             this.current = value;
                             return true;
                         }
@@ -528,13 +511,13 @@ public interface IntMap {
 
             @Override
             public Integer next() {
-                if (this.current == NULL) {
+                if (this.current == NULL_VALUE) {
                     if (!this.hasNext()) {
                         throw new NoSuchElementException();
                     }
                 }
                 Integer result = this.current;
-                this.current = NULL;
+                this.current = NULL_VALUE;
                 return result;
             }
         }
@@ -545,7 +528,7 @@ public interface IntMap {
         private final int segmentMask;
 
         public IntMapByEcSegment(int segments) {
-            segments = IntIterator.sizeToPowerOf2Size(segments);
+            segments = IntSet.sizeToPowerOf2Size(segments);
             this.segmentMask = segments - 1;
             this.maps = new MutableIntIntMap[segments];
             for (int i = 0; i < segments; i++) {
@@ -559,7 +542,7 @@ public interface IntMap {
             }
         }
 
-        private MutableIntIntMap map(int key) {
+        private final MutableIntIntMap map(int key) {
             // NOTE '%' is slower 20% ~ 50% than '&': key % this.maps.length;
             int index = key & this.segmentMask;
             return this.maps[index];
@@ -626,4 +609,7 @@ public interface IntMap {
             return false;
         }
     }
+
+    public static final int NULL_VALUE = Integer.MIN_VALUE;
+    public static final Unsafe UNSAFE = IntSet.UNSAFE;
 }
