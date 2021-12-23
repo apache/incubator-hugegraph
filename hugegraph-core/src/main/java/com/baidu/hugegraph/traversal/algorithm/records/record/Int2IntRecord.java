@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
-import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.baidu.hugegraph.util.collection.IntIterator;
 import com.baidu.hugegraph.util.collection.IntMap;
@@ -29,7 +28,7 @@ public class Int2IntRecord implements Record {
     private final IntMap layer;
 
     public Int2IntRecord() {
-        this.layer = CollectionFactory.newIntMap(CollectionType.EC);
+        this.layer = CollectionFactory.newIntMap();
     }
 
     @Override
@@ -44,7 +43,11 @@ public class Int2IntRecord implements Record {
 
     @Override
     public IntIterator get(int node) {
-        return null;
+        int value = this.layer.get(node);
+        if (value == IntMap.NULL_VALUE) {
+            return IntIterator.EMPTY;
+        }
+        return IntIterator.wrap(value);
     }
 
     @Override

@@ -62,7 +62,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         this.records = new Stack<>();
         this.records.push(firstRecord);
 
-        this.accessedVertices = CollectionFactory.newIntSet(CollectionType.EC);
+        this.accessedVertices = CollectionFactory.newIntSet();
     }
 
     @Override

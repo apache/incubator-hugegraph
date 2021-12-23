@@ -30,7 +30,6 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.baidu.hugegraph.util.collection.IntMap;
 import com.baidu.hugegraph.util.collection.IntSet;
@@ -43,7 +42,7 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
     public ShortestPathRecords(Id sourceV, Id targetV) {
         super(RecordType.INT, false, sourceV, targetV);
 
-        this.accessedVertices = CollectionFactory.newIntSet(CollectionType.EC);
+        this.accessedVertices = CollectionFactory.newIntSet();
         this.accessedVertices.add(this.code(sourceV));
         this.accessedVertices.add(this.code(targetV));
         this.pathFound = false;

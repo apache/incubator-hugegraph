@@ -27,8 +27,6 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
  */
 public class Int2IntsMap {
 
-    private static final int[] EMPTY = new int[0];
-
     private static final int INIT_KEY_CAPACITY = 16;
     private static final int CHUNK_SIZE = 10;
     private static final int EXPANSION_FACTOR = 2;
@@ -151,7 +149,7 @@ public class Int2IntsMap {
     public int[] getValues(int key) {
         int firstChunk = this.chunkMap.getIfAbsent(key, -1);
         if (firstChunk == -1) {
-            return EMPTY;
+            return com.baidu.hugegraph.util.collection.IntIterator.EMPTY_INTS;
         }
 
         int size = this.chunkTable[firstChunk + OFFSET_SIZE];
@@ -168,7 +166,7 @@ public class Int2IntsMap {
         return values;
     }
 
-    public IntIterator keyIterator() {
+    public IntIterator keys() {
         return this.chunkMap.keySet().intIterator();
     }
 
@@ -181,7 +179,7 @@ public class Int2IntsMap {
         int capacity = (this.size() + 1) * 64;
         StringBuilder sb = new StringBuilder(capacity);
         sb.append("{");
-        for (IntIterator iter = this.keyIterator(); iter.hasNext();) {
+        for (IntIterator iter = this.keys(); iter.hasNext();) {
             if (sb.length() > 1) {
                 sb.append(", ");
             }

@@ -26,7 +26,8 @@ import java.util.NoSuchElementException;
 
 public interface IntIterator {
 
-    public final static int[] EMPTY = new int[0];
+    public final int[] EMPTY_INTS = new int[0];
+    public final IntIterator EMPTY = new EmptyIntIterator();
 
     public boolean hasNext();
 
@@ -56,6 +57,30 @@ public interface IntIterator {
         return new ArrayIntIterator(values);
     }
 
+    public static IntIterator wrap(int value) {
+        return new ArrayIntIterator(new int[]{value});
+    }
+
+    public final class EcIntIterator implements IntIterator {
+
+        private final org.eclipse.collections.api.iterator.IntIterator iterator;
+
+        public EcIntIterator(org.eclipse.collections.api.iterator.IntIterator
+                             iterator) {
+            this.iterator = iterator;
+        }
+
+        @Override
+        public int next() {
+            return this.iterator.next();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.iterator.hasNext();
+        }
+    }
+
     public final class ArrayIntIterator implements IntIterator {
 
         private final int[] array;
@@ -77,23 +102,16 @@ public interface IntIterator {
         }
     }
 
-    public final class EcIntIterator implements IntIterator {
+    public final class EmptyIntIterator implements IntIterator {
 
-        private final org.eclipse.collections.api.iterator.IntIterator iterator;
-
-        public EcIntIterator(org.eclipse.collections.api.iterator.IntIterator
-                             iterator) {
-            this.iterator = iterator;
+        @Override
+        public boolean hasNext() {
+            return false;
         }
 
         @Override
         public int next() {
-            return this.iterator.next();
-        }
-
-        @Override
-        public boolean hasNext() {
-            return this.iterator.hasNext();
+            throw new NoSuchElementException();
         }
     }
 
