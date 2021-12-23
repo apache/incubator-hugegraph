@@ -65,7 +65,7 @@ public interface IntMap {
         private final int segmentMask;
         private final Function<Integer, IntMap> creator;
 
-        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 10;
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
                              size -> new IntMapByFixedAddr(size);
 

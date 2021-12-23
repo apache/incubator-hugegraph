@@ -56,7 +56,7 @@ public interface IntSet {
         private final int segmentMask;
         private final Function<Integer, IntSet> creator;
 
-        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 10;
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntSet> DEFAULT_CREATOR =
                              size -> new IntSetByFixedAddr4Unsigned(size);
 

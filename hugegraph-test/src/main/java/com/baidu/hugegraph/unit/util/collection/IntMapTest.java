@@ -231,7 +231,7 @@ public class IntMapTest extends BaseUnitTest {
         };
 
         Assert.assertEquals(count, testMap.apply(100000000, 100));
-        Assert.assertEquals(count, testMap.apply(Integer.MAX_VALUE, 4000));
+        Assert.assertEquals(count, testMap.apply(Integer.MAX_VALUE, 40000));
     }
 
     @Test

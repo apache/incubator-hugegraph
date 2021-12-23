@@ -144,8 +144,8 @@ import com.baidu.hugegraph.unit.util.collection.ObjectIntMappingTest;
 
     /* utils.collection */
     CollectionFactoryTest.class,
-    Int2IntsMapTest.class,
     ObjectIntMappingTest.class,
+    Int2IntsMapTest.class,
     IdSetTest.class,
     IntMapTest.class,
     IntSetTest.class
