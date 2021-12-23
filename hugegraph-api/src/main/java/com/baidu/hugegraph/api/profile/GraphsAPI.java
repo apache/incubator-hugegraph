@@ -166,25 +166,20 @@ public class GraphsAPI extends API {
         return file;
     }
 
-    @PUT
+    @DELETE
     @Timed
-    @Path("{name}")
+    @Path("{name}/clear")
     @Consumes(APPLICATION_JSON)
     @RolesAllowed("admin")
-    public Object clear(@Context GraphManager manager,
-                        @PathParam("name") String name,
-                        Map<String, String> content) {
+    public void clear(@Context GraphManager manager,
+                      @PathParam("name") String name,
+                      @QueryParam("confirm_message") String message) {
         LOG.debug("Clear graph by name '{}'", name);
 
-        E.checkArgument(content.containsKey(ACTION) &&
-                        GRAPH_ACTION_CLEAR.equals(ACTION),
-                        "Only accept action: %s", GRAPH_ACTION_CLEAR);
-        E.checkArgument(content.containsKey(MESSAGE) &&
-                        CONFIRM_CLEAR.equals(content.get(MESSAGE)),
+        E.checkArgument(CONFIRM_CLEAR.equals(message),
                         "Please take the message: %s", CONFIRM_CLEAR);
         HugeGraph g = graph(manager, name);
         g.truncateBackend();
-        return ImmutableMap.of(name, "cleared");
     }
 
     @PUT
