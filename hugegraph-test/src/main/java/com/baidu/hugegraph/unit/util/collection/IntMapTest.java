@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.unit.util;
+package com.baidu.hugegraph.unit.util.collection;
 
 import java.util.NoSuchElementException;
 import java.util.Random;
