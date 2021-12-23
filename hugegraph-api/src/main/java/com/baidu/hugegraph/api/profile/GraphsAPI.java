@@ -65,9 +65,11 @@ public class GraphsAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
+    private static final String CONFIRM_DROP = "I'm sure to drop the graph";
 
-    private static final String GRAPH_ACTION_CLONE = "clone";
-    private static final String GRAPH_ACTION_DROP = "drop";
+    private static final String GRAPH_ACTION_CLEAR = "clear";
+    private static final String ACTION = "action";
+    private static final String MESSAGE = "message";
 
     @GET
     @Timed
@@ -105,34 +107,19 @@ public class GraphsAPI extends API {
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
     }
 
-    @PUT
+    @DELETE
     @Timed
     @Path("{name}")
-    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
-    public Object manage(@Context GraphManager manager,
-                         @PathParam("name") String name,
-                         @QueryParam("action") String action,
-                         @QueryParam("new_graph_name") String newName,
-                         @QueryParam("confirm_message") String message,
-                         String configText) {
-        E.checkArgument(GRAPH_ACTION_CLONE.equals(action) ||
-                        GRAPH_ACTION_DROP.equals(action),
-                        "Not support action '%s'", action);
-        if (GRAPH_ACTION_CLONE.equals(action)) {
-            LOG.debug("Create graph {} with copied config from '{}'",
-                      newName, name);
-            HugeGraph graph = manager.cloneGraph(name, newName, configText);
-            return ImmutableMap.of("name", graph.name(),
-                                   "backend", graph.backend());
-        } else {
-            LOG.debug("Drop graph by name '{}'", name);
-            E.checkArgument(CONFIRM_CLEAR.equals(message),
-                            "Please take the message: %s", CONFIRM_CLEAR);
-            manager.dropGraph(name);
-            return ImmutableMap.of("name", name);
-        }
+    public void drop(@Context GraphManager manager,
+                     @PathParam("name") String name,
+                     @QueryParam("confirm_message") String message) {
+        LOG.debug("Drop graph by name '{}'", name);
+
+        E.checkArgument(CONFIRM_DROP.equals(message),
+                        "Please take the message: %s", CONFIRM_DROP);
+        manager.dropGraph(name);
     }
 
     @POST
@@ -143,9 +130,18 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
                          @PathParam("name") String name,
+                         @QueryParam("clone_graph_name") String clone,
                          String configText) {
-        LOG.debug("Create graph {} with config options '{}'", name, configText);
-        HugeGraph graph = manager.createGraph(name, configText);
+        HugeGraph graph;
+        if (clone != null && clone.isEmpty()) {
+            LOG.debug("Create graph {} with copied config from '{}'",
+                      name, clone);
+            graph = manager.cloneGraph(clone, name, configText);
+        } else {
+            LOG.debug("Create graph {} with config options '{}'", name,
+                      configText);
+            graph = manager.createGraph(name, configText);
+        }
         return ImmutableMap.of("name", graph.name(),
                                "backend", graph.backend());
     }
@@ -170,19 +166,25 @@ public class GraphsAPI extends API {
         return file;
     }
 
-    @DELETE
+    @PUT
     @Timed
-    @Path("{name}/clear")
+    @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @RolesAllowed("admin")
-    public void clear(@Context GraphManager manager,
-                      @PathParam("name") String name,
-                      @QueryParam("confirm_message") String message) {
+    public Object clear(@Context GraphManager manager,
+                        @PathParam("name") String name,
+                        Map<String, String> content) {
         LOG.debug("Clear graph by name '{}'", name);
-        E.checkArgument(CONFIRM_CLEAR.equals(message),
+
+        E.checkArgument(content.containsKey(ACTION) &&
+                        GRAPH_ACTION_CLEAR.equals(ACTION),
+                        "Only accept action: %s", GRAPH_ACTION_CLEAR);
+        E.checkArgument(content.containsKey(MESSAGE) &&
+                        CONFIRM_CLEAR.equals(content.get(MESSAGE)),
                         "Please take the message: %s", CONFIRM_CLEAR);
         HugeGraph g = graph(manager, name);
         g.truncateBackend();
+        return ImmutableMap.of(name, "cleared");
     }
 
     @PUT
