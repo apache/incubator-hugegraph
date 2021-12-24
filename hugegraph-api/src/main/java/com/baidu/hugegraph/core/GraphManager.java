@@ -217,6 +217,8 @@ public final class GraphManager {
     }
 
     private PropertiesConfiguration buildConfig(String configText) {
+        E.checkArgument(configText != null && !configText.isEmpty(),
+                        "The config text can't be null or empty");
         PropertiesConfiguration propConfig = new PropertiesConfiguration();
         try {
             InputStream in = new ByteArrayInputStream(configText.getBytes(

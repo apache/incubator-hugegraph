@@ -127,6 +127,8 @@ public class GraphsAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("clone_graph_name") String clone,
                          String configText) {
+        E.checkArgument(configText != null && !configText.isEmpty(),
+                        "The config text can't be null or empty");
         HugeGraph graph;
         if (clone != null && !clone.isEmpty()) {
             LOG.debug("Create graph {} with copied config from '{}'",
