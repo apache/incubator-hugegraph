@@ -98,6 +98,11 @@ public class HugeFactory {
         return open(getRemoteConfig(url));
     }
 
+    public static void remove(HugeGraph graph) {
+        String name = graph.option(CoreOptions.STORE);
+        graphs.remove(name);
+    }
+
     public static void checkGraphName(String name, String configFile) {
         E.checkArgument(name.matches(NAME_REGEX),
                         "Invalid graph name '%s' in %s, " +
@@ -143,11 +148,5 @@ public class HugeFactory {
             LOG.error("Error while shutdown", e);
             throw new HugeException("Failed to shutdown", e);
         }
-    }
-
-    public static void remove(HugeGraph graph) {
-        HugeConfig config = (HugeConfig) graph.configuration();
-        String name = config.get(CoreOptions.STORE);
-        graphs.remove(name);
     }
 }
