@@ -21,7 +21,7 @@ package com.baidu.hugegraph.dist;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
@@ -29,32 +29,8 @@ public class HugeRestServer {
 
     private static final Logger LOG = Log.logger(HugeRestServer.class);
 
-    public static void main(String[] args) throws Exception {
-        if (args.length != 1) {
-            String msg = "HugeRestServer can only accept one config files";
-            LOG.error(msg);
-            throw new HugeException(msg);
-        }
-
-        try {
-            // Start HugeRestServer
-            start(args[0]);
-        } catch (Exception e) {
-            LOG.error("HugeRestServer error:", e);
-            throw e;
-        }
-        LOG.info("HugeRestServer stopped");
-    }
-
-    public static void register() {
-        RegisterUtil.registerBackends();
-        RegisterUtil.registerPlugins();
-    }
-
-    public static RestServer start(String conf) throws Exception {
-        RegisterUtil.registerServer();
-
+    public static RestServer start(String conf, EventHub hub) throws Exception {
         // Start RestServer
-        return RestServer.start(conf);
+        return RestServer.start(conf, hub);
     }
 }

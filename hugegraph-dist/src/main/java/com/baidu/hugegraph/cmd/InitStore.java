@@ -20,13 +20,10 @@
 package com.baidu.hugegraph.cmd;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
-import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
@@ -37,6 +34,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
@@ -44,7 +42,6 @@ public class InitStore {
 
     private static final Logger LOG = Log.logger(InitStore.class);
 
-    private static final String GRAPHS = ServerOptions.GRAPHS.name();
     // 6~8 retries may be needed under high load for Cassandra backend
     private static final int RETRIES = 10;
     // Less than 5000 may cause mismatch exception with Cassandra backend
@@ -62,44 +59,27 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
-        E.checkArgument(args.length == 2,
-                        "HugeGraph init-store can only accept two config files");
-        E.checkArgument(args[0].endsWith(".yaml"),
-                        "Expect the 1st parameter is yaml config file");
-        E.checkArgument(args[1].endsWith(".properties"),
-                        "Expect the 2nd parameter is properties config file");
+        E.checkArgument(args.length == 1,
+                        "HugeGraph init-store need to pass the config file " +
+                        "of RestServer, like: conf/rest-server.properties");
+        E.checkArgument(args[0].endsWith(".properties"),
+                        "Expect the parameter is properties config file.");
 
-        String gremlinConfFile = args[0];
-        String restConfFile = args[1];
+        String restConf = args[0];
 
         RegisterUtil.registerBackends();
         RegisterUtil.registerPlugins();
         RegisterUtil.registerServer();
 
-        YamlConfiguration config = new YamlConfiguration();
-        config.load(gremlinConfFile);
+        HugeConfig restServerConfig = new HugeConfig(restConf);
+        String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
+        Map<String, String> graphs = ConfigUtil.scanGraphsDir(graphsDir);
 
-        List<ConfigurationNode> nodes = config.getRootNode()
-                                              .getChildren(GRAPHS);
-        E.checkArgument(nodes.size() == 1,
-                        "Must contain one '%s' node in config file '%s'",
-                        GRAPHS, gremlinConfFile);
-
-        List<ConfigurationNode> graphNames = nodes.get(0).getChildren();
-
-        E.checkArgument(!graphNames.isEmpty(),
-                        "Must contain at least one graph");
-
-        for (ConfigurationNode graphName : graphNames) {
-            @SuppressWarnings("unchecked")
-            String name = ((Map.Entry<String, Object>)
-                           graphName.getReference()).getKey();
-            HugeFactory.checkGraphName(name, "gremlin-server.yaml");
-            String configPath = graphName.getValue().toString();
-            initGraph(configPath);
+        for (Map.Entry<String, String> entry : graphs.entrySet()) {
+            initGraph(entry.getValue());
         }
 
-        StandardAuthenticator.initAdminUserIfNeeded(restConfFile);
+        StandardAuthenticator.initAdminUserIfNeeded(restConf);
 
         HugeFactory.shutdown(30L);
     }

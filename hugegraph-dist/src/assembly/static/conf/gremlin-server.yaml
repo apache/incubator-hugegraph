@@ -6,8 +6,8 @@
 scriptEvaluationTimeout: 30000
 
 channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
+# don't set graph at here, this happens after support for dynamically adding graph
 graphs: {
-  hugegraph: conf/hugegraph.properties
 }
 scriptEngines: {
   gremlin-groovy: {

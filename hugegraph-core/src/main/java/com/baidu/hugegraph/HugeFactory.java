@@ -144,4 +144,10 @@ public class HugeFactory {
             throw new HugeException("Failed to shutdown", e);
         }
     }
+
+    public static void remove(HugeGraph graph) {
+        HugeConfig config = (HugeConfig) graph.configuration();
+        String name = config.get(CoreOptions.STORE);
+        graphs.remove(name);
+    }
 }

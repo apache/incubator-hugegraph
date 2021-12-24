@@ -31,6 +31,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotSupportedException;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -63,6 +64,7 @@ public class GraphsAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
+    private static final String CONFIRM_DROP = "I'm sure to drop the graph";
 
     @GET
     @Timed
@@ -100,6 +102,47 @@ public class GraphsAPI extends API {
         return ImmutableMap.of("name", g.name(), "backend", g.backend());
     }
 
+    @DELETE
+    @Timed
+    @Path("{name}")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$name"})
+    public void drop(@Context GraphManager manager,
+                     @PathParam("name") String name,
+                     @QueryParam("confirm_message") String message) {
+        LOG.debug("Drop graph by name '{}'", name);
+
+        E.checkArgument(CONFIRM_DROP.equals(message),
+                        "Please take the message: %s", CONFIRM_DROP);
+        manager.dropGraph(name);
+    }
+
+    @POST
+    @Timed
+    @Path("{name}")
+    @Consumes(APPLICATION_JSON_WITH_CHARSET)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
+    public Object create(@Context GraphManager manager,
+                         @PathParam("name") String name,
+                         @QueryParam("clone_graph_name") String clone,
+                         String configText) {
+        E.checkArgument(configText != null && !configText.isEmpty(),
+                        "The config text can't be null or empty");
+        HugeGraph graph;
+        if (clone != null && !clone.isEmpty()) {
+            LOG.debug("Create graph {} with copied config from '{}'",
+                      name, clone);
+            graph = manager.cloneGraph(clone, name, configText);
+        } else {
+            LOG.debug("Create graph {} with config options '{}'", name,
+                      configText);
+            graph = manager.createGraph(name, configText);
+        }
+        return ImmutableMap.of("name", graph.name(),
+                               "backend", graph.backend());
+    }
+
     @GET
     @Timed
     @Path("{name}/conf")
@@ -130,12 +173,9 @@ public class GraphsAPI extends API {
                       @QueryParam("confirm_message") String message) {
         LOG.debug("Clear graph by name '{}'", name);
 
+        E.checkArgument(CONFIRM_CLEAR.equals(message),
+                        "Please take the message: %s", CONFIRM_CLEAR);
         HugeGraph g = graph(manager, name);
-
-        if (!CONFIRM_CLEAR.equals(message)) {
-            throw new IllegalArgumentException(String.format(
-                      "Please take the message: %s", CONFIRM_CLEAR));
-        }
         g.truncateBackend();
     }
 
