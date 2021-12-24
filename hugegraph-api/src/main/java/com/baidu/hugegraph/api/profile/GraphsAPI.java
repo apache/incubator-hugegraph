@@ -133,7 +133,7 @@ public class GraphsAPI extends API {
                          @QueryParam("clone_graph_name") String clone,
                          String configText) {
         HugeGraph graph;
-        if (clone != null && clone.isEmpty()) {
+        if (clone != null && !clone.isEmpty()) {
             LOG.debug("Create graph {} with copied config from '{}'",
                       name, clone);
             graph = manager.cloneGraph(clone, name, configText);
