@@ -25,7 +25,7 @@ import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.traversal.algorithm.records.record.Record;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordFactory;
 import com.baidu.hugegraph.traversal.algorithm.records.record.RecordType;
-import com.baidu.hugegraph.util.collection.MappingFactory;
+import com.baidu.hugegraph.util.collection.ObjectIntMappingFactory;
 import com.baidu.hugegraph.util.collection.ObjectIntMapping;
 
 public abstract class AbstractRecords implements Records {
@@ -40,7 +40,7 @@ public abstract class AbstractRecords implements Records {
         this.type = type;
         this.concurrent = concurrent;
         this.parentRecord = null;
-        this.idMapping = MappingFactory.newObjectIntMapping(this.concurrent);
+        this.idMapping = ObjectIntMappingFactory.newObjectIntMapping(this.concurrent);
     }
 
     @Watched

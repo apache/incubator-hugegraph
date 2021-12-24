@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
+import com.baidu.hugegraph.util.collection.IntIterator;
+
 public class SyncRecord implements Record {
 
     private final Object lock;
@@ -76,5 +78,10 @@ public class SyncRecord implements Record {
         synchronized (this.lock) {
             return this.record.size();
         }
+    }
+
+    @Override
+    public boolean concurrent() {
+        return true;
     }
 }

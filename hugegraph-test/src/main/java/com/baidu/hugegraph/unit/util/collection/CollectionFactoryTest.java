@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.baidu.hugegraph.unit.util;
+package com.baidu.hugegraph.unit.util.collection;
 
 import java.util.ArrayList;
 import java.util.Collection;

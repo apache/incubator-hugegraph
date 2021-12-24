@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
 import com.baidu.hugegraph.util.collection.Int2IntsMap;
+import com.baidu.hugegraph.util.collection.IntIterator;
 
 public class Int2ArrayRecord implements Record {
 
@@ -31,7 +32,7 @@ public class Int2ArrayRecord implements Record {
 
     @Override
     public IntIterator keys() {
-        return new IntIterator(this.layer.keyIterator());
+        return IntIterator.wrap(this.layer.keys());
     }
 
     @Override
@@ -41,7 +42,7 @@ public class Int2ArrayRecord implements Record {
 
     @Override
     public IntIterator get(int node) {
-        return new IntIterator(this.layer.getValues(node));
+        return IntIterator.wrap(this.layer.getValues(node));
     }
 
     @Override
@@ -52,6 +53,11 @@ public class Int2ArrayRecord implements Record {
     @Override
     public int size() {
         return this.layer.size();
+    }
+
+    @Override
+    public boolean concurrent() {
+        return false;
     }
 
     @Override

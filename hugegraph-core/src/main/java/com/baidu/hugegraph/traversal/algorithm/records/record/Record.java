@@ -19,15 +19,19 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records.record;
 
+import com.baidu.hugegraph.util.collection.IntIterator;
+
 public interface Record {
 
-    public abstract IntIterator keys();
+    public IntIterator keys();
 
-    public abstract boolean containsKey(int node);
+    public boolean containsKey(int node);
 
-    public abstract IntIterator get(int node);
+    public IntIterator get(int node);
 
-    public abstract void addPath(int node, int parent);
+    public void addPath(int node, int parent);
 
-    public abstract int size();
+    public int size();
+
+    public boolean concurrent();
 }

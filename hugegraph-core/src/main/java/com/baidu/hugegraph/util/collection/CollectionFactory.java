@@ -230,7 +230,8 @@ public class CollectionFactory {
         return new IntObjectHashMap<>();
     }
 
-    public static <V> MutableIntObjectMap<V> newIntObjectMap(int initialCapacity) {
+    public static <V> MutableIntObjectMap<V> newIntObjectMap(
+                                             int initialCapacity) {
         return new IntObjectHashMap<>(initialCapacity);
     }
 
@@ -260,5 +261,23 @@ public class CollectionFactory {
 
     public static IdSet newIdSet(CollectionType type) {
         return new IdSet(type);
+    }
+
+    public static IntSet newIntSet() {
+        /*
+         * Resume to the old version like this:
+         * return concurrent ? new IntHashSet().asSynchronized() :
+         *                     new IntHashSet();
+         */
+        return new IntSet.IntSetBySegments(Integer.MAX_VALUE);
+    }
+
+    public static IntMap newIntMap() {
+        /*
+         * Resume to the old version like this:
+         * return concurrent ? new IntIntHashMap().asSynchronized() :
+         *                     new IntIntHashMap();
+         */
+        return new IntMap.IntMapBySegments(Integer.MAX_VALUE);
     }
 }
