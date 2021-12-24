@@ -38,7 +38,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
@@ -66,10 +65,6 @@ public class GraphsAPI extends API {
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";
-
-    private static final String GRAPH_ACTION_CLEAR = "clear";
-    private static final String ACTION = "action";
-    private static final String MESSAGE = "message";
 
     @GET
     @Timed
@@ -125,7 +120,7 @@ public class GraphsAPI extends API {
     @POST
     @Timed
     @Path("{name}")
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(APPLICATION_JSON_WITH_CHARSET)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,

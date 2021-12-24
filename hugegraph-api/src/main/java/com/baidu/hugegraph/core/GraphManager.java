@@ -47,6 +47,7 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -82,6 +83,9 @@ public final class GraphManager {
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
+
+    private Id server;
+    private NodeRole role;
 
     private final EventHub eventHub;
 
@@ -200,6 +204,7 @@ public final class GraphManager {
         }
         try {
             graph.initBackend();
+            graph.serverStarted(this.server, this.role);
         } catch (BackendException e) {
             HugeFactory.remove(graph);
             throw e;
@@ -438,11 +443,12 @@ public final class GraphManager {
                         "The server name can't be null or empty");
         E.checkArgument(role != null && !role.isEmpty(),
                         "The server role can't be null or empty");
-        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
+        this.server = IdGenerator.of(server);
+        this.role = NodeRole.valueOf(role.toUpperCase());
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
-            hugegraph.serverStarted(IdGenerator.of(server), nodeRole);
+            hugegraph.serverStarted(this.server, this.role);
         }
     }
 
