@@ -359,7 +359,9 @@ public final class GraphManager {
     }
 
     private HugeAuthenticator authenticator() {
-        E.checkState(this.authenticator != null, "Unconfigured authenticator");
+        E.checkState(this.authenticator != null,
+                     "Unconfigured authenticator, please config " +
+                     "auth.authenticator option in rest-server.properties");
         return this.authenticator;
     }
 
