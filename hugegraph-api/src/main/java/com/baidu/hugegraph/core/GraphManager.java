@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.core;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,7 +37,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
@@ -107,32 +104,6 @@ public final class GraphManager {
         this.addMetrics(conf);
     }
 
-    public void destroy() {
-        this.unlistenChanges();
-    }
-
-    private void listenChanges() {
-        this.eventHub.listen(Events.GRAPH_CREATE, event -> {
-            LOG.debug("RestServer accepts event 'graph.create'");
-            event.checkArgs(HugeGraph.class);
-            HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.put(graph.name(), graph);
-            return null;
-        });
-        this.eventHub.listen(Events.GRAPH_DROP, event -> {
-            LOG.debug("RestServer accepts event 'graph.drop'");
-            event.checkArgs(String.class);
-            String name = (String) event.args()[0];
-            this.graphs.remove(name);
-            return null;
-        });
-    }
-
-    private void unlistenChanges() {
-        this.eventHub.unlisten(Events.GRAPH_CREATE);
-        this.eventHub.unlisten(Events.GRAPH_DROP);
-    }
-
     public void loadGraphs(final Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
@@ -167,7 +138,7 @@ public final class GraphManager {
         E.checkArgumentNotNull(newName, "The graph name can't be null");
         E.checkArgument(!this.graphs().contains(newName),
                         "The graph '%s' has existed", newName);
-        PropertiesConfiguration propConfig = this.buildConfig(configText);
+        PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
 
         HugeConfig cloneConfig = g.cloneConfig();
         cloneConfig.setDelimiterParsingDisabled(true);
@@ -176,7 +147,10 @@ public final class GraphManager {
             cloneConfig.setProperty(key, propConfig.getProperty(key));
         });
         this.checkOptions(cloneConfig);
-        return this.createGraph(cloneConfig);
+        HugeGraph graph = this.createGraph(cloneConfig);
+        // Write config to disk file
+        ConfigUtil.writeToFile(this.graphsDir, graph.name(), cloneConfig);
+        return graph;
     }
 
     public HugeGraph createGraph(String name, String configText) {
@@ -184,72 +158,22 @@ public final class GraphManager {
         E.checkArgument(!this.graphs().contains(name),
                         "The graph name '%s' has existed", name);
 
-        PropertiesConfiguration propConfig = this.buildConfig(configText);
+        PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
-        return this.createGraph(config);
-    }
-
-    private HugeGraph createGraph(HugeConfig config) {
-        // open succeed will fill graph instance into HugeFactory graphs(map)
-        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
-        if (this.requireAuthentication()) {
-            /*
-             * The main purpose is to call method
-             * verifyPermission(HugePermission.WRITE, ResourceType.STATUS)
-             * that is private
-             */
-            graph.mode(GraphMode.NONE);
-        }
-        try {
-            graph.initBackend();
-            graph.serverStarted(this.server, this.role);
-        } catch (BackendException e) {
-            HugeFactory.remove(graph);
-            throw e;
-        }
-        // Let gremlin server and rest server context add graph
-        this.eventHub.notify(Events.GRAPH_CREATE, graph);
+        HugeGraph graph = this.createGraph(config);
         // Write config to disk file
         ConfigUtil.writeToFile(this.graphsDir, graph.name(), config);
         return graph;
     }
 
-    private PropertiesConfiguration buildConfig(String configText) {
-        E.checkArgument(configText != null && !configText.isEmpty(),
-                        "The config text can't be null or empty");
-        PropertiesConfiguration propConfig = new PropertiesConfiguration();
-        try {
-            InputStream in = new ByteArrayInputStream(configText.getBytes(
-                                                      API.CHARSET));
-            propConfig.setDelimiterParsingDisabled(true);
-            propConfig.load(in);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to read config options", e);
-        }
-        return propConfig;
-    }
-
-    private void checkOptions(HugeConfig config) {
-        // The store cannot be the same as the existing graph
-        this.checkOptionsUnique(config, CoreOptions.STORE);
-        /*
-         * NOTE: rocksdb can't use same data path for different graph,
-         *       but it's not easy to check here
-         */
-        String backend = config.get(CoreOptions.BACKEND);
-        if (backend.equalsIgnoreCase("rocksdb")) {
-            // TODO: should check data path...
-        }
-    }
-
     public void dropGraph(String name) {
-        HugeGraph g = this.graph(name);
-        E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
+        HugeGraph graph = this.graph(name);
+        E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
         E.checkArgument(this.graphs.size() > 1,
                         "The graph '%s' is the only one, not allowed to delete",
                         name);
-        g.drop();
+        graph.drop();
         // Let gremlin server and rest server context remove graph
         this.eventHub.notify(Events.GRAPH_DROP, name);
     }
@@ -316,6 +240,7 @@ public final class GraphManager {
 
     public void close() {
         this.destroyRpcServer();
+        this.unlistenChanges();
     }
 
     private void startRpcServer() {
@@ -485,6 +410,65 @@ public final class GraphManager {
         MetricsUtil.registerGauge(TaskManager.class, "pending-tasks", () -> {
             return TaskManager.instance().pendingTasks();
         });
+    }
+
+    private void listenChanges() {
+        this.eventHub.listen(Events.GRAPH_CREATE, event -> {
+            LOG.debug("RestServer accepts event {}", event.name());
+            event.checkArgs(HugeGraph.class);
+            HugeGraph graph = (HugeGraph) event.args()[0];
+            this.graphs.put(graph.name(), graph);
+            return null;
+        });
+        this.eventHub.listen(Events.GRAPH_DROP, event -> {
+            LOG.debug("RestServer accepts event {}", event.name());
+            event.checkArgs(String.class);
+            String name = (String) event.args()[0];
+            this.graphs.remove(name);
+            return null;
+        });
+    }
+
+    private void unlistenChanges() {
+        this.eventHub.unlisten(Events.GRAPH_CREATE);
+        this.eventHub.unlisten(Events.GRAPH_DROP);
+    }
+
+    private HugeGraph createGraph(HugeConfig config) {
+        // Will fill graph instance into HugeFactory.graphs after open succeed
+        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
+        if (this.requireAuthentication()) {
+            /*
+             * The main purpose is to call method
+             * verifyPermission(HugePermission.WRITE, ResourceType.STATUS)
+             * that is private
+             */
+            graph.mode(GraphMode.NONE);
+        }
+
+        try {
+            graph.initBackend();
+            graph.serverStarted(this.server, this.role);
+        } catch (BackendException e) {
+            HugeFactory.remove(graph);
+            throw e;
+        }
+        // Let gremlin server and rest server add graph to context
+        this.eventHub.notify(Events.GRAPH_CREATE, graph);
+        return graph;
+    }
+
+    private void checkOptions(HugeConfig config) {
+        // The store cannot be the same as the existing graph
+        this.checkOptionsUnique(config, CoreOptions.STORE);
+        /*
+         * NOTE: rocksdb can't use same data path for different graph,
+         *       but it's not easy to check here
+         */
+        String backend = config.get(CoreOptions.BACKEND);
+        if (backend.equalsIgnoreCase("rocksdb")) {
+            // TODO: should check data path...
+        }
     }
 
     private void checkOptionsUnique(HugeConfig config,

@@ -42,7 +42,7 @@ public class HugeGremlinServer {
         try {
             settings = Settings.read(conf);
         } catch (Exception e) {
-            LOG.error("Can't found the configuration file at {} or " +
+            LOG.error("Can't found the configuration file at '{}' or " +
                       "being parsed properly. [{}]", conf, e.getMessage());
             throw e;
         }

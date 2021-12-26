@@ -927,7 +927,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public HugeConfig cloneConfig() {
-        return (HugeConfig) this.configuration().clone();
+        HugeConfig config = (HugeConfig) this.configuration().clone();
+        return config;
     }
 
     @Override
