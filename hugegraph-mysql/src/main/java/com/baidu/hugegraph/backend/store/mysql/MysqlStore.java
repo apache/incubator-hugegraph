@@ -123,8 +123,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         try {
             this.sessions.open();
         } catch (Exception e) {
-            if (!e.getMessage().startsWith("Unknown database") ||
-                !e.getMessage().endsWith("does not exist")) {
+            if (!e.getMessage().startsWith("Unknown database")) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
             if (this.isSchemaStore()) {
