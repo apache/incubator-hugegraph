@@ -123,6 +123,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         try {
             this.sessions.open();
         } catch (Exception e) {
+            LOG.error("Error to connect to mysql: {}", e.getMessage(), e);
             if (!e.getMessage().startsWith("Unknown database")) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
@@ -143,7 +144,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             throw new BackendException("Failed to open database", e);
         }
 
-        LOG.debug("Store opened: {}", this.store);
+        LOG.info("Store opened: {}", this.store);
     }
 
     @Override
