@@ -220,8 +220,9 @@ public class MysqlSessions extends BackendSessionPool {
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
         String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
+        boolean forcedAutoReconnect = this.config.get(MysqlOptions.AUTO_RECONNECT);
         // TODO: test now
-        autoReconnect = this.config.get(MysqlOptions.AUTO_RECONNECT);
+        autoReconnect = autoReconnect || forcedAutoReconnect;
 
         URIBuilder builder = this.newConnectionURIBuilder();
         builder.setPath(url).setParameter("useSSL", sslMode);
@@ -234,6 +235,9 @@ public class MysqlSessions extends BackendSessionPool {
                    .setParameter("initialTimeout", String.valueOf(interval));
         }
         if (timeout != null) {
+            if (timeout.equals(0)) {
+                timeout = 1;
+            }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
         return builder.toString();
