@@ -19,10 +19,14 @@
 
 package com.baidu.hugegraph.backend.store.rocksdb;
 
+import java.io.File;
+
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBGraphStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStore.RocksDBSchemaStore;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.util.ConfigUtil;
 
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
 
@@ -38,6 +42,29 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     @Override
     protected BackendStore newGraphStore(String store) {
         return new RocksDBGraphStore(this, this.database(), store);
+    }
+
+    @Override
+    public void onCloneConfig(HugeConfig config, String newGraph) {
+        super.onCloneConfig(config, newGraph);
+
+        // NOTE: rocksdb can't use same data path for different graph
+        String suffix = "_" + newGraph;
+        String dataPath = config.get(RocksDBOptions.DATA_PATH);
+        config.setProperty(RocksDBOptions.DATA_PATH.name(), dataPath + suffix);
+
+        String walPath = config.get(RocksDBOptions.WAL_PATH);
+        config.setProperty(RocksDBOptions.WAL_PATH.name(), walPath + suffix);
+    }
+
+    @Override
+    public void onDeleteConfig(HugeConfig config) {
+        super.onDeleteConfig(config);
+
+        String dataPath = config.get(RocksDBOptions.DATA_PATH);
+        String walPath = config.get(RocksDBOptions.WAL_PATH);
+        ConfigUtil.deleteFile(new File(dataPath));
+        ConfigUtil.deleteFile(new File(walPath));
     }
 
     @Override

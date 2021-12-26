@@ -70,7 +70,7 @@ public final class ConfigUtil {
     }
 
     public static Map<String, String> scanGraphsDir(String graphsDirPath) {
-        LOG.info("Scaning graphs configuration directory {}", graphsDirPath);
+        LOG.info("Scaning option 'graphs' directory '{}'", graphsDirPath);
         File graphsDir = new File(graphsDirPath);
         E.checkArgument(graphsDir.exists() && graphsDir.isDirectory(),
                         "Please ensure the path '%s' of option 'graphs' " +
@@ -106,16 +106,19 @@ public final class ConfigUtil {
     }
 
     public static void deleteFile(File file) {
+        if (!file.exists()) {
+            return;
+        }
         try {
             FileUtils.forceDelete(file);
         } catch (IOException e) {
-            throw new HugeException("Failed to delete HugeConfig file {}",
+            throw new HugeException("Failed to delete HugeConfig file '{}'",
                                     e, file);
         }
     }
 
     public static PropertiesConfiguration buildConfig(String configText) {
-        E.checkArgument(configText != null && !configText.isEmpty(),
+        E.checkArgument(StringUtils.isNotEmpty(configText),
                         "The config text can't be null or empty");
         PropertiesConfiguration propConfig = new PropertiesConfiguration();
         try {

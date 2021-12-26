@@ -40,6 +40,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -127,16 +128,12 @@ public class GraphsAPI extends API {
                          @PathParam("name") String name,
                          @QueryParam("clone_graph_name") String clone,
                          String configText) {
-        E.checkArgument(configText != null && !configText.isEmpty(),
-                        "The config text can't be null or empty");
+        LOG.debug("Create graph '{}' with clone graph '{}', config text '{}'",
+                  name, clone, configText);
         HugeGraph graph;
-        if (clone != null && !clone.isEmpty()) {
-            LOG.debug("Create graph {} with copied config from '{}'",
-                      name, clone);
+        if (StringUtils.isNotEmpty(clone)) {
             graph = manager.cloneGraph(clone, name, configText);
         } else {
-            LOG.debug("Create graph {} with config options '{}'", name,
-                      configText);
             graph = manager.createGraph(name, configText);
         }
         return ImmutableMap.of("name", graph.name(),

@@ -31,6 +31,7 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -218,6 +219,16 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);
         LOG.debug("Graph '{}' has writed snapshot", this.graph());
+    }
+
+    @Override
+    public void onCloneConfig(HugeConfig config, String newGraph) {
+        this.provider.onCloneConfig(config, newGraph);
+    }
+
+    @Override
+    public void onDeleteConfig(HugeConfig config) {
+        this.provider.onDeleteConfig(config);
     }
 
     @Override

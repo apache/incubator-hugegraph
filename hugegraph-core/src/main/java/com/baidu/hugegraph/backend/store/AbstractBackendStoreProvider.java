@@ -28,6 +28,8 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.util.E;
@@ -207,5 +209,15 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public EventHub storeEventHub() {
         return this.storeEventHub;
+    }
+
+    @Override
+    public void onCloneConfig(HugeConfig config, String newGraph) {
+        config.setProperty(CoreOptions.STORE.name(), newGraph);
+    }
+
+    @Override
+    public void onDeleteConfig(HugeConfig config) {
+        // pass
     }
 }

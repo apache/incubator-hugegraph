@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 
@@ -63,4 +64,8 @@ public interface BackendStoreProvider {
     public void unlisten(EventListener listener);
 
     public EventHub storeEventHub();
+
+    public void onCloneConfig(HugeConfig config, String newGraph);
+
+    public void onDeleteConfig(HugeConfig config);
 }
