@@ -236,7 +236,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
         if (timeout != null) {
             if (timeout.equals(0)) {
-                timeout = 1;
+                timeout = 5;
             }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
@@ -261,7 +261,7 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     private Connection connect(String url) throws SQLException {
-        LOG.info("Connect to the jdbc url: '{}'", url);
+        LOG.info("Connect to the jdbc url: '{}'", url, new Exception("just-for-debug"));
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);
