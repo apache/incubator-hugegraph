@@ -38,7 +38,6 @@ import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.util.StringEncoding;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.AuthenticationFilter;
@@ -48,6 +47,7 @@ import com.baidu.hugegraph.auth.AuthConstant;
 import com.baidu.hugegraph.auth.UserWithRole;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -63,11 +63,12 @@ import java.util.Date;
 @Singleton
 public class LoginAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
-
     private static final DateFormat DATE_FORMAT =
                                     new SimpleDateFormat("yyyyMMdd");
 
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(RestServer.class);
+ 
     @POST
     @Timed
     @Path("login")
@@ -76,7 +77,6 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
                         JsonLogin jsonLogin) {
-        LOG.debug("User login: {}", jsonLogin);
         checkCreatingBody(jsonLogin);
 
         try {
@@ -101,7 +101,6 @@ public class LoginAPI extends API {
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
-        LOG.debug("User logout: {}", auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -125,7 +124,6 @@ public class LoginAPI extends API {
                               String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
-        LOG.debug("verify token: {}", token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException(
@@ -152,7 +150,6 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String kgLogin(@Context GraphManager manager,
                           KgJsonLogin jsonLogin) {
-        LOG.debug("Kg User login: {}", jsonLogin);
         checkCreatingBody(jsonLogin);
         String content = String.format("%s:%s", jsonLogin.name,
                                        DATE_FORMAT.format(new Date()));
