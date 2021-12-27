@@ -24,7 +24,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -33,6 +32,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.define.UpdateStrategy;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeElement;
@@ -44,7 +44,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class BatchAPI extends API {
 
-    private static final Logger LOG = Log.logger(BatchAPI.class);
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(BatchAPI.class);
     private static final int BUSY_TIME_OUT = 10;
 
     // NOTE: VertexAPI and EdgeAPI should share a counter
@@ -80,7 +81,9 @@ public class BatchAPI extends API {
             throw new HugeException("The rest server is too busy to write");
         }
 
-        LOG.debug("The batch writing threads is {}", batchWriteThreads);
+        LOGGER.logCustomDebug(
+            "The batch writing threads is {}", RestServer.EXECUTOR, batchWriteThreads);
+
         try {
             R result = commit(g, callable);
             this.batchMeter.mark(size);

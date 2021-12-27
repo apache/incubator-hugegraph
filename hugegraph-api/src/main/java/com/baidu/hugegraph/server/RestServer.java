@@ -55,6 +55,8 @@ public class RestServer {
     private final EventHub eventHub;
     private HttpServer httpServer = null;
 
+    public final static String EXECUTOR = "system";
+
     public RestServer(HugeConfig conf, EventHub hub) {
         this.conf = conf;
         this.eventHub = hub;
