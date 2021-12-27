@@ -42,7 +42,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
@@ -50,6 +49,7 @@ import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.auth.RolePermission;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -61,7 +61,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     public static final String BASIC_AUTH_PREFIX = "Basic ";
     public static final String BEARER_TOKEN_PREFIX = "Bearer ";
 
-    private static final Logger LOG = Log.logger(AuthenticationFilter.class);
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(AuthenticationFilter.class);
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
             "auth/login",
@@ -266,18 +267,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 }
             }
 
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Verify permission {} {} for user '{}' with role {}",
-                          requiredPerm.action().string(),
-                          requiredPerm.resourceObject(),
-                          this.user.username(), this.user.role());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.logCustomDebug(
+                    "Verify permission {} {} for user '{}' with role {}",
+                    "Jermy Li",
+                    requiredPerm.action().string(),
+                    requiredPerm.resourceObject(),
+                    this.user.username(), this.user.role());
             }
 
             if (!valid && LOG.isInfoEnabled() &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
-                LOG.info("User '{}' is denied to {} {}",
-                         this.user.username(), requiredPerm.action().string(),
-                         requiredPerm.resourceObject());
+                    LOGGER.getAuditLogger().logUserAccessDenied(
+                        user.userId().asString(),
+                        requiredPerm.action().string(),
+                        requiredPerm.resourceObject());
             }
             return valid;
         }

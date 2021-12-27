@@ -31,12 +31,11 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.NotSupportedException;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.space.GraphSpace;
@@ -89,7 +88,8 @@ public class API {
         }
     }
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(RestServer.class);
 
     public static final String CHARSET = "UTF-8";
 
@@ -165,12 +165,12 @@ public class API {
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
         Consumer<Throwable> rollback = (error) -> {
             if (error != null) {
-                LOG.error("Failed to commit", error);
+                LOGGER.getServerLogger().logCommitFailed(error);
             }
             try {
                 g.tx().rollback();
             } catch (Throwable e) {
-                LOG.error("Failed to rollback", e);
+                LOGGER.getServerLogger().logRollbackFailed(e);
             }
         };
 
