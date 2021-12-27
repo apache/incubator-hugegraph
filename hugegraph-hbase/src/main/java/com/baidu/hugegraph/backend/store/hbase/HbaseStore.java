@@ -156,18 +156,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         try {
             // NOTE: won't throw error even if connection refused
             this.sessions.open();
-        } catch (Exception e) {
-            if (!e.getMessage().contains("Column family not found")) {
-                LOG.error("Failed to open HBase '{}'", this.store, e);
-                throw new ConnectionException("Failed to connect to HBase", e);
-            }
-            if (this.isSchemaStore()) {
-                LOG.info("Failed to open HBase '{}' with database '{}', " +
-                         "try to init CF later", this.store, this.namespace);
-            }
+        } catch (Throwable e) {
+            LOG.error("Failed to open HBase '{}'", this.store, e);
+            throw new ConnectionException("Failed to connect to HBase", e);
         }
 
-        this.sessions.session();
+        this.sessions.session().open();
         LOG.debug("Store opened: {}", this.store);
     }
 
