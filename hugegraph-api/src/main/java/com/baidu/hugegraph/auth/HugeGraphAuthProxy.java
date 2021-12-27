@@ -739,6 +739,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph.resumeSnapshot();
     }
 
+    @Override
+    public void drop() {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        this.hugegraph.drop();
+    }
+
+    @Override
+    public HugeConfig cloneConfig() {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        return this.hugegraph.cloneConfig();
+    }
+
     private <V> Cache<Id, V> cache(String prefix, long capacity,
                                    long expiredTime) {
         String name = prefix + "-" + this.hugegraph.name();
@@ -1169,7 +1181,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
             verifyUserPermission(HugePermission.DELETE, user);
-            auditLimiters.invalidate(user.id());
+            HugeGraphAuthProxy.this.auditLimiters.invalidate(user.id());
             this.invalidRoleCache();
             return this.authManager.deleteUser(id);
         }
@@ -1472,7 +1484,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             try {
                 Id userKey = IdGenerator.of(username + password);
-                return usersRoleCache.getOrFetch(userKey, id -> {
+                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey, id -> {
                     return this.authManager.validateUser(username, password);
                 });
             } catch (Exception e) {
@@ -1491,7 +1503,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             try {
                 Id userKey = IdGenerator.of(token);
-                return usersRoleCache.getOrFetch(userKey, id -> {
+                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey, id -> {
                     return this.authManager.validateUser(token);
                 });
             } catch (Exception e) {
@@ -1522,7 +1534,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         private void invalidRoleCache() {
-            usersRoleCache.clear();
+            HugeGraphAuthProxy.this.usersRoleCache.clear();
         }
     }
 

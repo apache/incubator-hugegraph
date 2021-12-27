@@ -95,6 +95,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
+import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -129,7 +130,8 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.OLTP_COLLECTION_TYPE,
            CoreOptions.VERTEX_DEFAULT_LABEL,
            CoreOptions.VERTEX_ENCODE_PK_NUMBER,
-           CoreOptions.STORE_GRAPH
+           CoreOptions.STORE_GRAPH,
+           CoreOptions.STORE
     );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
@@ -902,6 +904,30 @@ public class StandardHugeGraph implements HugeGraph {
         E.checkState(this.tx.closed(),
                      "Ensure tx closed in all threads when closing graph '%s'",
                      this.name);
+    }
+
+    @Override
+    public void drop() {
+        this.clearBackend();
+        ConfigUtil.deleteFile(this.configuration().getFile());
+
+        try {
+            /*
+             * It's hard to ensure all threads close the tx.
+             * TODO:
+             *  - schedule a tx-close to each thread,
+             *   or
+             *  - add forceClose() method to backend store.
+             */
+            this.close();
+        } catch (Throwable e) {
+            LOG.warn("Failed to close graph {}", e, this);
+        }
+    }
+
+    @Override
+    public HugeConfig cloneConfig() {
+        return (HugeConfig) this.configuration().clone();
     }
 
     @Override

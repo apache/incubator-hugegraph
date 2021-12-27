@@ -39,8 +39,8 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.api.API;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
@@ -169,8 +169,7 @@ public final class GraphManager {
                         "The graph '%s' has existed", newName);
         PropertiesConfiguration propConfig = this.buildConfig(configText);
 
-        HugeConfig config = (HugeConfig) g.configuration();
-        HugeConfig cloneConfig = (HugeConfig) config.clone();
+        HugeConfig cloneConfig = g.cloneConfig();
         cloneConfig.setDelimiterParsingDisabled(true);
         // Use the passed config to overwrite the old one
         propConfig.getKeys().forEachRemaining(key -> {
@@ -234,8 +233,10 @@ public final class GraphManager {
     private void checkOptions(HugeConfig config) {
         // The store cannot be the same as the existing graph
         this.checkOptionsUnique(config, CoreOptions.STORE);
-        // NOTE: rocksdb can't use same data path for different graph,
-        // but it's not easy to check here
+        /*
+         * NOTE: rocksdb can't use same data path for different graph,
+         *       but it's not easy to check here
+         */
         String backend = config.get(CoreOptions.BACKEND);
         if (backend.equalsIgnoreCase("rocksdb")) {
             // TODO: should check data path...
@@ -248,16 +249,9 @@ public final class GraphManager {
         E.checkArgument(this.graphs.size() > 1,
                         "The graph '%s' is the only one, not allowed to delete",
                         name);
-        g.clearBackend();
-        try {
-            g.close();
-        } catch (Exception e) {
-            LOG.warn("Failed to close graph", e);
-        }
+        g.drop();
         // Let gremlin server and rest server context remove graph
         this.eventHub.notify(Events.GRAPH_DROP, name);
-        HugeConfig config = (HugeConfig) g.configuration();
-        ConfigUtil.deleteFile(config.getFile());
     }
 
     public Set<String> graphs() {
@@ -496,11 +490,10 @@ public final class GraphManager {
         Object incomingValue = config.get(option);
         for (String graphName : this.graphs.keySet()) {
             HugeGraph graph = this.graph(graphName);
-            HugeConfig oldConfig = (HugeConfig) graph.configuration();
-            Object existedValue = oldConfig.get(option);
+            Object existedValue = graph.option(option);
             E.checkArgument(!incomingValue.equals(existedValue),
-                            "The option '%s' conflict with existed",
-                            option.name());
+                            "The value '%s' of option '%s' conflicts with " +
+                            "existed graph", incomingValue, option.name());
         }
     }
 
