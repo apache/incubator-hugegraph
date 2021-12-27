@@ -238,6 +238,9 @@ public class MysqlSessions extends BackendSessionPool {
             throw new BackendException("Invalid url '%s'", e, url);
         }
 
+        if (forcedAutoReconnect) {
+            autoReconnect = true;
+        }
         if (withConnParams || forcedAutoReconnect) {
             builder.setParameter("characterEncoding", "utf-8")
                    .setParameter("rewriteBatchedStatements", "true")
