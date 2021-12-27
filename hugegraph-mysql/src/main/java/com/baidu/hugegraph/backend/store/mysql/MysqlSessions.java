@@ -246,9 +246,6 @@ public class MysqlSessions extends BackendSessionPool {
                    .setParameter("initialTimeout", String.valueOf(interval));
         }
         if (timeout != null) {
-//            if (timeout.equals(0)) {
-//                timeout = 5;
-//            }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
         return JDBC_PREFIX + builder.toString();
