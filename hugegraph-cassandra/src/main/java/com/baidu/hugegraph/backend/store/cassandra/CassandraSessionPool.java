@@ -211,9 +211,9 @@ public class CassandraSessionPool extends BackendSessionPool {
 
         @Override
         public void open() {
+            this.opened = true;
             assert this.session == null;
             this.session = cluster().connect(keyspace());
-            this.opened = true;
         }
 
         @Override

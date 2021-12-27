@@ -245,6 +245,9 @@ public class MysqlSessions extends BackendSessionPool {
                    .setParameter("initialTimeout", String.valueOf(interval));
         }
         if (timeout != null) {
+            if (timeout.equals(0)) {
+                timeout = 1;
+            }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
         return JDBC_PREFIX + builder.toString();
@@ -317,11 +320,11 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         private void doOpen() throws SQLException {
+            this.opened = true;
             if (this.conn != null && !this.conn.isClosed()) {
                 return;
             }
             this.conn = MysqlSessions.this.open(true);
-            this.opened = true;
         }
 
         @Override

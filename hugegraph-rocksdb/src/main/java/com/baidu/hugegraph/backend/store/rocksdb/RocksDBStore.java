@@ -360,7 +360,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         if (sessions != null) {
             // May override the original session pool
             this.dbs.put(dataPath, sessions);
-            sessions.session();
+            sessions.session().open();
             LOG.debug("Store opened: {}", dataPath);
         }
 

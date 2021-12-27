@@ -119,14 +119,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
         this.sessions = this.openSessionPool(config);
 
-        LOG.debug("Store connect with database: {}", this.database);
-        try {
-            this.sessions.open();
-        } catch (Exception e) {
-            if (!e.getMessage().startsWith("Unknown database") &&
-                !e.getMessage().endsWith("does not exist")) {
+        if (this.sessions.existsDatabase()) {
+            LOG.debug("Store connect with database: {}", this.database);
+            try {
+                this.sessions.open();
+            } catch (Throwable e) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
+        } else {
             if (this.isSchemaStore()) {
                 LOG.info("Failed to open database '{}', " +
                          "try to init database later", this.database);
@@ -134,7 +134,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         }
 
         try {
-            this.sessions.session();
+            this.sessions.session().open();
         } catch (Throwable e) {
             try {
                 this.sessions.close();
