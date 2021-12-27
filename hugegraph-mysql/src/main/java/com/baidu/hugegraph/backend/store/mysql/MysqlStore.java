@@ -126,22 +126,23 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             } catch (Throwable e) {
                 throw new ConnectionException("Failed to connect to MySQL", e);
             }
+
+            try {
+                this.sessions.session().open();
+            } catch (Throwable e) {
+                try {
+                    this.sessions.close();
+                } catch (Throwable e2) {
+                    LOG.warn("Failed to close connection after an error", e2);
+                }
+                throw new BackendException("Failed to open database", e);
+            }
         } else {
             if (this.isSchemaStore()) {
                 LOG.info("Failed to open database '{}', " +
                          "try to init database later", this.database);
             }
-        }
-
-        try {
-            this.sessions.session().open();
-        } catch (Throwable e) {
-            try {
-                this.sessions.close();
-            } catch (Throwable e2) {
-                LOG.warn("Failed to close connection after an error", e2);
-            }
-            throw new BackendException("Failed to open database", e);
+            this.sessions.session();
         }
 
         LOG.debug("Store opened: {}", this.store);
