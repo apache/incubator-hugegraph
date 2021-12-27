@@ -158,9 +158,10 @@ public interface HugeGraph extends Graph {
     public void createSnapshot();
     public void resumeSnapshot();
 
+    public void create(String configPath, Id server, NodeRole role);
     public void drop();
 
-    public HugeConfig cloneConfig();
+    public HugeConfig cloneConfig(String newGraph);
 
     @Override
     public HugeFeatures features();

@@ -907,9 +907,21 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void create(String configPath, Id server, NodeRole role) {
+        this.initBackend();
+        this.serverStarted(server, role);
+
+        // Write config to disk file
+        ConfigUtil.writeToFile(configPath, this.name(), this.configuration());
+    }
+
+    @Override
     public void drop() {
         this.clearBackend();
-        ConfigUtil.deleteFile(this.configuration().getFile());
+
+        HugeConfig config = this.configuration();
+        this.storeProvider.onDeleteConfig(config);
+        ConfigUtil.deleteFile(config.getFile());
 
         try {
             /*
@@ -926,8 +938,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public HugeConfig cloneConfig() {
-        return (HugeConfig) this.configuration().clone();
+    public HugeConfig cloneConfig(String newGraph) {
+        HugeConfig config = (HugeConfig) this.configuration().clone();
+        config.setDelimiterParsingDisabled(true);
+        this.storeProvider.onCloneConfig(config, newGraph);
+        return config;
     }
 
     @Override

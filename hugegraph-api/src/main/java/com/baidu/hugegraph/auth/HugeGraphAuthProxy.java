@@ -740,15 +740,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void create(String configPath, Id server, NodeRole role) {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        this.hugegraph.create(configPath, server, role);
+    }
+
+    @Override
     public void drop() {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
         this.hugegraph.drop();
     }
 
     @Override
-    public HugeConfig cloneConfig() {
+    public HugeConfig cloneConfig(String newGraph) {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
-        return this.hugegraph.cloneConfig();
+        return this.hugegraph.cloneConfig(newGraph);
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,

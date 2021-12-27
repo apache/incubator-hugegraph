@@ -109,11 +109,10 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
-                        manager = new GraphManager(conf, hub);
+                        GraphManagerFactory.this.manager = new GraphManager(conf, hub);
                     } else if (event.getType() == this.EVENT_DESTROYED) {
-                        if (manager != null) {
-                            manager.close();
-                            manager.destroy();
+                        if (GraphManagerFactory.this.manager != null) {
+                            GraphManagerFactory.this.manager.close();
                         }
                     }
                 }
