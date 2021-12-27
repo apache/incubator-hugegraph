@@ -246,7 +246,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
         if (timeout != null) {
             if (timeout.equals(0)) {
-                timeout = 1;
+                timeout = 5;
             }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
