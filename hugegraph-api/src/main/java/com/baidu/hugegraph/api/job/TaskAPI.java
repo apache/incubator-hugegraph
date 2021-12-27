@@ -40,7 +40,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import org.apache.groovy.util.Maps;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -48,6 +47,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskScheduler;
@@ -60,7 +60,8 @@ import com.codahale.metrics.annotation.Timed;
 @Singleton
 public class TaskAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(RestServer.class);
     private static final long NO_LIMIT = -1L;
 
     public static final String ACTION_CANCEL = "cancel";
@@ -76,8 +77,10 @@ public class TaskAPI extends API {
                                     @QueryParam("limit")
                                     @DefaultValue("100") long limit,
                                     @QueryParam("page") String page) {
-        LOG.debug("Graph [{}] list tasks with status {}, ids {}, " +
-                  "limit {}, page {}", graph, status, ids, limit, page);
+        LOGGER.logCustomDebug(
+            "Graph [{}] list tasks with status {}, ids {}, " +
+                  "limit {}, page {}",
+            RestServer.EXECUTOR, graph, status, ids, limit, page);
 
         TaskScheduler scheduler = graph(manager, graphSpace, graph)
                                   .taskScheduler();
@@ -127,7 +130,7 @@ public class TaskAPI extends API {
                                    @PathParam("graphspace") String graphSpace,
                                    @PathParam("graph") String graph,
                                    @PathParam("id") long id) {
-        LOG.debug("Graph [{}] get task: {}", graph, id);
+        LOGGER.logCustomDebug("Graph [{}] get task: {}", RestServer.EXECUTOR, graph, id);
 
         TaskScheduler scheduler = graph(manager, graphSpace, graph)
                                   .taskScheduler();
@@ -142,12 +145,12 @@ public class TaskAPI extends API {
                        @PathParam("graph") String graph,
                        @PathParam("id") long id,
                        @QueryParam("force") boolean force) {
-        LOG.debug("Graph [{}] delete task: {}", graph, id);
 
         TaskScheduler scheduler = graph(manager, graphSpace, graph)
                                   .taskScheduler();
         HugeTask<?> task = scheduler.delete(IdGenerator.of(id), force);
         E.checkArgument(task != null, "There is no task with id '%s'", id);
+        LOGGER.getServerLogger().logDeleteTask(SYSTEM_GRAPH, Long.toString(id));
     }
 
     @PUT
@@ -161,7 +164,6 @@ public class TaskAPI extends API {
                                       @PathParam("graph") String graph,
                                       @PathParam("id") long id,
                                       @QueryParam("action") String action) {
-        LOG.debug("Graph [{}] cancel task: {}", graph, id);
 
         if (!ACTION_CANCEL.equals(action)) {
             throw new NotSupportedException(String.format(
@@ -174,6 +176,7 @@ public class TaskAPI extends API {
         if (!task.completed() && !task.cancelling()) {
             scheduler.cancel(task);
             if (task.cancelling()) {
+                LOGGER.getServerLogger().logCancelTask(SYSTEM_GRAPH, task.id().toString());
                 return task.asMap();
             }
         }
