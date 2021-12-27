@@ -54,7 +54,8 @@ public final class ConfigUtil {
         try {
             yamlConfig.load(conf);
         } catch (ConfigurationException e) {
-            throw new HugeException("Failed to load yaml config file ", conf);
+            throw new HugeException("Failed to load yaml config file '%s'",
+                                    conf);
         }
         List<ConfigurationNode> nodes = yamlConfig.getRootNode()
                                                   .getChildren(NODE_GRAPHS);
@@ -100,7 +101,7 @@ public final class ConfigUtil {
             config.setFileName(fileName);
             LOG.info("Write HugeConfig to file: '{}'", fileName);
         } catch (IOException | ConfigurationException e) {
-            throw new HugeException("Failed to write HugeConfig to file '{}'",
+            throw new HugeException("Failed to write HugeConfig to file '%s'",
                                     e, fileName);
         }
     }
@@ -112,7 +113,7 @@ public final class ConfigUtil {
         try {
             FileUtils.forceDelete(file);
         } catch (IOException e) {
-            throw new HugeException("Failed to delete HugeConfig file '{}'",
+            throw new HugeException("Failed to delete HugeConfig file '%s'",
                                     e, file);
         }
     }
