@@ -137,7 +137,7 @@ public abstract class MysqlTable
     }
 
     protected String engine(Session session) {
-        String engine = session.config().get(MysqlOptions.STORAGE_ENGINE);
+        String engine = session.config().get(MysqlOptions.JDBC_STORAGE_ENGINE);
         return " ENGINE=" + engine;
     }
 

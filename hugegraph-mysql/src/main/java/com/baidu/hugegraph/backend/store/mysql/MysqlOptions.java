@@ -73,6 +73,16 @@ public class MysqlOptions extends OptionHolder {
                     "******"
             );
 
+    public static final ConfigOption<Boolean> JDBC_FORCED_AUTO_RECONNECT =
+            new ConfigOption<>(
+                    "jdbc.forced_auto_reconnect",
+                    "Whether to forced auto reconnect to the database even " +
+                    "if the connection fails at the first time. Note that " +
+                    "forced_auto_reconnect=true will disable fail-fast.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Integer> JDBC_RECONNECT_MAX_TIMES =
             new ConfigOption<>(
                     "jdbc.reconnect_max_times",
@@ -98,10 +108,11 @@ public class MysqlOptions extends OptionHolder {
                     "false"
             );
 
-    public static final ConfigOption<String> STORAGE_ENGINE =
+    public static final ConfigOption<String> JDBC_STORAGE_ENGINE =
             new ConfigOption<>(
                    "jdbc.storage_engine",
-                   "The storage engine of backend store database, like InnoDB/MyISAM/RocksDB for MySQL.",
+                   "The storage engine of backend store database, " +
+                   "like InnoDB/MyISAM/RocksDB for MySQL.",
                     disallowEmpty(),
                     "InnoDB"
             );
