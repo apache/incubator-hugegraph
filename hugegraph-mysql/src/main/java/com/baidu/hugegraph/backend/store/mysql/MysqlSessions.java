@@ -224,6 +224,7 @@ public class MysqlSessions extends BackendSessionPool {
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
         String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
+        boolean forcedAutoReconnect = true;
 
         E.checkArgument(url.startsWith(JDBC_PREFIX),
                         "The url must start with '%s': '%s'",
@@ -236,7 +237,7 @@ public class MysqlSessions extends BackendSessionPool {
             throw new BackendException("Invalid url '%s'", e, url);
         }
         builder.setParameter("useSSL", sslMode);
-        if (withConnParams) {
+        if (withConnParams || forcedAutoReconnect) {
             builder.setParameter("characterEncoding", "utf-8")
                    .setParameter("rewriteBatchedStatements", "true")
                    .setParameter("useServerPrepStmts", "false")
@@ -245,9 +246,9 @@ public class MysqlSessions extends BackendSessionPool {
                    .setParameter("initialTimeout", String.valueOf(interval));
         }
         if (timeout != null) {
-            if (timeout.equals(0)) {
-                timeout = 5;
-            }
+//            if (timeout.equals(0)) {
+//                timeout = 5;
+//            }
             builder.setParameter("socketTimeout", String.valueOf(timeout));
         }
         return JDBC_PREFIX + builder.toString();
