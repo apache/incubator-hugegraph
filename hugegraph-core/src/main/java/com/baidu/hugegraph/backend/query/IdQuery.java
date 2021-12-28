@@ -19,8 +19,9 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -28,14 +29,15 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class IdQuery extends Query {
 
-    private static final Set<Id> EMPTY_IDS = ImmutableSet.of();
+    private static final List<Id> EMPTY_IDS = ImmutableList.of();
 
     // The id(s) will be concated with `or`
-    private Set<Id> ids = EMPTY_IDS;
+    private List<Id> ids = EMPTY_IDS;
     private boolean mustSortByInput = true;
 
     public IdQuery(HugeType resultType) {
@@ -75,8 +77,13 @@ public class IdQuery extends Query {
     }
 
     @Override
-    public Set<Id> ids() {
-        return Collections.unmodifiableSet(this.ids);
+    public int idsSize() {
+        return this.ids.size();
+    }
+
+    @Override
+    public Collection<Id> ids() {
+        return Collections.unmodifiableList(this.ids);
     }
 
     public void resetIds() {
@@ -86,8 +93,15 @@ public class IdQuery extends Query {
     public IdQuery query(Id id) {
         E.checkArgumentNotNull(id, "Query id can't be null");
         if (this.ids == EMPTY_IDS) {
-            this.ids = new LinkedHashSet<>();
+            this.ids = InsertionOrderUtil.newList();
         }
+
+        int last = this.ids.size() - 1;
+        if (last >= 0 && id.equals(this.ids.get(last))) {
+            // The same id as the previous one, just ignore it
+            return this;
+        }
+
         this.ids.add(id);
         this.checkCapacity(this.ids.size());
         return this;
@@ -109,7 +123,70 @@ public class IdQuery extends Query {
     public IdQuery copy() {
         IdQuery query = (IdQuery) super.copy();
         query.ids = this.ids == EMPTY_IDS ? EMPTY_IDS :
-                    InsertionOrderUtil.newSet(this.ids);
+                    InsertionOrderUtil.newList(this.ids);
         return query;
+    }
+
+    public static final class OneIdQuery extends IdQuery {
+
+        private Id id;
+
+        public OneIdQuery(HugeType resultType, Id id) {
+            super(resultType);
+            super.mustSortByInput = false;
+            this.id = id;
+        }
+
+        public OneIdQuery(Query originQuery, Id id) {
+            super(originQuery.resultType(), originQuery);
+            super.mustSortByInput = false;
+            this.id = id;
+        }
+
+        public Id id() {
+            return this.id;
+        }
+
+        public void resetId(Id id) {
+            this.id = id;
+        }
+
+        @Override
+        public int idsSize() {
+            return this.id == null ? 0 : 1;
+        }
+
+        @Override
+        public Set<Id> ids() {
+            return this.id == null ? ImmutableSet.of() :
+                                     ImmutableSet.of(this.id);
+        }
+
+        @Override
+        public void resetIds() {
+            this.id = null;
+        }
+
+        @Override
+        public IdQuery query(Id id) {
+            E.checkArgumentNotNull(id, "Query id can't be null");
+            this.id = id;
+            return this;
+        }
+
+        @Override
+        public boolean test(HugeElement element) {
+            if (this.id == null) {
+                return true;
+            }
+            return this.id.equals(element.id());
+        }
+
+        @Override
+        public IdQuery copy() {
+            OneIdQuery query = (OneIdQuery) super.copy();
+            assert this.id.equals(query.id);
+            return query;
+        }
     }
 }

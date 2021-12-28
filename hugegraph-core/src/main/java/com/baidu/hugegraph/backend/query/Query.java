@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.collection.IdSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
@@ -442,16 +444,24 @@ public class Query implements Cloneable {
         this.showExpired = showExpired;
     }
 
-    public Set<Id> ids() {
-        return ImmutableSet.of();
+    public Collection<Id> ids() {
+        return ImmutableList.of();
     }
 
-    public Set<Condition> conditions() {
-        return ImmutableSet.of();
+    public Collection<Condition> conditions() {
+        return ImmutableList.of();
+    }
+
+    public int idsSize() {
+        return 0;
+    }
+
+    public int conditionsSize() {
+        return 0;
     }
 
     public boolean empty() {
-        return this.ids().isEmpty() && this.conditions().isEmpty();
+        return this.idsSize() == 0 && this.conditionsSize() == 0;
     }
 
     public boolean test(HugeElement element) {

@@ -51,13 +51,13 @@ public final class ConditionQueryFlatten {
     public static List<ConditionQuery> flatten(ConditionQuery query,
                                                boolean supportIn) {
         if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
-            return Arrays.asList(query);
+            return ImmutableList.of(query);
         }
 
         List<ConditionQuery> queries = new ArrayList<>();
 
         // Flatten IN/NOT_IN if needed
-        Set<Condition> conditions = InsertionOrderUtil.newSet();
+        List<Condition> conditions = InsertionOrderUtil.newList();
         for (Condition condition : query.conditions()) {
             Condition cond = flattenIn(condition, supportIn);
             if (cond == null) {

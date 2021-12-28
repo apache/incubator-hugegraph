@@ -72,7 +72,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
     public QueryResults<BackendEntry> query(Query query) {
         if (query instanceof ConditionQuery) {
             ConditionQuery q = (ConditionQuery) query;
-            if (q.allSysprop() && q.conditions().size() == 1 &&
+            if (q.allSysprop() && q.conditionsSize() == 1 &&
                 q.containsCondition(HugeKeys.NAME)) {
                 return this.queryByName(q);
             }
@@ -102,7 +102,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
                 HugeIndex index = this.serializer.readIndex(graph(), indexQuery,
                                                             entries.next());
                 idQuery.query(index.elementIds());
-                Query.checkForceCapacity(idQuery.ids().size());
+                Query.checkForceCapacity(idQuery.idsSize());
             }
         } finally {
             CloseableIterator.closeIterator(entries);
@@ -112,8 +112,8 @@ public class SchemaIndexTransaction extends AbstractTransaction {
             return QueryResults.empty();
         }
 
-        assert idQuery.ids().size() == 1 : idQuery.ids();
-        if (idQuery.ids().size() > 1) {
+        assert idQuery.idsSize() == 1 : idQuery.ids();
+        if (idQuery.idsSize() > 1) {
             LOG.warn("Multiple ids are found with same name '{}': {}",
                      name, idQuery.ids());
         }

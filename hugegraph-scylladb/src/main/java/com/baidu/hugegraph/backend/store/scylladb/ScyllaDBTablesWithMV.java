@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.backend.store.scylladb;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.backend.query.Condition;
@@ -36,7 +36,7 @@ import com.datastax.driver.core.querybuilder.Select;
 public class ScyllaDBTablesWithMV {
 
     private static boolean isQueryBySpecifiedKey(Query query, HugeKeys key) {
-        Set<Condition> conditions = query.conditions();
+        Collection<Condition> conditions = query.conditions();
         if (query instanceof ConditionQuery && !conditions.isEmpty()) {
             ConditionQuery cq = (ConditionQuery) query;
             Object value = cq.condition(key);

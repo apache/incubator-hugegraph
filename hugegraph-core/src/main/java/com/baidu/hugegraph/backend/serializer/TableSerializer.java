@@ -56,9 +56,9 @@ import com.baidu.hugegraph.type.define.Frequency;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.type.define.IdStrategy;
 import com.baidu.hugegraph.type.define.IndexType;
-import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.type.define.SerialEnum;
+import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -364,7 +364,7 @@ public abstract class TableSerializer extends AbstractSerializer {
     @Override
     protected Query writeQueryEdgeCondition(Query query) {
         query = this.writeQueryCondition(query);
-        return query.ids().isEmpty() ? query : null;
+        return query.idsSize() == 0 ? query : null;
     }
 
     @Override

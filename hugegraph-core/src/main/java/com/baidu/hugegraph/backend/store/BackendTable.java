@@ -88,8 +88,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                 query = query.originQuery();
             }
 
-            if (!query.conditions().isEmpty() &&
-                query instanceof ConditionQuery) {
+            if (query.conditionsSize() > 0 && query instanceof ConditionQuery) {
                 ConditionQuery cq = (ConditionQuery) query;
                 // Does query IN edges
                 if (cq.condition(HugeKeys.DIRECTION) == Directions.IN) {

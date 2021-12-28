@@ -447,7 +447,7 @@ public class TextSerializer extends AbstractSerializer {
         }
         Object label = cq.condition(HugeKeys.LABEL);
 
-        List<String> start = new ArrayList<>(cq.conditions().size());
+        List<String> start = new ArrayList<>(cq.conditionsSize());
         start.add(writeEntryId((Id) vertex));
         start.add(writeType(((Directions) direction).type()));
         start.add(writeId((Id) label));
@@ -476,7 +476,7 @@ public class TextSerializer extends AbstractSerializer {
 
     private Query writeQueryEdgePrefixCondition(ConditionQuery cq) {
         // Convert query-by-condition to query-by-id
-        List<String> condParts = new ArrayList<>(cq.conditions().size());
+        List<String> condParts = new ArrayList<>(cq.conditionsSize());
 
         for (HugeKeys key : EdgeId.KEYS) {
             Object value = cq.condition(key);

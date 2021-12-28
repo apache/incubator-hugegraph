@@ -20,11 +20,11 @@
 package com.baidu.hugegraph.backend.store.memory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -171,12 +171,12 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         }
 
         // Query by id(s)
-        if (!query.ids().isEmpty()) {
+        if (query.idsSize() > 0) {
             rs = this.queryById(query.ids(), rs);
         }
 
         // Query by condition(s)
-        if (!query.conditions().isEmpty()) {
+        if (query.conditionsSize() > 0) {
             ConditionQuery condQuery = (ConditionQuery) query;
             if (condQuery.containsScanRelation()) {
                 return this.queryByRange(condQuery);
@@ -225,7 +225,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         return rs.iterator();
     }
 
-    protected Map<Id, BackendEntry> queryById(Set<Id> ids,
+    protected Map<Id, BackendEntry> queryById(Collection<Id> ids,
                                               Map<Id, BackendEntry> entries) {
         assert ids.size() > 0;
         Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
@@ -255,7 +255,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     }
 
     protected Map<Id, BackendEntry> queryByFilter(
-                                    Set<Condition> conditions,
+                                    Collection<Condition> conditions,
                                     Map<Id, BackendEntry> entries) {
         assert conditions.size() > 0;
 

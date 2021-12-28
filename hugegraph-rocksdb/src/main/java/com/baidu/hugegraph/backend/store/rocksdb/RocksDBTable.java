@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -166,8 +167,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         // Query by id
-        if (query.conditions().isEmpty()) {
-            assert !query.ids().isEmpty();
+        if (query.conditionsSize() == 0) {
+            assert query.idsSize() > 0;
             return this.queryByIds(session, query.ids());
         }
 
@@ -191,7 +192,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return session.scan(this.table(), id.asBytes());
     }
 
-    protected BackendColumnIterator queryByIds(Session session, Set<Id> ids) {
+    protected BackendColumnIterator queryByIds(Session session,
+                                               Collection<Id> ids) {
         if (ids.size() == 1) {
             return this.queryById(session, ids.iterator().next());
         }
@@ -290,6 +292,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
                 HugeType type = query.resultType();
                 // NOTE: only support BinaryBackendEntry currently
                 entry = new BinaryBackendEntry(type, col.name);
+            } else {
+                assert !Bytes.equals(entry.id().asBytes(), col.name);
             }
             entry.columns(col);
             return entry;

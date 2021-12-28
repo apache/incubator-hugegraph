@@ -186,7 +186,7 @@ public abstract class AbstractTransaction implements Transaction {
 
     @Watched(prefix = "tx")
     public BackendEntry query(HugeType type, Id id) {
-        IdQuery idQuery = new IdQuery(type, id);
+        IdQuery idQuery = new IdQuery.OneIdQuery(type, id);
         return this.query(idQuery).one();
     }
 

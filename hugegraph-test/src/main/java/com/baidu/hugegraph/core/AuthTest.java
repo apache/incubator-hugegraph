@@ -170,6 +170,12 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("james", users.get(1).name());
         Assert.assertEquals("james", users.get(2).name());
 
+        users = authManager.listUsers(ImmutableList.of(id1, id2, id1));
+        Assert.assertEquals(3, users.size());
+        Assert.assertEquals("tom", users.get(0).name());
+        Assert.assertEquals("james", users.get(1).name());
+        Assert.assertEquals("tom", users.get(2).name());
+
         users = authManager.listUsers(ImmutableList.of(id1, id2,
                                                        IdGenerator.of("fake")));
         Assert.assertEquals(2, users.size());

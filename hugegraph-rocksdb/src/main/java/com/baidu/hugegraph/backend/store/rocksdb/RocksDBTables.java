@@ -21,8 +21,8 @@ package com.baidu.hugegraph.backend.store.rocksdb;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Condition;
@@ -154,7 +154,7 @@ public class RocksDBTables {
 
         @Override
         protected BackendColumnIterator queryByIds(Session session,
-                                                   Set<Id> ids) {
+                                                   Collection<Id> ids) {
             // TODO: use getByIds() after batch version multi-get is ready
             return super.queryByIds(session, ids);
         }
@@ -262,7 +262,7 @@ public class RocksDBTables {
         @Override
         protected BackendColumnIterator queryByCond(Session session,
                                                     ConditionQuery query) {
-            assert !query.conditions().isEmpty();
+            assert query.conditionsSize() > 0;
 
             List<Condition> conds = query.syspropConditions(HugeKeys.ID);
             E.checkArgument(!conds.isEmpty(),
