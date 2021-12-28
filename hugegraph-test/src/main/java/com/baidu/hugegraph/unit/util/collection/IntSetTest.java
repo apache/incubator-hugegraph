@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.unit.util.collection;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -79,21 +81,28 @@ public class IntSetTest extends BaseUnitTest {
     }
 
     private void testIntSet(IntSet set) {
-        int mod = new Random().nextInt(100);
+        Set<Integer> jucSet = new HashSet<>();
+
+        Assert.assertEquals(0, set.size());
+        Assert.assertTrue(set.concurrent());
+
+        int mod = 1 + new Random().nextInt(100);
         for (int i = 0; i < batchCount; i++) {
             for (int k = 0; k < eachCount; k++) {
                 set.contains(k);
                 if(k % mod == 0) {
                     set.add(k);
+                    jucSet.add(k);
                 }
             }
         }
 
-        int size = eachCount / mod + 1;
-        if (eachCount % mod == 0) {
-            size += 1;
-        }
+        int size = jucSet.size();
         Assert.assertEquals(size, set.size());
+        for (Integer k : jucSet) {
+            boolean exist = set.contains(k);
+            Assert.assertTrue("expect " + k, exist);
+        }
 
         for (int k = 0; k < eachCount; k++) {
             boolean exist = set.contains(k);
@@ -139,6 +148,13 @@ public class IntSetTest extends BaseUnitTest {
         }, e -> {
             Assert.assertContains("out of bound", e.getMessage());
         });
+
+        set.clear();
+        Assert.assertEquals(0, set.size());
+        for (int k = 0; k < eachCount; k++) {
+            boolean exist = set.contains(k);
+            Assert.assertFalse("unexpect " + k, exist);
+        }
     }
 
     private void testIntSetConcurrent(IntSet set) {

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.unit.util.collection;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.BiFunction;
@@ -52,20 +54,98 @@ public class IntMapTest extends BaseUnitTest {
     @Test
     public void testIntFixedMap() {
         IntMap map = fixed(eachCount);
+        testIntMap(map);
+    }
 
-        runWithThreads(1, () -> {
-            for (int i = 0; i < batchCount; i++) {
-                for (int k = 0; k < eachCount; k++) {
-                    map.containsKey(k);
-                    map.put(k, k);
-                }
-                map.get(i);
+    @Test
+    public void testIntFixedMapBySegments() {
+        IntMap map = fixedBySegments(eachCount, 4);
+        testIntMap(map);
+
+        IntMap map2 = fixedBySegments(eachCount, 400);
+        testIntMap(map2);
+
+        IntMap map3 = fixedBySegments(eachCount, 4000);
+        testIntMap(map3);
+    }
+
+    private void testIntMap(IntMap map) {
+        Assert.assertEquals(0, map.size());
+        Map<Integer, Integer> jucMap = new HashMap<>();
+
+        Assert.assertEquals(0, map.size());
+        Assert.assertTrue(map.concurrent());
+
+        int modUpdate = 1 + new Random().nextInt(100);
+        Random random = new Random();
+        for (int k = 0; k < eachCount; k++) {
+            if(k % modUpdate == 0) {
+                int v = random.nextInt(eachCount);
+                map.put(k, v);
+                jucMap.put(k, v);
             }
-        });
+        }
+
+        Assert.assertEquals(jucMap.size(), map.size());
+        for (int k = 0; k < eachCount; k++) {
+            if (jucMap.containsKey(k)) {
+                Assert.assertTrue("expect " + k, map.containsKey(k));
+                Assert.assertEquals((int) jucMap.get(k), map.get(k));
+            } else {
+                Assert.assertFalse("unexpect " + k, map.containsKey(k));
+            }
+        }
+
+        for (int k = 0; k < eachCount; k++) {
+            int v = random.nextInt(eachCount);
+            map.put(k, v);
+            jucMap.put(k, v);
+        }
 
         Assert.assertEquals(eachCount, map.size());
         for (int k = 0; k < eachCount; k++) {
             Assert.assertTrue("expect " + k, map.containsKey(k));
+            Assert.assertEquals((int) jucMap.get(k), map.get(k));
+        }
+
+        int modRemove = 1 + new Random().nextInt(100);
+        for (int k = 0; k < eachCount; k++) {
+            if(k % modRemove == 0) {
+                map.remove(k);
+                jucMap.remove(k);
+            }
+        }
+
+        Assert.assertEquals(jucMap.size(), map.size());
+        for (int k = 0; k < eachCount; k++) {
+            if (jucMap.containsKey(k)) {
+                Assert.assertTrue("expect " + k, map.containsKey(k));
+                Assert.assertEquals((int) jucMap.get(k), map.get(k));
+            } else {
+                Assert.assertFalse("unexpect " + k, map.containsKey(k));
+            }
+        }
+
+        int outOfBoundKey = eachCount;
+
+        Assert.assertFalse(map.containsKey(outOfBoundKey));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            map.put(outOfBoundKey, 0);
+        }, e -> {
+            Assert.assertContains("out of bound", e.getMessage());
+        });
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            map.remove(outOfBoundKey);
+        }, e -> {
+            Assert.assertContains("out of bound", e.getMessage());
+        });
+
+        map.clear();
+        Assert.assertEquals(0, map.size());
+        for (int k = 0; k < eachCount; k++) {
+            Assert.assertFalse("unexpect " + k, map.containsKey(k));
         }
     }
 
@@ -90,7 +170,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentConcurrent() {
+    public void testIntFixedMapBySegmentsConcurrent() {
         IntMap map = fixedBySegments(eachCount, 4);
 
         runWithThreads(THREADS_NUM, () -> {
@@ -110,7 +190,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentPut() {
+    public void testIntFixedMapBySegmentsPut() {
         BiFunction<Integer, Integer, Integer> testMap = (capacity, segs) -> {
             IntMap map = fixedBySegments(capacity, segs);
 
@@ -203,7 +283,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentPutRandom() {
+    public void testIntFixedMapBySegmentsPutRandom() {
         int count = 100;
         BiFunction<Integer, Integer, Integer> testMap = (capacity, segs) -> {
             IntMap map = fixedBySegments(capacity, segs);
@@ -235,7 +315,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentKeys() {
+    public void testIntFixedMapBySegmentsKeys() {
         IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
@@ -256,7 +336,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentKeysWithMultiSegs() {
+    public void testIntFixedMapBySegmentsKeysWithMultiSegs() {
         int segments = 400;
         int segmentSize = Integer.MAX_VALUE / segments;
         int step = 50;
@@ -285,7 +365,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentValues() {
+    public void testIntFixedMapBySegmentsValues() {
         IntMap map = fixedBySegments(Integer.MAX_VALUE, 40);
         map.put(Integer.MAX_VALUE - 1, 1);
 
@@ -306,7 +386,7 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntFixedMapSegmentValuesWithMultiSegs() {
+    public void testIntFixedMapBySegmentsValuesWithMultiSegs() {
         int segments = 400;
         int segmentSize = Integer.MAX_VALUE / segments;
         int step = 50;
