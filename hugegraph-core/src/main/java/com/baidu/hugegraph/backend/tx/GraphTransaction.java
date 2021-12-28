@@ -565,7 +565,7 @@ public class GraphTransaction extends IndexableTransaction {
                 if (this.optimizeAggrByIndex &&
                     optimized == OptimizedType.INDEX) {
                     // The ids size means results count (assume no left index)
-                    result = q.ids().size();
+                    result = q.idsSize();
                 } else {
                     assert optimized == OptimizedType.INDEX_FILTER ||
                            optimized == OptimizedType.INDEX;
@@ -906,7 +906,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (!query.empty()) {
             // Query from backend store
-            if (edges.isEmpty() && query.ids().size() == ids.size()) {
+            if (edges.isEmpty() && query.idsSize() == ids.size()) {
                 /*
                  * Sort at the lower layer and return directly if there is no
                  * local vertex and duplicated id.
@@ -987,7 +987,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (vertex == null) {
                 return null;
             }
-            if (query.ids().size() == 1) {
+            if (query.idsSize() == 1) {
                 assert vertex.getEdges().size() == 1;
             }
             /*
@@ -1251,7 +1251,7 @@ public class GraphTransaction extends IndexableTransaction {
     private static void verifyVerticesConditionQuery(ConditionQuery query) {
         assert query.resultType().isVertex();
 
-        int total = query.conditions().size();
+        int total = query.conditionsSize();
         if (total == 1) {
             /*
              * Supported query:
@@ -1283,7 +1283,7 @@ public class GraphTransaction extends IndexableTransaction {
     private static void verifyEdgesConditionQuery(ConditionQuery query) {
         assert query.resultType().isEdge();
 
-        int total = query.conditions().size();
+        int total = query.conditionsSize();
         if (total == 1) {
             /*
              * Supported query:
@@ -1345,7 +1345,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private Query optimizeQuery(ConditionQuery query) {
-        if (!query.ids().isEmpty()) {
+        if (query.idsSize() > 0) {
             throw new HugeException(
                       "Not supported querying by id and conditions: %s", query);
         }
@@ -1418,7 +1418,7 @@ public class GraphTransaction extends IndexableTransaction {
              *  1.not query by label
              *  2.or query by label and store supports this feature
              */
-            boolean byLabel = (label != null && query.conditions().size() == 1);
+            boolean byLabel = (label != null && query.conditionsSize() == 1);
             if (!byLabel || this.store().features().supportsQueryByLabel()) {
                 return query;
             }
