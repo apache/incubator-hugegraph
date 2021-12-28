@@ -26,6 +26,7 @@ import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class BatchConditionQuery extends ConditionQuery {
 
@@ -42,7 +43,8 @@ public class BatchConditionQuery extends ConditionQuery {
         Object value = query.condition(key);
         if (this.in == null) {
             assert !this.containsRelation(RelationType.IN);
-            this.resetConditions((List<Condition>) query.conditions());
+            this.resetConditions(InsertionOrderUtil.newList(
+                                 (List<Condition>) query.conditions()));
             this.unsetCondition(key);
 
             List<Object> list = new ArrayList<>(this.batchSize);

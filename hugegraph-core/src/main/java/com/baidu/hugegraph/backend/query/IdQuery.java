@@ -136,6 +136,7 @@ public class IdQuery extends Query {
             super.mustSortByInput = false;
             this.id = id;
         }
+
         public OneIdQuery(Query originQuery, Id id) {
             super(originQuery.resultType(), originQuery);
             super.mustSortByInput = false;
@@ -152,31 +153,32 @@ public class IdQuery extends Query {
 
         @Override
         public int idsSize() {
-            return 1;
+            return this.id == null ? 0 : 1;
         }
 
         @Override
         public Set<Id> ids() {
-            return ImmutableSet.of(this.id);
+            return this.id == null ? ImmutableSet.of() :
+                                     ImmutableSet.of(this.id);
         }
 
         @Override
         public void resetIds() {
-            throw new UnsupportedOperationException("OneIdQuery.resetIds()");
+            this.id = null;
         }
 
         @Override
         public IdQuery query(Id id) {
-            throw new UnsupportedOperationException("OneIdQuery.query(id)");
-        }
-
-        @Override
-        public IdQuery query(Set<Id> ids) {
-            throw new UnsupportedOperationException("OneIdQuery.query(ids)");
+            E.checkArgumentNotNull(id, "Query id can't be null");
+            this.id = id;
+            return this;
         }
 
         @Override
         public boolean test(HugeElement element) {
+            if (this.id == null) {
+                return true;
+            }
             return this.id.equals(element.id());
         }
 
