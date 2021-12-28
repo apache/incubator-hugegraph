@@ -100,6 +100,7 @@ public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
+    private static final String NAME_REGEX = "^[a-z][a-z0-9_]{0,47}$";
     public static final String DELIMETER = "-";
 
     private final String cluster;
@@ -440,6 +441,7 @@ public final class GraphManager {
                                        int maxGraphNumber,
                                        int maxRoleNumber,
                                        Map<String, Object> configs) {
+        checkGraphSpaceName(name);
         GraphSpace space = new GraphSpace(name, description, cpuLimit,
                                           memoryLimit, storageLimit,
                                           maxGraphNumber, maxRoleNumber,
@@ -457,6 +459,7 @@ public final class GraphManager {
 
     public GraphSpace createGraphSpace(GraphSpace space) {
         String name = space.name();
+        checkGraphSpaceName(name);
         this.metaManager.addGraphSpaceConfig(name, space);
         this.metaManager.notifyGraphSpaceAdd(name);
         this.graphSpaces.put(name, space);
@@ -492,6 +495,7 @@ public final class GraphManager {
 
     public Service createService(String graphSpace, Service service) {
         String name = service.name();
+        checkServiceName(name);
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
 
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace);
@@ -542,6 +546,7 @@ public final class GraphManager {
 
     public HugeGraph createGraph(String graphSpace, String name,
                                  Map<String, Object> configs, boolean init) {
+        checkGraphName(name);
         GraphSpace gs = this.graphSpace(graphSpace);
         if (!gs.tryOfferGraph()) {
             throw new HugeException("Failed create graph due to Reach graph " +
@@ -1124,6 +1129,33 @@ public final class GraphManager {
         return String.join(DELIMETER, graphSpace, graph);
     }
 
+    private static void checkGraphSpaceName(String name) {
+        if (DEFAULT_GRAPH_SPACE_NAME.equals(name)) {
+            return;
+        }
+        checkName(name, "graph space");
+    }
+
+    private static void checkServiceName(String name) {
+        checkName(name, "service");
+    }
+
+    private static void checkGraphName(String name) {
+        checkName(name, "graph");
+    }
+
+    private static void checkSchemaTemplateName(String name) {
+        checkName(name, "schema template");
+    }
+
+    private static void checkName(String name, String type) {
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid name '%s' for %s, valid name is up to 128 " +
+                        "alpha-numeric characters and underscores and only " +
+                        "letters are supported as first letter. " +
+                        "Note: letter is lower case", name, type);
+    }
+
     private <T> void restPropertiesHandler(T response) {
         List<String> events = this.metaManager
                                   .extractGraphsFromResponse(response);
@@ -1221,11 +1253,13 @@ public final class GraphManager {
 
     public SchemaTemplate schemaTemplate(String graphSpace,
                                          String schemaTemplate) {
+
         return this.metaManager.schemaTemplate(graphSpace, schemaTemplate);
     }
 
     public void createSchemaTemplate(String graphSpace,
                                      SchemaTemplate schemaTemplate) {
+        checkSchemaTemplateName(schemaTemplate.name());
         this.metaManager.addSchemaTemplate(graphSpace, schemaTemplate);
     }
 
