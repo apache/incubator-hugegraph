@@ -41,6 +41,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           overwrite: true
           verbose: true
+          draft: false
           update_latest_release: true
 
       - name: Release Maven package
