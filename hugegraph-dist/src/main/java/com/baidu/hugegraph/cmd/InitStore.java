@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.cmd;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
-        E.checkArgument(args.length == 1,
+        E.checkArgument(args.length == 11,
                         "HugeGraph init-store need to pass the config file " +
                         "of RestServer, like: conf/rest-server.properties");
         E.checkArgument(args[0].endsWith(".properties"),
@@ -105,7 +106,11 @@ public class InitStore {
             initGraph(graphConfs.get(graphName));
         }
 
-        StandardAuthenticator.initAdminUserIfNeeded(restConf);
+        List<String> metaEndpoints = Arrays.asList(args[5].split(","));
+        Boolean withCa = args[7].equals("true") ? true : false;
+        StandardAuthenticator.initAdminUserIfNeeded(restConf, metaEndpoints,
+                                                    args[6], withCa, args[8],
+                                                    args[9], args[10]);
 
         HugeFactory.shutdown(30L);
     }

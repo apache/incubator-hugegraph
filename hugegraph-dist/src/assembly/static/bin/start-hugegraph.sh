@@ -1,22 +1,54 @@
 #!/bin/bash
 
-OPEN_MONITOR="false"
-OPEN_SECURITY_CHECK="true"
-VERBOSE=""
-GC_OPTION=""
-USER_OPTION=""
-SERVER_STARTUP_TIMEOUT_S=30
+if [ -z "$OPEN_MONITOR" ];then
+  OPEN_MONITOR="false"
+fi
+if [ -z "$OPEN_SECURITY_CHECK" ];then
+  OPEN_SECURITY_CHECK="true"
+fi
+if [ -z "$VERBOSE" ];then
+  VERBOSE=""
+fi
+if [ -z "$GC_OPTION" ];then
+  GC_OPTION=""
+fi
+if [ -z "$USER_OPTION" ];then
+  USER_OPTION=""
+fi
+if [ -z "$SERVER_STARTUP_TIMEOUT_S" ];then
+  SERVER_STARTUP_TIMEOUT_S=30
+fi
 
-GRAPH_SPACE="DEFAULT"
-SERVICE_ID="DEFAULT"
-NODE_ID="node-1"
-NODE_ROLE="worker"
-META_SERVERS="http://127.0.0.1:2379"
-CLUSTER="hg"
-WITH_CA="false"
-CA_FILE=""
-CLIENT_CA=""
-CLIENT_KEY=""
+if [ -z "$GRAPH_SPACE" ];then
+  GRAPH_SPACE="DEFAULT"
+fi
+if [ -z "$SERVICE_ID" ];then
+  SERVICE_ID="DEFAULT"
+fi
+if [ -z "$NODE_ID" ];then
+  NODE_ID="node-1"
+fi
+if [ -z "$NODE_ROLE" ];then
+  NODE_ROLE="worker"
+fi
+if [ -z "$META_SERVERS" ];then
+  META_SERVERS="http://127.0.0.1:2379"
+fi
+if [ -z "$CLUSTER" ];then
+  CLUSTER="hg"
+fi
+if [ -z "$WITH_CA" ];then
+  WITH_CA="false"
+fi
+if [ -z "$CA_FILE" ];then
+  CA_FILE="conf/ca.perm"
+fi
+if [ -z "$CLIENT_CA" ];then
+  CLIENT_CA="conf/client_ca.perm"
+fi
+if [ -z "$CLIENT_KEY" ];then
+  CLIENT_KEY="conf/client.key"
+fi
 
 while getopts "g:m:s:j:G:S:N:R:M:E:W:C:A:K:v" arg; do
     case ${arg} in

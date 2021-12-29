@@ -193,7 +193,8 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = false;
         this.closed = false;
         this.mode = GraphMode.NONE;
-        this.readMode = GraphReadMode.OLTP_ONLY;
+        this.readMode = GraphReadMode.valueOf(
+                        config.get(CoreOptions.GRAPH_READ_MODE));
 
         LockUtil.init(this.name);
 
@@ -311,6 +312,9 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void readMode(GraphReadMode readMode) {
+        if (this.readMode == readMode) {
+            return;
+        }
         this.clearVertexCache();
         this.readMode = readMode;
     }

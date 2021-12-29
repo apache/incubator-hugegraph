@@ -96,6 +96,14 @@ public class CoreOptions extends OptionHolder {
                     "g"
             );
 
+    public static final ConfigOption<String> GRAPH_READ_MODE =
+            new ConfigOption<>(
+                    "graph.read_mode",
+                    "The graph read mode, which could be ALL | OLTP_ONLY | OLAP_ONLY.",
+                    disallowEmpty(),
+                    "OLTP_ONLY"
+            );
+
     public static final ConfigOption<String> SERIALIZER =
             new ConfigOption<>(
                     "serializer",

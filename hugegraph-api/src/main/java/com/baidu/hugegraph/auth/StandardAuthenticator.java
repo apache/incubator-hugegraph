@@ -102,7 +102,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
         throw new NotImplementedException("SaslNegotiator is unsupported");
     }
 
-    public static void initAdminUserIfNeeded(String confFile) throws Exception {
+    public static void initAdminUserIfNeeded(String confFile,
+                                             List<String> metaEndpoints,
+                                             String cluster,
+                                             Boolean withCa,
+                                             String caFile,
+                                             String clientCaFile,
+                                             String clientKeyFile)
+                                             throws Exception {
         MetaManager metaManager = MetaManager.instance();
         HugeConfig config = new HugeConfig(confFile);
         String authClass = config.get(ServerOptions.AUTHENTICATOR);
@@ -110,19 +117,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
             return;
         }
 
-        List<String> endpoints = config.get(ServerOptions.META_ENDPOINTS);
-        boolean useCa = config.get(ServerOptions.META_USE_CA);
-        String ca = null;
-        String clientCa = null;
-        String clientKey = null;
-        if (useCa) {
-            ca = config.get(ServerOptions.META_CA);
-            clientCa = config.get(ServerOptions.META_CLIENT_CA);
-            clientKey = config.get(ServerOptions.META_CLIENT_KEY);
+        if (!withCa) {
+            caFile = null;
+            clientCaFile = null;
+            clientKeyFile = null;
         }
-        String cluster = config.get(ServerOptions.CLUSTER);
-        metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD,
-                            ca, clientCa, clientKey, endpoints);
+
+        metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD, caFile,
+                            clientCaFile, clientKeyFile, metaEndpoints);
         StandardAuthManager authManager = new StandardAuthManager(metaManager,
                                                                   config);
         authManager.initAdmin();

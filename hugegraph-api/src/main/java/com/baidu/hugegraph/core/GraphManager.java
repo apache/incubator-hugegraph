@@ -39,6 +39,7 @@ import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.MapConfiguration;
@@ -383,6 +384,7 @@ public final class GraphManager {
 
         this.metaManager.listenGraphAdd(this::graphAddHandler);
         this.metaManager.listenGraphRemove(this::graphRemoveHandler);
+        this.metaManager.listenGraphUpdate(this::graphUpdateHandler);
 
         this.metaManager.listenRestPropertiesUpdate(
                          this.serviceGraphSpace, this.serviceID,
@@ -1050,6 +1052,27 @@ public final class GraphManager {
         }
     }
 
+    private <T> void graphUpdateHandler(T response) {
+        List<String> graphNames = this.metaManager
+                                      .extractGraphsFromResponse(response);
+        for (String graphName : graphNames) {
+            if (this.graphs.containsKey(graphName)) {
+                Graph graph = this.graphs.get(graphName);
+                if (graph instanceof HugeGraph) {
+                    HugeGraph hugeGraph = (HugeGraph) graph;
+                    String[] values =
+                             graphName.split(MetaManager.META_PATH_JOIN);
+                    Map<String, Object> configs =
+                                this.metaManager.getGraphConfig(values[0],
+                                                                values[1]);
+                    String readMode = configs.get(
+                           CoreOptions.GRAPH_READ_MODE.name()).toString();
+                    hugeGraph.readMode(GraphReadMode.valueOf(readMode));
+                }
+            }
+        }
+    }
+
     private void addMetrics(HugeConfig config) {
         final MetricManager metric = MetricManager.INSTANCE;
         // Force to add server reporter
@@ -1273,5 +1296,18 @@ public final class GraphManager {
 
     public void dropSchemaTemplate(String graphSpace, String name) {
         this.metaManager.removeSchemaTemplate(graphSpace, name);
+    }
+
+    public void graphReadMode(String graphSpace, String graphName,
+                              GraphReadMode readMode) {
+        try {
+            Map<String, Object> configs =
+                        this.metaManager.getGraphConfig(graphSpace, graphName);
+            configs.put(CoreOptions.GRAPH_READ_MODE.name(), readMode);
+            this.metaManager.updateGraphConfig(graphSpace, graphName, configs);
+            this.metaManager.notifyGraphUpdate(graphSpace, graphName);
+        } catch (Exception e) {
+            LOG.warn("The graph not exist or local graph");
+        }
     }
 }

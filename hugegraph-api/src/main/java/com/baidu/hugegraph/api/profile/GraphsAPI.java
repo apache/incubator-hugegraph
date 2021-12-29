@@ -336,6 +336,7 @@ public class GraphsAPI extends API {
         E.checkArgument(readMode != null,
                         "Graph-read-mode can't be null");
         HugeGraph g = graph(manager, graphSpace, graph);
+        manager.graphReadMode(graphSpace, graph, readMode);
         g.readMode(readMode);
         return ImmutableMap.of("graph_read_mode", readMode);
     }
