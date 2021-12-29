@@ -4,19 +4,24 @@ on:
   push:
     branches:
       - master
-      - /^release-.*$/
-      - /^test-.*$/
+      - 'release-*'
+      - 'test-*'
   pull_request:
     branches:
-      - master
-      - /^release-.*$/
-      - /^test-.*$/
+      - '**'
 
 jobs:
   build:
     runs-on: ubuntu-20.04
     env:
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
+      BACKEND: ${{ matrix.BACKEND }}
+      TRIGGER_BRANCH_NAME: ${{ github.ref_name }}
+      HEAD_BRANCH_NAME: ${{ github.head_ref }}
+      BASE_BRANCH_NAME: ${{ github.base_ref }}
+      TARGET_BRANCH_NAME: ${{ github.base_ref != '' && github.base_ref || github.ref_name }}
+      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') || startsWith(github.base_ref, 'release-') }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -48,9 +53,10 @@ jobs:
 
       - name: Prepare env and service
         run: |
-          $TRAVIS_DIR/install-backend.sh ${{ matrix.BACKEND }}
+          $TRAVIS_DIR/install-backend.sh $BACKEND
 
-      - name: Init Mysql Env
+      - name: Init MySQL Env
+        if: ${{ env.BACKEND == 'mysql' }}
         uses: mirromutth/mysql-action@v1.1
         with:
           host port: 3306 # Optional, default value is 3306. The port of host
@@ -65,9 +71,14 @@ jobs:
 
       - name: Run test
         run: |
-          mvn test -P core-test,${{ matrix.BACKEND }}
-          $TRAVIS_DIR/run-api-test.sh ${{ matrix.BACKEND }}
-          $TRAVIS_DIR/run-unit-test.sh ${{ matrix.BACKEND }}
+          $TRAVIS_DIR/run-core-test.sh $BACKEND
+          $TRAVIS_DIR/run-api-test.sh $BACKEND
+          $TRAVIS_DIR/run-unit-test.sh $BACKEND
+
+      - name: Run TinkerPop test
+        if: ${{ env.RELEASE_BRANCH == 'true' }}
+        run: |
+          $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
