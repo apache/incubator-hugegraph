@@ -218,16 +218,14 @@ public class HugeTraverser {
 
     protected Iterator<Edge> edgesOfVertexStep(Iterator<Edge> edges,
                                                Steps steps) {
-        if (steps == null ||
-            ((steps.edgeSteps() == null || steps.isEdgeStepPropertiesEmpty()) &&
-             (steps.vertexSteps() == null || steps.vertexSteps().isEmpty()))) {
+        if (checkParamsNull(edges, steps)) {
             return edges;
         }
 
         Iterator<Edge> result = edges;
         if (steps.isEdgeStepPropertiesEmpty() && !steps.isVertexEmpty()) {
             // vertex's label and vertex's properties
-            Map<Id, ConditionQuery> mapCQ = new HashMap<>();
+            Map<Id, ConditionQuery> conditions = new HashMap<>();
             for (Map.Entry<Id, Steps.StepEntity> entry :
                  steps.vertexSteps().entrySet()) {
                 Steps.StepEntity stepEntity = entry.getValue();
@@ -236,9 +234,9 @@ public class HugeTraverser {
                     ConditionQuery cq = new ConditionQuery(HugeType.VERTEX);
                     Map<Id, Object> props = stepEntity.getProperties();
                     TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    mapCQ.put(entry.getKey(), cq);
+                    conditions.put(entry.getKey(), cq);
                 } else {
-                    mapCQ.put(entry.getKey(), null);
+                    conditions.put(entry.getKey(), null);
                 }
             }
 
@@ -246,12 +244,12 @@ public class HugeTraverser {
                 HugeEdge hugeEdge = (HugeEdge) edge;
                 HugeVertex sVertex = hugeEdge.sourceVertex();
                 HugeVertex tVertex = hugeEdge.targetVertex();
-                if (!mapCQ.containsKey(sVertex.schemaLabel().id()) ||
-                    !mapCQ.containsKey(tVertex.schemaLabel().id())) {
+                if (!conditions.containsKey(sVertex.schemaLabel().id()) ||
+                    !conditions.containsKey(tVertex.schemaLabel().id())) {
                     return false;
                 }
 
-                ConditionQuery cq = mapCQ.get(sVertex.schemaLabel().id());
+                ConditionQuery cq = conditions.get(sVertex.schemaLabel().id());
                 if (cq != null) {
                     sVertex = (HugeVertex) this.graph.vertex(sVertex.id());
                     if (!cq.test(sVertex)) {
@@ -259,12 +257,10 @@ public class HugeTraverser {
                     }
                 }
 
-                cq = mapCQ.get(tVertex.schemaLabel().id());
+                cq = conditions.get(tVertex.schemaLabel().id());
                 if (cq != null) {
                     tVertex = (HugeVertex) this.graph.vertex(tVertex.id());
-                    if (!cq.test(tVertex)) {
-                        return false;
-                    }
+                    return cq.test(tVertex);
                 }
                 return true;
             });
@@ -272,7 +268,7 @@ public class HugeTraverser {
         } else if (!steps.isEdgeStepPropertiesEmpty()
                    && steps.isVertexEmpty()) {
             // edge's properties
-            Map<Id, ConditionQuery> mapCQ = new HashMap<>();
+            Map<Id, ConditionQuery> conditions = new HashMap<>();
             for (Map.Entry<Id, Steps.StepEntity> entry :
                  steps.edgeSteps().entrySet()) {
                 Steps.StepEntity stepEntity = entry.getValue();
@@ -281,28 +277,26 @@ public class HugeTraverser {
                     ConditionQuery cq = new ConditionQuery(HugeType.EDGE);
                     Map<Id, Object> props = stepEntity.getProperties();
                     TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    mapCQ.put(entry.getKey(), cq);
+                    conditions.put(entry.getKey(), cq);
                 } else {
-                    mapCQ.put(entry.getKey(), null);
+                    conditions.put(entry.getKey(), null);
                 }
             }
 
             result = new FilterIterator<>(result, edge -> {
                 HugeEdge hugeEdge = (HugeEdge) edge;
-                if (!mapCQ.containsKey(hugeEdge.schemaLabel().id())) {
+                if (!conditions.containsKey(hugeEdge.schemaLabel().id())) {
                     return false;
                 }
 
-                ConditionQuery cq = mapCQ.get(hugeEdge.schemaLabel().id());
+                ConditionQuery cq = conditions.get(hugeEdge.schemaLabel().id());
                 if (cq != null) {
-                    if (!cq.test(hugeEdge)) {
-                        return false;
-                    }
+                    return cq.test(hugeEdge);
                 }
                 return true;
             });
         } else {
-            Map<Id, ConditionQuery> mapCQVertex = new HashMap<>();
+            Map<Id, ConditionQuery> vertexConditions = new HashMap<>();
             for (Map.Entry<Id, Steps.StepEntity> entry :
                  steps.vertexSteps().entrySet()) {
                 Steps.StepEntity stepEntity = entry.getValue();
@@ -311,13 +305,13 @@ public class HugeTraverser {
                     ConditionQuery cq = new ConditionQuery(HugeType.VERTEX);
                     Map<Id, Object> props = stepEntity.getProperties();
                     TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    mapCQVertex.put(entry.getKey(), cq);
+                    vertexConditions.put(entry.getKey(), cq);
                 } else {
-                    mapCQVertex.put(entry.getKey(), null);
+                    vertexConditions.put(entry.getKey(), null);
                 }
             }
 
-            Map<Id, ConditionQuery> mapCQEdge = new HashMap<>();
+            Map<Id, ConditionQuery> edgeCondtions = new HashMap<>();
             for (Map.Entry<Id, Steps.StepEntity> entry :
                  steps.edgeSteps().entrySet()) {
                 Steps.StepEntity stepEntity = entry.getValue();
@@ -326,9 +320,9 @@ public class HugeTraverser {
                     ConditionQuery cq = new ConditionQuery(HugeType.EDGE);
                     Map<Id, Object> props = stepEntity.getProperties();
                     TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    mapCQEdge.put(entry.getKey(), cq);
+                    edgeCondtions.put(entry.getKey(), cq);
                 } else {
-                    mapCQEdge.put(entry.getKey(), null);
+                    edgeCondtions.put(entry.getKey(), null);
                 }
             }
 
@@ -336,12 +330,12 @@ public class HugeTraverser {
                 HugeEdge hugeEdge = (HugeEdge) edge;
                 HugeVertex sVertex = hugeEdge.sourceVertex();
                 HugeVertex tVertex = hugeEdge.targetVertex();
-                if (!mapCQVertex.containsKey(sVertex.schemaLabel().id()) ||
-                    !mapCQVertex.containsKey(tVertex.schemaLabel().id())) {
+                if (!vertexConditions.containsKey(sVertex.schemaLabel().id()) ||
+                    !vertexConditions.containsKey(tVertex.schemaLabel().id())) {
                     return false;
                 }
 
-                ConditionQuery cq = mapCQVertex.get(sVertex.schemaLabel().id());
+                ConditionQuery cq = vertexConditions.get(sVertex.schemaLabel().id());
                 if (cq != null) {
                     sVertex = (HugeVertex) this.graph.vertex(sVertex.id());
                     if (!cq.test(sVertex)) {
@@ -349,7 +343,7 @@ public class HugeTraverser {
                     }
                 }
 
-                cq = mapCQVertex.get(tVertex.schemaLabel().id());
+                cq = vertexConditions.get(tVertex.schemaLabel().id());
                 if (cq != null) {
                     tVertex = (HugeVertex) this.graph.vertex(tVertex.id());
                     if (!cq.test(tVertex)) {
@@ -357,20 +351,27 @@ public class HugeTraverser {
                     }
                 }
 
-                if (!mapCQEdge.containsKey(hugeEdge.schemaLabel().id())) {
+                if (!edgeCondtions.containsKey(hugeEdge.schemaLabel().id())) {
                     return false;
                 }
 
-                cq = mapCQEdge.get(hugeEdge.schemaLabel().id());
+                cq = edgeCondtions.get(hugeEdge.schemaLabel().id());
                 if (cq != null) {
-                    if (!cq.test(hugeEdge)) {
-                        return false;
-                    }
+                    return cq.test(hugeEdge);
                 }
                 return true;
             });
         }
         return result;
+    }
+
+    private boolean checkParamsNull(Iterator<Edge> edges, Steps s) {
+        if (edges == null || s == null || (!edges.hasNext())) {
+            return true;
+        }
+        // Both are empty
+        return (s.edgeSteps() == null || s.isEdgeStepPropertiesEmpty()) &&
+               (s.vertexSteps() == null || s.vertexSteps().isEmpty());
     }
 
     @Watched
@@ -407,7 +408,7 @@ public class HugeTraverser {
         }
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
         for (Id label : labels) {
-            E.checkNotNull(label, "edge label");
+            E.checkNotNull(label, "Edge label can't be null");
             results.extend(this.edgesOfVertexAF(source, dir, label,
                                                 limit, steps, withEdgeProperties));
         }
@@ -448,7 +449,7 @@ public class HugeTraverser {
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep,
-                                         boolean withProperties) {
+                                           boolean withProperties) {
         if (edgeStep.properties() == null || edgeStep.properties().isEmpty()) {
             Iterator<Edge> edges = this.edgesOfVertex(source,
                                                       edgeStep.direction(),
@@ -459,10 +460,9 @@ public class HugeTraverser {
         }
 
         Id[] edgeLabels = edgeStep.edgeLabels();
-        Query query = GraphTransaction.constructEdgesQuery(
-                      source,
-                      edgeStep.direction(),
-                      edgeLabels);
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction(),
+                                                           edgeLabels);
         ConditionQuery filter = (ConditionQuery) query.copy();
         this.fillFilterByProperties(filter, edgeStep.properties());
         query.capacity(Query.NO_CAPACITY);
@@ -470,12 +470,9 @@ public class HugeTraverser {
             query.limit(edgeStep.limit());
         }
         Iterator<Edge> edges = this.graph().edges(query);
-        if (filter != null) {
-            ConditionQuery finalFilter = filter;
-            edges = new FilterIterator<>(edges, (e) -> {
-                return finalFilter.test((HugeEdge) e);
-            });
-        }
+        edges = new FilterIterator<>(edges, (e) -> {
+            return filter.test((HugeEdge) e);
+        });
         return edgeStep.skipSuperNodeIfNeeded(edges);
     }
 
@@ -513,10 +510,9 @@ public class HugeTraverser {
 
     protected long edgesCount(Id source, EdgeStep edgeStep) {
         Id[] edgeLabels = edgeStep.edgeLabels();
-        Query query = GraphTransaction.constructEdgesQuery(
-                      source,
-                      edgeStep.direction(),
-                      edgeLabels);
+        Query query = GraphTransaction.constructEdgesQuery(source,
+                                                           edgeStep.direction(),
+                                                           edgeLabels);
         this.fillFilterBySortKeys(query, edgeLabels, edgeStep.properties());
         query.aggregate(Aggregate.AggregateFunc.COUNT, null);
         query.capacity(Query.NO_CAPACITY);
@@ -1002,7 +998,7 @@ public class HugeTraverser {
         private HugeEdge currentEdge = null;
         private Iterator<Edge> currentIterator = null;
 
-        // todo: may add edge-filter and/or vertice-filter ...
+        // todo: may add edge-filter and/or vertex-filter ...
 
         public NestedIterator(HugeTraverser traverser, Iterator<Edge> parent,
                               Steps steps, Set<Id> visited,
@@ -1016,8 +1012,9 @@ public class HugeTraverser {
 
         @Override
         public boolean hasNext() {
-            if (currentIterator == null || !currentIterator.hasNext())
+            if (currentIterator == null || !currentIterator.hasNext()) {
                 return fetch();
+            }
             return true;
         }
 

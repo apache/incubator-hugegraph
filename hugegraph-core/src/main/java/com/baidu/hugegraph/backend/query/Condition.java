@@ -168,7 +168,7 @@ public abstract class Condition implements Serializable {
             assert v2 != null;
             /*
              * TODO: we still have no way to determine accurately, since
-             * some backends may scan with token(column) like cassandra.
+             *       some backends may scan with token(column) like cassandra.
              */
             return true;
         });

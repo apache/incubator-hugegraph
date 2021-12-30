@@ -74,8 +74,9 @@ public class HugeResource {
     @JsonProperty("label")
     private String label = ANY;
 
+    // value can be predicate
     @JsonProperty("properties")
-    private Map<String, Object> properties; // value can be predicate
+    private Map<String, Object> properties;
 
     public HugeResource() {
         // pass
@@ -138,9 +139,7 @@ public class HugeResource {
     private boolean filter(AuthElement element) {
         assert this.type.match(element.type());
         if (element instanceof Namifiable) {
-            if (!this.filter((Namifiable) element)) {
-                return false;
-            }
+            return this.filter((Namifiable) element);
         }
         return true;
     }
@@ -149,10 +148,7 @@ public class HugeResource {
         assert !(element instanceof Typifiable) || this.type.match(
                ResourceType.from(((Typifiable) element).type()));
 
-        if (!this.matchLabel(element.name())) {
-            return false;
-        }
-        return true;
+        return this.matchLabel(element.name());
     }
 
     private boolean filter(HugeElement element) {
@@ -193,10 +189,7 @@ public class HugeResource {
             return false;
         }
         // It's ok if wildcard match or regular match
-        if (!this.label.equals(ANY) && !other.matches(this.label)) {
-            return false;
-        }
-        return true;
+        return this.label.equals(ANY) || other.matches(this.label);
     }
 
     private boolean matchProperties(Map<String, Object> other) {
@@ -229,10 +222,7 @@ public class HugeResource {
         if (!this.matchLabel(other.label)) {
             return false;
         }
-        if (!this.matchProperties(other.properties)) {
-            return false;
-        }
-        return true;
+        return this.matchProperties(other.properties);
     }
 
     @Override
@@ -260,9 +250,7 @@ public class HugeResource {
         // Allowed to access system(hidden) schema by anyone
         if (resourceObject.type().isSchema()) {
             Namifiable schema = (Namifiable) resourceObject.operated();
-            if (Hidden.isHidden(schema.name())) {
-                return true;
-            }
+            return Hidden.isHidden(schema.name());
         }
 
         return false;
@@ -339,19 +327,19 @@ public class HugeResource {
             HugeResource res = new HugeResource();
             while (parser.nextToken() != JsonToken.END_OBJECT) {
                 String key = parser.getCurrentName();
-                if (key.equals("type")) {
+                if ("type".equals(key)) {
                     if (parser.nextToken() != JsonToken.VALUE_NULL) {
                         res.type = ctxt.readValue(parser, ResourceType.class);
                     } else {
                         res.type = null;
                     }
-                } else if (key.equals("label")) {
+                } else if ("label".equals(key)) {
                     if (parser.nextToken() != JsonToken.VALUE_NULL) {
                         res.label = parser.getValueAsString();
                     } else {
                         res.label = null;
                     }
-                } else if (key.equals("properties")) {
+                } else if ("properties".equals(key)) {
                     if (parser.nextToken() != JsonToken.VALUE_NULL) {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> prop = ctxt.readValue(parser,

@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records;
 
-import static com.baidu.hugegraph.backend.query.Query.NO_LIMIT;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
@@ -51,7 +49,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
-            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+            while ((limit > 0L) && iterator.hasNext()) {
                 ids.add(this.id(iterator.next()));
                 limit--;
             }
@@ -64,7 +62,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         Stack<Record> records = this.records();
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
-            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+            while ((limit > 0L) && iterator.hasNext()) {
                 paths.add(this.getPath(i, iterator.next()));
                 limit--;
             }
@@ -80,7 +78,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         Stack<Record> records = this.records();
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
-            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+            while ((limit > 0L) && iterator.hasNext()) {
                 addEdgeToCodePair(codePairs, i, iterator.next());
                 limit--;
             }

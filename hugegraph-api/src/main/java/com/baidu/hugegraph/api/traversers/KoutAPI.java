@@ -40,7 +40,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -49,7 +48,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.graph.EdgeAPI;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -57,6 +55,7 @@ import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
 import com.baidu.hugegraph.traversal.algorithm.records.KoutRecords;
+import com.baidu.hugegraph.traversal.algorithm.steps.Steps;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -162,7 +161,7 @@ public class KoutAPI extends TraverserAPI {
         List<Integer> countResults = null;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             if( request.countOnly ) {
-                // optimize for count, with breadfirst
+                // optimize for count, with BFS
                 countResults = traverser.koutCount(sourceId, steps,
                                                         request.maxDepth,
                                                         request.capacity,
@@ -186,10 +185,11 @@ public class KoutAPI extends TraverserAPI {
                                  traverser.edgeIterCounter);
         }
 
+        assert results != null : "Result can't be null, please check params";
         long size = request.countOnly ?
                     countResults.get(request.maxDepth-1) : results.size();
 
-        if (request.limit != Query.NO_LIMIT && size > request.limit) {
+        if (size > request.limit) {
             size = request.limit;
         }
         List<Id> neighbors = request.countOnly ?
@@ -199,6 +199,7 @@ public class KoutAPI extends TraverserAPI {
         if (request.withPath && !request.countOnly) {
             paths.addAll(results.paths(request.limit));
         }
+
         Iterator<Vertex> iterVertex = QueryResults.emptyIterator();
         Iterator<Edge> iterEdge = QueryResults.emptyIterator();
         if (request.withVertex && !request.countOnly) {
@@ -213,6 +214,7 @@ public class KoutAPI extends TraverserAPI {
                 measure.addIterCount(ids.size(), 0);
             }
         }
+
         if (request.withEdge && !request.countOnly) {
             Iterator<Edge> iter = results.getEdges();
             if (iter == null) {
@@ -229,8 +231,7 @@ public class KoutAPI extends TraverserAPI {
 
         if(request.countOnly) {
             assert countResults != null;
-            LOG.info(String.format("kout-count for %s: %s",
-                                   request.source,
+            LOG.info(String.format("kout-count for %s: %s", request.source,
                                    countResults.toString()));
         }
         return manager.serializer(g, measure.getResult())
@@ -244,7 +245,7 @@ public class KoutAPI extends TraverserAPI {
         @JsonProperty("source")
         public Object source;
         @JsonProperty("steps")
-        public TraverserAPI.EVSteps steps;
+        public VESteps steps;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("nearest")

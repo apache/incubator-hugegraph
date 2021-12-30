@@ -19,23 +19,24 @@
 
 package com.baidu.hugegraph.traversal.algorithm.steps;
 
-import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.schema.EdgeLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
-import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
-import com.baidu.hugegraph.type.define.Directions;
-import com.baidu.hugegraph.util.E;
-import com.google.common.collect.ImmutableMap;
-import org.apache.tinkerpop.gremlin.structure.Edge;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+import static com.baidu.hugegraph.traversal.optimize.TraversalUtil.transProperties;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
-import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+
+import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.schema.EdgeLabel;
+import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
+import com.baidu.hugegraph.type.define.Directions;
+import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableMap;
 
 public class Steps {
 
@@ -67,64 +68,68 @@ public class Steps {
                                       HugeTraverser.NO_LIMIT);
         this.direction = direction;
 
-        // Parse edge steps
-        edgeSteps = new HashMap<>();
-        if (eSteps != null && !eSteps.isEmpty()) {
-            for (Map.Entry<String, Map<String, Object>> entry :
-                 eSteps.entrySet()) {
-                if ((entry.getKey() == null || entry.getKey().isEmpty()) &&
-                    (entry.getValue() == null || entry.getValue().isEmpty())) {
-                    continue;
-                }
-                E.checkArgument(entry.getKey() != null &&
-                                !entry.getKey().isEmpty(),
-                                "The edge step label could not be null");
-
-                EdgeLabel el = g.edgeLabel(entry.getKey());
-                StepEntity stepEntity = null;
-                if (entry.getValue() != null) {
-                    Map<Id, Object> props = TraversalUtil.transProperties(g,
-                                            entry.getValue());
-                    stepEntity = new StepEntity(el.id(),
-                                 entry.getKey(), props);
-                } else {
-                    stepEntity = new StepEntity(el.id(),
-                                 entry.getKey(), null);
-                }
-                edgeSteps.put(el.id(), stepEntity);
-            }
-        }
-
         // Parse vertex steps
         vertexSteps = new HashMap<>();
         if (vSteps != null && !vSteps.isEmpty()) {
-            for (Map.Entry<String, Map<String, Object>> entry :
-                 vSteps.entrySet()) {
-                if ((entry.getKey() == null || entry.getKey().isEmpty()) &&
-                    (entry.getValue() == null || entry.getValue().isEmpty())) {
-                    continue;
-                }
-                E.checkArgument(entry.getKey() != null &&
-                                !entry.getKey().isEmpty(),
-                                "The vertex step label could not be null");
+            initVertexFilter(g, vSteps);
+        }
 
-                VertexLabel vl = g.vertexLabel(entry.getKey());
-                StepEntity stepEntity = null;
-                if (entry.getValue() != null) {
-                    Map<Id, Object> props = TraversalUtil.transProperties(g,
-                                            entry.getValue());
-                    stepEntity = new StepEntity(vl.id(),
-                                 entry.getKey(), props);
-                } else {
-                    stepEntity = new StepEntity(vl.id(),
-                                 entry.getKey(), null);
-                }
-                vertexSteps.put(vl.id(), stepEntity);
-            }
+        // Parse edge steps
+        edgeSteps = new HashMap<>();
+        if (eSteps != null && !eSteps.isEmpty()) {
+            initEdgeFilter(g, eSteps);
         }
 
         this.degree = degree;
         this.skipDegree = skipDegree;
+    }
+
+    private void initVertexFilter(HugeGraph g,
+                                  Map<String, Map<String, Object>> vSteps) {
+        for (Map.Entry<String, Map<String, Object>> entry : vSteps.entrySet()) {
+            if (checkEntryEmpty(entry)) {
+                continue;
+            }
+            E.checkArgument(entry.getKey() != null && !entry.getKey().isEmpty(),
+                            "The vertex step label could not be null");
+
+            VertexLabel vl = g.vertexLabel(entry.getKey());
+            handleStepEnitiy(g, entry, vl.id(), vertexSteps);
+        }
+    }
+
+    private void initEdgeFilter(HugeGraph g,
+                                Map<String, Map<String, Object>> eSteps) {
+        for (Map.Entry<String, Map<String, Object>> entry :
+             eSteps.entrySet()) {
+            if (checkEntryEmpty(entry)) {
+                continue;
+            }
+            E.checkArgument(entry.getKey() != null && !entry.getKey().isEmpty(),
+                            "The edge step label could not be null");
+
+            EdgeLabel el = g.edgeLabel(entry.getKey());
+            handleStepEnitiy(g, entry, el.id(), edgeSteps);
+        }
+    }
+
+    private void handleStepEnitiy(HugeGraph g,
+                                  Map.Entry<String, Map<String, Object>> entry,
+                                  Id id, Map<Id, StepEntity> steps) {
+        StepEntity stepEntity;
+        if (entry.getValue() != null) {
+            Map<Id, Object> props = transProperties(g, entry.getValue());
+            stepEntity = new StepEntity(id, entry.getKey(), props);
+        } else {
+            stepEntity = new StepEntity(id, entry.getKey(), null);
+        }
+        steps.put(id, stepEntity);
+    }
+
+    private boolean checkEntryEmpty(
+            Map.Entry<String, Map<String, Object>> entry) {
+        return (entry.getKey() == null || entry.getKey().isEmpty()) &&
+               (entry.getValue() == null || entry.getValue().isEmpty());
     }
 
     public Directions direction() {
@@ -149,8 +154,7 @@ public class Steps {
 
     public Id[] edgeLabels() {
         int elsSize = this.edgeSteps.size();
-        Id[] edgeLabels = this.edgeSteps.keySet().toArray(new Id[elsSize]);
-        return edgeLabels;
+        return this.edgeSteps.keySet().toArray(new Id[elsSize]);
     }
 
     public boolean isEdgeStepPropertiesEmpty() {
@@ -170,11 +174,7 @@ public class Steps {
     }
 
     public boolean isVertexEmpty() {
-        if (this.vertexSteps != null && !this.vertexSteps.isEmpty()) {
-            return false;
-        }
-
-        return true;
+        return this.vertexSteps == null || this.vertexSteps.isEmpty();
     }
 
     public void swithDirection() {
@@ -182,8 +182,7 @@ public class Steps {
     }
 
     public long limit() {
-        long limit = this.skipDegree > 0L ? this.skipDegree : this.degree;
-        return limit;
+        return this.skipDegree > 0L ? this.skipDegree : this.degree;
     }
 
     @Override
@@ -198,7 +197,7 @@ public class Steps {
                                                    this.skipDegree);
     }
 
-    public class StepEntity {
+    public static class StepEntity {
         protected final Id id;
         protected final String label;
         protected final Map<Id, Object> properties;

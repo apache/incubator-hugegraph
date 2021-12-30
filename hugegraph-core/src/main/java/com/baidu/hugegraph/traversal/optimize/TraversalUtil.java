@@ -96,6 +96,7 @@ import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
 
+    // TODO: shall we need 'P.', better to remove it for user friendly
     public static final String P_CALL = "P.";
 
     public static HugeGraph getGraph(Step<?, ?> step) {
@@ -597,11 +598,8 @@ public final class TraversalUtil {
                                               Directions dir,
                                               Iterator<Edge> edges) {
         return new FilterIterator<>(edges, edge -> {
-            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                return true;
-            }
-            return false;
+            return dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
+                   dir == Directions.IN && vertex.equals(edge.inVertex());
         });
     }
 
@@ -713,7 +711,7 @@ public final class TraversalUtil {
                                 "Invalid data type of query value in %s, " +
                                 "expect %s for '%s', actual got %s",
                                 value, pkey.dataType(), pkey.name(),
-                                value == null ? null : classes);
+                                classes);
             }
 
             @SuppressWarnings("unchecked")
@@ -743,13 +741,9 @@ public final class TraversalUtil {
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
                                       Function<HasContainer, Boolean> func) {
-        for (Iterator<HasContainer> iter = hasContainers.iterator();
-             iter.hasNext();) {
-            HasContainer container = iter.next();
-            if (container.getKey().startsWith("~") && func.apply(container)) {
-                iter.remove();
-            }
-        }
+        hasContainers.removeIf(container -> {
+            return container.getKey().startsWith("~") && func.apply(container);
+        });
     }
 
     public static String page(GraphTraversal<?, ?> traversal) {
@@ -869,6 +863,7 @@ public final class TraversalUtil {
         String method = matcher.group(1);
         String value = matcher.group(2);
         Object validValue;
+        //System.out.printf("method = %s, value = %s", method, value);
         switch (method) {
             case "eq":
                 validValue = validPropertyValue(predicateNumber(value), pk);
@@ -909,7 +904,7 @@ public final class TraversalUtil {
             case "within":
                 List<T> values = predicateArgs(value);
                 List<T> validValues = new ArrayList<>(values.size());
-                for (T v : validValues) {
+                for (T v : values) {
                     validValues.add(validPropertyValue(v, pk));
                 }
                 return Condition.in(pk.id(), validValues);
@@ -945,7 +940,7 @@ public final class TraversalUtil {
     }
 
     private static Number[] predicateNumbers(String value, int count) {
-        List<Number> values = predicateArgs(value);
+        List<Object> values = predicateArgs(value);
         if (values.size() != count) {
             throw new HugeException("Invalid numbers size %s, expect %s",
                                     values.size(), count);
@@ -961,13 +956,13 @@ public final class TraversalUtil {
                 // pass
             }
             if (v instanceof Number) {
-                values.set(i, (Number) v);
+                values.set(i, v);
                 continue;
             }
             throw new HugeException(
                       "Invalid value '%s', expect a list of number", value);
         }
-        return values.toArray(new Number[values.size()]);
+        return values.toArray(new Number[0]);
     }
 
     @SuppressWarnings("unchecked")
