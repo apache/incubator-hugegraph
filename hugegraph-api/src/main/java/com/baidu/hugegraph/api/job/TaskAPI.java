@@ -150,7 +150,7 @@ public class TaskAPI extends API {
                                   .taskScheduler();
         HugeTask<?> task = scheduler.delete(IdGenerator.of(id), force);
         E.checkArgument(task != null, "There is no task with id '%s'", id);
-        LOGGER.getServerLogger().logDeleteTask(SYSTEM_GRAPH, Long.toString(id));
+        LOGGER.getServerLogger().logDeleteTask(graphSpace, Long.toString(id));
     }
 
     @PUT
@@ -176,7 +176,7 @@ public class TaskAPI extends API {
         if (!task.completed() && !task.cancelling()) {
             scheduler.cancel(task);
             if (task.cancelling()) {
-                LOGGER.getServerLogger().logCancelTask(SYSTEM_GRAPH, task.id().toString());
+                LOGGER.getServerLogger().logCancelTask(graphSpace, task.id().toString());
                 return task.asMap();
             }
         }
