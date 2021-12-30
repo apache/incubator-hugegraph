@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.k8s;
 
+import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.space.GraphSpace;
@@ -58,14 +59,26 @@ public class K8sManager {
     }
 
     public Set<String> startOltpService(GraphSpace graphSpace,
-                                        Service service) {
-        return this.k8sDriver.startOltpService(graphSpace, service);
+                                        Service service,
+                                        List<String> metaServers,
+                                        String cluster, boolean useCa,
+                                        String ca, String clientCa,
+                                        String clientKey) {
+        return this.k8sDriver.startOltpService(graphSpace, service,
+                                               metaServers, cluster, useCa, ca,
+                                               clientCa, clientKey);
     }
 
-    public Set<String> startService(GraphSpace graphSpace, Service service) {
+    public Set<String> startService(GraphSpace graphSpace, Service service,
+                                    List<String> metaServers, String cluster,
+                                    boolean useCa,
+                                    String ca, String clientCa,
+                                    String clientKey) {
         switch (service.type()) {
             case OLTP:
-                return this.startOltpService(graphSpace, service);
+                return this.startOltpService(graphSpace, service, metaServers,
+                                             cluster, useCa, ca, clientCa,
+                                             clientKey);
             case OLAP:
             case STORAGE:
             default:

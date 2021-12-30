@@ -128,7 +128,11 @@ public final class GraphManager {
     private final Id serverId;
     private final NodeRole serverRole;
 
+    private HugeConfig config;
+
     public GraphManager(HugeConfig conf, EventHub hub) {
+        E.checkArgumentNotNull(conf, "The config can't be null");
+        this.config = conf;
         String server = conf.get(ServerOptions.SERVER_ID);
         String role = conf.get(ServerOptions.SERVER_ROLE);
         this.startIgnoreSingleGraphError = conf.get(
@@ -524,7 +528,20 @@ public final class GraphManager {
         lock = this.metaManager.lock(this.cluster, graphSpace, name);
         try {
             if (service.k8s()) {
-                Set<String> urls = this.k8sManager.startService(gs, service);
+                List<String> endpoints = config.get(
+                                         ServerOptions.META_ENDPOINTS);
+                boolean useCa = config.get(ServerOptions.META_USE_CA);
+                String ca = null;
+                String clientCa = null;
+                String clientKey = null;
+                if (useCa) {
+                    ca = config.get(ServerOptions.META_CA);
+                    clientCa = config.get(ServerOptions.META_CLIENT_CA);
+                    clientKey = config.get(ServerOptions.META_CLIENT_KEY);
+                }
+                Set<String> urls = this.k8sManager.startService(
+                                   gs, service, endpoints, this.cluster,
+                                   useCa, ca, clientCa, clientKey);
                 service.urls(urls);
             }
             this.metaManager.addServiceConfig(graphSpace, service);

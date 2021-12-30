@@ -29,7 +29,6 @@ import java.util.Set;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.Service;
-import com.google.common.collect.ImmutableSet;
 
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ListOptions;
@@ -178,8 +177,13 @@ public class K8sDriver {
     }
 
     public Set<String> startOltpService(GraphSpace graphSpace,
-                                        Service service) {
-        this.createDeployment(graphSpace, service);
+                                        Service service,
+                                        List<String> metaServers,
+                                        String cluster, boolean useCa,
+                                        String ca, String clientCa,
+                                        String clientKey) {
+        this.createDeployment(graphSpace, service, metaServers, cluster,
+                              useCa, ca, clientCa, clientKey);
         return this.createService(graphSpace, service);
     }
 
@@ -190,8 +194,14 @@ public class K8sDriver {
                    .withName(deploymentName).delete();
     }
 
-    public Deployment createDeployment(GraphSpace graphSpace, Service service) {
-        Deployment deployment = this.constructDeployment(graphSpace, service);
+    public Deployment createDeployment(GraphSpace graphSpace, Service service,
+                                       List<String> metaServers, String cluster,
+                                       boolean useCa, String ca,
+                                       String clientCa, String clientKey) {
+        Deployment deployment = this.constructDeployment(graphSpace, service,
+                                                         metaServers, cluster,
+                                                         useCa, ca, clientCa,
+                                                         clientKey);
         String namespace = namespace(graphSpace, service);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
@@ -274,7 +284,11 @@ public class K8sDriver {
     }
 
     private Deployment constructDeployment(GraphSpace graphSpace,
-                                           Service service) {
+                                           Service service,
+                                           List<String> metaServers,
+                                           String cluster, boolean useCa,
+                                           String ca, String clientCa,
+                                           String clientKey) {
         String deploymentName = deploymentName(graphSpace, service);
         String containerName = String.join(DELIMETER, deploymentName,
                                            CONTAINER);
@@ -284,6 +298,7 @@ public class K8sDriver {
                 .addToLimits("cpu", cpu)
                 .addToLimits("memory", memory)
                 .build();
+        String metaServersString = metaServers(metaServers);
 
         return new DeploymentBuilder()
                 .withNewMetadata()
@@ -304,6 +319,38 @@ public class K8sDriver {
                 .addNewPort()
                 .withContainerPort(HG_PORT)
                 .endPort()
+                .addNewEnv()
+                .withName("GRAPH_SPACE")
+                .withValue(graphSpace.name())
+                .endEnv()
+                .addNewEnv()
+                .withName("SERVICE_ID")
+                .withValue(service.name())
+                .endEnv()
+                .addNewEnv()
+                .withName("META_SERVERS")
+                .withValue(metaServersString)
+                .endEnv()
+                .addNewEnv()
+                .withName("CLUSTER")
+                .withValue(cluster)
+                .endEnv()
+                .addNewEnv()
+                .withName("WITH_CA")
+                .withValue(Boolean.toString(useCa))
+                .endEnv()
+                .addNewEnv()
+                .withName("CA_FILE")
+                .withValue(ca)
+                .endEnv()
+                .addNewEnv()
+                .withName("CLIENT_CA")
+                .withValue(clientCa)
+                .endEnv()
+                .addNewEnv()
+                .withName("CLIENT_KEY")
+                .withValue(clientKey)
+                .endEnv()
                 .endContainer()
                 .endSpec()
                 .endTemplate()
@@ -312,6 +359,17 @@ public class K8sDriver {
                 .endSelector()
                 .endSpec()
                 .build();
+    }
+
+    private static String metaServers(List<String> metaServers) {
+        StringBuilder builder = new StringBuilder().append("[");
+        for (int i = 0; i < metaServers.size(); i++) {
+            builder.append(metaServers.get(i));
+            if (i != metaServers.size() - 1) {
+                builder.append(",");
+            }
+        }
+        return builder.toString();
     }
 
     private static String namespace(GraphSpace graphSpace, Service service) {
