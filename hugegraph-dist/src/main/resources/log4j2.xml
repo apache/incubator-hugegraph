@@ -15,7 +15,7 @@
 
         <RollingRandomAccessFile name="error" fileName="${LOG_PATH}/error-${FILE_NAME}.log"
             filePattern="${LOG_PATH}/$${date:yyyy-MM}/error-${FILE_NAME}-%d{yyyy-MM-dd-HH}-%i.gz"
-            bufferedIO="true" bufferSize="524288" immediateFlush="false">
+            bufferedIO="false" immediateFlush="true">
             <ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
             <!--JsonLayout compact="false" eventEol="true" locationInfo="true">
@@ -23,10 +23,10 @@
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="128MB"/>
+                <SizeBasedTriggeringPolicy size="50MB"/>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
-            <DefaultRolloverStrategy max="16">
+            <DefaultRolloverStrategy max="5">
                 <Delete basePath="${LOG_PATH}" maxDepth="2">
                     <IfFileName glob="*/*.log"/>
                     <!-- Limit log amount & size -->
