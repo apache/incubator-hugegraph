@@ -261,6 +261,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             }
         }
         this.waitOpenFinish(futures, openPool);
+        LOG.info("The store {} opened", this.store);
     }
 
     private void waitOpenFinish(List<Future<?>> futures,
@@ -375,7 +376,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             // May override the original session pool
             this.dbs.put(dataPath, sessions);
             sessions.session();
-            LOG.debug("Store opened: {}", dataPath);
+            LOG.info("Store opened: {}", dataPath);
         }
 
         return sessions;

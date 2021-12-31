@@ -30,7 +30,7 @@ TOP="$(cd $BIN/../ && pwd)"
 . $BIN/util.sh
 
 PID_FILE=$BIN/pid
-SERVER_SHUTDOWN_TIMEOUT_S=10
+SERVER_SHUTDOWN_TIMEOUT_S=30
 
 if [ "$CLOSE_MONITOR" == "true" ]; then
     $BIN/stop-monitor.sh

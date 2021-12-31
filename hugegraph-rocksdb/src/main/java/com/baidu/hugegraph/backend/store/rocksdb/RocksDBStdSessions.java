@@ -259,6 +259,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     @Override
     public void flush() {
         try {
+            LOG.info("Flushing rocksdb path {}", this.dataPath);
             boolean wait = this.config.get(RocksDBOptions.WAIT_FOR_FLUSH);
             this.rocksdb().flush(new FlushOptions().setWaitForFlush(wait),
                                  this.rocksdb.cfHandles.values()
