@@ -505,6 +505,10 @@ public final class ConditionQueryFlatten {
 
         private static final long serialVersionUID = -2110811280408887334L;
 
+        public Relations() {
+            super();
+        }
+
         public static Relations of(Relation... relations) {
             Relations rs = new Relations();
             rs.addAll(Arrays.asList(relations));
