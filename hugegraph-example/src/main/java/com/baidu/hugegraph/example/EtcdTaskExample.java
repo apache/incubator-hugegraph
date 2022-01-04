@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.example;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.collections.IteratorUtils;
 import org.slf4j.Logger;
@@ -28,6 +30,7 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
@@ -38,9 +41,19 @@ import com.baidu.hugegraph.util.Log;
 public class EtcdTaskExample {
 
     private static final Logger LOG = Log.logger(TaskExample.class);
+    private static final MetaManager metaManager = MetaManager.instance();
 
     public static void main(String[] args) throws Exception {
         LOG.info("TaskExample start!");
+
+        String caFile = null;
+        String clientCaFile = null;
+        String clientKeyFile = null;
+
+        List<String> endPoints = Arrays.asList("http://127.0.0.1:2379");
+
+        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD, caFile, clientCaFile, clientKeyFile, endPoints);
+        
 
         HugeGraph graph = ExampleUtil.loadGraph();
         testTask(graph);
