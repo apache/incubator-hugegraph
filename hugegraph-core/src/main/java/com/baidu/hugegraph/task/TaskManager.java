@@ -113,6 +113,7 @@ public final class TaskManager {
                         new EtcdTaskScheduler(
                             graph,
                             this.serverInfoDbExecutor,
+                            this.taskDbExecutor,
                             TaskPriority.LOW);
                     this.schedulers.put(graph, scheduler);
                 }

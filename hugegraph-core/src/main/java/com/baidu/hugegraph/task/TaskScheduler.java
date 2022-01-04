@@ -26,18 +26,27 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.event.EventListener;
-
+import com.baidu.hugegraph.logger.HugeGraphLogger;
+import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public abstract class TaskScheduler {
+
+    protected static final HugeGraphLogger LOGGER
+        = Log.getLogger(TaskScheduler.class);
 
     protected final HugeGraphParams graph;
     protected final ServerInfoManager serverManager;
     protected EventListener eventListener = null;
+
+    protected volatile TaskTransaction taskTx = null;
 
     public TaskScheduler(
             HugeGraphParams graph,
@@ -94,4 +103,45 @@ public abstract class TaskScheduler {
     }
 
     protected abstract <V> V call(Callable<V> callable);
+
+    /**
+     * Common call method
+     * @param <V>
+     * @param callable
+     * @param executor
+     * @return
+     */
+    protected <V> V call(Callable<V> callable, ExecutorService executor) {
+        try {
+            Callable<V> next = new ContextCallable<>(callable);
+            return executor.submit(next).get();
+        } catch (Exception e) {
+            LOGGER.logCriticalError(e, "");
+            throw new HugeException("Failed to update/query TaskStore: %s",
+            e, e.toString());
+        }
+    }
+
+    protected TaskTransaction tx() {
+        // NOTE: only the owner thread can access task tx
+        if (this.taskTx == null) {
+            /*
+                * NOTE: don't synchronized(this) due to scheduler thread hold
+                * this lock through scheduleTasks(), then query tasks and wait
+                * for db-worker thread after call(), the tx may not be initialized
+                * but can't catch this lock, then cause dead lock.
+                * We just use this.eventListener as a monitor here
+                */
+            synchronized (this.eventListener) {
+                if (this.taskTx == null) {
+                    BackendStore store = this.graph.loadSystemStore();
+                    TaskTransaction tx = new TaskTransaction(this.graph, store);
+                    assert this.taskTx == null; // may be reentrant?
+                    this.taskTx = tx;
+                }
+            }
+        }
+        assert this.taskTx != null;
+        return this.taskTx;
+    }
 }
