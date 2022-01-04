@@ -214,7 +214,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void createSnapshot() {
-        StoreCommand command = new StoreCommand(StoreType.ALL,
+        // TODO: snapshot for StoreType.ALL instead of StoreType.GRAPH
+        StoreCommand command = new StoreCommand(StoreType.GRAPH,
                                                 StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);

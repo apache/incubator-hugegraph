@@ -30,14 +30,15 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.NodeManager;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
+import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
@@ -101,7 +102,7 @@ public final class RaftSharedContext {
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
-        HugeConfig config = params.configuration();
+        HugeConfig config = this.config();
 
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
@@ -126,12 +127,7 @@ public final class RaftSharedContext {
         this.raftGroupManager = null;
         this.rpcForwarder = null;
         this.registerRpcRequestProcessors();
-    }
-
-    private void registerRpcRequestProcessors() {
-        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
-        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
-        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
+        LOG.info("Start raft server successfully: {}", this.endpoint());
     }
 
     public void initRaftNode() {
@@ -149,8 +145,14 @@ public final class RaftSharedContext {
     }
 
     public void close() {
-        LOG.info("Stopping raft nodes");
-        this.rpcServer.shutdown();
+        LOG.info("Stop raft server: {}", this.endpoint());
+
+        RaftNode node = this.node();
+        if (node != null) {
+            node.shutdown();
+        }
+
+        this.shutdownRpcServer();
     }
 
     public RaftNode node() {
@@ -166,10 +168,6 @@ public final class RaftSharedContext {
                         "The group must be '%s' now, actual is '%s'",
                         DEFAULT_GROUP, group);
         return this.raftGroupManager;
-    }
-
-    public RpcServer rpcServer() {
-        return this.rpcServer;
     }
 
     public String group() {
@@ -340,12 +338,23 @@ public final class RaftSharedContext {
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
-        PeerId serverId = new PeerId();
-        serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
+        PeerId endpoint = this.endpoint();
+        NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
-                                                   serverId.getEndpoint());
-        LOG.info("RPC server is started successfully");
+                                                   endpoint.getEndpoint());
         return rpcServer;
+    }
+
+    private void shutdownRpcServer() {
+        this.rpcServer.shutdown();
+        PeerId endpoint = this.endpoint();
+        NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {
