@@ -140,55 +140,72 @@ public class GraphSpaceAPI extends API {
                                 "Please pass '%s' for graph space update",
                                 UPDATE);
                 value = actionMap.get(UPDATE);
-                E.checkArgument(value instanceof JsonGraphSpace,
-                                "The '%s' must be json graph space, " +
-                                "but got %s", CONFIRM_MESSAGE, value.getClass());
-                JsonGraphSpace graphSpace = (JsonGraphSpace) value;
-                E.checkArgument(graphSpace.name.equals(name),
+                E.checkArgument(value instanceof Map,
+                                "The '%s' must be map, but got %s",
+                                UPDATE, value.getClass());
+                @SuppressWarnings("unchecked")
+                Map<String, Object> graphSpaceMap = (Map) value;
+                String gsName = (String) graphSpaceMap.get("name");
+                E.checkArgument(gsName.equals(name),
                                 "Different name in update body with in path");
                 GraphSpace exist = manager.graphSpace(name);
                 if (exist == null) {
                     throw new NotFoundException("Can't find graph space with name '%s'",
-                                                graphSpace.name);
+                                                gsName);
                 }
 
-                if (graphSpace.description != null &&
-                    Strings.isEmpty(graphSpace.description)) {
-                    exist.description(graphSpace.description);
+                String description = (String) graphSpaceMap.get("description");
+                if (description != null &&
+                    Strings.isEmpty(description)) {
+                    exist.description(description);
                 }
 
-                if (graphSpace.maxGraphNumber != 0) {
-                    exist.maxGraphNumber(graphSpace.maxGraphNumber);
+                int maxGraphNumber =
+                        (int) graphSpaceMap.get("max_graph_number");
+                if (maxGraphNumber != 0) {
+                    exist.maxGraphNumber(maxGraphNumber);
                 }
-                if (graphSpace.maxRoleNumber != 0) {
-                    exist.maxRoleNumber(graphSpace.maxRoleNumber);
-                }
-
-                if (graphSpace.cpuLimit != 0) {
-                    exist.cpuLimit(graphSpace.cpuLimit);
-                }
-                if (graphSpace.memoryLimit != 0) {
-                    exist.memoryLimit(graphSpace.memoryLimit);
-                }
-                if (graphSpace.storageLimit != 0) {
-                    exist.storageLimit = graphSpace.storageLimit;
+                int maxRoleNumber = (int) graphSpaceMap.get("max_role_number");
+                if (maxRoleNumber != 0) {
+                    exist.maxRoleNumber(maxRoleNumber);
                 }
 
-                if (graphSpace.oltpNamespace != null &&
-                    Strings.isEmpty(graphSpace.oltpNamespace)) {
-                    exist.oltpNamespace(graphSpace.oltpNamespace);
+                int cpuLimit = (int) graphSpaceMap.get("cpu_limit");
+                if (cpuLimit != 0) {
+                    exist.cpuLimit(cpuLimit);
                 }
-                if (graphSpace.olapNamespace != null &&
-                    Strings.isEmpty(graphSpace.olapNamespace)) {
-                    exist.olapNamespace(graphSpace.olapNamespace);
+                int memoryLimit = (int) graphSpaceMap.get("memory_limit");
+                if (memoryLimit != 0) {
+                    exist.memoryLimit(memoryLimit);
                 }
-                if (graphSpace.storageNamespace != null &&
-                    Strings.isEmpty(graphSpace.storageNamespace)) {
-                    exist.storageNamespace(graphSpace.storageNamespace);
+                int storageLimit = (int) graphSpaceMap.get("storage_limit");
+                if (storageLimit != 0) {
+                    exist.storageLimit = storageLimit;
                 }
 
-                if (graphSpace.configs != null && !graphSpace.configs.isEmpty()) {
-                    exist.configs(graphSpace.configs);
+                String oltpNamespace =
+                        (String) graphSpaceMap.get("oltp_namespace");
+                if (oltpNamespace != null &&
+                    !Strings.isEmpty(oltpNamespace)) {
+                    exist.oltpNamespace(oltpNamespace);
+                }
+                String olapNamespace =
+                        (String) graphSpaceMap.get("olap_namespace");
+                if (olapNamespace != null &&
+                    !Strings.isEmpty(olapNamespace)) {
+                    exist.olapNamespace(olapNamespace);
+                }
+                String storageNamespace =
+                        (String) graphSpaceMap.get("storage_namespace");
+                if (storageNamespace != null &&
+                    !Strings.isEmpty(storageNamespace)) {
+                    exist.storageNamespace(storageNamespace);
+                }
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> configs = (Map) graphSpaceMap.get("configs");
+                if (configs != null && !configs.isEmpty()) {
+                    exist.configs(configs);
                 }
                 GraphSpace space = manager.createGraphSpace(exist);
                 return space.info();

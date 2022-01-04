@@ -39,8 +39,8 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String rest(@Context GraphManager manager,
-                          @PathParam("graphspace") String graphSpace,
-                          Map<String, Object> properties) {
+                       @PathParam("graphspace") String graphSpace,
+                       Map<String, Object> properties) {
         checkRestUpdate(properties);
         return manager.serializer()
                       .writeMap(manager.restProperties(graphSpace,
@@ -54,8 +54,8 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String rest(@Context GraphManager manager,
-                          @PathParam("graphspace") String graphSpace,
-                          @PathParam("key") String key) {
+                       @PathParam("graphspace") String graphSpace,
+                       @PathParam("key") String key) {
         return manager.serializer()
                       .writeMap(manager.deleteRestProperties(graphSpace, key));
     }
@@ -66,7 +66,7 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String gremlinYaml(@Context GraphManager manager,
-                             @PathParam("graphspace") String graphSpace) {
+                              @PathParam("graphspace") String graphSpace) {
         return manager.gremlinYaml(graphSpace);
     }
 
