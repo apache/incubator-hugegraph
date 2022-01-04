@@ -71,18 +71,15 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-public class StandardTaskScheduler implements TaskScheduler {
+
+public class StandardTaskScheduler extends TaskScheduler {
 
     private static final Logger LOG = Log.logger(TaskScheduler.class);
-
-    private final HugeGraphParams graph;
-    private final ServerInfoManager serverManager;
 
     private final ExecutorService taskExecutor;
     private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDbExecutor;
 
-    private final EventListener eventListener;
     private final Map<Id, HugeTask<?>> tasks;
 
     private volatile TaskTransaction taskTx;
@@ -97,16 +94,17 @@ public class StandardTaskScheduler implements TaskScheduler {
                                  ExecutorService backupForLoadTaskExecutor,
                                  ExecutorService taskDbExecutor,
                                  ExecutorService serverInfoDbExecutor) {
+        
+        super(graph, serverInfoDbExecutor);
         E.checkNotNull(graph, "graph");
         E.checkNotNull(taskExecutor, "taskExecutor");
         E.checkNotNull(taskDbExecutor, "dbExecutor");
+       
 
-        this.graph = graph;
         this.taskExecutor = taskExecutor;
         this.backupForLoadTaskExecutor = backupForLoadTaskExecutor;
         this.taskDbExecutor = taskDbExecutor;
 
-        this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
         this.tasks = new ConcurrentHashMap<>();
 
         this.taskTx = null;
@@ -153,21 +151,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
         assert this.taskTx != null;
         return this.taskTx;
-    }
-
-    private EventListener listenChanges() {
-        // Listen store event: "store.inited"
-        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
-        EventListener eventListener = event -> {
-            // Ensure task schema create after system info initialized
-            if (storeEvents.contains(event.name())) {
-                this.call(() -> this.tx().initSchema());
-                return true;
-            }
-            return false;
-        };
-        this.graph.loadSystemStore().provider().listen(eventListener);
-        return eventListener;
     }
 
     private void unlistenChanges() {
@@ -341,9 +324,21 @@ public class StandardTaskScheduler implements TaskScheduler {
                                 task.id(), task.status());
     }
 
-    protected ServerInfoManager serverManager() {
-        return this.serverManager;
+    private EventListener listenChanges() {
+        // Listen store event: "store.inited"
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
+        EventListener eventListener = event -> {
+            // Ensure task schema create after system info initialized
+            if (storeEvents.contains(event.name())) {
+                this.call(() -> this.tx().initSchema());
+                return true;
+            }
+            return false;
+        };
+        this.graph.loadSystemStore().provider().listen(eventListener);
+        return eventListener;
     }
+
 
     protected synchronized void scheduleTasks() {
         // Master server schedule all scheduling tasks to suitable worker nodes
@@ -739,20 +734,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.call(Executors.callable(runnable, null));
     }
 
-    private <V> V call(Callable<V> callable) {
-        assert !Thread.currentThread().getName().startsWith(
-               "task-db-worker") : "can't call by itself";
-        try {
-            // Pass task context for db thread
-            callable = new ContextCallable<>(callable);
-            // Ensure all db operations are executed in dbExecutor thread(s)
-            return this.taskDbExecutor.submit(callable).get();
-        } catch (Throwable e) {
-            throw new HugeException("Failed to update/query TaskStore: %s",
-                                    e, e.toString());
-        }
-    }
-
     private void checkOnMasterNode(String op) {
         if (!this.serverManager().master()) {
             throw new HugeException("Can't %s task on non-master server", op);
@@ -770,6 +751,20 @@ public class StandardTaskScheduler implements TaskScheduler {
         } catch (InterruptedException ignored) {
             // Ignore InterruptedException
             return false;
+        }
+    }
+
+    protected <V> V call(Callable<V> callable) {
+        assert !Thread.currentThread().getName().startsWith(
+               "task-db-worker") : "can't call by itself";
+        try {
+            // Pass task context for db thread
+            callable = new ContextCallable<>(callable);
+            // Ensure all db operations are executed in dbExecutor thread(s)
+            return this.taskDbExecutor.submit(callable).get();
+        } catch (Throwable e) {
+            throw new HugeException("Failed to update/query TaskStore: %s",
+                                    e, e.toString());
         }
     }
 

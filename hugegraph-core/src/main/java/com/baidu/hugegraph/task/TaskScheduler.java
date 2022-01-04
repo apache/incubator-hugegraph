@@ -21,47 +21,77 @@ package com.baidu.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.event.EventListener;
 
-public interface TaskScheduler {
+import com.baidu.hugegraph.util.E;
 
-    public HugeGraph graph();
+public abstract class TaskScheduler {
 
-    public int pendingTasks();
+    protected final HugeGraphParams graph;
+    protected final ServerInfoManager serverManager;
+    protected EventListener eventListener = null;
 
-    public <V> void restoreTasks();
+    public TaskScheduler(
+            HugeGraphParams graph,
+            ExecutorService serverInfoDbExecutor) {
+        E.checkNotNull(graph, "graph");
 
-    public <V> Future<?> schedule(HugeTask<V> task);
+        this.graph = graph;
+        this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
+    }
 
-    public <V> void cancel(HugeTask<V> task);
+    public TaskScheduler(TaskScheduler another) {
+            this.graph = another.graph;
+            this.serverManager = another.serverManager;
+    }
 
-    public <V> void save(HugeTask<V> task);
+    public abstract HugeGraph graph();
 
-    public <V> HugeTask<V> delete(Id id, boolean force);
+    public abstract int pendingTasks();
 
-    public default <V> HugeTask<V> delete(Id id) {
+    public abstract <V> void restoreTasks();
+
+    public abstract <V> Future<?> schedule(HugeTask<V> task);
+
+    public abstract <V> void cancel(HugeTask<V> task);
+
+    public abstract <V> void save(HugeTask<V> task);
+
+    public abstract <V> HugeTask<V> delete(Id id, boolean force);
+
+    public <V> HugeTask<V> delete(Id id) {
         return this.delete(id, false);
     }
 
-    public <V> HugeTask<V> task(Id id);
-    public <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
-    public <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
+    public abstract <V> HugeTask<V> task(Id id);
+    public abstract <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
+    public abstract <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
                                            long limit, String page);
 
-    public boolean close();
+    public abstract boolean close();
 
-    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
+    public abstract <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                                   throws TimeoutException;
 
-    public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
+    public abstract <V> HugeTask<V> waitUntilTaskCompleted(Id id)
                                                   throws TimeoutException;
 
-    public void waitUntilAllTasksCompleted(long seconds)
+    public abstract void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
 
-    public void checkRequirement(String op);
+    public abstract void checkRequirement(String op);
+
+    protected ServerInfoManager serverManager() {
+        return this.serverManager;
+    }
+
+    protected abstract <V> V call(Callable<V> callable);
 }

@@ -76,6 +76,7 @@ public class HugeTask<V> extends FutureTask<V> {
     private Date create;
     private Id server;
     private int load;
+    private TaskPriority priority = TaskPriority.NORMAL;
 
     private volatile TaskStatus status;
     private volatile int progress;
@@ -245,6 +246,14 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public int load() {
         return this.load;
+    }
+
+    public TaskPriority priority() {
+        return this.priority;
+    }
+
+    public void priority(TaskPriority priority) {
+        this.priority = priority;
     }
 
     public boolean completed() {

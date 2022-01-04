@@ -72,4 +72,6 @@ public interface HugeGraphParams {
     public RateLimiter writeRateLimiter();
     public RateLimiter readRateLimiter();
     public RamTable ramtable();
+
+    public String schedulerType();
 }
