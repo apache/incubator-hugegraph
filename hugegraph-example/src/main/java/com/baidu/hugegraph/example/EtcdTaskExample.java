@@ -69,6 +69,7 @@ public class EtcdTaskExample {
         Thread.sleep(TestTask.UNIT * 1);
         scheduler.save(task);
 
+        /*
         // Find task not finished(actually it should be RUNNING)
         iter = scheduler.tasks(TaskStatus.CANCELLED, -1, null);
         assert iter.hasNext();
@@ -88,6 +89,7 @@ public class EtcdTaskExample {
         task = iter.next();
         assert task.status() == TaskStatus.SUCCESS;
         assert task.retries() == 1;
+        */
     }
 
     public static class TestTask extends TaskCallable<Integer> {

@@ -651,6 +651,16 @@ public class MetaManager {
                            META_PATH_AUTH, META_PATH_ACCESS);
     }
 
+    private String taskKey(String graphSpace, String taskPriority, String taskId) {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority, taskId);
+    }
+
+    private String taskListKey(String graphSpace, String taskPriority) {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority);
+    }
+
     private String accessListKeyByGroup(String graphSpace, String groupName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{groupName}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
@@ -1486,8 +1496,9 @@ public class MetaManager {
         return null;
     }
 
-    public <V> Id createTask(HugeTask<V> task) {
-
+    public <V> Id createTask(String graphSpace, HugeTask<V> task) {
+        String key = taskKey(graphSpace, task.priority().toString(), task.id().asString());
+        this.metaDriver.put(key, task.input());
 
         return IdGenerator.of(task.id().asString());
     }

@@ -32,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
@@ -44,8 +43,6 @@ import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.store.BackendStore;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
@@ -53,17 +50,12 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
-import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask.P;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
-import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.Cardinality;
-import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -81,8 +73,6 @@ public class StandardTaskScheduler extends TaskScheduler {
     private final ExecutorService taskDbExecutor;
 
     private final Map<Id, HugeTask<?>> tasks;
-
-    private volatile TaskTransaction taskTx;
 
     private static final long NO_LIMIT = -1L;
     private static final long PAGE_SIZE = 500L;
@@ -128,29 +118,6 @@ public class StandardTaskScheduler extends TaskScheduler {
     @Override
     public int pendingTasks() {
         return this.tasks.size();
-    }
-
-    private TaskTransaction tx() {
-        // NOTE: only the owner thread can access task tx
-        if (this.taskTx == null) {
-            /*
-             * NOTE: don't synchronized(this) due to scheduler thread hold
-             * this lock through scheduleTasks(), then query tasks and wait
-             * for db-worker thread after call(), the tx may not be initialized
-             * but can't catch this lock, then cause dead lock.
-             * We just use this.eventListener as a monitor here
-             */
-            synchronized (this.eventListener) {
-                if (this.taskTx == null) {
-                    BackendStore store = this.graph.loadSystemStore();
-                    TaskTransaction tx = new TaskTransaction(this.graph, store);
-                    assert this.taskTx == null; // may be reentrant?
-                    this.taskTx = tx;
-                }
-            }
-        }
-        assert this.taskTx != null;
-        return this.taskTx;
     }
 
     private void unlistenChanges() {
@@ -757,139 +724,7 @@ public class StandardTaskScheduler extends TaskScheduler {
     protected <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
                "task-db-worker") : "can't call by itself";
-        try {
-            // Pass task context for db thread
-            callable = new ContextCallable<>(callable);
-            // Ensure all db operations are executed in dbExecutor thread(s)
-            return this.taskDbExecutor.submit(callable).get();
-        } catch (Throwable e) {
-            throw new HugeException("Failed to update/query TaskStore: %s",
-                                    e, e.toString());
-        }
-    }
 
-    private static class TaskTransaction extends GraphTransaction {
-
-        public static final String TASK = P.TASK;
-
-        public TaskTransaction(HugeGraphParams graph, BackendStore store) {
-            super(graph, store);
-            this.autoCommit(true);
-        }
-
-        public HugeVertex constructVertex(HugeTask<?> task) {
-            if (!this.graph().existsVertexLabel(TASK)) {
-                throw new HugeException("Schema is missing for task(%s) '%s'",
-                                        task.id(), task.name());
-            }
-            return this.constructVertex(false, task.asArray());
-        }
-
-        public void deleteIndex(HugeVertex vertex) {
-            // Delete the old record if exist
-            Iterator<Vertex> old = this.queryVertices(vertex.id());
-            HugeVertex oldV = (HugeVertex) QueryResults.one(old);
-            if (oldV == null) {
-                return;
-            }
-            this.deleteIndexIfNeeded(oldV, vertex);
-        }
-
-        private boolean deleteIndexIfNeeded(HugeVertex oldV, HugeVertex newV) {
-            if (!oldV.value(P.STATUS).equals(newV.value(P.STATUS))) {
-                // Only delete vertex if index value changed else override it
-                this.updateIndex(this.indexLabel(P.STATUS).id(), oldV, true);
-                return true;
-            }
-            return false;
-        }
-
-        public void initSchema() {
-            if (this.existVertexLabel(TASK)) {
-                return;
-            }
-
-            HugeGraph graph = this.graph();
-            String[] properties = this.initProperties();
-
-            // Create vertex label '~task'
-            VertexLabel label = graph.schema().vertexLabel(TASK)
-                                     .properties(properties)
-                                     .useCustomizeNumberId()
-                                     .nullableKeys(P.DESCRIPTION, P.CONTEXT,
-                                                   P.UPDATE, P.INPUT, P.RESULT,
-                                                   P.DEPENDENCIES, P.SERVER)
-                                     .enableLabelIndex(true)
-                                     .build();
-            this.params().schemaTransaction().addVertexLabel(label);
-
-            // Create index
-            this.createIndexLabel(label, P.STATUS);
-        }
-
-        private boolean existVertexLabel(String label) {
-            return this.params().schemaTransaction()
-                                .getVertexLabel(label) != null;
-        }
-
-        private String[] initProperties() {
-            List<String> props = new ArrayList<>();
-
-            props.add(createPropertyKey(P.TYPE));
-            props.add(createPropertyKey(P.NAME));
-            props.add(createPropertyKey(P.CALLABLE));
-            props.add(createPropertyKey(P.DESCRIPTION));
-            props.add(createPropertyKey(P.CONTEXT));
-            props.add(createPropertyKey(P.STATUS, DataType.BYTE));
-            props.add(createPropertyKey(P.PROGRESS, DataType.INT));
-            props.add(createPropertyKey(P.CREATE, DataType.DATE));
-            props.add(createPropertyKey(P.UPDATE, DataType.DATE));
-            props.add(createPropertyKey(P.RETRIES, DataType.INT));
-            props.add(createPropertyKey(P.INPUT, DataType.BLOB));
-            props.add(createPropertyKey(P.RESULT, DataType.BLOB));
-            props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
-                                        Cardinality.SET));
-            props.add(createPropertyKey(P.SERVER));
-
-            return props.toArray(new String[0]);
-        }
-
-        private String createPropertyKey(String name) {
-            return this.createPropertyKey(name, DataType.TEXT);
-        }
-
-        private String createPropertyKey(String name, DataType dataType) {
-            return this.createPropertyKey(name, dataType, Cardinality.SINGLE);
-        }
-
-        private String createPropertyKey(String name, DataType dataType,
-                                         Cardinality cardinality) {
-            HugeGraph graph = this.graph();
-            SchemaManager schema = graph.schema();
-            PropertyKey propertyKey = schema.propertyKey(name)
-                                            .dataType(dataType)
-                                            .cardinality(cardinality)
-                                            .build();
-            this.params().schemaTransaction().addPropertyKey(propertyKey);
-            return name;
-        }
-
-        private IndexLabel createIndexLabel(VertexLabel label, String field) {
-            HugeGraph graph = this.graph();
-            SchemaManager schema = graph.schema();
-            String name = Hidden.hide("task-index-by-" + field);
-            IndexLabel indexLabel = schema.indexLabel(name)
-                                          .on(HugeType.VERTEX_LABEL, TASK)
-                                          .by(field)
-                                          .build();
-            this.params().schemaTransaction().addIndexLabel(label, indexLabel);
-            return indexLabel;
-        }
-
-        private IndexLabel indexLabel(String field) {
-            String name = Hidden.hide("task-index-by-" + field);
-            HugeGraph graph = this.graph();
-            return graph.indexLabel(name);
-        }
+        return super.call(callable, taskDbExecutor);
     }
 }

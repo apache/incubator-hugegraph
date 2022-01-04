@@ -22,7 +22,6 @@ package com.baidu.hugegraph.task;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -31,21 +30,26 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.QueryResults;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
-import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.schema.VertexLabel;
+import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.task.HugeTask.P;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.ExecutorUtil;
-import com.baidu.hugegraph.util.Log;
 
 public class EtcdTaskScheduler extends TaskScheduler {
-
-    private static final HugeGraphLogger LOGGER
-        = Log.getLogger(TaskScheduler.class);
 
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
 
@@ -53,12 +57,18 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final Map<TaskPriority, BlockingQueue<HugeTask<?>>> taskQueueMap = new HashMap<>();
 
+    private final ExecutorService taskDBExecutor;
+
     public EtcdTaskScheduler(
         HugeGraphParams graph,
+        // ExecutorService taskExecutor,
+        // ExecutorService backupForLoadTaskExecutor,
+        ExecutorService taskDBExecutor,
         ExecutorService serverInfoDbExecutor,
         TaskPriority maxDepth
     ) {
         super(graph, serverInfoDbExecutor);
+        this.taskDBExecutor = taskDBExecutor;
         
     }
 
@@ -95,7 +105,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
         }
         
         LOGGER.logCustomDebug("restore tasks {}", "Scorpiour", task);
-        return null;
+        return this.submitTask(task);
     }
 
     @Override
@@ -107,8 +117,15 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> void save(HugeTask<V> task) {
         task.scheduler(this);
-        BlockingQueue<HugeTask<?>> queue = this.taskQueueMap.computeIfAbsent(task.priority(), v -> new LinkedBlockingQueue<>());
-        queue.add(task);
+        E.checkArgumentNotNull(task, "Task can't be null");
+        this.call(() -> {
+            // Construct vertex from task
+            HugeVertex vertex = this.tx().constructVertex(task);
+            // Delete index of old vertex to avoid stale index
+            this.tx().deleteIndex(vertex);
+            // Add or update task info to backend store
+            return this.tx().addVertex(vertex);  
+        });
         // TODO Auto-generated method stub
     }
 
@@ -132,8 +149,23 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> Iterator<HugeTask<V>> tasks(TaskStatus status, long limit, String page) {
-        // TODO Auto-generated method stub
-        return null;
+        return this.call(() -> {
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            if (null != page) {
+                query.page(page);
+            }
+            VertexLabel label = this.graph().vertexLabel(P.TASK);
+            query.eq(HugeKeys.LABEL, label.id());
+            query.showHidden(true);
+            if (limit >= 0) {
+                query.limit(limit);
+            }
+            Iterator<Vertex> vertices = this.tx().queryVertices(query);
+            Iterator<HugeTask<V>> tasks =
+                new MapperIterator<>(vertices, HugeTask::fromVertex);
+
+            return QueryResults.toList(tasks);
+        });
     }
 
     @Override
@@ -180,7 +212,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
         if (this.graph.mode().loading()) {
             
         }
-        return this.producer.submit(new Producer<V>(task));
+        return this.producer.submit(new Producer<V>(task, this.graph));
     }
 
     @Override
@@ -188,18 +220,14 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return this.serverManager;
     }
 
-    @Override
-    protected <V> V call(Callable<V> callable) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     private static class Producer<V> implements Runnable {
 
         private final HugeTask<V> task;
+        private final HugeGraphParams graph;
 
-        public Producer(HugeTask<V> task) {
+        public Producer(HugeTask<V> task, HugeGraphParams graph) {
             this.task = task;
+            this.graph = graph;
         }
 
         @Override
@@ -207,7 +235,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             LOGGER.logCustomDebug("Producer runner start to write {}", "Scorpiour", task);
 
             MetaManager metaManager = MetaManager.instance();
-            metaManager.createTask(task);
+            metaManager.createTask(graph.name(), task);
         }
         
     }
@@ -220,6 +248,11 @@ public class EtcdTaskScheduler extends TaskScheduler {
             
         }
 
+    }
+
+    @Override
+    protected <V> V call(Callable<V> callable) {
+        return super.call(callable, this.taskDBExecutor);
     }
     
 }
