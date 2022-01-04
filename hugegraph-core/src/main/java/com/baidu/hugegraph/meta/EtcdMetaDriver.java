@@ -130,8 +130,8 @@ public class EtcdMetaDriver implements MetaDriver {
             try {
                 kvClient.delete(toByteSequence(key)).get();
             } catch (Throwable t) {
-                throw new HugeException("Failed to put '%s:%s' to etcd", e,
-                                        key, value);
+                throw new HugeException("Failed to put '%s:%s' to etcd",
+                                        e, key, value);
             }
         }
     }
@@ -157,7 +157,7 @@ public class EtcdMetaDriver implements MetaDriver {
             response = this.client.getKVClient().get(toByteSequence(prefix),
                                                      getOption).get();
         } catch (InterruptedException | ExecutionException e) {
-            throw new HugeException("Failed to scan etcd with prefix %s",
+            throw new HugeException("Failed to scan etcd with prefix '%s'",
                                     e, prefix);
         }
         int size = (int) response.getCount();

@@ -61,8 +61,7 @@ public class CrosspointsAPI extends API {
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("target") String target,
-                      @QueryParam("direction")
-                      @DefaultValue("OUT") String direction,
+                      @QueryParam("direction") String direction,
                       @QueryParam("label") String edgeLabel,
                       @QueryParam("max_depth") int depth,
                       @QueryParam("max_degree")
