@@ -159,6 +159,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final TinkerPopTransaction tx;
 
     private final RamTable ramtable;
+    private final String schedulerType;
 
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
@@ -195,6 +196,8 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.valueOf(
                         config.get(CoreOptions.GRAPH_READ_MODE));
+        
+        this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
 
         LockUtil.init(this.name);
 
@@ -1193,6 +1196,12 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public RamTable ramtable() {
             return StandardHugeGraph.this.ramtable;
+        }
+
+        @Override
+        public String schedulerType() {
+            // TODO Auto-generated method stub
+            return StandardHugeGraph.this.schedulerType;
         }
     }
 

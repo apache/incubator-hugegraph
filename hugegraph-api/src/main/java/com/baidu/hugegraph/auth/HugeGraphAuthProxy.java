@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -81,6 +82,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
@@ -965,11 +967,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return result;
     }
 
-    class TaskSchedulerProxy implements TaskScheduler {
+    class TaskSchedulerProxy extends TaskScheduler {
 
         private final TaskScheduler taskScheduler;
 
         public TaskSchedulerProxy(TaskScheduler origin) {
+            super(origin);
             this.taskScheduler = origin;
         }
 
@@ -1117,6 +1120,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             return Objects.equals(currentUser.getName(), taskUser.getName()) ||
                    RolePerm.match(currentUser.role(), taskUser.role(), null);
+        }
+
+        @Override
+        protected ServerInfoManager serverManager() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        protected <V> V call(Callable<V> callable) {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 

@@ -43,6 +43,7 @@ import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
+import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -79,6 +80,7 @@ public class MetaManager {
     private static final String META_PATH_URLS = "URLS";
     public static final String META_PATH_SCHEMA_TEMPLATE = "SCHEMA_TEMPLATE";
     private static final String META_PATH_PD_PEERS = "HSTORE_PD_PEERS";
+    public static final String META_PATH_TASK = "TASK";
 
     public static final String META_PATH_AUTH_EVENT = "AUTH_EVENT";
     public static final String META_PATH_EVENT = "EVENT";
@@ -1477,6 +1479,26 @@ public class MetaManager {
                                 JsonUtil.toJson(map));
         }
         return map;
+    }
+
+    
+    public <V> HugeTask<V> getTask() {
+        return null;
+    }
+
+    public <V> Id createTask(HugeTask<V> task) {
+
+
+        return IdGenerator.of(task.id().asString());
+    }
+
+    public <V> HugeTask<V> updateTask() {
+
+        return null;
+    }
+
+    public <V> HugeTask<V> deleteTask() {
+        return null;
     }
 
     public String gremlinYaml(String graphSpace, String serviceId) {
