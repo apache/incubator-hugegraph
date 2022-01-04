@@ -26,9 +26,6 @@ function print_usage() {
     echo "  -h,--help                                            display help information"
 }
 
-GRAPH="hugegraph"
-ENDPOINT=""
-
 if [[ $# -lt 2 ]]; then
     print_usage
     exit 0

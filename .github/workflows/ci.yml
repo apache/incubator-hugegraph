@@ -75,6 +75,11 @@ jobs:
           $TRAVIS_DIR/run-api-test.sh $BACKEND
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
 
+      - name: Run Raft test
+        if: ${{ env.BACKEND == 'rocksdb' }}
+        run: |
+          $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND
+
       - name: Run TinkerPop test
         if: ${{ env.RELEASE_BRANCH == 'true' }}
         run: |

@@ -10,6 +10,7 @@ SERVER_DIR=hugegraph-$VERSION
 CONF=$SERVER_DIR/conf/graphs/hugegraph.properties
 REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
+JACOCO_PORT=36320
 
 mvn package -DskipTests
 
@@ -28,9 +29,13 @@ authentication: {
   config: {tokens: conf/rest-server.properties}
 }" >> $GREMLIN_SERVER_CONF
 
-$TRAVIS_DIR/start-server.sh $SERVER_DIR $BACKEND || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
+# start server
+$TRAVIS_DIR/start-server.sh $SERVER_DIR $BACKEND $JACOCO_PORT || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 
 # run api-test
 mvn test -P api-test,$BACKEND || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
-$TRAVIS_DIR/build-report.sh $BACKEND
-$TRAVIS_DIR/stop-server.sh
+
+$TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT
+
+# stop server
+$TRAVIS_DIR/stop-server.sh $SERVER_DIR
