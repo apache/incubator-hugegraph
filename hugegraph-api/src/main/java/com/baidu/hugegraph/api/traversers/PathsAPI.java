@@ -114,9 +114,9 @@ public class PathsAPI extends TraverserAPI {
                                "The targets of request can't be null");
         E.checkArgumentNotNull(request.step,
                                "The step of request can't be null");
-        E.checkArgument(request.depth > 0,
-                        "The depth of request must be > 0, but got: %s",
-                        request.depth);
+        E.checkArgument(request.depth > 0 && request.depth <= 10000,
+                        "The depth of request must be in (0, 10000], " +
+                        "but got: %s", request.depth);
 
         LOG.debug("Graph [{}] get paths from source vertices '{}', target " +
                   "vertices '{}', with step '{}', max depth '{}', " +
