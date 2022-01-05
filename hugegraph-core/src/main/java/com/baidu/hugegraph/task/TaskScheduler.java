@@ -21,6 +21,7 @@ package com.baidu.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.List;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+
 
 public abstract class TaskScheduler {
 
@@ -76,6 +78,8 @@ public abstract class TaskScheduler {
 
     public abstract <V> HugeTask<V> delete(Id id, boolean force);
 
+    protected abstract void taskDone(HugeTask<?> task);
+
     public <V> HugeTask<V> delete(Id id) {
         return this.delete(id, false);
     }
@@ -113,8 +117,8 @@ public abstract class TaskScheduler {
      */
     protected <V> V call(Callable<V> callable, ExecutorService executor) {
         try {
-            Callable<V> next = new ContextCallable<>(callable);
-            return executor.submit(next).get();
+            callable = new ContextCallable<>(callable);
+            return executor.submit(callable).get();
         } catch (Exception e) {
             LOGGER.logCriticalError(e, "");
             throw new HugeException("Failed to update/query TaskStore: %s",

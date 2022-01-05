@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeAccess;
@@ -44,6 +45,7 @@ import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskPriority;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -1491,16 +1493,25 @@ public class MetaManager {
         return map;
     }
 
+    public List<String> listTasks(String graphSpace, TaskPriority priority) {
+        String key = taskListKey(graphSpace, priority.toString());
+
+        Map<String, String> taskMap = 
+            this.metaDriver.scanWithPrefix(key);
+
+        return taskMap.values().stream().collect(Collectors.toList());
+    }
     
-    public <V> HugeTask<V> getTask() {
+    public <V> HugeTask<V> getTask(String id) {
         return null;
     }
 
     public <V> Id createTask(String graphSpace, HugeTask<V> task) {
-        String key = taskKey(graphSpace, task.priority().toString(), task.id().asString());
+        Id id = IdGenerator.of(task.id().asString());
+        String key = taskKey(graphSpace, task.priority().toString(), id.asString());
         this.metaDriver.put(key, task.input());
 
-        return IdGenerator.of(task.id().asString());
+        return id;
     }
 
     public <V> HugeTask<V> updateTask() {

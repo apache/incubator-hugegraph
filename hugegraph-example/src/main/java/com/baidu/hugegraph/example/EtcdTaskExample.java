@@ -24,12 +24,14 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.collections.IteratorUtils;
-import org.slf4j.Logger;
+
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.job.Job;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
@@ -40,12 +42,12 @@ import com.baidu.hugegraph.util.Log;
 
 public class EtcdTaskExample {
 
-    private static final Logger LOG = Log.logger(TaskExample.class);
+    private static final HugeGraphLogger LOGGER
+        = Log.getLogger(EtcdTaskExample.class);
     private static final MetaManager metaManager = MetaManager.instance();
 
     public static void main(String[] args) throws Exception {
-        LOG.info("TaskExample start!");
-
+        LOGGER.logCustomDebug("EtcdTask Example Start {}", "Scorpiour", 0);
         String caFile = null;
         String clientCaFile = null;
         String clientKeyFile = null;
@@ -65,7 +67,7 @@ public class EtcdTaskExample {
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
         Id id = IdGenerator.of(8);
-        String callable = "com.baidu.hugegraph.example.TaskExample$TestTask";
+        String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
         HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
         task.type("type-1");
         task.name("test-task");
@@ -105,16 +107,38 @@ public class EtcdTaskExample {
         */
     }
 
-    public static class TestTask extends TaskCallable<Integer> {
+    /**
+     * The purposes of methods Job::execute() and TaskCallable<V>::call() are ambiguous. As what I can examined,
+     * The execute() is called in the Abstract class TaskCallable<V>::call() somewhere like UserJob<V>, Combined wth save()
+     * But there's no scenario of calling Job::execute()
+     */
+    public static class TestTask extends TaskCallable<Integer> implements Job<Integer> {
 
         public static final int UNIT = 100; // ms
 
         public volatile boolean run = true;
 
         @Override
-        public Integer call() throws Exception {
-            System.out.println(">>>> runing task with parameter: " +
-                               this.task().input());
+        protected void done() {
+            super.done();
+            LOGGER.logCustomDebug(">>>> running task {} done()", "Scorpiour", this.task().id());
+        }
+
+        @Override
+        protected void cancelled() {
+            super.cancelled();
+            LOGGER.logCustomDebug(">>>> running task {} cancelled()", "Scorpiour", this.task().id());
+        }
+
+        @Override
+        public String type() {
+            return "test-task";
+        }
+
+        @Override
+        public Integer execute() throws Exception {
+            LOGGER.logCustomDebug(">>>> running task with parameter: {}", "Scorpiour", this.task().input());
+
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
@@ -122,6 +146,13 @@ public class EtcdTaskExample {
                 Thread.sleep(UNIT);
             }
             return 18;
+        }
+
+        @Override
+        public Integer call() throws Exception {
+            LOGGER.logCustomDebug(">>>> running task {} call()", "Scorpiour", this.task().id());
+            return this.execute();
+
         }
     }
 }

@@ -19,16 +19,18 @@
 
 package com.baidu.hugegraph.task;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -37,6 +39,8 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
+import com.baidu.hugegraph.event.EventListener;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
@@ -47,7 +51,10 @@ import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.ExecutorUtil;
+
+import com.google.common.collect.ImmutableSet;
 
 public class EtcdTaskScheduler extends TaskScheduler {
 
@@ -69,6 +76,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
     ) {
         super(graph, serverInfoDbExecutor);
         this.taskDBExecutor = taskDBExecutor;
+
+        this.eventListener =  this.listenChanges();
         
     }
 
@@ -170,8 +179,18 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public boolean close() {
-        // TODO Auto-generated method stub
-        return false;
+        this.graph.loadSystemStore().provider().unlisten(this.eventListener);
+        if (!this.taskDBExecutor.isShutdown()) {
+            this.call(() -> {
+                try {
+                    this.tx().close();
+                } catch (ConnectionException ignored) {
+                    // ConnectionException means no connection established
+                }
+                this.graph.closeTx();
+            });
+        }
+        return this.serverManager.close();
     }
 
     @Override
@@ -198,7 +217,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
         
     }
 
-
     private <V> Future<?> submitTask(HugeTask<V> task) {
         task.scheduler(this);
 
@@ -219,6 +237,41 @@ public class EtcdTaskScheduler extends TaskScheduler {
     protected ServerInfoManager serverManager() {
         return this.serverManager;
     }
+
+    private <V> V call(Runnable runnable) {
+        return this.call(Executors.callable(runnable, null));
+    }
+
+    
+    @Override
+    protected <V> V call(Callable<V> callable) {
+        return super.call(callable, this.taskDBExecutor);
+    }
+
+    @Override
+    protected void taskDone(HugeTask<?> task) {
+        try {
+            this.serverManager.decreaseLoad(task.load());
+        } catch (Exception e) {
+            LOGGER.logCriticalError(e, "Failed to decrease load for task '{}' on server '{}'");
+        }
+    }
+
+    private EventListener listenChanges() {
+        // Listen store event: "store.inited"
+        Set<String> storeEvents = ImmutableSet.of(Events.STORE_INITED);
+        EventListener eventListener = event -> {
+            // Ensure task schema create after system info initialized
+            if (storeEvents.contains(event.name())) {
+                this.call(() -> this.tx().initSchema());
+                return true;
+            }
+            return false;
+        };
+        this.graph.loadSystemStore().provider().listen(eventListener);
+        return eventListener;
+    }
+
 
     private static class Producer<V> implements Runnable {
 
@@ -248,11 +301,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
             
         }
 
-    }
-
-    @Override
-    protected <V> V call(Callable<V> callable) {
-        return super.call(callable, this.taskDBExecutor);
     }
     
 }

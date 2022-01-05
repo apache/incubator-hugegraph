@@ -64,7 +64,7 @@
     </appenders>
 
     <loggers>
-        <root level="INFO">
+        <root level="DEBUG">
             <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </root>

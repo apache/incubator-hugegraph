@@ -418,6 +418,8 @@ public class StandardTaskScheduler extends TaskScheduler {
         } while (page != null);
     }
 
+    
+    @Override
     protected void taskDone(HugeTask<?> task) {
         this.remove(task);
 
