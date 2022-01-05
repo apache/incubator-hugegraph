@@ -72,4 +72,8 @@ public interface BackendFeatures {
     public boolean supportsTtl();
 
     public boolean supportsOlapProperties();
+
+    public default boolean supportsFilterInStore() {
+        return false;
+    }
 }

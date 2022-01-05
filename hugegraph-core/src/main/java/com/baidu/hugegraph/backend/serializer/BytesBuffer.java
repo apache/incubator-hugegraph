@@ -21,9 +21,11 @@ package com.baidu.hugegraph.backend.serializer;
 
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.UUID;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -35,6 +37,7 @@ import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
+import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
@@ -524,13 +527,37 @@ public final class BytesBuffer extends OutputStream {
                         value, Bytes.toHex(leading));
         return value;
     }
+    public <T> T newValue(Cardinality cardinality) {
+        switch (cardinality) {
+            case SET:
+                return (T) new LinkedHashSet<>();
+            case LIST:
+                return (T) new ArrayList<>();
+            default:
+                // pass
+                break;
+        }
+        return null;
+    }
+   private byte getCardinalityAndType(int cardinality,int type){
+       return  (byte)((cardinality << 6) | type);
+    }
+
+   private static byte getCardinality(int value){
+        return (byte)((value & 0xc0) >> 6);
+    }
+
+   private static byte getType(int value){
+        return (byte)(value & 0x3f);
+    }
+
 
     public BytesBuffer writeProperty(PropertyKey pkey, Object value) {
+        this.write(getCardinalityAndType(pkey.cardinality().code(),pkey.dataType().code()));
         if (pkey.cardinality() == Cardinality.SINGLE) {
             this.writeProperty(pkey.dataType(), value);
             return this;
         }
-
         assert pkey.cardinality() == Cardinality.LIST ||
                pkey.cardinality() == Cardinality.SET;
         Collection<?> values = (Collection<?>) value;
@@ -541,17 +568,32 @@ public final class BytesBuffer extends OutputStream {
         return this;
     }
 
-    public Object readProperty(PropertyKey pkey) {
-        if (pkey.cardinality() == Cardinality.SINGLE) {
-            return this.readProperty(pkey.dataType());
-        }
 
-        assert pkey.cardinality() == Cardinality.LIST ||
-               pkey.cardinality() == Cardinality.SET;
+    public Object readProperty(PropertyKey pkey) {
+        byte cardinalityAndType = this.read();
+        Cardinality cardinality;
+        DataType type;
+        if (pkey.graph()== null) {
+            cardinality = SerialEnum.fromCode(Cardinality.class,
+                                              getCardinality(cardinalityAndType));
+            pkey.cardinality(cardinality);
+            type = SerialEnum.fromCode(DataType.class, getType(cardinalityAndType));
+            pkey.dataType(type);
+        } else{
+            cardinality = pkey.cardinality();
+            type=pkey.dataType();
+        }
+        if (cardinality == Cardinality.SINGLE) {
+            Object value = this.readProperty(type);
+            pkey.dataType(type);
+            return value;
+        }
+        Collection<Object> values = pkey == null ? this.newValue(cardinality) : pkey.newValue();
+        assert cardinality == Cardinality.LIST ||
+               cardinality == Cardinality.SET;
         int size = this.readVInt();
-        Collection<Object> values = pkey.newValue();
         for (int i = 0; i < size; i++) {
-            values.add(this.readProperty(pkey.dataType()));
+            values.add(this.readProperty(type));
         }
         return values;
     }

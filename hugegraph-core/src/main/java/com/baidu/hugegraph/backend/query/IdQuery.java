@@ -37,6 +37,8 @@ public class IdQuery extends Query {
     // The id(s) will be concated with `or`
     private Set<Id> ids = EMPTY_IDS;
     private boolean mustSortByInput = true;
+    public  IdQuery(){
+    }
 
     public IdQuery(HugeType resultType) {
         super(resultType);

@@ -502,4 +502,7 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
+    public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
+            "pd.peers", "The addresses of store nodes, separated with commas.",
+            disallowEmpty(), "localhost:9080");
 }

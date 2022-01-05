@@ -93,6 +93,9 @@ public class RegisterUtil {
             case "postgresql":
                 registerPostgresql();
                 break;
+            case "hstore":
+                registerHstore();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'",
                                         backend);
@@ -180,6 +183,14 @@ public class RegisterUtil {
         // Register backend
         BackendProviderFactory.register("postgresql",
                 "com.baidu.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
+    }
+    public static void registerHstore() {
+        // Register config
+        OptionSpace.register("hstore",
+                "com.baidu.hugegraph.backend.store.hstore.HstoreOptions");
+        // Register backend
+        BackendProviderFactory.register("hstore",
+                "com.baidu.hugegraph.backend.store.hstore.HstoreProvider");
     }
 
     public static void registerServer() {

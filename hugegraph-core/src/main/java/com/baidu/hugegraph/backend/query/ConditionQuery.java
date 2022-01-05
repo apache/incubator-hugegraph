@@ -19,23 +19,13 @@
 
 package com.baidu.hugegraph.backend.query;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.SplicingIdGenerator;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
+import com.baidu.hugegraph.backend.query.serializer.QueryAdapter;
+import com.baidu.hugegraph.backend.query.serializer.QueryIdAdapter;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
@@ -49,8 +39,24 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-public final class ConditionQuery extends IdQuery {
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public final class ConditionQuery extends IdQuery implements Serializable {
 
     private static final Set<Condition> EMPTY_CONDITIONS = ImmutableSet.of();
 
@@ -734,7 +740,6 @@ public final class ConditionQuery extends IdQuery {
             if (number1.getClass().equals(number2.getClass())) {
                 return number1.equals(number2);
             }
-
             // Otherwise convert to BigDecimal to make two numbers comparable
             Number n1 = NumericUtil.convertToNumber(number1);
             Number n2 = NumericUtil.convertToNumber(number2);
@@ -761,5 +766,14 @@ public final class ConditionQuery extends IdQuery {
         public Id indexField() {
             return indexField;
         }
+    }
+
+    public byte[] bytes() {
+        Gson gson= new GsonBuilder()
+                .registerTypeAdapter(Condition.class, new QueryAdapter())
+                .registerTypeAdapter(Id.class, new QueryIdAdapter())
+                .create();
+        String cqs=gson.toJson(this);
+       return cqs.getBytes(StandardCharsets.UTF_8);
     }
 }

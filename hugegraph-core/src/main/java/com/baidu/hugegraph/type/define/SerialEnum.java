@@ -27,11 +27,16 @@ import com.baidu.hugegraph.util.E;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public interface SerialEnum {
 
     public byte code();
 
-    static Table<Class<?>, Byte, SerialEnum> table = HashBasedTable.create();
+//    static Table<Class<?>, Byte, SerialEnum> table = HashBasedTable.create();
+
+    static Map<Class, Map<Byte,SerialEnum>>table =new ConcurrentHashMap<>();
 
     public static void register(Class<? extends SerialEnum> clazz) {
         Object enums;
@@ -40,14 +45,23 @@ public interface SerialEnum {
         } catch (Exception e) {
             throw new BackendException(e);
         }
+        ConcurrentHashMap map=new ConcurrentHashMap<Byte,SerialEnum>();
         for (SerialEnum e : CollectionUtil.<SerialEnum>toList(enums)) {
-            table.put(clazz, e.code(), e);
+            map.put(e.code(), e);
         }
+        table.put(clazz,map);
     }
 
+
     public static <T extends SerialEnum> T fromCode(Class<T> clazz, byte code) {
-        @SuppressWarnings("unchecked")
-        T value = (T) table.get(clazz, code);
+        Map clazzMap=table.get(clazz);
+        if (clazzMap == null) {
+            SerialEnum.register(clazz);
+            clazzMap=table.get(clazz);
+        }
+        E.checkArgument(clazzMap != null, "Can't get class registery for %s",
+                        clazz.getSimpleName());
+        T value = (T) clazzMap.get(code);
         if (value == null) {
             E.checkArgument(false, "Can't construct %s from code %s",
                             clazz.getSimpleName(), code);

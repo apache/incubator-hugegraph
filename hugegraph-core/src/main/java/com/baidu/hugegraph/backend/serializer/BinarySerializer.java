@@ -177,11 +177,12 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected void parseProperty(Id pkeyId, BytesBuffer buffer,
                                  HugeElement owner) {
-        PropertyKey pkey = owner.graph().propertyKey(pkeyId);
+        PropertyKey pkey = owner.graph()!=null ?
+                           owner.graph().propertyKey(pkeyId): null;
 
         // Parse value
+        if (pkey ==  null) pkey =new PropertyKey(null,pkeyId,"");
         Object value = buffer.readProperty(pkey);
-
         // Set properties of vertex/edge
         if (pkey.cardinality() == Cardinality.SINGLE) {
             owner.addProperty(pkey, value);
@@ -231,14 +232,15 @@ public class BinarySerializer extends AbstractSerializer {
     }
 
     protected byte[] formatEdgeValue(HugeEdge edge) {
-        int propsCount = edge.getProperties().size();
+        Map<Id, HugeProperty<?>> properties = edge.getProperties();
+        int propsCount = properties.size();
         BytesBuffer buffer = BytesBuffer.allocate(4 + 16 * propsCount);
 
         // Write edge id
         //buffer.writeId(edge.id());
 
         // Write edge properties
-        this.formatProperties(edge.getProperties().values(), buffer);
+        this.formatProperties(properties.values(), buffer);
 
         // Write edge expired time if needed
         if (edge.hasTtl()) {
@@ -286,11 +288,12 @@ public class BinarySerializer extends AbstractSerializer {
 
     protected void parseVertex(byte[] value, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(value);
-
+        Id id = buffer.readId();
         // Parse vertex label
-        VertexLabel label = vertex.graph().vertexLabelOrNone(buffer.readId());
-        vertex.correctVertexLabel(label);
-
+        if (vertex.graph() != null) {
+            VertexLabel label = vertex.graph().vertexLabelOrNone(id);
+            vertex.correctVertexLabel(label);
+        }
         // Parse properties
         this.parseProperties(buffer, vertex);
 
@@ -669,7 +672,8 @@ public class BinarySerializer extends AbstractSerializer {
 
         if (count > 0) {
             assert count == cq.conditions().size();
-            return prefixQuery(cq, new BinaryId(buffer.bytes(), null));
+            // 此处需要测试，如何得到owner点ID @YanJinbing
+            return prefixQuery(cq, new BinaryId(buffer.bytes(), cq.condition(HugeKeys.OWNER_VERTEX)));
         }
 
         return null;

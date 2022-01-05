@@ -22,6 +22,8 @@ package com.baidu.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.space.GraphSpace;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraphParams;
@@ -45,7 +47,9 @@ public class BackendProviderFactory {
     public static BackendStoreProvider open(HugeGraphParams params) {
         HugeConfig config = params.configuration();
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
-        String graph = config.get(CoreOptions.STORE);
+        String graph = (StringUtils.isEmpty(params.graph().graphSpace()) ?
+                        GraphSpace.DEFAULT_GRAPH_SPACE_NAME : params.graph().graphSpace())
+                       + "/" + config.get(CoreOptions.STORE);
         boolean raftMode = config.get(CoreOptions.RAFT_MODE);
 
         BackendStoreProvider provider = newProvider(config);
@@ -60,7 +64,7 @@ public class BackendProviderFactory {
 
     private static BackendStoreProvider newProvider(HugeConfig config) {
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
-        String graph = config.get(CoreOptions.STORE);
+        String graph = config.get(CoreOptions.STORE); // no graph space support
 
         if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);

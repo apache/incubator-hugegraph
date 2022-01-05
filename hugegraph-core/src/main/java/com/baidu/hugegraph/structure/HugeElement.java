@@ -73,7 +73,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     private boolean defaultValueUpdated;
 
     public HugeElement(final HugeGraph graph) {
-        E.checkArgument(graph != null, "HugeElement graph can't be null");
+//        E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;
         this.properties = EMPTY_MAP;
         this.expiredTime = 0L;

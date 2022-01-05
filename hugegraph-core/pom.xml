@@ -13,6 +13,7 @@
 
     <properties>
         <top.level.dir>${basedir}/..</top.level.dir>
+        <fabric8.version>5.6.0</fabric8.version>
     </properties>
 
     <dependencies>
@@ -20,6 +21,11 @@
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>1.8.10</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>4.1.52.Final</version>
         </dependency>
 
         <!-- tinkerpop -->
@@ -54,6 +60,11 @@
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.17.3</version>
         </dependency>
 
         <!-- jraft -->
@@ -201,13 +212,18 @@
         <dependency>
             <groupId>io.etcd</groupId>
             <artifactId>jetcd-core</artifactId>
-            <version>0.5.2</version>
+            <version>0.5.9</version>
             <exclusions>
                 <exclusion>
                     <artifactId>netty-handler</artifactId>
                     <groupId>io.netty</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.9</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>

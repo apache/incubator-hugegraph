@@ -89,6 +89,7 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey2</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>

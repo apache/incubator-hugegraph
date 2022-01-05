@@ -34,13 +34,16 @@ import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
+import com.google.common.collect.ImmutableSet;
 
 public final class JsonUtil {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ImmutableSet<String> SPECIAL_FLOATS;
 
     static {
         SimpleModule module = new SimpleModule();
+        SPECIAL_FLOATS = ImmutableSet.of("-Infinity", "Infinity", "NaN");
 
         module.addSerializer(RawJson.class, new RawJsonSerializer());
 
@@ -51,16 +54,16 @@ public final class JsonUtil {
         HugeGraphSONModule.registerGraphSpaceSerializers(module);
         HugeGraphSONModule.registerServiceSerializers(module);
 
-        mapper.registerModule(module);
+        MAPPER.registerModule(module);
     }
 
     public static void registerModule(Module module) {
-        mapper.registerModule(module);
+        MAPPER.registerModule(module);
     }
 
     public static String toJson(Object object) {
         try {
-            return mapper.writeValueAsString(object);
+            return MAPPER.writeValueAsString(object);
         } catch (JsonProcessingException e) {
             throw new HugeException("Can't write json: %s", e, e.getMessage());
         }
@@ -71,7 +74,7 @@ public final class JsonUtil {
                      "Json value can't be null for '%s'",
                      clazz.getSimpleName());
         try {
-            return mapper.readValue(json, clazz);
+            return MAPPER.readValue(json, clazz);
         } catch (IOException e) {
             throw new HugeException("Can't read json: %s", e, e.getMessage());
         }
@@ -82,7 +85,7 @@ public final class JsonUtil {
                      "Json value can't be null for '%s'",
                      typeRef.getType());
         try {
-            ObjectReader reader = mapper.readerFor(typeRef);
+            ObjectReader reader = MAPPER.readerFor(typeRef);
             return reader.readValue(json);
         } catch (IOException e) {
             throw new HugeException("Can't read json: %s", e, e.getMessage());
@@ -116,6 +119,10 @@ public final class JsonUtil {
         return object;
     }
 
+    public static <V> boolean isInfinityOrNaN(V value) {
+        return value instanceof String && SPECIAL_FLOATS.contains(value);
+    }
+
     public static Object asJson(Object value) {
         return new RawJson(toJson(value));
     }
@@ -147,8 +154,7 @@ public final class JsonUtil {
 
         @Override
         public void serialize(RawJson json, JsonGenerator generator,
-                              SerializerProvider provider)
-                              throws IOException {
+                              SerializerProvider provider) throws IOException {
             generator.writeRawValue(json.value());
         }
     }

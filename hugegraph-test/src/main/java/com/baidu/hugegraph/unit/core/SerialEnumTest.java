@@ -30,7 +30,7 @@ public class SerialEnumTest {
     @Test
     public void testRegister() {
         SerialEnum.register(Cardinality.class);
-        Assert.assertTrue(SerialEnum.table.containsRow(Cardinality.class));
+        Assert.assertTrue(SerialEnum.table.get(Cardinality.class)!=null);
     }
 
     @Test

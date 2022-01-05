@@ -1,0 +1,50 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package com.baidu.hugegraph.backend.store.hstore;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.baidu.hugegraph.backend.store.BackendMetrics;
+import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.google.common.collect.ImmutableMap;
+
+public class HstoreMetrics implements BackendMetrics {
+
+    public HstoreMetrics(HstoreSessions hstore) {
+        E.checkArgumentNotNull(hstore, "Hstore connection is not opened");
+    }
+
+    @Override
+    public Map<String, Object> metrics() {
+        Map<String, Object> results = InsertionOrderUtil.newMap();
+        results.put(NODES, 1);
+        results.put(CLUSTER_ID, SERVER_LOCAL);
+        try {
+            Map<String, Object> metrics = new HashMap<>();
+
+            results.put(SERVERS, ImmutableMap.of(SERVER_LOCAL, metrics));
+        } catch (Throwable e) {
+            results.put(EXCEPTION, e.toString());
+        }
+        return results;
+    }
+}

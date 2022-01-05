@@ -71,7 +71,7 @@
             <!-- netty-all contain netty-transport-native-epoll, https://github.com/netty/netty/issues/8714 -->
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.42.Final</version>
+            <version>4.1.52.Final</version>
         </dependency>
     </dependencies>
 

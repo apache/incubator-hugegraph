@@ -445,7 +445,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         if (cardinality != VertexProperty.Cardinality.single) {
             E.checkArgument(propertyKey.cardinality() ==
                             Cardinality.convert(cardinality),
-                            "Invalid cardinalty '%s' for property key '%s', " +
+                            "Invalid cardinality '%s' for property key '%s', " +
                             "expect '%s'", cardinality, key,
                             propertyKey.cardinality().string());
         }

@@ -532,7 +532,6 @@ public class GraphTransaction extends IndexableTransaction {
             LOG.debug("Query{final:{}}", query);
             return super.query(query);
         }
-
         QueryList<BackendEntry> queries = this.optimizeQueries(query,
                                                                super::query);
         LOG.debug("{}", queries);
@@ -1333,8 +1332,21 @@ public class GraphTransaction extends IndexableTransaction {
              * NOTE: There are two possibilities for this query:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
+             *
+             * NOTE: There will be a case here where there is UserpropRelation
+             * and with no index, using hstore for Predicate in StoreNode
              */
+
             if (q == null) {
+                boolean sys = cq.syspropConditions().size() != 0;
+                if (this.indexTx.store().features().supportsFilterInStore()){
+                    Set<GraphIndexTransaction.MatchedIndex> indexes = this.indexTx
+                            .collectMatchedIndexes(cq);
+                    if (!sys && CollectionUtils.isEmpty(indexes)){
+                        queries.add(cq);
+                        continue;
+                    }
+                }
                 queries.add(this.indexQuery(cq), this.batchSize);
             } else if (!q.empty()) {
                 queries.add(q);
@@ -1643,28 +1655,32 @@ public class GraphTransaction extends IndexableTransaction {
         // Filter unused or incorrect records
         return new FilterIterator<T>(results, elem -> {
             // TODO: Left vertex/edge should to be auto removed via async task
-            if (elem.schemaLabel().undefined()) {
-                LOG.warn("Left record is found: id={}, label={}, properties={}",
-                         elem.id(), elem.schemaLabel().id(),
-                         elem.getPropertiesMap());
-            }
-            // Filter hidden results
-            if (!query.showHidden() && Graph.Hidden.isHidden(elem.label())) {
-                return false;
-            }
-            // Filter vertices/edges of deleting label
-            if (elem.schemaLabel().status().deleting() &&
-                !query.showDeleting()) {
-                return false;
-            }
-            // Process results that query from left index or primary-key
-            if (query.resultType().isVertex() == elem.type().isVertex() &&
-                !rightResultFromIndexQuery(query, elem)) {
-                // Only index query will come here
-                return false;
-            }
-            return true;
+            return filterElement(query, elem);
         });
+    }
+
+    private <T extends HugeElement> Boolean filterElement(Query query, T elem) {
+        if (elem.schemaLabel().undefined()) {
+            LOG.warn("Left record is found: id={}, label={}, properties={}",
+                     elem.id(), elem.schemaLabel().id(),
+                     elem.getPropertiesMap());
+        }
+        // Filter hidden results
+        if (!query.showHidden() && Graph.Hidden.isHidden(elem.label())) {
+            return false;
+        }
+        // Filter vertices/edges of deleting label
+        if (elem.schemaLabel().status().deleting() &&
+            !query.showDeleting()) {
+            return false;
+        }
+        // Process results that query from left index or primary-key
+        if (query.resultType().isVertex() == elem.type().isVertex() &&
+            !rightResultFromIndexQuery(query, elem)) {
+            // Only index query will come here
+            return false;
+        }
+        return true;
     }
 
     private boolean rightResultFromIndexQuery(Query query, HugeElement elem) {

@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.query;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -45,8 +46,11 @@ import com.baidu.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public abstract class Condition {
+public abstract class Condition implements Serializable {
 
+    public Condition(){
+
+    }
     public enum ConditionType {
         NONE,
         RELATION,
@@ -526,8 +530,11 @@ public abstract class Condition {
     /**
      * Condition defines
      */
-    public static abstract class BinCondition extends Condition {
+    public static abstract class BinCondition extends Condition  implements Serializable {
 
+        public BinCondition(){
+            super();
+        }
         private Condition left;
         private Condition right;
 
@@ -593,7 +600,10 @@ public abstract class Condition {
         }
     }
 
-    public static class And extends BinCondition {
+    public static class And extends BinCondition  implements Serializable {
+        public And(){
+//            super();
+        }
 
         public And(Condition left, Condition right) {
             super(left, right);
@@ -620,7 +630,10 @@ public abstract class Condition {
         }
     }
 
-    public static class Or extends BinCondition {
+    public static class Or extends BinCondition implements Serializable {
+        public Or(){
+            //            super();
+        }
 
         public Or(Condition left, Condition right) {
             super(left, right);
@@ -647,7 +660,7 @@ public abstract class Condition {
         }
     }
 
-    public abstract static class Relation extends Condition {
+    public abstract static class Relation extends Condition  implements Serializable{
 
         // Relational operator (like: =, >, <, in, ...)
         protected RelationType relation;
@@ -663,6 +676,7 @@ public abstract class Condition {
                   ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
                                   RelationType.TEXT_CONTAINS_ANY);
 
+        public Relation(){}
         @Override
         public ConditionType type() {
             return ConditionType.RELATION;
@@ -750,7 +764,11 @@ public abstract class Condition {
         public abstract Object key();
     }
 
-    public static class SyspropRelation extends Relation {
+    public static class SyspropRelation extends Relation  implements Serializable{
+
+        public SyspropRelation(){
+
+        }
 
         private HugeKeys key;
 
@@ -792,8 +810,11 @@ public abstract class Condition {
         }
     }
 
-    public static class UserpropRelation extends Relation {
+    public static class UserpropRelation extends Relation  implements Serializable{
 
+        public UserpropRelation(){
+
+        }
         // Id of property key
         private Id key;
 

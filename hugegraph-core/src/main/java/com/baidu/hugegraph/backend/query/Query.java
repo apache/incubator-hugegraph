@@ -71,6 +71,10 @@ public class Query implements Cloneable {
 
     private Query originQuery;
 
+    public  Query(){
+
+    }
+
     public Query(HugeType resultType) {
         this(resultType, null);
     }

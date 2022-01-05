@@ -39,14 +39,14 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
+import com.baidu.hugegraph.config.*;
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import org.slf4j.Logger;
-
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
-import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -265,6 +265,9 @@ public class GraphsAPI extends API {
         HugeGraph g = graph(manager, graphSpace, graph);
         return JsonUtil.toJson(g.metadata(null, "compact"));
     }
+   private static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
+            "pd.peers", "The addresses of pd nodes",disallowEmpty(),
+            "localhost");
 
     @PUT
     @Timed
@@ -301,6 +304,10 @@ public class GraphsAPI extends API {
         g.mode(mode);
         // mode(m) might trigger tx open, must close(commit)
         g.tx().commit();
+        HugeConfig config = (HugeConfig) g.configuration();
+        if (config.get(CoreOptions.BACKEND).equals("hstore")) {
+            g.metadata(null, "mode",new Object[]{mode});
+        }
         return ImmutableMap.of("mode", mode);
     }
 
