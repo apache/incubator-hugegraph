@@ -158,7 +158,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         for (RaftBackendStore store : this.stores()) {
             store.init();
         }
-        this.notifyAndWaitEvent(Events.STORE_INITED);
+        this.notifyAndWaitEvent(Events.STORE_INIT);
 
         LOG.debug("Graph '{}' store has been initialized", this.graph());
     }

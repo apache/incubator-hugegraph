@@ -36,18 +36,12 @@ import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.cache.Cache;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
@@ -70,34 +64,6 @@ public final class StoreStateMachine extends StateMachineAdapter {
 
     private RaftNode node() {
         return this.context.node();
-    }
-
-    private void updateCacheIfNeeded(BackendMutation mutation,
-                                     boolean forwarded) {
-        // Update cache only when graph run in general mode
-        if (this.context.graphMode() != GraphMode.NONE) {
-            return;
-        }
-        /*
-         * 1. Follower need to update cache from store to tx
-         * 2. If request come from leader, cache will be updated by upper layer
-         * 3. If request is forwarded by follower, need to update cache
-         */
-        if (!forwarded && this.node().selfIsLeader()) {
-            return;
-        }
-        for (HugeType type : mutation.types()) {
-            List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
-            if (type.isSchema() || type.isGraph()) {
-                java.util.Iterator<BackendAction> it = mutation.mutation(type);
-                while (it.hasNext()) {
-                    ids.add(it.next().entry().originId());
-                }
-                this.context.notifyCache(Cache.ACTION_INVALID, type, ids);
-            } else {
-                // Ignore other types due to not cached them
-            }
-        }
     }
 
     @Override
@@ -190,7 +156,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 store.beginTx();
                 for (BackendMutation mutation : mutations) {
                     store.mutate(mutation);
-                    this.updateCacheIfNeeded(mutation, forwarded);
+                    this.context.updateCacheIfNeeded(mutation, forwarded);
                 }
                 store.commitTx();
                 break;

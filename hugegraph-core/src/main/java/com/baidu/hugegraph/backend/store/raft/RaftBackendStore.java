@@ -50,11 +50,13 @@ public class RaftBackendStore implements BackendStore {
     private final BackendStore store;
     private final RaftSharedContext context;
     private final ThreadLocal<MutationBatch> mutationBatch;
+    private final boolean isSafeRead;
 
     public RaftBackendStore(BackendStore store, RaftSharedContext context) {
         this.store = store;
         this.context = context;
         this.mutationBatch = new ThreadLocal<>();
+        this.isSafeRead = this.context.isSafeRead();
     }
 
     public BackendStore originStore() {
@@ -143,7 +145,8 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public Number queryNumber(Query query) {
-        return (Number) this.queryByRaft(query, o -> this.store.queryNumber(query));
+        return (Number)
+               this.queryByRaft(query, o -> this.store.queryNumber(query));
     }
 
     @Override
@@ -186,7 +189,10 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public long getCounter(HugeType type) {
-        return (Long) this.queryByRaft(type, o -> this.store.getCounter(type));
+         Object counter = this.queryByRaft(type, true,
+                                           o -> this.store.getCounter(type));
+         assert counter instanceof Long;
+         return (Long) counter;
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {
@@ -200,7 +206,12 @@ public class RaftBackendStore implements BackendStore {
     }
 
     private Object queryByRaft(Object query, Function<Object, Object> func) {
-        if (!this.context.isSafeRead()) {
+        return this.queryByRaft(query, this.isSafeRead, func);
+    }
+
+    private Object queryByRaft(Object query, boolean safeRead,
+                               Function<Object, Object> func) {
+        if (!safeRead) {
             return func.apply(query);
         }
 
