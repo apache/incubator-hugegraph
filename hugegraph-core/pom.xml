@@ -245,7 +245,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>computer-k8s</artifactId>
-            <version>0.1.1</version>
+            <version>0.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
