@@ -816,7 +816,7 @@ public abstract class Condition implements Serializable {
 
         }
         // Id of property key
-        private Id key;
+        private final Id key;
 
         public UserpropRelation(Id key, Object value) {
             this(key, RelationType.EQ, value);

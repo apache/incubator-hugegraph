@@ -76,6 +76,23 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
                                 new IntHashSet();
     }
 
+    public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
+                                      Set<Id> sources, boolean nearest) {
+        super(type, concurrent);
+        this.nearest = nearest;
+
+        Record firstRecord = this.newRecord();
+        this.sourceCode = this.code(sources.iterator().next());
+        for (Id source : sources) {
+            firstRecord.addPath(this.code(source), 0);
+        }
+        this.records = new Stack<>();
+        this.records.push(firstRecord);
+
+        this.accessedVertices = concurrent ? new IntHashSet().asSynchronized() :
+                                new IntHashSet();
+    }
+
     @Override
     public void startOneLayer(boolean forward) {
         Record parentRecord = this.records.peek();
@@ -199,8 +216,8 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
     }
 
     protected static Long makeCodePair(int source, int target) {
-        return ((long) source & 0xFFFFFFFFl) |
-               (((long) target << 32) & 0xFFFFFFFF00000000l);
+        return ((long) source & 0xFFFFFFFFL) |
+               (((long) target << 32) & 0xFFFFFFFF00000000L);
     }
 
     protected void addEdgeToCodePair(HashSet<Long> codePairs,

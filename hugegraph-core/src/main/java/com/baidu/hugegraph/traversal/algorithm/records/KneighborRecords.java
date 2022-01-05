@@ -21,6 +21,7 @@ package com.baidu.hugegraph.traversal.algorithm.records;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import com.baidu.hugegraph.backend.id.Id;
@@ -36,6 +37,11 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
     public KneighborRecords(RecordType type, boolean concurrent,
                             Id source, boolean nearest) {
         super(type, concurrent, source, nearest);
+    }
+
+    public KneighborRecords(RecordType type, boolean concurrent,
+                            Set<Id> sources, boolean nearest) {
+        super(type, concurrent, sources, nearest);
     }
 
     @Override

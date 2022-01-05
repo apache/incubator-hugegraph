@@ -902,6 +902,7 @@ public final class TraversalUtil {
                 return Condition.and(Condition.lt(pk.id(), v1),
                                      Condition.gt(pk.id(), v2));
             case "within":
+                // TODO: Shall we use set?
                 List<T> values = predicateArgs(value);
                 List<T> validValues = new ArrayList<>(values.size());
                 for (T v : values) {

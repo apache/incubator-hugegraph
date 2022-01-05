@@ -210,7 +210,7 @@ public class HugeTraverser {
         }
         // check if we need edgeProperties.
         query.withProperties(withEdgeProperties ||
-                                     !steps.isEdgeStepPropertiesEmpty());
+                             !steps.isEdgeStepPropertiesEmpty());
 
         Iterator<Edge> result = this.graph.edges(query);
         return edgesOfVertexStep(result, steps);
@@ -225,144 +225,92 @@ public class HugeTraverser {
         Iterator<Edge> result = edges;
         if (steps.isEdgeStepPropertiesEmpty() && !steps.isVertexEmpty()) {
             // vertex's label and vertex's properties
-            Map<Id, ConditionQuery> conditions = new HashMap<>();
-            for (Map.Entry<Id, Steps.StepEntity> entry :
-                 steps.vertexSteps().entrySet()) {
-                Steps.StepEntity stepEntity = entry.getValue();
-                if (stepEntity.getProperties() != null &&
-                    !stepEntity.getProperties().isEmpty()) {
-                    ConditionQuery cq = new ConditionQuery(HugeType.VERTEX);
-                    Map<Id, Object> props = stepEntity.getProperties();
-                    TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    conditions.put(entry.getKey(), cq);
-                } else {
-                    conditions.put(entry.getKey(), null);
-                }
-            }
+            Map<Id, ConditionQuery> vConditions =
+                    getElementFilterQuery(steps.vertexSteps(), HugeType.VERTEX);
 
             result = new FilterIterator<>(result, edge -> {
-                HugeEdge hugeEdge = (HugeEdge) edge;
-                HugeVertex sVertex = hugeEdge.sourceVertex();
-                HugeVertex tVertex = hugeEdge.targetVertex();
-                if (!conditions.containsKey(sVertex.schemaLabel().id()) ||
-                    !conditions.containsKey(tVertex.schemaLabel().id())) {
-                    return false;
-                }
-
-                ConditionQuery cq = conditions.get(sVertex.schemaLabel().id());
-                if (cq != null) {
-                    sVertex = (HugeVertex) this.graph.vertex(sVertex.id());
-                    if (!cq.test(sVertex)) {
-                        return false;
-                    }
-                }
-
-                cq = conditions.get(tVertex.schemaLabel().id());
-                if (cq != null) {
-                    tVertex = (HugeVertex) this.graph.vertex(tVertex.id());
-                    return cq.test(tVertex);
-                }
-                return true;
+                return validateVertex(vConditions, (HugeEdge) edge);
             });
 
-        } else if (!steps.isEdgeStepPropertiesEmpty()
-                   && steps.isVertexEmpty()) {
+        } else if (!steps.isEdgeStepPropertiesEmpty() &&
+                   steps.isVertexEmpty()) {
             // edge's properties
-            Map<Id, ConditionQuery> conditions = new HashMap<>();
-            for (Map.Entry<Id, Steps.StepEntity> entry :
-                 steps.edgeSteps().entrySet()) {
-                Steps.StepEntity stepEntity = entry.getValue();
-                if (stepEntity.getProperties() != null &&
-                    !stepEntity.getProperties().isEmpty()) {
-                    ConditionQuery cq = new ConditionQuery(HugeType.EDGE);
-                    Map<Id, Object> props = stepEntity.getProperties();
-                    TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    conditions.put(entry.getKey(), cq);
-                } else {
-                    conditions.put(entry.getKey(), null);
-                }
-            }
+            Map<Id, ConditionQuery> eConditions =
+                    getElementFilterQuery(steps.edgeSteps(), HugeType.EDGE);
 
             result = new FilterIterator<>(result, edge -> {
-                HugeEdge hugeEdge = (HugeEdge) edge;
-                if (!conditions.containsKey(hugeEdge.schemaLabel().id())) {
-                    return false;
-                }
-
-                ConditionQuery cq = conditions.get(hugeEdge.schemaLabel().id());
-                if (cq != null) {
-                    return cq.test(hugeEdge);
-                }
-                return true;
+                return validateEdge(eConditions, (HugeEdge) edge);
             });
         } else {
-            Map<Id, ConditionQuery> vertexConditions = new HashMap<>();
-            for (Map.Entry<Id, Steps.StepEntity> entry :
-                 steps.vertexSteps().entrySet()) {
-                Steps.StepEntity stepEntity = entry.getValue();
-                if (stepEntity.getProperties() != null &&
-                    !stepEntity.getProperties().isEmpty()) {
-                    ConditionQuery cq = new ConditionQuery(HugeType.VERTEX);
-                    Map<Id, Object> props = stepEntity.getProperties();
-                    TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    vertexConditions.put(entry.getKey(), cq);
-                } else {
-                    vertexConditions.put(entry.getKey(), null);
-                }
-            }
-
-            Map<Id, ConditionQuery> edgeCondtions = new HashMap<>();
-            for (Map.Entry<Id, Steps.StepEntity> entry :
-                 steps.edgeSteps().entrySet()) {
-                Steps.StepEntity stepEntity = entry.getValue();
-                if (stepEntity.getProperties() != null &&
-                    !stepEntity.getProperties().isEmpty()) {
-                    ConditionQuery cq = new ConditionQuery(HugeType.EDGE);
-                    Map<Id, Object> props = stepEntity.getProperties();
-                    TraversalUtil.fillConditionQuery(cq, props, this.graph);
-                    edgeCondtions.put(entry.getKey(), cq);
-                } else {
-                    edgeCondtions.put(entry.getKey(), null);
-                }
-            }
+            // Edge & Vertex Step are not empty
+            Map<Id, ConditionQuery> vConditions =
+                    getElementFilterQuery(steps.vertexSteps(), HugeType.VERTEX);
+            Map<Id, ConditionQuery> eCondtions =
+                    getElementFilterQuery(steps.edgeSteps(), HugeType.EDGE);
 
             result = new FilterIterator<>(result, edge -> {
-                HugeEdge hugeEdge = (HugeEdge) edge;
-                HugeVertex sVertex = hugeEdge.sourceVertex();
-                HugeVertex tVertex = hugeEdge.targetVertex();
-                if (!vertexConditions.containsKey(sVertex.schemaLabel().id()) ||
-                    !vertexConditions.containsKey(tVertex.schemaLabel().id())) {
-                    return false;
-                }
-
-                ConditionQuery cq = vertexConditions.get(sVertex.schemaLabel().id());
-                if (cq != null) {
-                    sVertex = (HugeVertex) this.graph.vertex(sVertex.id());
-                    if (!cq.test(sVertex)) {
-                        return false;
-                    }
-                }
-
-                cq = vertexConditions.get(tVertex.schemaLabel().id());
-                if (cq != null) {
-                    tVertex = (HugeVertex) this.graph.vertex(tVertex.id());
-                    if (!cq.test(tVertex)) {
-                        return false;
-                    }
-                }
-
-                if (!edgeCondtions.containsKey(hugeEdge.schemaLabel().id())) {
-                    return false;
-                }
-
-                cq = edgeCondtions.get(hugeEdge.schemaLabel().id());
-                if (cq != null) {
-                    return cq.test(hugeEdge);
-                }
-                return true;
+                return validateVertex(vConditions, (HugeEdge) edge) ?
+                       validateEdge(eCondtions, (HugeEdge) edge) : false;
             });
         }
         return result;
+    }
+
+    private Boolean validateVertex(Map<Id, ConditionQuery> vConditions,
+                                   HugeEdge edge) {
+        HugeVertex sVertex = edge.sourceVertex();
+        HugeVertex tVertex = edge.targetVertex();
+        if (!vConditions.containsKey(sVertex.schemaLabel().id()) ||
+            !vConditions.containsKey(tVertex.schemaLabel().id())) {
+            return false;
+        }
+
+        ConditionQuery cq = vConditions.get(sVertex.schemaLabel().id());
+        if (cq != null) {
+            sVertex = (HugeVertex) this.graph.vertex(sVertex.id());
+            if (!cq.test(sVertex)) {
+                return false;
+            }
+        }
+
+        cq = vConditions.get(tVertex.schemaLabel().id());
+        if (cq != null) {
+            tVertex = (HugeVertex) this.graph.vertex(tVertex.id());
+            return cq.test(tVertex);
+        }
+        return true;
+    }
+
+    private Boolean validateEdge(Map<Id, ConditionQuery> eConditions,
+                                 HugeEdge edge) {
+        if (!eConditions.containsKey(edge.schemaLabel().id())) {
+            return false;
+        }
+
+        ConditionQuery cq = eConditions.get(edge.schemaLabel().id());
+        if (cq != null) {
+            return cq.test(edge);
+        }
+        return true;
+    }
+
+    private Map<Id, ConditionQuery> getElementFilterQuery(
+            Map<Id, Steps.StepEntity> idStepEntityMap, HugeType vertex) {
+        Map<Id, ConditionQuery> vertexConditions = new HashMap<>();
+        for (Map.Entry<Id, Steps.StepEntity> entry :
+                idStepEntityMap.entrySet()) {
+            Steps.StepEntity stepEntity = entry.getValue();
+            if (stepEntity.getProperties() != null &&
+                !stepEntity.getProperties().isEmpty()) {
+                ConditionQuery cq = new ConditionQuery(vertex);
+                Map<Id, Object> props = stepEntity.getProperties();
+                TraversalUtil.fillConditionQuery(cq, props, this.graph);
+                vertexConditions.put(entry.getKey(), cq);
+            } else {
+                vertexConditions.put(entry.getKey(), null);
+            }
+        }
+        return vertexConditions;
     }
 
     private boolean checkParamsNull(Iterator<Edge> edges, Steps s) {
