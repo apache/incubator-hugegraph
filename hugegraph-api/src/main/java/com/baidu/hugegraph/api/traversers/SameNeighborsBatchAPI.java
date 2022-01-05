@@ -33,6 +33,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.structure.HugeVertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -71,11 +72,11 @@ public class SameNeighborsBatchAPI extends API {
         HugeGraph g = graph(manager, graphSpace, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
 
-        List<Set<Id>> result = new ArrayList<Set<Id>>();
-        for(List<String> vertexPair : req.vertexList) {
+        List<Set<Id>> result = new ArrayList<>();
+        for(List<Object> vertexPair : req.vertexList) {
             E.checkArgument(vertexPair.size() == 2, "vertex pair length error");
-            Id sourceId = VertexAPI.checkAndParseVertexId(vertexPair.get(0));
-            Id targetId = VertexAPI.checkAndParseVertexId(vertexPair.get(1));
+            Id sourceId = HugeVertex.getIdValue(vertexPair.get(0));
+            Id targetId = HugeVertex.getIdValue(vertexPair.get(1));
             Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir, 
                 req.label, req.maxDegree, req.limit);
             result.add(neighbors);
@@ -86,7 +87,7 @@ public class SameNeighborsBatchAPI extends API {
 
     private static class Request {
         @JsonProperty("vertex_list")
-        private List<List<String>> vertexList;
+        private List<List<Object>> vertexList;
         @JsonProperty("direction")
         private String direction;
         @JsonProperty("label")
