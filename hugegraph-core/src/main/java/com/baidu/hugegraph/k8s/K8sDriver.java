@@ -362,7 +362,7 @@ public class K8sDriver {
     }
 
     private static String metaServers(List<String> metaServers) {
-        StringBuilder builder = new StringBuilder().append("[");
+        StringBuilder builder = new StringBuilder();
         for (int i = 0; i < metaServers.size(); i++) {
             builder.append(metaServers.get(i));
             if (i != metaServers.size() - 1) {
