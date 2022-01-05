@@ -223,8 +223,8 @@ public class RaftBackendStore implements BackendStore {
                     future.complete(status, () -> func.apply(query));
                 } else {
                     future.failure(status, new BackendException(
-                           "Failed to execute query '%s' with read-index: %s",
-                           query, status));
+                                           "Failed to do raft read-index: %s",
+                                           status));
                 }
             }
         };
@@ -232,8 +232,8 @@ public class RaftBackendStore implements BackendStore {
         try {
             return future.waitFinished();
         } catch (Throwable e) {
-            LOG.warn("Failed to execute query '{}' with read-index: {}",
-                     query, future.status());
+            LOG.warn("Failed to execute query '{}': {}",
+                     query, future.status(), e);
             throw new BackendException("Failed to execute query: %s", e, query);
         }
     }
