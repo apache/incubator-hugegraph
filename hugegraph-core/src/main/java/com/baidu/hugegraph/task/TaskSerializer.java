@@ -20,9 +20,9 @@
 package com.baidu.hugegraph.task;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -64,16 +64,37 @@ public final class TaskSerializer {
         throw new NotImplementedException();
     }
 
+    /**
+     * Deserialize task from json
+     * @param <V>
+     * @param jsonStr
+     * @return
+     */
     public static <V> HugeTask<V> fromJson(String jsonStr) {
         Map<String, Object> map = JsonUtil.fromJson(jsonStr, Map.class);
         String callableStr = String.valueOf(map.get("task_callable"));
-        String idStr = String.valueOf(map.get("id"));
+        Integer numId = Integer.valueOf(String.valueOf(map.get("id")));
         String parentStr = String.valueOf(map.get("parent"));
         String input = String.valueOf(map.get("task_input"));
+        String typeStr = String.valueOf(map.get("task_type"));
+        Date createdAt = new Date(Long.valueOf(String.valueOf(map.get("task_create"))));
+        Integer progress = Integer.valueOf(String.valueOf(map.get("task_progress")));
+        String name = String.valueOf(map.get("task_name"));
+        TaskStatus status = TaskStatus.fromName(String.valueOf(map.get("task_status")));
 
-        Id id = IdGenerator.of(idStr);
+        Id id = IdGenerator.of(numId);
         Id parent = IdGenerator.of(parentStr);
         HugeTask<V> task = new HugeTask<>(id, parent, callableStr, input);
+
+        task.name(name);
+        task.type(typeStr);
+        task.progress(progress);
+        task.createTime(createdAt);
+        task.status(status);
+
+        // Recursive dependency
+        task.callable().task(task);
+
         return task;
     }
 

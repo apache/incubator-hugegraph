@@ -20,7 +20,11 @@
 package com.baidu.hugegraph.task;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.google.common.collect.ImmutableList;
@@ -48,6 +52,15 @@ public enum TaskStatus implements SerialEnum {
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
 
+    private static final Map<String, TaskStatus> ALL_STATUS_MAP = 
+        Stream.of(TaskStatus.values())
+        .collect(
+            Collectors.toMap(
+                status -> status.name,  // name as key
+                status -> status,       // status as value
+                (prev, next) -> next    // in case of duplicate name
+        ));
+
     private byte status = 0;
     private String name;
 
@@ -68,5 +81,15 @@ public enum TaskStatus implements SerialEnum {
 
     public String string() {
         return this.name;
+    }
+
+    /**
+     * Allowing get TaskStatus by name
+     * @param name
+     * @return
+     */
+    public static TaskStatus fromName(String name) {
+        TaskStatus status = ALL_STATUS_MAP.getOrDefault(name, UNKNOWN);
+        return status;
     }
 }
