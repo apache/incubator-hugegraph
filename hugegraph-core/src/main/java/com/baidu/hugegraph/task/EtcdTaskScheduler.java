@@ -32,17 +32,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import javax.ws.rs.NotFoundException;
+
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
+import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.tx.GraphTransaction;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
+import com.baidu.hugegraph.logger.MethodLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -64,20 +72,28 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final Map<TaskPriority, BlockingQueue<HugeTask<?>>> taskQueueMap = new HashMap<>();
 
+    private final ExecutorService taskExecutor;
+    private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDBExecutor;
+
+    private final Map<Id, HugeTask<?>> tasks = new HashMap<>();
 
     public EtcdTaskScheduler(
         HugeGraphParams graph,
-        // ExecutorService taskExecutor,
-        // ExecutorService backupForLoadTaskExecutor,
+        ExecutorService taskExecutor,
+        ExecutorService backupForLoadTaskExecutor,
         ExecutorService taskDBExecutor,
         ExecutorService serverInfoDbExecutor,
         TaskPriority maxDepth
     ) {
         super(graph, serverInfoDbExecutor);
+        this.taskExecutor = taskExecutor;
+        this.backupForLoadTaskExecutor = backupForLoadTaskExecutor;
         this.taskDBExecutor = taskDBExecutor;
 
         this.eventListener =  this.listenChanges();
+
+        MetaManager.instance().listenTaskAdded(this.graph.name(), TaskPriority.NORMAL, this::taskEventHandler);
         
     }
 
@@ -110,7 +126,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         if (task.callable() instanceof EphemeralJob) {
             task.status(TaskStatus.QUEUED);
-            return this.submitTask(task);
+            return this.submitEphemeralTask(task);
         }
         
         LOGGER.logCustomDebug("restore tasks {}", "Scorpiour", task);
@@ -123,11 +139,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
         
     }
 
-    @Override
-    public <V> void save(HugeTask<V> task) {
+    private <V> Id saveWithId(HugeTask<V> task) {
         task.scheduler(this);
         E.checkArgumentNotNull(task, "Task can't be null");
-        this.call(() -> {
+        HugeVertex v = this.call(() -> {
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
             // Delete index of old vertex to avoid stale index
@@ -135,7 +150,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
             // Add or update task info to backend store
             return this.tx().addVertex(vertex);  
         });
-        // TODO Auto-generated method stub
+        return v.id();
+    }
+
+    @Override
+    public <V> void save(HugeTask<V> task) {
+        this.saveWithId(task);
     }
 
     @Override
@@ -193,33 +213,76 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return this.serverManager.close();
     }
 
+    private <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
+                                                   long intervalMs)
+                                                   throws TimeoutException {
+        long passes = seconds * 1000 / intervalMs;
+        HugeTask<V> task = null;
+        for (long pass = 0;; pass++) {
+            try {
+                task = this.task(id);
+            } catch (NotFoundException e) {
+                if (task != null && task.completed()) {
+                    assert task.id().asLong() < 0L : task.id();
+                    sleep(intervalMs);
+                    return task;
+                }
+                throw e;
+            }
+            if (task.completed()) {
+                // Wait for task result being set after status is completed
+                sleep(intervalMs);
+                return task;
+            }
+            if (pass >= passes) {
+                break;
+            }
+            sleep(intervalMs);
+        }
+        throw new TimeoutException(String.format(
+                  "Task '%s' was not completed in %s seconds", id, seconds));
+    }
+
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds) throws TimeoutException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
     }
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id) throws TimeoutException {
-        // TODO Auto-generated method stub
-        return null;
+        long timeout = this.graph.configuration()
+                                 .get(CoreOptions.TASK_WAIT_TIMEOUT);
+        return this.waitUntilTaskCompleted(id, timeout, 1L);
     }
 
     @Override
     public void waitUntilAllTasksCompleted(long seconds) throws TimeoutException {
-        // TODO Auto-generated method stub
+        long passes = seconds * 1000 / QUERY_INTERVAL;
+        int taskSize = 0;
+        for (long pass = 0;; pass++) {
+            taskSize = this.pendingTasks();
+            if (taskSize == 0) {
+                sleep(QUERY_INTERVAL);
+                return;
+            }
+            if (pass >= passes) {
+                break;
+            }
+            sleep(QUERY_INTERVAL);
+        }
+        throw new TimeoutException(String.format(
+                  "There are still %s incomplete tasks after %s seconds",
+                  taskSize, seconds));
         
     }
 
-    @Override
-    public void checkRequirement(String op) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    private <V> Future<?> submitTask(HugeTask<V> task) {
+    private <V> Future<?> submitEphemeralTask(HugeTask<V> task) {
+        assert !this.tasks.containsKey(task.id()) : task;
+        int size = this.tasks.size();
+        E.checkArgument(size < MAX_PENDING_TASKS,
+            "Pending tasks size %s has exceeded the max limit %s",
+            size + 1, MAX_PENDING_TASKS);
         task.scheduler(this);
-
         TaskCallable<V> callable = task.callable();
         callable.task(task);
         callable.graph(this.graph());
@@ -227,8 +290,25 @@ public class EtcdTaskScheduler extends TaskScheduler {
             ((SysTaskCallable<V>)callable).params(this.graph);
         }
 
-        if (this.graph.mode().loading()) {
-            
+        this.tasks.put(task.id(), task);
+        if (this.graph().mode().loading()) {
+            LOGGER.logCustomDebug("Schedule task {} to backup for load task executor", "Scorpiour", task);
+            return this.backupForLoadTaskExecutor.submit(task);   
+        }
+        return this.taskExecutor.submit(task);
+    }
+
+    private <V> Future<?> submitTask(HugeTask<V> task) {
+        task.scheduler(this);
+
+        // Save task first
+        Id id = this.saveWithId(task);
+        // Submit to etcd
+        TaskCallable<V> callable = task.callable();
+        callable.task(task);
+        callable.graph(this.graph());
+        if (callable instanceof SysTaskCallable) {
+            ((SysTaskCallable<V>)callable).params(this.graph);
         }
         return this.producer.submit(new Producer<V>(task, this.graph));
     }
@@ -272,6 +352,16 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return eventListener;
     }
 
+    private static boolean sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+            return true;
+        } catch (InterruptedException ignored) {
+            // Ignore InterruptedException
+            return false;
+        }
+    }
+
 
     private static class Producer<V> implements Runnable {
 
@@ -293,12 +383,15 @@ public class EtcdTaskScheduler extends TaskScheduler {
         
     }
 
-    private static class Consumer implements Runnable {
+    
+    private <T> void taskEventHandler(T response) {
+        List<String> events = MetaManager.instance()
+        .extractGraphsFromResponse(response);
 
-        @Override
-        public void run() {
-            // TODO Auto-generated method stub
-            
+        for(int i = 0; i < events.size(); i++) {
+            String jsonStr = events.get(i);
+            HugeTask<?> task = TaskSerializer.fromJson(jsonStr);
+            task.run();
         }
 
     }

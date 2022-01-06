@@ -44,6 +44,7 @@ import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.kv.GetResponse;
 import io.etcd.jetcd.options.GetOption;
+import io.etcd.jetcd.options.WatchOption;
 import io.etcd.jetcd.watch.WatchEvent;
 import io.etcd.jetcd.watch.WatchResponse;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
@@ -207,6 +208,18 @@ public class EtcdMetaDriver implements MetaDriver {
                                            (Consumer<WatchResponse>) consumer);
     }
 
+    /**
+     * Listen etcd key with prefix
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+        ByteSequence sequence = toByteSequence(prefix);
+        WatchOption option = WatchOption.newBuilder().withPrefix(sequence).build();
+        this.client.getWatchClient().watch(sequence, option, (Consumer<WatchResponse>) consumer);
+        
+    }
+
     private static ByteSequence toByteSequence(String content) {
         return ByteSequence.from(content.getBytes());
     }
@@ -242,6 +255,5 @@ public class EtcdMetaDriver implements MetaDriver {
         }
         return ssl;
     }
-
 
 }

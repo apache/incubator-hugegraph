@@ -59,10 +59,11 @@ public class EtcdTaskExample {
 
         HugeGraph graph = ExampleUtil.loadGraph();
         testTask(graph);
+        Thread.sleep(30 * 1000L);
         graph.close();
 
         // Stop daemon thread
-        HugeFactory.shutdown(30L);
+        HugeFactory.shutdown(5L);
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
@@ -75,6 +76,8 @@ public class EtcdTaskExample {
         TaskScheduler scheduler = graph.taskScheduler();
         scheduler.schedule(task);
         scheduler.save(task);
+
+        
         Iterator<HugeTask<Object>> iter;
         iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
