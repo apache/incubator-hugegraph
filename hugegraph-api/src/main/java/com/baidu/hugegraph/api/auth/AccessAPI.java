@@ -35,7 +35,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.auth.AuthManager;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -68,8 +67,8 @@ public class AccessAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph space [{}] create access: {}",
-                  graphSpace, jsonAccess);
+        LOGGER.logCustomDebug("Graph space [{}] create access: {}",
+                "system", graphSpace, jsonAccess);
         checkCreatingBody(jsonAccess);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -89,8 +88,8 @@ public class AccessAPI extends API {
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph space [{}] update access: {}",
-                  graphSpace, jsonAccess);
+        LOGGER.logCustomDebug("Graph space [{}] update access: {}",
+                "system", graphSpace, jsonAccess);
         checkUpdatingBody(jsonAccess);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -116,10 +115,8 @@ public class AccessAPI extends API {
                        @QueryParam("group") String group,
                        @QueryParam("target") String target,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph space [{}] list belongs by group {} or target {}",
-                  graphSpace, group, target);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] list belongs by group {} or target {}",
+                "system", graphSpace, group, target);
         E.checkArgument(group == null || target == null,
                         "Can't pass both group and target at the same time");
 
@@ -146,9 +143,8 @@ public class AccessAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] get access: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] get access: {}",
+                "system", graphSpace, id);
 
         AuthManager authManager = manager.authManager();
         HugeAccess access = authManager.getAccess(graphSpace,
@@ -164,9 +160,8 @@ public class AccessAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] delete access: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] delete access: {}",
+                "system", graphSpace, id);
 
         try {
             AuthManager authManager = manager.authManager();

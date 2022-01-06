@@ -35,7 +35,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.auth.AuthManager;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -67,7 +66,7 @@ public class BelongAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          JsonBelong jsonBelong) {
-        LOG.debug("Graph space [{}] create belong: {}",
+        LOGGER.logCustomDebug("Graph space [{}] create belong: {}",
                   graphSpace, jsonBelong);
         checkCreatingBody(jsonBelong);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
@@ -88,8 +87,9 @@ public class BelongAPI extends API {
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonBelong jsonBelong) {
-        LOG.debug("Graph space [{}] update belong: {}",
-                  graphSpace, jsonBelong);
+        LOGGER.logCustomDebug("Graph space [{}] update belong: {}",
+                    "guoygang",
+                    graphSpace, jsonBelong);
         checkUpdatingBody(jsonBelong);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -116,10 +116,9 @@ public class BelongAPI extends API {
                        @QueryParam("user") String user,
                        @QueryParam("group") String group,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph space [{}] list belongs by user {} or group {}",
-                  graphSpace, user, group);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] list belongs by user {} or group {}",
+                    "guoygang",
+                    graphSpace, user, group);
         E.checkArgument(user == null || group == null,
                         "Can't pass both user and group at the same time");
 
@@ -146,9 +145,9 @@ public class BelongAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] get belong: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] get belong: {}",
+                    "guoygang",
+                    graphSpace, id);
 
         AuthManager authManager = manager.authManager();
         HugeBelong belong = authManager.getBelong(graphSpace,
@@ -164,9 +163,9 @@ public class BelongAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] delete belong: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] delete belong: {}",
+                    "guoygang",
+                    graphSpace, id);
 
         try {
             AuthManager authManager = manager.authManager();

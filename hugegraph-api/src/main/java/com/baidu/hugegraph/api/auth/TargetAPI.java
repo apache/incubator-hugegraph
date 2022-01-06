@@ -35,11 +35,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.baidu.hugegraph.auth.AuthManager;
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
@@ -67,7 +65,9 @@ public class TargetAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph space [{}] create target: {}", graphSpace, jsonTarget);
+        LOGGER.logCustomDebug("Graph space [{}] create target: {}",
+                    "system",
+                    graphSpace, jsonTarget);
         checkCreatingBody(jsonTarget);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -87,7 +87,8 @@ public class TargetAPI extends API {
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonTarget jsonTarget) {
-        LOG.debug("Graph space [{}] update target: {}", graphSpace, jsonTarget);
+        LOGGER.logCustomDebug("Graph space [{}] update target: {}",
+                    "system", graphSpace, jsonTarget);
         checkUpdatingBody(jsonTarget);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -111,9 +112,8 @@ public class TargetAPI extends API {
     public String list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph space [{}] list targets", graphSpace);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] list targets",
+                    "system", graphSpace);
 
         AuthManager authManager = manager.authManager();
         List<HugeTarget> targets = authManager.listAllTargets(graphSpace,
@@ -128,9 +128,8 @@ public class TargetAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] get target: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] get target: {}",
+                    "system", graphSpace, id);
 
         AuthManager authManager = manager.authManager();
         HugeTarget target = authManager.getTarget(graphSpace,
@@ -145,9 +144,8 @@ public class TargetAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] delete target: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] delete target: {}",
+                    "system", graphSpace, id);
 
         try {
             AuthManager authManager = manager.authManager();

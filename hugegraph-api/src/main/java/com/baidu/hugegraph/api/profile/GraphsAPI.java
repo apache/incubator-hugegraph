@@ -43,6 +43,10 @@ import javax.ws.rs.core.SecurityContext;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -116,8 +120,9 @@ public class GraphsAPI extends API {
     public Object get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph) {
-        LOG.debug("Get graph by graph space {} and name '{}' ",
-                  graphSpace, graph);
+        LOGGER.logCustomDebug("Get graph by graph space {} and name '{}' ",
+                        "zhoney",
+                        graphSpace, graph);
 
         HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> configs = manager.graphConfig(graphSpace, graph);
@@ -140,23 +145,14 @@ public class GraphsAPI extends API {
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("name") String name,
                          Map<String, Object> configs) {
-        LOG.debug("Create graph {} with config options '{}' in graph space " +
-                  "'{}'", name, configs, graphSpace);
+        LOGGER.logCustomDebug("Create graph {} with config options '{}' in graph space " +
+                  "'{}'", "zhoney", name, configs, graphSpace);
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
         graph.tx().close();
-<<<<<<< HEAD
-        String description = (String) configs.get(GRAPH_DESCRIPTION);
-        if (description == null) {
-            description = Strings.EMPTY;
-        }
-        return ImmutableMap.of("name", name, "backend", graph.backend(),
-                               "description", description);
-=======
-        Object result = ImmutableMap.of("name", name, "backend", graph.backend());
-        LOGGER.getServerLogger().logCreateGraph(name, configText);
+        Object result = ImmutableMap.of("name", name, "backend", graph.backend(), "description", description);
+        LOGGER.getServerLogger().logCreateGraph(name, graph.configuration().toString());
         return result;
->>>>>>> update server logs
     }
 
     @GET
@@ -169,7 +165,8 @@ public class GraphsAPI extends API {
                           @PathParam("graph") String graph) {
         
         LOGGER.logCustomDebug(
-            "Get graph configuration by name '{}'", RestServer.EXECUTOR, graph);
+            "Get graph configuration by name '{}'",
+            "zhoney", RestServer.EXECUTOR, graph);
 
         // HugeGraph g = graph4admin(manager, graphSpace, graph);
         HugeGraph g = graph(manager, graphSpace, graph);
@@ -189,7 +186,7 @@ public class GraphsAPI extends API {
                                @PathParam("graphspace") String graphSpace,
                                @PathParam("name") String name,
                                Map<String, Object> actionMap) {
-        LOG.debug("Clear graph by name '{}'", name);
+        LOGGER.logCustomDebug("Clear graph by name '{}'", "zhoney", name);
         E.checkArgument(actionMap != null &&
                         actionMap.containsKey(GRAPH_ACTION),
                         "Please pass '%s' for graph manage", GRAPH_ACTION);
@@ -223,16 +220,11 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin", "$dynamic"})
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
-<<<<<<< HEAD
-                       @PathParam("graphspace") String graphSpace) {
-        LOG.debug("Remove graph by name '{}'", name);
-=======
                        @PathParam("graphspace") String graphSpace,
                        @QueryParam("confirm_message") String message) {
 
         E.checkArgument(CONFIRM_DROP.equals(message),
                         "Please take the message: %s", CONFIRM_DROP);
->>>>>>> update server logs
         manager.dropGraph(graphSpace, name, true);
     }
 
