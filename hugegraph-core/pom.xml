@@ -20,7 +20,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.8.11</version>
+            <version>1.8.10</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
