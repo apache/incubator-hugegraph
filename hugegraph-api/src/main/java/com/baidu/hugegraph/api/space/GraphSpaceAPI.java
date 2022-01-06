@@ -142,7 +142,7 @@ public class GraphSpaceAPI extends API {
                                 "The '%s' must be map, but got %s",
                                 UPDATE, value.getClass());
                 @SuppressWarnings("unchecked")
-                Map<String, Object> graphSpaceMap = (Map) value;
+                Map<String, Object> graphSpaceMap = (Map<String, Object>) value;
                 String gsName = (String) graphSpaceMap.get("name");
                 E.checkArgument(gsName.equals(name),
                                 "Different name in update body with in path");
@@ -201,7 +201,7 @@ public class GraphSpaceAPI extends API {
                 }
 
                 @SuppressWarnings("unchecked")
-                Map<String, Object> configs = (Map) graphSpaceMap.get("configs");
+                Map<String, Object> configs = (Map<String, Object>) graphSpaceMap.get("configs");
                 if (configs != null && !configs.isEmpty()) {
                     exist.configs(configs);
                 }
