@@ -22,9 +22,9 @@ package com.baidu.hugegraph.api.traversers;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import javax.inject.Singleton;
@@ -58,7 +58,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 @Path("graphs/{graph}/traversers/egonet")
 @Singleton
@@ -139,13 +139,13 @@ public class EgonetAPI extends TraverserAPI {
                                                 request.withEdge);
         }
 
-        long size = results.size() + sourcesId.size();
+        Set<Id> neighbors = request.countOnly ?
+                            ImmutableSet.of() : results.idSet(request.limit);
+        neighbors.addAll(sourcesId);
+        long size = neighbors.size();
         if (size > request.limit) {
             size = request.limit;
         }
-        List<Id> neighbors = request.countOnly ?
-                             ImmutableList.of() : results.ids(request.limit);
-        neighbors.addAll(sourcesId);
 
         HugeTraverser.PathSet paths = new HugeTraverser.PathSet();
         if (request.withPath) {
@@ -180,8 +180,9 @@ public class EgonetAPI extends TraverserAPI {
         }
 
         return manager.serializer(g)
-                      .writeNodesWithPath("egonet", neighbors, size,
-                                          paths, verticesIter, edgesIter, null);
+                      .writeNodesWithPath("egonet", new ArrayList<>(neighbors),
+                                          size, paths, verticesIter, edgesIter,
+                                          null);
     }
 
     private static class Request {

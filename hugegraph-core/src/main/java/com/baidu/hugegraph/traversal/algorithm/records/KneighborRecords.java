@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.traversal.algorithm.records;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,6 +52,17 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
 
     public List<Id> ids(long limit) {
         List<Id> ids = CollectionFactory.newList(CollectionType.EC);
+        this.getRecords(limit, ids);
+        return ids;
+    }
+
+    public Set<Id> idSet(long limit) {
+        Set<Id> ids = CollectionFactory.newSet(CollectionType.EC);
+        this.getRecords(limit, ids);
+        return ids;
+    }
+
+    private void getRecords(long limit, Collection<Id> ids) {
         Stack<Record> records = this.records();
         // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {
@@ -60,7 +72,6 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
                 limit--;
             }
         }
-        return ids;
     }
 
     public PathSet paths(long limit) {
