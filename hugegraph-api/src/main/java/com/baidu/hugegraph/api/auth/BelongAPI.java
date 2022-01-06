@@ -88,7 +88,7 @@ public class BelongAPI extends API {
                          @PathParam("id") String id,
                          JsonBelong jsonBelong) {
         LOGGER.logCustomDebug("Graph space [{}] update belong: {}",
-                    "guoygang",
+                    RestServer.EXECUTOR,
                     graphSpace, jsonBelong);
         checkUpdatingBody(jsonBelong);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
@@ -117,7 +117,7 @@ public class BelongAPI extends API {
                        @QueryParam("group") String group,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOGGER.logCustomDebug("Graph space [{}] list belongs by user {} or group {}",
-                    "guoygang",
+                    RestServer.EXECUTOR,
                     graphSpace, user, group);
         E.checkArgument(user == null || group == null,
                         "Can't pass both user and group at the same time");
@@ -146,7 +146,7 @@ public class BelongAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
         LOGGER.logCustomDebug("Graph space [{}] get belong: {}",
-                    "guoygang",
+                    RestServer.EXECUTOR,
                     graphSpace, id);
 
         AuthManager authManager = manager.authManager();
@@ -164,7 +164,7 @@ public class BelongAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
         LOGGER.logCustomDebug("Graph space [{}] delete belong: {}",
-                    "guoygang",
+                    RestServer.EXECUTOR,
                     graphSpace, id);
 
         try {

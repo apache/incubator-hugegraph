@@ -27,6 +27,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -1283,7 +1284,7 @@ public class StandardAuthManager implements AuthManager {
     public void initAdmin() {
         HugeUser user = new HugeUser("admin");
         user.password(StringEncoding.hashPassword("admin"));
-        user.creator("system");
+        user.creator(RestServer.EXECUTOR);
         user.phone("18888886666");
         user.email("admin@hugegraph.com");
         user.description("None");
