@@ -67,6 +67,7 @@ public class EtcdTaskExample {
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
+        
         Id id = IdGenerator.of(8);
         String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
         HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
@@ -77,7 +78,7 @@ public class EtcdTaskExample {
         scheduler.schedule(task);
         scheduler.save(task);
 
-        
+        /*
         Iterator<HugeTask<Object>> iter;
         iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
@@ -87,7 +88,7 @@ public class EtcdTaskExample {
         Thread.sleep(TestTask.UNIT * 1);
         scheduler.save(task);
 
-        /*
+        
         // Find task not finished(actually it should be RUNNING)
         iter = scheduler.tasks(TaskStatus.CANCELLED, -1, null);
         assert iter.hasNext();

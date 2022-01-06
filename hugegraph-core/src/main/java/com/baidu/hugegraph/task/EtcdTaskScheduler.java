@@ -148,7 +148,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             // Delete index of old vertex to avoid stale index
             this.tx().deleteIndex(vertex);
             // Add or update task info to backend store
-            return this.tx().addVertex(vertex);  
+            return this.tx().addVertex(vertex);
         });
         return v.id();
     }
@@ -383,14 +383,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
         
     }
 
-    
+    /**
+     * General handler of tasks
+     * @param <T>
+     * @param response
+     */
     private <T> void taskEventHandler(T response) {
         List<String> events = MetaManager.instance()
         .extractGraphsFromResponse(response);
 
         for(int i = 0; i < events.size(); i++) {
             String jsonStr = events.get(i);
+            System.out.println(String.format("====> task info %s, len %d", jsonStr, jsonStr.length()));
             HugeTask<?> task = TaskSerializer.fromJson(jsonStr);
+
+            TaskCallable<?> callable = task.callable();
+            callable.graph(this.graph());
             task.run();
         }
 
