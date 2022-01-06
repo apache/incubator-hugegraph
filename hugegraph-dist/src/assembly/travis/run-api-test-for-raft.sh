@@ -35,6 +35,8 @@ $TRAVIS_DIR/start-server.sh $RAFT1_DIR $BACKEND $JACOCO_PORT || (cat $RAFT1_DIR/
 $TRAVIS_DIR/start-server.sh $RAFT2_DIR $BACKEND || (cat $RAFT2_DIR/logs/hugegraph-server.log && exit 1) &
 $TRAVIS_DIR/start-server.sh $RAFT3_DIR $BACKEND || (cat $RAFT3_DIR/logs/hugegraph-server.log && exit 1)
 
+export HUGEGRAPH_USERNAME=admin
+export HUGEGRAPH_PASSWORD=pa
 $RAFT_TOOLS --set-leader "hugegraph" "$RAFT_LEADER"
 
 # run api-test
