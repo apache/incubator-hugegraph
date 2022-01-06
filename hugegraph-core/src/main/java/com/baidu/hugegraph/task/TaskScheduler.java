@@ -50,6 +50,9 @@ public abstract class TaskScheduler {
 
     protected volatile TaskTransaction taskTx = null;
 
+    protected static final long QUERY_INTERVAL = 100L;
+    protected static final int MAX_PENDING_TASKS = 10000;
+
     public TaskScheduler(
             HugeGraphParams graph,
             ExecutorService serverInfoDbExecutor) {
@@ -100,7 +103,11 @@ public abstract class TaskScheduler {
     public abstract void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
 
-    public abstract void checkRequirement(String op);
+    public void checkRequirement(String op) {
+        if (!this.serverManager().master()) {
+            throw new HugeException("Can't %s task on non-master server", op);
+        }
+    }
 
     protected ServerInfoManager serverManager() {
         return this.serverManager;

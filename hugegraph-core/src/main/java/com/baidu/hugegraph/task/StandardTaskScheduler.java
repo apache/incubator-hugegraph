@@ -76,8 +76,6 @@ public class StandardTaskScheduler extends TaskScheduler {
 
     private static final long NO_LIMIT = -1L;
     private static final long PAGE_SIZE = 500L;
-    private static final long QUERY_INTERVAL = 100L;
-    private static final int MAX_PENDING_TASKS = 10000;
 
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,

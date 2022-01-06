@@ -37,6 +37,8 @@ public interface MetaDriver {
 
     public <T> void listen(String key, Consumer<T> consumer);
 
+    public <T> void listenPrefix(String prefix, Consumer<T> consumer);
+
     public <T> List<String> extractValuesFromResponse(T response);
 
     public LockResult lock(String key, long ttl);

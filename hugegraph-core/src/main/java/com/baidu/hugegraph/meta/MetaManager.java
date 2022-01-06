@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.alipay.sofa.jraft.entity.Task;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugeBelong;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskPriority;
+import com.baidu.hugegraph.task.TaskSerializer;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -183,8 +185,16 @@ public class MetaManager {
         this.listen(this.authEventKey(), consumer);
     }
 
+    public <T> void listenTaskAdded(String graphSpace, TaskPriority priority,  Consumer<T> consumer) {
+        this.listenPrefix(this.taskEventKey(graphSpace, priority.toString()), consumer);
+    }
+
     private <T> void listen(String key, Consumer<T> consumer) {
         this.metaDriver.listen(key, consumer);
+    }
+
+    private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+        this.metaDriver.listenPrefix(prefix, consumer);
     }
 
     public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {
@@ -663,6 +673,11 @@ public class MetaManager {
         graphSpace, META_PATH_TASK, taskPriority);
     }
 
+    private String taskEventKey(String graphSpace, String taskPriority) {
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority);
+    }
+
     private String accessListKeyByGroup(String graphSpace, String groupName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{groupName}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
@@ -716,6 +731,11 @@ public class MetaManager {
     private String serialize(SchemaDefine.AuthElement element) {
         Map<String, Object> objectMap = element.asMap();
         return JsonUtil.toJson(objectMap);
+    }
+
+    private <V> String serialize(HugeTask<V> task) {
+        String json = TaskSerializer.toJson(task);
+        return json;
     }
 
     public static class AuthEvent {
@@ -1502,14 +1522,17 @@ public class MetaManager {
         return taskMap.values().stream().collect(Collectors.toList());
     }
     
-    public <V> HugeTask<V> getTask(String id) {
-        return null;
+    public <V> HugeTask<V> getTask(String graphSpace, TaskPriority priority, Id id) {
+        String key = taskKey(graphSpace, priority.toString(), id.asString());
+        String jsonStr = this.metaDriver.get(key);
+        HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+        return task;
     }
 
     public <V> Id createTask(String graphSpace, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
         String key = taskKey(graphSpace, task.priority().toString(), id.asString());
-        this.metaDriver.put(key, task.input());
+        this.metaDriver.put(key, serialize(task));
 
         return id;
     }
