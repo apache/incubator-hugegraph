@@ -36,21 +36,16 @@ import javax.ws.rs.NotFoundException;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
-import com.baidu.hugegraph.logger.MethodLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
@@ -93,13 +88,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         this.eventListener =  this.listenChanges();
 
-        MetaManager.instance().listenTaskAdded(this.graph.name(), TaskPriority.NORMAL, this::taskEventHandler);
+        MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::taskEventHandler);
         
-    }
-
-    @Override
-    public HugeGraph graph() {
-        return this.graph.graph();
     }
 
     @Override
@@ -362,7 +352,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
         }
     }
 
-
+    /**
+     * Internal Producer is use to submit task info to etcd
+     */
     private static class Producer<V> implements Runnable {
 
         private final HugeTask<V> task;
@@ -378,9 +370,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
             LOGGER.logCustomDebug("Producer runner start to write {}", "Scorpiour", task);
 
             MetaManager metaManager = MetaManager.instance();
-            metaManager.createTask(graph.name(), task);
+            metaManager.createTask(this.graph.graph().graphSpace(), task);
         }
-        
     }
 
     /**
@@ -389,19 +380,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
      * @param response
      */
     private <T> void taskEventHandler(T response) {
-        List<String> events = MetaManager.instance()
-        .extractGraphsFromResponse(response);
+        Map<String, String> events = MetaManager.instance()
+        .extractKVFromResponse(response);
 
-        for(int i = 0; i < events.size(); i++) {
-            String jsonStr = events.get(i);
-            System.out.println(String.format("====> task info %s, len %d", jsonStr, jsonStr.length()));
-            HugeTask<?> task = TaskSerializer.fromJson(jsonStr);
+        for(Map.Entry<String, String> entry : events.entrySet()) {
+            System.out.println(String.format("====> task info %s, %s", entry.getKey(), entry.getValue()));
+            HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
 
+            // attach callable info
             TaskCallable<?> callable = task.callable();
+            // attach priority info
+            MetaManager.instance().attachTaskInfo(task, entry.getKey());
+            // attach graph info
             callable.graph(this.graph());
+            // run it
             task.run();
         }
-
     }
     
 }

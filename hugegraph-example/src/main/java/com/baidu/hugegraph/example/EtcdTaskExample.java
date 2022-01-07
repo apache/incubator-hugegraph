@@ -30,13 +30,13 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
-import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
@@ -58,6 +58,7 @@ public class EtcdTaskExample {
         
 
         HugeGraph graph = ExampleUtil.loadGraph();
+
         testTask(graph);
         Thread.sleep(30 * 1000L);
         graph.close();
@@ -76,7 +77,6 @@ public class EtcdTaskExample {
 
         TaskScheduler scheduler = graph.taskScheduler();
         scheduler.schedule(task);
-        scheduler.save(task);
 
         /*
         Iterator<HugeTask<Object>> iter;
