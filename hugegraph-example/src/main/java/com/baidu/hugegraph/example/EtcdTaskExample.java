@@ -68,15 +68,16 @@ public class EtcdTaskExample {
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
-        
-        Id id = IdGenerator.of(8);
-        String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
-        HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
-        task.type("type-1");
-        task.name("test-task");
+        for (int i = 75; i < 78; i++) {
+            Id id = IdGenerator.of(i);
+            String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
+            HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
+            task.type("type-1");
+            task.name("test-task");
 
-        TaskScheduler scheduler = graph.taskScheduler();
-        scheduler.schedule(task);
+            TaskScheduler scheduler = graph.taskScheduler();
+            scheduler.schedule(task);
+        }
 
         /*
         Iterator<HugeTask<Object>> iter;
@@ -141,9 +142,9 @@ public class EtcdTaskExample {
 
         @Override
         public Integer execute() throws Exception {
-            LOGGER.logCustomDebug(">>>> running task with parameter: {}", "Scorpiour", this.task().input());
+            System.out.println(">>>>====>>>> test task " + this.task().id().asString() + "  is running by " + Thread.currentThread().getId());
+            for (int i = this.task().progress(); i <= 10 && this.run; i++) {
 
-            for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
                 this.graph().taskScheduler().save(this.task());
