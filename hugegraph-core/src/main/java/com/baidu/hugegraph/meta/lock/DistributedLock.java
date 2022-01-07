@@ -33,6 +33,7 @@ import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
 import io.etcd.jetcd.Lease;
 import io.etcd.jetcd.Lock;
+import io.etcd.jetcd.lock.LockResponse;
 
 public class DistributedLock {
 
@@ -82,17 +83,18 @@ public class DistributedLock {
             return lockResult;
         }
 
-        LOG.debug("Thread {} start to lock {}",
+        LOG.info("Thread {} start to lock {}",
                   Thread.currentThread().getName(), lockName);
 
         try {
-            this.lockClient.lock(toByteSequence(lockName), leaseId).get();
+            LockResponse response = this.lockClient.lock(toByteSequence(lockName), leaseId).get();
+            LOG.info("Lock result : {}", response);
         } catch (InterruptedException | ExecutionException e1) {
             LOG.warn("Thread {} failed to lock {}", e1,
                      Thread.currentThread().getName(), lockName);
             return lockResult;
         }
-        LOG.debug("Thread {} lock {} successfully",
+        LOG.info("Thread {} lock {} successfully",
                   Thread.currentThread().getName(), lockName);
 
         lockResult.lockSuccess(true);

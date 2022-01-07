@@ -52,4 +52,12 @@ public interface MetaDriver {
     public LockResult lock(String key, long ttl);
 
     public void unlock(String key, LockResult lockResult);
+
+    /**
+     * keepAlive of current lease
+     * @param key
+     * @param lease
+     * @return next leaseId
+     */
+    public long keepAlive(String key, long lease);
 }

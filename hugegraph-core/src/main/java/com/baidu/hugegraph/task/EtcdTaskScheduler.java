@@ -409,6 +409,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     // attach graph info
                     callable.graph(this.graph());
                     // run it
+                    task.leaseId(result.getLeaseId());
                     task.run();
                 } else {
                     System.out.println("=====> Grab task lock failed");
@@ -418,6 +419,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 System.out.println(e);
             }
         }
+
+        System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
     }
 
     /**
@@ -439,7 +442,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             try {
                 HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
 
-                System.out.println(String.format("====> Thread %d try to lock", Thread.currentThread().getId(), entry.getKey()));
+                System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
                 LockResult result = manager.lockTask(this.graphSpace(), task);
                 if (result.lockSuccess()) {
                     System.out.println("=====> Grab task lock success");
@@ -459,6 +462,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 System.out.println(e);
             }
         }
+
+        System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
     }
     
 }
