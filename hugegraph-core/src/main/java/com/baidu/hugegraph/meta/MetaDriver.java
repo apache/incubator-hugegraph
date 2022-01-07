@@ -41,6 +41,14 @@ public interface MetaDriver {
 
     public <T> List<String> extractValuesFromResponse(T response);
 
+    /**
+     * Extract K-V pairs of response
+     * @param <T>
+     * @param response
+     * @return
+     */
+    public <T> Map<String, String> extractKVFromResponse(T response);
+
     public LockResult lock(String key, long ttl);
 
     public void unlock(String key, LockResult lockResult);

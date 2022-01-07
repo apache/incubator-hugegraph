@@ -302,6 +302,10 @@ public class MetaManager {
         return this.metaDriver.extractValuesFromResponse(response);
     }
 
+    public <T> Map<String, String> extractKVFromResponse(T response) {
+        return this.metaDriver.extractKVFromResponse(response);
+    }
+
     public GraphSpace getGraphSpaceConfig(String graphSpace) {
         String gs = this.metaDriver.get(this.graphSpaceConfKey(graphSpace));
         if (gs == null) {
@@ -676,6 +680,31 @@ public class MetaManager {
     private String taskEventKey(String graphSpace, String taskPriority) {
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority);
+    }
+
+    /**
+     * Use to split task key and fill them back to task
+     * @param taskKey
+     * @return
+     */
+    private <V> void attachTaskKeyInfo(HugeTask<V> task, String taskKey) {
+        String[] parts = taskKey.split(META_PATH_DELIMETER);
+        if (parts.length < 7) {
+            return;
+        }
+        String priorityStr = parts[5];
+        String idStr = parts[6];
+
+        /**
+         * Only proceeding when id's are matching
+         */
+        if (task.id().asString().equals(idStr)) {
+            task.priority(TaskPriority.valueOf(priorityStr));
+        }
+    }
+
+    public <V> void attachTaskInfo(HugeTask<V> task, String taskKey) {
+        this.attachTaskKeyInfo(task, taskKey);
     }
 
     private String accessListKeyByGroup(String graphSpace, String groupName) {

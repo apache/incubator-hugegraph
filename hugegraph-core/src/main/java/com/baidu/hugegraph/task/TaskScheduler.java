@@ -67,8 +67,6 @@ public abstract class TaskScheduler {
             this.serverManager = another.serverManager;
     }
 
-    public abstract HugeGraph graph();
-
     public abstract int pendingTasks();
 
     public abstract <V> void restoreTasks();
@@ -102,6 +100,13 @@ public abstract class TaskScheduler {
 
     public abstract void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException;
+    public HugeGraph graph() {
+        return this.graph.graph();
+    }
+
+    public String graphSpace() {
+        return this.graph.graph().graphSpace();
+    }
 
     public void checkRequirement(String op) {
         if (!this.serverManager().master()) {

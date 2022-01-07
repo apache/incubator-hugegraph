@@ -78,6 +78,9 @@ public class HugeTask<V> extends FutureTask<V> {
     private int load;
     private TaskPriority priority = TaskPriority.NORMAL;
 
+    private String graphSpace;
+    private String graphName;
+
     private volatile TaskStatus status;
     private volatile int progress;
     private volatile Date update;

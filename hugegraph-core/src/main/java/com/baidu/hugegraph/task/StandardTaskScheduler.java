@@ -100,11 +100,6 @@ public class StandardTaskScheduler extends TaskScheduler {
         this.eventListener = this.listenChanges();
     }
 
-    @Override
-    public HugeGraph graph() {
-        return this.graph.graph();
-    }
-
     public boolean started() {
         return this.graph.started();
     }
