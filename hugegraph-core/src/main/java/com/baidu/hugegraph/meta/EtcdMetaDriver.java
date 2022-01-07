@@ -45,6 +45,7 @@ import io.etcd.jetcd.ClientBuilder;
 import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.kv.GetResponse;
+import io.etcd.jetcd.lease.LeaseKeepAliveResponse;
 import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.options.WatchOption;
 import io.etcd.jetcd.watch.WatchEvent;
@@ -104,6 +105,17 @@ public class EtcdMetaDriver implements MetaDriver {
                             endpoints[0], endpoints[0].getClass());
         }
         return builder;
+    }
+
+    @Override
+    public long keepAlive(String key, long leaseId) {
+        try {
+            LeaseKeepAliveResponse response = this.client.getLeaseClient().keepAliveOnce(leaseId).get();
+            return response.getID();
+        } catch (InterruptedException | ExecutionException e) {
+            // keepAlive once Failed
+            return 0;
+        }
     }
 
     @Override

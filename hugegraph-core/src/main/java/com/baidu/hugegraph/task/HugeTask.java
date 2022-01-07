@@ -80,6 +80,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private String graphSpace;
     private String graphName;
+    private long leaseId; // leaseId for distribution keepAlive
 
     private volatile TaskStatus status;
     private volatile int progress;
@@ -116,6 +117,7 @@ public class HugeTask<V> extends FutureTask<V> {
         this.result = null;
         this.server = null;
         this.load = 1;
+        this.leaseId = 0;
     }
 
     public Id id() {
@@ -257,6 +259,14 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public void priority(TaskPriority priority) {
         this.priority = priority;
+    }
+
+    public long leaseId() {
+        return this.leaseId;
+    }
+
+    public void leaseId(long leaseId) {
+        this.leaseId = leaseId;
     }
 
     public boolean completed() {

@@ -68,7 +68,7 @@ public class EtcdTaskExample {
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
-        for (int i = 75; i < 78; i++) {
+        for (int i = 7; i < 10; i++) {
             Id id = IdGenerator.of(i);
             String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
             HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
@@ -77,8 +77,11 @@ public class EtcdTaskExample {
 
             TaskScheduler scheduler = graph.taskScheduler();
             scheduler.schedule(task);
+            Thread.sleep(10);
         }
 
+
+        
         /*
         Iterator<HugeTask<Object>> iter;
         iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);

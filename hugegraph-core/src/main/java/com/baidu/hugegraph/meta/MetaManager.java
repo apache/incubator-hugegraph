@@ -60,7 +60,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
 
-    public static final String META_PATH_DELIMETER = "/";
+    public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
 
     public static final String META_PATH_HUGEGRAPH = "HUGEGRAPH";
@@ -223,7 +223,7 @@ public class MetaManager {
                     CollectionFactory.newMap(CollectionType.EC);
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             configs.put(parts[parts.length - 1],
                         JsonUtil.fromJson(entry.getValue(), GraphSpace.class));
         }
@@ -236,7 +236,7 @@ public class MetaManager {
                             this.serviceConfPrefix(graphSpace));
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             serviceMap.put(parts[parts.length - 1],
                            JsonUtil.fromJson(entry.getValue(), Service.class));
         }
@@ -250,7 +250,7 @@ public class MetaManager {
                                         this.graphConfPrefix(graphSpace));
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             String name = parts[parts.length - 1];
             String graphName = String.join("-", graphSpace, name);
             configs.put(graphName, configMap(entry.getValue()));
@@ -263,7 +263,7 @@ public class MetaManager {
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                 this.schemaTemplatePrefix(graphSpace));
         for (String key : keyValues.keySet()) {
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             result.add(parts[parts.length - 1]);
         }
         return result;
@@ -431,7 +431,7 @@ public class MetaManager {
     }
 
     public LockResult lock(long ttl, String... keys) {
-        String key = String.join(META_PATH_DELIMETER, keys);
+        String key = String.join(META_PATH_DELIMITER, keys);
         return this.lock(key, ttl);
     }
 
@@ -447,8 +447,18 @@ public class MetaManager {
         return this.metaDriver.lock(key, LOCK_DEFAULT_LEASE);
     }
 
+    /**
+     * keep alive of given key & lease
+     * @param key
+     * @param lease
+     * @return
+     */
+    public long keepAlive(String key, long lease) {
+        return this.metaDriver.keepAlive(key, lease);
+    }
+
     public void unlock(LockResult lockResult, String... keys) {
-        String key = String.join(META_PATH_DELIMETER, keys);
+        String key = String.join(META_PATH_DELIMITER, keys);
         this.unlock(key, lockResult);
     }
 
@@ -457,71 +467,71 @@ public class MetaManager {
     }
 
     private String graphSpaceAddKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_ADD);
     }
 
     private String graphSpaceRemoveKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_REMOVE);
     }
 
     private String graphSpaceUpdateKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_UPDATE);
     }
 
     private String serviceAddKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_ADD);
     }
 
     private String serviceRemoveKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_REMOVE);
     }
 
     private String serviceUpdateKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_UPDATE);
     }
 
     private String graphAddKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/ADD
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_ADD);
     }
 
     private String graphRemoveKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/REMOVE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_REMOVE);
     }
 
     private String graphUpdateKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/UPDATE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_UPDATE);
     }
 
     private String graphSpaceConfKey(String name) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            META_PATH_CONF, name);
     }
 
     private String graphSpaceConfPrefix() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            META_PATH_CONF);
     }
@@ -540,35 +550,35 @@ public class MetaManager {
 
     private String graphSpaceBindingsKey(String name, BindingType type) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, name,
                            META_PATH_K8S_BINDINGS, type.name());
     }
 
     private String graphSpaceBindingsServer(String name, BindingType type) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, name,
                            META_PATH_K8S_BINDINGS, type.name(), META_PATH_URLS);
     }
 
     private String serviceConfKey(String graphSpace, String name) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE_CONF
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE_CONF, name);
     }
 
     private String graphConfKey(String graphSpace, String graph) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_GRAPH_CONF, graph);
     }
 
     private String schemaTemplateKey(String graphSpace, String schemaTemplate) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SCHEMA_TEMPLATE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SCHEMA_TEMPLATE,
                            schemaTemplate);
@@ -577,7 +587,7 @@ public class MetaManager {
     private String restPropertiesKey(String graphSpace, String serviceId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE/
         // {serviceId}/REST_PROPERTIES
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE, serviceId,
                            META_PATH_REST_PROPERTIES);
@@ -586,7 +596,7 @@ public class MetaManager {
     private String gremlinYamlKey(String graphSpace, String serviceId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE/
         // {serviceId}/GREMLIN_YAML
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE, serviceId,
                            META_PATH_GREMLIN_YAML);
@@ -594,100 +604,106 @@ public class MetaManager {
 
     private String userKey(String name) {
         // HUGEGRAPH/{cluster}/AUTH/USER/{user}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH, META_PATH_USER, name);
     }
 
     private String userListKey() {
         // HUGEGRAPH/{cluster}/AUTH/USER
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH, META_PATH_USER);
     }
 
     private String groupKey(String graphSpace, String group) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/GROUP/{group}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_GROUP, group);
     }
 
     private String groupListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/GROUP
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_GROUP);
     }
 
     private String targetKey(String graphSpace, String target) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/TARGET/{target}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_TARGET, target);
     }
 
     private String targetListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/TARGET
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_TARGET);
     }
 
     private String belongKey(String graphSpace, String belong) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG/{belong}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG, belong);
     }
 
     private String belongListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG);
     }
 
     private String belongListKeyByUser(String graphSpace, String userName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG/{userName}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG, userName + "->");
     }
 
     private String accessKey(String graphSpace, String access) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{group->op->target}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS, access);
     }
 
     private String accessListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS);
     }
 
     private String taskKey(String graphSpace, String taskPriority, String taskId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}/{id}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority, taskId);
     }
 
     private String taskLockKey(String graphSpace, String taskId) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK_LOCK/{id}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK_LOCK, taskId);
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/TASK_LOCK
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId, META_PATH_TASK_LOCK);
+    }
+
+    private String taskStatusKey(String graphSpace, String taskId, String statusType) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/{statusType}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId, statusType);
     }
 
     private String taskListKey(String graphSpace, String taskPriority) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority);
     }
 
     private String taskEventKey(String graphSpace, String taskPriority) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority);
     }
 
@@ -697,7 +713,7 @@ public class MetaManager {
      * @return
      */
     private <V> void attachTaskKeyInfo(HugeTask<V> task, String taskKey) {
-        String[] parts = taskKey.split(META_PATH_DELIMETER);
+        String[] parts = taskKey.split(META_PATH_DELIMITER);
         if (parts.length < 7) {
             return;
         }
@@ -718,7 +734,7 @@ public class MetaManager {
 
     private String accessListKeyByGroup(String graphSpace, String groupName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{groupName}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS, groupName + "->");
     }
@@ -742,13 +758,13 @@ public class MetaManager {
 
     public String authEventKey() {
         // HUGEGRAPH/{cluster}/AUTH_EVENT
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH_EVENT);
     }
 
     private String graphSpaceListKey() {
         // HUGEGRAPH/{cluster}/GRAPHSPACE_LIST
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE_LIST);
     }
 
@@ -1466,7 +1482,7 @@ public class MetaManager {
     }
 
     public void initDefaultGraphSpace() {
-        String defaultGS = String.join(META_PATH_DELIMETER,
+        String defaultGS = String.join(META_PATH_DELIMITER,
                                        META_PATH_HUGEGRAPH,
                                        this.cluster,
                                        META_PATH_GRAPHSPACE_LIST,
@@ -1615,9 +1631,39 @@ public class MetaManager {
         return this.lock(key);
     }
 
-    public <V> HugeTask<V> updateTask() {
+    public <V> boolean keepAliveTask(HugeTask<V> task) {
+        long nextId = this.keepAlive("", task.leaseId());
+        if (nextId != 0) {
+            task.leaseId(nextId);
+            return true;
+        }
+        return false;
+    }
 
-        return null;
+    /**
+     * Update task progress, only if having lease
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    public <V> void updateTaskProgress(String graphSpace, HugeTask<V> task) {
+        if (this.keepAliveTask(task)) {
+            String key = taskStatusKey(graphSpace, task.id().asString(), "Progress");
+            this.metaDriver.put(key, String.valueOf(task.progress()));
+        }
+    }
+
+    /**
+     * Update task status, only if having lease
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    public <V> void updateTaskStatus(String graphSpace, HugeTask<V> task) {
+        if (this.keepAliveTask(task)) {
+            String key = taskStatusKey(graphSpace, task.id().asString(), "Status");
+            this.metaDriver.put(key, task.status().name());
+        }
     }
 
     public <V> HugeTask<V> deleteTask() {
