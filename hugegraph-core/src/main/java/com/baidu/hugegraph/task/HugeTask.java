@@ -302,6 +302,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             this.setException(e);
         } finally {
+            System.out.println("====> Task is finished ");
             LOG.debug("Task is finished {}", this);
             TaskManager.resetContext();
         }

@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.alipay.sofa.jraft.entity.Task;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugeBelong;
@@ -85,6 +84,7 @@ public class MetaManager {
     public static final String META_PATH_SCHEMA_TEMPLATE = "SCHEMA_TEMPLATE";
     private static final String META_PATH_PD_PEERS = "HSTORE_PD_PEERS";
     public static final String META_PATH_TASK = "TASK";
+    public static final String META_PATH_TASK_LOCK = "TASK_LOCK";
 
     public static final String META_PATH_AUTH_EVENT = "AUTH_EVENT";
     public static final String META_PATH_EVENT = "EVENT";
@@ -668,16 +668,25 @@ public class MetaManager {
     }
 
     private String taskKey(String graphSpace, String taskPriority, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}/{id}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority, taskId);
     }
 
+    private String taskLockKey(String graphSpace, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK_LOCK/{id}
+        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK_LOCK, taskId);
+    }
+
     private String taskListKey(String graphSpace, String taskPriority) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority);
     }
 
     private String taskEventKey(String graphSpace, String taskPriority) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
         return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority);
     }
@@ -1551,6 +1560,14 @@ public class MetaManager {
         return taskMap.values().stream().collect(Collectors.toList());
     }
     
+    /**
+     * 
+     * @param <V>
+     * @param graphSpace
+     * @param priority
+     * @param id
+     * @return
+     */
     public <V> HugeTask<V> getTask(String graphSpace, TaskPriority priority, Id id) {
         String key = taskKey(graphSpace, priority.toString(), id.asString());
         String jsonStr = this.metaDriver.get(key);
@@ -1558,12 +1575,44 @@ public class MetaManager {
         return task;
     }
 
+    /**
+     * Persist meta info of task to metaDriver
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
     public <V> Id createTask(String graphSpace, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
         String key = taskKey(graphSpace, task.priority().toString(), id.asString());
         this.metaDriver.put(key, serialize(task));
 
         return id;
+    }
+
+    /**
+     * Clear the task, for automatic scenarios, this method should only be called
+     * when task is finished with a result of success
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    public <V> void clearTask(String graphSpace, HugeTask<V> task) {
+        Id id = IdGenerator.of(task.id().asString());
+        String key = taskKey(graphSpace, task.priority().toString(), id.asString());
+        this.metaDriver.delete(key);
+    }
+
+    /**
+     * Try to lock a task for further update, this should be called by consumer only
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> LockResult lockTask(String graphSpace, HugeTask<V> task) {
+        String key = taskLockKey(graphSpace, task.id().asString());
+        return this.lock(key);
     }
 
     public <V> HugeTask<V> updateTask() {

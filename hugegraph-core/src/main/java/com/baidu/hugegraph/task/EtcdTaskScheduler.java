@@ -47,6 +47,7 @@ import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask.P;
@@ -89,6 +90,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
         this.eventListener =  this.listenChanges();
 
         MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::taskEventHandler);
+        MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::extraTaskEventHandler);
         
     }
 
@@ -118,8 +120,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
             task.status(TaskStatus.QUEUED);
             return this.submitEphemeralTask(task);
         }
+
+        System.out.println("====> Going to submit task + " + task.id().asString());
         
-        LOGGER.logCustomDebug("restore tasks {}", "Scorpiour", task);
         return this.submitTask(task);
     }
 
@@ -300,6 +303,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
         if (callable instanceof SysTaskCallable) {
             ((SysTaskCallable<V>)callable).params(this.graph);
         }
+
+        System.out.println(String.format("====> Thread %d start to create task %d", Thread.currentThread().getId(), task.id().asLong()));
         return this.producer.submit(new Producer<V>(task, this.graph));
     }
 
@@ -367,7 +372,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         @Override
         public void run() {
-            LOGGER.logCustomDebug("Producer runner start to write {}", "Scorpiour", task);
+            LOGGER.logCustomDebug("====> Producer runner start to write {}", "Scorpiour", task);
+
+            System.out.println("====> Producer runner thread: " + Thread.currentThread().getId());
 
             MetaManager metaManager = MetaManager.instance();
             metaManager.createTask(this.graph.graph().graphSpace(), task);
@@ -380,21 +387,77 @@ public class EtcdTaskScheduler extends TaskScheduler {
      * @param response
      */
     private <T> void taskEventHandler(T response) {
-        Map<String, String> events = MetaManager.instance()
-        .extractKVFromResponse(response);
+
+        System.out.println("====> Normal handler Current thread: " + Thread.currentThread().getId());
+
+        MetaManager manager = MetaManager.instance();
+        Map<String, String> events = manager.extractKVFromResponse(response);
+
+        for(Map.Entry<String, String> entry : events.entrySet()) {
+            System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
+            try {
+                HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
+
+                System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
+                LockResult result = manager.lockTask(this.graphSpace(), task);
+                if (result.lockSuccess()) {
+                    System.out.println(String.format("=====> Grab task %s lock success", task.id().asString()));
+                    // attach callable info
+                    TaskCallable<?> callable = task.callable();
+                    // attach priority info
+                    MetaManager.instance().attachTaskInfo(task, entry.getKey());
+                    // attach graph info
+                    callable.graph(this.graph());
+                    // run it
+                    task.run();
+                } else {
+                    System.out.println("=====> Grab task lock failed");
+                }
+            } catch (Exception e) {
+                System.out.println("=====> Grab task lock error");
+                System.out.println(e);
+            }
+        }
+    }
+
+    /**
+     * 
+     * Race handler of tasks
+     * TODO: should be removed after integration
+     * @param <T>
+     * @param response
+     */
+    private <T> void extraTaskEventHandler(T response) {
+
+        System.out.println("====> Race handler Current thread: " + Thread.currentThread().getId());
+
+        MetaManager manager = MetaManager.instance();
+        Map<String, String> events = manager.extractKVFromResponse(response);
 
         for(Map.Entry<String, String> entry : events.entrySet()) {
             System.out.println(String.format("====> task info %s, %s", entry.getKey(), entry.getValue()));
-            HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
+            try {
+                HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
 
-            // attach callable info
-            TaskCallable<?> callable = task.callable();
-            // attach priority info
-            MetaManager.instance().attachTaskInfo(task, entry.getKey());
-            // attach graph info
-            callable.graph(this.graph());
-            // run it
-            task.run();
+                System.out.println(String.format("====> Thread %d try to lock", Thread.currentThread().getId(), entry.getKey()));
+                LockResult result = manager.lockTask(this.graphSpace(), task);
+                if (result.lockSuccess()) {
+                    System.out.println("=====> Grab task lock success");
+                    // attach callable info
+                    TaskCallable<?> callable = task.callable();
+                    // attach priority info
+                    MetaManager.instance().attachTaskInfo(task, entry.getKey());
+                    // attach graph info
+                    callable.graph(this.graph());
+                    // run it
+                    task.run();
+                } else {
+                    System.out.println("=====> Grab task lock failed");
+                }
+            } catch (Exception e) {
+                System.out.println("=====> Grab task lock error");
+                System.out.println(e);
+            }
         }
     }
     
