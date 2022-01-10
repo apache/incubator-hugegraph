@@ -20,24 +20,19 @@
 package com.baidu.hugegraph.example;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-
-import org.apache.commons.collections.IteratorUtils;
-
+import java.util.Random;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.job.Job;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
-import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Log;
 
 public class EtcdTaskExample {
@@ -68,12 +63,18 @@ public class EtcdTaskExample {
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
-        for (int i = 7; i < 10; i++) {
-            Id id = IdGenerator.of(i);
+        Random rand = new Random();
+        for (int i = 11; i < 13; i++) {
+
+            int nid = Math.abs(rand.nextInt())  % 10 + 1;
+            int input = 10; //Math.abs(rand.nextInt()) % 5 + 1;
+            
+            Id id = IdGenerator.of(nid);
             String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
             HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
             task.type("type-1");
             task.name("test-task");
+            task.input(String.valueOf(input));
 
             TaskScheduler scheduler = graph.taskScheduler();
             scheduler.schedule(task);
@@ -145,8 +146,9 @@ public class EtcdTaskExample {
 
         @Override
         public Integer execute() throws Exception {
-            System.out.println(">>>>====>>>> test task " + this.task().id().asString() + "  is running by " + Thread.currentThread().getId());
-            for (int i = this.task().progress(); i <= 10 && this.run; i++) {
+            System.out.println(">>>>====>>>> test task " + this.task().id().asString() + "  is running by " + Thread.currentThread().getId() + " " + Thread.currentThread().getName());
+            int input = Integer.valueOf(this.task().input());
+            for (int i = this.task().progress(); i <= input && this.run; i++) {
 
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);

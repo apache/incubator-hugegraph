@@ -1633,15 +1633,11 @@ public class MetaManager {
         return this.lock(key);
     }
 
-    public <V> boolean keepAliveTask(HugeTask<V> task) {
-        long nextId = this.keepAlive("", task.leaseId());
-        if (nextId != 0) {
-            task.leaseId(nextId);
-            return true;
-        }
-        return false;
+    public <V> void unlockTask(String graphSpace, HugeTask<V> task) {
+        String key = taskLockKey(graphSpace, task.id().asString());
+        
+        this.unlock(key, task.lockResult());
     }
-
     /**
      * Get task progress
      * @param <V>
@@ -1695,10 +1691,9 @@ public class MetaManager {
      * @param task
      */
     public <V> void updateTaskProgress(String graphSpace, HugeTask<V> task) {
-        if (this.keepAliveTask(task)) {
-            String key = taskStatusKey(graphSpace, task.id().asString(), "Progress");
-            this.metaDriver.put(key, String.valueOf(task.progress()));
-        }
+        String key = taskStatusKey(graphSpace, task.id().asString(), "Progress");
+        System.out.println("====> Going to update task " + task.id().asString() + " progress = " + task.progress());
+        this.metaDriver.put(key, String.valueOf(task.progress()));
     }
 
     /**
@@ -1708,10 +1703,9 @@ public class MetaManager {
      * @param task
      */
     public <V> void updateTaskStatus(String graphSpace, HugeTask<V> task) {
-        if (this.keepAliveTask(task)) {
-            String key = taskStatusKey(graphSpace, task.id().asString(), "Status");
-            this.metaDriver.put(key, task.status().name());
-        }
+        String key = taskStatusKey(graphSpace, task.id().asString(), "Status");
+        System.out.println("[" + Thread.currentThread().getId() + " " + Thread.currentThread().getName() + "] ====> Going to update task" + task.id().asString() + " status = " + task.status().name());
+        this.metaDriver.put(key, task.status().name());
     }
 
     public <V> HugeTask<V> deleteTask() {
