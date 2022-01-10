@@ -61,24 +61,17 @@ public class K8sManager {
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
-                                        String cluster, boolean useCa,
-                                        String ca, String clientCa,
-                                        String clientKey) {
+                                        String cluster) {
         return this.k8sDriver.startOltpService(graphSpace, service,
-                                               metaServers, cluster, useCa, ca,
-                                               clientCa, clientKey);
+                                               metaServers, cluster);
     }
 
     public Set<String> startService(GraphSpace graphSpace, Service service,
-                                    List<String> metaServers, String cluster,
-                                    boolean useCa,
-                                    String ca, String clientCa,
-                                    String clientKey) {
+                                    List<String> metaServers, String cluster) {
         switch (service.type()) {
             case OLTP:
                 return this.startOltpService(graphSpace, service, metaServers,
-                                             cluster, useCa, ca, clientCa,
-                                             clientKey);
+                                             cluster);
             case OLAP:
             case STORAGE:
             default:

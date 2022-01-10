@@ -528,20 +528,10 @@ public final class GraphManager {
         lock = this.metaManager.lock(this.cluster, graphSpace, name);
         try {
             if (service.k8s()) {
-                List<String> endpoints = config.get(
+                List<String> endpoints = this.config.get(
                                          ServerOptions.META_ENDPOINTS);
-                boolean useCa = config.get(ServerOptions.META_USE_CA);
-                String ca = null;
-                String clientCa = null;
-                String clientKey = null;
-                if (useCa) {
-                    ca = config.get(ServerOptions.META_CA);
-                    clientCa = config.get(ServerOptions.META_CLIENT_CA);
-                    clientKey = config.get(ServerOptions.META_CLIENT_KEY);
-                }
                 Set<String> urls = this.k8sManager.startService(
-                                   gs, service, endpoints, this.cluster,
-                                   useCa, ca, clientCa, clientKey);
+                                   gs, service, endpoints, this.cluster);
                 service.urls(urls);
             }
             this.metaManager.addServiceConfig(graphSpace, service);

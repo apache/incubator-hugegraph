@@ -26,10 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.Service;
+import com.baidu.hugegraph.util.Log;
 
+import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
+import io.fabric8.kubernetes.api.model.ConfigMapVolumeSourceBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.api.model.Namespace;
@@ -50,6 +55,8 @@ import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 public class K8sDriver {
+
+    protected static final Logger LOG = Log.logger(K8sDriver.class);
 
     public static final String DELIMETER = "-";
 
@@ -179,11 +186,8 @@ public class K8sDriver {
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
-                                        String cluster, boolean useCa,
-                                        String ca, String clientCa,
-                                        String clientKey) {
-        this.createDeployment(graphSpace, service, metaServers, cluster,
-                              useCa, ca, clientCa, clientKey);
+                                        String cluster) {
+        this.createDeployment(graphSpace, service, metaServers, cluster);
         return this.createService(graphSpace, service);
     }
 
@@ -195,13 +199,10 @@ public class K8sDriver {
     }
 
     public Deployment createDeployment(GraphSpace graphSpace, Service service,
-                                       List<String> metaServers, String cluster,
-                                       boolean useCa, String ca,
-                                       String clientCa, String clientKey) {
+                                       List<String> metaServers,
+                                       String cluster) {
         Deployment deployment = this.constructDeployment(graphSpace, service,
-                                                         metaServers, cluster,
-                                                         useCa, ca, clientCa,
-                                                         clientKey);
+                                                         metaServers, cluster);
         String namespace = namespace(graphSpace, service);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
@@ -286,9 +287,7 @@ public class K8sDriver {
     private Deployment constructDeployment(GraphSpace graphSpace,
                                            Service service,
                                            List<String> metaServers,
-                                           String cluster, boolean useCa,
-                                           String ca, String clientCa,
-                                           String clientKey) {
+                                           String cluster) {
         String deploymentName = deploymentName(graphSpace, service);
         String containerName = String.join(DELIMETER, deploymentName,
                                            CONTAINER);
@@ -298,27 +297,44 @@ public class K8sDriver {
                 .addToLimits("cpu", cpu)
                 .addToLimits("memory", memory)
                 .build();
+
+        ConfigMapVolumeSource cmvs = new ConfigMapVolumeSourceBuilder()
+                .withName("hg-ca")
+                .build();
+
         String metaServersString = metaServers(metaServers);
 
         return new DeploymentBuilder()
+
                 .withNewMetadata()
                 .withName(deploymentName)
                 .addToLabels(APP, deploymentName)
                 .endMetadata()
+
                 .withNewSpec()
                 .withReplicas(service.count())
                 .withNewTemplate()
+
                 .withNewMetadata()
                 .addToLabels(APP, deploymentName)
                 .endMetadata()
+
                 .withNewSpec()
+
                 .addNewContainer()
                 .withName(containerName)
                 .withImage(this.image(service))
                 .withResources(rr)
+
                 .addNewPort()
                 .withContainerPort(HG_PORT)
                 .endPort()
+
+                .addNewVolumeMount()
+                .withName("hg-ca")
+                .withMountPath("/hg-ca")
+                .endVolumeMount()
+
                 .addNewEnv()
                 .withName("GRAPH_SPACE")
                 .withValue(graphSpace.name())
@@ -335,23 +351,14 @@ public class K8sDriver {
                 .withName("CLUSTER")
                 .withValue(cluster)
                 .endEnv()
-                .addNewEnv()
-                .withName("WITH_CA")
-                .withValue(Boolean.toString(useCa))
-                .endEnv()
-                .addNewEnv()
-                .withName("CA_FILE")
-                .withValue(ca)
-                .endEnv()
-                .addNewEnv()
-                .withName("CLIENT_CA")
-                .withValue(clientCa)
-                .endEnv()
-                .addNewEnv()
-                .withName("CLIENT_KEY")
-                .withValue(clientKey)
-                .endEnv()
+
                 .endContainer()
+
+                .addNewVolume()
+                .withName("hg-ca")
+                .withConfigMap(cmvs)
+                .endVolume()
+
                 .endSpec()
                 .endTemplate()
                 .withNewSelector()
