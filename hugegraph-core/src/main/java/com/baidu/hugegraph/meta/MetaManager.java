@@ -47,6 +47,7 @@ import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskPriority;
 import com.baidu.hugegraph.task.TaskSerializer;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
@@ -1588,6 +1589,7 @@ public class MetaManager {
         String key = taskKey(graphSpace, priority.toString(), id.asString());
         String jsonStr = this.metaDriver.get(key);
         HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+        task.progress(this.getTaskProgress(graphSpace, task));
         return task;
     }
 
@@ -1641,6 +1643,52 @@ public class MetaManager {
     }
 
     /**
+     * Get task progress
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> int getTaskProgress(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        return Integer.valueOf(value);
+    }
+
+    /**
+     * Get task progress
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> int getTaskProgress(String graphSpace, HugeTask<V> task) {
+        String key = this.taskStatusKey(graphSpace, task.id().asString(), "Progress");
+        return this.getTaskProgress(key);
+    }
+
+    /**
+     * Get task status, be aware of the name of enum
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> TaskStatus getTaskStatus(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        return TaskStatus.fromName(value);
+    }
+
+    /**
+     * Get task status
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> TaskStatus getTaskStatus(String graphSpace, HugeTask<V> task) {
+        String key = this.taskStatusKey(graphSpace, task.id().asString(), "Status");
+        return this.getTaskStatus(key);
+    }
+
+    /**
      * Update task progress, only if having lease
      * @param <V>
      * @param graphSpace
@@ -1654,7 +1702,7 @@ public class MetaManager {
     }
 
     /**
-     * Update task status, only if having lease
+     * Update task status, only if having lease, use name()
      * @param <V>
      * @param graphSpace
      * @param task
