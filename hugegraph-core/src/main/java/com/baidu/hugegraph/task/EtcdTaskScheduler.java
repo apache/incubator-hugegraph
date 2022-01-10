@@ -20,11 +20,15 @@
 package com.baidu.hugegraph.task;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -36,7 +40,7 @@ import javax.ws.rs.NotFoundException;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.alipay.remoting.util.ConcurrentHashSet;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
@@ -57,7 +61,6 @@ import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.ExecutorUtil;
-
 import com.google.common.collect.ImmutableSet;
 
 public class EtcdTaskScheduler extends TaskScheduler {
@@ -66,13 +69,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final ExecutorService producer = ExecutorUtil.newFixedThreadPool(1, EtcdTaskScheduler.class.getName());
 
-    private final Map<TaskPriority, BlockingQueue<HugeTask<?>>> taskQueueMap = new HashMap<>();
+    private final Map<TaskPriority, BlockingQueue<Runnable>> taskQueueMap = new HashMap<>();
 
     private final ExecutorService taskExecutor;
     private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDBExecutor;
 
+    private final ExecutorService executorService;
+
+    private final Set<String> visitedTasks = new ConcurrentHashSet<>();
+
     private final Map<Id, HugeTask<?>> tasks = new HashMap<>();
+
+    /**
+     * Indicates that if the task has been checked already to reduce load
+     */
+    private final Set<String> checkedTasks = new HashSet<>();
 
     public EtcdTaskScheduler(
         HugeGraphParams graph,
@@ -89,9 +101,11 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         this.eventListener =  this.listenChanges();
 
+        BlockingQueue<Runnable> taskQueue = this.taskQueueMap.computeIfAbsent(maxDepth, v -> new LinkedBlockingQueue<>());
+
+        this.executorService = new ThreadPoolExecutor(1, CPU_COUNT, 30, TimeUnit.SECONDS, taskQueue);
         MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::taskEventHandler);
         MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::extraTaskEventHandler);
-        
     }
 
     @Override
@@ -377,7 +391,49 @@ public class EtcdTaskScheduler extends TaskScheduler {
             System.out.println("====> Producer runner thread: " + Thread.currentThread().getId());
 
             MetaManager metaManager = MetaManager.instance();
+            task.status(TaskStatus.SCHEDULING);
             metaManager.createTask(this.graph.graph().graphSpace(), task);
+
+            task.status(TaskStatus.SCHEDULED);
+            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+        }
+    }
+
+    /**
+     * Internal Producer is use to submit task info to etcd
+     */
+    private static class Consumer<V> implements Runnable {
+
+        private final HugeTask<V> task;
+        private final HugeGraphParams graph;
+
+        public Consumer(HugeTask<V> task, HugeGraphParams graph) {
+            this.task = task;
+            this.graph = graph;
+        }
+
+        @Override
+        public void run() {
+            LOGGER.logCustomDebug("====> Consumer runner start to write {}", "Scorpiour", task);
+
+            System.out.println("====> consumer runner thread: " + Thread.currentThread().getId());
+
+            TaskStatus status = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
+            if (TaskStatus.COMPLETED_STATUSES.contains(status)) {
+                System.out.println("====> task is complete! consumer runner finished: " + Thread.currentThread().getId());
+                return;
+            }
+
+            task.status(TaskStatus.RUNNING);
+            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+
+            this.task.run();
+
+            task.status(TaskStatus.SUCCESS);
+            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+            MetaManager.instance().unlockTask(this.graph.graph().graphSpace(), task);
+
+            System.out.println("====> consumer runner finished: " + Thread.currentThread().getId());
         }
     }
 
@@ -388,37 +444,60 @@ public class EtcdTaskScheduler extends TaskScheduler {
      */
     private <T> void taskEventHandler(T response) {
 
-        System.out.println("====> Normal handler Current thread: " + Thread.currentThread().getId());
+            System.out.println("====> Normal handler Current thread: " + Thread.currentThread().getId() + " name " + Thread.currentThread().getName());
 
-        MetaManager manager = MetaManager.instance();
-        Map<String, String> events = manager.extractKVFromResponse(response);
+            MetaManager manager = MetaManager.instance();
+            Map<String, String> events = manager.extractKVFromResponse(response);
 
-        for(Map.Entry<String, String> entry : events.entrySet()) {
-            System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
-            try {
-                HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
-
-                System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
-                LockResult result = manager.lockTask(this.graphSpace(), task);
-                if (result.lockSuccess()) {
-                    System.out.println(String.format("=====> Grab task %s lock success", task.id().asString()));
-                    // attach callable info
-                    TaskCallable<?> callable = task.callable();
-                    // attach priority info
-                    MetaManager.instance().attachTaskInfo(task, entry.getKey());
-                    // attach graph info
-                    callable.graph(this.graph());
-                    // run it
-                    task.leaseId(result.getLeaseId());
-                    task.run();
-                } else {
-                    System.out.println("=====> Grab task lock failed");
+            for(Map.Entry<String, String> entry : events.entrySet()) {
+                System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
+                if (this.checkedTasks.contains(entry.getKey())) {
+                    System.out.println(String.format("====> [Thread %d] task info %s has been executed", Thread.currentThread().getId(), entry.getKey()));
+                    continue;
                 }
-            } catch (Exception e) {
-                System.out.println("=====> Grab task lock error");
-                System.out.println(e);
+                try {
+                    HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
+
+                    System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
+
+                    LockResult result = manager.lockTask(this.graphSpace(), task);
+                    if (result.lockSuccess()) {
+                        task.lockResult(result);
+                        // first check if lock processed
+                        if (this.visitedTasks.contains(task.id().asString())) {
+                            System.out.println(String.format("====> [Thread %d] found task %s has been visited", Thread.currentThread().getId(), entry.getKey()));
+                            manager.unlockTask(this.graphSpace(), task);
+                            continue;
+                        }
+                        this.visitedTasks.add(task.id().asString());
+                        TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
+                        if (TaskStatus.COMPLETED_STATUSES.contains(currentStatus)) {
+                            System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
+                            manager.unlockTask(this.graphSpace(), task);
+                            continue;
+                        }
+                        System.out.println(String.format("=====> Grab task %s lock success", task.id().asString()));
+                        // attach callable info
+                        TaskCallable<?> callable = task.callable();
+                        // attach priority info
+                        MetaManager.instance().attachTaskInfo(task, entry.getKey());
+                        // attach graph info
+                        callable.graph(this.graph());
+                        // run it
+                        task.status(TaskStatus.QUEUED);
+                        MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+
+
+                        this.taskExecutor.submit(new Consumer(task, this.graph));
+                    } else {
+                        System.out.println("=====> Grab task lock failed");
+                    }
+                } catch (Exception e) {
+                    System.out.println("=====> Grab task lock error");
+                    System.out.println(e);
+                    System.out.println(e.getStackTrace());
+                }
             }
-        }
 
         System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
     }
@@ -431,39 +510,58 @@ public class EtcdTaskScheduler extends TaskScheduler {
      * @param response
      */
     private <T> void extraTaskEventHandler(T response) {
+            System.out.println("====> Race handler Current thread: " + Thread.currentThread().getId() + " name " + Thread.currentThread().getName());
 
-        System.out.println("====> Race handler Current thread: " + Thread.currentThread().getId());
+            MetaManager manager = MetaManager.instance();
+            Map<String, String> events = manager.extractKVFromResponse(response);
 
-        MetaManager manager = MetaManager.instance();
-        Map<String, String> events = manager.extractKVFromResponse(response);
-
-        for(Map.Entry<String, String> entry : events.entrySet()) {
-            System.out.println(String.format("====> task info %s, %s", entry.getKey(), entry.getValue()));
-            try {
-                HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
-
-                System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
-                LockResult result = manager.lockTask(this.graphSpace(), task);
-                if (result.lockSuccess()) {
-                    System.out.println("=====> Grab task lock success");
-                    // attach callable info
-                    TaskCallable<?> callable = task.callable();
-                    // attach priority info
-                    MetaManager.instance().attachTaskInfo(task, entry.getKey());
-                    // attach graph info
-                    callable.graph(this.graph());
-                    // run it
-                    task.run();
-                } else {
-                    System.out.println("=====> Grab task lock failed");
+            for(Map.Entry<String, String> entry : events.entrySet()) {
+                System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
+                if (this.checkedTasks.contains(entry.getKey())) {
+                    System.out.println(String.format("====> [Thread %d] task info %s has been executed", Thread.currentThread().getId(), entry.getKey()));
+                    continue;
                 }
-            } catch (Exception e) {
-                System.out.println("=====> Grab task lock error");
-                System.out.println(e);
-            }
-        }
+                try {
+                    HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
 
-        System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
+                    System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
+
+                    LockResult result = manager.lockTask(this.graphSpace(), task);
+                    if (result.lockSuccess()) {
+                        task.lockResult(result);
+                        if (this.visitedTasks.contains(task.id().asString())) {
+                            System.out.println(String.format("====> [Thread %d] found task %s has been visited", Thread.currentThread().getId(), entry.getKey()));
+                            manager.unlockTask(this.graphSpace(), task);
+                            continue;
+                        }
+                        this.visitedTasks.add(task.id().asString());
+                        TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
+                        if (TaskStatus.COMPLETED_STATUSES.contains(currentStatus)) {
+                            System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
+                            manager.unlockTask(this.graphSpace(), task);
+                            continue;
+                        }
+    
+                        System.out.println("=====> Grab task lock success");
+                        // attach callable info
+                        TaskCallable<?> callable = task.callable();
+                        // attach priority info
+                        MetaManager.instance().attachTaskInfo(task, entry.getKey());
+                        // attach graph info
+                        callable.graph(this.graph());
+                        // run it
+                        this.taskExecutor.submit(new Consumer(task, this.graph));
+                    } else {
+                        System.out.println("=====> Grab task lock failed");
+                    }
+                } catch (Exception e) {
+                    System.out.println("=====> Grab task lock error");
+                    System.out.println(e);
+                    System.out.println(e.getStackTrace());
+                }
+
+            System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
+        }
     }
     
 }

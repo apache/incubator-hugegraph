@@ -48,6 +48,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.job.ComputerDisJob;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.EphemeralJob;
+import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.E;
@@ -80,7 +81,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private String graphSpace;
     private String graphName;
-    private long leaseId; // leaseId for distribution keepAlive
+    private LockResult lockResult ; // leaseId for distribution keepAlive
 
     private volatile TaskStatus status;
     private volatile int progress;
@@ -117,7 +118,6 @@ public class HugeTask<V> extends FutureTask<V> {
         this.result = null;
         this.server = null;
         this.load = 1;
-        this.leaseId = 0;
     }
 
     public Id id() {
@@ -261,14 +261,14 @@ public class HugeTask<V> extends FutureTask<V> {
         this.priority = priority;
     }
 
-    public long leaseId() {
-        return this.leaseId;
+    public LockResult lockResult() {
+        return this.lockResult;
     }
 
-    public void leaseId(long leaseId) {
-        this.leaseId = leaseId;
+    public void lockResult(LockResult lockResult) {
+        this.lockResult = lockResult;
     }
-
+    
     public boolean completed() {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
