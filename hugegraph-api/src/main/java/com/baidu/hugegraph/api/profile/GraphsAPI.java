@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api.profile;
 
+import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,14 +41,16 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
-import com.baidu.hugegraph.config.*;
-import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
 import org.slf4j.Logger;
+
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
+import com.baidu.hugegraph.config.ConfigOption;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -78,10 +82,14 @@ public class GraphsAPI extends API {
     public Object list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @Context SecurityContext sc) {
+        LOG.debug("List graphs in graph space {}", graphSpace);
         Set<String> graphs = manager.graphs(graphSpace);
+        LOG.debug("Get graphs list from graph manager with size {}",
+                  graphs.size());
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
+            LOG.debug("Get graph {} and verify auth", graph);
             String role = RequiredPerm.roleFor(graphSpace, graph,
                                                HugePermission.READ);
             if (sc.isUserInRole(role)) {
@@ -91,8 +99,11 @@ public class GraphsAPI extends API {
                 } catch (ForbiddenException ignored) {
                     // ignore
                 }
+            } else {
+                LOG.debug("The user not in role for graph {}", graph);
             }
         }
+        LOG.debug("Finish list graphs with size {}", filterGraphs.size());
         return ImmutableMap.of("graphs", filterGraphs);
     }
 
