@@ -41,9 +41,7 @@ public final class TaskSerializer {
     private enum TaskFields {
         ID("id"),
         TASK_NAME("task_name"),
-        TASK_PROGRESS("task_progress"),
         TASK_CREATE("task_create"),
-        TASK_STATUS("task_status"),
         TASK_RETIRES("task_retries"),
         TASK_TYPE("task_type"),
         TASK_CALLABLE("task_callable"),
@@ -106,19 +104,10 @@ public final class TaskSerializer {
                     String.valueOf(
                         map.get(
                             TaskFields.TASK_CREATE.getValue()))));
-        Integer progress
-            = Integer.valueOf(
-                String.valueOf(
-                    map.get(
-                        TaskFields.TASK_PROGRESS.getValue())));
         String name
             = String.valueOf(
                 map.get(
                     TaskFields.TASK_NAME.getValue()));
-        TaskStatus status
-            = TaskStatus.fromName(
-                String.valueOf(
-                    map.get(TaskFields.TASK_STATUS.getValue())));
 
         Id id = IdGenerator.of(numId);
         HugeTask<V> task = new HugeTask<>(id, null, callableStr, input);
@@ -130,9 +119,7 @@ public final class TaskSerializer {
          */
         task.name(name);
         task.type(typeStr);
-        task.progress(progress);
         task.createTime(createdAt);
-        task.status(status);
 
         // Recursive dependency here, but should be maintain due to compatible
         task.callable().task(task);
