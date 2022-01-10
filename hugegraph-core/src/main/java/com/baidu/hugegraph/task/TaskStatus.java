@@ -51,6 +51,16 @@ public enum TaskStatus implements SerialEnum {
 
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
+        
+    // Indicates that the task has been occupied by consumer, should not be consumed again
+    public static final Set<TaskStatus> OCCUPIED_STATUS = ImmutableSet.of(
+        TaskStatus.QUEUED, // task has been taken, wait in the queue
+        TaskStatus.RESTORING, // task is restoring
+        TaskStatus.RUNNING, // task is executing
+        TaskStatus.SUCCESS, // task is executed successfully
+        TaskStatus.CANCELLING, // task is cancelling
+        TaskStatus.CANCELLED, // task has been cancelled
+        TaskStatus.FAILED); // task failed
 
     private static final Map<String, TaskStatus> ALL_STATUS_MAP = 
         Stream.of(TaskStatus.values())
