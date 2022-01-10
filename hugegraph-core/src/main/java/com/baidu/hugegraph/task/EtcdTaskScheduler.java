@@ -471,8 +471,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                         }
                         this.visitedTasks.add(task.id().asString());
                         TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
-                        if (TaskStatus.COMPLETED_STATUSES.contains(currentStatus)) {
+                        if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
                             System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
+                            this.visitedTasks.add(task.id().asString());
                             manager.unlockTask(this.graphSpace(), task);
                             continue;
                         }
@@ -483,11 +484,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
                         MetaManager.instance().attachTaskInfo(task, entry.getKey());
                         // attach graph info
                         callable.graph(this.graph());
-                        // run it
+                        // update status to queued
                         task.status(TaskStatus.QUEUED);
                         MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
-
-
+                        // run it
                         this.taskExecutor.submit(new Consumer(task, this.graph));
                     } else {
                         System.out.println("=====> Grab task lock failed");
@@ -536,8 +536,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                         }
                         this.visitedTasks.add(task.id().asString());
                         TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
-                        if (TaskStatus.COMPLETED_STATUSES.contains(currentStatus)) {
+                        if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
                             System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
+                            this.visitedTasks.add(task.id().asString());
                             manager.unlockTask(this.graphSpace(), task);
                             continue;
                         }
@@ -549,6 +550,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                         MetaManager.instance().attachTaskInfo(task, entry.getKey());
                         // attach graph info
                         callable.graph(this.graph());
+                        // update status to queued
+                        task.status(TaskStatus.QUEUED);
+                        MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
                         // run it
                         this.taskExecutor.submit(new Consumer(task, this.graph));
                     } else {
