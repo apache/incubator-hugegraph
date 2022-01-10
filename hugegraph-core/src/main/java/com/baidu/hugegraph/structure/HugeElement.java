@@ -36,7 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.EdgeId;
@@ -54,9 +54,12 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
+
+    private static final Logger LOG = Log.logger(HugeElement.class);
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
                          CollectionFactory.newIntObjectMap();
@@ -187,7 +190,40 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     }
 
     public boolean expired() {
-        return 0L < this.expiredTime && this.expiredTime < this.graph.now();
+        boolean expired;
+        SchemaLabel label = this.schemaLabel();
+        if (label.ttl() == 0L) {
+            // No ttl, not expired
+            return false;
+        }
+        if (this.expiredTime > 0L) {
+            // Has ttl and set expiredTime properly
+            expired = this.expiredTime < this.graph.now();
+            LOG.debug("The element {} {} with expired time {} and now {}",
+                      this, expired ? "expired" : "not expired",
+                      this.expiredTime, this.graph.now());
+            return expired;
+        }
+        // Has ttl, but failed to set expiredTime when insert
+        LOG.error("The element {} should have positive expired time, " +
+                  "but got {}! ttl is {} ttl start time is {}",
+                  this, this.expiredTime, label.ttl(), label.ttlStartTimeName());
+        if (SchemaLabel.NONE_ID.equals(label.ttlStartTime())) {
+            // No ttlStartTime, can't decide whether timeout, treat not expired
+            return false;
+        }
+        Date date = this.getPropertyValue(label.ttlStartTime());
+        if (date == null) {
+            // No ttlStartTime, can't decide whether timeout, treat not expired
+            return false;
+        }
+        // Has ttlStartTime, re-calc expiredTime to decide whether timeout,
+        long expiredTime = date.getTime() + label.ttl();
+        expired = expiredTime < this.graph.now();
+        LOG.debug("The element {} {} with expired time {} and now {}",
+                  this, expired ? "expired" : "not expired",
+                  expiredTime, this.graph.now());
+        return expired;
     }
 
     public long ttl() {
