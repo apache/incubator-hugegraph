@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.13.0</version>
+    <version>3.0.0</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
