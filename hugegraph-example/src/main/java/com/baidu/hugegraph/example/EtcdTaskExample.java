@@ -64,10 +64,11 @@ public class EtcdTaskExample {
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
         Random rand = new Random();
-        for (int i = 11; i < 13; i++) {
+        int start = Math.abs(rand.nextInt())  % 10 + 1;
+        for (int i = start ; i < start + 10; i++) {
 
             int nid = Math.abs(rand.nextInt())  % 10 + 1;
-            int input = 10; //Math.abs(rand.nextInt()) % 5 + 1;
+            int input = 5; //Math.abs(rand.nextInt()) % 5 + 1;
             
             Id id = IdGenerator.of(nid);
             String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
