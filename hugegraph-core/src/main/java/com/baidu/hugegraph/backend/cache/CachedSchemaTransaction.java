@@ -111,20 +111,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 event.checkArgs(String.class, HugeType.class, Id.class);
                 HugeType type = (HugeType) args[1];
                 Id id = (Id) args[2];
-                this.arrayCaches.remove(type, id);
-
-                id = generateId(type, id);
-                Object value = this.idCache.get(id);
-                if (value != null) {
-                    // Invalidate id cache
-                    this.idCache.invalidate(id);
-
-                    // Invalidate name cache
-                    SchemaElement schema = (SchemaElement) value;
-                    Id prefixedName = generateId(schema.type(),
-                                                 schema.name());
-                    this.nameCache.invalidate(prefixedName);
-                }
+                this.invalidateCache(type, id);
                 this.resetCachedAll(type);
                 return true;
             } else if (Cache.ACTION_CLEAR.equals(args[0])) {
@@ -140,21 +127,6 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private final void resetCachedAll(HugeType type) {
-        // Set the cache all flag of the schema type to false
-        this.cachedTypes().put(type, false);
-    }
-
-    private void clearCache(boolean notify) {
-        this.idCache.clear();
-        this.nameCache.clear();
-        this.arrayCaches.clear();
-
-        if (notify) {
-            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
-        }
-    }
-
     private void unlistenChanges() {
         // Unlisten store event
         this.store().provider().unlisten(this.storeEventListener);
@@ -164,9 +136,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
-    private void notifyChanges(String action, HugeType type, Id id) {
+    private final void notifyChanges(String action, HugeType type, Id id) {
         EventHub graphEventHub = this.params().schemaEventHub();
         graphEventHub.notify(Events.CACHE, action, type, id);
+    }
+
+    private final void resetCachedAll(HugeType type) {
+        // Set the cache all flag of the schema type to false
+        this.cachedTypes().put(type, false);
     }
 
     private final void resetCachedAllIfReachedCapacity() {
@@ -179,6 +156,47 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     private final CachedTypes cachedTypes() {
         return this.arrayCaches.cachedTypes();
+    }
+
+    private final void clearCache(boolean notify) {
+        this.idCache.clear();
+        this.nameCache.clear();
+        this.arrayCaches.clear();
+
+        if (notify) {
+            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
+        }
+    }
+
+    private final void updateCache(SchemaElement schema) {
+        this.resetCachedAllIfReachedCapacity();
+
+        // update id cache
+        Id prefixedId = generateId(schema.type(), schema.id());
+        this.idCache.update(prefixedId, schema);
+
+        // update name cache
+        Id prefixedName = generateId(schema.type(), schema.name());
+        this.nameCache.update(prefixedName, schema);
+
+        // update optimized array cache
+        this.arrayCaches.updateIfNeeded(schema);
+    }
+
+    private final void invalidateCache(HugeType type, Id id) {
+        // remove from id cache and name cache
+        Id prefixedId = generateId(type, id);
+        Object value = this.idCache.get(prefixedId);
+        if (value != null) {
+            this.idCache.invalidate(prefixedId);
+
+            SchemaElement schema = (SchemaElement) value;
+            Id prefixedName = generateId(schema.type(), schema.name());
+            this.nameCache.invalidate(prefixedName);
+        }
+
+        // remove from optimized array cache
+        this.arrayCaches.remove(type, id);
     }
 
     private static Id generateId(HugeType type, Id id) {
@@ -195,18 +213,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     protected void addSchema(SchemaElement schema) {
         super.addSchema(schema);
 
-        this.resetCachedAllIfReachedCapacity();
-
-        // update id cache
-        Id prefixedId = generateId(schema.type(), schema.id());
-        this.idCache.update(prefixedId, schema);
-
-        // update name cache
-        Id prefixedName = generateId(schema.type(), schema.name());
-        this.nameCache.update(prefixedName, schema);
-
-        // update optimized array cache
-        this.arrayCaches.updateIfNeeded(schema);
+        this.updateCache(schema);
 
         this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
     }
@@ -227,18 +234,14 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (value == null) {
             value = super.getSchema(type, id);
             if (value != null) {
-                this.resetCachedAllIfReachedCapacity();
-
-                this.idCache.update(prefixedId, value);
-
                 SchemaElement schema = (SchemaElement) value;
-                Id prefixedName = generateId(schema.type(), schema.name());
-                this.nameCache.update(prefixedName, schema);
+                // update id cache, name cache and optimized array cache
+                this.updateCache(schema);
             }
+        } else {
+            // update optimized array cache for the result from id cache
+            this.arrayCaches.updateIfNeeded((SchemaElement) value);
         }
-
-        // update optimized array cache
-        this.arrayCaches.updateIfNeeded((SchemaElement) value);
 
         return (T) value;
     }
@@ -252,13 +255,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         if (value == null) {
             value = super.getSchema(type, name);
             if (value != null) {
-                this.resetCachedAllIfReachedCapacity();
-
-                this.nameCache.update(prefixedName, value);
-
                 SchemaElement schema = (SchemaElement) value;
-                Id prefixedId = generateId(schema.type(), schema.id());
-                this.idCache.update(prefixedId, schema);
+                this.updateCache(schema);
             }
         }
         return (T) value;
@@ -268,18 +266,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     protected void removeSchema(SchemaElement schema) {
         super.removeSchema(schema);
 
-        Id prefixedId = generateId(schema.type(), schema.id());
-        Object value = this.idCache.get(prefixedId);
-        if (value != null) {
-            this.idCache.invalidate(prefixedId);
-
-            schema = (SchemaElement) value;
-            Id prefixedName = generateId(schema.type(), schema.name());
-            this.nameCache.invalidate(prefixedName);
-        }
-
-        // remove from optimized array cache
-        this.arrayCaches.remove(schema.type(), schema.id());
+        this.invalidateCache(schema.type(), schema.id());
 
         this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
     }
@@ -299,16 +286,13 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             });
             return results;
         } else {
+            this.cachedTypes().remove(type);
             List<T> results = super.getAllSchema(type);
             long free = this.idCache.capacity() - this.idCache.size();
             if (results.size() <= free) {
                 // Update cache
                 for (T schema : results) {
-                    Id prefixedId = generateId(schema.type(), schema.id());
-                    this.idCache.update(prefixedId, schema);
-
-                    Id prefixedName = generateId(schema.type(), schema.name());
-                    this.nameCache.update(prefixedName, schema);
+                    this.updateCache(schema);
                 }
                 this.cachedTypes().putIfAbsent(type, true);
             }
