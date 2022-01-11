@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.example;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -33,7 +34,10 @@ import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskScheduler;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.Log;
+
+import org.apache.commons.collections.IteratorUtils;
 
 public class EtcdTaskExample {
 
@@ -63,12 +67,13 @@ public class EtcdTaskExample {
     }
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
+        TaskScheduler scheduler = graph.taskScheduler();
         Random rand = new Random();
         int start = Math.abs(rand.nextInt())  % 10 + 1;
-        for (int i = start ; i < start + 10; i++) {
+        for (int i = 0 ; i < 3; i++) {
 
-            int nid = Math.abs(rand.nextInt())  % 10 + 1;
-            int input = 5; //Math.abs(rand.nextInt()) % 5 + 1;
+            int nid = 7; //Math.abs(rand.nextInt())  % 10 + 1;
+            int input = 10; //Math.abs(rand.nextInt()) % 5 + 1;
             
             Id id = IdGenerator.of(nid);
             String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
@@ -77,17 +82,20 @@ public class EtcdTaskExample {
             task.name("test-task");
             task.input(String.valueOf(input));
 
-            TaskScheduler scheduler = graph.taskScheduler();
+            
             scheduler.schedule(task);
             Thread.sleep(10);
         }
+        
 
 
         
-        /*
+        
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);
+        iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
         System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
+
+        /*
 
         Thread.sleep(TestTask.UNIT * 33);
         task.cancel(true);
