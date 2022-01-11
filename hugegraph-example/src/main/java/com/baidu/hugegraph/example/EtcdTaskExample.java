@@ -22,7 +22,6 @@ package com.baidu.hugegraph.example;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
@@ -37,7 +36,6 @@ import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.Log;
 
-import org.apache.commons.collections.IteratorUtils;
 
 public class EtcdTaskExample {
 
@@ -69,8 +67,9 @@ public class EtcdTaskExample {
     public static void testTask(HugeGraph graph) throws InterruptedException {
         TaskScheduler scheduler = graph.taskScheduler();
         
-        /*
-        int start = 12;
+        scheduler.flushAllTask();
+        
+        int start = 25;
         for (int i = start ; i < start + 5; i++) {
 
             int nid = i; //Math.abs(rand.nextInt())  % 10 + 1;
@@ -86,10 +85,10 @@ public class EtcdTaskExample {
             
             scheduler.schedule(task);
             Thread.sleep(10);
-        }*/
+        }
 
         
-        scheduler.flushAllTask();
+        // scheduler.flushAllTask();
         
 
         Iterator<HugeTask<Object>> iter;
