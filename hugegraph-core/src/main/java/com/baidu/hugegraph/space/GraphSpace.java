@@ -132,7 +132,10 @@ public class GraphSpace {
         this.graphNumberUsed = graphNumberUsed;
         this.roleNumberUsed = roleNumberUsed;
 
-        this.configs = config;
+        this.configs = new HashMap<>();
+        if (config != null) {
+            this.configs = config;
+        }
     }
 
     public String name() {
