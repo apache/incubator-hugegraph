@@ -6,7 +6,7 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hg-store-grpc</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>3.0.0</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -110,5 +110,11 @@
             </plugin>
         </plugins>
     </build>
-
+    <distributionManagement>
+        <repository>
+            <id>star-snapshot</id>
+            <name>star-snapshot</name>
+            <url>http://10.14.139.8:8081/artifactory/star-snapshot</url>
+        </repository>
+    </distributionManagement>
 </project>

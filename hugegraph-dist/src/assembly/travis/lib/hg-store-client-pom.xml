@@ -6,16 +6,13 @@
 
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hg-store-client</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>3.0.0</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <maven.test.skip>true</maven.test.skip>
         <log4j2.version>2.15.0</log4j2.version>
-        <hg.store.version>1.0-SNAPSHOT</hg.store.version>
-        <hg.pd.version>1.0-SNAPSHOT</hg.pd.version>
-        <hg.store.term.version>1.0.1</hg.store.term.version>
         <lombok.version>1.18.20</lombok.version>
     </properties>
 
@@ -23,12 +20,12 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hg-store-grpc</artifactId>
-            <version>${hg.store.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hg-store-term</artifactId>
-            <version>${hg.store.term.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -43,15 +40,21 @@
 
         <!-- test -->
         <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hg-pd-client</artifactId>
-            <version>${hg.pd.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
-            <version>${hg.pd.version}</version>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -69,6 +72,12 @@
 
     </dependencies>
 
-
+    <distributionManagement>
+        <repository>
+            <id>star-snapshot</id>
+            <name>star-snapshot</name>
+            <url>http://10.14.139.8:8081/artifactory/star-snapshot</url>
+        </repository>
+    </distributionManagement>
 
 </project>
