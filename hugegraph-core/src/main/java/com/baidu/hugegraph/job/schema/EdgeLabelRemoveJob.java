@@ -19,75 +19,69 @@
 
 package com.baidu.hugegraph.job.schema;
 
+import java.util.Set;
+
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
+import com.google.common.collect.ImmutableSet;
 
-public class OlapPropertyKeyClearCallable extends IndexLabelRemoveCallable {
+public class EdgeLabelRemoveJob extends SchemaJob {
 
     @Override
     public String type() {
-        return CLEAR_OLAP;
+        return REMOVE_SCHEMA;
     }
 
     @Override
     public Object execute() {
-        Id olap = this.schemaId();
-
-        // Clear olap data table
-        this.params().graphTransaction().clearOlapPk(olap);
-
-        // Clear corresponding index data
-        clearIndexLabel(this.params(), olap);
+        removeEdgeLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void clearIndexLabel(HugeGraphParams graph, Id id) {
-        Id olapIndexLabel = findOlapIndexLabel(graph, id);
-        if (olapIndexLabel == null) {
-            return;
-        }
+    private static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
-        IndexLabel indexLabel = schemaTx.getIndexLabel(olapIndexLabel);
-        // If the index label does not exist, return directly
-        if (indexLabel == null) {
+        EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
+        // If the edge label does not exist, return directly
+        if (edgeLabel == null) {
             return;
         }
+        if (edgeLabel.status().deleting()) {
+            LOG.info("The edge label '{}' has been in {} status, " +
+                     "please check if it's expected to delete it again",
+                     edgeLabel, edgeLabel.status());
+        }
+        // Remove index related data(include schema) of this edge label
+        Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, olapIndexLabel);
-            // Set index label to "rebuilding" status
-            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.REBUILDING);
+            locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
+            schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
             try {
-                // Remove index data
-                graphTx.removeIndex(indexLabel);
+                for (Id indexId : indexIds) {
+                    IndexLabelRemoveJob.removeIndexLabel(graph, indexId);
+                }
+                // Remove all edges which has matched label
+                // TODO: use event to replace direct call
+                graphTx.removeEdges(edgeLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
-                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.CREATED);
+                // Remove edge label
+                removeSchema(schemaTx, edgeLabel);
             } catch (Throwable e) {
-                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.UNDELETED);
                 throw e;
             }
         } finally {
             locks.unlock();
         }
-    }
-
-    protected static Id findOlapIndexLabel(HugeGraphParams graph, Id olap) {
-        SchemaTransaction schemaTx = graph.schemaTransaction();
-        for (IndexLabel indexLabel : schemaTx.getIndexLabels()) {
-            if (indexLabel.indexFields().contains(olap)) {
-                return indexLabel.id();
-            }
-        }
-        return null;
     }
 }

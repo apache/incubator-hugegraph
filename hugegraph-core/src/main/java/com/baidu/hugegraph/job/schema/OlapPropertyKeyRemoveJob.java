@@ -23,8 +23,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 
-public class OlapPropertyKeyRemoveCallable
-       extends OlapPropertyKeyClearCallable {
+public class OlapPropertyKeyRemoveJob extends OlapPropertyKeyClearJob {
 
     @Override
     public String type() {

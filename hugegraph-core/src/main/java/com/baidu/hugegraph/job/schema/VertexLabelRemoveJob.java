@@ -33,7 +33,7 @@ import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
-public class VertexLabelRemoveCallable extends SchemaCallable {
+public class VertexLabelRemoveJob extends SchemaJob {
 
     @Override
     public String type() {
@@ -82,7 +82,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);
             try {
                 for (Id ilId : indexLabelIds) {
-                    IndexLabelRemoveCallable.removeIndexLabel(graph, ilId);
+                    IndexLabelRemoveJob.removeIndexLabel(graph, ilId);
                 }
                 // TODO: use event to replace direct call
                 // Deleting a vertex will automatically deletes the held edge

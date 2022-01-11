@@ -27,57 +27,67 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
 
-public class IndexLabelRemoveCallable extends SchemaCallable {
+public class OlapPropertyKeyClearJob extends IndexLabelRemoveJob {
 
     @Override
     public String type() {
-        return REMOVE_SCHEMA;
+        return CLEAR_OLAP;
     }
 
     @Override
     public Object execute() {
-        removeIndexLabel(this.params(), this.schemaId());
+        Id olap = this.schemaId();
+
+        // Clear olap data table
+        this.params().graphTransaction().clearOlapPk(olap);
+
+        // Clear corresponding index data
+        clearIndexLabel(this.params(), olap);
         return null;
     }
 
-    protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
+    protected static void clearIndexLabel(HugeGraphParams graph, Id id) {
+        Id olapIndexLabel = findOlapIndexLabel(graph, id);
+        if (olapIndexLabel == null) {
+            return;
+        }
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
-        IndexLabel indexLabel = schemaTx.getIndexLabel(id);
+        IndexLabel indexLabel = schemaTx.getIndexLabel(olapIndexLabel);
         // If the index label does not exist, return directly
         if (indexLabel == null) {
             return;
         }
-        if (indexLabel.status().deleting()) {
-            LOG.info("The index label '{}' has been in {} status, " +
-                     "please check if it's expected to delete it again",
-                     indexLabel, indexLabel.status());
-        }
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
-            // TODO add update lock
-            // Set index label to "deleting" status
-            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
+            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, olapIndexLabel);
+            // Set index label to "rebuilding" status
+            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.REBUILDING);
             try {
-                // Remove label from indexLabels of vertex or edge label
-                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
                 // Remove index data
-                // TODO: use event to replace direct call
                 graphTx.removeIndex(indexLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
-                // Remove index label
-                removeSchema(schemaTx, indexLabel);
+                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.CREATED);
             } catch (Throwable e) {
-                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.UNDELETED);
+                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
                 throw e;
             }
         } finally {
             locks.unlock();
         }
+    }
+
+    protected static Id findOlapIndexLabel(HugeGraphParams graph, Id olap) {
+        SchemaTransaction schemaTx = graph.schemaTransaction();
+        for (IndexLabel indexLabel : schemaTx.getIndexLabels()) {
+            if (indexLabel.indexFields().contains(olap)) {
+                return indexLabel.id();
+            }
+        }
+        return null;
     }
 }
