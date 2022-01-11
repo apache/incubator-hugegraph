@@ -63,6 +63,12 @@ public class StandardAuthManager implements AuthManager {
     private static final long AUTH_CACHE_CAPACITY = 1024 * 10L;
     private static final long AUTH_TOKEN_EXPIRE = 3600 * 24L;
 
+    public static final String ALL_GRAPH_SPACES = "*";
+    private static final String DEFAULT_SPACE_GROUP_KEY = "DEFAULT_SPACE_GROUP";
+    private static final String DEFAULT_SPACE_TARGET_KEY = "DEFAULT_SPACE_TARGET";
+    private static final String DEFAULT_SPACE_OP_GROUP_KEY = "DEFAULT_SPACE_OP_GROUP";
+    private static final String DEFAULT_SPACE_OP_TARGET_KEY = "DEFAULT_SPACE_OP_TARGET";
+
     public StandardAuthManager(MetaManager metaManager, HugeConfig conf) {
         this.metaManager = metaManager;
         this.usersCache = this.cache("users", AUTH_CACHE_CAPACITY, AUTH_CACHE_EXPIRE);
@@ -347,6 +353,150 @@ public class StandardAuthManager implements AuthManager {
         } catch (ClassNotFoundException e) {
             throw new HugeException("ClassNotFoundException occurs when " +
                                     "deserialize user", e);
+        }
+    }
+
+    private void tryInitSpaceRole(String graphSpace) {
+        try {
+            HugeGroup group = this.metaManager.findGroup(graphSpace,
+                              IdGenerator.of(DEFAULT_SPACE_GROUP_KEY));
+            if (group == null) {
+                group = new HugeGroup(DEFAULT_SPACE_GROUP_KEY, graphSpace);
+                this.updateCreator(group);
+                group.create(group.update());
+                this.metaManager.createGroup(graphSpace, group);
+            }
+
+            HugeTarget target = this.metaManager.findTarget(graphSpace,
+                                IdGenerator.of(DEFAULT_SPACE_TARGET_KEY));
+            if (target == null) {
+                target = new HugeTarget(DEFAULT_SPACE_TARGET_KEY, graphSpace,
+                                        ALL_GRAPH_SPACES, "");
+                this.updateCreator(target);
+                target.create(target.update());
+                this.metaManager.createTarget(graphSpace, target);
+            }
+
+            String accessId =
+                   this.metaManager.accessId(DEFAULT_SPACE_GROUP_KEY,
+                                             DEFAULT_SPACE_TARGET_KEY,
+                                             HugePermission.SPACE);
+            HugeAccess access = this.metaManager.findAccess(graphSpace,
+                                IdGenerator.of(accessId));
+            if (access == null) {
+                access = new HugeAccess(graphSpace,
+                                        IdGenerator.of(DEFAULT_SPACE_GROUP_KEY),
+                                        IdGenerator.of(DEFAULT_SPACE_TARGET_KEY),
+                                        HugePermission.SPACE);
+                this.updateCreator(access);
+                access.create(access.update());
+                this.metaManager.createAccess(graphSpace, access);
+            }
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "init space manager role", e);
+        }
+    }
+
+    private void tryInitSpaceOpRole(String graphSpace) {
+        try {
+            HugeGroup group = this.metaManager.findGroup(graphSpace,
+                              IdGenerator.of(DEFAULT_SPACE_OP_GROUP_KEY));
+            if (group == null) {
+                group = new HugeGroup(DEFAULT_SPACE_OP_GROUP_KEY, graphSpace);
+                this.updateCreator(group);
+                group.create(group.update());
+                this.metaManager.createGroup(graphSpace, group);
+            }
+
+            HugeTarget target = this.metaManager.findTarget(graphSpace,
+                                IdGenerator.of(DEFAULT_SPACE_OP_TARGET_KEY));
+            if (target == null) {
+                target = new HugeTarget(DEFAULT_SPACE_OP_TARGET_KEY,
+                         graphSpace, ALL_GRAPH_SPACES, "");
+                this.updateCreator(target);
+                target.create(target.update());
+                this.metaManager.createTarget(graphSpace, target);
+            }
+
+            String accessId =
+                   this.metaManager.accessId(DEFAULT_SPACE_OP_GROUP_KEY,
+                                             DEFAULT_SPACE_OP_TARGET_KEY,
+                                             HugePermission.OP);
+            HugeAccess access = this.metaManager.findAccess(graphSpace,
+                                IdGenerator.of(accessId));
+            if (access == null) {
+                access = new HugeAccess(graphSpace,
+                         IdGenerator.of(DEFAULT_SPACE_OP_GROUP_KEY),
+                         IdGenerator.of(DEFAULT_SPACE_OP_TARGET_KEY),
+                         HugePermission.OP);
+                this.updateCreator(access);
+                access.create(access.update());
+                this.metaManager.createAccess(graphSpace, access);
+            }
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "init space op manager role", e);
+        }
+    }
+
+    @Override
+    public Id createSpaceManager(String graphSpace, String user) {
+        try {
+            HugeBelong belong =
+                       new HugeBelong(graphSpace, IdGenerator.of(user),
+                                      IdGenerator.of(DEFAULT_SPACE_GROUP_KEY));
+            this.tryInitSpaceRole(graphSpace);
+            this.updateCreator(belong);
+            belong.create(belong.update());
+            return this.metaManager.createBelong(graphSpace, belong);
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "create space manager", e);
+        }
+    }
+
+    @Override
+    public void deleteSpaceManager(String graphSpace, String user) {
+        try {
+            String belongId =
+                   this.metaManager.belongId(user,
+                                             DEFAULT_SPACE_GROUP_KEY);
+            this.metaManager.deleteBelong(graphSpace,
+                                          IdGenerator.of(belongId));
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "delete space manager", e);
+        }
+    }
+
+    @Override
+    public Id createSpaceOpManager(String graphSpace, String user) {
+        try {
+            HugeBelong belong = new HugeBelong(graphSpace,
+                                IdGenerator.of(user),
+                                IdGenerator.of(DEFAULT_SPACE_OP_GROUP_KEY));
+            this.tryInitSpaceOpRole(graphSpace);
+            this.updateCreator(belong);
+            belong.create(belong.update());
+            return this.metaManager.createBelong(graphSpace, belong);
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "create space op manager", e);
+        }
+    }
+
+    @Override
+    public void deleteSpaceOpManager(String graphSpace, String user) {
+        try {
+            String belongId =
+                   this.metaManager.belongId(user,
+                                             DEFAULT_SPACE_OP_GROUP_KEY);
+            this.metaManager.deleteBelong(graphSpace,
+                                          IdGenerator.of(belongId));
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                    "delete space op manager", e);
         }
     }
 
@@ -1042,6 +1192,8 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public void processEvent(MetaManager.AuthEvent event) {
+        this.invalidateUserCache();
+        this.invalidatePasswordCache(IdGenerator.of(event.id()));
         if (event.op().equals("DELETE") && event.type().equals("USER")) {
 
         } else if (event.op().equals("DELETE") && event.type().equals("GROUP")) {

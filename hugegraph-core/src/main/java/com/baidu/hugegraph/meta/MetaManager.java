@@ -33,6 +33,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeAccess;
 import com.baidu.hugegraph.auth.HugeBelong;
 import com.baidu.hugegraph.auth.HugeGroup;
+import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.auth.HugeTarget;
 import com.baidu.hugegraph.auth.HugeUser;
 import com.baidu.hugegraph.auth.SchemaDefine;
@@ -98,9 +99,9 @@ public class MetaManager {
     private MetaManager() {
     }
 
-    public void connect(String cluster, MetaDriverType type, String trustFile,
-                        String clientCertFile, String clientKeyFile,
-                        Object... args) {
+    public synchronized void connect(String cluster, MetaDriverType type,
+                                     String trustFile, String clientCertFile,
+                                     String clientKeyFile, Object... args) {
         E.checkArgument(cluster != null && !cluster.isEmpty(),
                         "The cluster can't be null or empty");
         if (this.metaDriver == null) {
@@ -656,11 +657,12 @@ public class MetaManager {
         return String.join("->", userName, groupName);
     }
 
-    public String accessId(String groupName, String targetName, String code) {
+    public String accessId(String groupName, String targetName, HugePermission permission) {
         E.checkArgument(StringUtils.isNotEmpty(groupName) &&
                         StringUtils.isNotEmpty(targetName),
                         "The group name '%s' or target name '%s' is empty",
                         groupName, targetName);
+        String code = String.valueOf(permission.code());
         return String.join("->", groupName, code, targetName);
     }
 
@@ -862,6 +864,16 @@ public class MetaManager {
         return HugeGroup.fromMap(map);
     }
 
+    public HugeGroup findGroup(String graphSpace, Id id) {
+        String result = this.metaDriver.get(groupKey(graphSpace,
+                                                     id.asString()));
+        if (StringUtils.isEmpty(result)) {
+            return null;
+        }
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        return HugeGroup.fromMap(map);
+    }
+
     public HugeGroup getGroup(String graphSpace, Id id)
                               throws IOException,
                               ClassNotFoundException {
@@ -951,6 +963,16 @@ public class MetaManager {
                         "The target name '%s' is not existed", id.asString());
         this.metaDriver.delete(targetKey(graphSpace, id.asString()));
         this.putAuthEvent(new AuthEvent("DELETE", "TARGET", id.asString()));
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        return HugeTarget.fromMap(map);
+    }
+
+    public HugeTarget findTarget(String graphSpace, Id id) {
+        String result = this.metaDriver.get(targetKey(graphSpace,
+                                                      id.asString()));
+        if (StringUtils.isEmpty(result)) {
+            return null;
+        }
         Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
         return HugeTarget.fromMap(map);
     }
@@ -1180,8 +1202,8 @@ public class MetaManager {
                         "The target name '%s' is not existed",
                         access.target().asString());
 
-        String opCode = String.valueOf(access.permission().code());
-        String accessId = accessId(group.name(), target.name(), opCode);
+        String accessId = accessId(group.name(), target.name(),
+                                   access.permission());
         String result = this.metaDriver.get(accessKey(graphSpace, accessId));
         E.checkArgument(StringUtils.isEmpty(result),
                         "The access name '%s' has existed", accessId);
@@ -1202,8 +1224,8 @@ public class MetaManager {
                         "The target name '%s' is not existed",
                         access.target().asString());
 
-        String opCode = String.valueOf(access.permission().code());
-        String accessId = accessId(group.name(), target.name(), opCode);
+        String accessId = accessId(group.name(), target.name(),
+                                   access.permission());
         String result = this.metaDriver.get(accessKey(graphSpace, accessId));
         E.checkArgument(StringUtils.isNotEmpty(result),
                         "The access name '%s' is not existed", accessId);
@@ -1230,6 +1252,16 @@ public class MetaManager {
                         "The access name '%s' is not existed", id.asString());
         this.metaDriver.delete(accessKey(graphSpace, id.asString()));
         this.putAuthEvent(new AuthEvent("DELETE", "ACCESS", id.asString()));
+        Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
+        return HugeAccess.fromMap(map);
+    }
+
+    public HugeAccess findAccess(String graphSpace, Id id) {
+        String result = this.metaDriver.get(accessKey(graphSpace,
+                                                      id.asString()));
+        if (StringUtils.isEmpty(result)) {
+            return null;
+        }
         Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
         return HugeAccess.fromMap(map);
     }

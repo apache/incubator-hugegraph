@@ -38,6 +38,11 @@ public interface AuthManager {
     public List<HugeUser> listUsers(List<Id> ids, boolean required);
     public List<HugeUser> listAllUsers(long limit, boolean required);
 
+    public Id createSpaceManager(String graphSpace, String user);
+    public void deleteSpaceManager(String graphSpace, String user);
+    public Id createSpaceOpManager(String graphSpace, String user);
+    public void deleteSpaceOpManager(String graphSpace, String user);
+
     public Id createGroup(String graphSpace, HugeGroup group,
                           boolean required);
     public HugeGroup updateGroup(String graphSpace, HugeGroup group,
