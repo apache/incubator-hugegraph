@@ -40,7 +40,7 @@ import com.baidu.hugegraph.util.LockUtil;
 
 public abstract class AbstractBuilder {
 
-    protected final SchemaTransaction transaction;
+    private final SchemaTransaction transaction;
     private final HugeGraph graph;
 
     public AbstractBuilder(SchemaTransaction transaction, HugeGraph graph) {

@@ -42,7 +42,6 @@ import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.schema.VertexLabel;
-import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.CollectionType;
@@ -183,19 +182,10 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkSchemaName(this.name);
 
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
-            Id prefixedName = IdGenerator.of(type.string()
-                                             + "-" + name);
-            Object cache = Whitebox.invoke(this.transaction, "nameCache", new Class[]{Object.class},
-                                           "get", prefixedName);
             IndexLabel indexLabel = this.indexLabelOrNull(name);
             if (indexLabel != null) {
                 if (this.checkExist || !hasSameProperties(indexLabel)) {
-                    Whitebox.invoke(this.transaction, "nameCache", new Class[]{Object.class},
-                                    "invalidate", prefixedName);
-                    IndexLabel indexLabel2 = this.indexLabelOrNull(name);
-                    throw new ExistedException(type, name +
-                                               " cache-before-invalidate="+cache+
-                                               ",indexLabel-after-invalidate="+indexLabel2);
+                    throw new ExistedException(type, name);
                 }
                 return new SchemaElement.TaskWithSchema(indexLabel,
                                                         IdGenerator.ZERO);
