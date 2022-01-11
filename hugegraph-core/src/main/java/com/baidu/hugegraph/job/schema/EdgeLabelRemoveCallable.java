@@ -43,7 +43,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         return null;
     }
 
-    protected static void removeEdgeLabel(HugeGraphParams graph, Id id) {
+    private static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
         EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
@@ -51,7 +51,11 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         if (edgeLabel == null) {
             return;
         }
-        // TODO: use event to replace direct call
+        if (edgeLabel.status().deleting()) {
+            LOG.info("The edge label '{}' has been in {} status, " +
+                     "please check if it's expected to delete it again",
+                     edgeLabel, edgeLabel.status());
+        }
         // Remove index related data(include schema) of this edge label
         Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
@@ -63,13 +67,15 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
                     IndexLabelRemoveCallable.removeIndexLabel(graph, indexId);
                 }
                 // Remove all edges which has matched label
+                // TODO: use event to replace direct call
                 graphTx.removeEdges(edgeLabel);
-                removeSchema(schemaTx, edgeLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
+                // Remove edge label
+                removeSchema(schemaTx, edgeLabel);
             } catch (Throwable e) {
                 schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.UNDELETED);
                 throw e;

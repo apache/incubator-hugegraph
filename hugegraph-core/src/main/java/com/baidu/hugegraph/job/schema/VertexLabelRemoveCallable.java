@@ -54,7 +54,13 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
         if (vertexLabel == null) {
             return;
         }
+        if (vertexLabel.status().deleting()) {
+            LOG.info("The vertex label '{}' has been in {} status, " +
+                     "please check if it's expected to delete it again",
+                     vertexLabel, vertexLabel.status());
+        }
 
+        // Check no edge label use the vertex label
         List<EdgeLabel> edgeLabels = schemaTx.getEdgeLabels();
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.linkWithLabel(id)) {
@@ -81,14 +87,16 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
                 // TODO: use event to replace direct call
                 // Deleting a vertex will automatically deletes the held edge
                 graphTx.removeVertices(vertexLabel);
-                removeSchema(schemaTx, vertexLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
+                // Remove vertex label
+                removeSchema(schemaTx, vertexLabel);
             } catch (Throwable e) {
-                schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.UNDELETED);
+                schemaTx.updateSchemaStatus(vertexLabel,
+                                            SchemaStatus.UNDELETED);
                 throw e;
             }
         } finally {

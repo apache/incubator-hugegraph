@@ -48,6 +48,11 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
         if (indexLabel == null) {
             return;
         }
+        if (indexLabel.status().deleting()) {
+            LOG.info("The index label '{}' has been in {} status, " +
+                     "please check if it's expected to delete it again",
+                     indexLabel, indexLabel.status());
+        }
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
@@ -60,14 +65,15 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
                 // Remove index data
                 // TODO: use event to replace direct call
                 graphTx.removeIndex(indexLabel);
-                removeSchema(schemaTx, indexLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
+                // Remove index label
+                removeSchema(schemaTx, indexLabel);
             } catch (Throwable e) {
-                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.UNDELETED);
                 throw e;
             }
         } finally {
