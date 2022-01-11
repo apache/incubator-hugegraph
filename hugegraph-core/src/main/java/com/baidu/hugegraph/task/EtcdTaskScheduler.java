@@ -41,6 +41,7 @@ import javax.ws.rs.NotFoundException;
 import com.alipay.remoting.util.ConcurrentHashSet;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
@@ -161,7 +162,38 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
+        MetaManager manager = MetaManager.instance();
+        List<String> taskIdList = manager.listTasksByStatus(this.graphSpace(), TaskStatus.PENDING);
 
+        for(String taskId : taskIdList) {
+            Id id = IdGenerator.of(taskId);
+            HugeTask<V> task = manager.getTask(this.graphSpace(), TaskPriority.NORMAL, id);
+            if (null == task) {
+                continue;
+            }
+            
+            LockResult result = manager.lockTask(this.graphSpace(), task);
+            if (result.lockSuccess()) {
+                task.lockResult(result);
+                this.visitedTasks.add(taskId);
+                
+                TaskStatus current = manager.getTaskStatus(this.graphSpace(), task);
+                if (current != TaskStatus.PENDING) {
+                    manager.unlockTask(this.graphSpace(), task);
+                }
+                task.status(TaskStatus.PENDING);
+                EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.RESTORING);
+
+                // Attach callable info
+                TaskCallable<?> callable = task.callable();
+                task.priority(TaskPriority.NORMAL);
+                // Attach graph info
+                callable.graph(this.graph());
+                // Update status to queued
+                EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
+                this.taskExecutor.submit(new TaskRunner<>(task, this.graph));
+            }
+        }
     }
 
     @Override
@@ -181,19 +213,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-
-        if (task.completed() || task.cancelling()) {
-            return;
-        }
-
         MetaManager manager = MetaManager.instance();
 
         try {
-            manager.lockTask(this.graphSpace(), task);
+            EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.CANCELLING);
         } catch (Throwable e) {
 
-        } finally {
-            manager.unlockTask(this.graphSpace(), task);
         }
     }
 
@@ -630,6 +655,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     this.visitedTasks.add(task.id().asString());
                     // Grab status info from task
                     TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
+                    task.status(currentStatus);
                     // If task has been occupied, skip also
                     if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
                         System.out.println(String.format("====> [Thread %d %s] found task %s has been done", ct.getId(), ct.getName(), entry.getKey()));
