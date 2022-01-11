@@ -1140,6 +1140,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             // TODO Auto-generated method stub
             
         }
+
+        @Override
+        public void flushAllTask() {
+            // TODO Auto-generated method stub
+            
+        }
     }
 
     class VariablesProxy implements Variables {

@@ -46,6 +46,7 @@ import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.kv.GetResponse;
 import io.etcd.jetcd.lease.LeaseKeepAliveResponse;
+import io.etcd.jetcd.options.DeleteOption;
 import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.options.WatchOption;
 import io.etcd.jetcd.watch.WatchEvent;
@@ -159,6 +160,20 @@ public class EtcdMetaDriver implements MetaDriver {
         } catch (InterruptedException | ExecutionException e) {
             throw new HugeException(
                       "Failed to delete key '%s' from etcd", e, key);
+        }
+    }
+
+    @Override
+    public void deleteWithPrefix(String prefix) {
+        KV kvClient = this.client.getKVClient();
+        try {
+            DeleteOption option = DeleteOption.newBuilder()
+                                                .isPrefix(true)
+                                                .build();
+            kvClient.delete(toByteSequence(prefix), option);
+        } catch (Throwable e) {
+            throw new HugeException(
+                "Failed to delete prefix '%s' from etcd", e, prefix);
         }
     }
 

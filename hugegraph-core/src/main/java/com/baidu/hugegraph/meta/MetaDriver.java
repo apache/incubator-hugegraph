@@ -33,6 +33,8 @@ public interface MetaDriver {
 
     public void delete(String key);
 
+    public void deleteWithPrefix(String prefix);
+
     public Map<String, String> scanWithPrefix(String prefix);
 
     public <T> void listen(String key, Consumer<T> consumer);

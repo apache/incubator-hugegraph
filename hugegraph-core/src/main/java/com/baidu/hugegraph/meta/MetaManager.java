@@ -678,10 +678,32 @@ public class MetaManager {
                            META_PATH_AUTH, META_PATH_ACCESS);
     }
 
-    private String taskKey(String graphSpace, String taskPriority, String taskId) {
+    private String taskPriorityKey(String graphSpace, String taskPriority, String taskId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}/{id}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, META_PATH_TASK, taskPriority, taskId);
+    }
+
+    /**
+     * All tasks
+     * @return
+     */
+    private String taskBaseKey(String graphSpace) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK
+        return  String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK);
+    }
+
+    /**
+     * Task base key, include subdir of TASK_LOCK, {property}
+     * @param graphSpace
+     * @param taskId
+     * @return
+     */
+    private String taskKey(String graphSpace, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId);
     }
 
     private String taskLockKey(String graphSpace, String taskId) {
@@ -1598,11 +1620,19 @@ public class MetaManager {
      * @return
      */
     public <V> HugeTask<V> getTask(String graphSpace, TaskPriority priority, Id id) {
-        String key = taskKey(graphSpace, priority.toString(), id.asString());
+        String key = taskPriorityKey(graphSpace, priority.toString(), id.asString());
         String jsonStr = this.metaDriver.get(key);
-        HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-        task.progress(this.getTaskProgress(graphSpace, task));
-        return task;
+        if (Strings.isBlank(jsonStr)) {
+            return null;
+        }
+        try {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            task.progress(this.getTaskProgress(graphSpace, task));
+            return task;
+        } catch (Throwable e) {
+            // get task error
+            return null;
+        }
     }
 
     /**
@@ -1614,7 +1644,7 @@ public class MetaManager {
      */
     public <V> Id createTask(String graphSpace, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
-        String key = taskKey(graphSpace, task.priority().toString(), id.asString());
+        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
         this.metaDriver.put(key, serialize(task));
 
         return id;
@@ -1629,7 +1659,7 @@ public class MetaManager {
      */
     public <V> void clearTask(String graphSpace, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
-        String key = taskKey(graphSpace, task.priority().toString(), id.asString());
+        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
         this.metaDriver.delete(key);
     }
 
@@ -1780,8 +1810,29 @@ public class MetaManager {
         }
     }
 
-    public <V> HugeTask<V> deleteTask() {
+    public <V> HugeTask<V> deleteTask(String graphSpace, HugeTask<V> task) {
+        /**
+         * So where we should remove?
+         * 1. task priority relate
+         * 2. task status relate
+         * 3. task lock and task properties ( by removing taskKey dir)
+         */
+        String taskId = task.id().asString();
+
+        String taskPriorityKey = taskPriorityKey(graphSpace, task.priority().toString(), taskId);
+        String statusListKey = taskStatusListKey(graphSpace, taskId, task.status());
+        String taskKey = taskKey(graphSpace, taskId);
+
+        this.metaDriver.delete(taskPriorityKey);
+        this.metaDriver.delete(statusListKey);
+        this.metaDriver.delete(taskKey);
+
         return null;
+    }
+
+    public void flushAllTasks(String graphSpace) {
+        String key = taskBaseKey(graphSpace);
+        this.metaDriver.deleteWithPrefix(key);
     }
 
     public String gremlinYaml(String graphSpace, String serviceId) {

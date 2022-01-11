@@ -722,4 +722,10 @@ public class StandardTaskScheduler extends TaskScheduler {
 
         return super.call(callable, taskDbExecutor);
     }
+
+    @Override
+    public void flushAllTask() {
+        // TODO Auto-generated method stub
+        
+    }
 }
