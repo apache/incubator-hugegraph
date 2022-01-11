@@ -3,6 +3,8 @@
 set -ev
 
 BACKEND=$1
+REPORT_DIR=$2
+REPORT_FILE=$REPORT_DIR/jacoco-api-test.xml
 
 TRAVIS_DIR=`dirname $0`
 VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
@@ -42,7 +44,7 @@ $RAFT_TOOLS --set-leader "hugegraph" "$RAFT_LEADER"
 # run api-test
 mvn test -P api-test,$BACKEND || (cat $RAFT1_DIR/logs/hugegraph-server.log && exit 1)
 
-$TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT
+$TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 
 # stop server
 $TRAVIS_DIR/stop-server.sh $RAFT1_DIR
