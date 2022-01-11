@@ -38,16 +38,28 @@ import com.baidu.hugegraph.task.TaskManager.ContextCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
-
+/**
+ * Base class of task scheduler
+ */
 public abstract class TaskScheduler {
 
     protected static final HugeGraphLogger LOGGER
         = Log.getLogger(TaskScheduler.class);
 
+    /**
+     * Which graph the scheduler belongs to
+     */
     protected final HugeGraphParams graph;
+
+    /**
+     * serverInfo
+     */
     protected final ServerInfoManager serverManager;
     protected EventListener eventListener = null;
 
+    /**
+     * Task transactions, for persistence
+     */
     protected volatile TaskTransaction taskTx = null;
 
     protected static final long QUERY_INTERVAL = 100L;
@@ -67,29 +79,93 @@ public abstract class TaskScheduler {
             this.serverManager = another.serverManager;
     }
 
+    /**
+     * Get all task that are in pending status, includes
+     * queued
+     * @return
+     */
     public abstract int pendingTasks();
 
+    /**
+     * Restore unprocessed tasks
+     * @param <V>
+     */
     public abstract <V> void restoreTasks();
 
+    /**
+     * Schedule a task.
+     * The Scheduled task maybe run by other physics nodes
+     * @param <V>
+     * @param task
+     * @return
+     */
     public abstract <V> Future<?> schedule(HugeTask<V> task);
 
+    /**
+     * Cancel a task if it has not been run
+     * @param <V>
+     * @param task
+     */
     public abstract <V> void cancel(HugeTask<V> task);
 
+    /**
+     * Persist the task info
+     * @param <V>
+     * @param task
+     */
     public abstract <V> void save(HugeTask<V> task);
 
+    /**
+     * Delete a task
+     * @param <V>
+     * @param id
+     * @param force
+     * @return
+     */
     public abstract <V> HugeTask<V> delete(Id id, boolean force);
 
     protected abstract void taskDone(HugeTask<?> task);
+
+    /**
+     * Flush all tasks, only implemented under distribution scenario
+     */
+    public abstract void flushAllTask();
 
     public <V> HugeTask<V> delete(Id id) {
         return this.delete(id, false);
     }
 
+    /**
+     * Get info of certain task
+     * @param <V>
+     * @param id
+     * @return
+     */
     public abstract <V> HugeTask<V> task(Id id);
+
+    /**
+     * Get info of tasks
+     * @param <V>
+     * @param ids
+     * @return
+     */
     public abstract <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
+
+    /**
+     * Get tasks by status
+     * @param <V>
+     * @param status
+     * @param limit
+     * @param page
+     * @return
+     */
     public abstract <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
                                            long limit, String page);
 
+    /**
+     * Scheduler is closed, will not accept more tasks
+     * @return
+     */
     public abstract boolean close();
 
     public abstract <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)

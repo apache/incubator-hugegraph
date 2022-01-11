@@ -178,10 +178,18 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
-        this.call(() -> {
+        MetaManager manager = MetaManager.instance();
 
-        });
-        return null;
+        HugeTask<V> task = manager.getTask(this.graphSpace(), TaskPriority.NORMAL, id);
+        if (null != task) {
+            manager.deleteTask(this.graphSpace(), task); 
+        }
+        return task;
+    }
+
+    @Override 
+    public void flushAllTask() {
+        MetaManager.instance().flushAllTasks(this.graphSpace());
     }
 
     @Override
