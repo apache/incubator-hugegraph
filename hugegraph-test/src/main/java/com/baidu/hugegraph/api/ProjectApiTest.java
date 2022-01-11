@@ -27,17 +27,48 @@ import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
+
+import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableMap;
 
 public class ProjectApiTest extends BaseApiTest {
 
     private final static String path = "graphs/hugegraph/auth/projects";
 
-    @Before
-    public void setup() {
-        BaseApiTest.truncate();
+    @Override
+    @After
+    public void teardown() throws Exception {
+        Response resp = client().get(path);
+        String respBody = assertResponseStatus(200, resp);
+        List<?> projects = readList(respBody, "projects", Map.class);
+        for (Object project : projects) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> projectMap = ((Map<String, Object>) project);
+            String projectId = (String) projectMap.get("id");
+            // remove graphs from project if needed
+            List<?> projectGraphs = (List<?>) projectMap.get("project_graphs");
+            if (projectGraphs != null && projectGraphs.size() > 0) {
+                Map<String, Object> graphs = ImmutableMap.of("project_graphs",
+                                                             projectGraphs);
+                resp = client().target()
+                               .path(path)
+                               .path(projectId)
+                               .queryParam("action", "remove_graph")
+                               .request()
+                               .put(Entity.json(JsonUtil.toJson(graphs)));
+                assertResponseStatus(200, resp);
+            }
+            // delete project
+            resp = client().target()
+                           .path(path)
+                           .path(projectId)
+                           .request()
+                           .delete();
+            assertResponseStatus(204, resp);
+        }
     }
 
     @Test
@@ -141,32 +172,32 @@ public class ProjectApiTest extends BaseApiTest {
     }
 
     @Test
-    public void testremoveGraphs() {
+    public void testRemoveGraphs() {
         String projectId = this.createProjectAndAddGraph("project_test",
                                                          "graph_test");
-        String graph = "{\"project_graphs\":[\"graph_test\"]}";
+        String graphs = "{\"project_graphs\":[\"graph_test\"]}";
         Response resp = client().target()
                                 .path(path)
                                 .path(projectId)
                                 .queryParam("action", "remove_graph")
                                 .request()
-                                .put(Entity.json(graph));
+                                .put(Entity.json(graphs));
         assertResponseStatus(200, resp);
 
         String project = this.getProject(projectId);
         Assert.assertFalse(project.contains("project_graphs"));
 
-        this.addGraphs(projectId, "graph_test1", "graph_test2");
+        this.addGraphsToProject(projectId, "graph_test1", "graph_test2");
 
-        graph = "{\"project_graphs\":[\"graph_test1\"]}";
+        graphs = "{\"project_graphs\":[\"graph_test1\"]}";
         resp = client().target()
                        .path(path)
                        .path(projectId)
                        .queryParam("action", "remove_graph")
                        .request()
-                       .put(Entity.json(graph));
-
+                       .put(Entity.json(graphs));
         assertResponseStatus(200, resp);
+
         project = this.getProject(projectId);
         List<String> graphs1 = assertJsonContains(project, "project_graphs");
         Assert.assertEquals(1, graphs1.size());
@@ -199,19 +230,18 @@ public class ProjectApiTest extends BaseApiTest {
                                             String graph) {
         String projectId = assertJsonContains(createProject(projectName, null),
                                               "id");
-        this.addGraphs(projectId, graph);
+        this.addGraphsToProject(projectId, graph);
         return projectId;
     }
 
-    private void addGraphs(String projectId, String... graphNames) {
+    private void addGraphsToProject(String projectId, String... graphNames) {
         Assert.assertFalse(ArrayUtils.isEmpty(graphNames));
         StringBuilder graphNamesBuilder = new StringBuilder();
         for (int i = 0; i < graphNames.length - 1; i++) {
             graphNamesBuilder.append(String.format("\"%s\",", graphNames[i]));
         }
-        graphNamesBuilder.append(
-                          String.format("\"%s\"",
-                                        graphNames[graphNames.length - 1]));
+        graphNamesBuilder.append(String.format("\"%s\"",
+                                 graphNames[graphNames.length - 1]));
         String graphs = String.format("{\"project_graphs\":[%s]}",
                                       graphNamesBuilder);
         Response resp = client().target()
