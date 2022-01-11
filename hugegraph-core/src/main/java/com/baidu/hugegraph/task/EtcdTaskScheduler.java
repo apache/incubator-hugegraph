@@ -67,7 +67,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
 
-    private final ExecutorService producer = ExecutorUtil.newFixedThreadPool(1, EtcdTaskScheduler.class.getName());
+    private final ExecutorService producer = ExecutorUtil.newFixedThreadPool(1, EtcdTaskScheduler.class.getName() + "-task-producer");
 
     private final Map<TaskPriority, BlockingQueue<Runnable>> taskQueueMap = new HashMap<>();
 
@@ -79,7 +79,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final Set<String> visitedTasks = new ConcurrentHashSet<>();
 
-    private final Map<Id, HugeTask<?>> tasks = new HashMap<>();
+    private final Map<Id, HugeTask<?>> taskMap = new HashMap<>();
 
     /**
      * Indicates that if the task has been checked already to reduce load
@@ -122,8 +122,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> void restoreTasks() {
 
-        LOGGER.logCustomDebug("restore tasks {}", "Scorpiour", this);
-        
     }
 
     @Override
@@ -135,15 +133,28 @@ public class EtcdTaskScheduler extends TaskScheduler {
             return this.submitEphemeralTask(task);
         }
 
-        System.out.println("====> Going to submit task + " + task.id().asString());
+        System.out.println("[Scheduler]====> Going to submit task " + task.id().asString());
         
         return this.submitTask(task);
     }
 
     @Override
     public <V> void cancel(HugeTask<V> task) {
-        // TODO Auto-generated method stub
-        
+        E.checkArgumentNotNull(task, "Task can't be null");
+
+        if (task.completed() || task.cancelling()) {
+            return;
+        }
+
+        MetaManager manager = MetaManager.instance();
+
+        try {
+            manager.lockTask(this.graphSpace(), task);
+        } catch (Throwable e) {
+
+        } finally {
+            manager.unlockTask(this.graphSpace(), task);
+        }
     }
 
     private <V> Id saveWithId(HugeTask<V> task) {
@@ -167,41 +178,71 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
-        // TODO Auto-generated method stub
+        this.call(() -> {
+
+        });
         return null;
     }
 
     @Override
     public <V> HugeTask<V> task(Id id) {
-        // TODO Auto-generated method stub
+        /** Here we have three scenarios:
+         * 1. The task is handled by current node
+         * 2. The task is handled by other node, but having snapshot here
+         * 3. No any info here
+         * As a result, we should distinguish them and processed separately
+         * for case 1, we grab the info locally directly
+         * for case 2, we grab the basic info and update related info, like status & progress
+         * for case 3, we load everything from etcd and cached the snapshot locally for further use 
+        */
+
         return null;
     }
 
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
-        // TODO Auto-generated method stub
-        return null;
+        MetaManager manager = MetaManager.instance();
+        List<String> allTasks = manager.listTasks(this.graphSpace(), TaskPriority.NORMAL);
+        
+        List<HugeTask<V>> tasks = allTasks.stream().map((jsonStr) -> {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            // Attach callable info
+            TaskCallable<?> callable = task.callable();
+            // Attach graph info
+            callable.graph(this.graph());
+
+            task.progress(manager.getTaskProgress(this.graphSpace(), task));
+
+            task.status(manager.getTaskStatus(this.graphSpace(), task));
+            
+            return task;
+        }).collect(Collectors.toList());
+
+        Iterator<HugeTask<V>> iterator = tasks.iterator();
+        return iterator;
     }
 
     @Override
     public <V> Iterator<HugeTask<V>> tasks(TaskStatus status, long limit, String page) {
-        return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            if (null != page) {
-                query.page(page);
-            }
-            VertexLabel label = this.graph().vertexLabel(P.TASK);
-            query.eq(HugeKeys.LABEL, label.id());
-            query.showHidden(true);
-            if (limit >= 0) {
-                query.limit(limit);
-            }
-            Iterator<Vertex> vertices = this.tx().queryVertices(query);
-            Iterator<HugeTask<V>> tasks =
-                new MapperIterator<>(vertices, HugeTask::fromVertex);
+        MetaManager manager = MetaManager.instance();
+        List<String> allTasks = manager.listTasksByStatus(this.graphSpace(), status);
+        
+        List<HugeTask<V>> tasks = allTasks.stream().map((jsonStr) -> {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            // Attach callable info
+            TaskCallable<?> callable = task.callable();
+            // Attach graph info
+            callable.graph(this.graph());
 
-            return QueryResults.toList(tasks);
-        });
+            task.progress(manager.getTaskProgress(this.graphSpace(), task));
+            TaskStatus now = manager.getTaskStatus(this.graphSpace(), task);
+            task.status(now);
+            
+            return task;
+        }).collect(Collectors.toList());
+
+        Iterator<HugeTask<V>> iterator = tasks.iterator();
+        return iterator;
     }
 
     @Override
@@ -284,8 +325,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     private <V> Future<?> submitEphemeralTask(HugeTask<V> task) {
-        assert !this.tasks.containsKey(task.id()) : task;
-        int size = this.tasks.size();
+        assert !this.taskMap.containsKey(task.id()) : task;
+        int size = this.taskMap.size();
         E.checkArgument(size < MAX_PENDING_TASKS,
             "Pending tasks size %s has exceeded the max limit %s",
             size + 1, MAX_PENDING_TASKS);
@@ -297,16 +338,17 @@ public class EtcdTaskScheduler extends TaskScheduler {
             ((SysTaskCallable<V>)callable).params(this.graph);
         }
 
-        this.tasks.put(task.id(), task);
+        this.taskMap.put(task.id(), task);
         if (this.graph().mode().loading()) {
-            LOGGER.logCustomDebug("Schedule task {} to backup for load task executor", "Scorpiour", task);
             return this.backupForLoadTaskExecutor.submit(task);   
         }
         return this.taskExecutor.submit(task);
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
+        Thread ct = Thread.currentThread();
         task.scheduler(this);
+        task.status(TaskStatus.SCHEDULING);
 
         // Save task first
         Id id = this.saveWithId(task);
@@ -318,8 +360,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
             ((SysTaskCallable<V>)callable).params(this.graph);
         }
 
-        System.out.println(String.format("====> Thread %d start to create task %d", Thread.currentThread().getId(), task.id().asLong()));
-        return this.producer.submit(new Producer<V>(task, this.graph));
+        System.out.println(String.format("====> [Thread %d %s] start to create task %d", ct.getId(), ct.getName(), task.id().asLong()));
+        return this.producer.submit(new TaskCreator<V>(task, this.graph));
     }
 
     @Override
@@ -372,69 +414,116 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     /**
-     * Internal Producer is use to submit task info to etcd
+     * Internal Producer is use to create task info to etcd
      */
-    private static class Producer<V> implements Runnable {
+    private static class TaskCreator<V> implements Runnable {
 
         private final HugeTask<V> task;
         private final HugeGraphParams graph;
+        private final String graphSpace;
 
-        public Producer(HugeTask<V> task, HugeGraphParams graph) {
+        public TaskCreator(HugeTask<V> task, HugeGraphParams graph) {
             this.task = task;
             this.graph = graph;
+            this.graphSpace = this.graph.graph().graphSpace();
         }
 
         @Override
         public void run() {
-            LOGGER.logCustomDebug("====> Producer runner start to write {}", "Scorpiour", task);
+            Thread ct = Thread.currentThread();
+            System.out.println("====> Producer runner thread: " + ct.getId());
+            MetaManager manager = MetaManager.instance();
+            try {
+                LockResult result = manager.lockTask(this.graphSpace, task);
+                if (result.lockSuccess()) {
+                    task.lockResult(result);
+                    TaskStatus status = manager.getTaskStatus(this.graphSpace, task);
+                    // Only unknown status indicates that the task has not been located
+                    if (status != TaskStatus.UNKNOWN) {
+                        System.out.println(String.format(">>>>> [Thread %d %s] task %d is scheduled already", ct.getId(), ct.getName(), task.id().asLong()));
+                        return;
+                    }
+                    manager.createTask(graphSpace, task);
+                    EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.SCHEDULED);
+                }
+            } catch (Throwable e) {
 
-            System.out.println("====> Producer runner thread: " + Thread.currentThread().getId());
-
-            MetaManager metaManager = MetaManager.instance();
-            task.status(TaskStatus.SCHEDULING);
-            metaManager.createTask(this.graph.graph().graphSpace(), task);
-
-            task.status(TaskStatus.SCHEDULED);
-            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+            } finally {
+                manager.unlockTask(this.graphSpace, task);
+            }
         }
     }
 
     /**
-     * Internal Producer is use to submit task info to etcd
+     * Internal Producer is use to process task
      */
-    private static class Consumer<V> implements Runnable {
+    private static class TaskRunner<V> implements Runnable {
 
         private final HugeTask<V> task;
         private final HugeGraphParams graph;
+        private final String graphSpace;
 
-        public Consumer(HugeTask<V> task, HugeGraphParams graph) {
+        public TaskRunner(HugeTask<V> task, HugeGraphParams graph) {
             this.task = task;
             this.graph = graph;
+            this.graphSpace = this.graph.graph().graphSpace();
         }
 
         @Override
         public void run() {
-            LOGGER.logCustomDebug("====> Consumer runner start to write {}", "Scorpiour", task);
+            Thread ct = Thread.currentThread();
 
-            System.out.println("====> consumer runner thread: " + Thread.currentThread().getId());
+            System.out.println("====> consumer runner thread: " + ct.getId());
 
             TaskStatus status = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
             if (TaskStatus.COMPLETED_STATUSES.contains(status)) {
-                System.out.println("====> task is complete! consumer runner finished: " + Thread.currentThread().getId());
+                System.out.println("====> task is complete! consumer runner finished: " + ct.getId());
                 return;
             }
 
-            task.status(TaskStatus.RUNNING);
-            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
-
+            EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.RUNNING);
+            
+            System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
             this.task.run();
 
-            task.status(TaskStatus.SUCCESS);
-            MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+            EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.SUCCESS);
+            EtcdTaskScheduler.updateTaskProgress(graphSpace, task, 100);
+            
             MetaManager.instance().unlockTask(this.graph.graph().graphSpace(), task);
 
-            System.out.println("====> consumer runner finished: " + Thread.currentThread().getId());
+            System.out.println(String.format(">>>>> [Thread %d %s] consumer run task %d finished", ct.getId(), ct.getName(), task.id().asLong()));
         }
+    }
+
+
+    /**
+     * Internal TaskUpdater is used to update task status
+     */
+    private static void updateTaskStatus(String graphSpace, HugeTask<?> task, TaskStatus nextStatus) {
+        MetaManager manager = MetaManager.instance();
+        // Synchronize local status & remote status
+        TaskStatus etcdStatus = manager.getTaskStatus(graphSpace, task);
+        // local lock
+        TaskStatus prevStatus = task.status();
+        task.status(nextStatus);
+        manager.migrateTaskStatus(graphSpace, task, prevStatus);
+    }
+
+    /**
+     * Update task progress, make it always lead
+     */
+    private static void updateTaskProgress(String graphSpace, HugeTask<?> task, int nextProgress) {
+        MetaManager manager = MetaManager.instance();
+        int etcdProgress = manager.getTaskProgress(graphSpace, task);
+        // push task current progress forward
+        if (task.progress() < nextProgress) {
+            task.progress(nextProgress);
+        }
+        if (etcdProgress > task.progress()) {
+            task.progress(etcdProgress);
+            return;
+        }
+        manager.updateTaskProgress(graphSpace, task);
     }
 
     /**
@@ -444,62 +533,71 @@ public class EtcdTaskScheduler extends TaskScheduler {
      */
     private <T> void taskEventHandler(T response) {
 
-            System.out.println("====> Normal handler Current thread: " + Thread.currentThread().getId() + " name " + Thread.currentThread().getName());
+        Thread ct = Thread.currentThread();
 
-            MetaManager manager = MetaManager.instance();
-            Map<String, String> events = manager.extractKVFromResponse(response);
+        System.out.println("====> Normal handler Current thread: " + ct.getId() + " name " + Thread.currentThread().getName());
+        
+        // Prepare events
+        MetaManager manager = MetaManager.instance();
+        Map<String, String> events = manager.extractKVFromResponse(response);
 
-            for(Map.Entry<String, String> entry : events.entrySet()) {
-                System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
-                if (this.checkedTasks.contains(entry.getKey())) {
-                    System.out.println(String.format("====> [Thread %d] task info %s has been executed", Thread.currentThread().getId(), entry.getKey()));
-                    continue;
-                }
-                try {
-                    HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
-
-                    System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
-
-                    LockResult result = manager.lockTask(this.graphSpace(), task);
-                    if (result.lockSuccess()) {
-                        task.lockResult(result);
-                        // first check if lock processed
-                        if (this.visitedTasks.contains(task.id().asString())) {
-                            System.out.println(String.format("====> [Thread %d] found task %s has been visited", Thread.currentThread().getId(), entry.getKey()));
-                            manager.unlockTask(this.graphSpace(), task);
-                            continue;
-                        }
-                        this.visitedTasks.add(task.id().asString());
-                        TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
-                        if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
-                            System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
-                            this.visitedTasks.add(task.id().asString());
-                            manager.unlockTask(this.graphSpace(), task);
-                            continue;
-                        }
-                        System.out.println(String.format("=====> Grab task %s lock success", task.id().asString()));
-                        // attach callable info
-                        TaskCallable<?> callable = task.callable();
-                        // attach priority info
-                        MetaManager.instance().attachTaskInfo(task, entry.getKey());
-                        // attach graph info
-                        callable.graph(this.graph());
-                        // update status to queued
-                        task.status(TaskStatus.QUEUED);
-                        MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
-                        // run it
-                        this.taskExecutor.submit(new Consumer(task, this.graph));
-                    } else {
-                        System.out.println("=====> Grab task lock failed");
-                    }
-                } catch (Exception e) {
-                    System.out.println("=====> Grab task lock error");
-                    System.out.println(e);
-                    System.out.println(e.getStackTrace());
-                }
+        // Since the etcd event is not a single task, we should cope with them one by one
+        for(Map.Entry<String, String> entry : events.entrySet()) {
+            System.out.println(String.format("====> [Thread %d %s] task info %s, %s", ct.getId(), ct.getName(), entry.getKey(), entry.getValue()));
+            // If the task has been checked already, skip
+            if (this.checkedTasks.contains(entry.getKey())) {
+                System.out.println(String.format("====> [Thread %d %s] task info %s has been executed", ct.getId(), ct.getName(), entry.getKey()));
+                continue;
             }
+            try {
+                // Deserialize task
+                HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
+                System.out.println(String.format("====> [Thread %d %s] try to lock %s", ct.getId(), ct.getName(), entry.getKey()));
 
-        System.out.println(String.format("====> [Thread %d] handle response end", Thread.currentThread().getId()));
+                // Try to lock the task
+                LockResult result = manager.lockTask(this.graphSpace(), task);
+                if (result.lockSuccess()) {
+                    // Persist the lockResult instance to task for keepAlive and unlock
+                    task.lockResult(result);
+                    // The task has been visited once
+                    if (this.visitedTasks.contains(task.id().asString())) {
+                        System.out.println(String.format("====> [Thread %d %s] found task %s has been visited", ct.getId(), ct.getName(), entry.getKey()));
+                        manager.unlockTask(this.graphSpace(), task);
+                        continue;
+                    }
+                    // Mark the task is visited already
+                    this.visitedTasks.add(task.id().asString());
+                    // Grab status info from task
+                    TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
+                    // If task has been occupied, skip also
+                    if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
+                        System.out.println(String.format("====> [Thread %d %s] found task %s has been done", ct.getId(), ct.getName(), entry.getKey()));
+                        this.visitedTasks.add(task.id().asString());
+                        manager.unlockTask(this.graphSpace(), task);
+                        continue;
+                    }
+                    System.out.println(String.format("=====> Grab task %s lock success", task.id().asString()));
+                    // Attach callable info
+                    TaskCallable<?> callable = task.callable();
+                    // Attach priority info
+                    MetaManager.instance().attachTaskInfo(task, entry.getKey());
+                    // Attach graph info
+                    callable.graph(this.graph());
+                    // Update status to queued
+                    EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
+                    // run it
+                    this.taskExecutor.submit(new TaskRunner(task, this.graph));
+                } else {
+                    System.out.println("=====> Grab task lock failed");
+                }
+            } catch (Exception e) {
+                System.out.println("=====> Grab task lock error");
+                System.out.println(e);
+                System.out.println(e.getStackTrace());
+            }
+        }
+
+        System.out.println(String.format("====> [Thread %d %s] handle response end", ct.getId(), ct.getName()));
     }
 
     /**
@@ -510,34 +608,36 @@ public class EtcdTaskScheduler extends TaskScheduler {
      * @param response
      */
     private <T> void extraTaskEventHandler(T response) {
+
+            Thread ct = Thread.currentThread();
             System.out.println("====> Race handler Current thread: " + Thread.currentThread().getId() + " name " + Thread.currentThread().getName());
 
             MetaManager manager = MetaManager.instance();
             Map<String, String> events = manager.extractKVFromResponse(response);
 
             for(Map.Entry<String, String> entry : events.entrySet()) {
-                System.out.println(String.format("====> [Thread %d] task info %s, %s", Thread.currentThread().getId(), entry.getKey(), entry.getValue()));
+                System.out.println(String.format("====> [Thread %d %s] task info %s, %s", ct.getId(), ct.getName(), entry.getKey(), entry.getValue()));
                 if (this.checkedTasks.contains(entry.getKey())) {
-                    System.out.println(String.format("====> [Thread %d] task info %s has been executed", Thread.currentThread().getId(), entry.getKey()));
+                    System.out.println(String.format("====> [Thread %d %s] task info %s has been executed", ct.getId(), ct.getName(), entry.getKey()));
                     continue;
                 }
                 try {
                     HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
 
-                    System.out.println(String.format("====> [Thread %d] try to lock %s", Thread.currentThread().getId(), entry.getKey()));
+                    System.out.println(String.format("====> [Thread %d %s] try to lock %s", ct.getId(), ct.getName(), entry.getKey()));
 
                     LockResult result = manager.lockTask(this.graphSpace(), task);
                     if (result.lockSuccess()) {
                         task.lockResult(result);
                         if (this.visitedTasks.contains(task.id().asString())) {
-                            System.out.println(String.format("====> [Thread %d] found task %s has been visited", Thread.currentThread().getId(), entry.getKey()));
+                            System.out.println(String.format("====> [Thread %d] found task %s has been visited", ct.getId(), ct.getName(), entry.getKey()));
                             manager.unlockTask(this.graphSpace(), task);
                             continue;
                         }
                         this.visitedTasks.add(task.id().asString());
                         TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
                         if (TaskStatus.OCCUPIED_STATUS.contains(currentStatus)) {
-                            System.out.println(String.format("====> [Thread %d] found task %s has been done", Thread.currentThread().getId(), entry.getKey()));
+                            System.out.println(String.format("====> [Thread %d] found task %s has been done", ct.getId(), ct.getName(), entry.getKey()));
                             this.visitedTasks.add(task.id().asString());
                             manager.unlockTask(this.graphSpace(), task);
                             continue;
@@ -551,10 +651,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                         // attach graph info
                         callable.graph(this.graph());
                         // update status to queued
-                        task.status(TaskStatus.QUEUED);
-                        MetaManager.instance().updateTaskStatus(this.graph.graph().graphSpace(), task);
+                        EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                         // run it
-                        this.taskExecutor.submit(new Consumer(task, this.graph));
+                        this.taskExecutor.submit(new TaskRunner(task, this.graph));
                     } else {
                         System.out.println("=====> Grab task lock failed");
                     }
