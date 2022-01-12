@@ -32,6 +32,7 @@ import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskCallable;
+import com.baidu.hugegraph.task.TaskPriority;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.Log;
@@ -85,6 +86,7 @@ public class EtcdTaskExample {
             Id id = IdGenerator.of(nid);
             String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTaskSample";
             HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
+            task.priority(TaskPriority.fromValue(i % 4));
             task.type("type-1");
             task.name("test-task");
             task.input(String.valueOf(input));

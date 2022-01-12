@@ -67,11 +67,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private static final String TASK_COUNT_LOCK = "TASK_COUNT_LOCK";
 
+    private static final String TASK_NAME_PREFIX = "etcd-task-worker";
+
     private final ExecutorService producer = ExecutorUtil.newFixedThreadPool(1, EtcdTaskScheduler.class.getName() + "-task-producer");
 
-    private final Map<TaskPriority, BlockingQueue<Runnable>> taskQueueMap = new HashMap<>();
+    private final Map<TaskPriority, ExecutorService> taskExecutorMap;
 
-    private final ExecutorService taskExecutor;
     private final ExecutorService backupForLoadTaskExecutor;
     private final ExecutorService taskDBExecutor;
 
@@ -135,20 +136,31 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     public EtcdTaskScheduler(
         HugeGraphParams graph,
-        ExecutorService taskExecutor,
         ExecutorService backupForLoadTaskExecutor,
         ExecutorService taskDBExecutor,
         ExecutorService serverInfoDbExecutor,
         TaskPriority maxDepth
     ) {
         super(graph, serverInfoDbExecutor);
-        this.taskExecutor = taskExecutor;
+
+        this.taskExecutorMap = new ConcurrentHashMap<>();
+
+        for (int i = 0; i <= maxDepth.getValue(); i++) {
+            TaskPriority priority = TaskPriority.fromValue(i);
+            int poolSize = Math.max(1, CPU_COUNT - i);
+            String poolName = TASK_NAME_PREFIX + "-" + priority.name();
+            taskExecutorMap.putIfAbsent(priority, ExecutorUtil.newFixedThreadPool(poolSize, poolName));
+        }
+
         this.backupForLoadTaskExecutor = backupForLoadTaskExecutor;
         this.taskDBExecutor = taskDBExecutor;
 
         this.eventListener =  this.listenChanges();
 
-        MetaManager.instance().listenTaskAdded(this.graphSpace(), TaskPriority.NORMAL, this::taskEventHandler);
+        for (int i = 0; i <= maxDepth.getValue(); i++) {
+            TaskPriority priority = TaskPriority.fromValue(i);
+            MetaManager.instance().listenTaskAdded(this.graphSpace(), priority, this::taskEventHandler);
+        }
     }
 
     @Override
@@ -205,6 +217,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     EtcdTaskScheduler.unlockTask(this.graphSpace(), task);
                     continue;
                 }
+                ExecutorService executor = this.pickExecutor(task.priority());
+                if (null == executor) {
+                    System.out.println("=====> No executor available <======");
+                    continue;
+                }
+
                 // process cancelling first
                 if (current == TaskStatus.CANCELLING) {
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.CANCELLED);
@@ -221,7 +239,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 // Update local cache
                 this.taskMap.put(task.id(), task);
                 this.visitedTasks.add(task.id().asString());
-                this.taskExecutor.submit(new TaskRunner<>(task, this.graph));
+                executor.submit(new TaskRunner<>(task, this.graph));
             }
         }
     }
@@ -469,6 +487,13 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private <V> Future<?> submitEphemeralTask(HugeTask<V> task) {
         assert !this.taskMap.containsKey(task.id()) : task;
+
+        ExecutorService executorService = this.pickExecutor(task.priority());
+        if (null == executorService) {
+            System.out.println("=====> No executor available <======");
+            return this.backupForLoadTaskExecutor.submit(task);   
+        }
+
         int size = this.taskMap.size();
         E.checkArgument(size < MAX_PENDING_TASKS,
             "Pending tasks size %s has exceeded the max limit %s",
@@ -485,7 +510,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
         if (this.graph().mode().loading()) {
             return this.backupForLoadTaskExecutor.submit(task);   
         }
-        return this.taskExecutor.submit(task);
+        return executorService.submit(task);
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
@@ -616,7 +641,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
         public void run() {
             Thread ct = Thread.currentThread();
             try {
-                System.out.println("====> consumer runner thread: " + ct.getId());
+                System.out.println("====> consumer runner thread: " + ct.getId() + " - " + ct.getName());
+
 
                 TaskStatus etcdStatus = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
                 if (TaskStatus.COMPLETED_STATUSES.contains(etcdStatus)) {
@@ -698,6 +724,21 @@ public class EtcdTaskScheduler extends TaskScheduler {
         manager.updateTaskProgress(graphSpace, task);
     }
 
+    private ExecutorService pickExecutor(TaskPriority priority) {
+        ExecutorService result = this.taskExecutorMap.get(priority);
+        if (null != result) {
+            return result;
+        }
+        for (int i = priority.getValue() + 1; i <= TaskPriority.LOW.getValue(); i++) {
+            TaskPriority nextPriority = TaskPriority.fromValue(i);
+            result = this.taskExecutorMap.get(nextPriority);
+            if (null != result) {
+                return result;
+            }
+        }
+        return null;
+    }
+
     /**
      * General handler of tasks
      * @param <T>
@@ -735,6 +776,14 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     }
                     // Mark the task is visited already
                     this.visitedTasks.add(task.id().asString());
+                    // Pick executor
+                    TaskPriority priority = task.priority();
+                    ExecutorService executor = this.pickExecutor(priority);
+                    if (null == executor) {
+                        System.out.println("=====> No executor available <======");
+                        EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.SCHEDULED);
+                        return;
+                    }
                     // Grab status info from task
                     TaskStatus currentStatus = manager.getTaskStatus(this.graphSpace(), task);
                     task.status(currentStatus);
@@ -755,7 +804,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                     // run it
-                    this.taskExecutor.submit(new TaskRunner<>(task, this.graph));
+                    executor.submit(new TaskRunner<>(task, this.graph));
                 } else {
                     System.out.println("=====> Grab task lock failed");
                 }
