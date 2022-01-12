@@ -214,8 +214,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        MetaManager manager = MetaManager.instance();
-
         try {
             EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.CANCELLING);
         } catch (Throwable e) {
@@ -547,25 +545,32 @@ public class EtcdTaskScheduler extends TaskScheduler {
         public void run() {
             Thread ct = Thread.currentThread();
 
-            System.out.println("====> consumer runner thread: " + ct.getId());
+            try {
+                System.out.println("====> consumer runner thread: " + ct.getId());
 
-            TaskStatus status = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
-            if (TaskStatus.COMPLETED_STATUSES.contains(status)) {
-                System.out.println("====> task is complete! consumer runner finished: " + ct.getId());
-                return;
+                TaskStatus etcdStatus = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
+                if (TaskStatus.COMPLETED_STATUSES.contains(etcdStatus)) {
+                    System.out.println("====> task is complete! consumer runner finished: " + ct.getId());
+                    return;
+                } else if(task.status() == TaskStatus.CANCELLING || etcdStatus == TaskStatus.CANCELLING) {
+                    System.out.println("====> task is cancelling! consumer runner finished: " + ct.getId());
+                    EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.CANCELLED);
+                    return;
+                }
+
+                EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.RUNNING);
+                
+                System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
+                this.task.run();
+                EtcdTaskScheduler.updateTaskProgress(graphSpace, task, task.progress());
+                
+            } catch (Exception e) {
+                LOGGER.logCriticalError(e, String.format("task %d %s failed due to fatal error", task.id().asString(), task.name()));
+                EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.FAILED);
+            } finally {
+                MetaManager.instance().unlockTask(this.graph.graph().graphSpace(), task);
+                System.out.println(String.format(">>>>> [Thread %d %s] consumer run task %d finished", ct.getId(), ct.getName(), task.id().asLong()));
             }
-
-            EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.RUNNING);
-            
-            System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
-            this.task.run();
-
-            EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.SUCCESS);
-            EtcdTaskScheduler.updateTaskProgress(graphSpace, task, 100);
-            
-            MetaManager.instance().unlockTask(this.graph.graph().graphSpace(), task);
-
-            System.out.println(String.format(">>>>> [Thread %d %s] consumer run task %d finished", ct.getId(), ct.getName(), task.id().asLong()));
         }
     }
 
