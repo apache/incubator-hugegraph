@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
-import java.util.Objects;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -52,7 +51,9 @@ public class PathsTraverser extends HugeTraverser {
                         sourceDir == targetDir.opposite(),
                         "Source direction must equal to target direction" +
                         " or opposite to target direction");
-        checkPositive(depth, "max depth");
+        E.checkArgument(depth > 0 && depth <= DEFAULT_MAX_DEPTH,
+                        "The depth must be in (0, %s], but got: %s",
+                        DEFAULT_MAX_DEPTH, depth);
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
@@ -124,9 +125,6 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
-                        if (Objects.equals(target, targetV)) {
-                            continue;
-                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;
@@ -160,9 +158,6 @@ public class PathsTraverser extends HugeTraverser {
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
                     for (Path path : results) {
-                        if (Objects.equals(target, sourceV)) {
-                            continue;
-                        }
                         this.paths.add(path);
                         if (this.reachLimit()) {
                             return;
