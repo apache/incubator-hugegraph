@@ -21,12 +21,16 @@ package com.baidu.hugegraph.task;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.computer.driver.util.JsonUtil;
 
 import org.apache.commons.lang.NotImplementedException;
+
+import jersey.repackaged.com.google.common.collect.ImmutableSet;
 
 /**
  * Serialize / Deserialize HugeTask that make it could be persisted
@@ -38,7 +42,7 @@ public final class TaskSerializer {
     /**
      * Meta info of serialized task
      */
-    private enum TaskFields {
+    private enum TaskField {
         ID("id"),
         TASK_NAME("task_name"),
         TASK_CREATE("task_create"),
@@ -48,8 +52,13 @@ public final class TaskSerializer {
         TASK_INPUT("task_input"),
 
         ;
+
+        public static final ImmutableSet<String> FIELD_SET = 
+            ImmutableSet.copyOf(
+                Stream.of(
+                    TaskField.values()).map(TaskField::getValue).collect(Collectors.toSet()));
         private final String value;
-        private TaskFields(String value) {
+        private TaskField(String value) {
             this.value = value;
         }
         public String getValue() {
@@ -59,6 +68,17 @@ public final class TaskSerializer {
 
     public static <V> String toJson(HugeTask<V> task) {
         Map<String, Object> map = task.asMap();
+        map = map
+                .entrySet()
+                .stream()
+                .filter(entry -> 
+                    TaskField.FIELD_SET
+                        .contains(entry.getKey()))
+                .collect(
+                    Collectors.toMap(
+                        Map.Entry<String, Object>::getKey,
+                        Map.Entry<String, Object>::getValue));
+        
         return JsonUtil.toJson(map);
     }
 
@@ -84,30 +104,30 @@ public final class TaskSerializer {
         String callableStr
             = String.valueOf(
                 map.get(
-                    TaskFields.TASK_CALLABLE.getValue()));
+                    TaskField.TASK_CALLABLE.getValue()));
         Integer numId
             = Integer.valueOf(
                 String.valueOf(
                     map.get(
-                        TaskFields.ID.getValue())));
+                        TaskField.ID.getValue())));
         String input
             = String.valueOf(
                 map.get(
-                    TaskFields.TASK_INPUT.getValue()));
+                    TaskField.TASK_INPUT.getValue()));
         String typeStr
             = String.valueOf(
                 map.get(
-                    TaskFields.TASK_TYPE.getValue()));
+                    TaskField.TASK_TYPE.getValue()));
         Date createdAt
             = new Date(
                 Long.valueOf(
                     String.valueOf(
                         map.get(
-                            TaskFields.TASK_CREATE.getValue()))));
+                            TaskField.TASK_CREATE.getValue()))));
         String name
             = String.valueOf(
                 map.get(
-                    TaskFields.TASK_NAME.getValue()));
+                    TaskField.TASK_NAME.getValue()));
 
         Id id = IdGenerator.of(numId);
         HugeTask<V> task = new HugeTask<>(id, null, callableStr, input);

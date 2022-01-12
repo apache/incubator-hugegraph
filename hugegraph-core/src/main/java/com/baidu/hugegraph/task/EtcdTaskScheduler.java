@@ -80,46 +80,47 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final Map<Id, HugeTask<?>> taskMap = new HashMap<>();
 
-
-    private static final ImmutableSet<TaskStatus> EMPTY_SET = ImmutableSet.of();
     /**
      * State table
      */
     private static final Map<TaskStatus, ImmutableSet<TaskStatus>> TASK_STATUS_MAP = 
         new ImmutableMap.Builder<TaskStatus, ImmutableSet<TaskStatus>>() 
             .put(TaskStatus.UNKNOWN,
-                EtcdTaskScheduler.EMPTY_SET)
+                ImmutableSet.of())
             .put(TaskStatus.NEW,
                 ImmutableSet.of(
-                    TaskStatus.SCHEDULING))
+                    TaskStatus.NEW, TaskStatus.SCHEDULING))
             .put(TaskStatus.SCHEDULING,
                 ImmutableSet.of(
-                    TaskStatus.SCHEDULED, TaskStatus.CANCELLING, TaskStatus.FAILED))
+                    TaskStatus.SCHEDULING, TaskStatus.SCHEDULED, TaskStatus.CANCELLING, TaskStatus.FAILED))
             .put(TaskStatus.SCHEDULED,
                 ImmutableSet.of(
-                    TaskStatus.QUEUED, TaskStatus.CANCELLING))
+                    TaskStatus.SCHEDULED, TaskStatus.QUEUED, TaskStatus.CANCELLING))
             .put(TaskStatus.QUEUED,
                 ImmutableSet.of(
-                    TaskStatus.RUNNING, TaskStatus.PENDING, TaskStatus.CANCELLING))
+                    TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.PENDING, TaskStatus.CANCELLING))
             .put(TaskStatus.RUNNING,
                 ImmutableSet.of(
-                    TaskStatus.SUCCESS, TaskStatus.FAILED))
+                    TaskStatus.RUNNING, TaskStatus.SUCCESS, TaskStatus.FAILED))
             .put(TaskStatus.CANCELLING,
                 ImmutableSet.of(
-                    TaskStatus.CANCELLED))
+                    TaskStatus.CANCELLING, TaskStatus.CANCELLED))
             .put(TaskStatus.CANCELLED,
-                EtcdTaskScheduler.EMPTY_SET)
+                ImmutableSet.of(
+                    TaskStatus.CANCELLED))
             .put(TaskStatus.SUCCESS,
-                EtcdTaskScheduler.EMPTY_SET)
+                ImmutableSet.of(
+                    TaskStatus.SUCCESS))
             .put(TaskStatus.FAILED,
-                EtcdTaskScheduler.EMPTY_SET)
+                ImmutableSet.of(
+                    TaskStatus.FAILED))
             .put(TaskStatus.PENDING,
                 ImmutableSet.of(
-                    TaskStatus.RESTORING
+                    TaskStatus.PENDING, TaskStatus.RESTORING
                 ))
             .put(TaskStatus.RESTORING,
                 ImmutableSet.of(
-                    TaskStatus.QUEUED))
+                    TaskStatus.RESTORING, TaskStatus.QUEUED))
             .build();
  
 
@@ -580,18 +581,21 @@ public class EtcdTaskScheduler extends TaskScheduler {
         MetaManager manager = MetaManager.instance();
         // Synchronize local status & remote status
         TaskStatus etcdStatus = manager.getTaskStatus(graphSpace, task);
-
+        System.out.println(String.format("--------> Going to task %d status: etcd=%s, prev=%s, next=%s <---------", task.id().asLong(), etcdStatus.name(), task.status().name(), nextStatus.name()));
         /**
          * local status different to etcd status, and delayed
          */
-        if (!EtcdTaskScheduler.isTaskNextStatus(etcdStatus, task.status())) {
+        if (!EtcdTaskScheduler.isTaskNextStatus(etcdStatus, task.status()) && etcdStatus != TaskStatus.UNKNOWN) {
+            System.out.println("--------> Sync status by etcd <---------");
             task.status(etcdStatus);
         }
         // Ensure that next status is available
         TaskStatus prevStatus = task.status();
         if (EtcdTaskScheduler.isTaskNextStatus(prevStatus, nextStatus)) {
             task.status(nextStatus);
-            manager.migrateTaskStatus(graphSpace, task, prevStatus);
+            manager.migrateTaskStatus(graphSpace, task, etcdStatus);
+        } else {
+            System.out.println(String.format("--------> Cannot update task %d status: prev=%s, next=%s <---------", task.id().asLong(), task.status().name(), nextStatus.name()));
         }
     }
 
