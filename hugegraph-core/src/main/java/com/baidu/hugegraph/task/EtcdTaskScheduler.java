@@ -42,7 +42,6 @@ import javax.ws.rs.NotFoundException;
 import com.alipay.remoting.util.ConcurrentHashSet;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
@@ -54,7 +53,6 @@ import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.ExecutorUtil;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -191,7 +189,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
                 // Attach callable info
                 TaskCallable<?> callable = task.callable();
-                task.priority(TaskPriority.NORMAL);
                 // Attach graph info
                 callable.graph(this.graph());
                 // Update status to queued
@@ -474,6 +471,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     protected void taskDone(HugeTask<?> task) {
+        if (closing) {
+            return;
+        }
         try {
             this.serverManager.decreaseLoad(task.load());
         } catch (Exception e) {

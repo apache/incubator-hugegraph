@@ -598,6 +598,7 @@ public class HugeTask<V> extends FutureTask<V> {
         map.put(Hidden.unHide(P.PROGRESS), this.progress);
         map.put(Hidden.unHide(P.CREATE), this.create);
         map.put(Hidden.unHide(P.RETRIES), this.retries);
+        map.put(Hidden.unHide(P.PRIORITY), this.priority.toString());
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
@@ -723,6 +724,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
         public static final String SERVER = "~task_server";
+        public static final String PRIORITY = "~task_priority";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

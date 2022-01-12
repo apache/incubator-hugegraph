@@ -71,61 +71,33 @@ public class EtcdTaskExample {
         
         scheduler.flushAllTask();
         
-        int start = 17;
-        for (int i = start ; i < start + 1; i++) {
+        int start = 25;
+        for (int i = start ; i < start + 20; i++) {
 
             int nid = i; //Math.abs(rand.nextInt())  % 10 + 1;
             int input = 10; //Math.abs(rand.nextInt()) % 5 + 1;
             
             Id id = IdGenerator.of(nid);
-            String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTask";
+            String callable = "com.baidu.hugegraph.example.EtcdTaskExample$TestTaskSample";
             HugeTask<?> task = new HugeTask<>(id, null, callable, "test-parameter");
             task.type("type-1");
             task.name("test-task");
             task.input(String.valueOf(input));
 
-            
             scheduler.schedule(task);
         }
-        
-        // scheduler.flushAllTask();        
 
+        // wait 3 sec
+        Thread.sleep(TestTaskSample.UNIT * 30);
+            
+        // list the success tasks
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
+        iter = scheduler.tasks(TaskStatus.QUEUED, -1, null);
         while(iter.hasNext()) {
             HugeTask<?> task = iter.next();
             System.out.println(String.format("===========> success task %s ", task.id().asString()));
-            scheduler.delete(task.id());
+            scheduler.cancel(task);
         }
-
-        /*
-
-        Thread.sleep(TestTask.UNIT * 33);
-        task.cancel(true);
-        Thread.sleep(TestTask.UNIT * 1);
-        scheduler.save(task);
-
-        
-        // Find task not finished(actually it should be RUNNING)
-        iter = scheduler.tasks(TaskStatus.CANCELLED, -1, null);
-        assert iter.hasNext();
-        task = iter.next();
-
-        System.out.println(">>>> task may be interrupted");
-
-        Thread.sleep(TestTask.UNIT * 10);
-        System.out.println(">>>> restore task...");
-        Whitebox.setInternalState(task, "status", TaskStatus.RUNNING);
-        scheduler.restoreTasks();
-        Thread.sleep(TestTask.UNIT * 80);
-        scheduler.save(task);
-
-        iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
-        assert iter.hasNext();
-        task = iter.next();
-        assert task.status() == TaskStatus.SUCCESS;
-        assert task.retries() == 1;
-        */
     }
 
     /**
@@ -133,7 +105,7 @@ public class EtcdTaskExample {
      * The execute() is called in the Abstract class TaskCallable<V>::call() somewhere like UserJob<V>, Combined wth save()
      * But there's no scenario of calling Job::execute()
      */
-    public static class TestTask extends TaskCallable<Integer> implements Job<Integer> {
+    public static class TestTaskSample extends TaskCallable<Integer> implements Job<Integer> {
 
         public static final int UNIT = 100; // ms
 
@@ -165,7 +137,7 @@ public class EtcdTaskExample {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
                 this.graph().taskScheduler().save(this.task());
-                Thread.sleep(UNIT);
+                Thread.sleep(UNIT*30);
             }
             return 18;
         }
