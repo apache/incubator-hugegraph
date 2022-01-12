@@ -129,6 +129,11 @@ public final class TaskSerializer {
             = String.valueOf(
                 map.get(
                     TaskField.TASK_NAME.getValue()));
+        String priority
+            = String.valueOf(
+                map.get(
+                    TaskField.TASK_PRIORITY.getValue()));
+            
 
         Id id = IdGenerator.of(numId);
         HugeTask<V> task = new HugeTask<>(id, null, callableStr, input);
@@ -141,6 +146,7 @@ public final class TaskSerializer {
         task.name(name);
         task.type(typeStr);
         task.createTime(createdAt);
+        task.priority(TaskPriority.valueOf(priority));
 
         // Recursive dependency here, but should be maintain due to compatible
         task.callable().task(task);
