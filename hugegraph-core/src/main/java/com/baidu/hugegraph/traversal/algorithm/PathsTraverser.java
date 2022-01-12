@@ -51,9 +51,9 @@ public class PathsTraverser extends HugeTraverser {
                         sourceDir == targetDir.opposite(),
                         "Source direction must equal to target direction" +
                         " or opposite to target direction");
-        E.checkArgument(depth > 0 && depth <= HugeTraverser.DEFAULT_MAX_DEPTH,
+        E.checkArgument(depth > 0 && depth <= DEFAULT_MAX_DEPTH,
                         "The depth must be in (0, %s], but got: %s",
-                        HugeTraverser.DEFAULT_MAX_DEPTH, depth);
+                        DEFAULT_MAX_DEPTH, depth);
         checkDegree(degree);
         checkCapacity(capacity);
         checkLimit(limit);
