@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job.schema;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
 
-public class OlapPropertyKeyCreateCallable extends SchemaCallable {
+public class OlapPropertyKeyCreateJob extends SchemaJob {
 
     @Override
     public String type() {

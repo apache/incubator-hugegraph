@@ -19,15 +19,18 @@
 
 package com.baidu.hugegraph.job.schema;
 
+import java.util.Set;
+
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
-import com.baidu.hugegraph.schema.IndexLabel;
+import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
+import com.google.common.collect.ImmutableSet;
 
-public class IndexLabelRemoveCallable extends SchemaCallable {
+public class EdgeLabelRemoveJob extends SchemaJob {
 
     @Override
     public String type() {
@@ -36,38 +39,45 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
 
     @Override
     public Object execute() {
-        removeIndexLabel(this.params(), this.schemaId());
+        removeEdgeLabel(this.params(), this.schemaId());
         return null;
     }
 
-    protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
+    private static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
         SchemaTransaction schemaTx = graph.schemaTransaction();
-        IndexLabel indexLabel = schemaTx.getIndexLabel(id);
-        // If the index label does not exist, return directly
-        if (indexLabel == null) {
+        EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
+        // If the edge label does not exist, return directly
+        if (edgeLabel == null) {
             return;
         }
+        if (edgeLabel.status().deleting()) {
+            LOG.info("The edge label '{}' has been in {} status, " +
+                     "please check if it's expected to delete it again",
+                     edgeLabel, edgeLabel.status());
+        }
+        // Remove index related data(include schema) of this edge label
+        Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
         LockUtil.Locks locks = new LockUtil.Locks(graph.name());
         try {
-            locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
-            // TODO add update lock
-            // Set index label to "deleting" status
-            schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
+            locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
+            schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);
             try {
-                // Remove label from indexLabels of vertex or edge label
-                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
-                // Remove index data
+                for (Id indexId : indexIds) {
+                    IndexLabelRemoveJob.removeIndexLabel(graph, indexId);
+                }
+                // Remove all edges which has matched label
                 // TODO: use event to replace direct call
-                graphTx.removeIndex(indexLabel);
-                removeSchema(schemaTx, indexLabel);
+                graphTx.removeEdges(edgeLabel);
                 /*
                  * Should commit changes to backend store before release
                  * delete lock
                  */
                 graph.graph().tx().commit();
+                // Remove edge label
+                removeSchema(schemaTx, edgeLabel);
             } catch (Throwable e) {
-                schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.INVALID);
+                schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.UNDELETED);
                 throw e;
             }
         } finally {
