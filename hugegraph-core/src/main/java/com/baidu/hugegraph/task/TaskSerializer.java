@@ -50,6 +50,7 @@ public final class TaskSerializer {
         TASK_TYPE("task_type"),
         TASK_CALLABLE("task_callable"),
         TASK_INPUT("task_input"),
+        TASK_PRIORITY("task_priority"),
 
         ;
 
