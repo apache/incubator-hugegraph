@@ -1768,6 +1768,7 @@ public class MetaManager {
      */
     private <V> void updateTaskStatus(String graphSpace, HugeTask<V> task) {
         String key = taskPropertyKey(graphSpace, task.id().asString(), "Status");
+        System.out.println(String.format("--------> Update Task %d Status %s <---------", task.id().asLong(), task.status().name()));
         this.metaDriver.put(key, task.status().string());
     }
 

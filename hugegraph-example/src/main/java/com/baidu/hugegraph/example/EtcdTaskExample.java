@@ -69,8 +69,8 @@ public class EtcdTaskExample {
         
         scheduler.flushAllTask();
         
-        int start = 25;
-        for (int i = start ; i < start + 5; i++) {
+        int start = 17;
+        for (int i = start ; i < start + 1; i++) {
 
             int nid = i; //Math.abs(rand.nextInt())  % 10 + 1;
             int input = 10; //Math.abs(rand.nextInt()) % 5 + 1;
