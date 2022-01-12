@@ -122,11 +122,10 @@ public final class ApiVersion {
      * version 0.13:
      * [0.67] Issue-11: hugegraph with etcd/pd,
      *        add graphspace, remove auth server
-     * [3.0] version 3.0.0
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "3.0");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.68");
 
     public static final void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
