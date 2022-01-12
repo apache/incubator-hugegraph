@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.traversers;
 
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
+import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.Collection;
@@ -114,9 +115,9 @@ public class PathsAPI extends TraverserAPI {
                                "The targets of request can't be null");
         E.checkArgumentNotNull(request.step,
                                "The step of request can't be null");
-        E.checkArgument(request.depth > 0,
-                        "The depth of request must be > 0, but got: %s",
-                        request.depth);
+        E.checkArgument(request.depth > 0 && request.depth <= DEFAULT_MAX_DEPTH,
+                        "The depth of request must be in (0, %s], " +
+                        "but got: %s", DEFAULT_MAX_DEPTH, request.depth);
 
         LOG.debug("Graph [{}] get paths from source vertices '{}', target " +
                   "vertices '{}', with step '{}', max depth '{}', " +

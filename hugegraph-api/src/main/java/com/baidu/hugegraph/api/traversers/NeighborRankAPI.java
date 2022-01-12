@@ -68,7 +68,7 @@ public class NeighborRankAPI extends API {
                                "The source of rank request can't be null");
         E.checkArgument(request.steps != null && !request.steps.isEmpty(),
                         "The steps of rank request can't be empty");
-        E.checkArgument(request.steps.size() <= Long.parseLong(DEFAULT_MAX_DEPTH),
+        E.checkArgument(request.steps.size() <= DEFAULT_MAX_DEPTH,
                         "The steps length of rank request can't exceed %s",
                         DEFAULT_MAX_DEPTH);
         E.checkArgument(request.alpha > 0 && request.alpha <= 1.0,
