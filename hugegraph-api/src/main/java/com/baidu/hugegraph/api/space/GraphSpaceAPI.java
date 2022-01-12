@@ -108,6 +108,9 @@ public class GraphSpaceAPI extends API {
 
         jsonGraphSpace.checkCreate(false);
 
+        GraphSpace exist = manager.graphSpace(jsonGraphSpace.name);
+        E.checkArgument(exist == null, "The graph space '%s' has existed",
+                        jsonGraphSpace.name);
         GraphSpace space = manager.createGraphSpace(
                            jsonGraphSpace.toGraphSpace());
         return manager.serializer().writeGraphSpace(space);
