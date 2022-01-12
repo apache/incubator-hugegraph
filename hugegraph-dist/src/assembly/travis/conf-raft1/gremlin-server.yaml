@@ -1,0 +1,105 @@
+# host and port of gremlin server, need to be consistent with host and port in rest-server.properties
+#host: 127.0.0.1
+port: 8181
+
+# timeout in ms of gremlin query
+scriptEvaluationTimeout: 30000
+
+channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
+# don't set graph at here, this happens after support for dynamically adding graph
+graphs: {
+}
+scriptEngines: {
+  gremlin-groovy: {
+    plugins: {
+      com.baidu.hugegraph.plugin.HugeGraphGremlinPlugin: {},
+      org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: {},
+      org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
+        classImports: [
+          java.lang.Math,
+          com.baidu.hugegraph.backend.id.IdGenerator,
+          com.baidu.hugegraph.type.define.Directions,
+          com.baidu.hugegraph.type.define.NodeRole,
+          com.baidu.hugegraph.traversal.algorithm.CollectionPathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.CountTraverser,
+          com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.CustomizePathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.FusiformSimilarityTraverser,
+          com.baidu.hugegraph.traversal.algorithm.HugeTraverser,
+          com.baidu.hugegraph.traversal.algorithm.JaccardSimilarTraverser,
+          com.baidu.hugegraph.traversal.algorithm.KneighborTraverser,
+          com.baidu.hugegraph.traversal.algorithm.KoutTraverser,
+          com.baidu.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser,
+          com.baidu.hugegraph.traversal.algorithm.NeighborRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser,
+          com.baidu.hugegraph.traversal.algorithm.SameNeighborTraverser,
+          com.baidu.hugegraph.traversal.algorithm.ShortestPathTraverser,
+          com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser,
+          com.baidu.hugegraph.traversal.algorithm.SubGraphTraverser,
+          com.baidu.hugegraph.traversal.algorithm.TemplatePathsTraverser,
+          com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep,
+          com.baidu.hugegraph.traversal.algorithm.steps.RepeatEdgeStep,
+          com.baidu.hugegraph.traversal.algorithm.steps.WeightedEdgeStep,
+          com.baidu.hugegraph.traversal.optimize.Text,
+          com.baidu.hugegraph.traversal.optimize.TraversalUtil,
+          com.baidu.hugegraph.util.DateUtil
+        ],
+        methodImports: [java.lang.Math#*]
+      },
+      org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {
+        files: [scripts/empty-sample.groovy]
+      }
+    }
+  }
+}
+serializers:
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
+  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
+      config: {
+        serializeResultToString: false,
+        ioRegistries: [com.baidu.hugegraph.io.HugeGraphIoRegistry]
+      }
+  }
+metrics: {
+  consoleReporter: {enabled: false, interval: 180000},
+  csvReporter: {enabled: false, interval: 180000, fileName: ./metrics/gremlin-server-metrics.csv},
+  jmxReporter: {enabled: false},
+  slf4jReporter: {enabled: false, interval: 180000},
+  gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},
+  graphiteReporter: {enabled: false, interval: 180000}
+}
+maxInitialLineLength: 4096
+maxHeaderSize: 8192
+maxChunkSize: 8192
+maxContentLength: 65536
+maxAccumulationBufferComponents: 1024
+resultIterationBatchSize: 64
+writeBufferLowWaterMark: 32768
+writeBufferHighWaterMark: 65536
+ssl: {
+  enabled: false
+}
+authentication: {
+  authenticator: com.baidu.hugegraph.auth.StandardAuthenticator,
+  #authenticationHandler: org.apache.tinkerpop.gremlin.server.handler.SaslAndHttpBasicAuthenticationHandler,
+  authenticationHandler: com.baidu.hugegraph.auth.WsAndHttpBasicAuthHandler,
+  config: {tokens: conf/rest-server.properties}
+}

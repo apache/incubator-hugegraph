@@ -79,7 +79,8 @@ public class TaskApiTest extends BaseApiTest {
                           r.getStatus() == 202 || r.getStatus() == 400);
         if (r.getStatus() == 202) {
             String status = assertJsonContains(content, "task_status");
-            Assert.assertEquals("cancelling", status);
+            Assert.assertTrue(status, status.equals("cancelling") ||
+                                      status.equals("cancelled"));
         } else {
             assert r.getStatus() == 400;
             String error = String.format(

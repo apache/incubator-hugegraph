@@ -7,14 +7,15 @@ GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "g:m:s:j:v" arg; do
+while getopts "g:m:s:j:t:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
+        t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j java_options] [-t timeout] [-v]" && exit 1 ;;
     esac
 done
 

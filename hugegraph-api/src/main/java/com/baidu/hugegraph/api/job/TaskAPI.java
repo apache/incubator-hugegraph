@@ -163,7 +163,7 @@ public class TaskAPI extends API {
         HugeTask<?> task = scheduler.task(IdGenerator.of(id));
         if (!task.completed() && !task.cancelling()) {
             scheduler.cancel(task);
-            if (task.cancelling()) {
+            if (task.cancelling() || task.cancelled()) {
                 return task.asMap();
             }
         }

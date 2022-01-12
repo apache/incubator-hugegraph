@@ -50,16 +50,20 @@ public class StoreCommandProcessor
     @Override
     public Message processRequest(StoreCommandRequest request,
                                   RpcRequestClosure done) {
-        LOG.debug("Processing StoreCommandRequest");
+        LOG.debug("Processing StoreCommandRequest: {}", request.getAction());
         RaftNode node = this.context.node();
         try {
             StoreCommand command = this.parseStoreCommand(request);
             RaftStoreClosure closure = new RaftStoreClosure(command);
             node.submitAndWait(command, closure);
+            // TODO: return the submitAndWait() result to rpc client
             return StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
-            StoreCommandResponse.Builder builder;
-            builder = StoreCommandResponse.newBuilder().setStatus(false);
+            LOG.warn("Failed to process StoreCommandRequest: {}",
+                     request.getAction(), e);
+            StoreCommandResponse.Builder builder = StoreCommandResponse
+                                                   .newBuilder()
+                                                   .setStatus(false);
             if (e.getMessage() != null) {
                 builder.setMessage(e.getMessage());
             }

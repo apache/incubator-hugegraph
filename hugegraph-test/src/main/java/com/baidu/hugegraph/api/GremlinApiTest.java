@@ -24,6 +24,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
@@ -86,12 +87,29 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testClearAndInit() {
         String body = "{"
+                + "\"gremlin\":\"hugegraph.backendStoreFeatures()"
+                + "                       .supportsSharedStorage();\","
+                + "\"bindings\":{},"
+                + "\"language\":\"gremlin-groovy\","
+                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String content = assertResponseStatus(200, client().post(path, body));
+        Map<?, ?> result = assertJsonContains(content, "result");
+        @SuppressWarnings({ "unchecked" })
+        Object data = ((List<Object>) assertMapContains(result, "data")).get(0);
+        boolean supportsSharedStorage = (boolean) data;
+        Assume.assumeTrue("Can't clear non-shared-storage backend",
+                          supportsSharedStorage);
+
+        body = "{"
                 + "\"gremlin\":\""
-                + "def auth = hugegraph.hugegraph().authManager();"
-                + "def admin = auth.findUser('admin');"
-                + "hugegraph.clearBackend();"
-                + "hugegraph.initBackend();"
-                + "auth.createUser(admin);\","
+                + "  if (!hugegraph.backendStoreFeatures()"
+                + "                .supportsSharedStorage())"
+                + "    return;"
+                + "  def auth = hugegraph.hugegraph().authManager();"
+                + "  def admin = auth.findUser('admin');"
+                + "  hugegraph.clearBackend();"
+                + "  hugegraph.initBackend();"
+                + "  auth.createUser(admin);\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
@@ -99,7 +117,7 @@ public class GremlinApiTest extends BaseApiTest {
 
         body = "{"
                 + "\"gremlin\":\"hugegraph.serverStarted("
-                + "IdGenerator.of('server1'), NodeRole.MASTER)\","
+                + "              IdGenerator.of('server1'), NodeRole.MASTER)\","
                 + "\"bindings\":{},"
                 + "\"language\":\"gremlin-groovy\","
                 + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
