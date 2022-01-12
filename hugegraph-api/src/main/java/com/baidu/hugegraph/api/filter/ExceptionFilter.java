@@ -23,9 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import javax.annotation.security.RolesAllowed;
+import javax.inject.Singleton;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -38,10 +45,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.MultiException;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 
 public class ExceptionFilter {
 
@@ -52,12 +62,17 @@ public class ExceptionFilter {
     private static final int INTERNAL_SERVER_ERROR =
             Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
-    public static class TracedExceptionMapper {
+    public static class TracedExceptionMapper extends API {
+
+        private static boolean forcedTrace = false;
 
         @Context
         private javax.inject.Provider<HugeConfig> configProvider;
 
         protected boolean trace() {
+            if (forcedTrace) {
+                return true;
+            }
             HugeConfig config = this.configProvider.get();
             if (config == null) {
                 return false;
@@ -66,54 +81,81 @@ public class ExceptionFilter {
         }
     }
 
+    @Path("exception/trace")
+    @Singleton
+    public static class TracedExceptionAPI extends API {
+
+        @GET
+        @Timed
+        @Produces(APPLICATION_JSON_WITH_CHARSET)
+        @RolesAllowed({"admin"})
+        public Object get() {
+            return ImmutableMap.of("trace", TracedExceptionMapper.forcedTrace);
+        }
+
+        @PUT
+        @Timed
+        @Consumes(APPLICATION_JSON)
+        @Produces(APPLICATION_JSON_WITH_CHARSET)
+        @RolesAllowed({"admin"})
+        public Object trace(boolean trace) {
+            TracedExceptionMapper.forcedTrace = trace;
+            return ImmutableMap.of("trace", TracedExceptionMapper.forcedTrace);
+        }
+    }
+
     @Provider
     public static class HugeExceptionMapper
+                  extends TracedExceptionMapper
                   implements ExceptionMapper<HugeException> {
 
         @Override
         public Response toResponse(HugeException exception) {
             return Response.status(BAD_REQUEST_ERROR)
                            .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception))
+                           .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
 
     @Provider
     public static class IllegalArgumentExceptionMapper
+                  extends TracedExceptionMapper
                   implements ExceptionMapper<IllegalArgumentException> {
 
         @Override
         public Response toResponse(IllegalArgumentException exception) {
             return Response.status(BAD_REQUEST_ERROR)
                            .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception))
+                           .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
 
     @Provider
     public static class NotFoundExceptionMapper
+                  extends TracedExceptionMapper
                   implements ExceptionMapper<NotFoundException> {
 
         @Override
         public Response toResponse(NotFoundException exception) {
             return Response.status(NOT_FOUND_ERROR)
                            .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception))
+                           .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
 
     @Provider
     public static class NoSuchElementExceptionMapper
+                  extends TracedExceptionMapper
                   implements ExceptionMapper<NoSuchElementException> {
 
         @Override
         public Response toResponse(NoSuchElementException exception) {
             return Response.status(NOT_FOUND_ERROR)
                            .type(MediaType.APPLICATION_JSON)
-                           .entity(formatException(exception))
+                           .entity(formatException(exception, this.trace()))
                            .build();
         }
     }
@@ -187,10 +229,6 @@ public class ExceptionFilter {
                            .entity(formatException(exception, this.trace()))
                            .build();
         }
-    }
-
-    public static String formatException(Throwable exception) {
-        return formatException(exception, false);
     }
 
     public static String formatException(Throwable exception, boolean trace) {
