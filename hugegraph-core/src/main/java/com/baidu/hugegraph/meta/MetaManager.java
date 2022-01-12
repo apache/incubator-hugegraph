@@ -1678,7 +1678,11 @@ public class MetaManager {
             return task.lockResult();
         }
         String key = taskLockKey(graphSpace, task.id().asString());
-        return this.lock(key);
+        String lease = this.metaDriver.get(key);
+        if (Strings.isBlank(lease)) {
+            return this.lock(key);
+        }
+        return new LockResult();
     }
 
     public <V> void unlockTask(String graphSpace, HugeTask<V> task) {
@@ -1782,6 +1786,13 @@ public class MetaManager {
     private <V> void addTaskToStatusList(String graphSpace, String taskId, String jsonTask, TaskStatus status) {
         String key = taskStatusListKey(graphSpace, taskId, status);
         this.metaDriver.put(key, jsonTask);
+    }
+
+    public int countTaskByStatus(String graphSpace, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, status);
+        Map<String, String> taskMap = 
+            this.metaDriver.scanWithPrefix(key);
+        return taskMap.size();
     }
 
     public <V> List<HugeTask<V>> listTasksByStatus(String graphSpace, TaskStatus status) {

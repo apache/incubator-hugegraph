@@ -58,7 +58,12 @@ public class EtcdTaskExample {
 
         testTask(graph);
         Thread.sleep(30 * 1000L);
+
+        graph.taskScheduler().restoreTasks();
+
         graph.close();
+
+
 
         // Stop daemon thread
         HugeFactory.shutdown(5L);
@@ -90,13 +95,16 @@ public class EtcdTaskExample {
         // wait 3 sec
         Thread.sleep(TestTaskSample.UNIT * 30);
             
-        // list the success tasks
+        
+
+        System.out.println("======> Pending task count " + scheduler.pendingTasks());
+    // list the success tasks
         Iterator<HugeTask<Object>> iter;
         iter = scheduler.tasks(TaskStatus.QUEUED, -1, null);
         while(iter.hasNext()) {
             HugeTask<?> task = iter.next();
-            System.out.println(String.format("===========> success task %s ", task.id().asString()));
-            scheduler.cancel(task);
+            System.out.println(String.format("===========> queued task %s ", task.id().asString()));
+            // scheduler.cancel(task);
         }
     }
 
@@ -137,7 +145,7 @@ public class EtcdTaskExample {
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
                 this.graph().taskScheduler().save(this.task());
-                Thread.sleep(UNIT*30);
+                Thread.sleep(UNIT);
             }
             return 18;
         }
