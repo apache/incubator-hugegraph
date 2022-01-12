@@ -44,11 +44,17 @@ public enum TaskStatus implements SerialEnum {
     CANCELLING(8, "cancelling"),
     CANCELLED(9, "cancelled"),
     FAILED(10, "failed"),
-    PENDING(11, "pending");
+    HANGING(11, "hanging");
 
     // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
     public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(
            TaskStatus.RESTORING, TaskStatus.RUNNING, TaskStatus.QUEUED);
+
+    // Unbreakable status: tasks under this status could not be hung up
+    public static final Set<TaskStatus> UNBREAKABLE_STATUSES = ImmutableSet.of(
+            TaskStatus.RUNNING, TaskStatus.SUCCESS,
+            TaskStatus.CANCELLING, TaskStatus.CANCELLED,
+            TaskStatus.FAILED);
 
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
@@ -59,7 +65,6 @@ public enum TaskStatus implements SerialEnum {
         TaskStatus.RESTORING, // task is restoring
         TaskStatus.RUNNING, // task is executing
         TaskStatus.SUCCESS, // task is executed successfully
-        TaskStatus.CANCELLING, // task is cancelling
         TaskStatus.CANCELLED, // task has been cancelled
         TaskStatus.FAILED); // task failed
 

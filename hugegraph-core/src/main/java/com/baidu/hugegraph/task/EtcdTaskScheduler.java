@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -76,12 +77,17 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     private final ExecutorService executorService;
 
+    // Mark if a task has been visited, filter duplicate events
     private final Set<String> visitedTasks = new ConcurrentHashSet<>();
 
-    private final Map<Id, HugeTask<?>> taskMap = new HashMap<>();
+    // Mark if a task is processed by current node
+    private final Map<Id, HugeTask<?>> taskMap = new ConcurrentHashMap<>();
+
+    // Mark if Scheduler is closing
+    private volatile boolean closing = false;
 
     /**
-     * State table
+     * State table to switch task status under etcd
      */
     private static final Map<TaskStatus, ImmutableSet<TaskStatus>> TASK_STATUS_MAP = 
         new ImmutableMap.Builder<TaskStatus, ImmutableSet<TaskStatus>>() 
@@ -98,7 +104,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     TaskStatus.SCHEDULED, TaskStatus.QUEUED, TaskStatus.CANCELLING))
             .put(TaskStatus.QUEUED,
                 ImmutableSet.of(
-                    TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.PENDING, TaskStatus.CANCELLING))
+                    TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.HANGING, TaskStatus.CANCELLING))
             .put(TaskStatus.RUNNING,
                 ImmutableSet.of(
                     TaskStatus.RUNNING, TaskStatus.SUCCESS, TaskStatus.FAILED))
@@ -114,9 +120,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
             .put(TaskStatus.FAILED,
                 ImmutableSet.of(
                     TaskStatus.FAILED))
-            .put(TaskStatus.PENDING,
+            .put(TaskStatus.HANGING,
                 ImmutableSet.of(
-                    TaskStatus.PENDING, TaskStatus.RESTORING
+                    TaskStatus.HANGING, TaskStatus.RESTORING
                 ))
             .put(TaskStatus.RESTORING,
                 ImmutableSet.of(
@@ -164,11 +170,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> void restoreTasks() {
         MetaManager manager = MetaManager.instance();
-        List<String> taskIdList = manager.listTasksByStatus(this.graphSpace(), TaskStatus.PENDING);
+        List<HugeTask<V>> taskList = manager.listTasksByStatus(this.graphSpace(), TaskStatus.HANGING);
 
-        for(String taskId : taskIdList) {
-            Id id = IdGenerator.of(taskId);
-            HugeTask<V> task = manager.getTask(this.graphSpace(), TaskPriority.NORMAL, id);
+        for(HugeTask<V> task : taskList) {
             if (null == task) {
                 continue;
             }
@@ -176,13 +180,13 @@ public class EtcdTaskScheduler extends TaskScheduler {
             LockResult result = manager.lockTask(this.graphSpace(), task);
             if (result.lockSuccess()) {
                 task.lockResult(result);
-                this.visitedTasks.add(taskId);
+                this.visitedTasks.add(task.id().asString());
                 
                 TaskStatus current = manager.getTaskStatus(this.graphSpace(), task);
-                if (current != TaskStatus.PENDING) {
+                if (current != TaskStatus.HANGING) {
                     manager.unlockTask(this.graphSpace(), task);
                 }
-                task.status(TaskStatus.PENDING);
+                task.status(TaskStatus.HANGING);
                 EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.RESTORING);
 
                 // Attach callable info
@@ -297,29 +301,28 @@ public class EtcdTaskScheduler extends TaskScheduler {
     @Override
     public <V> Iterator<HugeTask<V>> tasks(TaskStatus status, long limit, String page) {
         MetaManager manager = MetaManager.instance();
-        List<String> allTasks = manager.listTasksByStatus(this.graphSpace(), status);
-        
-        List<HugeTask<V>> tasks = allTasks.stream().map((jsonStr) -> {
-            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-            // Attach callable info
+        List<HugeTask<V>> tasks = manager.listTasksByStatus(this.graphSpace(), status);
+
+        tasks.stream().forEach((task) -> {
             TaskCallable<?> callable = task.callable();
             // Attach graph info
             callable.graph(this.graph());
+            task.scheduler(this);
 
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
             TaskStatus now = manager.getTaskStatus(this.graphSpace(), task);
             task.status(now);
-            
-            return task;
-        }).collect(Collectors.toList());
-
+        });
         Iterator<HugeTask<V>> iterator = tasks.iterator();
         return iterator;
     }
 
     @Override
     public boolean close() {
+        this.closing = true;
         this.graph.loadSystemStore().provider().unlisten(this.eventListener);
+        // Mark all tasks that has not been run into pending
+        this.hangTasks();
         if (!this.taskDBExecutor.isShutdown()) {
             this.call(() -> {
                 try {
@@ -331,6 +334,24 @@ public class EtcdTaskScheduler extends TaskScheduler {
             });
         }
         return this.serverManager.close();
+    }
+
+    /**
+     * When scheduler is going to close, the tasks that has not been 
+     */
+    private void hangTasks() {
+        for(Map.Entry<Id, HugeTask<?>> entry : this.taskMap.entrySet()) {
+            HugeTask<?> task = entry.getValue();
+            if (null == task) {
+                continue;
+            }
+            synchronized(task) {
+                if (!TaskStatus.UNBREAKABLE_STATUSES.contains(task.status())) {
+                    task.status(TaskStatus.HANGING);
+                }
+            }
+        }
+
     }
 
     private <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
@@ -558,11 +579,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     return;
                 }
 
+                // Detect if task is mark to hanging
+                synchronized(task) {
+                    if (task.status() == TaskStatus.HANGING) {
+                        System.out.println("====> task is hanging! task should not be run: " + ct.getId());
+                        EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.HANGING);
+                        return;
+                    }
+                }
+
                 EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.RUNNING);
                 
                 System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
+
                 this.task.run();
                 EtcdTaskScheduler.updateTaskProgress(graphSpace, task, task.progress());
+                EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.SUCCESS);
                 
             } catch (Exception e) {
                 LOGGER.logCriticalError(e, String.format("task %d %s failed due to fatal error", task.id().asString(), task.name()));
@@ -627,8 +659,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
      * @param response
      */
     private <T> void taskEventHandler(T response) {
-
         Thread ct = Thread.currentThread();
+
+        if (this.closing) {
+            System.out.println("====> Closing Normal handler Current thread: " + ct.getId() + " name " + Thread.currentThread().getName());
+            return;
+        }
 
         System.out.println("====> Normal handler Current thread: " + ct.getId() + " name " + Thread.currentThread().getName());
         
@@ -680,6 +716,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     // Attach graph info
                     callable.graph(this.graph());
                     // Update status to queued
+                    this.taskMap.put(task.id(), task);
+
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                     // run it
                     this.taskExecutor.submit(new TaskRunner<>(task, this.graph));

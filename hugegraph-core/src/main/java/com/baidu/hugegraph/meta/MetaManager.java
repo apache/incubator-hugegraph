@@ -49,6 +49,7 @@ import com.baidu.hugegraph.task.TaskPriority;
 import com.baidu.hugegraph.task.TaskSerializer;
 import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
@@ -187,7 +188,8 @@ public class MetaManager {
     }
 
     public <T> void listenTaskAdded(String graphSpace, TaskPriority priority,  Consumer<T> consumer) {
-        this.listenPrefix(this.taskEventKey(graphSpace, priority.toString()), consumer);
+        String prefix = this.taskEventKey(graphSpace, priority.toString());
+        this.listenPrefix(prefix, consumer);
     }
 
     private <T> void listen(String key, Consumer<T> consumer) {
@@ -1782,12 +1784,31 @@ public class MetaManager {
         this.metaDriver.put(key, jsonTask);
     }
 
-    public <V> List<String> listTasksByStatus(String graphSpace, TaskStatus status) {
+    public <V> List<HugeTask<V>> listTasksByStatus(String graphSpace, TaskStatus status) {
         String key = taskStatusListKey(graphSpace, status);
         Map<String, String> taskMap = 
             this.metaDriver.scanWithPrefix(key);
 
-        return taskMap.values().stream().collect(Collectors.toList());
+        List<String> taskJsonList = taskMap.values().stream().collect(Collectors.toList());
+        if (taskJsonList.size() == 0) {
+            return ImmutableList.of();
+        }
+        List<HugeTask<V>> taskList = new ArrayList<>();
+        for (String taskJson : taskJsonList) {
+            if (Strings.isBlank(taskJson)) {
+                continue;
+            }
+            try {
+                HugeTask<V> task = TaskSerializer.fromJson(taskJson);
+                task.progress(this.getTaskProgress(graphSpace, task));
+                taskList.add(task);
+            } catch (Throwable e) {
+                // get task error
+                continue;
+            }
+        }
+        return taskList;
+
     }
 
     /**
