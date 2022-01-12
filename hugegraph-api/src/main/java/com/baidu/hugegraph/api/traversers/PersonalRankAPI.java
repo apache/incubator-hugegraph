@@ -82,7 +82,7 @@ public class PersonalRankAPI extends API {
                         "The limit of rank request must be > 0 or == -1, " +
                         "but got: %s", request.limit);
         E.checkArgument(request.maxDepth > 1L &&
-                        request.maxDepth <= Long.parseLong(DEFAULT_MAX_DEPTH),
+                        request.maxDepth <= DEFAULT_MAX_DEPTH,
                         "The max depth of rank request must be " +
                         "in range (1, %s], but got '%s'",
                         DEFAULT_MAX_DEPTH, request.maxDepth);
