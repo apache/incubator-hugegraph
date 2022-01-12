@@ -136,7 +136,7 @@ function wait_for_startup() {
         now_s=`date '+%s'`
     done
 
-    echo "The operation timed out when attempting to connect to $server_url" >&2
+    echo "The operation timed out(${timeout_s}s) when attempting to connect to $server_url" >&2
     return 1
 }
 

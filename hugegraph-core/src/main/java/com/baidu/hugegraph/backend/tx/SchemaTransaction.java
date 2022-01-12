@@ -325,6 +325,10 @@ public class SchemaTransaction extends IndexableTransaction {
 
     @Watched(prefix = "schema")
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
+        if (!this.existsSchemaId(schema.type(), schema.id())) {
+            LOG.warn("Can't update schema '{}', it may be deleted", schema);
+            return;
+        }
         schema.status(status);
         this.updateSchema(schema);
     }

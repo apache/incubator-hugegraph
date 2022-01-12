@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -30,14 +31,15 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.NodeManager;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RaftOptions;
+import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
@@ -46,6 +48,9 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
+import com.baidu.hugegraph.backend.store.BackendAction;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
@@ -101,7 +106,7 @@ public final class RaftSharedContext {
 
     public RaftSharedContext(HugeGraphParams params) {
         this.params = params;
-        HugeConfig config = params.configuration();
+        HugeConfig config = this.config();
 
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
@@ -126,12 +131,7 @@ public final class RaftSharedContext {
         this.raftGroupManager = null;
         this.rpcForwarder = null;
         this.registerRpcRequestProcessors();
-    }
-
-    private void registerRpcRequestProcessors() {
-        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
-        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
-        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
+        LOG.info("Start raft server successfully: {}", this.endpoint());
     }
 
     public void initRaftNode() {
@@ -149,8 +149,14 @@ public final class RaftSharedContext {
     }
 
     public void close() {
-        LOG.info("Stopping raft nodes");
-        this.rpcServer.shutdown();
+        LOG.info("Stop raft server: {}", this.endpoint());
+
+        RaftNode node = this.node();
+        if (node != null) {
+            node.shutdown();
+        }
+
+        this.shutdownRpcServer();
     }
 
     public RaftNode node() {
@@ -166,10 +172,6 @@ public final class RaftSharedContext {
                         "The group must be '%s' now, actual is '%s'",
                         DEFAULT_GROUP, group);
         return this.raftGroupManager;
-    }
-
-    public RpcServer rpcServer() {
-        return this.rpcServer;
     }
 
     public String group() {
@@ -266,10 +268,39 @@ public final class RaftSharedContext {
         return nodeOptions;
     }
 
-    public void clearCache() {
+    protected void clearCache() {
         // Just choose two representatives used to represent schema and graph
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
+    }
+
+    protected void updateCacheIfNeeded(BackendMutation mutation,
+                                       boolean forwarded) {
+        // Update cache only when graph run in general mode
+        if (this.graphMode() != GraphMode.NONE) {
+            return;
+        }
+        /*
+         * 1. If Follower, need to update cache from store to tx
+         * 3. If Leader, request is forwarded by follower, need to update cache
+         * 2. If Leader, request comes from leader, don't need to update cache,
+         *    because the cache will be updated by upper layer
+         */
+        if (!forwarded && this.node().selfIsLeader()) {
+            return;
+        }
+        for (HugeType type : mutation.types()) {
+            List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
+            if (type.isSchema() || type.isGraph()) {
+                java.util.Iterator<BackendAction> it = mutation.mutation(type);
+                while (it.hasNext()) {
+                    ids.add(it.next().entry().originId());
+                }
+                this.notifyCache(Cache.ACTION_INVALID, type, ids);
+            } else {
+                // Ignore other types due to not cached them
+            }
+        }
     }
 
     protected void notifyCache(String action, HugeType type, List<Id> ids) {
@@ -340,12 +371,23 @@ public final class RaftSharedContext {
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
-        PeerId serverId = new PeerId();
-        serverId.parse(this.config().get(CoreOptions.RAFT_ENDPOINT));
+        PeerId endpoint = this.endpoint();
+        NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
-                                                   serverId.getEndpoint());
-        LOG.info("RPC server is started successfully");
+                                                   endpoint.getEndpoint());
         return rpcServer;
+    }
+
+    private void shutdownRpcServer() {
+        this.rpcServer.shutdown();
+        PeerId endpoint = this.endpoint();
+        NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
+    }
+
+    private void registerRpcRequestProcessors() {
+        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {

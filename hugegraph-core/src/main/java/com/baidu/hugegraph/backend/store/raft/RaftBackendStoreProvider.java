@@ -158,7 +158,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         for (RaftBackendStore store : this.stores()) {
             store.init();
         }
-        this.notifyAndWaitEvent(Events.STORE_INITED);
+        this.notifyAndWaitEvent(Events.STORE_INIT);
 
         LOG.debug("Graph '{}' store has been initialized", this.graph());
     }
@@ -214,7 +214,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void createSnapshot() {
-        StoreCommand command = new StoreCommand(StoreType.ALL,
+        // TODO: snapshot for StoreType.ALL instead of StoreType.GRAPH
+        StoreCommand command = new StoreCommand(StoreType.GRAPH,
                                                 StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);

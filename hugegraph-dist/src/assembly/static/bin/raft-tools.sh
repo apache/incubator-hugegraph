@@ -14,6 +14,11 @@ LOG_PATH=${HOME_PATH}/logs
 
 . ${BIN_PATH}/util.sh
 
+#export HUGEGRAPH_URL=
+#export HUGEGRAPH_GRAPH=
+#export HUGEGRAPH_USERNAME=
+#export HUGEGRAPH_PASSWORD=
+
 function print_usage() {
     echo "usage: raft-tools.sh [options]"
     echo "options: "
@@ -26,9 +31,6 @@ function print_usage() {
     echo "  -h,--help                                            display help information"
 }
 
-GRAPH="hugegraph"
-ENDPOINT=""
-
 if [[ $# -lt 2 ]]; then
     print_usage
     exit 0
@@ -36,55 +38,57 @@ fi
 
 function list_peers() {
     local graph=$1
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/list_peers
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/list_peers
 
-    curl ${url}
+    curl ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
 
 function get_leader() {
     local graph=$1
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/get_leader
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/get_leader
 
-    curl ${url}
+    curl ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
 
 function set_leader() {
     local graph=$1
     local endpoint=$2
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/set_leader?endpoint=${endpoint}
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/set_leader?endpoint=${endpoint}
 
-    curl -X POST ${url}
+    curl -X POST ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
 
 function transfer_leader() {
     local graph=$1
     local endpoint=$2
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/transfer_leader?endpoint=${endpoint}
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/transfer_leader?endpoint=${endpoint}
 
-    curl -X POST ${url}
+    curl -X POST ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
 
 function add_peer() {
     local graph=$1
     local endpoint=$2
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/add_peer?endpoint=${endpoint}
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/add_peer?endpoint=${endpoint}
 
-    curl -X POST ${url}
+    curl -X POST ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
 
 function remove_peer() {
     local graph=$1
     local endpoint=$2
-    local rest_server_url=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
-    local url=${rest_server_url}/graphs/${graph}/raft/remove_peer?endpoint=${endpoint}
+    local url=${HUGEGRAPH_URL}/graphs/${graph}/raft/remove_peer?endpoint=${endpoint}
 
-    curl -X POST ${url}
+    curl -X POST ${url} --user ${HUGEGRAPH_USERNAME}:${HUGEGRAPH_PASSWORD}
 }
+
+if [ "${HUGEGRAPH_URL}" = "" ]; then
+    HUGEGRAPH_URL=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
+fi
+
+if [ "${HUGEGRAPH_GRAPH}" = "" ]; then
+    HUGEGRAPH_GRAPH="hugegraph"
+fi
 
 case $1 in
     # help

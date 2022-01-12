@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.backend.store.raft;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -36,18 +38,12 @@ import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.cache.Cache;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
@@ -72,78 +68,24 @@ public final class StoreStateMachine extends StateMachineAdapter {
         return this.context.node();
     }
 
-    private void updateCacheIfNeeded(BackendMutation mutation,
-                                     boolean forwarded) {
-        // Update cache only when graph run in general mode
-        if (this.context.graphMode() != GraphMode.NONE) {
-            return;
-        }
-        /*
-         * 1. Follower need to update cache from store to tx
-         * 2. If request come from leader, cache will be updated by upper layer
-         * 3. If request is forwarded by follower, need to update cache
-         */
-        if (!forwarded && this.node().selfIsLeader()) {
-            return;
-        }
-        for (HugeType type : mutation.types()) {
-            List<Id> ids = new ArrayList<>((int) Query.COMMIT_BATCH);
-            if (type.isSchema() || type.isGraph()) {
-                java.util.Iterator<BackendAction> it = mutation.mutation(type);
-                while (it.hasNext()) {
-                    ids.add(it.next().entry().originId());
-                }
-                this.context.notifyCache(Cache.ACTION_INVALID, type, ids);
-            } else {
-                // Ignore other types due to not cached them
-            }
-        }
-    }
-
     @Override
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
-        RaftStoreClosure closure = null;
         List<Future<?>> futures = new ArrayList<>();
         try {
+            // Apply all the logs
             while (iter.hasNext()) {
-                closure = (RaftStoreClosure) iter.done();
+                RaftStoreClosure closure = (RaftStoreClosure) iter.done();
                 if (closure != null) {
-                    // Leader just take it out from the closure
-                    StoreCommand command = closure.command();
-                    BytesBuffer buffer = BytesBuffer.wrap(command.data());
-                    // The first two bytes are StoreType and StoreAction
-                    StoreType type = StoreType.valueOf(buffer.read());
-                    StoreAction action = StoreAction.valueOf(buffer.read());
-                    boolean forwarded = command.forwarded();
-                    // Let the producer thread to handle it
-                    closure.complete(Status.OK(), () -> {
-                        this.applyCommand(type, action, buffer, forwarded);
-                        return null;
-                    });
+                    futures.add(this.onApplyLeader(closure));
                 } else {
-                    // Follower need readMutation data
-                    byte[] bytes = iter.getData().array();
-                    // Let the backend thread do it directly
-                    futures.add(this.context.backendExecutor().submit(() -> {
-                        BytesBuffer buffer = LZ4Util.decompress(bytes,
-                                             RaftSharedContext.BLOCK_SIZE);
-                        buffer.forReadWritten();
-                        StoreType type = StoreType.valueOf(buffer.read());
-                        StoreAction action = StoreAction.valueOf(buffer.read());
-                        try {
-                            this.applyCommand(type, action, buffer, false);
-                        } catch (Throwable e) {
-                            String title = "Failed to execute backend command";
-                            LOG.error("{}: {}", title, action, e);
-                            throw new BackendException(title, e);
-                        }
-                    }));
+                    futures.add(this.onApplyFollower(iter.getData()));
                 }
                 iter.next();
             }
-            // Follower wait tasks finished
+
+            // Wait for all tasks finished
             for (Future<?> future : futures) {
                 future.get();
             }
@@ -152,17 +94,58 @@ public final class StoreStateMachine extends StateMachineAdapter {
             LOG.error("{}", title, e);
             Status status = new Status(RaftError.ESTATEMACHINE,
                                        "%s: %s", title, e.getMessage());
-            if (closure != null) {
-                closure.failure(status, e);
-            }
             // Will cause current node inactive
             // TODO: rollback to correct index
             iter.setErrorAndRollback(1L, status);
         }
     }
 
-    private void applyCommand(StoreType type, StoreAction action,
-                              BytesBuffer buffer, boolean forwarded) {
+    private Future<?> onApplyLeader(RaftStoreClosure closure) {
+        // Leader just take the command out from the closure
+        StoreCommand command = closure.command();
+        BytesBuffer buffer = BytesBuffer.wrap(command.data());
+        // The first two bytes are StoreType and StoreAction
+        StoreType type = StoreType.valueOf(buffer.read());
+        StoreAction action = StoreAction.valueOf(buffer.read());
+        boolean forwarded = command.forwarded();
+        // Let the producer thread to handle it, and wait for it
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        closure.complete(Status.OK(), () -> {
+            Object result;
+            try {
+                result = this.applyCommand(type, action, buffer, forwarded);
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+                throw e;
+            }
+            future.complete(result);
+            return result;
+        });
+        return future;
+    }
+
+    private Future<?> onApplyFollower(ByteBuffer data) {
+        // Follower need to read mutation data
+        byte[] bytes = data.array();
+        // Let the backend thread do it directly
+        return this.context.backendExecutor().submit(() -> {
+            BytesBuffer buffer = LZ4Util.decompress(bytes,
+                                 RaftSharedContext.BLOCK_SIZE);
+            buffer.forReadWritten();
+            StoreType type = StoreType.valueOf(buffer.read());
+            StoreAction action = StoreAction.valueOf(buffer.read());
+            try {
+                return this.applyCommand(type, action, buffer, false);
+            } catch (Throwable e) {
+                String title = "Failed to execute backend command";
+                LOG.error("{}: {}", title, action, e);
+                throw new BackendException(title, e);
+            }
+        });
+    }
+
+    private Object applyCommand(StoreType type, StoreAction action,
+                                BytesBuffer buffer, boolean forwarded) {
         E.checkState(type != StoreType.ALL,
                      "Can't apply command for all store at one time");
         BackendStore store = this.store(type);
@@ -190,7 +173,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 store.beginTx();
                 for (BackendMutation mutation : mutations) {
                     store.mutate(mutation);
-                    this.updateCacheIfNeeded(mutation, forwarded);
+                    this.context.updateCacheIfNeeded(mutation, forwarded);
                 }
                 store.commitTx();
                 break;
@@ -205,6 +188,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
             default:
                 throw new IllegalArgumentException("Invalid action " + action);
         }
+        return null;
     }
 
     @Override

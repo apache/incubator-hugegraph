@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
+      REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
       TRIGGER_BRANCH_NAME: ${{ github.ref_name }}
       HEAD_BRANCH_NAME: ${{ github.head_ref }}
@@ -72,8 +73,13 @@ jobs:
       - name: Run test
         run: |
           $TRAVIS_DIR/run-core-test.sh $BACKEND
-          $TRAVIS_DIR/run-api-test.sh $BACKEND
+          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
+
+      - name: Run Raft test
+        if: ${{ env.BACKEND == 'rocksdb' }}
+        run: |
+          $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
 
       - name: Run TinkerPop test
         if: ${{ env.RELEASE_BRANCH == 'true' }}
@@ -83,4 +89,4 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
-          file: target/site/jacoco/jacoco.xml
+          file: ${{ env.REPORT_DIR }}/*.xml
