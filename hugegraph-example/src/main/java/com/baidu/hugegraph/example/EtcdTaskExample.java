@@ -84,8 +84,11 @@ public class EtcdTaskExample {
 
             
             scheduler.schedule(task);
-            Thread.sleep(10);
+            Thread.sleep(2000);
+            scheduler.cancel(task);
         }
+
+
 
         
         // scheduler.flushAllTask();
