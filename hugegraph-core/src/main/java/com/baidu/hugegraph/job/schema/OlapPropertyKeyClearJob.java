@@ -27,7 +27,7 @@ import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
 
-public class OlapPropertyKeyClearCallable extends IndexLabelRemoveCallable {
+public class OlapPropertyKeyClearJob extends IndexLabelRemoveJob {
 
     @Override
     public String type() {

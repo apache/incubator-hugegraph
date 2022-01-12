@@ -3,6 +3,8 @@ package com.baidu.hugegraph.job.schema;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.slf4j.Logger;
+
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -13,8 +15,9 @@ import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
-public abstract class SchemaCallable extends SysJob<Object> {
+public abstract class SchemaJob extends SysJob<Object> {
 
     public static final String REMOVE_SCHEMA = "remove_schema";
     public static final String REBUILD_INDEX = "rebuild_index";
@@ -22,6 +25,8 @@ public abstract class SchemaCallable extends SysJob<Object> {
     public static final String CREATE_OLAP = "create_olap";
     public static final String CLEAR_OLAP = "clear_olap";
     public static final String REMOVE_OLAP = "remove_olap";
+
+    protected static final Logger LOG = Log.logger(SchemaJob.class);
 
     private static final String SPLITOR = ":";
 

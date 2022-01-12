@@ -41,7 +41,7 @@ import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
-public class RebuildIndexCallable extends SchemaCallable {
+public class IndexLabelRebuildJob extends SchemaJob {
 
     @Override
     public String type() {

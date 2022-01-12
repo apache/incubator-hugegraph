@@ -40,14 +40,14 @@ import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.job.JobBuilder;
-import com.baidu.hugegraph.job.schema.EdgeLabelRemoveCallable;
-import com.baidu.hugegraph.job.schema.IndexLabelRemoveCallable;
-import com.baidu.hugegraph.job.schema.OlapPropertyKeyClearCallable;
-import com.baidu.hugegraph.job.schema.OlapPropertyKeyCreateCallable;
-import com.baidu.hugegraph.job.schema.OlapPropertyKeyRemoveCallable;
-import com.baidu.hugegraph.job.schema.RebuildIndexCallable;
-import com.baidu.hugegraph.job.schema.SchemaCallable;
-import com.baidu.hugegraph.job.schema.VertexLabelRemoveCallable;
+import com.baidu.hugegraph.job.schema.EdgeLabelRemoveJob;
+import com.baidu.hugegraph.job.schema.IndexLabelRebuildJob;
+import com.baidu.hugegraph.job.schema.IndexLabelRemoveJob;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyClearJob;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyCreateJob;
+import com.baidu.hugegraph.job.schema.OlapPropertyKeyRemoveJob;
+import com.baidu.hugegraph.job.schema.SchemaJob;
+import com.baidu.hugegraph.job.schema.VertexLabelRemoveJob;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -200,7 +200,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id removeVertexLabel(Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
-        SchemaCallable callable = new VertexLabelRemoveCallable();
+        SchemaJob callable = new VertexLabelRemoveJob();
         VertexLabel schema = this.getVertexLabel(id);
         return asyncRun(this.graph(), schema, callable);
     }
@@ -226,7 +226,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
-        SchemaCallable callable = new EdgeLabelRemoveCallable();
+        SchemaJob callable = new EdgeLabelRemoveJob();
         EdgeLabel schema = this.getEdgeLabel(id);
         return asyncRun(this.graph(), schema, callable);
     }
@@ -262,7 +262,7 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
-        SchemaCallable callable = new IndexLabelRemoveCallable();
+        SchemaJob callable = new IndexLabelRemoveJob();
         IndexLabel schema = this.getIndexLabel(id);
         return asyncRun(this.graph(), schema, callable);
     }
@@ -276,7 +276,7 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id rebuildIndex(SchemaElement schema, Set<Id> dependencies) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
-        SchemaCallable callable = new RebuildIndexCallable();
+        SchemaJob callable = new IndexLabelRebuildJob();
         return asyncRun(this.graph(), schema, callable, dependencies);
     }
 
@@ -305,21 +305,21 @@ public class SchemaTransaction extends IndexableTransaction {
     public Id createOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyCreateCallable();
+        SchemaJob callable = new OlapPropertyKeyCreateJob();
         return asyncRun(this.graph(), propertyKey, callable);
     }
 
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyClearCallable();
+        SchemaJob callable = new OlapPropertyKeyClearJob();
         return asyncRun(this.graph(), propertyKey, callable);
     }
 
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyRemoveCallable();
+        SchemaJob callable = new OlapPropertyKeyRemoveJob();
         return asyncRun(this.graph(), propertyKey, callable);
     }
 
@@ -543,17 +543,17 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               SchemaCallable callable) {
+                               SchemaJob callable) {
         return asyncRun(graph, schema, callable, ImmutableSet.of());
     }
 
     @Watched(prefix = "schema")
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               SchemaCallable callable, Set<Id> dependencies) {
+                               SchemaJob callable, Set<Id> dependencies) {
         E.checkArgument(schema != null, "Schema can't be null");
-        String name = SchemaCallable.formatTaskName(schema.type(),
-                                                    schema.id(),
-                                                    schema.name());
+        String name = SchemaJob.formatTaskName(schema.type(),
+                                               schema.id(),
+                                               schema.name());
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
                                                .job(callable)
