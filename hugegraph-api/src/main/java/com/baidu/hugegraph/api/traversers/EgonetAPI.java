@@ -60,7 +60,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 
-@Path("graphs/{graph}/traversers/egonet")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/egonet")
 @Singleton
 public class EgonetAPI extends TraverserAPI {
 
@@ -70,6 +70,7 @@ public class EgonetAPI extends TraverserAPI {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String sourceV,
                       @QueryParam("direction") String direction,
@@ -87,14 +88,14 @@ public class EgonetAPI extends TraverserAPI {
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         Set<Id> ids;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
             ids = traverser.kneighbor(source, dir, edgeLabel,
                                       depth, maxDegree, limit);
         }
-        return manager.serializer(g).writeList("vertices", ids);
+        return manager.serializer().writeList("vertices", ids);
     }
 
     @POST
@@ -102,6 +103,7 @@ public class EgonetAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -123,7 +125,7 @@ public class EgonetAPI extends TraverserAPI {
                   request.countOnly, request.withVertex, request.withPath,
                   request.withEdge);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Set<Id> sourcesId = new HashSet<>(8 * request.sources.size());
         for (Object source : request.sources) {
             sourcesId.add(HugeVertex.getIdValue(source));
@@ -179,7 +181,7 @@ public class EgonetAPI extends TraverserAPI {
             }
         }
 
-        return manager.serializer(g)
+        return manager.serializer()
                       .writeNodesWithPath("egonet", new ArrayList<>(neighbors),
                                           size, paths, verticesIter, edgesIter,
                                           null);
