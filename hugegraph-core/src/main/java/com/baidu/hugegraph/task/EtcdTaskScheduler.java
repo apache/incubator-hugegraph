@@ -238,6 +238,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 // Update local cache
                 this.taskMap.put(task.id(), task);
                 this.visitedTasks.add(task.id().asString());
+                // Update retry
+                EtcdTaskScheduler.updateTaskRetry(this.graphSpace(), task);
                 executor.submit(new TaskRunner<>(task, this.graph));
             }
         }
@@ -338,6 +340,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
         if (potential == null) {
             MetaManager manager = MetaManager.instance();
             potential = manager.getTask(this.graphSpace(), id);
+        } else {
+            return potential;
         }
 
         // attach task stored info
@@ -354,6 +358,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
             persisted.priority(potential.priority());
             persisted.progress(potential.progress());
         }
+
+        this.taskMap.put(id, persisted);
 
         return persisted;
     }
@@ -406,6 +412,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             callable.graph(this.graph());
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
             task.status(manager.getTaskStatus(this.graphSpace(), task));
+            task.retries(manager.getTaskRetry(this.graphSpace(), task));
             return task;
         })
         .collect(Collectors.toList());
@@ -426,6 +433,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             task.scheduler(this);
 
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
+            task.retries(manager.getTaskRetry(this.graphSpace(), task));
             TaskStatus now = manager.getTaskStatus(this.graphSpace(), task);
             task.status(now);
         });
@@ -737,6 +745,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return EtcdTaskScheduler.TASK_STATUS_MAP.get(prevStatus).contains(nextStatus);
     }
 
+
+    private static void updateTaskRetry(String graphSpace, HugeTask<?> task) {
+        MetaManager manager = MetaManager.instance();
+        task.retry();
+        manager.updateTaskRetry(graphSpace, task);
+    }
 
     /**
      * Internal TaskUpdater is used to update task status
