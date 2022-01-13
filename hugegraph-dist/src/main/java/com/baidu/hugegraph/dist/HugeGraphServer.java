@@ -60,7 +60,7 @@ public class HugeGraphServer {
                            String graphSpace, String serviceId,
                            String nodeId, String nodeRole,
                            List<String> metaEndpoints, String cluster,
-                           Boolean withCa, String caFile,
+                           String pdPeers, Boolean withCa, String caFile,
                            String clientCaFile, String clientKeyFile)
                            throws Exception {
         // Only switch on security manager after HugeGremlinServer started
@@ -103,6 +103,14 @@ public class HugeGraphServer {
                                      graphSpace);
         restServerConfig.addProperty(ServerOptions.NODE_ID.name(), nodeId);
         restServerConfig.addProperty(ServerOptions.NODE_ROLE.name(), nodeRole);
+        String metaPDPeers = this.metaManager.hstorePDPeers();
+        if (StringUtils.isNotEmpty(metaPDPeers)) {
+            restServerConfig.addProperty(ServerOptions.PD_PEERS.name(),
+                                         metaPDPeers);
+        } else {
+            restServerConfig.addProperty(ServerOptions.PD_PEERS.name(),
+                                         pdPeers);
+        }
         int threads = restServerConfig.get(
                       ServerOptions.SERVER_EVENT_HUB_THREADS);
         EventHub hub = new EventHub("gremlin=>hub<=rest", threads);
@@ -175,9 +183,9 @@ public class HugeGraphServer {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 12) {
+        if (args.length < 13) {
             String msg = "Start HugeGraphServer need to pass parameter's " +
-                         "length >= 12, they are the config files of " +
+                         "length >= 13, they are the config files of " +
                          "GremlinServer and RestServer, for example: " +
                          "conf/gremlin-server.yaml " +
                          "conf/rest-server.properties ......";
@@ -188,13 +196,14 @@ public class HugeGraphServer {
         HugeGraphServer.register();
 
         List<String> metaEndpoints = Arrays.asList(args[6].split(","));
-        Boolean withCa = args[8].equals("true") ? true : false;
+        Boolean withCa = args[9].equals("true") ? true : false;
         HugeGraphServer server = new HugeGraphServer(args[0], args[1],
                                                      args[2], args[3],
                                                      args[4], args[5],
                                                      metaEndpoints, args[7],
-                                                     withCa, args[9],
-                                                     args[10], args[11]);
+                                                     args[8], withCa,
+                                                     args[10], args[11],
+                                                     args[12]);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraphServer stopping");
             server.stop();

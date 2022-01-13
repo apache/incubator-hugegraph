@@ -199,6 +199,14 @@ public class ServerOptions extends OptionHolder {
                     "hg-test"
             );
 
+    public static final ConfigOption<String> PD_PEERS =
+            new ConfigOption<>(
+                    "pd.peers",
+                    "The pd server peers.",
+                    disallowEmpty(),
+                    "127.0.0.1:8686"
+            );
+
     public static final ConfigOption<Boolean> SERVER_USE_K8S =
             new ConfigOption<>(
                     "server.use_k8s",

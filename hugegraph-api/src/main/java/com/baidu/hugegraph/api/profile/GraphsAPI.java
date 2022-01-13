@@ -72,8 +72,7 @@ public class GraphsAPI extends API {
     private static final String CLEAR_SCHEMA = "clear_schema";
     private static final String GRAPH_ACTION_CLEAR = "clear";
     private static final String GRAPH_ACTION_RELOAD = "reload";
-
-    private static final String CONFIRM_DROP = "I'm sure to drop the graph";
+    private static final String GRAPH_DESCRIPTION = "description";
 
     @GET
     @Timed
@@ -119,7 +118,9 @@ public class GraphsAPI extends API {
                   graphSpace, graph);
 
         HugeGraph g = graph(manager, graphSpace, graph);
-        return ImmutableMap.of("name", g.name(), "backend", g.backend());
+        Map<String, Object> configs = manager.graphConfig(graphSpace, graph);
+        return ImmutableMap.of("name", g.name(), "backend", g.backend(),
+                               "description", configs.get(GRAPH_DESCRIPTION));
     }
 
     @POST
@@ -138,7 +139,8 @@ public class GraphsAPI extends API {
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
         graph.tx().close();
-        return ImmutableMap.of("name", name, "backend", graph.backend());
+        return ImmutableMap.of("name", name, "backend", graph.backend(),
+                               "description", configs.get(GRAPH_DESCRIPTION));
     }
 
     @GET
@@ -202,11 +204,8 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin", "$dynamic"})
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
-                       @PathParam("graphspace") String graphSpace,
-                       @QueryParam("confirm_message") String message) {
+                       @PathParam("graphspace") String graphSpace) {
         LOG.debug("Remove graph by name '{}'", name);
-        E.checkArgument(CONFIRM_DROP.equals(message),
-                        "Please take the message: %s", CONFIRM_DROP);
         manager.dropGraph(graphSpace, name, true);
     }
 

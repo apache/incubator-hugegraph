@@ -62,18 +62,12 @@ public class GraphSpaceAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String GRAPH_SPACE_ACTION = "action";
-    private static final String CONFIRM_MESSAGE = "confirm_message";
     private static final String UPDATE = "update";
     private static final String GRAPH_SPACE_ACTION_CLEAR = "clear";
-
-    private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
-    private static final String CONFIRM_DROP =
-                                "I'm sure to drop the graph space";
 
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$dynamic"})
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
         LOG.debug("List all graph spaces");
@@ -98,6 +92,7 @@ public class GraphSpaceAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
     public String create(@Context GraphManager manager,
                          JsonGraphSpace jsonGraphSpace) {
         LOG.debug("Create graph space: '{}'", jsonGraphSpace);
@@ -215,16 +210,6 @@ public class GraphSpaceAPI extends API {
             case GRAPH_SPACE_ACTION_CLEAR:
                 LOG.debug("Clear graph space: '{}'", name);
 
-                E.checkArgument(actionMap.containsKey(CONFIRM_MESSAGE),
-                                "Please pass '%s' for graph space clear",
-                                CONFIRM_MESSAGE);
-                value = actionMap.get(CONFIRM_MESSAGE);
-                E.checkArgument(value instanceof String,
-                                "The '%s' must be string, but got %s",
-                                CONFIRM_MESSAGE, value.getClass());
-                String message = (String) value;
-                E.checkArgument(CONFIRM_CLEAR.equals(message),
-                                "Please take the message: %s", CONFIRM_CLEAR);
                 manager.clearGraphSpace(name);
                 return ImmutableMap.of(name, "cleared");
             default:
@@ -239,12 +224,9 @@ public class GraphSpaceAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
-                       @PathParam("name") String name,
-                       @QueryParam("confirm_message") String message) {
+                       @PathParam("name") String name) {
         LOG.debug("Remove graph space by name '{}'", name);
 
-        E.checkArgument(CONFIRM_DROP.equals(message),
-                        "Please take the message: %s", CONFIRM_DROP);
         manager.dropGraphSpace(name);
     }
 

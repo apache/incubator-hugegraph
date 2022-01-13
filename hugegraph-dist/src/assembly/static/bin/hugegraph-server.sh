@@ -10,7 +10,7 @@ abs_path() {
     echo "$(cd -P "$(dirname "$SOURCE")" && pwd)"
 }
 
-if [[ $# -lt 13 ]]; then
+if [[ $# -lt 14 ]]; then
     echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF OPEN_SECURITY_CHECK"
     echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties true"
     exit 1;
@@ -38,21 +38,22 @@ NODE_ID="$5"
 NODE_ROLE="$6"
 META_SERVERS="$7"
 CLUSTER="$8"
-WITH_CA="$9"
-CA_FILE="${10}"
-CLIENT_CA="${11}"
-CLIENT_KEY="${12}"
-OPEN_SECURITY_CHECK="${13}"
+PD_PEERS="$9"
+WITH_CA="${10}"
+CA_FILE="${11}"
+CLIENT_CA="${12}"
+CLIENT_KEY="${13}"
+OPEN_SECURITY_CHECK="${14}"
 
-if [[ $# -eq 13 ]]; then
+if [[ $# -eq 14 ]]; then
     USER_OPTION=""
     GC_OPTION=""
-elif [[ $# -eq 14 ]]; then
-    USER_OPTION="${14}"
-    GC_OPTION=""
 elif [[ $# -eq 15 ]]; then
-    USER_OPTION="${14}"
-    GC_OPTION="${15}"
+    USER_OPTION="${15}"
+    GC_OPTION=""
+elif [[ $# -eq 16 ]]; then
+    USER_OPTION="${15}"
+    GC_OPTION="${16}"
 fi
 
 ensure_path_writable $LOGS
@@ -138,5 +139,5 @@ fi
 # Turn on security check
 exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
      -cp ${CLASSPATH}: com.baidu.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
-     ${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} ${CLUSTER} ${WITH_CA} ${CA_FILE} \
+     ${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} ${CLUSTER} ${PD_PEERS} ${WITH_CA} ${CA_FILE} \
      ${CLIENT_CA} ${CLIENT_KEY} >> ${OUTPUT} 2>&1

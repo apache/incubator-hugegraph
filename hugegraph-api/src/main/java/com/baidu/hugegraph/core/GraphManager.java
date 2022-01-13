@@ -122,6 +122,7 @@ public final class GraphManager {
     private final String serviceID;
     private final String nodeId;
     private final String nodeRole;
+    private final String pdPeers;
 
     private final EventHub eventHub;
 
@@ -155,6 +156,7 @@ public final class GraphManager {
         this.serviceID = conf.get(ServerOptions.SERVICE_ID);
         this.nodeId = conf.get(ServerOptions.NODE_ID);
         this.nodeRole = conf.get(ServerOptions.NODE_ROLE);
+        this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
         this.listenChanges();
 
@@ -575,6 +577,7 @@ public final class GraphManager {
         E.checkArgument(!this.graphs(graphSpace).contains(name),
                         "The graph name '%s' has existed", name);
 
+        configs.put(ServerOptions.PD_PEERS.name(), this.pdPeers);
         Configuration propConfig = this.buildConfig(configs);
         String storeName = propConfig.getString(CoreOptions.STORE.name());
         E.checkArgument(name.equals(storeName),
@@ -1308,5 +1311,10 @@ public final class GraphManager {
         } catch (Exception e) {
             LOG.warn("The graph not exist or local graph");
         }
+    }
+
+    public Map<String, Object> graphConfig(String graphSpace,
+                                           String graphName) {
+        return this.metaManager.getGraphConfig(graphSpace, graphName);
     }
 }

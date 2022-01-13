@@ -37,6 +37,9 @@ fi
 if [ -z "$CLUSTER" ];then
   CLUSTER="hg"
 fi
+if [ -z "$PD_PEERS" ];then
+  PD_PEERS="http://127.0.0.1:8686"
+fi
 if [ -z "$WITH_CA" ];then
   WITH_CA="false"
 fi
@@ -50,7 +53,7 @@ if [ -z "$CLIENT_KEY" ];then
   CLIENT_KEY="conf/client.key"
 fi
 
-while getopts "g:m:s:j:G:S:N:R:M:E:W:C:A:K:v" arg; do
+while getopts "g:m:s:j:G:S:N:R:M:E:W:C:A:K:P:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
@@ -62,6 +65,7 @@ while getopts "g:m:s:j:G:S:N:R:M:E:W:C:A:K:v" arg; do
         R) NODE_ROLE="$OPTARG" ;;
         M) META_SERVERS="$OPTARG" ;;
         E) CLUSTER="$OPTARG" ;;
+        P) PD_PEERS="$OPTARG" ;;
         W) WITH_CA="$OPTARG" ;;
         C) CA_FILE="$OPTARG" ;;
         A) CLIENT_CA="$OPTARG" ;;
@@ -128,7 +132,7 @@ echo "Starting HugeGraphServer..."
 
 ${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \
 ${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} \
-${CLUSTER} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY} \
+${CLUSTER} ${PD_PEERS} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY} \
 ${OPEN_SECURITY_CHECK} ${USER_OPTION} ${GC_OPTION} >>${LOGS}/hugegraph-server.log 2>&1 &
 
 PID="$!"
