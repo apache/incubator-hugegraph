@@ -1604,6 +1604,15 @@ public class MetaManager {
         return map;
     }
 
+    public List<String> listTasks(String graphSpace) {
+        List<String> tasks = new ArrayList<>();
+        for (TaskPriority priority : TaskPriority.values()) {
+            List<String> subTasks = this.listTasks(graphSpace, priority);
+            tasks.addAll(subTasks);
+        }
+        return tasks;
+    }
+
     public List<String> listTasks(String graphSpace, TaskPriority priority) {
         String key = taskListKey(graphSpace, priority.toString());
 
