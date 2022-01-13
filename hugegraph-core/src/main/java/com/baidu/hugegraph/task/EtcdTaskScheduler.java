@@ -286,6 +286,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
         E.checkArgumentNotNull(task, "Task can't be null");
         try {
             EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.CANCELLING);
+            task.cancel(true);
         } catch (Throwable e) {
 
         }
