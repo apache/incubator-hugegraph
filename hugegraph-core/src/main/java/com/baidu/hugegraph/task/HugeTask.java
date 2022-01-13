@@ -211,6 +211,10 @@ public class HugeTask<V> extends FutureTask<V> {
         ++this.retries;
     }
 
+    public void retries(int retry) {
+        this.retries = retry;
+    }
+
     public int retries() {
         return this.retries;
     }
