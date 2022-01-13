@@ -72,7 +72,7 @@ public class EtcdTaskExample {
 
     public static void testTask(HugeGraph graph) throws InterruptedException {
         TaskScheduler scheduler = graph.taskScheduler();
-
+        
         scheduler.restoreTasks();
         
         scheduler.flushAllTask();
@@ -94,20 +94,18 @@ public class EtcdTaskExample {
             scheduler.schedule(task);
         }
 
-        // wait 3 sec
-        Thread.sleep(TestTaskSample.UNIT * 30);
-            
-        
 
-        System.out.println("======> Pending task count " + scheduler.pendingTasks());
-    // list the success tasks
+        // wait 30 sec
+        Thread.sleep(TestTaskSample.UNIT * 30);
+
         Iterator<HugeTask<Object>> iter;
-        iter = scheduler.tasks(TaskStatus.QUEUED, -1, null);
+        iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
         while(iter.hasNext()) {
             HugeTask<?> task = iter.next();
             System.out.println(String.format("===========> queued task %s ", task.id().asString()));
             // scheduler.cancel(task);
         }
+
     }
 
     /**
