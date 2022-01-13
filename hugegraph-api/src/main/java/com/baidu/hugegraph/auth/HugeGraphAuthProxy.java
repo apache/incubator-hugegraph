@@ -108,8 +108,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
-    // TODO: Auth with authManager
-    // private final AuthManagerProxy authManager;
+    private AuthManager authManager;
 
     public HugeGraphAuthProxy(HugeGraph hugegraph) {
         LOG.info("Wrap graph '{}' with HugeGraphAuthProxy", hugegraph.name());
@@ -689,14 +688,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public AuthManager authManager() {
-        // Just return proxy
-        return null;
+        return this.authManager;
     }
 
     @Override
     public void switchAuthManager(AuthManager authManager) {
-        this.verifyAdminPermission();
-        //this.authManager.switchAuthManager(authManager);
+        this.authManager = authManager;
     }
 
     @Override
@@ -704,13 +701,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.verifyAdminPermission();
         return this.hugegraph.raftGroupManager(group);
     }
-
-    /*@Override
-    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
-                                    RpcServiceConfig4Client clientConfig) {
-        this.verifyAdminPermission();
-        this.hugegraph.registerRpcServices(serverConfig, clientConfig);
-    }*/
 
     @Override
     public void initBackend() {
@@ -727,31 +717,13 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     @Override
     public void truncateBackend() {
         this.verifyAdminPermission();
-        AuthManager userManager = this.hugegraph.authManager();
-        HugeUser admin = userManager.findUser(HugeAuthenticator.USER_ADMIN, false);
-        try {
-            this.hugegraph.truncateBackend();
-        } finally {
-            if (admin != null && StandardAuthManager.isLocal(userManager)) {
-                // Restore admin user to continue to do any operation
-                userManager.createUser(admin, false);
-            }
-        }
+        this.hugegraph.truncateBackend();
     }
 
     @Override
     public void truncateGraph() {
         this.verifyAdminPermission();
-        AuthManager userManager = this.hugegraph.authManager();
-        HugeUser admin = userManager.findUser(HugeAuthenticator.USER_ADMIN, false);
-        try {
-            this.hugegraph.truncateGraph();
-        } finally {
-            if (admin != null && StandardAuthManager.isLocal(userManager)) {
-                // Restore admin user to continue to do any operation
-                userManager.createUser(admin, false);
-            }
-        }
+        this.hugegraph.truncateGraph();
     }
 
     @Override
@@ -959,8 +931,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         // Verify permission for one access another, like: granted <= user role
         else if (ro.type().isGrantOrUser()) {
             AuthElement element = (AuthElement) ro.operated();
-            RolePermission grant = this.hugegraph.authManager()
-                                                 .rolePermission(element);
+            RolePermission grant = this.authManager().rolePermission(element);
             if (!RolePerm.match(role, grant, ro)) {
                 result = null;
             }
