@@ -1,4 +1,11 @@
-# HugeGraph
+<div align="center">
+    <img width="720" alt="hugegraph-logo" src="https://user-images.githubusercontent.com/17706099/149281100-c296db08-2861-4174-a31f-e2a92ebeeb72.png" style="zoom:100%;" />
+</div>
+
+<p align="center">
+    A graph database that supports more than 10+ billion data, high performance and scalability
+</p>
+<hr/>
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Build Status](https://github.com/hugegraph/hugegraph/actions/workflows/ci.yml/badge.svg)](https://github.com/hugegraph/hugegraph/actions/workflows/ci.yml)
@@ -15,9 +22,9 @@ HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipe
 - Plug-in Backend Store Driver Framework, supporting RocksDB, Cassandra, ScyllaDB, HBase and MySQL now and easy to add other backend store driver if needed
 - Integration with Hadoop/Spark
 
-## Learn More
+## Getting Started
 
-The [project homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to documentation, getting-started guides and release downloads.
+The project [homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to **documentation**, getting-started guides and release downloads.
 
 ## Contributing
 
