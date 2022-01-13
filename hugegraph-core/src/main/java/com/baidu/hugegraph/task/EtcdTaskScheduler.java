@@ -37,6 +37,7 @@ import javax.ws.rs.NotFoundException;
 import com.alipay.remoting.util.ConcurrentHashSet;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
@@ -50,6 +51,8 @@ import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.ExecutorUtil;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 /**
  * EtcdTaskScheduler handle the distributed task by etcd
@@ -307,7 +310,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
     public <V> HugeTask<V> delete(Id id, boolean force) {
         MetaManager manager = MetaManager.instance();
 
-        HugeTask<V> task = manager.getTask(this.graphSpace(), TaskPriority.NORMAL, id);
+        HugeTask<V> task = manager.getTask(this.graphSpace(), id);
         if (null != task) {
             manager.deleteTask(this.graphSpace(), task); 
         }
@@ -330,33 +333,51 @@ public class EtcdTaskScheduler extends TaskScheduler {
          * for case 2, we grab the basic info and update related info, like status & progress
          * for case 3, we load everything from etcd and cached the snapshot locally for further use 
         */
-        HugeTask<?> potential = this.taskMap.get(id);
-        if (potential != null) {
-            return (HugeTask<V>)potential;
+        HugeTask<V> potential = (HugeTask<V>)this.taskMap.get(id);
+        if (potential == null) {
+            MetaManager manager = MetaManager.instance();
+            potential = manager.getTask(this.graphSpace(), id);
         }
 
-        MetaManager manager = MetaManager.instance();
-        return manager.getTask(this.graphSpace(), id);
+        // attach task stored info
+        HugeTask<V> persisted = this.call(() -> {
+            Iterator<Vertex> vertices = this.tx().queryVertices(id);
+            Vertex vertex = QueryResults.one(vertices);
+            if (vertex == null) {
+                return null;
+            }
+            return HugeTask.fromVertex(vertex);
+        });
+        if (null != persisted && null != potential) {
+            persisted.status(potential.status());
+            persisted.priority(potential.priority());
+            persisted.progress(potential.progress());
+        }
+
+        return persisted;
     }
 
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
+        Set<Id> idSet = new HashSet<>(ids); 
         MetaManager manager = MetaManager.instance();
-        List<String> allTasks = manager.listTasks(this.graphSpace(), TaskPriority.NORMAL);
+        List<String> allTasks = manager.listTasks(this.graphSpace());
         
         List<HugeTask<V>> tasks = allTasks.stream().map((jsonStr) -> {
             HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            return task;
+        })
+        .filter((task) -> idSet.contains(task.id()))
+        .map((task) -> {
             // Attach callable info
             TaskCallable<?> callable = task.callable();
             // Attach graph info
             callable.graph(this.graph());
-
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
-
             task.status(manager.getTaskStatus(this.graphSpace(), task));
-            
             return task;
-        }).collect(Collectors.toList());
+        })
+        .collect(Collectors.toList());
 
         Iterator<HugeTask<V>> iterator = tasks.iterator();
         return iterator;
@@ -514,7 +535,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
-        Thread ct = Thread.currentThread();
         task.scheduler(this);
         task.status(TaskStatus.SCHEDULING);
 
