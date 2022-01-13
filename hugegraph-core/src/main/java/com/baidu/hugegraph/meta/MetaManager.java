@@ -1612,6 +1612,16 @@ public class MetaManager {
 
         return taskMap.values().stream().collect(Collectors.toList());
     }
+
+    public <V> HugeTask<V> getTask(String graphSpace, Id id) {
+        for (TaskPriority priority : TaskPriority.values()) {
+            HugeTask<V> actual = this.getTask(graphSpace, priority, id);
+            if (actual != null) {
+                return actual;
+            }
+        }
+        return null;
+    }
     
     /**
      * 

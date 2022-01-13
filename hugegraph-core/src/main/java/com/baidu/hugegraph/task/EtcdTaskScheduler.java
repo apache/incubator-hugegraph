@@ -19,18 +19,13 @@
 
 package com.baidu.hugegraph.task;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -335,8 +330,13 @@ public class EtcdTaskScheduler extends TaskScheduler {
          * for case 2, we grab the basic info and update related info, like status & progress
          * for case 3, we load everything from etcd and cached the snapshot locally for further use 
         */
+        HugeTask<?> potential = this.taskMap.get(id);
+        if (potential != null) {
+            return (HugeTask<V>)potential;
+        }
 
-        return null;
+        MetaManager manager = MetaManager.instance();
+        return manager.getTask(this.graphSpace(), id);
     }
 
     @Override
