@@ -41,6 +41,7 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.meta.lock.LockResult;
@@ -357,6 +358,36 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return persisted;
     }
 
+    private <V> Iterator<HugeTask<V>> attachTaskContent(List<HugeTask<V>> tasks) {
+        return this.call(() -> {
+            if (0 == tasks.size()) {
+                return tasks.iterator();
+            }
+            Object[] idArray = tasks
+                .stream()
+                .map(HugeTask<V>::id)
+                .collect(Collectors.toList())
+                .toArray();
+
+            Map<Id, HugeTask<V>> taskMap = tasks
+                .stream()
+                .collect(Collectors.toMap(HugeTask<V>::id, v -> v));
+            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
+            Iterator<HugeTask<V>> localTasks =
+                    new MapperIterator<>(vertices, HugeTask::fromVertex);
+
+            localTasks.forEachRemaining((HugeTask<V> current) -> {
+                HugeTask<V> persisted = taskMap.get(current.id());
+                if (null != persisted) {
+                    current.status(persisted.status());
+                    current.priority(persisted.priority());
+                    current.progress(persisted.progress());
+                }
+            });
+            return QueryResults.toList(localTasks);
+        });
+    }
+
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
         Set<Id> idSet = new HashSet<>(ids); 
@@ -398,7 +429,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
             TaskStatus now = manager.getTaskStatus(this.graphSpace(), task);
             task.status(now);
         });
-        Iterator<HugeTask<V>> iterator = tasks.iterator();
+        
+        Iterator<HugeTask<V>> iterator = this.attachTaskContent(tasks);
         return iterator;
     }
 
