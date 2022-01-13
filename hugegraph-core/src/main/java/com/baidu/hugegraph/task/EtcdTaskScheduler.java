@@ -50,6 +50,7 @@ import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.ExecutorUtil;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -364,36 +365,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return persisted;
     }
 
-    private <V> Iterator<HugeTask<V>> attachTaskContent(List<HugeTask<V>> tasks) {
-        return this.call(() -> {
-            if (0 == tasks.size()) {
-                return tasks.iterator();
-            }
-            Object[] idArray = tasks
-                .stream()
-                .map(HugeTask<V>::id)
-                .collect(Collectors.toList())
-                .toArray();
-
-            Map<Id, HugeTask<V>> taskMap = tasks
-                .stream()
-                .collect(Collectors.toMap(HugeTask<V>::id, v -> v));
-            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-            Iterator<HugeTask<V>> localTasks =
-                    new MapperIterator<>(vertices, HugeTask::fromVertex);
-
-            localTasks.forEachRemaining((HugeTask<V> current) -> {
-                HugeTask<V> persisted = taskMap.get(current.id());
-                if (null != persisted) {
-                    current.status(persisted.status());
-                    current.priority(persisted.priority());
-                    current.progress(persisted.progress());
-                }
-            });
-            return QueryResults.toList(localTasks);
-        });
-    }
-
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
         Set<Id> idSet = new HashSet<>(ids); 
@@ -438,8 +409,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             task.status(now);
         });
         
-        Iterator<HugeTask<V>> iterator = this.attachTaskContent(tasks);
-        return iterator;
+        return tasks.iterator();
     }
 
     @Override
@@ -703,7 +673,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
             try {
                 System.out.println("====> consumer runner thread: " + ct.getId() + " - " + ct.getName());
 
-
                 TaskStatus etcdStatus = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
                 if (TaskStatus.COMPLETED_STATUSES.contains(etcdStatus)) {
                     System.out.println("====> task is complete! consumer runner finished: " + ct.getId());
@@ -728,6 +697,11 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
 
                 this.task.run();
+                String result = task.result();
+
+                if (!Strings.isNullOrEmpty(result) ) {
+                    task.scheduler().save(task);
+                }
                 EtcdTaskScheduler.updateTaskProgress(graphSpace, task, task.progress());
                 EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.SUCCESS);
                 
@@ -867,7 +841,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     callable.graph(this.graph());
                     // Update status to queued
                     this.taskMap.put(task.id(), task);
-
+                    task.scheduler(this);
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                     // run it
                     executor.submit(new TaskRunner<>(task, this.graph));

@@ -102,7 +102,7 @@ public class EtcdTaskExample {
         iter = scheduler.tasks(TaskStatus.SUCCESS, -1, null);
         while(iter.hasNext()) {
             HugeTask<?> task = iter.next();
-            System.out.println(String.format("===========> queued task %s ", task.id().asString()));
+            System.out.println(String.format("===========> task %s - result: %s", task.id().asString(), task.result()));
             // scheduler.cancel(task);
         }
 
@@ -140,13 +140,17 @@ public class EtcdTaskExample {
         public Integer execute() throws Exception {
             System.out.println(">>>>====>>>> test task " + this.task().id().asString() + "  is running by " + Thread.currentThread().getId() + " " + Thread.currentThread().getName());
             int input = Integer.valueOf(this.task().input());
+            int result = 13;
             for (int i = this.task().progress(); i <= input && this.run; i++) {
 
                 System.out.println(">>>> progress " + i);
                 this.task().progress(i);
-                this.graph().taskScheduler().save(this.task());
+
                 Thread.sleep(UNIT);
+                result += i;
             }
+            this.task().result(TaskStatus.SUCCESS, String.valueOf(result));
+            this.graph().taskScheduler().save(this.task());
             return 18;
         }
 
