@@ -41,6 +41,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -119,8 +120,12 @@ public class GraphsAPI extends API {
 
         HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> configs = manager.graphConfig(graphSpace, graph);
+        String description = (String) configs.get(GRAPH_DESCRIPTION);
+        if (description == null) {
+            description = Strings.EMPTY;
+        }
         return ImmutableMap.of("name", g.name(), "backend", g.backend(),
-                               "description", configs.get(GRAPH_DESCRIPTION));
+                               "description", description);
     }
 
     @POST
@@ -139,8 +144,12 @@ public class GraphsAPI extends API {
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
         graph.tx().close();
+        String description = (String) configs.get(GRAPH_DESCRIPTION);
+        if (description == null) {
+            description = Strings.EMPTY;
+        }
         return ImmutableMap.of("name", name, "backend", graph.backend(),
-                               "description", configs.get(GRAPH_DESCRIPTION));
+                               "description", description);
     }
 
     @GET
