@@ -128,6 +128,7 @@ public final class GraphManager {
 
     private final Id serverId;
     private final NodeRole serverRole;
+    private final String url;
 
     private HugeConfig config;
 
@@ -136,6 +137,7 @@ public final class GraphManager {
         this.config = conf;
         String server = conf.get(ServerOptions.SERVER_ID);
         String role = conf.get(ServerOptions.SERVER_ROLE);
+        this.url = conf.get(ServerOptions.REST_SERVER_URL);
         this.startIgnoreSingleGraphError = conf.get(
                 ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
         E.checkArgument(server != null && !server.isEmpty(),
@@ -336,6 +338,16 @@ public final class GraphManager {
                 this.services.put(serviceName(graphSpace, entry.getKey()),
                                   entry.getValue());
             }
+        }
+        if (!this.services.containsKey(this.serviceID)) {
+            Service service = new Service(this.serviceID,
+                                          Service.ServiceType.OLTP,
+                                          Service.DeploymentType.MANUAL);
+            service.description(service.name());
+            service.url(this.url);
+            this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
+            this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
+                                              this.serviceID);
         }
     }
 

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -35,6 +36,10 @@ import com.baidu.hugegraph.util.Log;
 
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSourceBuilder;
+import io.fabric8.kubernetes.api.model.EnvVarSource;
+import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
+import io.fabric8.kubernetes.api.model.HTTPGetAction;
+import io.fabric8.kubernetes.api.model.HTTPGetActionBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.api.model.Namespace;
@@ -58,16 +63,39 @@ public class K8sDriver {
 
     protected static final Logger LOG = Log.logger(K8sDriver.class);
 
-    public static final String DELIMETER = "-";
+    private static final String DELIMETER = "-";
+    private static final String COLON = ":";
+    private static final String COMMA = ",";
 
     private static final String CONTAINER = "container";
     private static final String APP = "app";
     private static final String PORT_SUFFIX = "-port";
     private static final String TCP = "TCP";
+
     private static final String CLUSTER_IP = "ClusterIP";
     private static final String LOAD_BALANCER = "LoadBalancer";
     private static final String NODE_PORT = "NodePort";
     private static final int HG_PORT = 8080;
+
+    private static final String CPU = "cpu";
+    private static final String MEMORY = "memory";
+    private static final String CPU_UNIT = "m";
+    private static final String MEMORY_UNIT = "G";
+
+    private static final String HEALTH_CHECK_API = "/versions";
+
+    private static final String CA_CONFIG_MAP_NAME = "hg-ca";
+
+    private static final String GRAPH_SPACE = "GRAPH_SPACE";
+    private static final String SERVICE_ID = "SERVICE_ID";
+    private static final String META_SERVERS = "META_SERVERS";
+    private static final String CLUSTER = "CLUSTER";
+
+    private static final String MY_NODE_NAME = "MY_NODE_NAME";
+    private static final String MY_POD_IP = "MY_POD_IP";
+    private static final String MY_NODE_PORT = "MY_NODE_PORT";
+    private static final String SPEC_NODE_NAME = "spec.nodeName";
+    private static final String STATUS_POD_IP = "status.podIP";
 
     private KubernetesClient client;
 
@@ -187,8 +215,9 @@ public class K8sDriver {
                                         Service service,
                                         List<String> metaServers,
                                         String cluster) {
-        this.createDeployment(graphSpace, service, metaServers, cluster);
-        return this.createService(graphSpace, service);
+        Set<String> urls = this.createService(graphSpace, service);
+        this.createDeployment(graphSpace, service, metaServers, cluster, urls);
+        return urls;
     }
 
     public void stopOltpService(GraphSpace graphSpace, Service service) {
@@ -200,9 +229,10 @@ public class K8sDriver {
 
     public Deployment createDeployment(GraphSpace graphSpace, Service service,
                                        List<String> metaServers,
-                                       String cluster) {
+                                       String cluster, Set<String> urls) {
         Deployment deployment = this.constructDeployment(graphSpace, service,
-                                                         metaServers, cluster);
+                                                         metaServers, cluster,
+                                                         urls);
         String namespace = namespace(graphSpace, service);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
@@ -230,22 +260,40 @@ public class K8sDriver {
         String portName = serviceName + PORT_SUFFIX;
         io.fabric8.kubernetes.api.model.Service service;
         if (NODE_PORT.equals(svc.routeType())) {
-            service = new ServiceBuilder()
-                    .withNewMetadata()
-                    .withName(serviceName)
-                    .endMetadata()
-                    .withNewSpec()
-                    .withSelector(Collections.singletonMap(APP, serviceName))
-                    .addNewPort()
-                    .withName(portName)
-                    .withProtocol(TCP)
-                    .withPort(HG_PORT)
-                    .withTargetPort(new IntOrString(HG_PORT))
-                    .withNodePort(svc.port())
-                    .endPort()
-                    .withType(NODE_PORT)
-                    .endSpec()
-                    .build();
+            if (svc.port() != 0) {
+                service = new ServiceBuilder()
+                        .withNewMetadata()
+                        .withName(serviceName)
+                        .endMetadata()
+                        .withNewSpec()
+                        .withSelector(Collections.singletonMap(APP, serviceName))
+                        .addNewPort()
+                        .withName(portName)
+                        .withProtocol(TCP)
+                        .withPort(HG_PORT)
+                        .withTargetPort(new IntOrString(HG_PORT))
+                        .withNodePort(svc.port())
+                        .endPort()
+                        .withType(NODE_PORT)
+                        .endSpec()
+                        .build();
+            } else {
+                service = new ServiceBuilder()
+                        .withNewMetadata()
+                        .withName(serviceName)
+                        .endMetadata()
+                        .withNewSpec()
+                        .withSelector(Collections.singletonMap(APP, serviceName))
+                        .addNewPort()
+                        .withName(portName)
+                        .withProtocol(TCP)
+                        .withPort(HG_PORT)
+                        .withTargetPort(new IntOrString(HG_PORT))
+                        .endPort()
+                        .withType(NODE_PORT)
+                        .endSpec()
+                        .build();
+            }
         } else {
             service = new ServiceBuilder()
                     .withNewMetadata()
@@ -279,7 +327,7 @@ public class K8sDriver {
         Set<String> urls = new HashSet<>();
         String clusterIP = service.getSpec().getClusterIP();
         for (ServicePort port : service.getSpec().getPorts()) {
-            urls.add(clusterIP + ":" + port.getPort());
+            urls.add(clusterIP + COLON + port.getNodePort());
         }
         return urls;
     }
@@ -287,22 +335,44 @@ public class K8sDriver {
     private Deployment constructDeployment(GraphSpace graphSpace,
                                            Service service,
                                            List<String> metaServers,
-                                           String cluster) {
+                                           String cluster, Set<String> urls) {
         String deploymentName = deploymentName(graphSpace, service);
         String containerName = String.join(DELIMETER, deploymentName,
                                            CONTAINER);
-        Quantity cpu = Quantity.parse((service.cpuLimit() * 1000) + "m");
-        Quantity memory = Quantity.parse(service.memoryLimit() + "G");
+        Quantity cpu = Quantity.parse((service.cpuLimit() * 1000) + CPU_UNIT);
+        Quantity memory = Quantity.parse(service.memoryLimit() + MEMORY_UNIT);
         ResourceRequirements rr = new ResourceRequirementsBuilder()
-                .addToLimits("cpu", cpu)
-                .addToLimits("memory", memory)
+                .addToLimits(CPU, cpu)
+                .addToLimits(MEMORY, memory)
+                .build();
+
+        HTTPGetAction readyProbeAction = new HTTPGetActionBuilder()
+                .withPath(HEALTH_CHECK_API)
+                .withPort(new IntOrString(HG_PORT))
                 .build();
 
         ConfigMapVolumeSource cmvs = new ConfigMapVolumeSourceBuilder()
-                .withName("hg-ca")
+                .withName(CA_CONFIG_MAP_NAME)
                 .build();
 
         String metaServersString = metaServers(metaServers);
+
+        EnvVarSource nodeIP = new EnvVarSourceBuilder()
+                .withNewFieldRef()
+                .withFieldPath(SPEC_NODE_NAME)
+                .endFieldRef()
+                .build();
+        EnvVarSource podIP = new EnvVarSourceBuilder()
+                .withNewFieldRef()
+                .withFieldPath(STATUS_POD_IP)
+                .endFieldRef()
+                .build();
+
+        String nodePort = Strings.EMPTY;
+        if (!urls.isEmpty()) {
+            String[] parts = urls.iterator().next().split(COLON);
+            nodePort = parts[parts.length - 1];
+        }
 
         return new DeploymentBuilder()
 
@@ -326,36 +396,54 @@ public class K8sDriver {
                 .withImage(this.image(service))
                 .withResources(rr)
 
+                .withNewReadinessProbe()
+                .withHttpGet(readyProbeAction)
+                .withInitialDelaySeconds(30)
+                .withPeriodSeconds(5)
+                .endReadinessProbe()
+
                 .addNewPort()
                 .withContainerPort(HG_PORT)
                 .endPort()
 
                 .addNewVolumeMount()
-                .withName("hg-ca")
-                .withMountPath("/hg-ca")
+                .withName(CA_CONFIG_MAP_NAME)
+                .withMountPath(CA_CONFIG_MAP_NAME)
                 .endVolumeMount()
 
                 .addNewEnv()
-                .withName("GRAPH_SPACE")
+                .withName(GRAPH_SPACE)
                 .withValue(graphSpace.name())
                 .endEnv()
                 .addNewEnv()
-                .withName("SERVICE_ID")
+                .withName(SERVICE_ID)
                 .withValue(service.name())
                 .endEnv()
                 .addNewEnv()
-                .withName("META_SERVERS")
+                .withName(META_SERVERS)
                 .withValue(metaServersString)
                 .endEnv()
                 .addNewEnv()
-                .withName("CLUSTER")
+                .withName(CLUSTER)
                 .withValue(cluster)
+                .endEnv()
+                .addNewEnv()
+                .withName(MY_NODE_NAME)
+                .withValueFrom(nodeIP)
+                .endEnv()
+                .addNewEnv()
+                .withName(MY_POD_IP)
+                .withValueFrom(podIP)
+                .endEnv()
+                .addNewEnv()
+                .withName(MY_NODE_PORT)
+                .withValue(nodePort)
                 .endEnv()
 
                 .endContainer()
 
                 .addNewVolume()
-                .withName("hg-ca")
+                .withName(CA_CONFIG_MAP_NAME)
                 .withConfigMap(cmvs)
                 .endVolume()
 
@@ -373,7 +461,7 @@ public class K8sDriver {
         for (int i = 0; i < metaServers.size(); i++) {
             builder.append(metaServers.get(i));
             if (i != metaServers.size() - 1) {
-                builder.append(",");
+                builder.append(COMMA);
             }
         }
         return builder.toString();

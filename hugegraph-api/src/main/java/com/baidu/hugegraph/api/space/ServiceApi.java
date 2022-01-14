@@ -200,11 +200,6 @@ public class ServiceApi extends API {
                                 CLUSTER_IP.equals(this.routeType) ||
                                 LOAD_BALANCER.equals(this.routeType),
                                 "Invalid route type '%s'", this.routeType);
-                if (isNodePort(this.routeType)) {
-                    E.checkArgument(this.port > 0,
-                                    "The port must be > 0, but got: %s",
-                                    this.port);
-                }
             }
         }
 

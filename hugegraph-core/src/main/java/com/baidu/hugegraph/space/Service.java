@@ -31,8 +31,8 @@ import com.baidu.hugegraph.util.E;
 public class Service {
 
     public static final int DEFAULT_COUNT = 1;
-    public static final String DEFAULT_ROUTE_TYPE = "ClusterIP";
-    public static final int DEFAULT_PORT = 8080;
+    public static final String DEFAULT_ROUTE_TYPE = "NodePort";
+    public static final int DEFAULT_PORT = 0;
 
     public static final int DEFAULT_CPU_LIMIT = 4;
     public static final int DEFAULT_MEMORY_LIMIT = 8;
@@ -188,8 +188,6 @@ public class Service {
     }
 
     public void port(int port) {
-        E.checkArgument(port > 0,
-                        "The port must be > 0, but got: %s", port);
         this.port = port;
     }
 
