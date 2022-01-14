@@ -260,6 +260,9 @@ public class MetaManager {
                                          String schemaTemplate) {
         String s = this.metaDriver.get(this.schemaTemplateKey(graphSpace,
                                                               schemaTemplate));
+        if (s == null) {
+            return null;
+        }
         return SchemaTemplate.fromMap(JsonUtil.fromJson(s, Map.class));
     }
 
@@ -287,6 +290,9 @@ public class MetaManager {
 
     public GraphSpace getGraphSpaceConfig(String graphSpace) {
         String gs = this.metaDriver.get(this.graphSpaceConfKey(graphSpace));
+        if (gs == null) {
+            return null;
+        }
         return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
