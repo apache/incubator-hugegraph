@@ -35,10 +35,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.convert.DisabledListDelimiterHandler;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -262,7 +265,8 @@ public class HugeConfigTest extends BaseUnitTest {
     @Test
     public void testHugeConfig() throws Exception {
         Configuration conf = new PropertiesConfiguration();
-        Whitebox.setInternalState(conf, "delimiterParsingDisabled", true);
+        Assert.assertEquals(DisabledListDelimiterHandler.INSTANCE,
+               ((AbstractConfiguration) conf).getListDelimiterHandler());
 
         HugeConfig config = new HugeConfig(conf);
 
@@ -338,7 +342,10 @@ public class HugeConfigTest extends BaseUnitTest {
 
     @Test
     public void testHugeConfigWithConfiguration() throws Exception {
-        HugeConfig config = new HugeConfig(new PropertiesConfiguration(CONF));
+        PropertiesConfiguration configuration = new PropertiesConfiguration();
+        FileHandler fileHandler = new FileHandler(configuration);
+        fileHandler.load(CONF);
+        HugeConfig config = new HugeConfig(configuration);
 
         Assert.assertEquals("file-text1-value", config.get(TestOptions.text1));
         Assert.assertEquals("file-text2-value", config.get(TestOptions.text2));
@@ -348,7 +355,8 @@ public class HugeConfigTest extends BaseUnitTest {
     @Test
     public void testHugeConfigWithOverride() throws Exception {
         Configuration conf = new PropertiesConfiguration();
-        Whitebox.setInternalState(conf, "delimiterParsingDisabled", true);
+        Assert.assertEquals(DisabledListDelimiterHandler.INSTANCE,
+               ((AbstractConfiguration) conf).getListDelimiterHandler());
 
         HugeConfig config = new HugeConfig(conf);
 

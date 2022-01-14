@@ -21,73 +21,50 @@ package com.baidu.hugegraph.config;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.configuration.AbstractFileConfiguration;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.YAMLConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+
+import javax.annotation.Nullable;
 
 public class HugeConfig extends PropertiesConfiguration {
 
     private static final Logger LOG = Log.logger(HugeConfig.class);
 
-    public HugeConfig(Configuration config) {
-        if (config == null) {
-            throw new ConfigException("The config object is null");
-        }
-        this.reloadIfNeed(config);
-        this.setLayoutIfNeeded(config);
+    private final String path;
 
-        Iterator<String> keys = config.getKeys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            this.addProperty(key, config.getProperty(key));
-        }
-        this.checkRequiredOptions();
+    public HugeConfig(Configuration config) {
+        loadConfig(config);
+        this.path = null;
     }
 
     public HugeConfig(String configFile) {
-        this(loadConfigFile(configFile));
+        loadConfig(loadConfigFile(configFile));
+        this.path = configFile;
     }
 
-    private void reloadIfNeed(Configuration conf) {
-        if (!(conf instanceof AbstractFileConfiguration)) {
-            if (conf instanceof AbstractConfiguration) {
-                AbstractConfiguration config = (AbstractConfiguration) conf;
-                config.setDelimiterParsingDisabled(true);
-            }
-            return;
+    private void loadConfig(Configuration config) {
+        if (config == null) {
+            throw new ConfigException("The config object is null");
         }
-        AbstractFileConfiguration fileConfig = (AbstractFileConfiguration) conf;
+        this.setLayoutIfNeeded(config);
 
-        File file = fileConfig.getFile();
-        if (file != null) {
-            // May need to use the original file
-            this.setFile(file);
-        }
-
-        if (!fileConfig.isDelimiterParsingDisabled()) {
-            /*
-             * PropertiesConfiguration will parse the containing comma
-             * config options into list directly, but we want to do
-             * this work by ourselves, so reload it and parse into `String`
-             */
-            fileConfig.setDelimiterParsingDisabled(true);
-            try {
-                fileConfig.refresh();
-            } catch (ConfigurationException e) {
-                throw new ConfigException("Unable to load config file: %s",
-                                          e, file);
-            }
-        }
+        this.append(config);
+        this.checkRequiredOptions();
     }
 
     private void setLayoutIfNeeded(Configuration conf) {
@@ -98,30 +75,22 @@ public class HugeConfig extends PropertiesConfiguration {
         this.setLayout(propConf.getLayout());
     }
 
-    private static PropertiesConfiguration loadConfigFile(String path) {
+    private static Configuration loadConfigFile(String path) {
         E.checkNotNull(path, "config path");
         E.checkArgument(!path.isEmpty(),
                         "The config path can't be empty");
 
         File file = new File(path);
-        E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                        "Need to specify a readable config, but got: %s",
-                        file.toString());
-
-        PropertiesConfiguration config = new PropertiesConfiguration();
-        config.setDelimiterParsingDisabled(true);
-        try {
-            config.load(file);
-        } catch (ConfigurationException e) {
-            throw new ConfigException("Unable to load config: %s", e, path);
-        }
-        return config;
+        return loadConfigFile(file);
     }
 
     @SuppressWarnings("unchecked")
     public <T, R> R get(TypedOption<T, R> option) {
         Object value = this.getProperty(option.name());
-        return value != null ? (R) value : option.defaultValue();
+        if (value == null) {
+            return option.defaultValue();
+        }
+        return (R) value;
     }
 
     public Map<String, String> getMap(ConfigListOption<String> option) {
@@ -138,26 +107,99 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     @Override
-    public void addProperty(String key, Object value) {
-        if (!OptionSpace.containKey(key)) {
+    public void addPropertyDirect(String key, Object value) {
+        TypedOption<?, ?> option = OptionSpace.get(key);
+        if (option == null) {
             LOG.warn("The config option '{}' is redundant, " +
                      "please ensure it has been registered", key);
         } else {
             // The input value is String(parsed by PropertiesConfiguration)
             value = this.validateOption(key, value);
         }
-        super.addPropertyDirect(key, value);
+        if (this.containsKey(key) && value instanceof List) {
+            for (Object item : (List<Object>) value) {
+                super.addPropertyDirect(key, item);
+            }
+        } else {
+            super.addPropertyDirect(key, value);
+        }
+    }
+
+    @Override
+    protected void addPropertyInternal(String key, Object value) {
+        this.addPropertyDirect(key, value);
     }
 
     private Object validateOption(String key, Object value) {
-        E.checkArgument(value instanceof String,
-                        "Invalid value for key '%s': %s", key, value);
-
         TypedOption<?, ?> option = OptionSpace.get(key);
-        return option.parseConvert((String) value);
+
+        if (value instanceof String) {
+            return option.parseConvert((String) value);
+        }
+
+        Class dataType = option.dataType();
+        if (dataType.isInstance(value)) {
+            return value;
+        }
+
+        throw new IllegalArgumentException(
+              String.format("Invalid value for key '%s': '%s'", key, value));
     }
 
     private void checkRequiredOptions() {
         // TODO: Check required options must be contained in this map
+    }
+
+    public void save(File copiedFile) throws ConfigurationException {
+        FileHandler fileHandler = new FileHandler(this);
+        fileHandler.save(copiedFile);
+    }
+
+    @Nullable
+    public File getFile() {
+        if (StringUtils.isEmpty(this.path)) {
+            return null;
+        }
+
+        return new File(this.path);
+    }
+
+    private static Configuration loadConfigFile(File configFile) {
+        E.checkArgument(configFile.exists() &&
+                        configFile.isFile() &&
+                        configFile.canRead(),
+                        "Please specify a proper config file rather than: '%s'",
+                        configFile.toString());
+
+        try {
+            String fileName = configFile.getName();
+            String fileExtension = FilenameUtils.getExtension(fileName);
+
+            Configuration config;
+            Configurations configs = new Configurations();
+
+            switch (fileExtension) {
+                case "yml":
+                case "yaml":
+                    Parameters params = new Parameters();
+                    FileBasedConfigurationBuilder<FileBasedConfiguration>
+                    builder = new FileBasedConfigurationBuilder(
+                                  YAMLConfiguration.class)
+                                  .configure(params.fileBased()
+                                  .setFile(configFile));
+                    config = builder.getConfiguration();
+                    break;
+                case "xml":
+                    config = configs.xml(configFile);
+                    break;
+                default:
+                    config = configs.properties(configFile);
+                    break;
+            }
+            return config;
+        } catch (ConfigurationException e) {
+            throw new ConfigException("Unable to load config: '%s'",
+                                      e, configFile);
+        }
     }
 }

@@ -69,10 +69,6 @@ public class ConfigListOption<T> extends ConfigOption<List<T>> {
         String str = (String) value;
         if (str.startsWith("[") && str.endsWith("]")) {
             str = str.substring(1, str.length() - 1);
-        } else {
-            throw new ConfigException(
-                      "The list type config option expected " +
-                      "to be wrapped in [], actual '%s'", str);
         }
 
         String[] parts = str.split(",");

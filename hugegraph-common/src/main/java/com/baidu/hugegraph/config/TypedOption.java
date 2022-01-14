@@ -129,6 +129,9 @@ public class TypedOption<T, R> {
             return value;
         } else if (dataType.equals(Class.class)) {
             try {
+                if (value.startsWith("class")) {
+                    value = value.substring("class".length()).trim();
+                }
                 return Class.forName(value);
             } catch (ClassNotFoundException e) {
                 throw new ConfigException(
