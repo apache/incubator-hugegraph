@@ -230,6 +230,7 @@ public class GraphSpaceAPI extends API {
         manager.dropGraphSpace(name);
     }
 
+
     private static class JsonGraphSpace implements Checkable {
 
         @JsonProperty("name")
@@ -255,6 +256,9 @@ public class GraphSpaceAPI extends API {
         public int maxGraphNumber;
         @JsonProperty("max_role_number")
         public int maxRoleNumber;
+
+        @JsonProperty("auth")
+        public boolean auth = false;
 
         @JsonProperty("configs")
         public Map<String, Object> configs;
@@ -298,6 +302,7 @@ public class GraphSpaceAPI extends API {
                                                    this.storageLimit,
                                                    this.maxGraphNumber,
                                                    this.maxRoleNumber,
+                                                   this.auth,
                                                    this.configs);
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);

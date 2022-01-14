@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.dist;
 
+import com.baidu.hugegraph.auth.StandardAuthenticator;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.util.E;
 import org.apache.commons.io.IOUtils;
@@ -97,6 +98,10 @@ public class HugeGraphServer {
         } else {
             restServerConfig = new HugeConfig(restMap);
         }
+        if (StringUtils.isEmpty(restServerConfig.get(ServerOptions.AUTHENTICATOR))) {
+            restServerConfig.addProperty(ServerOptions.AUTHENTICATOR.name(),
+                            "com.baidu.hugegraph.auth.StandardAuthenticator");
+        }
         restServerConfig.addProperty(ServerOptions.SERVICE_ID.name(),
                                      serviceId);
         restServerConfig.addProperty(ServerOptions.SERVICE_GRAPH_SPACE.name(),
@@ -122,7 +127,9 @@ public class HugeGraphServer {
         }
 
         TaskManager.instance(restServerConfig.get(ServerOptions.TASK_THREADS));
-
+        StandardAuthenticator.initAdminUserIfNeeded(restServerConfig,
+                             metaEndpoints, cluster, withCa, caFile,
+                             clientCaFile, clientKeyFile);
         try {
             // Start GremlinServer
             String gsText = this.metaManager.gremlinYaml(graphSpace,

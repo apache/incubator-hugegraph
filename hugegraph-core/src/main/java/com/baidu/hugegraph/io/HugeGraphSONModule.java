@@ -79,7 +79,7 @@ import com.baidu.hugegraph.util.Blob;
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
-    private static final long serialVersionUID = 6480426922914059122L;
+    private static final long serialVersionUID;
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
@@ -96,6 +96,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
+        serialVersionUID = 6480426922914059122L;
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
 
         TYPE_DEFINITIONS.put(Optional.class, "Optional");
@@ -300,6 +301,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number storageUsed = 0;
             Number graphNumberUsed = 0;
             Number roleNumberUsed = 0;
+            Boolean auth = false;
 
             Map<String, Object> configs = new HashMap<>();
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
@@ -335,6 +337,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     graphNumberUsed = jsonParser.getNumberValue();
                 } else if ("role_number_used".equals(fieldName)) {
                     roleNumberUsed = jsonParser.getNumberValue();
+                } else if ("auth".equals(fieldName)) {
+                    auth = jsonParser.getBooleanValue();
                 } else {
                     configs.put(fieldName, jsonParser.getValueAsString());
                 }
@@ -355,6 +359,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                   storageUsed.intValue(),
                                   graphNumberUsed.intValue(),
                                   roleNumberUsed.intValue(),
+                                  auth,
                                   configs);
         }
     }

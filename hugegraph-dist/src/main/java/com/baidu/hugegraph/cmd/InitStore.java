@@ -64,7 +64,7 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
-        E.checkArgument(args.length == 11,
+        E.checkArgument(args.length == 12,
                         "HugeGraph init-store need to pass the config file " +
                         "of RestServer, like: conf/rest-server.properties");
         E.checkArgument(args[0].endsWith(".properties"),
@@ -116,10 +116,10 @@ public class InitStore {
         }
 
         List<String> metaEndpoints = Arrays.asList(args[5].split(","));
-        Boolean withCa = args[7].equals("true") ? true : false;
+        Boolean withCa = args[8].equals("true") ? true : false;
         StandardAuthenticator.initAdminUserIfNeeded(restConf, metaEndpoints,
-                                                    args[6], withCa, args[8],
-                                                    args[9], args[10]);
+                                                    args[6], withCa, args[9],
+                                                    args[10], args[11]);
 
         HugeFactory.shutdown(30L);
     }

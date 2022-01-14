@@ -18,6 +18,9 @@ fi
 if [ -z "$CLUSTER" ];then
   CLUSTER="hg"
 fi
+if [ -z "$PD_PEERS" ];then
+  PD_PEERS="127.0.0.1:8686"
+fi
 if [ -z "$WITH_CA" ];then
   WITH_CA="false"
 fi
@@ -31,7 +34,7 @@ if [ -z "$CLIENT_KEY" ];then
   CLIENT_KEY="conf/client.key"
 fi
 
-while getopts "G:S:N:R:M:E:W:C:A:K:v" arg; do
+while getopts "G:S:N:R:M:E:W:C:A:K:P:v" arg; do
     case ${arg} in
         G) GRAPH_SPACE="$OPTARG" ;;
         S) SERVICE_ID="$OPTARG" ;;
@@ -39,12 +42,13 @@ while getopts "G:S:N:R:M:E:W:C:A:K:v" arg; do
         R) NODE_ROLE="$OPTARG" ;;
         M) META_SERVERS="$OPTARG" ;;
         E) CLUSTER="$OPTARG" ;;
+        P) PD_PEERS="$OPTARG" ;;
         W) WITH_CA="$OPTARG" ;;
         C) CA_FILE="$OPTARG" ;;
         A) CLIENT_CA="$OPTARG" ;;
         K) CLIENT_KEY="$OPTARG" ;;
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-G graphspace] [-S serviceId] [-N nodeId] [-R nodeRole] [-M metaServer] [-E cluster] [-W true|false] [-C caFile] [-A clientCa] [-K clientKey]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-G graphspace] [-S serviceId] [-N nodeId] [-R nodeRole] [-M metaServer] [-E cluster] [-P pdAddress] [-W true|false] [-C caFile] [-A clientCa] [-K clientKey]" && exit 1 ;;
     esac
 done
 
@@ -84,6 +88,6 @@ echo "Initializing HugeGraph Store..."
 ${JAVA} -cp ${LIB}/hugegraph-dist-*.jar -Djava.ext.dirs=${LIB}:${PLUGINS} \
     com.baidu.hugegraph.cmd.InitStore ${CONF}/rest-server.properties \
     ${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} \
-    ${CLUSTER} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY}
+    ${CLUSTER} ${PD_PEERS} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY}
 
 echo "Initialization finished."

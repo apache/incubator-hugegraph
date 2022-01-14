@@ -357,8 +357,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "auth.authenticator",
                     "The class path of authenticator implementation. " +
-                    "e.g., com.baidu.hugegraph.auth.StandardAuthenticator, " +
-                    "or com.baidu.hugegraph.auth.ConfigAuthenticator.",
+                    "e.g., com.baidu.hugegraph.auth.StandardAuthenticator.",
                     null,
                     ""
             );

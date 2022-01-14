@@ -112,11 +112,6 @@ public class StandardAuthenticator implements HugeAuthenticator {
                                              throws Exception {
         MetaManager metaManager = MetaManager.instance();
         HugeConfig config = new HugeConfig(confFile);
-        String authClass = config.get(ServerOptions.AUTHENTICATOR);
-        if (authClass.isEmpty()) {
-            return;
-        }
-
         if (!withCa) {
             caFile = null;
             clientCaFile = null;
@@ -127,6 +122,27 @@ public class StandardAuthenticator implements HugeAuthenticator {
                             clientCaFile, clientKeyFile, metaEndpoints);
         StandardAuthManager authManager = new StandardAuthManager(metaManager,
                                                                   config);
+        authManager.initAdmin();
+    }
+
+    public static void initAdminUserIfNeeded(HugeConfig config,
+                                             List<String> metaEndpoints,
+                                             String cluster,
+                                             Boolean withCa,
+                                             String caFile,
+                                             String clientCaFile,
+                                             String clientKeyFile) {
+        MetaManager metaManager = MetaManager.instance();
+        if (!withCa) {
+            caFile = null;
+            clientCaFile = null;
+            clientKeyFile = null;
+        }
+
+        metaManager.connect(cluster, MetaManager.MetaDriverType.ETCD, caFile,
+                            clientCaFile, clientKeyFile, metaEndpoints);
+        StandardAuthManager authManager =
+                            new StandardAuthManager(metaManager, config);
         authManager.initAdmin();
     }
 }

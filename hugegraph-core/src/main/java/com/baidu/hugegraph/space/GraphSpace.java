@@ -53,6 +53,7 @@ public class GraphSpace {
 
     private int maxGraphNumber;
     private int maxRoleNumber;
+    private Boolean auth;
     private Map<String, Object> configs;
 
     private int cpuUsed;
@@ -73,12 +74,14 @@ public class GraphSpace {
         this.memoryLimit = DEFAULT_MEMORY_LIMIT;
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
 
+        this.auth = false;
         this.configs = new HashMap<>();
     }
 
     public GraphSpace(String name, String description, int cpuLimit,
                       int memoryLimit, int storageLimit, int maxGraphNumber,
-                      int maxRoleNumber, Map<String, Object> config) {
+                      int maxRoleNumber, boolean auth,
+                      Map<String, Object> config) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
         E.checkArgument(cpuLimit > 0, "The cpu limit must > 0");
@@ -94,6 +97,7 @@ public class GraphSpace {
         this.maxGraphNumber = maxGraphNumber;
         this.maxRoleNumber = maxRoleNumber;
 
+        this.auth = auth;
         this.configs = config;
     }
 
@@ -103,7 +107,7 @@ public class GraphSpace {
                       String olapNamespace, String storageNamespace,
                       int cpuUsed, int memoryUsed, int storageUsed,
                       int graphNumberUsed, int roleNumberUsed,
-                      Map<String, Object> config) {
+                      boolean auth, Map<String, Object> config) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
         E.checkArgument(cpuLimit > 0, "The cpu limit must > 0");
@@ -132,6 +136,7 @@ public class GraphSpace {
         this.graphNumberUsed = graphNumberUsed;
         this.roleNumberUsed = roleNumberUsed;
 
+        this.auth = auth;
         this.configs = new HashMap<>();
         if (config != null) {
             this.configs = config;
@@ -231,6 +236,14 @@ public class GraphSpace {
         this.maxRoleNumber = maxRoleNumber;
     }
 
+    public boolean auth() {
+        return this.auth;
+    }
+
+    public void auth(boolean auth) {
+        this.auth = auth;
+    }
+
     public Map<String, Object> configs() {
         return this.configs;
     }
@@ -262,6 +275,7 @@ public class GraphSpace {
         infos.put("graph_number_used", this.graphNumberUsed);
         infos.put("role_number_used", this.roleNumberUsed);
 
+        infos.put("auth", this.auth);
         infos.putAll(this.configs);
         return infos;
     }
