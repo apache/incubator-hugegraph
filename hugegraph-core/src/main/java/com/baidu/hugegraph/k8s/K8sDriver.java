@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -50,10 +49,16 @@ import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
+import io.fabric8.kubernetes.api.model.ServiceAccount;
+import io.fabric8.kubernetes.api.model.ServiceAccountBuilder;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBindingBuilder;
+import io.fabric8.kubernetes.api.model.rbac.Subject;
+import io.fabric8.kubernetes.api.model.rbac.SubjectBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
@@ -93,9 +98,17 @@ public class K8sDriver {
 
     private static final String MY_NODE_NAME = "MY_NODE_NAME";
     private static final String MY_POD_IP = "MY_POD_IP";
-    private static final String MY_NODE_PORT = "MY_NODE_PORT";
     private static final String SPEC_NODE_NAME = "spec.nodeName";
     private static final String STATUS_POD_IP = "status.podIP";
+    private static final String APP_NAME = "APP_NAME";
+
+    private static final String SERVICE_ACCOUNT_NAME = "hugegraph-user";
+    private static final String SERVICE_ACCOUNT = "ServiceAccount";
+    private static final String BINDING_API_GROUP = "rbac.authorization.k8s.io";
+    private static final String CLUSTER_ROLE = "ClusterRole";
+    private static final String CLUSTER_ROLE_NAME = "cluster-admin";
+    private static final String BINDING_API_VERSION =
+            "rbac.authorization.k8s.io/v1";
 
     private KubernetesClient client;
 
@@ -215,9 +228,9 @@ public class K8sDriver {
                                         Service service,
                                         List<String> metaServers,
                                         String cluster) {
-        Set<String> urls = this.createService(graphSpace, service);
-        this.createDeployment(graphSpace, service, metaServers, cluster, urls);
-        return urls;
+        this.createServcieAccountIfNeeded(graphSpace, service);
+        this.createDeployment(graphSpace, service, metaServers, cluster);
+        return this.createService(graphSpace, service);
     }
 
     public void stopOltpService(GraphSpace graphSpace, Service service) {
@@ -229,10 +242,9 @@ public class K8sDriver {
 
     public Deployment createDeployment(GraphSpace graphSpace, Service service,
                                        List<String> metaServers,
-                                       String cluster, Set<String> urls) {
+                                       String cluster) {
         Deployment deployment = this.constructDeployment(graphSpace, service,
-                                                         metaServers, cluster,
-                                                         urls);
+                                                         metaServers, cluster);
         String namespace = namespace(graphSpace, service);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
@@ -335,7 +347,7 @@ public class K8sDriver {
     private Deployment constructDeployment(GraphSpace graphSpace,
                                            Service service,
                                            List<String> metaServers,
-                                           String cluster, Set<String> urls) {
+                                           String cluster) {
         String deploymentName = deploymentName(graphSpace, service);
         String containerName = String.join(DELIMETER, deploymentName,
                                            CONTAINER);
@@ -368,12 +380,6 @@ public class K8sDriver {
                 .endFieldRef()
                 .build();
 
-        String nodePort = Strings.EMPTY;
-        if (!urls.isEmpty()) {
-            String[] parts = urls.iterator().next().split(COLON);
-            nodePort = parts[parts.length - 1];
-        }
-
         return new DeploymentBuilder()
 
                 .withNewMetadata()
@@ -390,6 +396,8 @@ public class K8sDriver {
                 .endMetadata()
 
                 .withNewSpec()
+                .withServiceAccountName(SERVICE_ACCOUNT_NAME)
+                .withAutomountServiceAccountToken(true)
 
                 .addNewContainer()
                 .withName(containerName)
@@ -436,8 +444,8 @@ public class K8sDriver {
                 .withValueFrom(podIP)
                 .endEnv()
                 .addNewEnv()
-                .withName(MY_NODE_PORT)
-                .withValue(nodePort)
+                .withName(APP_NAME)
+                .withValue(deploymentName)
                 .endEnv()
 
                 .endContainer()
@@ -454,6 +462,53 @@ public class K8sDriver {
                 .endSelector()
                 .endSpec()
                 .build();
+    }
+
+    private void createServcieAccountIfNeeded(GraphSpace graphSpace,
+                                              Service svc) {
+        String namespace = namespace(graphSpace, svc);
+        ServiceAccount serviceAccount = this.client
+                .serviceAccounts()
+                .inNamespace(namespace)
+                .withName(SERVICE_ACCOUNT_NAME)
+                .get();
+
+        if (serviceAccount != null) {
+            return;
+        }
+
+        // Create service account
+        serviceAccount = new ServiceAccountBuilder()
+                .withNewMetadata()
+                .withName(SERVICE_ACCOUNT_NAME)
+                .withNamespace(namespace)
+                .endMetadata().build();
+        this.client.serviceAccounts()
+                   .inNamespace(namespace)
+                   .create(serviceAccount);
+
+        // Bind service account
+        Subject subject = new SubjectBuilder()
+                .withKind("ServiceAccount")
+                .withName(SERVICE_ACCOUNT_NAME)
+                .withNamespace(namespace)
+                .build();
+        ClusterRoleBinding clusterRoleBinding = new ClusterRoleBindingBuilder()
+                .withApiVersion(BINDING_API_VERSION)
+                .withNewMetadata()
+                .withName(SERVICE_ACCOUNT_NAME)
+                .endMetadata()
+
+                .withNewRoleRef()
+                .withApiGroup(BINDING_API_GROUP)
+                .withKind(CLUSTER_ROLE)
+                .withName(CLUSTER_ROLE_NAME)
+                .endRoleRef()
+
+                .withSubjects(subject)
+                .build();
+
+        this.client.rbac().clusterRoleBindings().create(clusterRoleBinding);
     }
 
     private static String metaServers(List<String> metaServers) {

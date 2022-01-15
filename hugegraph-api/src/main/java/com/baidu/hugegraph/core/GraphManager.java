@@ -550,6 +550,11 @@ public final class GraphManager {
                                          ServerOptions.META_ENDPOINTS);
                 Set<String> urls = this.k8sManager.startService(
                                    gs, service, endpoints, this.cluster);
+                if (!urls.isEmpty()) {
+                    String url = urls.iterator().next();
+                    String[] parts = url.split(":");
+                    service.port(Integer.valueOf(parts[parts.length - 1]));
+                }
                 service.urls(urls);
             }
             this.metaManager.addServiceConfig(graphSpace, service);
