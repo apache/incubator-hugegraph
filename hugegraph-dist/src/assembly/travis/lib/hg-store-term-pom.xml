@@ -13,26 +13,4 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
-    <!--
-
-        <distributionManagement>
-            <repository>
-                <id>Baidu_Local</id>
-                <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local</url>
-            </repository>
-            <snapshotRepository>
-                <id>Baidu_Local_Snapshots</id>
-                <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local_Snapshots</url>
-            </snapshotRepository>
-        </distributionManagement>
-    -->
-
-    <distributionManagement>
-        <repository>
-            <id>star-snapshot</id>
-            <name>star-snapshot</name>
-            <url>http://10.14.139.8:8081/artifactory/star-snapshot</url>
-        </repository>
-    </distributionManagement>
-
 </project>

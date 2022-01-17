@@ -85,7 +85,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
                     HgStoreNodeManager nodeManager =
                                        HgStoreNodeManager.getInstance();
                     defaultPdClient = PDClient.create(PDConfig.of(
-                                      config.get(HstoreOptions.PD_PEERS)));
+                                      config.get(HstoreOptions.PD_PEERS))
+                            .setEnablePDNotify(true));
                     nodePartitioner = FakeHstoreNodePartitionerImpl
                                       .NodePartitionerFactory
                                       .getNodePartitioner(config,nodeManager);
@@ -114,14 +115,10 @@ public class HstoreSessionsImpl extends HstoreSessions {
                     Assert.assertTrue("The value of hstore.partition_count" +
                                       " cannot be less than 0.",
                                       partitionCount > -1);
-                    Integer shareCount = this.config.get(HstoreOptions.SHARD_COUNT);
-                    Assert.assertTrue("The value of hstore.shard_count" +
-                                      " cannot be less than 0.",
-                                      shareCount > -1);
                     defaultPdClient.setGraph(Metapb.Graph.newBuilder()
                                    .setGraphName(this.graphName)
                                    .setPartitionCount(partitionCount)
-                                   .setShardCount(shareCount).build());
+                            .build());
                     INFO_INITIALIZED_GRAPH.add(this.graphName);
                 }
             }

@@ -110,11 +110,4 @@
             </plugin>
         </plugins>
     </build>
-    <distributionManagement>
-        <repository>
-            <id>star-snapshot</id>
-            <name>star-snapshot</name>
-            <url>http://10.14.139.8:8081/artifactory/star-snapshot</url>
-        </repository>
-    </distributionManagement>
 </project>

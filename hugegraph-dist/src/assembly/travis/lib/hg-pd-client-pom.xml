@@ -47,14 +47,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <distributionManagement>
-        <repository>
-            <id>Baidu_Local</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local</url>
-        </repository>
-        <snapshotRepository>
-            <id>Baidu_Local_Snapshots</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local_Snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 </project>
