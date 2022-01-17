@@ -188,7 +188,9 @@ public class MetricsAPI extends API {
                 .append(helpName)
                 .append(spaceStr+ unTyped + endlStr);
         promeMetrics.append(helpName)
-                .append(spaceStr + ApiVersion.VERSION.toString() + endlStr);
+                .append("{version=\"")
+                .append(ApiVersion.VERSION.toString()).append("\",}")
+                .append(spaceStr + "1.0" + endlStr);
 
         //gauges
         for (String key : reporter.gauges().keySet()) {
