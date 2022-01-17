@@ -18,7 +18,6 @@ ADD ./hugegraph-3.0.0.tar.gz /root/hugegraph-server
 #ADD ./config /root/.kube/config
 RUN set -e \
     && cd /root/hugegraph-server/hugegraph-3.0.0 \
-    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
     && ./bin/k8s-init-store.sh
 
 EXPOSE 8080
