@@ -69,6 +69,8 @@ public class ServiceApi extends API {
                        @PathParam("graphspace") String graphSpace,
                        @Context SecurityContext sc) {
         LOG.debug("List all services for graph space {}", graphSpace);
+        E.checkArgument(space(manager, graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         Set<String> services = manager.services(graphSpace);
         return ImmutableMap.of("services", services);
@@ -83,6 +85,8 @@ public class ServiceApi extends API {
                       @PathParam("name") String name) {
         LOG.debug("Get service by name '{}' for graph space {}",
                   name, graphSpace);
+        E.checkArgument(space(manager, graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         return manager.serializer().writeService(
                                     service(manager, graphSpace, name));
@@ -98,6 +102,8 @@ public class ServiceApi extends API {
                          JsonService jsonService) {
         LOG.debug("Create service {} for graph space: '{}'",
                   jsonService, graphSpace);
+        E.checkArgument(space(manager, graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         jsonService.checkCreate(false);
 
@@ -117,6 +123,8 @@ public class ServiceApi extends API {
                        @QueryParam("confirm_message") String message) {
         LOG.debug("Remove service by name '{}' for graph space",
                   name, graphSpace);
+        E.checkArgument(space(manager, graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         E.checkArgument(CONFIRM_DROP.equals(message),
                         "Please take the message: %s", CONFIRM_DROP);

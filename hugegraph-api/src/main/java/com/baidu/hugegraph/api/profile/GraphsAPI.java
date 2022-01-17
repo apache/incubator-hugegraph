@@ -361,6 +361,9 @@ public class GraphsAPI extends API {
 
         E.checkArgument(readMode != null,
                         "Graph-read-mode can't be null");
+        E.checkArgument(readMode == GraphReadMode.ALL ||
+                        readMode == GraphReadMode.OLTP_ONLY,
+                        "Graph-read-mode could be ALL or OLTP_ONLY");
         HugeGraph g = graph(manager, graphSpace, graph);
         manager.graphReadMode(graphSpace, graph, readMode);
         g.readMode(readMode);
