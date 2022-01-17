@@ -128,8 +128,6 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
-"$BIN"/k8s-init-store.sh
-
 echo "Starting HugeGraphServer..."
 
 ${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \

@@ -37,5 +37,7 @@ fi
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
+$BIN/init-store.sh
+
 AGENT_JAR=${HOME_DIR}/${TRAVIS_DIR}/jacocoagent.jar
 $BIN/start-hugegraph.sh -j "-javaagent:${AGENT_JAR}=includes=*,port=36320,destfile=jacoco-it.exec,output=tcpserver" -v
