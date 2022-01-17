@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.baidu.hugegraph.k8s.K8sDriver;
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.SchemaTemplate;
@@ -131,6 +132,8 @@ public final class GraphManager {
     private final String url;
 
     private HugeConfig config;
+
+    private K8sDriver.CA ca;
 
     public GraphManager(HugeConfig conf, EventHub hub) {
         E.checkArgumentNotNull(conf, "The config can't be null");
@@ -268,6 +271,7 @@ public final class GraphManager {
             ca = conf.get(ServerOptions.META_CA);
             clientCa = conf.get(ServerOptions.META_CLIENT_CA);
             clientKey = conf.get(ServerOptions.META_CLIENT_KEY);
+            this.ca = new K8sDriver.CA(ca, clientCa, clientKey);
         }
         this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.ETCD,
                                  ca, clientCa, clientKey, endpoints);
@@ -291,7 +295,8 @@ public final class GraphManager {
             String storageImage =
                    conf.get(ServerOptions.SERVER_K8S_STORAGE_IMAGE);
             this.k8sManager.connect(k8sUrl, k8sCa, k8sClientCa, k8sClientKey,
-                                    oltpImage, olapImage, storageImage);
+                                    oltpImage, olapImage, storageImage,
+                                    this.ca);
         }
     }
 

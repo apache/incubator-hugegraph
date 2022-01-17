@@ -19,20 +19,27 @@
 
 package com.baidu.hugegraph.k8s;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.Service;
+import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSourceBuilder;
 import io.fabric8.kubernetes.api.model.EnvVarSource;
@@ -116,6 +123,8 @@ public class K8sDriver {
     private String olapImage;
     private String storageImage;
 
+    private CA ca;
+
     public K8sDriver(String url, String caFile, String clientCaFile,
                      String clientKeyFile) {
         Config config = new ConfigBuilder().withMasterUrl(url)
@@ -130,6 +139,10 @@ public class K8sDriver {
     public K8sDriver(String url) {
         Config config = new ConfigBuilder().withMasterUrl(url).build();
         this.client = new DefaultKubernetesClient(config);
+    }
+
+    public void ca(CA ca) {
+        this.ca = ca;
     }
 
     public String oltpImage() {
@@ -228,6 +241,7 @@ public class K8sDriver {
                                         Service service,
                                         List<String> metaServers,
                                         String cluster) {
+        this.createConfigMapForCaIfNeeded(graphSpace, service);
         this.createServcieAccountIfNeeded(graphSpace, service);
         this.createDeployment(graphSpace, service, metaServers, cluster);
         return this.createService(graphSpace, service);
@@ -240,30 +254,94 @@ public class K8sDriver {
                    .withName(deploymentName).delete();
     }
 
-    public Deployment createDeployment(GraphSpace graphSpace, Service service,
-                                       List<String> metaServers,
-                                       String cluster) {
-        Deployment deployment = this.constructDeployment(graphSpace, service,
-                                                         metaServers, cluster);
+    public void createConfigMapForCaIfNeeded(GraphSpace graphSpace,
+                                             Service service) {
         String namespace = namespace(graphSpace, service);
-        deployment = this.client.apps().deployments().inNamespace(namespace)
-                                .createOrReplace(deployment);
+        ConfigMap configMap = this.client.configMaps()
+                                         .inNamespace(namespace)
+                                         .withName(CA_CONFIG_MAP_NAME)
+                                         .get();
+        if (configMap != null) {
+            return;
+        }
 
-        ListOptions options = new ListOptions();
-        options.setLabelSelector(APP + "=" + serviceName(graphSpace, service));
-        List<Pod> hugegraphservers = new ArrayList<>();
-        int count = 0;
-        while (hugegraphservers.isEmpty() && count++ < 10) {
-            hugegraphservers = this.client.pods()
-                                          .inNamespace(namespace)
-                                          .list(options)
-                                          .getItems();
-            sleepAWhile(1);
+        String ca;
+        String clientCa;
+        String clientKey;
+        String config;
+        try {
+            ca = FileUtils.readFileToString(new File(this.ca.caFile));
+            clientCa = FileUtils.readFileToString(
+                    new File(this.ca.clientCaFile));
+            clientKey = FileUtils.readFileToString(
+                    new File(this.ca.clientKeyFile));
+            config = FileUtils.readFileToString(new File(this.ca.config()));
+        } catch (IOException e) {
+            throw new HugeException("Failed to read ca files", e);
         }
-        if (hugegraphservers.isEmpty()) {
-            throw new HugeException("Failed to start oltp server pod");
+
+        Map<String, String> data = new HashMap<>(4);
+        data.put("config", config);
+        data.put("ca.pem", ca);
+        data.put("kubernetes.pem", clientCa);
+        data.put("kubernetes-key8.pem", clientKey);
+        ConfigMap cm = new ConfigMapBuilder()
+                .withNewMetadata()
+                .withName(CA_CONFIG_MAP_NAME)
+                .withNamespace(namespace)
+                .endMetadata()
+                .withData(data)
+                .build();
+        this.client.configMaps()
+                   .inNamespace(namespace)
+                   .create(cm);
+    }
+
+    private void createServcieAccountIfNeeded(GraphSpace graphSpace,
+                                              Service service) {
+        String namespace = namespace(graphSpace, service);
+        ServiceAccount serviceAccount = this.client
+                .serviceAccounts()
+                .inNamespace(namespace)
+                .withName(SERVICE_ACCOUNT_NAME)
+                .get();
+
+        if (serviceAccount != null) {
+            return;
         }
-        return deployment;
+
+        // Create service account
+        serviceAccount = new ServiceAccountBuilder()
+                .withNewMetadata()
+                .withName(SERVICE_ACCOUNT_NAME)
+                .withNamespace(namespace)
+                .endMetadata().build();
+        this.client.serviceAccounts()
+                   .inNamespace(namespace)
+                   .create(serviceAccount);
+
+        // Bind service account
+        Subject subject = new SubjectBuilder()
+                .withKind("ServiceAccount")
+                .withName(SERVICE_ACCOUNT_NAME)
+                .withNamespace(namespace)
+                .build();
+        ClusterRoleBinding clusterRoleBinding = new ClusterRoleBindingBuilder()
+                .withApiVersion(BINDING_API_VERSION)
+                .withNewMetadata()
+                .withName(SERVICE_ACCOUNT_NAME)
+                .endMetadata()
+
+                .withNewRoleRef()
+                .withApiGroup(BINDING_API_GROUP)
+                .withKind(CLUSTER_ROLE)
+                .withName(CLUSTER_ROLE_NAME)
+                .endRoleRef()
+
+                .withSubjects(subject)
+                .build();
+
+        this.client.rbac().clusterRoleBindings().create(clusterRoleBinding);
     }
 
     public Set<String> createService(GraphSpace graphSpace, Service svc) {
@@ -331,15 +409,43 @@ public class K8sDriver {
                              .withName(serviceName)
                              .get();
 
-        return urlsOfService(service);
+        return urlsOfService(service, svc.routeType());
+    }
+
+    public Deployment createDeployment(GraphSpace graphSpace, Service service,
+                                       List<String> metaServers,
+                                       String cluster) {
+        Deployment deployment = this.constructDeployment(graphSpace, service,
+                                                         metaServers, cluster);
+        String namespace = namespace(graphSpace, service);
+        deployment = this.client.apps().deployments().inNamespace(namespace)
+                                .createOrReplace(deployment);
+
+        ListOptions options = new ListOptions();
+        options.setLabelSelector(APP + "=" + serviceName(graphSpace, service));
+        List<Pod> hugegraphservers = new ArrayList<>();
+        int count = 0;
+        while (hugegraphservers.isEmpty() && count++ < 10) {
+            hugegraphservers = this.client.pods()
+                                          .inNamespace(namespace)
+                                          .list(options)
+                                          .getItems();
+            sleepAWhile(1);
+        }
+        if (hugegraphservers.isEmpty()) {
+            throw new HugeException("Failed to start oltp server pod");
+        }
+        return deployment;
     }
 
     private static Set<String> urlsOfService(
-            io.fabric8.kubernetes.api.model.Service service) {
+            io.fabric8.kubernetes.api.model.Service service, String routeType) {
         Set<String> urls = new HashSet<>();
         String clusterIP = service.getSpec().getClusterIP();
         for (ServicePort port : service.getSpec().getPorts()) {
-            urls.add(clusterIP + COLON + port.getNodePort());
+            int actualPort = routeType.equals(NODE_PORT) ?
+                             port.getNodePort() : port.getPort();
+            urls.add(clusterIP + COLON + actualPort);
         }
         return urls;
     }
@@ -464,53 +570,6 @@ public class K8sDriver {
                 .build();
     }
 
-    private void createServcieAccountIfNeeded(GraphSpace graphSpace,
-                                              Service svc) {
-        String namespace = namespace(graphSpace, svc);
-        ServiceAccount serviceAccount = this.client
-                .serviceAccounts()
-                .inNamespace(namespace)
-                .withName(SERVICE_ACCOUNT_NAME)
-                .get();
-
-        if (serviceAccount != null) {
-            return;
-        }
-
-        // Create service account
-        serviceAccount = new ServiceAccountBuilder()
-                .withNewMetadata()
-                .withName(SERVICE_ACCOUNT_NAME)
-                .withNamespace(namespace)
-                .endMetadata().build();
-        this.client.serviceAccounts()
-                   .inNamespace(namespace)
-                   .create(serviceAccount);
-
-        // Bind service account
-        Subject subject = new SubjectBuilder()
-                .withKind("ServiceAccount")
-                .withName(SERVICE_ACCOUNT_NAME)
-                .withNamespace(namespace)
-                .build();
-        ClusterRoleBinding clusterRoleBinding = new ClusterRoleBindingBuilder()
-                .withApiVersion(BINDING_API_VERSION)
-                .withNewMetadata()
-                .withName(SERVICE_ACCOUNT_NAME)
-                .endMetadata()
-
-                .withNewRoleRef()
-                .withApiGroup(BINDING_API_GROUP)
-                .withKind(CLUSTER_ROLE)
-                .withName(CLUSTER_ROLE_NAME)
-                .endRoleRef()
-
-                .withSubjects(subject)
-                .build();
-
-        this.client.rbac().clusterRoleBindings().create(clusterRoleBinding);
-    }
-
     private static String metaServers(List<String> metaServers) {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < metaServers.size(); i++) {
@@ -586,5 +645,43 @@ public class K8sDriver {
                          .withName(deploymentName)
                          .get();
         return deployment.getStatus().getReadyReplicas();
+    }
+
+    public static class CA {
+
+        private static final String CONFIG_PATH_SUFFIX = "/.kube/config";
+        private static final String USER_HOME = "user.home";
+
+        private String caFile;
+        private String clientCaFile;
+        private String clientKeyFile;
+
+        public CA(String caFile, String clientCaFile, String clientKeyFile) {
+            E.checkArgument(caFile != null && !caFile.isEmpty(),
+                            "The ca file can't be null or empty");
+            E.checkArgument(clientCaFile != null && !clientCaFile.isEmpty(),
+                            "The client ca file can't be null or empty");
+            E.checkArgument(clientKeyFile != null && !clientKeyFile.isEmpty(),
+                            "The client key file can't be null or empty");
+            this.caFile = caFile;
+            this.clientCaFile = clientCaFile;
+            this.clientKeyFile = clientKeyFile;
+        }
+
+        public String caFile() {
+            return this.caFile;
+        }
+
+        public String clientCaFile() {
+            return this.clientCaFile;
+        }
+
+        public String clientKeyFile() {
+            return this.clientKeyFile;
+        }
+
+        public String config() {
+            return System.getProperty(USER_HOME) + CONFIG_PATH_SUFFIX;
+        }
     }
 }

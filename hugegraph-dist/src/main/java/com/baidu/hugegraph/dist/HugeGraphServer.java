@@ -108,6 +108,14 @@ public class HugeGraphServer {
                                      graphSpace);
         restServerConfig.addProperty(ServerOptions.NODE_ID.name(), nodeId);
         restServerConfig.addProperty(ServerOptions.NODE_ROLE.name(), nodeRole);
+        restServerConfig.addProperty(ServerOptions.META_USE_CA.name(), withCa.toString());
+        if (withCa) {
+            restServerConfig.addProperty(ServerOptions.META_CA.name(), caFile);
+            restServerConfig.addProperty(ServerOptions.META_CLIENT_CA.name(),
+                                         clientCaFile);
+            restServerConfig.addProperty(ServerOptions.META_CLIENT_KEY.name(),
+                                         clientKeyFile);
+        }
         String metaPDPeers = this.metaManager.hstorePDPeers();
         if (StringUtils.isNotEmpty(metaPDPeers)) {
             restServerConfig.addProperty(ServerOptions.PD_PEERS.name(),
