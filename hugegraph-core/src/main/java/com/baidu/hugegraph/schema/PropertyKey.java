@@ -363,9 +363,9 @@ public class PropertyKey extends SchemaElement implements Propfiable {
     public String convert2Groovy() {
         StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
         // Name
-        builder.append("propertyKey").append("(\"")
+        builder.append("propertyKey").append("('")
                .append(this.name())
-               .append("\")");
+               .append("')");
 
         // DataType
         switch (this.dataType()) {
@@ -457,19 +457,19 @@ public class PropertyKey extends SchemaElement implements Propfiable {
                 // OLTP is default, prefer not output
                 break;
             case OLAP_COMMON:
-                builder.append(".writeType(\"")
+                builder.append(".writeType('")
                        .append(OLAP_COMMON)
-                       .append("\")");
+                       .append("')");
                 break;
             case OLAP_RANGE:
-                builder.append(".writeType(\"")
+                builder.append(".writeType('")
                        .append(OLAP_RANGE)
-                       .append("\")");
+                       .append("')");
                 break;
             case OLAP_SECONDARY:
-                builder.append(".writeType(\"")
+                builder.append(".writeType('")
                        .append(OLAP_SECONDARY)
-                       .append("\")");
+                       .append("')");
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -485,9 +485,9 @@ public class PropertyKey extends SchemaElement implements Propfiable {
             if (Graph.Hidden.isHidden(entry.getKey())) {
                 continue;
             }
-            builder.append(".userdata(\"")
+            builder.append(".userdata('")
                    .append(entry.getKey())
-                   .append("\",")
+                   .append("',")
                    .append(entry.getValue())
                    .append(")");
         }

@@ -99,9 +99,9 @@ public class VertexLabel extends SchemaLabel {
     public String convert2Groovy() {
         StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
         // Name
-        builder.append("vertexLabel").append("(\"")
+        builder.append("vertexLabel").append("('")
                .append(this.name())
-               .append("\")");
+               .append("')");
 
         // Properties
         Set<Id> properties = this.properties();
@@ -111,9 +111,9 @@ public class VertexLabel extends SchemaLabel {
             int size = properties.size();
             for (Id id : this.properties()) {
                 PropertyKey pk = this.graph.propertyKey(id);
-                builder.append("\"")
+                builder.append("'")
                        .append(pk.name())
-                       .append("\"");
+                       .append("'");
                 if (--size > 0) {
                     builder.append(",");
                 }
@@ -129,9 +129,9 @@ public class VertexLabel extends SchemaLabel {
                 int size = pks.size();
                 for (Id id : pks) {
                     PropertyKey pk = this.graph.propertyKey(id);
-                    builder.append("\"")
+                    builder.append("'")
                            .append(pk.name())
-                           .append("\"");
+                           .append("'");
                     if (--size > 0) {
                         builder.append(",");
                     }
@@ -139,16 +139,16 @@ public class VertexLabel extends SchemaLabel {
                 builder.append(")");
                 break;
             case CUSTOMIZE_STRING:
-                builder.append("useCustomizeStringId()");
+                builder.append(".useCustomizeStringId()");
                 break;
             case CUSTOMIZE_NUMBER:
-                builder.append("useCustomizeNumberId()");
+                builder.append(".useCustomizeNumberId()");
                 break;
             case CUSTOMIZE_UUID:
-                builder.append("useCustomizeUuidId()");
+                builder.append(".useCustomizeUuidId()");
                 break;
             case AUTOMATIC:
-                builder.append("useAutomaticId()");
+                builder.append(".useAutomaticId()");
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -162,9 +162,9 @@ public class VertexLabel extends SchemaLabel {
             int size = properties.size();
             for (Id id : properties) {
                 PropertyKey pk = this.graph.propertyKey(id);
-                builder.append("\"")
+                builder.append("'")
                        .append(pk.name())
-                       .append("\"");
+                       .append("'");
                 if (--size > 0) {
                     builder.append(",");
                 }
@@ -179,9 +179,9 @@ public class VertexLabel extends SchemaLabel {
                    .append(")");
             if (this.ttlStartTime() != null) {
                 PropertyKey pk = this.graph.propertyKey(this.ttlStartTime());
-                builder.append(".ttlStartTime(\"")
+                builder.append(".ttlStartTime('")
                        .append(pk.name())
-                       .append("\")");
+                       .append("')");
             }
         }
 
@@ -199,9 +199,9 @@ public class VertexLabel extends SchemaLabel {
             if (Graph.Hidden.isHidden(entry.getKey())) {
                 continue;
             }
-            builder.append(".userdata(\"")
+            builder.append(".userdata('")
                    .append(entry.getKey())
-                   .append("\",")
+                   .append("',")
                    .append(entry.getValue())
                    .append(")");
         }

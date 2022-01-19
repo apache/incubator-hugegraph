@@ -2,7 +2,7 @@ FROM ubuntu:xenial
 
 LABEL maintainer="HugeGraph Docker Maintainers"
 
-# 1. Install needed dependencies of GraphServer & RocksDB
+# Install needed dependencies of GraphServer & RocksDB
 RUN set -x \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
@@ -12,17 +12,11 @@ RUN set -x \
        gcc \
     && apt-get clean
 
-# 2. Init HugeGraph Sever
 ADD ./jdk1.8.0_271.tar.gz /root
 ADD ./hugegraph-3.0.0.tar.gz /root/hugegraph-server
-#ADD ./config /root/.kube/config
-RUN set -e \
-    && cd /root/hugegraph-server/hugegraph-3.0.0 \
-    && ./bin/k8s-init-store.sh
 
 EXPOSE 8080
 WORKDIR /root
 VOLUME /root
 
-#ENTRYPOINT ["/bin/bash", "-c", "while true;do echo hello docker;sleep 1;done"]
 ENTRYPOINT ["/root/hugegraph-server/hugegraph-3.0.0/bin/k8s-start-hugegraph.sh"]

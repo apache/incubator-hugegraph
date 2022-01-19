@@ -262,23 +262,23 @@ public class IndexLabel extends SchemaElement {
         StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
 
         // Name
-        builder.append("indexLabel").append("(\"")
+        builder.append("indexLabel").append("('")
                .append(this.name())
-               .append("\")");
+               .append("')");
 
         // On
         switch (this.baseType()) {
             case VERTEX_LABEL:
                 VertexLabel vl = this.graph.vertexLabel(this.baseValue);
-                builder.append(".onV(\"")
+                builder.append(".onV('")
                        .append(vl.name())
-                       .append("\")");
+                       .append("')");
                 break;
             case EDGE_LABEL:
                 EdgeLabel el = this.graph.edgeLabel(this.baseValue);
-                builder.append(".onE(\"")
+                builder.append(".onE('")
                        .append(el.name())
-                       .append("\")");
+                       .append("')");
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -291,9 +291,9 @@ public class IndexLabel extends SchemaElement {
         int size = properties.size();
         for (Id id : properties) {
             PropertyKey pk = this.graph.propertyKey(id);
-            builder.append("\"")
+            builder.append("'")
                    .append(pk.name())
-                   .append("\"");
+                   .append("'");
             if (--size > 0) {
                 builder.append(",");
             }
@@ -335,9 +335,9 @@ public class IndexLabel extends SchemaElement {
             if (Graph.Hidden.isHidden(entry.getKey())) {
                 continue;
             }
-            builder.append(".userdata(\"")
+            builder.append(".userdata('")
                    .append(entry.getKey())
-                   .append("\",")
+                   .append("',")
                    .append(entry.getValue())
                    .append(")");
         }

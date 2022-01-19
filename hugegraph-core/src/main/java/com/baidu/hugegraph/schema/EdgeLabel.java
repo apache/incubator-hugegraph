@@ -140,21 +140,21 @@ public class EdgeLabel extends SchemaLabel {
     public String convert2Groovy() {
         StringBuilder builder = new StringBuilder(SCHEMA_PREFIX);
         // Name
-        builder.append("edgeLabel").append("(\"")
+        builder.append("edgeLabel").append("('")
                .append(this.name())
-               .append("\")");
+               .append("')");
 
         // Source label
         VertexLabel vl = this.graph.vertexLabel(this.sourceLabel);
-        builder.append(".sourceLabel(\"")
+        builder.append(".sourceLabel('")
                .append(vl.name())
-               .append("\")");
+               .append("')");
 
         // Target label
         vl = this.graph.vertexLabel(this.targetLabel);
-        builder.append(".targetLabel(\"")
+        builder.append(".targetLabel('")
                .append(vl.name())
-               .append("\")");
+               .append("')");
 
         // Properties
         Set<Id> properties = this.properties();
@@ -164,9 +164,9 @@ public class EdgeLabel extends SchemaLabel {
             int size = properties.size();
             for (Id id : this.properties()) {
                 PropertyKey pk = this.graph.propertyKey(id);
-                builder.append("\"")
+                builder.append("'")
                        .append(pk.name())
-                       .append("\"");
+                       .append("'");
                 if (--size > 0) {
                     builder.append(",");
                 }
@@ -194,9 +194,9 @@ public class EdgeLabel extends SchemaLabel {
             int size = sks.size();
             for (Id id : sks) {
                 PropertyKey pk = this.graph.propertyKey(id);
-                builder.append("\"")
+                builder.append("'")
                        .append(pk.name())
-                       .append("\"");
+                       .append("'");
                 if (--size > 0) {
                     builder.append(",");
                 }
@@ -211,9 +211,9 @@ public class EdgeLabel extends SchemaLabel {
             int size = properties.size();
             for (Id id : properties) {
                 PropertyKey pk = this.graph.propertyKey(id);
-                builder.append("\"")
+                builder.append("'")
                        .append(pk.name())
-                       .append("\"");
+                       .append("'");
                 if (--size > 0) {
                     builder.append(",");
                 }
@@ -228,9 +228,9 @@ public class EdgeLabel extends SchemaLabel {
                    .append(")");
             if (this.ttlStartTime() != null) {
                 PropertyKey pk = this.graph.propertyKey(this.ttlStartTime());
-                builder.append(".ttlStartTime(\"")
+                builder.append(".ttlStartTime('")
                        .append(pk.name())
-                       .append("\")");
+                       .append("')");
             }
         }
 
@@ -248,9 +248,9 @@ public class EdgeLabel extends SchemaLabel {
             if (Graph.Hidden.isHidden(entry.getKey())) {
                 continue;
             }
-            builder.append(".userdata(\"")
+            builder.append(".userdata('")
                    .append(entry.getKey())
-                   .append("\",")
+                   .append("',")
                    .append(entry.getValue())
                    .append(")");
         }
