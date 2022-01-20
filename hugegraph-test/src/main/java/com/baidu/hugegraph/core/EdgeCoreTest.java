@@ -3581,12 +3581,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(3, edges.size());
 
         edges = graph.traversal().V(v1).outE("call")
-                     .has("calltime", P.between("2017-5-2","2017-5-4"))
+                     .has("calltime", P.between("2017-5-2", "2017-5-4"))
                      .toList();
         Assert.assertEquals(5, edges.size());
 
         edges = graph.traversal().V(v1).outE("call")
-                     .has("calltime", P.between("2017-5-2","2017-5-4"))
+                     .has("calltime", P.between("2017-5-2", "2017-5-4"))
                      .where(__.not(__.otherV().hasId((v10086.id()))))
                      .toList();
         Assert.assertEquals(3, edges.size());
@@ -4547,6 +4547,33 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().V(java3.id())
                      .inE("look").has("score", 0).toList();
         Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryInEdgesOfVertexByLabels() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        long size;
+        size = graph.traversal().V().outE("created", "authored", "look")
+                                    .hasLabel("authored", "created")
+                                    .count().next();
+        Assert.assertEquals(5L, size);
+
+        size = graph.traversal().V().outE("created", "authored", "look")
+                                    .hasLabel("authored", "friend")
+                                    .count().next();
+        Assert.assertEquals(3L, size);
+
+        size = graph.traversal().V().outE("created")
+                                    .hasLabel("authored", "created")
+                                    .count().next();
+        Assert.assertEquals(2L, size);
+
+        size = graph.traversal().V().inE("created", "authored", "look")
+                                    .has("score", 3)
+                                    .count().next();
+        Assert.assertEquals(3L, size);
     }
 
     @Test
@@ -7242,7 +7269,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
 
         List<Edge> edges =  graph.traversal().E()
-                                 .has("related","tags",
+                                 .has("related", "tags",
                                       ConditionP.contains("gremlin"))
                                  .toList();
 
