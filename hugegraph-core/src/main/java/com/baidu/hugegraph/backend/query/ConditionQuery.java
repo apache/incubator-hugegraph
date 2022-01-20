@@ -242,6 +242,11 @@ public class ConditionQuery extends IdQuery {
             T value = (T) valuesEQ.get(0);
             return value;
         }
+        if (valuesEQ.size() == 0 && valuesIN.size() == 1) {
+            @SuppressWarnings("unchecked")
+            T value = (T) valuesIN.get(0);
+            return value;
+        }
 
         Set<Object> intersectValues = InsertionOrderUtil.newSet();
         for (Object value : valuesEQ) {
@@ -262,6 +267,10 @@ public class ConditionQuery extends IdQuery {
                 CollectionUtil.intersectWithModify(intersectValues,
                                                    valueAsList);
             }
+        }
+
+        if (intersectValues.size() == 0) {
+            return null;
         }
         E.checkState(intersectValues.size() == 1,
                      "Illegal key '%s' with more than one value: %s",
