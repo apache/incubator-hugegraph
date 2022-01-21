@@ -24,6 +24,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
@@ -59,6 +60,10 @@ public class KafkaExample {
     }
 
     private static Future<?> produceExample() throws InterruptedException, ExecutionException {
+
+
+        BackendMutation mutation = new BackendMutation();
+
         String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress with non-topic\"}";
         byte[] raw = val.getBytes();
         ByteBuffer buffer = ByteBuffer.wrap(raw);

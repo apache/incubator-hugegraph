@@ -33,7 +33,6 @@ import org.apache.kafka.common.serialization.StringSerializer;
  */
 public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>  {
 
-
     private static ProducerClient<String, ByteBuffer> producer;
     private static final Object MTX = new Object();
 
@@ -91,7 +90,6 @@ public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>
                 
                 ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);
                 StandardProducerBuilder.producer = producer;
-
             }
         }
 

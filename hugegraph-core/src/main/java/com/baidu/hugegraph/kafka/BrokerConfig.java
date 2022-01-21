@@ -39,7 +39,6 @@ public class BrokerConfig {
     }
 
     public int getPartitionCount() {
-
         return 4;
     }
 

@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 
 public class HugeGraphSyncTopicBuilder {
 
@@ -32,8 +33,7 @@ public class HugeGraphSyncTopicBuilder {
     private String graphName;
     private String graphSpace;
 
-    // TODO load from configuration
-    private static final int PARTITION_COUNT = 4;
+    private static final int PARTITION_COUNT = BrokerConfig.getInstance().getPartitionCount();
 
     private final static String DELIM = "/";
 

@@ -30,6 +30,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer> {
 
+    private static StandardConsumer consumer;
+    private final static Object MTX = new Object();
+
     public StandardConsumerBuilder() {
 
         super();
@@ -82,18 +85,23 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer>
     @Override
     public StandardConsumer build() {
 
-        Properties props = new Properties();
+        synchronized(StandardConsumerBuilder.MTX) {
+            if (StandardConsumerBuilder.consumer == null) {
+                Properties props = new Properties();
 
-        String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
+                String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
+        
+                props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
+                props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer.getName());
+                props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer.getName());
+                props.put(ConsumerConfig.GROUP_ID_CONFIG, this.groupId);
+                props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
+                props.put("topic", topic);
+        
+                StandardConsumerBuilder.consumer = new StandardConsumer(props);
+            }
+        }
 
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer.getName());
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer.getName());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, this.groupId);
-        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
-        props.put("topic", topic);
-
-        StandardConsumer consumer = new StandardConsumer(props);
         return consumer;
     }
     
