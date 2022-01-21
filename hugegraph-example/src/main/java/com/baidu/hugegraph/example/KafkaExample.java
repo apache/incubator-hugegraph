@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.example;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -32,7 +33,7 @@ import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
  * Example of using kafka client
  */
 public class KafkaExample {
-    private static final ProducerClient<String, byte[]> producer = new StandardProducerBuilder()
+    private static final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder()
                                                 .setKafkaHost("127.0.0.1")
                                                 .setKafkaPort("9092")
                                                 .setTopic("hugegraph-nospace-default")
@@ -70,7 +71,8 @@ public class KafkaExample {
     private static Future<?> produceExample() throws InterruptedException, ExecutionException {
         String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test\"}";
         byte[] raw = val.getBytes();
-        return producer.produce("hello", raw);
+        ByteBuffer buffer = ByteBuffer.wrap(raw);
+        return producer.produce("hello", buffer);
  
     }
 

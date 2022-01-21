@@ -19,14 +19,19 @@
 
 package com.baidu.hugegraph.kafka.producer;
 
+import java.nio.ByteBuffer;
+import java.util.Properties;
+
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 /**
  * Standard producer builder to make producer
  */
-public class StandardProducerBuilder extends ProducerBuilder<String, byte[]>  {
+public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>  {
     public StandardProducerBuilder() {
+        super();
         this.keySerializer = StringSerializer.class;
         this.valueSerializer = ByteBufferSerializer.class;
     }
@@ -36,13 +41,32 @@ public class StandardProducerBuilder extends ProducerBuilder<String, byte[]>  {
      */
     @Override
     @Deprecated
-    public ProducerBuilder<String, byte[]> setKeySerializerClass(Class<?> clazz) {
+    public ProducerBuilder<String, ByteBuffer> setKeySerializerClass(Class<?> clazz) {
         return this;
     }
 
     @Override
-    public ProducerBuilder<String, byte[]> setValueSerializerClass(Class<?> clazz) {
+    public ProducerBuilder<String, ByteBuffer> setValueSerializerClass(Class<?> clazz) {
         return this;
+    }
+
+    @Override
+    public ProducerClient<String, ByteBuffer> build() throws IllegalArgumentException {
+        this.validateOptions();
+
+        Properties props = new Properties();
+
+        String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
+
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
+        props.put("topic", topic);
+        
+        ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);
+
+        return producer;
+
     }
 
 }

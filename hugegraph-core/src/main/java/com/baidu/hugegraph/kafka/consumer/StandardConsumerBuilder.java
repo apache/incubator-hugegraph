@@ -19,13 +19,14 @@
 
 package com.baidu.hugegraph.kafka.consumer;
 
+import java.nio.ByteBuffer;
 import java.util.Properties;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
-public class StandardConsumerBuilder extends ConsumerBuilder<String, byte[]> {
+public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer> {
 
     public StandardConsumerBuilder() {
         this.keyDeserializer = StringDeserializer.class;
@@ -34,13 +35,13 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, byte[]> {
 
     @Override
     @Deprecated
-    public ConsumerBuilder<String ,byte[]> setKeyDeserializerClass(Class<?> clazz) {
+    public ConsumerBuilder<String ,ByteBuffer> setKeyDeserializerClass(Class<?> clazz) {
         return this;
     }
 
     @Override
     @Deprecated
-    public ConsumerBuilder<String ,byte[]> setValueDeserializerClass(Class<?> clazz) {
+    public ConsumerBuilder<String ,ByteBuffer> setValueDeserializerClass(Class<?> clazz) {
         return this;
     }
 
@@ -60,7 +61,6 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, byte[]> {
 
         StandardConsumer consumer = new StandardConsumer(props);
         return consumer;
-
     }
     
 }

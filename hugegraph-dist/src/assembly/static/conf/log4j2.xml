@@ -24,11 +24,11 @@
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="128MB"/>
+                <SizeBasedTriggeringPolicy size="50MB"/>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
             <!-- Keep 5 files per day & auto delete after over 2GB or 100 files -->
-            <DefaultRolloverStrategy max="16">
+            <DefaultRolloverStrategy max="nomax">
                 <Delete basePath="${LOG_PATH}" maxDepth="2">
                     <IfFileName glob="*/*.log"/>
                     <!-- Limit log amount & size -->
@@ -97,6 +97,9 @@
         <!-- Use mixed async way to output logs -->
         <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="file"/>
+        </AsyncLogger>
+        <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
+            <appender-ref ref="audit"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
             <appender-ref ref="audit"/>
