@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.tx;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +41,10 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.kafka.producer.ProducerClient;
+import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
@@ -69,6 +74,8 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected final AbstractSerializer serializer;
 
+    protected final ProducerClient<String, ByteBuffer> producer;
+
     public AbstractTransaction(HugeGraphParams graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
@@ -76,6 +83,8 @@ public abstract class AbstractTransaction implements Transaction {
         this.graph = graph;
         this.serializer = this.graph.serializer();
 
+        this.producer = new StandardProducerBuilder().build();
+    
         this.store = store;
         this.reset();
 
@@ -318,15 +327,27 @@ public abstract class AbstractTransaction implements Transaction {
         this.store.beginTx();
         for (BackendMutation mutation : mutations) {
             this.store.mutate(mutation);
-        }
-        this.store.commitTx();
 
+            // TODO kafka produce
+            HugeGraphSyncTopic topic = new HugeGraphSyncTopicBuilder()
+                .setGraphName(this.graphName())
+                .setGraphSpace(this.graph().graphSpace())
+                .setMutation(mutation)
+                .build();
+             this.producer.produce(topic);
+        }
+
+        
+
+        this.store.commitTx();
+  
         this.committing2Backend = false;
     }
 
     protected void rollbackBackend() {
         this.committing2Backend = false;
         this.store.rollbackTx();
+        // TODO kafka rollback 
     }
 
     protected BackendMutation prepareCommit() {

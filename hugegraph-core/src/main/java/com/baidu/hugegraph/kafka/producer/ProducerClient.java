@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.baidu.hugegraph.kafka.topic.TopicBase;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -37,17 +39,23 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 public class ProducerClient<K, V> {
 
     private final KafkaProducer<K, V> producer;
-    public final String topic;
     private volatile boolean closing = false;
 
     private final ExecutorService asyncExecutor;
     protected ProducerClient(Properties props) {
         asyncExecutor = Executors.newSingleThreadExecutor();
-        this.topic = props.getProperty("topic", "hugegraph-nospace-default");
         producer = new KafkaProducer<>(props);
     }
 
-    public Future<?> produce(K key, V value) throws InterruptedException, ExecutionException {
+    /**
+     * Produce by custom key-value
+     * @param key
+     * @param value
+     * @return
+     * @throws InterruptedException
+     * @throws ExecutionException
+     */
+    public Future<?> produce(String topic, K key, V value) throws InterruptedException, ExecutionException {
         if (closing) {
             throw new IllegalStateException("Cannot produce when producer is closing");
         }
@@ -60,6 +68,33 @@ public class ProducerClient<K, V> {
                     System.out.println(meta);
                 } catch (Exception e) {
         
+                }
+                producer.flush();
+            }
+        });
+    }
+
+    /**
+     * Produce by encapsulated topic
+     * @param topic
+     * @return
+     */
+    public Future<?> produce(TopicBase<K, V> topic) {
+        if (closing) {
+            throw new IllegalStateException("Cannot produce when producer is closing");
+        }
+        return asyncExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ProducerRecord<K, V> record = new ProducerRecord<>(
+                                topic.getTopic(),
+                                topic.getPartition(),
+                                topic.getKey(),
+                                topic.getValue());
+                    producer.send(record);
+                } catch (Exception e) {
+
                 }
                 producer.flush();
             }

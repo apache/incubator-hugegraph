@@ -91,7 +91,6 @@ public class ProducerBuilder<K, V> {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
-        props.put("topic", topic);
 
         ProducerClient<K, V> client = new ProducerClient<>(props);
 

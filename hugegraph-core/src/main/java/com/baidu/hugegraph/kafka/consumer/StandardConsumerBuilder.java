@@ -22,6 +22,8 @@ package com.baidu.hugegraph.kafka.consumer;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 
+import com.baidu.hugegraph.kafka.BrokerConfig;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -29,6 +31,14 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer> {
 
     public StandardConsumerBuilder() {
+
+        super();
+
+        this.topic = "hugegraph-nospace-default";
+        this.groupId = BrokerConfig.getInstance().getGroupId();
+        this.groupInstanceId = BrokerConfig.getInstance().getGroupInstanceId();
+        this.kafkaHost = BrokerConfig.getInstance().getKafkaHost();
+        this.kafkaPort = BrokerConfig.getInstance().getKafkaPort();
         this.keyDeserializer = StringDeserializer.class;
         this.valueDeserializer = ByteBufferDeserializer.class;
     }
@@ -46,6 +56,30 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer>
     }
 
     @Override
+    @Deprecated
+    public ConsumerBuilder<String ,ByteBuffer> setKafkaHost(String host) {
+        return this;
+    }
+
+    @Override
+    @Deprecated
+    public ConsumerBuilder<String ,ByteBuffer> setKafkaPort(String port) {
+        return this;
+    }
+
+    @Override
+    @Deprecated
+    public ConsumerBuilder<String ,ByteBuffer> setGroupId(String groupId) {
+        return this;
+    }
+
+    @Override
+    @Deprecated
+    public ConsumerBuilder<String ,ByteBuffer> setGroupInstanceId(String groupInstanceId) {
+        return this;
+    }
+
+    @Override
     public StandardConsumer build() {
 
         Properties props = new Properties();
@@ -55,8 +89,8 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer>
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer.getName());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer.getName());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "hugegraph-sync-consumer-group");
-        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, "hugegraph-sync-consumer-instance-1");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, this.groupId);
+        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
         props.put("topic", topic);
 
         StandardConsumer consumer = new StandardConsumer(props);

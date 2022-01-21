@@ -25,5 +25,38 @@ package com.baidu.hugegraph.kafka;
  * @since 2022-01-18
  */
 public class BrokerConfig {
+
+    private static class ConfigHolder {
+        public final static BrokerConfig instance = new BrokerConfig();
+    }
+
+    private BrokerConfig() {
+
+    }
+
+    public static BrokerConfig getInstance() {
+        return ConfigHolder.instance;
+    }
+
+    public int getPartitionCount() {
+
+        return 4;
+    }
+
+    public String getKafkaHost() {
+        return "127.0.0.1";
+    }
+
+    public String getKafkaPort() {
+        return "9092";
+    }
+
+    public String getGroupId() {
+        return  "hugegraph-sync-consumer-group";
+    }
+
+    public String getGroupInstanceId() {
+        return "hugegraph-sync-consumer-instance-1";
+    }
     
 }

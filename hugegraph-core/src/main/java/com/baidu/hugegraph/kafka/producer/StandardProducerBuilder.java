@@ -22,6 +22,8 @@ package com.baidu.hugegraph.kafka.producer;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 
+import com.baidu.hugegraph.kafka.BrokerConfig;
+
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -30,10 +32,30 @@ import org.apache.kafka.common.serialization.StringSerializer;
  * Standard producer builder to make producer
  */
 public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>  {
+
+
+    private static ProducerClient<String, ByteBuffer> producer;
+    private static final Object MTX = new Object();
+
     public StandardProducerBuilder() {
         super();
+
+        this.kafkaHost = BrokerConfig.getInstance().getKafkaHost();
+        this.kafkaPort = BrokerConfig.getInstance().getKafkaPort();
         this.keySerializer = StringSerializer.class;
         this.valueSerializer = ByteBufferSerializer.class;
+    }
+
+    @Override
+    @Deprecated
+    public ProducerBuilder<String, ByteBuffer> setKafkaHost(String host) {
+        return this;
+    }
+
+    @Override
+    @Deprecated
+    public ProducerBuilder<String, ByteBuffer> setKafkaPort(String host) {
+        return this;
     }
 
     /**
@@ -52,22 +74,28 @@ public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>
 
     @Override
     public ProducerClient<String, ByteBuffer> build() throws IllegalArgumentException {
-        this.validateOptions();
 
-        Properties props = new Properties();
+        synchronized(StandardProducerBuilder.MTX) {
+            if (null == StandardProducerBuilder.producer) {
+                
+                this.validateOptions();
 
-        String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
+                Properties props = new Properties();
 
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
-        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
-        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
-        props.put("topic", topic);
-        
-        ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);
+                String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
 
-        return producer;
+                props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
+                props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
+                props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
+                props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
+                
+                ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);
+                StandardProducerBuilder.producer = producer;
 
+            }
+        }
+
+        return StandardProducerBuilder.producer;
     }
 
 }

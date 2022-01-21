@@ -19,18 +19,18 @@
 
 package com.baidu.hugegraph.kafka.topic;
 
+import java.nio.ByteBuffer;
+
 /**
  * HugeGraphSyncTopic is used to sync 
  * @author Scorpiour
  * @since 2022-01-18
  */
-public class HugeGraphSyncTopic extends TopicBase<String, byte[]> {
+public class HugeGraphSyncTopic extends TopicBase<String, ByteBuffer> {
 
     private final static String TOPIC = "hugegraph-sync-command";
 
-    protected HugeGraphSyncTopic(String key, byte[] value, int partition) {
+    protected HugeGraphSyncTopic(String key, ByteBuffer value, int partition) {
         super(key, value, TOPIC, partition);
-
     }
-    
 }

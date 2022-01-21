@@ -39,6 +39,8 @@ public class ConsumerBuilder<K, V> {
     protected String kafkaHost = "";
     protected String kafkaPort = "9092";
     protected String topic;
+    protected String groupId;
+    protected String groupInstanceId;
     protected Class<?> keyDeserializer = StringDeserializer.class;
     protected Class<?> valueDeserializer = StringDeserializer.class;
     
@@ -88,6 +90,16 @@ public class ConsumerBuilder<K, V> {
         return this;
     }
 
+    public ConsumerBuilder<K, V> setGroupId(String groupId) {
+        this.groupId = groupId;
+        return this;
+    }
+
+    public ConsumerBuilder<K, V> setGroupInstanceId(String groupInstanceId) {
+        this.groupInstanceId = groupInstanceId;
+        return this;
+    }
+
     
     public ConsumerClient<K, V> build() throws IllegalArgumentException {
 
@@ -100,8 +112,8 @@ public class ConsumerBuilder<K, V> {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, this.valueDeserializer.getName());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, this.keyDeserializer.getName());
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "hugegraph-sync-consumer-group");
-        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, "hugegraph-sync-consumer-instance-1");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, this.groupId);
+        props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
         props.put("topic", topic);
 
         ConsumerClient<K, V> client = new ConsumerClient<>(props);

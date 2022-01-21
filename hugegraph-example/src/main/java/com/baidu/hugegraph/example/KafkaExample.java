@@ -33,28 +33,13 @@ import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
  * Example of using kafka client
  */
 public class KafkaExample {
-    private static final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder()
-                                                .setKafkaHost("127.0.0.1")
-                                                .setKafkaPort("9092")
-                                                .setTopic("hugegraph-nospace-default")
-                                                .build();
+    private static final ProducerClient<String, ByteBuffer> producer
+            = new StandardProducerBuilder().build();
+    private static StandardConsumer consumer 
+            = new StandardConsumerBuilder().build();
 
-    private static StandardConsumer consumer ;
-
-
-    private static void init() {
-        StandardConsumerBuilder builder = new StandardConsumerBuilder();
-        builder
-            .setKafkaHost("127.0.0.1")
-            .setKafkaPort("9092")
-            .setTopic("hugegraph-nospace-default");
-        
-        consumer = builder.build();
-    }
 
     public static void main(String[] args) {
-
-        init();
 
         try {
             produceExample().get();
@@ -74,10 +59,10 @@ public class KafkaExample {
     }
 
     private static Future<?> produceExample() throws InterruptedException, ExecutionException {
-        String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress\"}";
+        String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress with non-topic\"}";
         byte[] raw = val.getBytes();
         ByteBuffer buffer = ByteBuffer.wrap(raw);
-        return producer.produce("hello", buffer);
+        return producer.produce("hugegraph-nospace-default", "hello", buffer);
  
     }
 

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.kafka.topic;
 
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 
@@ -31,6 +32,9 @@ public class HugeGraphSyncTopicBuilder {
     private String graphName;
     private String graphSpace;
 
+    // TODO load from configuration
+    private static final int PARTITION_COUNT = 4;
+
     private final static String DELIM = "/";
 
     public HugeGraphSyncTopicBuilder() {
@@ -40,7 +44,19 @@ public class HugeGraphSyncTopicBuilder {
     private String makeKey() {
         // HUGEGRAPH/{graphSpace}/{graphName}/{storeType}/{actionType}
         return String.join(DELIM, this.graphSpace, this.graphName, this.storeType.name(), this.action.name());
+    }
 
+    /**
+     * 使用graph的hashCode来计算partition，确保一个graph总在同一个partition内
+     * @return
+     */
+    private int calcPartition() {
+        int code = this.graphName.hashCode() % PARTITION_COUNT;
+        return code;
+    }
+
+    public HugeGraphSyncTopicBuilder setMutation(BackendMutation mutation) {
+        return this;
     }
 
     public HugeGraphSyncTopicBuilder setStoreType(StoreType storeType) {
@@ -68,11 +84,12 @@ public class HugeGraphSyncTopicBuilder {
         return this;
     }
 
+
     public HugeGraphSyncTopic build() {
 
         String key = this.makeKey();
 
-        HugeGraphSyncTopic topic = new HugeGraphSyncTopic(key, buffer.bytes(), 0);
+        HugeGraphSyncTopic topic = new HugeGraphSyncTopic(key, buffer.asByteBuffer(), this.calcPartition());
 
         return topic;
     }
