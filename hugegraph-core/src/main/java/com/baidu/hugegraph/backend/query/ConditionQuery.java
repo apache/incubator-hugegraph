@@ -42,6 +42,7 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LongEncoding;
@@ -217,23 +218,65 @@ public class ConditionQuery extends IdQuery {
 
     @Watched
     public <T> T condition(Object key) {
-        List<Object> values = new ArrayList<>();
+        List<Object> valuesEQ = InsertionOrderUtil.newList();
+        List<Object> valuesIN = InsertionOrderUtil.newList();
         for (Condition c : this.conditions) {
             if (c.isRelation()) {
                 Condition.Relation r = (Condition.Relation) c;
-                if (r.key().equals(key) && (r.relation() == RelationType.EQ ||
-                                            r.relation() == RelationType.IN)) {
-                    values.add(r.value());
+                if (r.key().equals(key)) {
+                    if (r.relation() == RelationType.EQ) {
+                        valuesEQ.add(r.value());
+                    } else if (r.relation() == RelationType.IN) {
+                        Object value = r.value();
+                        assert value instanceof List;
+                        valuesIN.add(value);
+                    }
                 }
             }
         }
-        if (values.isEmpty()) {
+        if (valuesEQ.isEmpty() && valuesIN.isEmpty()) {
             return null;
         }
-        E.checkState(values.size() == 1,
-                     "Illegal key '%s' with more than one value", key);
+        if (valuesEQ.size() == 1 && valuesIN.size() == 0) {
+            @SuppressWarnings("unchecked")
+            T value = (T) valuesEQ.get(0);
+            return value;
+        }
+        if (valuesEQ.size() == 0 && valuesIN.size() == 1) {
+            @SuppressWarnings("unchecked")
+            T value = (T) valuesIN.get(0);
+            return value;
+        }
+
+        Set<Object> intersectValues = InsertionOrderUtil.newSet();
+        for (Object value : valuesEQ) {
+            List<Object> valueAsList = ImmutableList.of(value);
+            if (intersectValues.isEmpty()) {
+                intersectValues.addAll(valueAsList);
+            } else {
+                CollectionUtil.intersectWithModify(intersectValues,
+                                                   valueAsList);
+            }
+        }
+        for (Object value : valuesIN) {
+            @SuppressWarnings("unchecked")
+            List<Object> valueAsList = (List<Object>) value;
+            if (intersectValues.isEmpty()) {
+                intersectValues.addAll(valueAsList);
+            } else {
+                CollectionUtil.intersectWithModify(intersectValues,
+                                                   valueAsList);
+            }
+        }
+
+        if (intersectValues.size() == 0) {
+            return null;
+        }
+        E.checkState(intersectValues.size() == 1,
+                     "Illegal key '%s' with more than one value: %s",
+                     key, intersectValues);
         @SuppressWarnings("unchecked")
-        T value = (T) values.get(0);
+        T value = (T) intersectValues.iterator().next();
         return value;
     }
 
