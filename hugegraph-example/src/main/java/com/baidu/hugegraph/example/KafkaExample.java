@@ -61,6 +61,11 @@ public class KafkaExample {
         } catch (CancellationException | ExecutionException | InterruptedException e) {
 
         }
+        try {
+            Thread.sleep(3000);
+        } catch (Exception e) {
+
+        }
 
         consumeExample();
 
@@ -69,7 +74,7 @@ public class KafkaExample {
     }
 
     private static Future<?> produceExample() throws InterruptedException, ExecutionException {
-        String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test\"}";
+        String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress\"}";
         byte[] raw = val.getBytes();
         ByteBuffer buffer = ByteBuffer.wrap(raw);
         return producer.produce("hello", buffer);

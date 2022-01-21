@@ -61,6 +61,7 @@ public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
+        props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
         props.put("topic", topic);
         
         ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);

@@ -18,7 +18,7 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
         ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(1000));
         if (records.count() > 0) {
            for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {
-               System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));
+               System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), new String(record.value().array()) ));
            }
         }
         consumer.commitAsync();
