@@ -139,6 +139,7 @@ echo "$PID" > "$PID_FILE"
 
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
+REST_SERVER_URL=(${REST_SERVER_URL//0.0.0.0/localhost})
 wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STARTUP_TIMEOUT_S} || {
     echo "See $LOGS/hugegraph-server.log for HugeGraphServer log output." >&2
     exit 1

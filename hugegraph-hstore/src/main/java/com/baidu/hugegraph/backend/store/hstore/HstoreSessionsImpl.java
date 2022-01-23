@@ -62,7 +62,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
     private final String graphName;
     private final String database;
     private static volatile Boolean INITIALIZED_NODE = Boolean.FALSE;
-    private static volatile PDClient defaultPdClient;
+    private static volatile PDClient DEFAULT_PD_CLIENT;
     private static volatile HstoreNodePartitionerImpl nodePartitioner = null;
     private static volatile Set<String> INFO_INITIALIZED_GRAPH =
                             Collections.synchronizedSet(new HashSet<>());
@@ -84,9 +84,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 if (!INITIALIZED_NODE) {
                     HgStoreNodeManager nodeManager =
                                        HgStoreNodeManager.getInstance();
-                    defaultPdClient = PDClient.create(PDConfig.of(
-                                      config.get(HstoreOptions.PD_PEERS))
-                            .setEnablePDNotify(true));
+                    DEFAULT_PD_CLIENT = PDClient.create(PDConfig.of(
+                                        config.get(HstoreOptions.PD_PEERS))
+                                        .setEnablePDNotify(true));
                     nodePartitioner = FakeHstoreNodePartitionerImpl
                                       .NodePartitionerFactory
                                       .getNodePartitioner(config,nodeManager);
@@ -102,7 +102,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         return nodePartitioner;
     }
     public static PDClient getDefaultPdClient() {
-        return defaultPdClient;
+        return DEFAULT_PD_CLIENT;
     }
 
     @Override
@@ -115,10 +115,10 @@ public class HstoreSessionsImpl extends HstoreSessions {
                     Assert.assertTrue("The value of hstore.partition_count" +
                                       " cannot be less than 0.",
                                       partitionCount > -1);
-                    defaultPdClient.setGraph(Metapb.Graph.newBuilder()
-                                   .setGraphName(this.graphName)
-                                   .setPartitionCount(partitionCount)
-                            .build());
+                    DEFAULT_PD_CLIENT.setGraph(Metapb.Graph.newBuilder()
+                                                           .setGraphName(this.graphName)
+                                                           .setPartitionCount(partitionCount)
+                                                           .build());
                     INFO_INITIALIZED_GRAPH.add(this.graphName);
                 }
             }
@@ -168,9 +168,11 @@ public class HstoreSessionsImpl extends HstoreSessions {
     @Override
     protected synchronized void doClose() {
         this.checkValid();
-
-        if (this.refCount.decrementAndGet() > 0) {
-            return;
+        if (this.refCount !=null){
+            if (this.refCount.decrementAndGet() > 0) {
+                return;
+            }
+            if (this.refCount.get() != 0) return;
         }
         assert this.refCount.get() == 0;
         this.tables.clear();
@@ -263,7 +265,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
             if (this.deleteBatch.size() > 0) {
                 this.graph.batchDeleteOwner(this.deleteBatch);
-                this.deleteBatch.clear();
+                this.deletePrefixBatch.clear();
             }
 
             if (this.deletePrefixBatch.size() > 0) {
@@ -402,7 +404,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         public BackendColumnIterator scan(String table, byte[] ownerKeyFrom,
                                           byte[] ownerKeyTo, byte[] keyFrom,
                                           byte[] keyTo, int scanType) {
-            assert !this.hasChanges();
+            //assert !this.hasChanges();
             HgKvIterator result = this.graph.scanIterator(table,
                                   HgOwnerKey.of(ownerKeyFrom,keyFrom),
                                   HgOwnerKey.of(ownerKeyTo,keyTo),
@@ -423,6 +425,20 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                   scanType,query);
             return new ColumnIterator<HgKvIterator>(table, result, keyFrom,
                                                     keyTo, scanType);
+        }
+
+        //@Override
+        public BackendColumnIterator scan(String table, int codeFrom, int codeTo,
+                                          int scanType, byte[] query) {
+            assert !this.hasChanges();
+            //HgKvIterator result = this.graph.scanIterator(table,
+            //                                              codeFrom,
+            //                                              codeTo,
+            //                                              scanType,query);
+            //return new ColumnIterator<HgKvIterator>(table, result, null,
+            //                                        null, scanType);
+            return new ColumnIterator<HgKvIterator>(table, null, null,
+                                                    null, scanType);
         }
 
         @Override
@@ -471,7 +487,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         private final int scanType;
 
         private byte[] position;
-        private byte[] value;
+        private byte[] value;   
         private boolean matched;
 
         public ColumnIterator(String table, T results) {
@@ -572,6 +588,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
                  * Less (equal) than `keyEnd`?
                  * NOTE: don't use BytewiseComparator due to signed byte
                  */
+                if((this.scanType | Session.SCAN_HASHCODE)!=0) {
+                    return true;
+                }
                 assert this.keyEnd != null;
                 if (this.match(Session.SCAN_LTE_END)) {
                     // Just compare the prefix, can be there are excess tail

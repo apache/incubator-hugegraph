@@ -28,8 +28,8 @@ import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import com.baidu.hugegraph.backend.store.hstore.HstoreSessions.Session;
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
+import com.baidu.hugegraph.backend.store.hstore.fake.IdClient;
+import com.baidu.hugegraph.backend.store.hstore.fake.IdClientFactory;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
 import com.baidu.hugegraph.store.term.HgPair;
 import com.baidu.hugegraph.type.HugeType;
@@ -88,10 +88,10 @@ public class HstoreTables {
                         return currentId.longValue();
                     if (currentId.longValue() > maxId.longValue()) {
                         try {
-                            PDClient pdClient =
-                                     HstoreSessionsImpl.getDefaultPdClient();
+                            IdClient client= IdClientFactory.getClient(session,
+                                                                       this.table());
                             Pdpb.GetIdResponse idByKey =
-                                               pdClient.getIdByKey(key, DELTA);
+                                    client.getIdByKey(key, DELTA);
                             idPair.getValue().getAndSet(idByKey.getId() +
                                                         idByKey.getDelta());
                             idPair.getKey().getAndSet(idByKey.getId());
@@ -109,7 +109,7 @@ public class HstoreTables {
             return 0L;
         }
 
-        private String toKey(String graphName, HugeType type){
+        protected String toKey(String graphName, HugeType type){
             StringBuilder builder = new StringBuilder();
             builder.append(graphName)
                    .append(DELIMITER)
@@ -143,12 +143,9 @@ public class HstoreTables {
             }
             synchronized (IDS){
                 try{
-                    PDClient pdClient;
-                    String conf = session.getConf()
-                                         .get(HstoreOptions.PD_PEERS);
-                    pdClient = PDClient.create(PDConfig.of(conf));
-                    pdClient.getIdByKey(key,
-                                        (int) (lowest - maxId.longValue()));
+                    IdClient client= IdClientFactory.getClient(session,
+                                                               this.table());
+                    client.getIdByKey(key,(int) (lowest - maxId.longValue()));
                     IDS.remove(key);
                 } catch (Exception e) {
                     throw new BackendException("");
@@ -430,6 +427,89 @@ public class HstoreTables {
 
         public ShardIndex(String database) {
             super(database, TABLE);
+        }
+    }
+    public static class OlapTable extends HstoreTable {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapTable(String database, Id id) {
+            super(database, joinTableName(TABLE, id.asString()));
+        }
+
+        @Override
+        protected BackendColumnIterator queryById(Session session, Id id) {
+            return this.getById(session, id);
+        }
+
+        //@Override
+        public boolean isOlap() {
+            return true;
+        }
+    }
+
+    public static class OlapSecondaryIndex extends SecondaryIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapSecondaryIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapSecondaryIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeIntIndex extends RangeIntIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeIntIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeIntIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeLongIndex extends RangeLongIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeLongIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeLongIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeFloatIndex extends RangeFloatIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeFloatIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeFloatIndex(String store, String table) {
+            super(joinTableName(store, table));
+        }
+    }
+
+    public static class OlapRangeDoubleIndex extends RangeDoubleIndex {
+
+        public static final String TABLE = HugeType.OLAP.string();
+
+        public OlapRangeDoubleIndex(String store) {
+            this(store, TABLE);
+        }
+
+        protected OlapRangeDoubleIndex(String store, String table) {
+            super(joinTableName(store, table));
         }
     }
 }

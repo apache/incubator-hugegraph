@@ -237,6 +237,8 @@ public class EdgeLabel extends SchemaLabel {
         // Enable label index
         if (this.enableLabelIndex()) {
             builder.append(".enableLabelIndex(true)");
+        } else {
+            builder.append(".enableLabelIndex(false)");
         }
 
         // User data
