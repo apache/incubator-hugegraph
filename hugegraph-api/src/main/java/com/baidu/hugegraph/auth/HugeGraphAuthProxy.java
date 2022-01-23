@@ -63,6 +63,7 @@ import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.AuthOptions;
@@ -736,6 +737,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void resumeSnapshot() {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
         this.hugegraph.resumeSnapshot();
+    }
+
+    @Override
+    public void applyMutation(BackendMutation mutation) {
+        this.hugegraph.applyMutation(mutation);
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,

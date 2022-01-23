@@ -107,8 +107,8 @@ public final class GraphManager {
 
     private final String cluster;
     private final String graphsDir;
-    private final boolean startIgnoreSingleGraphError;
-    private final boolean graphLoadFromLocalConfig;
+    private final Boolean startIgnoreSingleGraphError;
+    private final Boolean graphLoadFromLocalConfig;
     private final Map<String, GraphSpace> graphSpaces;
     private final Map<String, Service> services;
     private final Map<String, Graph> graphs;
@@ -141,8 +141,9 @@ public final class GraphManager {
         String server = conf.get(ServerOptions.SERVER_ID);
         String role = conf.get(ServerOptions.SERVER_ROLE);
         this.url = conf.get(ServerOptions.REST_SERVER_URL);
-        this.startIgnoreSingleGraphError = conf.get(
-                ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
+        Object x = conf.get(
+            ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
+        this.startIgnoreSingleGraphError = Boolean.valueOf(x.toString());
         E.checkArgument(server != null && !server.isEmpty(),
                         "The server name can't be null or empty");
         E.checkArgument(role != null && !role.isEmpty(),

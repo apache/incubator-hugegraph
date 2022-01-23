@@ -25,11 +25,9 @@ import java.util.Iterator;
 import java.util.Properties;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
-import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -49,6 +47,9 @@ public class KafkaSyncConsumer extends StandardConsumer {
 
     @Override
     public void consume() {
+        if (null == this.manager) {
+            return;
+        }
         ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(1000));
         if (records.count() > 0) {
            for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {

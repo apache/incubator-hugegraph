@@ -25,6 +25,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
 import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
@@ -36,11 +39,17 @@ import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 public class KafkaExample {
     private static final ProducerClient<String, ByteBuffer> producer
             = new StandardProducerBuilder().build();
-    private static KafkaSyncConsumer consumer
-            = new KafkaSyncConsumerBuilder().build();
+    private static KafkaSyncConsumer consumer;
 
 
     public static void main(String[] args) {
+
+        HugeConfig conf = new HugeConfig("/home/scorpiour/HugeGraph/hugegraph/hugegraph-dist/src/assembly/static/conf/rest-server.properties");
+        EventHub hub = new EventHub("gremlin=>hub<=rest", 1);
+
+        GraphManager manager = new GraphManager(conf, hub);
+        KafkaSyncConsumerBuilder.setGraphManager(manager);
+        consumer = new KafkaSyncConsumerBuilder().build();
 
         try {
             produceExample().get();

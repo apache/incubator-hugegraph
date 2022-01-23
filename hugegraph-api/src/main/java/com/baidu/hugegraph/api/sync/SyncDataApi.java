@@ -8,7 +8,6 @@ import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
 import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
