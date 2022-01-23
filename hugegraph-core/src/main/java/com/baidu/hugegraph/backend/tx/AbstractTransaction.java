@@ -440,4 +440,9 @@ public abstract class AbstractTransaction implements Transaction {
         E.checkNotNull(entry, "entry");
         this.mutation.add(entry, action);
     }
+
+    @Watched(prefix = "tx")
+    public void applyMutation(BackendMutation mutation) {
+        this.mutation = mutation;
+    }
 }

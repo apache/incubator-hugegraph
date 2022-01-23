@@ -56,6 +56,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
@@ -1513,5 +1514,10 @@ public class StandardHugeGraph implements HugeGraph {
         public HugeGraphCacheNotifier(EventHub hub, CacheNotifier proxy) {
             super(hub, proxy);
         }
+    }
+
+    @Override
+    public void applyMutation(BackendMutation mutation) {
+        this.graphTransaction().applyMutation(mutation);
     }
 }

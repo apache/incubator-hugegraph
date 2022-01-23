@@ -32,6 +32,7 @@ import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.kafka.InstanceHolder;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.ConfigUtil;

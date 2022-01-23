@@ -135,7 +135,7 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.backend.tx.IndexableTransaction.class, "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.backend.tx.IndexableTransaction.class, "indexTransaction", "commit2Backend", "reset");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.backend.tx.AbstractTransaction.class, "LOG", "ownerThread", "autoCommit", "closed", "committing", "committing2Backend", "graph", "store", "mutation", "serializer", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.backend.tx.AbstractTransaction.class, "beforeWrite", "prepareCommit", "params", "mutation", "commit2Backend", "autoCommit", "beforeRead", "afterWrite", "afterRead", "commitMutation2Backend", "checkOwnerThread", "doAction", "store", "reset");
+        Reflection.registerMethodsToFilter(com.baidu.hugegraph.backend.tx.AbstractTransaction.class, "beforeWrite", "prepareCommit", "params", "mutation", "commit2Backend", "autoCommit", "beforeRead", "afterWrite", "afterRead", "commitMutation2Backend", "checkOwnerThread", "doAction", "store", "reset", "applyMutation");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.HugeFactory.class, "LOG", "NAME_REGEX", "graphs");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.HugeFactory.class, "lambda$0");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.schema.SchemaElement.class, "graph", "id", "name", "userdata", "status");

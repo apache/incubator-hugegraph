@@ -25,8 +25,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
-import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
+import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
+import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 
@@ -36,8 +36,8 @@ import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 public class KafkaExample {
     private static final ProducerClient<String, ByteBuffer> producer
             = new StandardProducerBuilder().build();
-    private static StandardConsumer consumer 
-            = new StandardConsumerBuilder().build();
+    private static KafkaSyncConsumer consumer
+            = new KafkaSyncConsumerBuilder().build();
 
 
     public static void main(String[] args) {

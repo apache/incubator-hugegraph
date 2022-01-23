@@ -21,6 +21,9 @@ package com.baidu.hugegraph.kafka.topic;
 
 import java.nio.ByteBuffer;
 
+import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.store.BackendMutation;
+
 /**
  * HugeGraphSyncTopic is used to sync 
  * @author Scorpiour
@@ -29,8 +32,18 @@ import java.nio.ByteBuffer;
 public class HugeGraphSyncTopic extends TopicBase<String, ByteBuffer> {
 
     private final static String TOPIC = "hugegraph-sync-command";
-
+    protected BackendMutation mutation;
+    protected HugeGraphParams graph;
+    
     protected HugeGraphSyncTopic(String key, ByteBuffer value, int partition) {
         super(key, value, TOPIC, partition);
+    }
+
+    public HugeGraphParams getGraph() {
+        return this.graph;
+    }
+
+    public BackendMutation getMutation() {
+        return this.mutation;
     }
 }
