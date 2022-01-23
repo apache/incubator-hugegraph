@@ -81,7 +81,6 @@ public class HugeGraphSyncTopicBuilder {
         return this;
     }
 
-
     public HugeGraphSyncTopic build() {
 
         String key = this.makeKey();

@@ -461,4 +461,8 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    @Watched(prefix = "tx")
+    public void applyMutation(BackendMutation mutation) {
+        this.mutation = mutation;
+    }
 }
