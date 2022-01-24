@@ -56,7 +56,7 @@ public class KafkaSyncConsumer extends StandardConsumer {
         if (null == this.manager && null == this.graph) {
             return;
         }
-        ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(1000));
+        ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(10000));
         if (records.count() > 0) {
            for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {
                 System.out.println(String.format("Going to consumer [%s]", record.key().toString()));

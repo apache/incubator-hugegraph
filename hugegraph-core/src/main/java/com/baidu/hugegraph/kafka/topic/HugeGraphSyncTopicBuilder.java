@@ -60,6 +60,9 @@ public class HugeGraphSyncTopicBuilder {
      */
     private int calcPartition() {
         int code = this.graphName.hashCode() % PARTITION_COUNT;
+        if (code < 0) {
+            code = -code;
+        }
         return code;
     }
 

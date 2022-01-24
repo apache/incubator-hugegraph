@@ -36,6 +36,7 @@ import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
 import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.schema.SchemaManager;
 
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -101,7 +102,7 @@ public class KafkaExample extends PerfExampleBase {
         produceExample(graph, times, multiple);
 
         try {
-            Thread.sleep(3000);
+            Thread.sleep(10000);
         } catch (Exception e) {
 
         }
@@ -109,7 +110,7 @@ public class KafkaExample extends PerfExampleBase {
         consumeExample(graph.graph());
 
         try {
-            Thread.sleep(30000);
+            Thread.sleep(1000 * 120);
         } catch (Exception e) {
 
         }
@@ -129,10 +130,10 @@ public class KafkaExample extends PerfExampleBase {
                 Random random = new Random();
                 int age = random.nextInt(70);
                 String name = "P" + random.nextInt();
-                Vertex vetex = graph.addVertex(T.label, "person",
+                Vertex vertex = graph.addVertex(T.label, "person",
                                                "name", name, "age", age);
-                personIds.add(vetex.id());
-                LOG.debug("Add person: {}", vetex);
+                personIds.add(vertex.id());
+                LOG.debug("Add person: {}", vertex);
             }
 
             LOG.debug("============== random software vertex ============");
@@ -140,11 +141,11 @@ public class KafkaExample extends PerfExampleBase {
                 Random random = new Random();
                 int price = random.nextInt(10000) + 1;
                 String name = "S" + random.nextInt();
-                Vertex vetex = graph.addVertex(T.label, "software",
+                Vertex vertex = graph.addVertex(T.label, "software",
                                                "name", name, "lang", "java",
                                                "price", price);
-                softwareIds.add(vetex.id());
-                LOG.debug("Add software: {}", vetex);
+                softwareIds.add(vertex.id());
+                LOG.debug("Add software: {}", vertex);
             }
 
             LOG.debug("========== random knows & created edges ==========");
@@ -164,14 +165,14 @@ public class KafkaExample extends PerfExampleBase {
         }
 
         graph.tx().commit();
-
-        /*
+/*
+        
         BackendMutation mutation = new BackendMutation();
 
         String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress with non-topic\"}";
         byte[] raw = val.getBytes();
         ByteBuffer buffer = ByteBuffer.wrap(raw);
-        return producer.produce("hugegraph-nospace-default", "hello", buffer);
+        return producer.produce("hugegraph-nospace-default", 0 ,  "hello", buffer);
         */
  
     }

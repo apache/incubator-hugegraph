@@ -55,7 +55,7 @@ public class ProducerClient<K, V> {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    public Future<?> produce(String topic, K key, V value) throws InterruptedException, ExecutionException {
+    public Future<?> produce(String topic, int partition, K key, V value) throws InterruptedException, ExecutionException {
         if (closing) {
             throw new IllegalStateException("Cannot produce when producer is closing");
         }
@@ -63,7 +63,7 @@ public class ProducerClient<K, V> {
             @Override
             public void run() {
                 try {
-                    ProducerRecord<K, V> record = new ProducerRecord<>(topic, 0, key, value);
+                    ProducerRecord<K, V> record = new ProducerRecord<>(topic, partition, key, value);
                     RecordMetadata meta = producer.send(record).get();
                     System.out.println(meta);
                 } catch (Exception e) {
@@ -92,11 +92,14 @@ public class ProducerClient<K, V> {
                                 topic.getPartition(),
                                 topic.getKey(),
                                 topic.getValue());
-                    producer.send(record).get();
+                    RecordMetadata meta = producer.send(record).get();
+                    System.out.println(meta);
+                    System.out.println("=========> Produce new topic + " + topic.getTopic() + " " + topic.getKey());
                 } catch (Exception e) {
-
+                    System.out.println(e.getStackTrace());
                 }
                 producer.flush();
+                System.out.println("=========> Produce flush");
             }
         });
     }

@@ -38,6 +38,8 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
+import com.baidu.hugegraph.kafka.consumer.ConsumerBuilder;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -57,8 +59,14 @@ public class ApplicationConfig extends ResourceConfig {
         // Register HugeConfig to context
         register(new ConfFactory(conf));
 
+        GraphManager manager = new GraphManager(conf, hub);
+
         // Register GraphManager to context
-        register(new GraphManagerFactory(conf, hub));
+        register(manager);
+
+        KafkaSyncConsumerBuilder.setGraphManager(manager);
+        // 必须在default service下启动consumer确保资源可靠
+        manager.graph(graphSpace  graphName);
 
         // Register WorkLoad to context
         register(new WorkLoadFactory());

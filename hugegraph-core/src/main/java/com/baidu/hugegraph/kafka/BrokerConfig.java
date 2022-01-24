@@ -39,7 +39,7 @@ public class BrokerConfig {
     }
 
     public int getPartitionCount() {
-        return 4;
+        return 1;
     }
 
     public String getKafkaHost() {
