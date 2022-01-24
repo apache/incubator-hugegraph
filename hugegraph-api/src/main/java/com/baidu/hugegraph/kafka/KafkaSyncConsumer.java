@@ -36,6 +36,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 public class KafkaSyncConsumer extends StandardConsumer {
 
     private GraphManager manager;
+    private HugeGraph graph;
 
     protected KafkaSyncConsumer(Properties props) {
         super(props);
@@ -45,9 +46,14 @@ public class KafkaSyncConsumer extends StandardConsumer {
         this.manager = manager;
     }
 
+    public void consume(HugeGraph graph) {
+        this.graph = graph;
+        this.consume();
+    }
+
     @Override
     public void consume() {
-        if (null == this.manager) {
+        if (null == this.manager && null == this.graph) {
             return;
         }
         ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(1000));
@@ -59,7 +65,7 @@ public class KafkaSyncConsumer extends StandardConsumer {
                 String graphSpace = graphInfo[0];
                 String graphName = graphInfo[1];
 
-                HugeGraph graph = manager.graph(graphSpace, graphName);
+                HugeGraph graph = this.graph == null ? manager.graph(graphSpace, graphName) : this.graph;
                 BackendMutation mutation = HugeGraphSyncTopicBuilder.buildMutation(record.value());
                 graph.applyMutation(mutation);
                 graph.tx().commit();

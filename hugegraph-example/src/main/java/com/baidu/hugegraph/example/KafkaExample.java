@@ -20,10 +20,14 @@
 package com.baidu.hugegraph.example;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Random;
+import java.util.ArrayList;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
@@ -32,56 +36,148 @@ import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
 import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.schema.SchemaManager;
+
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 
 /**
  * Example of using kafka client
  */
-public class KafkaExample {
-    private static final ProducerClient<String, ByteBuffer> producer
+public class KafkaExample extends PerfExampleBase {
+    private final ProducerClient<String, ByteBuffer> producer
             = new StandardProducerBuilder().build();
-    private static KafkaSyncConsumer consumer;
+    private KafkaSyncConsumer consumer = new KafkaSyncConsumerBuilder().build();
+    
+    public static void main(String[] args) throws Exception {
+       KafkaExample tester = new KafkaExample();
+
+        String[] arg = new String[]{ "1", "1", "1", "false"};
+
+        tester.test(arg);
+
+    }
+
+    @Override protected void initSchema(SchemaManager schema) {
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("lang").asText().ifNotExist().create();
+        schema.propertyKey("date").asText().ifNotExist().create();
+        schema.propertyKey("price").asInt().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name", "age")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+
+        schema.vertexLabel("software")
+              .properties("name", "lang", "price")
+              .primaryKeys("name")
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("knows")
+              .sourceLabel("person").targetLabel("person")
+              .properties("date")
+              .nullableKeys("date")
+              .ifNotExist()
+              .create();
+
+        schema.edgeLabel("created")
+              .sourceLabel("person").targetLabel("software")
+              .properties("date")
+              .nullableKeys("date")
+              .ifNotExist()
+              .create();
 
 
-    public static void main(String[] args) {
+    }
 
-        HugeConfig conf = new HugeConfig("/home/scorpiour/HugeGraph/hugegraph/hugegraph-dist/src/assembly/static/conf/rest-server.properties");
-        EventHub hub = new EventHub("gremlin=>hub<=rest", 1);
+    @Override
+    protected void testInsert(GraphManager graph, int times, int multiple) {
 
-        GraphManager manager = new GraphManager(conf, hub);
-        KafkaSyncConsumerBuilder.setGraphManager(manager);
-        consumer = new KafkaSyncConsumerBuilder().build();
+        produceExample(graph, times, multiple);
 
-        try {
-            produceExample().get();
-        } catch (CancellationException | ExecutionException | InterruptedException e) {
-
-        }
         try {
             Thread.sleep(3000);
         } catch (Exception e) {
 
         }
 
-        consumeExample();
+        consumeExample(graph.graph());
 
+        try {
+            Thread.sleep(30000);
+        } catch (Exception e) {
+
+        }
         producer.close();
         consumer.close();
     }
 
-    private static Future<?> produceExample() throws InterruptedException, ExecutionException {
 
+    private void produceExample(GraphManager graph, int times, int multiple) {
 
+        List<Object> personIds = new ArrayList<>(PERSON_NUM * multiple);
+        List<Object> softwareIds = new ArrayList<>(SOFTWARE_NUM * multiple);
+
+        for (int time = 0; time < times; time++) {
+            LOG.debug("============== random person vertex ===============");
+            for (int i = 0; i < PERSON_NUM * multiple; i++) {
+                Random random = new Random();
+                int age = random.nextInt(70);
+                String name = "P" + random.nextInt();
+                Vertex vetex = graph.addVertex(T.label, "person",
+                                               "name", name, "age", age);
+                personIds.add(vetex.id());
+                LOG.debug("Add person: {}", vetex);
+            }
+
+            LOG.debug("============== random software vertex ============");
+            for (int i = 0; i < SOFTWARE_NUM * multiple; i++) {
+                Random random = new Random();
+                int price = random.nextInt(10000) + 1;
+                String name = "S" + random.nextInt();
+                Vertex vetex = graph.addVertex(T.label, "software",
+                                               "name", name, "lang", "java",
+                                               "price", price);
+                softwareIds.add(vetex.id());
+                LOG.debug("Add software: {}", vetex);
+            }
+
+            LOG.debug("========== random knows & created edges ==========");
+            for (int i = 0; i < EDGE_NUM / 2 * multiple; i++) {
+                Random random = new Random();
+
+                // Add edge: person --knows-> person
+                Object p1 = personIds.get(random.nextInt(PERSON_NUM));
+                Object p2 = personIds.get(random.nextInt(PERSON_NUM));
+                graph.getVertex(p1).addEdge("knows", graph.getVertex(p2));
+
+                // Add edge: person --created-> software
+                Object p3 = personIds.get(random.nextInt(PERSON_NUM));
+                Object s1 = softwareIds.get(random.nextInt(SOFTWARE_NUM));
+                graph.getVertex(p3).addEdge("created", graph.getVertex(s1));
+            }
+        }
+
+        graph.tx().commit();
+
+        /*
         BackendMutation mutation = new BackendMutation();
 
         String val = "{ \"key\": \"hello\", \"value\": \"world, this is raw binary test with lz4 compress with non-topic\"}";
         byte[] raw = val.getBytes();
         ByteBuffer buffer = ByteBuffer.wrap(raw);
         return producer.produce("hugegraph-nospace-default", "hello", buffer);
+        */
  
     }
 
-    private static String consumeExample() {
-        consumer.consume();
+    private String consumeExample(HugeGraph graph) {
+        consumer.consume(graph);
         return "";
     }
 

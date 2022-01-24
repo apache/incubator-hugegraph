@@ -92,7 +92,7 @@ public class ProducerClient<K, V> {
                                 topic.getPartition(),
                                 topic.getKey(),
                                 topic.getValue());
-                    producer.send(record);
+                    producer.send(record).get();
                 } catch (Exception e) {
 
                 }

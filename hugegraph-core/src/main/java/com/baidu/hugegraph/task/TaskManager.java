@@ -77,7 +77,7 @@ public final class TaskManager {
     }
 
     public static TaskManager instance() {
-        return MANAGER;
+        return instance(1);
     }
 
     private TaskManager(int pool) {

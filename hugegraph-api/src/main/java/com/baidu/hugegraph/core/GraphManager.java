@@ -180,9 +180,9 @@ public final class GraphManager {
         } else {
             this.authManager = null;
         }
-
-        this.graphLoadFromLocalConfig =
-             conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
+        Object y = conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
+        this.graphLoadFromLocalConfig = Boolean.valueOf(y.toString());
+             
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
             Map<String, String> graphConfigs =

@@ -314,5 +314,9 @@ public abstract class PerfExampleBase {
             q.eq(HugeKeys.DIRECTION, direction);
             return this.hugegraph.edges(q);
         }
+
+        public HugeGraph graph() {
+            return this.hugegraph;
+        }
     }
 }
