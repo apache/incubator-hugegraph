@@ -34,6 +34,8 @@ import java.util.function.Function;
 
 import javax.ws.rs.ForbiddenException;
 
+import com.baidu.hugegraph.exception.NotAllowException;
+import com.baidu.hugegraph.type.define.GraphReadMode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -1336,13 +1338,14 @@ public class GraphTransaction extends IndexableTransaction {
              * NOTE: There will be a case here where there is UserpropRelation
              * and with no index, using hstore for Predicate in StoreNode
              */
-
             if (q == null) {
                 boolean sys = cq.syspropConditions().size() != 0;
                 if (this.indexTx.store().features().supportsFilterInStore()){
                     Set<GraphIndexTransaction.MatchedIndex> indexes = this.indexTx
                             .collectMatchedIndexes(cq);
-                    if (!sys && CollectionUtils.isEmpty(indexes)){
+                    if (!sys && CollectionUtils.isEmpty(indexes) &&
+                        GraphReadMode.OLTP_ONLY.equals(this.graph().readMode())){
+                        allowedOlapQuery(cq);
                         queries.add(cq);
                         continue;
                     }
@@ -1354,6 +1357,7 @@ public class GraphTransaction extends IndexableTransaction {
         }
         return queries;
     }
+
 
     private Query optimizeQuery(ConditionQuery query) {
         if (!query.ids().isEmpty()) {

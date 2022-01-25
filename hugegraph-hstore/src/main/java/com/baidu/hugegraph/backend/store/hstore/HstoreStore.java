@@ -23,8 +23,16 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
-import com.baidu.hugegraph.backend.store.*;
+import com.baidu.hugegraph.backend.serializer.MergeIterator;
+import com.baidu.hugegraph.backend.store.AbstractBackendStore;
+import com.baidu.hugegraph.backend.store.BackendAction;
+import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.hstore.HstoreSessions.Session;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -32,10 +40,17 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public abstract class HstoreStore extends AbstractBackendStore<Session> {
@@ -43,23 +58,23 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     private static final Logger LOG = Log.logger(HstoreStore.class);
 
     private static final BackendFeatures FEATURES = new HstoreFeatures();
-
-    private final String store;
-    private final String namespace;
+    private final Map<String, HstoreTable> olapTables;
+    private final String store,namespace;
 
     private final BackendStoreProvider provider;
     private final Map<HugeType, HstoreTable> tables;
-
+    private boolean isGraphStore;
     private HstoreSessions sessions;
-
+    private final ReadWriteLock storeLock;
     public HstoreStore(final BackendStoreProvider provider,
-                       final String namespace, final String store) {
+                       String namespace, String store) {
         this.tables = new HashMap<>();
+        this.olapTables = new ConcurrentHashMap<>();
         this.provider = provider;
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
-
+        this.storeLock = new ReentrantReadWriteLock();
         this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
     }
@@ -80,6 +95,12 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     protected void registerTableManager(HugeType type, HstoreTable table) {
         this.tables.put(type, table);
     }
+    protected void registerTableManager(String name, HstoreTable table) {
+        this.olapTables.put(name, table);
+    }
+    protected void unregisterTableManager(String name) {
+        this.olapTables.remove(name);
+    }
 
     @Override
     protected final HstoreTable table(HugeType type) {
@@ -90,16 +111,36 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         }
         return table;
     }
+    protected final HstoreTable table(String name) {
+        HstoreTable table = this.olapTables.get(name);
+        if (table == null) {
+            throw new BackendException("Can't find table '%s', after " +
+                                       "check it carefully, you could try to " +
+                                       "restart the server manually then " +
+                                       "redo the action", name);
+        }
+        return table;
+    }
+    protected final HstoreTable olapTable(String name) {
+        return this.olapTables.get(name);
+    }
+
+    protected List<String> tableNames() {
+        List<String> tables = this.tables.values().stream()
+                                         .map(BackendTable::table)
+                                         .collect(Collectors.toList());
+        tables.addAll(this.olapTables());
+        return tables;
+    }
+    protected List<String> tableNames(HugeType type) {
+        return type != HugeType.OLAP ? Arrays.asList(this.table(type).table()) :
+               this.olapTables();
+    }
 
     @Override
     protected Session session(HugeType type) {
         this.checkOpened();
         return this.sessions.session();
-    }
-
-    protected List<String> tableNames() {
-        return this.tables.values().stream().map(t -> t.table())
-                .collect(Collectors.toList());
     }
 
     public String namespace() {
@@ -131,11 +172,11 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         E.checkNotNull(config, "config");
 
         if (this.sessions == null) {
-            this.sessions = new HstoreSessionsImpl(config,
-                                                   this.namespace,
+            this.sessions = new HstoreSessionsImpl(config,this.namespace,
                                                    this.store);
         }
-
+        String graphStore = config.get(CoreOptions.STORE_GRAPH);
+        this.isGraphStore = this.store.equals(graphStore);
         assert this.sessions != null;
         if (!this.sessions.closed()) {
             LOG.debug("Store {} has been opened before", this.store);
@@ -147,10 +188,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             // NOTE: won't throw error even if connection refused
             this.sessions.open();
         } catch (Exception e) {
-            LOG.error("Failed to open Hstore '{}'", this.store, e);
-            // throw new BackendException("Failed to open Hstore '{}'", e);
+            LOG.error("Failed to open Hstore '{}':{}", this.store, e);
         }
-
         this.sessions.session();
         LOG.debug("Store opened: {}", this.store);
     }
@@ -184,8 +223,20 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
     private void mutate(Session session, BackendAction item) {
         BackendEntry entry = item.entry();
-        HstoreTable table = this.table(entry.type());
-
+        HstoreTable table ;
+        if (!entry.olap()) {
+            // Oltp table
+            table = this.table(entry.type());
+        } else {
+            if (entry.type().isIndex()) {
+                // Olap index
+                table = this.table(this.olapTableName(entry.type()));
+            } else {
+                // Olap vertex
+                table = this.table(this.olapTableName(entry.subId()));
+            }
+            session = this.session(HugeType.OLAP);
+        }
         switch (item.action()) {
             case INSERT:
                 table.insert(session, entry);
@@ -204,14 +255,42 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                       "Unsupported mutate action: %s", item.action()));
         }
     }
+    private HstoreTable getTableByQuery(Query query){
+        HugeType tableType = HstoreTable.tableType(query);
+        HstoreTable table;
+        if (query.olap()) {
+            table = this.table(this.olapTableName(tableType));
+        } else {
+            table = this.table(tableType);
+        }
+        return table;
+    }
 
     @Override
     public Iterator<BackendEntry> query(Query query) {
-        this.checkOpened();
-
-        Session session = this.sessions.session();
-        HstoreTable table = this.table(HstoreTable.tableType(query));
-        return table.query(session, query);
+        Lock readLock = this.storeLock.readLock();
+        readLock.lock();
+        try {
+            this.checkOpened();
+            Session session = this.sessions.session();
+            HstoreTable table = getTableByQuery(query);
+            Iterator<BackendEntry> entries = table.query(session, query);
+            // Merge olap results as needed
+            Set<Id> olapPks = query.olapPks();
+            if (this.isGraphStore && !olapPks.isEmpty()) {
+                List<Iterator<BackendEntry>> iterators = new ArrayList<>();
+                for (Id pk : olapPks) {
+                    Query q = query.copy();
+                    table = this.table(this.olapTableName(pk));
+                    iterators.add(table.query(this.session(HugeType.OLAP), q));
+                }
+                entries = new MergeIterator<>(entries, iterators,
+                                              BackendEntry::mergable);
+            }
+            return entries;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -223,18 +302,43 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         return table.queryNumber(session, query);
     }
 
+    protected List<String> olapTables() {
+        return this.olapTables.values().stream().map(HstoreTable::table)
+                              .collect(Collectors.toList());
+    }
     @Override
-    public void init() {
-        LOG.debug("Store initialized: {}", this.store);
+    public synchronized void init() {
+        Lock writeLock = this.storeLock.writeLock();
+        writeLock.lock();
+        try {
+            // Create tables with main disk
+            this.sessions.createTable(this.tableNames().toArray(new String[0]));
+            LOG.debug("Store initialized: {}", this.store);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
     public void clear(boolean clearSpace) {
-        LOG.debug("Store cleared: {}", this.store);
+        Lock writeLock = this.storeLock.writeLock();
+        writeLock.lock();
+        try {
+            // Drop tables with main disk
+            this.sessions.dropTable(this.tableNames().toArray(new String[0]));
+            LOG.debug("Store cleared: {}", this.store);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
     public boolean initialized() {
+        for (String table : this.tableNames()) {
+            if (!this.sessions.existsTable(table)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -249,19 +353,15 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         LOG.debug("Store truncated: {}", this.store);
     }
 
-    private void enableTables() {
-    }
-
     @Override
     public void beginTx() {
-        // pass
+        this.sessions.session().beginTx();
     }
 
     @Override
     public void commitTx() {
         this.checkOpened();
         Session session = this.sessions.session();
-
         session.commit();
     }
 
@@ -269,7 +369,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     public void rollbackTx() {
         this.checkOpened();
         Session session = this.sessions.session();
-
         session.rollback();
     }
 
@@ -340,6 +439,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
         @Override
         public void close(boolean force) {}
+
+
     }
 
     public static class HstoreGraphStore extends HstoreStore {
@@ -374,6 +475,17 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                                  new HstoreTables.ShardIndex(store));
             registerTableManager(HugeType.UNIQUE_INDEX,
                                  new HstoreTables.UniqueIndex(store));
+
+            registerTableManager(this.olapTableName(HugeType.SECONDARY_INDEX),
+                                 new HstoreTables.OlapSecondaryIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_INT_INDEX),
+                                 new HstoreTables.OlapRangeIntIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_LONG_INDEX),
+                                 new HstoreTables.OlapRangeLongIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_FLOAT_INDEX),
+                                 new HstoreTables.OlapRangeFloatIndex(store));
+            registerTableManager(this.olapTableName(HugeType.RANGE_DOUBLE_INDEX),
+                                 new HstoreTables.OlapRangeDoubleIndex(store));
         }
 
         @Override
@@ -400,6 +512,46 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                   "HstoreGraphStore.getCounter()");
+        }
+        @Override
+        public void createOlapTable(Id pkId) {
+            HstoreTable table = new HstoreTables.OlapTable(this.store(), pkId);
+            super.sessions.createTable(table.table());
+            registerTableManager(this.olapTableName(pkId), table);
+            LOG.info("OLAP table {} has been created", table.table());
+        }
+
+        @Override
+        public void checkAndRegisterOlapTable(Id pkId) {
+            HstoreTable table = new HstoreTables.OlapTable(this.store(), pkId);
+            if (!super.sessions.existsTable(table.table())) {
+                LOG.error("Found exception: Table '{}' doesn't exist, we'll " +
+                          "recreate it now. Please carefully check the recent" +
+                          "operation in server and computer, then ensure the " +
+                          "integrity of store file.", table.table());
+                this.createOlapTable(pkId);
+            } else {
+                registerTableManager(this.olapTableName(pkId), table);
+            }
+        }
+
+        @Override
+        public void clearOlapTable(Id pkId) {
+            String tableName = this.olapTableName(pkId);
+            super.sessions.truncateTable(tableName);
+        }
+
+        @Override
+        public void removeOlapTable(Id pkId) {
+            String tableName = this.olapTableName(pkId);
+            super.sessions.dropTable(tableName);
+            this.unregisterTableManager(tableName);
+        }
+
+        @Override
+        public boolean existOlapTable(Id pkId) {
+            String tableName = this.olapTableName(pkId);
+            return super.sessions.existsTable(tableName);
         }
     }
 }

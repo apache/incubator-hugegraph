@@ -117,16 +117,16 @@ public class HstoreFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsTtl() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsOlapProperties() {
         return false;
     }
 
     @Override
-    public boolean supportsFilterInStore(){
+    public boolean supportsOlapProperties() {
         return true;
+    }
+
+    @Override
+    public boolean supportsFilterInStore(){
+        return false;
     }
 }

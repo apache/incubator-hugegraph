@@ -461,17 +461,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private IdHolderList queryByUserprop(ConditionQuery query) {
         // Get user applied label or collect all qualified labels with
         // related index labels
-        if (!this.graph().readMode().showOlap()) {
-            for (Id pkId : query.userpropKeys()) {
-                PropertyKey propertyKey = this.graph().propertyKey(pkId);
-                if (propertyKey.olap()) {
-                    throw new NotAllowException(
-                              "Not allowed to query by olap property key '%s'" +
-                              " when graph-read-mode is '%s'",
-                              propertyKey, this.graph().readMode());
-                }
-            }
-        }
+        allowedOlapQuery(query);
         Set<MatchedIndex> indexes = this.collectMatchedIndexes(query);
         if (indexes.isEmpty()) {
             Id label = query.condition(HugeKeys.LABEL);

@@ -57,7 +57,6 @@ import com.baidu.hugegraph.backend.store.hstore.HstoreSessions.Session;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FlatMapperIterator;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
@@ -100,7 +99,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         // pass
     }
 
-
+    public boolean isOlap() {
+        return false;
+    }
     Function<BackendEntry,byte[]> ownerDelegate = (entry)->{
         if (entry == null) {
             return HgStoreClientConst.ALL_PARTITION_OWNER;
@@ -136,7 +137,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         if ( id instanceof BinaryBackendEntry.BinaryId){
             id = ((BinaryBackendEntry.BinaryId)id).origin();
         }
-        if (id.edge()) {
+        if (id!=null && id.edge()) {
             id = ((EdgeId) id).ownerVertexId();
         }
         return id != null ? id.asBytes() :
@@ -332,7 +333,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                             "Invalid scan with multi conditions: %s", query);
             Relation scan = query.relations().iterator().next();
             Shard shard = (Shard) scan.value();
-            return this.queryByRange(session, shard, query.page(), query);
+            return this.queryByRange(session, shard, query);
         }
         // throw new NotSupportException("query: %s", query);
         return this.queryAll(session, query);
@@ -340,27 +341,11 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
 
     protected BackendColumnIterator queryByRange(Session session, Shard shard,
-                                                 String page,
                                                  ConditionQuery query) {
-        byte[] start = this.shardSpliter.position(shard.start());
-        byte[] end = this.shardSpliter.position(shard.end());
-        if (page != null && !page.isEmpty()) {
-            byte[] position = PageState.fromString(page).position();
-            E.checkArgument(start == null ||
-                            Bytes.compare(position, start) >= 0,
-                            "Invalid page out of lower bound");
-            start = position;
-        }
-        if (start == null) {
-            start = ShardSpliter.START_BYTES;
-        }
         int type = Session.SCAN_GTE_BEGIN;
-        if (end != null) {
-            type |= Session.SCAN_LT_END;
-        }
-        return session.scan(this.table(),this.ownerScanDelegate.get(),
-                            this.ownerScanDelegate.get(),start, end, type,
-                            query.bytes());
+        type |= Session.SCAN_LT_END;
+        return session.scan(this.table(),Integer.valueOf(shard.start()),
+                            Integer.valueOf(shard.end()), type, query.bytes());
     }
 
     protected static final BackendEntryIterator newEntryIterator(
