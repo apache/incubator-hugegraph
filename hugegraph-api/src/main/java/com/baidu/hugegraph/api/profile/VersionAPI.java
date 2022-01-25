@@ -42,7 +42,7 @@ public class VersionAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @PermitAll
     public Object list() {
-        Map<String, String> versions = ImmutableMap.of("version", "v1",
+        Map<String, String> versions = ImmutableMap.of("version", "v3",
                                        "core", CoreVersion.VERSION.toString(),
                                        "gremlin", CoreVersion.GREMLIN_VERSION,
                                        "api", ApiVersion.VERSION.toString());
