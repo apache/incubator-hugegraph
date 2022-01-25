@@ -437,19 +437,17 @@ public class AuthTest extends BaseCoreTest {
     public void testCreateTarget() {
         AuthManager authManager = authManager();
 
-        HugeTarget target = makeTarget("graph1", "127.0.0.1:8080");
+        HugeTarget target = makeTarget("graph1");
         target.creator("admin");
         Id id = authManager.createTarget(DEFAULT_GRAPH_SPACE, target, false);
 
         target = authManager.getTarget(DEFAULT_GRAPH_SPACE, id, false);
         Assert.assertEquals("graph1", target.name());
-        Assert.assertEquals("127.0.0.1:8080", target.url());
         Assert.assertEquals(target.create(), target.update());
 
         HashMap<String, Object> expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("target_name", "graph1",
                                         "target_graph", "graph1",
-                                        "target_url", "127.0.0.1:8080",
                                         "target_creator", "admin"));
         expected.putAll(ImmutableMap.of("target_create", target.create(),
                                         "target_update", target.update(),
@@ -463,13 +461,12 @@ public class AuthTest extends BaseCoreTest {
         String ress = "[{\"type\": \"VERTEX\", \"label\": \"person\", " +
                       "\"properties\":{\"city\": \"Beijing\"}}, " +
                       "{\"type\": \"EDGE\", \"label\": \"transfer\"}]";
-        HugeTarget target = makeTarget("graph1", "127.0.0.1:8080");
+        HugeTarget target = makeTarget("graph1");
         target.resources(ress);
         Id id = authManager.createTarget(DEFAULT_GRAPH_SPACE, target, false);
 
         target = authManager.getTarget(DEFAULT_GRAPH_SPACE, id, false);
         Assert.assertEquals("graph1", target.name());
-        Assert.assertEquals("127.0.0.1:8080", target.url());
         Assert.assertEquals(target.create(), target.update());
 
         String expect = "[{\"type\":\"VERTEX\",\"label\":\"person\"," +
@@ -485,9 +482,9 @@ public class AuthTest extends BaseCoreTest {
         AuthManager authManager = authManager();
 
         Id id1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                 makeTarget("target1", "url1"), false);
+                 makeTarget("target1"), false);
         Id id2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                 makeTarget("target2", "url2"), false);
+                 makeTarget("target2"), false);
 
         List<HugeTarget> targets = authManager.listTargets(DEFAULT_GRAPH_SPACE,
                                    ImmutableList.of(id1, id2), false);
@@ -511,10 +508,10 @@ public class AuthTest extends BaseCoreTest {
     public void testListAllTargets() {
         AuthManager authManager = authManager();
 
-        authManager.createTarget(DEFAULT_GRAPH_SPACE, makeTarget("target1",
-                                 "url1"), false);
-        authManager.createTarget(DEFAULT_GRAPH_SPACE, makeTarget("target2",
-                                 "url1"), false);
+        authManager.createTarget(DEFAULT_GRAPH_SPACE, makeTarget("target1"),
+                                 false);
+        authManager.createTarget(DEFAULT_GRAPH_SPACE, makeTarget("target2"),
+                                 false);
 
         List<HugeTarget> targets = authManager.listAllTargets(
                                    DEFAULT_GRAPH_SPACE, -1, false);
@@ -538,7 +535,7 @@ public class AuthTest extends BaseCoreTest {
         AuthManager authManager = authManager();
 
         Id id = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                         makeTarget("target-test", "url1"),
+                                         makeTarget("target-test"),
                                          false);
         HugeTarget target = authManager.getTarget(DEFAULT_GRAPH_SPACE,
                                                   id,
@@ -566,25 +563,22 @@ public class AuthTest extends BaseCoreTest {
     public void testUpdateTarget() throws InterruptedException {
         AuthManager authManager = authManager();
 
-        HugeTarget target = makeTarget("target1", "url1");
+        HugeTarget target = makeTarget("target1");
         Id id = authManager.createTarget(DEFAULT_GRAPH_SPACE, target, false);
 
         target = authManager.getTarget(DEFAULT_GRAPH_SPACE, id, false);
         Assert.assertEquals("target1", target.name());
-        Assert.assertEquals("url1", target.url());
         Assert.assertEquals(target.create(), target.update());
 
         Date oldUpdateTime = target.update();
         Thread.sleep(1000L);
 
-        target.url("url2");
         authManager.updateTarget(DEFAULT_GRAPH_SPACE, target, false);
 
         HugeTarget target2 = authManager.getTarget(DEFAULT_GRAPH_SPACE,
                                                    id,
                                                    false);
         Assert.assertEquals("target1", target2.name());
-        Assert.assertEquals("url1", target2.url());
         Assert.assertEquals(oldUpdateTime, target2.create());
         Assert.assertNotEquals(oldUpdateTime, target2.update());
     }
@@ -594,10 +588,10 @@ public class AuthTest extends BaseCoreTest {
         AuthManager authManager = authManager();
 
         Id id1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                          makeTarget("target1", "url1"),
+                                          makeTarget("target1"),
                                           false);
         Id id2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                          makeTarget("target2", "url2"),
+                                          makeTarget("target2"),
                                           false);
         Assert.assertEquals(2, authManager.listAllTargets(DEFAULT_GRAPH_SPACE,
                                         -1, false).size());
@@ -820,7 +814,7 @@ public class AuthTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                                 makeTarget("graph1", ""),
+                                                 makeTarget("graph1"),
                                                  false);
             Id access = authManager.createAccess(DEFAULT_GRAPH_SPACE,
                makeAccess(group1, target, HugePermission.READ), false);
@@ -911,7 +905,7 @@ public class AuthTest extends BaseCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                                 makeTarget("graph1", ""),
+                                                 makeTarget("graph1"),
                                                  false);
             Id access = authManager.createAccess(DEFAULT_GRAPH_SPACE,
                makeAccess(group1, target, HugePermission.READ), false);
@@ -930,10 +924,10 @@ public class AuthTest extends BaseCoreTest {
                                             makeGroup("group2"),
                                             false);
         Id target1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph1", "url1"),
+                                              makeTarget("graph1"),
                                               false);
         Id target2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph2", "url2"),
+                                              makeTarget("graph2"),
                                               false);
 
         Id id1 = authManager.createAccess(DEFAULT_GRAPH_SPACE,
@@ -1017,10 +1011,10 @@ public class AuthTest extends BaseCoreTest {
                                            makeGroup("group1"),
                                            false);
         Id target1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph1", "url1"),
+                                              makeTarget("graph1"),
                                               false);
         Id target2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph2", "url2"),
+                                              makeTarget("graph2"),
                                               false);
 
         Id id1 = authManager.createAccess(DEFAULT_GRAPH_SPACE,
@@ -1076,10 +1070,10 @@ public class AuthTest extends BaseCoreTest {
                                            makeGroup("group1"),
                                            false);
         Id target1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph1", "url1"),
+                                              makeTarget("graph1"),
                                               false);
         Id target2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph2", "url2"),
+                                              makeTarget("graph2"),
                                               false);
 
         authManager.createAccess(DEFAULT_GRAPH_SPACE,
@@ -1116,10 +1110,10 @@ public class AuthTest extends BaseCoreTest {
                                            makeGroup("group1"),
                                            false);
         Id target1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph1", "url1"),
+                                              makeTarget("graph1"),
                                               false);
         Id target2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph2", "url2"),
+                                              makeTarget("graph2"),
                                               false);
 
         Id id1 = authManager.createAccess(DEFAULT_GRAPH_SPACE,
@@ -1167,7 +1161,7 @@ public class AuthTest extends BaseCoreTest {
                                            makeGroup("group1"),
                                            false);
         Id target = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                             makeTarget("graph1", "url1"),
+                                             makeTarget("graph1"),
                                              false);
         Id id = authManager.createAccess(DEFAULT_GRAPH_SPACE,
                                          makeAccess(group, target,
@@ -1234,10 +1228,10 @@ public class AuthTest extends BaseCoreTest {
                                            makeGroup("group1"),
                                            false);
         Id target1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph1", "url1"),
+                                              makeTarget("graph1"),
                                               false);
         Id target2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                              makeTarget("graph2", "url2"),
+                                              makeTarget("graph2"),
                                               false);
 
         Id id1 = authManager.createAccess(DEFAULT_GRAPH_SPACE,
@@ -1296,10 +1290,10 @@ public class AuthTest extends BaseCoreTest {
                                             false);
 
         Id graph1 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                             makeTarget("hugegraph", "url1"),
+                                             makeTarget("hugegraph"),
                                              false);
         Id graph2 = authManager.createTarget(DEFAULT_GRAPH_SPACE,
-                                             makeTarget("hugegraph1", "url2"),
+                                             makeTarget("hugegraph1"),
                                              false);
 
         List<HugeResource> rv = HugeResource.parseResources(
@@ -1316,17 +1310,17 @@ public class AuthTest extends BaseCoreTest {
         Id graph1v = authManager.createTarget(DEFAULT_GRAPH_SPACE,
                                               makeTarget("hugegraph-v",
                                                          "hugegraph",
-                                                         "url1", rv),
+                                                         rv),
                                               false);
         Id graph1e = authManager.createTarget(DEFAULT_GRAPH_SPACE,
                                               makeTarget("hugegraph-e",
                                                          "hugegraph",
-                                                         "url1", re),
+                                                         re),
                                               false);
         Id graph1gremlin = authManager.createTarget(DEFAULT_GRAPH_SPACE,
                                                     makeTarget("hugegraph-g",
                                                                "hugegraph",
-                                                               "url1", rg),
+                                                               rg),
                                                     false);
 
         Id belong1 = authManager.createBelong(DEFAULT_GRAPH_SPACE,
@@ -1515,15 +1509,15 @@ public class AuthTest extends BaseCoreTest {
         return group;
     }
 
-    private static HugeTarget makeTarget(String name, String url) {
-        HugeTarget target = new HugeTarget(name, DEFAULT_GRAPH_SPACE, url);
+    private static HugeTarget makeTarget(String name) {
+        HugeTarget target = new HugeTarget(name, DEFAULT_GRAPH_SPACE);
         target.creator("admin");
         return target;
     }
 
-    private static HugeTarget makeTarget(String name, String graph, String url,
+    private static HugeTarget makeTarget(String name, String graph,
                                          List<HugeResource> ress) {
-        HugeTarget target = new HugeTarget(name, DEFAULT_GRAPH_SPACE,  graph, url, ress);
+        HugeTarget target = new HugeTarget(name, DEFAULT_GRAPH_SPACE,  graph, ress);
         target.creator("admin");
         return target;
     }

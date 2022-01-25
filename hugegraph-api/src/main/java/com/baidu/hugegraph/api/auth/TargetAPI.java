@@ -164,8 +164,6 @@ public class TargetAPI extends API {
         private String name;
         @JsonProperty("target_graph")
         private String graph;
-        @JsonProperty("target_url")
-        private String url;
         @JsonProperty("target_resources") // error when List<HugeResource>
         private List<Map<String, Object>> resources;
 
@@ -176,9 +174,6 @@ public class TargetAPI extends API {
             E.checkArgument(this.graph == null ||
                             target.graph().equals(this.graph),
                             "The graph of target can't be updated");
-            if (this.url != null) {
-                target.url(this.url);
-            }
             if (this.resources != null) {
                 target.resources(JsonUtil.toJson(this.resources));
             }
@@ -187,7 +182,7 @@ public class TargetAPI extends API {
 
         public HugeTarget build(String graphSpace) {
             HugeTarget target = new HugeTarget(this.name, graphSpace,
-                                               this.graph, this.url);
+                                               this.graph);
             if (this.resources != null) {
                 target.resources(JsonUtil.toJson(this.resources));
             }
@@ -200,14 +195,11 @@ public class TargetAPI extends API {
                                    "The name of target can't be null");
             E.checkArgumentNotNull(this.graph,
                                    "The graph of target can't be null");
-            E.checkArgumentNotNull(this.url,
-                                   "The url of target can't be null");
         }
 
         @Override
         public void checkUpdate() {
-            E.checkArgument(this.url != null ||
-                            this.resources != null,
+            E.checkArgument(this.resources != null,
                             "Expect one of target url/resources");
 
         }

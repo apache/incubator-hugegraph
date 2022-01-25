@@ -371,8 +371,8 @@ public class StandardAuthManager implements AuthManager {
             HugeTarget target = this.metaManager.findTarget(graphSpace,
                                 IdGenerator.of(DEFAULT_SPACE_TARGET_KEY));
             if (target == null) {
-                target = new HugeTarget(DEFAULT_SPACE_TARGET_KEY, graphSpace,
-                                        ALL_GRAPHS, "");
+                target = new HugeTarget(DEFAULT_SPACE_TARGET_KEY,
+                                        graphSpace, ALL_GRAPHS);
                 this.updateCreator(target);
                 target.create(target.update());
                 this.metaManager.createTarget(graphSpace, target);
@@ -415,7 +415,7 @@ public class StandardAuthManager implements AuthManager {
                                 IdGenerator.of(DEFAULT_ADMIN_TARGET_KEY));
             if (target == null) {
                 target = new HugeTarget(DEFAULT_ADMIN_TARGET_KEY,
-                                        ALL_GRAPH_SPACES, ALL_GRAPHS, "");
+                                        ALL_GRAPH_SPACES, ALL_GRAPHS);
                 this.updateCreator(target);
                 target.create(target.update());
                 this.metaManager.createTarget(ALL_GRAPH_SPACES, target);
