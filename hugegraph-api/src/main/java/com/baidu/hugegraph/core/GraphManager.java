@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.baidu.hugegraph.k8s.K8sDriver;
 import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
+import com.baidu.hugegraph.pd.client.PDClient;
+import com.baidu.hugegraph.pd.client.PDConfig;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.define.GraphReadMode;
@@ -501,10 +503,21 @@ public final class GraphManager {
     public GraphSpace createGraphSpace(GraphSpace space) {
         String name = space.name();
         checkGraphSpaceName(name);
+        this.limitStorage(space, space.storageLimit);
         this.metaManager.addGraphSpaceConfig(name, space);
         this.metaManager.notifyGraphSpaceAdd(name);
         this.graphSpaces.put(name, space);
         return space;
+    }
+
+    private void limitStorage(GraphSpace space, int storageLimit) {
+        PDClient pdClient = PDClient.create(PDConfig.of(this.pdPeers)
+                                    .setEnablePDNotify(true));
+        try {
+            pdClient.setGraphSpace(space.name(), storageLimit);
+        } catch (Exception e) {
+            LOG.error("Exception occur when set storage limit!", e);
+        }
     }
 
     public void clearGraphSpace(String name) {
