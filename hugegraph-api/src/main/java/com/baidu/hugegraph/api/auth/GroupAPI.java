@@ -65,6 +65,8 @@ public class GroupAPI extends API {
                          JsonGroup jsonGroup) {
         LOG.debug("Graph space [{}] create group: {}", graphSpace, jsonGroup);
         checkCreatingBody(jsonGroup);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeGroup group = jsonGroup.build(graphSpace);
         AuthManager authManager = manager.authManager();
@@ -83,6 +85,8 @@ public class GroupAPI extends API {
                          JsonGroup jsonGroup) {
         LOG.debug("Graph space [{}] update group: {}", graphSpace, jsonGroup);
         checkUpdatingBody(jsonGroup);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeGroup group = jsonGroup.build(graphSpace);
         AuthManager authManager = manager.authManager();
@@ -97,6 +101,8 @@ public class GroupAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list groups", graphSpace);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         List<HugeGroup> groups = manager.authManager()
                                         .listAllGroups(graphSpace,
@@ -113,6 +119,8 @@ public class GroupAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get group: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         AuthManager authManager = manager.authManager();
         HugeGroup group = authManager.getGroup(graphSpace,
@@ -129,6 +137,8 @@ public class GroupAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
         LOG.debug("Graph space [{}] delete group: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         try {
             AuthManager authManager = manager.authManager();

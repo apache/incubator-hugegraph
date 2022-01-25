@@ -357,6 +357,10 @@ public final class GraphManager {
         }
     }
 
+    public boolean isAuth() {
+        return this.graphSpace(this.serviceGraphSpace).auth();
+    }
+
     private synchronized Map<String, Map<String, Object>> graphConfigs() {
         Map<String, Map<String, Object>> configs =
                     CollectionFactory.newMap(CollectionType.EC);

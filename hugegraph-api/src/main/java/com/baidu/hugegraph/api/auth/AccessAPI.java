@@ -69,6 +69,8 @@ public class AccessAPI extends API {
         LOG.debug("Graph space [{}] create access: {}",
                   graphSpace, jsonAccess);
         checkCreatingBody(jsonAccess);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeAccess access = jsonAccess.build(graphSpace);
         AuthManager authManager = manager.authManager();
@@ -88,7 +90,8 @@ public class AccessAPI extends API {
         LOG.debug("Graph space [{}] update access: {}",
                   graphSpace, jsonAccess);
         checkUpdatingBody(jsonAccess);
-
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
         HugeAccess access;
         AuthManager authManager = manager.authManager();
         try {
@@ -113,6 +116,8 @@ public class AccessAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list belongs by group {} or target {}",
                   graphSpace, group, target);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
         E.checkArgument(group == null || target == null,
                         "Can't pass both group and target at the same time");
 
@@ -140,6 +145,8 @@ public class AccessAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get access: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         AuthManager authManager = manager.authManager();
         HugeAccess access = authManager.getAccess(graphSpace,
@@ -156,6 +163,8 @@ public class AccessAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
         LOG.debug("Graph space [{}] delete access: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         try {
             AuthManager authManager = manager.authManager();
@@ -213,10 +222,18 @@ public class AccessAPI extends API {
                                    "The target of access can't be null");
             E.checkArgumentNotNull(this.permission,
                                    "The permission of access can't be null");
+            E.checkArgument(this.permission != HugePermission.SPACE &&
+                            this.permission != HugePermission.ADMIN,
+                            "The access_permission could not be " +
+                            "'SPACE' or 'ADMIN'");
         }
 
         @Override
         public void checkUpdate() {
+            E.checkArgument(this.permission != HugePermission.SPACE &&
+                            this.permission != HugePermission.ADMIN,
+                            "The access_permission could not be " +
+                            "'SPACE' or 'ADMIN'");
         }
     }
 }

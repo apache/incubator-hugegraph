@@ -109,39 +109,49 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
 
                 // strip off "Basic " from the Authorization header (RFC 2617)
                 final String basic = "Basic ";
+                final String bearer = "Bearer ";
                 final String header = request.headers().get("Authorization");
-                if (!header.startsWith(basic)) {
-                    sendError(ctx, msg);
-                    return;
-                }
-                byte[] userPass = null;
-                try {
-                    final String encoded = header.substring(basic.length());
-                    userPass = this.decoder.decode(encoded);
-                } catch (IndexOutOfBoundsException iae) {
-                    sendError(ctx, msg);
-                    return;
-                } catch (IllegalArgumentException iae) {
-                    sendError(ctx, msg);
-                    return;
-                }
-                String authorization = new String(userPass,
-                                                  Charset.forName("UTF-8"));
-                String[] split = authorization.split(":");
-                if (split.length != 2) {
-                    sendError(ctx, msg);
-                    return;
-                }
-
-                String address = ctx.channel().remoteAddress().toString();
-                if (address.startsWith("/") && address.length() > 1) {
-                    address = address.substring(1);
-                }
-
                 final Map<String,String> credentials = new HashMap<>();
-                credentials.put(PROPERTY_USERNAME, split[0]);
-                credentials.put(PROPERTY_PASSWORD, split[1]);
-                credentials.put(HugeAuthenticator.KEY_ADDRESS, address);
+                if (header.startsWith(basic)) {
+                    byte[] userPass = null;
+                    try {
+                        final String encoded = header.substring(basic.length());
+                        userPass = this.decoder.decode(encoded);
+                    } catch (IndexOutOfBoundsException iae) {
+                        sendError(ctx, msg);
+                        return;
+                    } catch (IllegalArgumentException iae) {
+                        sendError(ctx, msg);
+                        return;
+                    }
+                    String authorization = new String(userPass,
+                            Charset.forName("UTF-8"));
+                    String[] split = authorization.split(":");
+                    if (split.length != 2) {
+                        sendError(ctx, msg);
+                        return;
+                    }
+
+                    String address = ctx.channel().remoteAddress().toString();
+                    if (address.startsWith("/") && address.length() > 1) {
+                        address = address.substring(1);
+                    }
+
+                    credentials.put(PROPERTY_USERNAME, split[0]);
+                    credentials.put(PROPERTY_PASSWORD, split[1]);
+                    credentials.put(HugeAuthenticator.KEY_ADDRESS, address);
+                } else if (header.startsWith(bearer)) {
+                    String token = header.substring(bearer.length());
+                    String address = ctx.channel().remoteAddress().toString();
+                    if (address.startsWith("/") && address.length() > 1) {
+                        address = address.substring(1);
+                    }
+                    credentials.put(HugeAuthenticator.KEY_TOKEN, token);
+                    credentials.put(HugeAuthenticator.KEY_ADDRESS, address);
+                } else {
+                    sendError(ctx, msg);
+                    return;
+                }
 
                 try {
                     this.authenticator.authenticate(credentials);

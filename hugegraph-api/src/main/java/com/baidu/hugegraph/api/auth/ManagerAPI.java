@@ -46,7 +46,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("auth/managers")
 @Singleton
-public class SpaceManagerAPI extends API {
+public class ManagerAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -56,26 +56,27 @@ public class SpaceManagerAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
-    public String createSpaceManager(@Context GraphManager manager,
+    public String createManager(@Context GraphManager manager,
                                      JsonManager jsonManager) {
-        LOG.debug("Create graph manager: {}", jsonManager);
+        LOG.debug("Create manager: {}", jsonManager);
 
         String user = jsonManager.user;
         HugePermission type = jsonManager.type;
         String graphSpace = jsonManager.graphSpace;
         AuthManager authManager = manager.authManager();
         E.checkArgument(type == HugePermission.SPACE ||
-                        type == HugePermission.OP,
-                        "The type could be 'SPACE' or 'OP'");
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space is not exist");
+                        type == HugePermission.ADMIN,
+                        "The type could be 'SPACE' or 'ADMIN'");
         E.checkArgument(authManager.findUser(user, false) != null,
                         "The user is not exist");
 
         if (type == HugePermission.SPACE) {
+            E.checkArgument(manager.graphSpace(graphSpace) != null,
+                            "The graph space is not exist");
+
             authManager.createSpaceManager(graphSpace, user);
         } else {
-            authManager.createSpaceOpManager(graphSpace, user);
+            authManager.createAdminManager(user);
         }
 
         return manager.serializer()
@@ -95,17 +96,18 @@ public class SpaceManagerAPI extends API {
 
         AuthManager authManager = manager.authManager();
         E.checkArgument(type == HugePermission.SPACE ||
-                        type == HugePermission.OP,
-                        "The type could be 'SPACE' or 'OP'");
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space is not exist");
+                        type == HugePermission.ADMIN,
+                        "The type could be 'SPACE' or 'ADMIN'");
         E.checkArgument(authManager.findUser(user, false) != null,
                         "The user is not exist");
 
         if (type == HugePermission.SPACE) {
+            E.checkArgument(manager.graphSpace(graphSpace) != null,
+                            "The graph space is not exist");
+
             authManager.deleteSpaceManager(graphSpace, user);
         } else {
-            authManager.deleteSpaceOpManager(graphSpace, user);
+            authManager.deleteAdminManager(user);
         }
     }
 
@@ -116,7 +118,7 @@ public class SpaceManagerAPI extends API {
         @JsonProperty("type")
         private HugePermission type;
         @JsonProperty("graphspace")
-        private String graphSpace;
+        private String graphSpace = "";
 
         @Override
         public void checkCreate(boolean isBatch) {}

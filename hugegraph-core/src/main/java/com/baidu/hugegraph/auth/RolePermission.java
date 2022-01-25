@@ -43,10 +43,10 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public class RolePermission {
 
-    public static final RolePermission NONE = RolePermission.role("SYSTEM",
-                                              "SYSTEM", HugePermission.NONE);
-    public static final RolePermission ADMIN = RolePermission.role("SYSTEM",
-                                               "SYSTEM", HugePermission.ANY);
+    public static final RolePermission NONE = RolePermission.role("*",
+                                              "*", HugePermission.NONE);
+    public static final RolePermission ADMIN = RolePermission.role("*",
+                                               "*", HugePermission.ANY);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -198,9 +198,22 @@ public class RolePermission {
         return ADMIN;
     }
 
+    public boolean isAdmin() {
+        return this.roles.containsKey("*") &&
+               this.roles.get("*").containsKey("*") &&
+               this.roles.get("*").get("*").containsKey(HugePermission.ADMIN);
+    }
+
+    public static boolean isAdmin(RolePermission role) {
+        return role.isAdmin();
+    }
+
     public static RolePermission builtin(RolePermission role) {
         E.checkNotNull(role, "role");
         if (role == ADMIN || role.equals(ADMIN)) {
+            return ADMIN;
+        }
+        if (role.isAdmin()) {
             return ADMIN;
         }
         if (role == NONE || role.equals(NONE)) {
