@@ -47,38 +47,36 @@ public class HugeTarget extends Entity {
     private String name;
     private String graphSpace;
     private String graph;
-    private String url;
     private List<HugeResource> resources;
 
     private static final List<HugeResource> EMPTY = ImmutableList.of();
 
     public HugeTarget(Id id) {
-        this(id, null, null, null, null, EMPTY);
+        this(id, null, null, null, EMPTY);
     }
 
-    public HugeTarget(String name, String graphSpace, String url) {
+    public HugeTarget(String name, String graphSpace) {
         this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
-             graphSpace,  name, url, EMPTY);
+             graphSpace,  name, EMPTY);
     }
 
-    public HugeTarget(String name, String graphSpace, String graph, String url) {
+    public HugeTarget(String name, String graphSpace, String graph) {
         this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
-             graphSpace, graph, url, EMPTY);
+             graphSpace, graph, EMPTY);
     }
 
-    public HugeTarget(String name, String graphSpace, String graph, String url,
+    public HugeTarget(String name, String graphSpace, String graph,
                       List<HugeResource> resources) {
         this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name,
-             graphSpace, graph, url, resources);
+             graphSpace, graph, resources);
     }
 
-    private HugeTarget(Id id, String name, String graphSpace, String graph, String url,
+    private HugeTarget(Id id, String name, String graphSpace, String graph,
                        List<HugeResource> resources) {
         this.id = id;
         this.name = name;
         this.graphSpace = graphSpace;
         this.graph = graph;
-        this.url = url;
         this.resources = resources;
     }
 
@@ -103,14 +101,6 @@ public class HugeTarget extends Entity {
 
     public String graph() {
         return this.graph;
-    }
-
-    public String url() {
-        return this.url;
-    }
-
-    public void url(String url) {
-        this.url = url;
     }
 
     public List<HugeResource> resources() {
@@ -151,9 +141,6 @@ public class HugeTarget extends Entity {
             case P.GRAPH:
                 this.graph = (String) value;
                 break;
-            case P.URL:
-                this.url = (String) value;
-                break;
             case P.RESS:
                 // this.resources = (List<HugeResource>) value;
                 this.resources = JsonUtil.fromJson(JsonUtil.toJson(value), new TypeReference<List<HugeResource>>(){});
@@ -167,7 +154,6 @@ public class HugeTarget extends Entity {
     @Override
     protected Object[] asArray() {
         E.checkState(this.name != null, "Target name can't be null");
-        E.checkState(this.url != null, "Target url can't be null");
 
         List<Object> list = new ArrayList<>(16);
 
@@ -183,9 +169,6 @@ public class HugeTarget extends Entity {
         list.add(P.GRAPH);
         list.add(this.graph);
 
-        list.add(P.URL);
-        list.add(this.url);
-
         if (this.resources != null && this.resources != EMPTY) {
             list.add(P.RESS);
             list.add(this.resources);
@@ -197,14 +180,12 @@ public class HugeTarget extends Entity {
     @Override
     public Map<String, Object> asMap() {
         E.checkState(this.name != null, "Target name can't be null");
-        E.checkState(this.url != null, "Target url can't be null");
 
         Map<String, Object> map = new HashMap<>();
 
         map.put(Hidden.unHide(P.NAME), this.name);
         map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         map.put(Hidden.unHide(P.GRAPH), this.graph);
-        map.put(Hidden.unHide(P.URL), this.url);
 
         if (this.resources != null && this.resources != EMPTY) {
             map.put(Hidden.unHide(P.RESS), this.resources);
@@ -232,7 +213,6 @@ public class HugeTarget extends Entity {
         public static final String NAME = "~target_name";
         public static final String GRAPHSPACE = "~graphspace";
         public static final String GRAPH = "~target_graph";
-        public static final String URL = "~target_url";
         public static final String RESS = "~target_resources";
 
         public static String unhide(String key) {
@@ -274,7 +254,6 @@ public class HugeTarget extends Entity {
 
             props.add(createPropertyKey(P.NAME));
             props.add(createPropertyKey(P.GRAPH));
-            props.add(createPropertyKey(P.URL));
             props.add(createPropertyKey(P.RESS));
 
             return super.initProperties(props);
