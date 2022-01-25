@@ -68,6 +68,8 @@ public class BelongAPI extends API {
         LOG.debug("Graph space [{}] create belong: {}",
                   graphSpace, jsonBelong);
         checkCreatingBody(jsonBelong);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeBelong belong = jsonBelong.build(graphSpace);
         AuthManager authManager = manager.authManager();
@@ -87,6 +89,8 @@ public class BelongAPI extends API {
         LOG.debug("Graph space [{}] update belong: {}",
                   graphSpace, jsonBelong);
         checkUpdatingBody(jsonBelong);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeBelong belong;
         AuthManager authManager = manager.authManager();
@@ -112,6 +116,8 @@ public class BelongAPI extends API {
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list belongs by user {} or group {}",
                   graphSpace, user, group);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
         E.checkArgument(user == null || group == null,
                         "Can't pass both user and group at the same time");
 
@@ -139,6 +145,8 @@ public class BelongAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get belong: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         AuthManager authManager = manager.authManager();
         HugeBelong belong = authManager.getBelong(graphSpace,
@@ -155,6 +163,8 @@ public class BelongAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
         LOG.debug("Graph space [{}] delete belong: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         try {
             AuthManager authManager = manager.authManager();

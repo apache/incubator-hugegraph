@@ -33,14 +33,11 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 import javax.xml.bind.DatatypeConverter;
 
-import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
@@ -87,8 +84,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         if (AuthenticationFilter.isWhiteAPI(context)) {
             return;
         }
+        GraphManager manager = this.managerProvider.get();
         User user = this.authenticate(context);
-        Authorizer authorizer = new Authorizer(user, context.getUriInfo());
+        Authorizer authorizer =
+                   new Authorizer(manager, user, context.getUriInfo());
         context.setSecurityContext(authorizer);
     }
 
@@ -104,22 +103,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         if (AuthenticationFilter.isAnonymousAPI(context)) {
             // Return anonymous user if access anonymous api
             return User.ANONYMOUS;
-        }
-
-        MultivaluedMap<String, String> pathParameters =
-                                context.getUriInfo().getPathParameters();
-        if (pathParameters != null && pathParameters.size() > 0) {
-            List<String> spaceParam = pathParameters.get("graphspace");
-            List<String> graphParam = pathParameters.get("graph");
-            if (spaceParam != null && spaceParam.size() > 0 &&
-                graphParam != null && graphParam.size() > 0) {
-                HugeGraph target = manager.graph(spaceParam.get(0),
-                                                 graphParam.get(0));
-                if (target != null && target instanceof StandardHugeGraph) {
-                    // Return anonymous user if access standard hugeGraph
-                    return User.ANONYMOUS;
-                }
-            }
         }
 
         // Get peer info
@@ -183,13 +166,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static class Authorizer implements SecurityContext {
 
+        private GraphManager manager;
         private final UriInfo uri;
         private final User user;
         private final Principal principal;
 
-        public Authorizer(final User user, final UriInfo uri) {
+        public Authorizer(GraphManager manager, final User user,
+                          final UriInfo uri) {
             E.checkNotNull(user, "user");
             E.checkNotNull(uri, "uri");
+            this.manager = manager;
             this.uri = uri;
             this.user = user;
             this.principal = new UserPrincipal();
@@ -238,6 +224,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 // Permission format like: "admin"
                 requiredPerm = new RequiredPerm();
                 requiredPerm.owner(required);
+                valid = RolePerm.match(this.role(), requiredPerm);
             } else {
                 // The required like:
                 // $graphspace=graphspace $owner=graph1 $action=vertex_write
@@ -270,6 +257,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                     owner = this.getPathParameter(owner);
                     requiredPerm.owner(owner);
                 }
+
+                if (manager.isAuth()) {
+                    valid = RolePerm.match(this.role(), requiredPerm);
+                } else {
+                    valid = true;
+                }
             }
 
             if (LOG.isDebugEnabled()) {
@@ -278,9 +271,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                           requiredPerm.resourceObject(),
                           this.user.username(), this.user.role());
             }
-
-            // verify role permission
-            valid = RolePerm.match(this.role(), requiredPerm);
 
             if (!valid && LOG.isInfoEnabled() &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {

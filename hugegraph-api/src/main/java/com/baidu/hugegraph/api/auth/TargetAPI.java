@@ -68,6 +68,8 @@ public class TargetAPI extends API {
                          JsonTarget jsonTarget) {
         LOG.debug("Graph space [{}] create target: {}", graphSpace, jsonTarget);
         checkCreatingBody(jsonTarget);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeTarget target = jsonTarget.build(graphSpace);
         AuthManager authManager = manager.authManager();
@@ -86,6 +88,8 @@ public class TargetAPI extends API {
                          JsonTarget jsonTarget) {
         LOG.debug("Graph space [{}] update target: {}", graphSpace, jsonTarget);
         checkUpdatingBody(jsonTarget);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         HugeTarget target;
         AuthManager authManager = manager.authManager();
@@ -107,6 +111,8 @@ public class TargetAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph space [{}] list targets", graphSpace);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         AuthManager authManager = manager.authManager();
         List<HugeTarget> targets = authManager.listAllTargets(graphSpace,
@@ -122,6 +128,8 @@ public class TargetAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
         LOG.debug("Graph space [{}] get target: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         AuthManager authManager = manager.authManager();
         HugeTarget target = authManager.getTarget(graphSpace,
@@ -137,6 +145,8 @@ public class TargetAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
         LOG.debug("Graph space [{}] delete target: {}", graphSpace, id);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         try {
             AuthManager authManager = manager.authManager();

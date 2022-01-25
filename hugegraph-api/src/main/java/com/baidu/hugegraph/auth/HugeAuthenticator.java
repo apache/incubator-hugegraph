@@ -294,7 +294,8 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static boolean matchAuth(Object role, HugePermission required,
                                     ResourceObject<?> resourceObject) {
-            if (role == ROLE_ADMIN) {
+            if (role == ROLE_ADMIN ||
+                RolePermission.isAdmin((RolePermission) role)) {
                 return true;
             }
 
@@ -375,7 +376,8 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public static boolean match(Object role, RequiredPerm requiredPerm) {
-            if (role == ROLE_ADMIN) {
+            if (role == ROLE_ADMIN ||
+                RolePermission.isAdmin((RolePermission) role)) {
                 return true;
             }
             if (role == ROLE_NONE) {
@@ -398,7 +400,8 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static boolean match(Object role, HugePermission required,
                                     ResourceObject<?> resourceObject) {
-            if (role == ROLE_ADMIN) {
+            if (role == ROLE_ADMIN ||
+                RolePermission.isAdmin((RolePermission) role)) {
                 return true;
             }
             if (role == ROLE_NONE) {
@@ -413,7 +416,8 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static boolean match(Object role, RolePermission grant,
                                     ResourceObject<?> resourceObject) {
-            if (role == ROLE_ADMIN) {
+            if (role == ROLE_ADMIN ||
+                RolePermission.isAdmin((RolePermission) role)) {
                 return true;
             }
             if (role == ROLE_NONE) {

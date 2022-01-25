@@ -40,8 +40,8 @@ public interface AuthManager {
 
     public Id createSpaceManager(String graphSpace, String user);
     public void deleteSpaceManager(String graphSpace, String user);
-    public Id createSpaceOpManager(String graphSpace, String user);
-    public void deleteSpaceOpManager(String graphSpace, String user);
+    public Id createAdminManager(String user);
+    public void deleteAdminManager(String user);
 
     public Id createGroup(String graphSpace, HugeGroup group,
                           boolean required);
