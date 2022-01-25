@@ -44,6 +44,7 @@ public abstract class HstoreSessions extends BackendSessionPool {
 
     public abstract boolean existsTable(String table);
 
+    public abstract void truncateTable(String table);
     @Override
     public abstract Session session();
 
@@ -62,6 +63,11 @@ public abstract class HstoreSessions extends BackendSessionPool {
         public static final int SCAN_HASHCODE = 0x40;
         private HugeConfig conf;
         private String graphName;
+
+        public abstract void createTable(String tableName);
+        public abstract void dropTable(String tableName);
+        public abstract boolean existsTable(String tableName);
+        public abstract void truncateTable(String tableName);
 
         public abstract Pair<byte[], byte[]> keyRange(String table);
 
@@ -108,6 +114,10 @@ public abstract class HstoreSessions extends BackendSessionPool {
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
                                                    int scanType,byte[] query);
+        public abstract BackendColumnIterator scan(String table,
+                                                   int codeFrom,
+                                                   int codeTo,
+                                                   int scanType,byte[] query);
 
         public static boolean matchScanType(int expected, int actual) {
             return (expected & actual) == expected;
@@ -134,6 +144,7 @@ public abstract class HstoreSessions extends BackendSessionPool {
         public void setGraphName(String graphName) {
             this.graphName = graphName;
         }
+        public abstract void beginTx();
     }
 
     public interface Countable {

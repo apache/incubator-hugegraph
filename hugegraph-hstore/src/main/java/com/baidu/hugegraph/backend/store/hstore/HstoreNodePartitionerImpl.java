@@ -65,6 +65,29 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
         return 0;
     }
 
+    @Override
+    public int partition(HgNodePartitionerBuilder builder, String graphName,
+                         int startKey, int endKey) {
+        try {
+            Metapb.Partition partition = null;
+            while (partition == null || partition.getEndKey() <= endKey){
+                HgPair<Metapb.Partition, Metapb.Shard> partShard =
+                        pdClient.getPartitionByCode(graphName, startKey);
+                if (partShard != null){
+                    partition = partShard.getKey();
+                    Metapb.Shard leader = partShard.getValue();
+                    builder.add(leader.getStoreId(), partShard.getKey().getId());
+                    startKey = (int) partition.getEndKey();
+                } else {
+                    break;
+                }
+            }
+        } catch (PDException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+        return 0;
+    }
+
     /**
      * 查询hgstore信息
      * @return hgstore

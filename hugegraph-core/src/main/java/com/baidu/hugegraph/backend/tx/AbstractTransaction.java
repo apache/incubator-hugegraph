@@ -22,6 +22,8 @@ package com.baidu.hugegraph.backend.tx;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.exception.NotAllowException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -445,4 +447,18 @@ public abstract class AbstractTransaction implements Transaction {
     public void applyMutation(BackendMutation mutation) {
         this.mutation = mutation;
     }
+    protected void allowedOlapQuery(ConditionQuery query) {
+        if (!this.graph().readMode().showOlap()) {
+            for (Id pkId : query.userpropKeys()) {
+                PropertyKey propertyKey = this.graph().propertyKey(pkId);
+                if (propertyKey.olap()) {
+                    throw new NotAllowException(
+                            "Not allowed to query by olap property key '%s'" +
+                            " when graph-read-mode is '%s'",
+                            propertyKey, this.graph().readMode());
+                }
+            }
+        }
+    }
+
 }
