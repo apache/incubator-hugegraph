@@ -111,6 +111,8 @@ public class CacheManager {
     public <V> Cache<Id, V> cache(String name, long capacity) {
         if (!this.caches.containsKey(name)) {
             this.caches.putIfAbsent(name, new RamCache(capacity));
+            LOG.info("Init RamCache for '{}' with capacity {}",
+                     name, capacity);
         }
         @SuppressWarnings("unchecked")
         Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
@@ -124,6 +126,8 @@ public class CacheManager {
         if (!this.caches.containsKey(name)) {
             OffheapCache cache = new OffheapCache(graph, capacity, avgElemSize);
             this.caches.putIfAbsent(name, cache);
+            LOG.info("Init OffheapCache for '{}' with capacity {}",
+                     name, capacity);
         }
         @SuppressWarnings("unchecked")
         Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
@@ -140,6 +144,8 @@ public class CacheManager {
             OffheapCache cache2 = new OffheapCache(graph, capacity2,
                                                    avgElemSize);
             this.caches.putIfAbsent(name, new LevelCache(cache1, cache2));
+            LOG.info("Init LevelCache for '{}' with capacity {}:{}",
+                     name, capacity1, capacity2);
         }
         @SuppressWarnings("unchecked")
         Cache<Id, V> cache = (Cache<Id, V>) this.caches.get(name);
