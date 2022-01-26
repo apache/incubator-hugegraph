@@ -807,7 +807,7 @@ public class MetaManager {
 
     private String hstorePDPeersKey() {
         // HUGEGRAPH/{cluster}/META_PATH_PD_PEERS
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_PD_PEERS);
     }
 
