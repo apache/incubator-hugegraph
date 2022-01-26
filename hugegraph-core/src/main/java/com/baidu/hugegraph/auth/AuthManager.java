@@ -105,6 +105,9 @@ public interface AuthManager {
     public void logoutUser(String token);
     public String createToken(String username);
 
+    public Id createKgUser(HugeUser user);
+    public String createToken(String username, long expire);
+
     public void processEvent(MetaManager.AuthEvent event);
 
     public UserWithRole validateUser(String username, String password);

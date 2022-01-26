@@ -65,6 +65,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
             "auth/login",
+            "auth/kglogin",
             "versions"
     );
 
