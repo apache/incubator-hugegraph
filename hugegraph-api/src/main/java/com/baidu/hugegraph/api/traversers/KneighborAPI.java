@@ -181,7 +181,7 @@ public class KneighborAPI extends TraverserAPI {
                 }
             }
             if (edges != null) {
-                edgesIter = edges;
+                iterEdge = edges;
             }
         }
         return manager.serializer(g, measure.getResult())
