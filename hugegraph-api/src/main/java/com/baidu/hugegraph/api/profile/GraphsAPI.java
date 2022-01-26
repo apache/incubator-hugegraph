@@ -36,6 +36,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
@@ -71,6 +72,9 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class GraphsAPI extends API {
 
+    private static final Logger LOG
+            = Log.logger(RestServer.class);
+
     private static final HugeGraphLogger LOGGER
             = Log.getLogger(RestServer.class);
 
@@ -79,6 +83,7 @@ public class GraphsAPI extends API {
     private static final String GRAPH_ACTION_CLEAR = "clear";
     private static final String GRAPH_ACTION_RELOAD = "reload";
     private static final String GRAPH_DESCRIPTION = "description";
+    private static final String CONFIRM_DROP = "I'm sure to delete the graph";
 
     @GET
     @Timed
@@ -150,6 +155,10 @@ public class GraphsAPI extends API {
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
         graph.tx().close();
+        String description = (String) configs.get(GRAPH_DESCRIPTION);
+        if (description == null) {
+            description = Strings.EMPTY;
+        }
         Object result = ImmutableMap.of("name", name, "backend", graph.backend(), "description", description);
         LOGGER.getServerLogger().logCreateGraph(name, graph.configuration().toString());
         return result;
@@ -220,11 +229,8 @@ public class GraphsAPI extends API {
     @RolesAllowed({"admin", "$dynamic"})
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
-                       @PathParam("graphspace") String graphSpace,
-                       @QueryParam("confirm_message") String message) {
+                       @PathParam("graphspace") String graphSpace) {
 
-        E.checkArgument(CONFIRM_DROP.equals(message),
-                        "Please take the message: %s", CONFIRM_DROP);
         manager.dropGraph(graphSpace, name, true);
     }
 

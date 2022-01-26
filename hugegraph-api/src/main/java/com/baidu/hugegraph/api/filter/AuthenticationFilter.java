@@ -276,7 +276,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                     this.user.username(), this.user.role());
             }
 
-            if (!valid && LOG.isInfoEnabled() &&
+            if (!valid &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
                     LOGGER.getAuditLogger().logUserAccessDenied(
                         user.userId().asString(),
