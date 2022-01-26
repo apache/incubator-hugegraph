@@ -1188,7 +1188,37 @@ public class StandardAuthManager implements AuthManager {
                                                  username,
                                                  AuthConstant.TOKEN_USER_ID,
                                                  user.id.asString());
-        String token = this.tokenGenerator.create(payload, AUTH_TOKEN_EXPIRE);
+        String token = this.tokenGenerator.create(payload, AUTH_TOKEN_EXPIRE * 1000);
+        this.tokenCache.update(IdGenerator.of(token), username);
+        return token;
+    }
+
+    @Override
+    public Id createKgUser(HugeUser user) {
+        try {
+            user.creator("KG");
+            user.update(new Date());
+            user.create(user.update());
+            this.metaManager.createUser(user);
+            return IdGenerator.of(user.name());
+        } catch (IOException e) {
+            throw new HugeException("IOException occurs when " +
+                                    "serialize user", e);
+        }
+    }
+
+    @Override
+    public String createToken(String username, long expire) {
+        HugeUser user = this.findUser(username, false);
+        if (user == null) {
+            return null;
+        }
+
+        Map<String, ?> payload = ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
+                                                 username,
+                                                 AuthConstant.TOKEN_USER_ID,
+                                                 user.id.asString());
+        String token = this.tokenGenerator.create(payload, expire * 1000);
         this.tokenCache.update(IdGenerator.of(token), username);
         return token;
     }

@@ -34,6 +34,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
 import com.baidu.hugegraph.auth.AuthManager;
+import com.baidu.hugegraph.auth.HugeUser;
+import com.baidu.hugegraph.util.StringEncoding;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
@@ -52,11 +55,18 @@ import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 @Path("auth")
 @Singleton
 public class LoginAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
+
+    private static final DateFormat DATE_FORMAT =
+                                    new SimpleDateFormat("yyyyMMdd");
 
     @POST
     @Timed
@@ -134,6 +144,35 @@ public class LoginAPI extends API {
                                                 userWithRole.userId()));
     }
 
+    @POST
+    @Timed
+    @Path("kglogin")
+    @Status(StatusFilter.Status.OK)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String kgLogin(@Context GraphManager manager,
+                          KgJsonLogin jsonLogin) {
+        LOG.debug("Kg User login: {}", jsonLogin);
+        checkCreatingBody(jsonLogin);
+        String content = String.format("%s:%s", jsonLogin.name,
+                                       DATE_FORMAT.format(new Date()));
+        String sign = DigestUtils.md5Hex(content).toLowerCase();
+        E.checkArgument(sign.equals(jsonLogin.sign.toLowerCase()),
+                        "Invalid signature");
+
+        AuthManager authManager = manager.authManager();
+        HugeUser user = authManager.findUser(jsonLogin.name, false);
+        if (user == null) {
+            user = new HugeUser(jsonLogin.name);
+            user.password(StringEncoding.hashPassword(user.name()));
+            user.description("KG user");
+            authManager.createKgUser(user);
+        }
+        String token = authManager.createToken(jsonLogin.name, jsonLogin.expire);
+        return manager.serializer()
+                      .writeMap(ImmutableMap.of("token", token));
+    }
+
     private static class JsonLogin implements Checkable {
 
         @JsonProperty("user_name")
@@ -162,8 +201,32 @@ public class LoginAPI extends API {
         }
 
         @Override
-        public void checkUpdate() {
-            // pass
+        public void checkUpdate() {}
+    }
+
+    private static class KgJsonLogin implements Checkable {
+
+        @JsonProperty("user_name")
+        private String name;
+        @JsonProperty("token_expire")
+        private long expire = 31536000;
+        @JsonProperty("sign")
+        private String sign;
+
+        @Override
+        public void checkCreate(boolean isBatch) {
+            E.checkArgument(!StringUtils.isEmpty(this.name) &&
+                            this.name.matches(USER_NAME_PATTERN),
+                            "The name is 5-16 characters " +
+                            "and can only contain letters, " +
+                            "numbers or underscores");
+            E.checkArgument(this.expire >= 0 &&
+                            this.expire <= Long.MAX_VALUE,
+                            "The token_expire should be in " +
+                            "[0, Long.MAX_VALUE]");
         }
+
+        @Override
+        public void checkUpdate() {}
     }
 }
