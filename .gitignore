@@ -20,4 +20,7 @@ gen-java
 build
 node*
 /hugegraph-0.*
+/hugegraph-3.*
 /dist.sh
+/.vscode
+/rocksdb-data

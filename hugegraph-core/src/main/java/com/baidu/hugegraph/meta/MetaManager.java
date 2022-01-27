@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeAccess;
@@ -43,7 +44,12 @@ import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.space.Service;
+import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskPriority;
+import com.baidu.hugegraph.task.TaskSerializer;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
@@ -56,7 +62,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
 
-    public static final String META_PATH_DELIMETER = "/";
+    public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
 
     public static final String META_PATH_HUGEGRAPH = "HUGEGRAPH";
@@ -79,6 +85,8 @@ public class MetaManager {
     private static final String META_PATH_URLS = "URLS";
     public static final String META_PATH_SCHEMA_TEMPLATE = "SCHEMA_TEMPLATE";
     private static final String META_PATH_PD_PEERS = "HSTORE_PD_PEERS";
+    public static final String META_PATH_TASK = "TASK";
+    public static final String META_PATH_TASK_LOCK = "TASK_LOCK";
 
     public static final String META_PATH_AUTH_EVENT = "AUTH_EVENT";
     public static final String META_PATH_EVENT = "EVENT";
@@ -179,8 +187,17 @@ public class MetaManager {
         this.listen(this.authEventKey(), consumer);
     }
 
+    public <T> void listenTaskAdded(String graphSpace, TaskPriority priority,  Consumer<T> consumer) {
+        String prefix = this.taskEventKey(graphSpace, priority.toString());
+        this.listenPrefix(prefix, consumer);
+    }
+
     private <T> void listen(String key, Consumer<T> consumer) {
         this.metaDriver.listen(key, consumer);
+    }
+
+    private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+        this.metaDriver.listenPrefix(prefix, consumer);
     }
 
     public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {
@@ -209,7 +226,7 @@ public class MetaManager {
                     CollectionFactory.newMap(CollectionType.EC);
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             configs.put(parts[parts.length - 1],
                         JsonUtil.fromJson(entry.getValue(), GraphSpace.class));
         }
@@ -222,7 +239,7 @@ public class MetaManager {
                             this.serviceConfPrefix(graphSpace));
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             serviceMap.put(parts[parts.length - 1],
                            JsonUtil.fromJson(entry.getValue(), Service.class));
         }
@@ -236,7 +253,7 @@ public class MetaManager {
                                         this.graphConfPrefix(graphSpace));
         for (Map.Entry<String, String> entry : keyValues.entrySet()) {
             String key = entry.getKey();
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             String name = parts[parts.length - 1];
             String graphName = String.join("-", graphSpace, name);
             configs.put(graphName, configMap(entry.getValue()));
@@ -249,7 +266,7 @@ public class MetaManager {
         Map<String, String> keyValues = this.metaDriver.scanWithPrefix(
                 this.schemaTemplatePrefix(graphSpace));
         for (String key : keyValues.keySet()) {
-            String[] parts = key.split(META_PATH_DELIMETER);
+            String[] parts = key.split(META_PATH_DELIMITER);
             result.add(parts[parts.length - 1]);
         }
         return result;
@@ -286,6 +303,10 @@ public class MetaManager {
 
     public <T> List<String> extractGraphsFromResponse(T response) {
         return this.metaDriver.extractValuesFromResponse(response);
+    }
+
+    public <T> Map<String, String> extractKVFromResponse(T response) {
+        return this.metaDriver.extractKVFromResponse(response);
     }
 
     public GraphSpace getGraphSpaceConfig(String graphSpace) {
@@ -413,7 +434,7 @@ public class MetaManager {
     }
 
     public LockResult lock(long ttl, String... keys) {
-        String key = String.join(META_PATH_DELIMETER, keys);
+        String key = String.join(META_PATH_DELIMITER, keys);
         return this.lock(key, ttl);
     }
 
@@ -429,8 +450,18 @@ public class MetaManager {
         return this.metaDriver.lock(key, LOCK_DEFAULT_LEASE);
     }
 
+    /**
+     * keep alive of given key & lease
+     * @param key
+     * @param lease
+     * @return
+     */
+    public long keepAlive(String key, long lease) {
+        return this.metaDriver.keepAlive(key, lease);
+    }
+
     public void unlock(LockResult lockResult, String... keys) {
-        String key = String.join(META_PATH_DELIMETER, keys);
+        String key = String.join(META_PATH_DELIMITER, keys);
         this.unlock(key, lockResult);
     }
 
@@ -439,71 +470,71 @@ public class MetaManager {
     }
 
     private String graphSpaceAddKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_ADD);
     }
 
     private String graphSpaceRemoveKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_REMOVE);
     }
 
     private String graphSpaceUpdateKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPHSPACE, META_PATH_UPDATE);
     }
 
     private String serviceAddKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_ADD);
     }
 
     private String serviceRemoveKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_REMOVE);
     }
 
     private String serviceUpdateKey() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_SERVICE, META_PATH_UPDATE);
     }
 
     private String graphAddKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/ADD
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_ADD);
     }
 
     private String graphRemoveKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/REMOVE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_REMOVE);
     }
 
     private String graphUpdateKey() {
         // HUGEGRAPH/{cluster}/EVENT/GRAPH/UPDATE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_UPDATE);
     }
 
     private String graphSpaceConfKey(String name) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            META_PATH_CONF, name);
     }
 
     private String graphSpaceConfPrefix() {
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            META_PATH_CONF);
     }
@@ -522,35 +553,35 @@ public class MetaManager {
 
     private String graphSpaceBindingsKey(String name, BindingType type) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, name,
                            META_PATH_K8S_BINDINGS, type.name());
     }
 
     private String graphSpaceBindingsServer(String name, BindingType type) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/CONF/{graphspace}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, name,
                            META_PATH_K8S_BINDINGS, type.name(), META_PATH_URLS);
     }
 
     private String serviceConfKey(String graphSpace, String name) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE_CONF
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE_CONF, name);
     }
 
     private String graphConfKey(String graphSpace, String graph) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_GRAPH_CONF, graph);
     }
 
     private String schemaTemplateKey(String graphSpace, String schemaTemplate) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SCHEMA_TEMPLATE
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SCHEMA_TEMPLATE,
                            schemaTemplate);
@@ -559,7 +590,7 @@ public class MetaManager {
     private String restPropertiesKey(String graphSpace, String serviceId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE/
         // {serviceId}/REST_PROPERTIES
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE, serviceId,
                            META_PATH_REST_PROPERTIES);
@@ -568,7 +599,7 @@ public class MetaManager {
     private String gremlinYamlKey(String graphSpace, String serviceId) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/SERVICE/
         // {serviceId}/GREMLIN_YAML
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_SERVICE, serviceId,
                            META_PATH_GREMLIN_YAML);
@@ -576,82 +607,171 @@ public class MetaManager {
 
     private String userKey(String name) {
         // HUGEGRAPH/{cluster}/AUTH/USER/{user}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH, META_PATH_USER, name);
     }
 
     private String userListKey() {
         // HUGEGRAPH/{cluster}/AUTH/USER
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH, META_PATH_USER);
     }
 
     private String groupKey(String graphSpace, String group) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/GROUP/{group}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_GROUP, group);
     }
 
     private String groupListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/GROUP
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_GROUP);
     }
 
     private String targetKey(String graphSpace, String target) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/TARGET/{target}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_TARGET, target);
     }
 
     private String targetListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/TARGET
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_TARGET);
     }
 
     private String belongKey(String graphSpace, String belong) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG/{belong}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG, belong);
     }
 
     private String belongListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG);
     }
 
     private String belongListKeyByUser(String graphSpace, String userName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/BELONG/{userName}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_BELONG, userName + "->");
     }
 
     private String accessKey(String graphSpace, String access) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{group->op->target}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS, access);
     }
 
     private String accessListKey(String graphSpace) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS);
     }
 
+    private String taskPriorityKey(String graphSpace, String taskPriority, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}/{id}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority, taskId);
+    }
+
+    /**
+     * All tasks
+     * @return
+     */
+    private String taskBaseKey(String graphSpace) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK
+        return  String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK);
+    }
+
+    /**
+     * Task base key, include subdir of TASK_LOCK, {property}
+     * @param graphSpace
+     * @param taskId
+     * @return
+     */
+    private String taskKey(String graphSpace, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId);
+    }
+
+    private String taskLockKey(String graphSpace, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/TASK_LOCK
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId, META_PATH_TASK_LOCK);
+    }
+
+    private String taskPropertyKey(String graphSpace, String taskId, String property) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/{property}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskId, property);
+    }
+
+    private String taskListKey(String graphSpace, String taskPriority) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority);
+    }
+
+    private String taskStatusListKey(String graphSpace, String taskId, TaskStatus status) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{statusType}/{id}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, status.name(), taskId);
+    }
+
+    private String taskStatusListKey(String graphSpace,  TaskStatus status) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{statusType}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, status.name());
+    }
+
+    private String taskEventKey(String graphSpace, String taskPriority) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
+        graphSpace, META_PATH_TASK, taskPriority);
+    }
+
+    /**
+     * Use to split task key and fill them back to task
+     * @param taskKey
+     * @return
+     */
+    private <V> void attachTaskKeyInfo(HugeTask<V> task, String taskKey) {
+        String[] parts = taskKey.split(META_PATH_DELIMITER);
+        if (parts.length < 7) {
+            return;
+        }
+        String priorityStr = parts[5];
+        String idStr = parts[6];
+
+        /**
+         * Only proceeding when id's are matching
+         */
+        if (task.id().asString().equals(idStr)) {
+            task.priority(TaskPriority.valueOf(priorityStr));
+        }
+    }
+
+    public <V> void attachTaskInfo(HugeTask<V> task, String taskKey) {
+        this.attachTaskKeyInfo(task, taskKey);
+    }
+
     private String accessListKeyByGroup(String graphSpace, String groupName) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/ACCESS/{groupName}
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
                            META_PATH_AUTH, META_PATH_ACCESS, groupName + "->");
     }
@@ -675,19 +795,19 @@ public class MetaManager {
 
     public String authEventKey() {
         // HUGEGRAPH/{cluster}/AUTH_EVENT
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_AUTH_EVENT);
     }
 
     private String graphSpaceListKey() {
         // HUGEGRAPH/{cluster}/GRAPHSPACE_LIST
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE_LIST);
     }
 
     private String hstorePDPeersKey() {
         // HUGEGRAPH/{cluster}/META_PATH_PD_PEERS
-        return String.join(META_PATH_DELIMETER, META_PATH_HUGEGRAPH,
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_PD_PEERS);
     }
 
@@ -702,6 +822,11 @@ public class MetaManager {
     private String serialize(SchemaDefine.AuthElement element) {
         Map<String, Object> objectMap = element.asMap();
         return JsonUtil.toJson(objectMap);
+    }
+
+    private <V> String serialize(HugeTask<V> task) {
+        String json = TaskSerializer.toJson(task);
+        return json;
     }
 
     public static class AuthEvent {
@@ -1394,7 +1519,7 @@ public class MetaManager {
     }
 
     public void initDefaultGraphSpace() {
-        String defaultGS = String.join(META_PATH_DELIMETER,
+        String defaultGS = String.join(META_PATH_DELIMITER,
                                        META_PATH_HUGEGRAPH,
                                        this.cluster,
                                        META_PATH_GRAPHSPACE_LIST,
@@ -1477,6 +1602,318 @@ public class MetaManager {
                                 JsonUtil.toJson(map));
         }
         return map;
+    }
+
+    public List<String> listTasks(String graphSpace) {
+        List<String> tasks = new ArrayList<>();
+        for (TaskPriority priority : TaskPriority.values()) {
+            List<String> subTasks = this.listTasks(graphSpace, priority);
+            tasks.addAll(subTasks);
+        }
+        return tasks;
+    }
+
+    public List<String> listTasks(String graphSpace, TaskPriority priority) {
+        String key = taskListKey(graphSpace, priority.toString());
+
+        Map<String, String> taskMap = 
+            this.metaDriver.scanWithPrefix(key);
+
+        return taskMap.values().stream().collect(Collectors.toList());
+    }
+
+    public <V> HugeTask<V> getTask(String graphSpace, Id id) {
+        for (TaskPriority priority : TaskPriority.values()) {
+            HugeTask<V> actual = this.getTask(graphSpace, priority, id);
+            if (actual != null) {
+                return actual;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 
+     * @param <V>
+     * @param graphSpace
+     * @param priority
+     * @param id
+     * @return
+     */
+    public <V> HugeTask<V> getTask(String graphSpace, TaskPriority priority, Id id) {
+        String key = taskPriorityKey(graphSpace, priority.toString(), id.asString());
+        String jsonStr = this.metaDriver.get(key);
+        if (Strings.isBlank(jsonStr)) {
+            return null;
+        }
+        try {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            task.progress(this.getTaskProgress(graphSpace, task));
+            task.retries(this.getTaskRetry(graphSpace, task));
+            return task;
+        } catch (Throwable e) {
+            // get task error
+            return null;
+        }
+    }
+
+    /**
+     * Persist meta info of task to metaDriver
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> Id createTask(String graphSpace, HugeTask<V> task) {
+        Id id = IdGenerator.of(task.id().asString());
+        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
+        this.metaDriver.put(key, serialize(task));
+
+        return id;
+    }
+
+    /**
+     * Clear the task, for automatic scenarios, this method should only be called
+     * when task is finished with a result of success
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    public <V> void clearTask(String graphSpace, HugeTask<V> task) {
+        Id id = IdGenerator.of(task.id().asString());
+        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
+        this.metaDriver.delete(key);
+    }
+
+    /**
+     * Try to lock a task for further update, this should be called by consumer only
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> LockResult lockTask(String graphSpace, HugeTask<V> task) {
+        // task has been locked by current node
+        if (task.lockResult() != null) {
+            return task.lockResult();
+        }
+        String key = taskLockKey(graphSpace, task.id().asString());
+        String lease = this.metaDriver.get(key);
+        if (Strings.isBlank(lease)) {
+            return this.lock(key);
+        }
+        return new LockResult();
+    }
+
+    public <V> void unlockTask(String graphSpace, HugeTask<V> task) {
+        // task is not locked by current node
+        if (null == task.lockResult()) {
+            return;
+        }
+        String key = taskLockKey(graphSpace, task.id().asString());
+        this.unlock(key, task.lockResult());
+    }
+    /**
+     * Get task progress
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> int getTaskProgress(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        if (null == value) {
+            return 0;
+        }
+        return Integer.valueOf(value);
+    }
+
+    /**
+     * Get task retry
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> int getTaskRetry(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        if (null == value) {
+            return 0;
+        }
+        return Integer.valueOf(value);
+    }
+
+    /**
+     * Get task progress
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> int getTaskProgress(String graphSpace, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Progress");
+        return this.getTaskProgress(key);
+    }
+
+    /**
+     * Get task retry
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> int getTaskRetry(String graphSpace, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Retry");
+        return this.getTaskRetry(key);
+    }
+
+    /**
+     * Get task status, be aware of the name of enum
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> TaskStatus getTaskStatus(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        if (null == value) {
+            return TaskStatus.UNKNOWN;
+        }
+        return TaskStatus.fromName(value);
+    }
+
+    /**
+     * Get task status
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     * @return
+     */
+    public <V> TaskStatus getTaskStatus(String graphSpace, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Status");
+        return this.getTaskStatus(key);
+    }
+
+    /**
+     * Update task progress, only if having lease
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    public <V> void updateTaskProgress(String graphSpace, HugeTask<V> task) {
+        synchronized(task) {
+            String key = taskPropertyKey(graphSpace, task.id().asString(), "Progress");
+            this.metaDriver.put(key, String.valueOf(task.progress()));
+        }
+    }
+
+    public <V> void updateTaskRetry(String graphSpace, HugeTask<V> task) {
+        synchronized(task) {
+            String key = taskPropertyKey(graphSpace, task.id().asString(), "Retry");
+            this.metaDriver.put(key ,String.valueOf(task.retries()));
+        }
+    }
+
+    /**
+     * Update task status, only if having lease, use string()!!!
+     * Be aware, the name() and string() of TaskStatus refers to different value!
+     * When used as key, use name
+     * but for value cases, use string
+     * @param <V>
+     * @param graphSpace
+     * @param task
+     */
+    private <V> void updateTaskStatus(String graphSpace, HugeTask<V> task) {
+        String key = taskPropertyKey(graphSpace, task.id().asString(), "Status");
+        this.metaDriver.put(key, task.status().string());
+    }
+
+    private <V> void removeTaskFromStatusList(String graphSpace, String taskId, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, taskId, status);
+        this.metaDriver.delete(key);
+    }
+
+    private <V> void addTaskToStatusList(String graphSpace, String taskId, String jsonTask, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, taskId, status);
+        this.metaDriver.put(key, jsonTask);
+    }
+
+    public int countTaskByStatus(String graphSpace, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, status);
+        Map<String, String> taskMap = 
+            this.metaDriver.scanWithPrefix(key);
+        return taskMap.size();
+    }
+
+    public <V> List<HugeTask<V>> listTasksByStatus(String graphSpace, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, status);
+        Map<String, String> taskMap = 
+            this.metaDriver.scanWithPrefix(key);
+
+        List<String> taskJsonList = taskMap.values().stream().collect(Collectors.toList());
+        if (taskJsonList.size() == 0) {
+            return ImmutableList.of();
+        }
+        List<HugeTask<V>> taskList = new ArrayList<>();
+        for (String taskJson : taskJsonList) {
+            if (Strings.isBlank(taskJson)) {
+                continue;
+            }
+            try {
+                HugeTask<V> task = TaskSerializer.fromJson(taskJson);
+                task.progress(this.getTaskProgress(graphSpace, task));
+                task.retries(this.getTaskRetry(graphSpace, task));
+                taskList.add(task);
+            } catch (Throwable e) {
+                // get task error
+                continue;
+            }
+        }
+        return taskList;
+
+    }
+
+    /**
+     * Used for task collection examine, when task status changed 
+     * @param <V>
+     * @param graphSpace
+     * @param taskId
+     * @param prevStatus
+     * @param currentStatus
+     */
+    public <V> void migrateTaskStatus(String graphSpace, HugeTask<V> task, TaskStatus prevStatus) {
+        synchronized(task) {
+            String taskId = task.id().asString();
+            if (prevStatus != TaskStatus.UNKNOWN && prevStatus != TaskStatus.NEW) {
+                this.removeTaskFromStatusList(graphSpace, taskId, prevStatus);
+            }
+            if (task.status() != TaskStatus.UNKNOWN && task.status() != TaskStatus.NEW) {
+                this.addTaskToStatusList(graphSpace, taskId, TaskSerializer.toJson(task), task.status());
+            }
+            this.updateTaskStatus(graphSpace, task);
+        }
+    }
+
+    public <V> HugeTask<V> deleteTask(String graphSpace, HugeTask<V> task) {
+        /**
+         * So where we should remove?
+         * 1. task priority relate
+         * 2. task status relate
+         * 3. task lock and task properties ( by removing taskKey dir)
+         */
+        String taskId = task.id().asString();
+
+        String taskPriorityKey = taskPriorityKey(graphSpace, task.priority().toString(), taskId);
+        String statusListKey = taskStatusListKey(graphSpace, taskId, task.status());
+        String taskKey = taskKey(graphSpace, taskId);
+
+        this.metaDriver.delete(taskPriorityKey);
+        this.metaDriver.delete(statusListKey);
+        this.metaDriver.delete(taskKey);
+
+        return null;
+    }
+
+    public void flushAllTasks(String graphSpace) {
+        String key = taskBaseKey(graphSpace);
+        this.metaDriver.deleteWithPrefix(key);
     }
 
     public String gremlinYaml(String graphSpace, String serviceId) {

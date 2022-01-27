@@ -23,6 +23,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -36,6 +37,7 @@ import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
+import com.google.common.base.Strings;
 
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
@@ -43,7 +45,10 @@ import io.etcd.jetcd.ClientBuilder;
 import io.etcd.jetcd.KV;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.kv.GetResponse;
+import io.etcd.jetcd.lease.LeaseKeepAliveResponse;
+import io.etcd.jetcd.options.DeleteOption;
 import io.etcd.jetcd.options.GetOption;
+import io.etcd.jetcd.options.WatchOption;
 import io.etcd.jetcd.watch.WatchEvent;
 import io.etcd.jetcd.watch.WatchResponse;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
@@ -104,6 +109,17 @@ public class EtcdMetaDriver implements MetaDriver {
     }
 
     @Override
+    public long keepAlive(String key, long leaseId) {
+        try {
+            LeaseKeepAliveResponse response = this.client.getLeaseClient().keepAliveOnce(leaseId).get();
+            return response.getID();
+        } catch (InterruptedException | ExecutionException e) {
+            // keepAlive once Failed
+            return 0;
+        }
+    }
+
+    @Override
     public String get(String key) {
         List<KeyValue> keyValues;
         KV kvClient = this.client.getKVClient();
@@ -148,9 +164,23 @@ public class EtcdMetaDriver implements MetaDriver {
     }
 
     @Override
+    public void deleteWithPrefix(String prefix) {
+        KV kvClient = this.client.getKVClient();
+        try {
+            DeleteOption option = DeleteOption.newBuilder()
+                                                .isPrefix(true)
+                                                .build();
+            kvClient.delete(toByteSequence(prefix), option);
+        } catch (Throwable e) {
+            throw new HugeException(
+                "Failed to delete prefix '%s' from etcd", e, prefix);
+        }
+    }
+
+    @Override
     public Map<String, String> scanWithPrefix(String prefix) {
         GetOption getOption = GetOption.newBuilder()
-                                       .withPrefix(toByteSequence(prefix))
+                                       .isPrefix(true)
                                        .build();
         GetResponse response;
         try {
@@ -170,7 +200,7 @@ public class EtcdMetaDriver implements MetaDriver {
         return keyValues;
     }
 
-    @SuppressWarnings("unchecked")
+
     @Override
     public <T> List<String> extractValuesFromResponse(T response) {
         List<String> values = new ArrayList<>();
@@ -190,6 +220,31 @@ public class EtcdMetaDriver implements MetaDriver {
     }
 
     @Override
+    public <T> Map<String, String> extractKVFromResponse(T response) {
+        E.checkArgument(response instanceof WatchResponse,
+        "Invalid response type %s", response.getClass());
+
+        Map<String, String> resultMap = new HashMap<>();
+        for (WatchEvent event : ((WatchResponse) response).getEvents()) {
+            // Skip if not etcd PUT event
+            if (!isEtcdPut(event)) {
+                continue;
+            }
+
+            String key = event.getKeyValue().getKey().toString(Charset.defaultCharset());
+            String value = event.getKeyValue().getValue()
+                                .toString(Charset.defaultCharset());
+            if (Strings.isNullOrEmpty(key)) {
+                continue;
+            }
+            resultMap.put(key, value);
+        }
+        return resultMap;
+    }
+
+
+
+    @Override
     public LockResult lock(String key, long ttl) {
         return this.lock.lock(key, ttl);
     }
@@ -205,6 +260,18 @@ public class EtcdMetaDriver implements MetaDriver {
 
         this.client.getWatchClient().watch(toByteSequence(key),
                                            (Consumer<WatchResponse>) consumer);
+    }
+
+    /**
+     * Listen etcd key with prefix
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+        ByteSequence sequence = toByteSequence(prefix);
+        WatchOption option = WatchOption.newBuilder().isPrefix(true).build();
+        this.client.getWatchClient().watch(sequence, option, (Consumer<WatchResponse>) consumer);
+        
     }
 
     private static ByteSequence toByteSequence(String content) {
@@ -242,6 +309,4 @@ public class EtcdMetaDriver implements MetaDriver {
         }
         return ssl;
     }
-
-
 }

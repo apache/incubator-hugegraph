@@ -35,7 +35,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.auth.AuthManager;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -45,6 +44,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -56,7 +56,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class AccessAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final HugeGraphLogger LOGGER
+            = Log.getLogger(RestServer.class);
 
     @POST
     @Timed
@@ -66,8 +67,8 @@ public class AccessAPI extends API {
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph space [{}] create access: {}",
-                  graphSpace, jsonAccess);
+        LOGGER.logCustomDebug("Graph space [{}] create access: {}",
+                RestServer.EXECUTOR, graphSpace, jsonAccess);
         checkCreatingBody(jsonAccess);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -87,8 +88,8 @@ public class AccessAPI extends API {
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonAccess jsonAccess) {
-        LOG.debug("Graph space [{}] update access: {}",
-                  graphSpace, jsonAccess);
+        LOGGER.logCustomDebug("Graph space [{}] update access: {}",
+                RestServer.EXECUTOR, graphSpace, jsonAccess);
         checkUpdatingBody(jsonAccess);
         E.checkArgument(manager.graphSpace(graphSpace) != null,
                         "The graph space '%s' is not exist", graphSpace);
@@ -114,10 +115,8 @@ public class AccessAPI extends API {
                        @QueryParam("group") String group,
                        @QueryParam("target") String target,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph space [{}] list belongs by group {} or target {}",
-                  graphSpace, group, target);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] list belongs by group {} or target {}",
+                RestServer.EXECUTOR, graphSpace, group, target);
         E.checkArgument(group == null || target == null,
                         "Can't pass both group and target at the same time");
 
@@ -144,9 +143,8 @@ public class AccessAPI extends API {
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] get access: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] get access: {}",
+                RestServer.EXECUTOR, graphSpace, id);
 
         AuthManager authManager = manager.authManager();
         HugeAccess access = authManager.getAccess(graphSpace,
@@ -162,9 +160,8 @@ public class AccessAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("Graph space [{}] delete access: {}", graphSpace, id);
-        E.checkArgument(manager.graphSpace(graphSpace) != null,
-                        "The graph space '%s' is not exist", graphSpace);
+        LOGGER.logCustomDebug("Graph space [{}] delete access: {}",
+                RestServer.EXECUTOR, graphSpace, id);
 
         try {
             AuthManager authManager = manager.authManager();

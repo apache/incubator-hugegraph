@@ -78,16 +78,16 @@ public class CoreTestSuite {
 
     @BeforeClass
     public static void init() {
+        List<String> endpoints = new ArrayList<>();
+        endpoints.add("http://127.0.0.1:2379");
+        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
+                            null, null, null, endpoints);
         TaskManager.instance(4);
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
         graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
-        List<String> endpoints = new ArrayList<>();
-        endpoints.add("http://127.0.0.1:2379");
-        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
-                            null, null, null, endpoints);
         authManager = new StandardAuthManager(metaManager,
                       "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg");
         authManager.initAdmin();

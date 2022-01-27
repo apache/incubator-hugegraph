@@ -37,6 +37,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -52,7 +53,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
 
-    public static final String USER_SYSTEM = "system";
+    public static final String USER_SYSTEM = RestServer.EXECUTOR;
     public static final String USER_ADMIN = "admin";
     public static final String USER_ANONY = AuthenticatedUser.ANONYMOUS_USERNAME;
 

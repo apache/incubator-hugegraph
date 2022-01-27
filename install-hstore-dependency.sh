@@ -16,9 +16,16 @@
 # limitations under the License.
 #
 
-export MAVEN_HOME=/home/scmtools/buildkit/maven/apache-maven-3.3.9/
-export JAVA_HOME=/home/scmtools/buildkit/java/jdk1.8.0_25/
-export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
+if [ -z $JAVA_HOME ]; then
+   export JAVA_HOME=/home/scmtools/buildkit/java/jdk1.8.0_25
+   export PATH=$JAVA_HOME/bin:$PATH
+fi
+
+if [ -z $MAVEN_HOME ]; then
+   export MAVEN_HOME=/home/scmtools/buildkit/maven/apache-maven-3.3.9
+   export PATH=$MAVEN_HOME/bin:$PATH
+fi
+
 TRAVIS_DIR=./hugegraph-dist/src/assembly/travis/lib
 mvn install:install-file -Dfile=$TRAVIS_DIR/hg-pd-client-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-pd-client -Dversion=3.0.0 -Dpackaging=jar  -DpomFile=$TRAVIS_DIR/hg-pd-client-pom.xml
 mvn install:install-file -Dfile=$TRAVIS_DIR/hg-pd-common-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-pd-common -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/hg-pd-common-pom.xml

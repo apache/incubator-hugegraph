@@ -48,6 +48,7 @@ import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.job.ComputerDisJob;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.EphemeralJob;
+import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.E;
@@ -76,6 +77,11 @@ public class HugeTask<V> extends FutureTask<V> {
     private Date create;
     private Id server;
     private int load;
+    private TaskPriority priority = TaskPriority.NORMAL;
+
+    private String graphSpace;
+    private String graphName;
+    private LockResult lockResult ; // leaseId for distribution keepAlive
 
     private volatile TaskStatus status;
     private volatile int progress;
@@ -205,6 +211,10 @@ public class HugeTask<V> extends FutureTask<V> {
         ++this.retries;
     }
 
+    public void retries(int retry) {
+        this.retries = retry;
+    }
+
     public int retries() {
         return this.retries;
     }
@@ -247,6 +257,22 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.load;
     }
 
+    public TaskPriority priority() {
+        return this.priority;
+    }
+
+    public void priority(TaskPriority priority) {
+        this.priority = priority;
+    }
+
+    public LockResult lockResult() {
+        return this.lockResult;
+    }
+
+    public void lockResult(LockResult lockResult) {
+        this.lockResult = lockResult;
+    }
+    
     public boolean completed() {
         return TaskStatus.COMPLETED_STATUSES.contains(this.status);
     }
@@ -282,7 +308,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
         TaskManager.setContext(this.context());
         try {
-            assert this.status.code() < TaskStatus.RUNNING.code() : this.status;
+            assert this.status.code() <= TaskStatus.RUNNING.code() : this.status;
             if (this.checkDependenciesSuccess()) {
                 this.status(TaskStatus.RUNNING);
                 super.run();
@@ -344,8 +370,6 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                              this.scheduler();
             scheduler.taskDone(this);
         }
     }
@@ -418,9 +442,10 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         // Allow computer task change completed status (better to unify later)
         if (!this.completed() || this.computer()) {
+            /*
             assert this.status.code() < status.code() ||
                    status == TaskStatus.RESTORING :
-                   this.status + " => " + status + " (task " + this.id + ")";
+                   this.status + " => " + status + " (task " + this.id + ")";*/
             this.status = status;
             return true;
         }
@@ -577,6 +602,7 @@ public class HugeTask<V> extends FutureTask<V> {
         map.put(Hidden.unHide(P.PROGRESS), this.progress);
         map.put(Hidden.unHide(P.CREATE), this.create);
         map.put(Hidden.unHide(P.RETRIES), this.retries);
+        map.put(Hidden.unHide(P.PRIORITY), this.priority.toString());
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
@@ -702,6 +728,7 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
         public static final String SERVER = "~task_server";
+        public static final String PRIORITY = "~task_priority";
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

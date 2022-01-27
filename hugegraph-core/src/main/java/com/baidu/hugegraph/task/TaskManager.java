@@ -108,13 +108,29 @@ public final class TaskManager {
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
-
-        TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor,
-                                  this.backupForLoadTaskExecutor,
-                                  this.taskDbExecutor,
-                                  this.serverInfoDbExecutor);
-        this.schedulers.put(graph, scheduler);
+        switch (graph.schedulerType()) {
+            case "etcd": {
+                    TaskScheduler scheduler = 
+                        new EtcdTaskScheduler(
+                            graph,
+                            this.backupForLoadTaskExecutor,
+                            this.taskDbExecutor,
+                            this.serverInfoDbExecutor,
+                            TaskPriority.LOW);
+                    this.schedulers.put(graph, scheduler);
+                }
+                break;
+            case "local":
+            default:
+                {
+                    TaskScheduler scheduler = new StandardTaskScheduler(graph,
+                    this.taskExecutor,
+                    this.backupForLoadTaskExecutor,
+                    this.taskDbExecutor,
+                    this.serverInfoDbExecutor);
+                    this.schedulers.put(graph, scheduler);
+                }
+        }
     }
 
     public void closeScheduler(HugeGraphParams graph) {
@@ -226,8 +242,7 @@ public final class TaskManager {
     }
 
     public ServerInfoManager getServerInfoManager(HugeGraphParams graph) {
-        StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                          this.getScheduler(graph);
+        TaskScheduler scheduler = this.getScheduler(graph);
         if (scheduler == null) {
             return null;
         }
@@ -328,7 +343,8 @@ public final class TaskManager {
         try {
             Long tid = Thread.currentThread().getId();
             for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+
+                TaskScheduler scheduler = entry;
                 // Maybe other thread close&remove scheduler at the same time
                 Date currentTime = DateUtil.now();
                 LOG.debug("Entering scheduler lock of scheduleOrExecuteJob(), with tid {}, time {}", tid, currentTime);
@@ -346,55 +362,61 @@ public final class TaskManager {
         }
     }
 
-    private void scheduleOrExecuteJobForGraph(StandardTaskScheduler scheduler) {
+    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler) {
         E.checkNotNull(scheduler, "scheduler");
 
-        if (!scheduler.started()) {
-            return;
-        }
-        ServerInfoManager serverManager = scheduler.serverManager();
-        String graph = scheduler.graphName();
-
-        LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
-        try {
-            /*
-             * Skip if:
-             * graph is closed (iterate schedulers before graph is closing)
-             *  or
-             * graph is not initialized(maybe truncated or cleared).
-             *
-             * If graph is closing by other thread, current thread get
-             * serverManager and try lock graph, at the same time other
-             * thread deleted the lock-group, current thread would get
-             * exception 'LockGroup xx does not exists'.
-             * If graph is closed, don't call serverManager.initialized()
-             * due to it will reopen graph tx.
-             */
-            if (!serverManager.graphReady()) {
+        if (scheduler instanceof StandardTaskScheduler) {
+            
+            if (!scheduler.graph().started()) {
                 return;
             }
+            ServerInfoManager serverManager = scheduler.serverManager();
+            String graph = scheduler.graph().name();
 
-            // Update server heartbeat
-            serverManager.heartbeat();
-
-            /*
-             * Master schedule tasks to suitable servers.
-             * There is no suitable server when these tasks are created
-             */
-            if (serverManager.master()) {
-                scheduler.scheduleTasks();
-                if (!serverManager.onlySingleNode()) {
+            LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
+            try {
+                /*
+                * Skip if:
+                * graph is closed (iterate schedulers before graph is closing)
+                *  or
+                * graph is not initialized(maybe truncated or cleared).
+                *
+                * If graph is closing by other thread, current thread get
+                * serverManager and try lock graph, at the same time other
+                * thread deleted the lock-group, current thread would get
+                * exception 'LockGroup xx does not exists'.
+                * If graph is closed, don't call serverManager.initialized()
+                * due to it will reopen graph tx.
+                */
+                if (!serverManager.graphReady()) {
                     return;
                 }
+
+                // Update server heartbeat
+                serverManager.heartbeat();
+
+                /*
+                * Master schedule tasks to suitable servers.
+                * There is no suitable server when these tasks are created
+                */
+                if (scheduler instanceof StandardTaskScheduler) {
+                    StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
+                    if (serverManager.master()) {
+                        standardTaskScheduler.scheduleTasks();
+                        if (!serverManager.onlySingleNode()) {
+                            return;
+                        }
+                    }
+
+                    // Schedule queued tasks scheduled to current server
+                    standardTaskScheduler.executeTasksOnWorker(serverManager.selfServerId());
+
+                    // Cancel tasks scheduled to current server
+                    standardTaskScheduler.cancelTasksOnWorker(serverManager.selfServerId());
+                }
+            } finally {
+                LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }
-
-            // Schedule queued tasks scheduled to current server
-            scheduler.executeTasksOnWorker(serverManager.selfServerId());
-
-            // Cancel tasks scheduled to current server
-            scheduler.cancelTasksOnWorker(serverManager.selfServerId());
-        } finally {
-            LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
         }
     }
 

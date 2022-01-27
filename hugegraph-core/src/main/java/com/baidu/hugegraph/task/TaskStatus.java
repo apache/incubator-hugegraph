@@ -20,7 +20,11 @@
 package com.baidu.hugegraph.task;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 
 import com.baidu.hugegraph.type.define.SerialEnum;
 import com.google.common.collect.ImmutableList;
@@ -39,14 +43,43 @@ public enum TaskStatus implements SerialEnum {
     SUCCESS(7, "success"),
     CANCELLING(8, "cancelling"),
     CANCELLED(9, "cancelled"),
-    FAILED(10, "failed");
+    FAILED(10, "failed"),
+    HANGING(11, "hanging");
 
     // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
     public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(
            TaskStatus.RESTORING, TaskStatus.RUNNING, TaskStatus.QUEUED);
 
+    // Unbreakable status: tasks under this status could not be hung up
+    public static final Set<TaskStatus> UNBREAKABLE_STATUSES = ImmutableSet.of(
+            TaskStatus.RUNNING, TaskStatus.SUCCESS,
+            TaskStatus.CANCELLING, TaskStatus.CANCELLED,
+            TaskStatus.FAILED);
+
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
+
+    public static final List<TaskStatus> RESTORABLE_STATUSES = ImmutableList.of(
+            TaskStatus.SCHEDULED, TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.CANCELLING
+    );
+        
+    // Indicates that the task has been occupied by consumer, should not be consumed again
+    public static final Set<TaskStatus> OCCUPIED_STATUS = ImmutableSet.of(
+        TaskStatus.QUEUED, // task has been taken, wait in the queue
+        TaskStatus.RESTORING, // task is restoring
+        TaskStatus.RUNNING, // task is executing
+        TaskStatus.SUCCESS, // task is executed successfully
+        TaskStatus.CANCELLED, // task has been cancelled
+        TaskStatus.FAILED); // task failed
+
+    private static final Map<String, TaskStatus> ALL_STATUS_MAP = 
+        Stream.of(TaskStatus.values())
+        .collect(
+            Collectors.toMap(
+                status -> status.name,  // name as key
+                status -> status,       // status as value
+                (prev, next) -> next    // in case of duplicate name
+        ));
 
     private byte status = 0;
     private String name;
@@ -68,5 +101,15 @@ public enum TaskStatus implements SerialEnum {
 
     public String string() {
         return this.name;
+    }
+
+    /**
+     * Allowing get TaskStatus by name
+     * @param name
+     * @return
+     */
+    public static TaskStatus fromName(String name) {
+        TaskStatus status = ALL_STATUS_MAP.getOrDefault(name, UNKNOWN);
+        return status;
     }
 }
