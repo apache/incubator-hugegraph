@@ -152,7 +152,7 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String kgLogin(@Context GraphManager manager,
                           KgJsonLogin jsonLogin) {
-        LOG.debug("Kg User login: {}", jsonLogin);
+        LOG.debug("Kg user login: {}", jsonLogin);
         checkCreatingBody(jsonLogin);
         String content = String.format("%s:%s", jsonLogin.name,
                                        DATE_FORMAT.format(new Date()));
@@ -163,6 +163,7 @@ public class LoginAPI extends API {
         AuthManager authManager = manager.authManager();
         HugeUser user = authManager.findUser(jsonLogin.name, false);
         if (user == null) {
+            LOG.debug("Kg user not exist: {}, try to register.", jsonLogin);
             user = new HugeUser(jsonLogin.name);
             user.password(StringEncoding.hashPassword(user.name()));
             user.description("KG user");
