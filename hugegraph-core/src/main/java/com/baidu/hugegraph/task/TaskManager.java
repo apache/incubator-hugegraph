@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.DateUtil;
 import org.slf4j.Logger;
 
@@ -77,6 +78,10 @@ public final class TaskManager {
     }
 
     public static TaskManager instance() {
+        if (MANAGER == null) {
+            THREADS = Math.max(4, CoreOptions.CPUS / 2);
+            MANAGER = new TaskManager(THREADS);
+        }
         return MANAGER;
     }
 
