@@ -165,7 +165,7 @@ public class LoginAPI extends API {
         AuthManager authManager = manager.authManager();
         HugeUser user = authManager.findUser(jsonLogin.name, false);
         if (user == null) {
-            LOG.debug("Kg user not exist: {}, try to register.", jsonLogin);
+            LOGGER.logCustomDebug("Kg user not exist: {}, try to register.", RestServer.EXECUTOR, jsonLogin);
             user = new HugeUser(jsonLogin.name);
             user.password(StringEncoding.hashPassword(user.name()));
             user.description("KG user");
