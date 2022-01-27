@@ -226,17 +226,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.CANCELLED);
                     continue;
                 }
+
                 // pickup others
                 EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.RESTORING);
                 // Attach callable info
                 TaskCallable<?> callable = task.callable();
                 // Attach graph info
                 callable.graph(this.graph());
+                if (callable instanceof SysTaskCallable) {
+                    ((SysTaskCallable<?>)callable).params(this.graph);
+                }
                 // Update status to queued
                 EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                 // Update local cache
                 this.taskMap.put(task.id(), task);
                 this.visitedTasks.add(task.id().asString());
+                task.scheduler(this);
                 // Update retry
                 EtcdTaskScheduler.updateTaskRetry(this.graphSpace(), task);
                 executor.submit(new TaskRunner<>(task, this.graph));
@@ -380,6 +385,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
             TaskCallable<?> callable = task.callable();
             // Attach graph info
             callable.graph(this.graph());
+            if (callable instanceof SysTaskCallable) {
+                ((SysTaskCallable<?>)callable).params(this.graph);
+            }
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
             task.status(manager.getTaskStatus(this.graphSpace(), task));
             task.retries(manager.getTaskRetry(this.graphSpace(), task));
@@ -400,6 +408,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
             TaskCallable<?> callable = task.callable();
             // Attach graph info
             callable.graph(this.graph());
+            if (callable instanceof SysTaskCallable) {
+                ((SysTaskCallable<?>)callable).params(this.graph);
+            }
             task.scheduler(this);
 
             task.progress(manager.getTaskProgress(this.graphSpace(), task));
@@ -826,6 +837,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     MetaManager.instance().attachTaskInfo(task, entry.getKey());
                     // Attach graph info
                     callable.graph(this.graph());
+                    if (callable instanceof SysTaskCallable) {
+                        ((SysTaskCallable<?>)callable).params(this.graph);
+                    }
                     // Update status to queued
                     this.taskMap.put(task.id(), task);
                     task.scheduler(this);
