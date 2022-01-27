@@ -83,19 +83,13 @@ public class DistributedLock {
             return lockResult;
         }
 
-        LOG.info("Thread {} start to lock {}",
-                  Thread.currentThread().getName(), lockName);
-
         try {
             LockResponse response = this.lockClient.lock(toByteSequence(lockName), leaseId).get();
-            LOG.info("Lock result : {}", response);
         } catch (InterruptedException | ExecutionException e1) {
             LOG.warn("Thread {} failed to lock {}", e1,
                      Thread.currentThread().getName(), lockName);
             return lockResult;
         }
-        LOG.info("Thread {} lock {} successfully",
-                  Thread.currentThread().getName(), lockName);
 
         lockResult.lockSuccess(true);
 

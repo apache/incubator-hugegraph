@@ -308,7 +308,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
         TaskManager.setContext(this.context());
         try {
-            assert this.status.code() < TaskStatus.RUNNING.code() : this.status;
+            assert this.status.code() <= TaskStatus.RUNNING.code() : this.status;
             if (this.checkDependenciesSuccess()) {
                 this.status(TaskStatus.RUNNING);
                 super.run();
@@ -442,9 +442,10 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         // Allow computer task change completed status (better to unify later)
         if (!this.completed() || this.computer()) {
+            /*
             assert this.status.code() < status.code() ||
                    status == TaskStatus.RESTORING :
-                   this.status + " => " + status + " (task " + this.id + ")";
+                   this.status + " => " + status + " (task " + this.id + ")";*/
             this.status = status;
             return true;
         }
