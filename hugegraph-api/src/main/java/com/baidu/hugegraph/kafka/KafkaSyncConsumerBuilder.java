@@ -23,12 +23,18 @@ import java.util.Properties;
 
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 public class KafkaSyncConsumerBuilder extends StandardConsumerBuilder {
 
     private static GraphManager graphManager;
+
+    public KafkaSyncConsumerBuilder() {
+        super();
+        this.topic = HugeGraphSyncTopic.TOPIC;
+    }
 
     public static void setGraphManager(GraphManager manager) {
         KafkaSyncConsumerBuilder.graphManager = manager;

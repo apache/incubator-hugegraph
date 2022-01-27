@@ -22,6 +22,7 @@ package com.baidu.hugegraph.kafka.consumer;
 import java.time.Duration;
 import java.util.Properties;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -41,7 +42,7 @@ public class ConsumerClient<K, V> {
 
     protected ConsumerClient(Properties props) {
         String topic = props.getProperty("topic");
-        if (null == topic) {
+        if (Strings.isNullOrEmpty(topic)) {
             throw new InstantiationError("Topic may not be null");
         }
         this.topic = topic;

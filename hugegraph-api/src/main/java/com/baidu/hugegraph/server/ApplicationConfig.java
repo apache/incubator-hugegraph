@@ -66,7 +66,7 @@ public class ApplicationConfig extends ResourceConfig {
 
         KafkaSyncConsumerBuilder.setGraphManager(manager);
         // 必须在default service下启动consumer确保资源可靠
-        manager.graph(graphSpace  graphName);
+        // manager.graph(graphSpace  graphName);
 
         // Register WorkLoad to context
         register(new WorkLoadFactory());

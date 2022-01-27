@@ -31,7 +31,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
  */
 public class HugeGraphSyncTopic extends TopicBase<String, ByteBuffer> {
 
-    private final static String TOPIC = "hugegraph-sync-command";
+    public final static String TOPIC = "hugegraph-sync-command";
     protected BackendMutation mutation;
     protected HugeGraphParams graph;
     

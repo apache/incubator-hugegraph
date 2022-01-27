@@ -21,7 +21,6 @@ package com.baidu.hugegraph.kafka;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Properties;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -56,6 +55,7 @@ public class KafkaSyncConsumer extends StandardConsumer {
         if (null == this.manager && null == this.graph) {
             return;
         }
+
         ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(10000));
         if (records.count() > 0) {
            for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {
@@ -73,5 +73,9 @@ public class KafkaSyncConsumer extends StandardConsumer {
         }
         consumer.commitAsync();
     }
-    
+
+    @Override
+    public void close() {
+        super.close();
+    }
 }

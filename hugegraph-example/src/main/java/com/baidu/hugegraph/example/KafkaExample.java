@@ -121,6 +121,9 @@ public class KafkaExample extends PerfExampleBase {
 
     private void produceExample(GraphManager graph, int times, int multiple) {
 
+        times = 1;
+        multiple = 1;
+
         List<Object> personIds = new ArrayList<>(PERSON_NUM * multiple);
         List<Object> softwareIds = new ArrayList<>(SOFTWARE_NUM * multiple);
 
