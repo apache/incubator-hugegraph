@@ -8,7 +8,7 @@ import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
+import com.baidu.hugegraph.kafka.KafkaMutateConsumerBuilder;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
@@ -27,7 +27,7 @@ public class SyncDataApi extends API {
                        @PathParam("graph") String graph
     ) {
 
-        KafkaSyncConsumerBuilder.setGraphManager(manager);
+        KafkaMutateConsumerBuilder.setGraphManager(manager);
 
 
         return null;

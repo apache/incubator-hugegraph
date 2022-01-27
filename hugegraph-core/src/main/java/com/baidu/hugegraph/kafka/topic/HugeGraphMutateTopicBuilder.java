@@ -29,21 +29,19 @@ import com.baidu.hugegraph.kafka.BrokerConfig;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-
-
-public class HugeGraphSyncTopicBuilder {
-
+public class HugeGraphMutateTopicBuilder {
+    
     private String graphName;
     private String graphSpace;
 
-    private BackendMutation mutation;
+    private ByteBuffer buffer;
 
 
     private static final int PARTITION_COUNT = BrokerConfig.getInstance().getPartitionCount();
 
     private final static String DELIM = "/";
 
-    public HugeGraphSyncTopicBuilder() {
+    public HugeGraphMutateTopicBuilder() {
 
     }
 
@@ -64,29 +62,24 @@ public class HugeGraphSyncTopicBuilder {
         return code;
     }
 
-    public HugeGraphSyncTopicBuilder setMutation(BackendMutation mutation) {
-        this.mutation = mutation;
+    public HugeGraphMutateTopicBuilder setBuffer(ByteBuffer buffer) {
+        this.buffer = buffer;
         return this;
     }
 
-    public HugeGraphSyncTopicBuilder setGraphName(String graphName) {
+    public HugeGraphMutateTopicBuilder setGraphName(String graphName) {
         this.graphName = graphName;
         return this;
     }
 
-    public HugeGraphSyncTopicBuilder setGraphSpace(String graphSpace) {
+    public HugeGraphMutateTopicBuilder setGraphSpace(String graphSpace) {
         this.graphSpace = graphSpace;
         return this;
     }
 
-    public HugeGraphSyncTopic build() {
-
+    public HugeGraphMutateTopic build() {
         String key = this.makeKey();
-
-        byte[] value = StoreSerializer.writeMutation(mutation);
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-        HugeGraphSyncTopic topic = new HugeGraphSyncTopic(key, buffer, this.calcPartition());
-
+        HugeGraphMutateTopic topic = new HugeGraphMutateTopic(key, buffer, this.calcPartition());
         return topic;
     }
 
@@ -101,5 +94,13 @@ public class HugeGraphSyncTopicBuilder {
             throw new InvalidParameterException("invalid record key: " + record.key());
         }
         return keys;
+    }
+
+    public static BackendMutation buildMutation(ByteBuffer recordBuffer) {
+
+        BytesBuffer buffer = BytesBuffer.wrap(recordBuffer);
+        BackendMutation mutation = StoreSerializer.readMutation(buffer);
+
+        return mutation;
     }
 }

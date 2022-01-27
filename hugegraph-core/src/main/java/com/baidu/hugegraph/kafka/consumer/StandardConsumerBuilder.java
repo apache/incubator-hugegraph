@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Properties;
 
 import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteBufferDeserializer;
@@ -37,7 +38,7 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer>
 
         super();
 
-        this.topic = "hugegraph-nospace-default";
+        this.topic = HugeGraphSyncTopic.TOPIC;
         this.groupId = BrokerConfig.getInstance().getGroupId();
         this.groupInstanceId = BrokerConfig.getInstance().getGroupInstanceId();
         this.kafkaHost = BrokerConfig.getInstance().getKafkaHost();

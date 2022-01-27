@@ -85,6 +85,7 @@ public class LoginAPI extends API {
             String token = authManager.loginUser(jsonLogin.name,
                                                  jsonLogin.password,
                                                  jsonLogin.expire);
+            LOGGER.getAuditLogger().logUserLogin(jsonLogin.name, "", "/login");
             return manager.serializer()
                           .writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
@@ -112,6 +113,7 @@ public class LoginAPI extends API {
         String token = auth.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
                                                           .length());
         AuthManager authManager = manager.authManager();
+        LOGGER.getAuditLogger().logUserLogout("");
         authManager.logoutUser(token);
     }
 
@@ -153,7 +155,7 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String kgLogin(@Context GraphManager manager,
                           KgJsonLogin jsonLogin) {
-        LOG.debug("Kg user login: {}", jsonLogin);
+        LOGGER.logCustomDebug("Kg user login: {}", RestServer.EXECUTOR, jsonLogin);
         checkCreatingBody(jsonLogin);
         String content = String.format("%s:%s", jsonLogin.name,
                                        DATE_FORMAT.format(new Date()));
@@ -171,6 +173,7 @@ public class LoginAPI extends API {
             authManager.createKgUser(user);
         }
         String token = authManager.createToken(jsonLogin.name, jsonLogin.expire);
+        LOGGER.getAuditLogger().logUserLogin(user.idString(), "KG", "/kglogin");
         return manager.serializer()
                       .writeMap(ImmutableMap.of("token", token));
     }

@@ -23,20 +23,14 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.kafka.KafkaSyncConsumer;
-import com.baidu.hugegraph.kafka.KafkaSyncConsumerBuilder;
+import com.baidu.hugegraph.kafka.KafkaMutateConsumer;
+import com.baidu.hugegraph.kafka.KafkaMutateConsumerBuilder;
+import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
+import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
-import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.schema.SchemaManager;
 
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -49,7 +43,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 public class KafkaExample extends PerfExampleBase {
     private final ProducerClient<String, ByteBuffer> producer
             = new StandardProducerBuilder().build();
-    private KafkaSyncConsumer consumer = new KafkaSyncConsumerBuilder().build();
+    private StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
+    private KafkaMutateConsumer mutateConsumer = new KafkaMutateConsumerBuilder().build();
     
     public static void main(String[] args) throws Exception {
        KafkaExample tester = new KafkaExample();
@@ -61,6 +56,7 @@ public class KafkaExample extends PerfExampleBase {
     }
 
     @Override protected void initSchema(SchemaManager schema) {
+        /*
         schema.propertyKey("name").asText().ifNotExist().create();
         schema.propertyKey("age").asInt().ifNotExist().create();
         schema.propertyKey("lang").asText().ifNotExist().create();
@@ -92,14 +88,14 @@ public class KafkaExample extends PerfExampleBase {
               .nullableKeys("date")
               .ifNotExist()
               .create();
-
+*/
 
     }
 
     @Override
     protected void testInsert(GraphManager graph, int times, int multiple) {
 
-        produceExample(graph, times, multiple);
+        produceExample(graph, 0, 0);
 
         try {
             Thread.sleep(10000);
@@ -114,16 +110,14 @@ public class KafkaExample extends PerfExampleBase {
         } catch (Exception e) {
 
         }
+
         producer.close();
-        consumer.close();
+        standardConsumer.close();
+        mutateConsumer.close();
     }
 
 
     private void produceExample(GraphManager graph, int times, int multiple) {
-
-        times = 1;
-        multiple = 1;
-
         List<Object> personIds = new ArrayList<>(PERSON_NUM * multiple);
         List<Object> softwareIds = new ArrayList<>(SOFTWARE_NUM * multiple);
 
@@ -181,7 +175,17 @@ public class KafkaExample extends PerfExampleBase {
     }
 
     private String consumeExample(HugeGraph graph) {
-        consumer.consume(graph);
+        
+        standardConsumer.consume();
+
+        try {
+            Thread.sleep(1000 * 30);
+        } catch (Exception e) {
+
+        }
+        
+        mutateConsumer.consume(graph);
+
         return "";
     }
 

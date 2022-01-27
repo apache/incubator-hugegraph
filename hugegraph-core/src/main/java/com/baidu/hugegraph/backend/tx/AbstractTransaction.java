@@ -443,10 +443,6 @@ public abstract class AbstractTransaction implements Transaction {
         this.mutation.add(entry, action);
     }
 
-    @Watched(prefix = "tx")
-    public void applyMutation(BackendMutation mutation) {
-        this.mutation = mutation;
-    }
     protected void allowedOlapQuery(ConditionQuery query) {
         if (!this.graph().readMode().showOlap()) {
             for (Id pkId : query.userpropKeys()) {

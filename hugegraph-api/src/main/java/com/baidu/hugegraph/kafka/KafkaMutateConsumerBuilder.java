@@ -23,25 +23,29 @@ import java.util.Properties;
 
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
-import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
+import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
-public class KafkaSyncConsumerBuilder extends StandardConsumerBuilder {
+/**
+ * @author Scorpiour
+ * @since 2022-01-22
+ */
+public class KafkaMutateConsumerBuilder extends StandardConsumerBuilder {
 
     private static GraphManager graphManager;
 
-    public KafkaSyncConsumerBuilder() {
+    public KafkaMutateConsumerBuilder() {
         super();
-        this.topic = HugeGraphSyncTopic.TOPIC;
+        this.topic = HugeGraphMutateTopic.TOPIC;
     }
 
     public static void setGraphManager(GraphManager manager) {
-        KafkaSyncConsumerBuilder.graphManager = manager;
+        KafkaMutateConsumerBuilder.graphManager = manager;
     }
     
     @Override
-    public KafkaSyncConsumer build() {
+    public KafkaMutateConsumer build() {
         Properties props = new Properties();
 
         String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
@@ -53,8 +57,8 @@ public class KafkaSyncConsumerBuilder extends StandardConsumerBuilder {
         props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
         props.put("topic", topic);
     
-        KafkaSyncConsumer consumer = new KafkaSyncConsumer(props);
-        consumer.setGraphManager(KafkaSyncConsumerBuilder.graphManager);
+        KafkaMutateConsumer consumer = new KafkaMutateConsumer(props);
+        consumer.setGraphManager(KafkaMutateConsumerBuilder.graphManager);
         return consumer;
         
     }

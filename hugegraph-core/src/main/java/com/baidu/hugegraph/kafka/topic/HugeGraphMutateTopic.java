@@ -16,30 +16,29 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-
 package com.baidu.hugegraph.kafka.topic;
 
 import java.nio.ByteBuffer;
 
-import com.baidu.hugegraph.backend.store.BackendMutation;
+import com.baidu.hugegraph.HugeGraphParams;
 
 /**
- * HugeGraphSyncTopic is used to sync mutations from master to slave.
- * This topic should be produced in Master cluster, and then consumers
- * push the data to slave
+ * HugeGraphMutateTopic is used to apply mutate to storage.
+ * In the other word, it is the data synchronized from master.
+ * This topic should be consumed in the Slave clusters
  * @author Scorpiour
- * @since 2022-01-18
+ * @since 2022-01-22
  */
-public class HugeGraphSyncTopic extends TopicBase<String, ByteBuffer> {
+public class HugeGraphMutateTopic extends TopicBase<String, ByteBuffer> {
+    public final static String TOPIC = "hugegraph-mutate-command";
+    protected ByteBuffer buffer;
+    protected HugeGraphParams graph;
 
-    public final static String TOPIC = "hugegraph-sync-command";
-    protected BackendMutation mutation;
-    
-    protected HugeGraphSyncTopic(String key, ByteBuffer value, int partition) {
+    protected HugeGraphMutateTopic(String key, ByteBuffer value, int partition) {
         super(key, value, TOPIC, partition);
     }
 
-    public BackendMutation getMutation() {
-        return this.mutation;
+    public HugeGraphParams getGraph() {
+        return this.graph;
     }
 }

@@ -27,17 +27,23 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
-import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
+import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
-public class KafkaSyncConsumer extends StandardConsumer {
+/**
+ * Used to consume HugeGraphMutateTopic, that is used to apply mutate to storage
+ * This consumer is used in Slave cluster only
+ * @author Scorpiour
+ * @since 2022-01-22
+ */
+public class KafkaMutateConsumer extends StandardConsumer {
 
     private GraphManager manager;
     private HugeGraph graph;
 
-    protected KafkaSyncConsumer(Properties props) {
+    protected KafkaMutateConsumer(Properties props) {
         super(props);
     }
 
@@ -61,12 +67,12 @@ public class KafkaSyncConsumer extends StandardConsumer {
            for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {
                 System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
 
-                String[] graphInfo = HugeGraphSyncTopicBuilder.extractGraphs(record);
+                String[] graphInfo = HugeGraphMutateTopicBuilder.extractGraphs(record);
                 String graphSpace = graphInfo[0];
                 String graphName = graphInfo[1];
 
                 HugeGraph graph = this.graph == null ? manager.graph(graphSpace, graphName) : this.graph;
-                BackendMutation mutation = HugeGraphSyncTopicBuilder.buildMutation(record.value());
+                BackendMutation mutation = HugeGraphMutateTopicBuilder.buildMutation(record.value());
                 graph.applyMutation(mutation);
                 graph.tx().commit();
            }
