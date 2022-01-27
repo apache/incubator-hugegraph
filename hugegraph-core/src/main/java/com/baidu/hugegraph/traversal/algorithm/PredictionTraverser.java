@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
-import static java.lang.Math.log;
-
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -43,9 +41,11 @@ public class PredictionTraverser extends OltpTraverser {
         EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
                         new EdgeStep(graph(), dir, ImmutableList.of(label));
 
-        return neighbors.stream()
-                        .mapToDouble(vid -> 1.0 / log(edgesCount(vid, step)))
-                        .sum();
+        double sum = 0.0;
+        for (Id vid : neighbors) {
+            sum += 1.0 / Math.log(this.edgesCount(vid, step));
+        }
+        return sum;
     }
 
     public double resourceAllocation(Id source, Id target, Directions dir,
@@ -55,9 +55,11 @@ public class PredictionTraverser extends OltpTraverser {
         EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
                         new EdgeStep(graph(), dir, ImmutableList.of(label));
 
-        return neighbors.stream()
-                        .mapToDouble(vid -> 1.0 / edgesCount(vid, step))
-                        .sum();
+        double sum = 0.0;
+        for (Id vid : neighbors) {
+            sum += 1.0 / this.edgesCount(vid, step);
+        }
+        return sum;
     }
 
     private Set<Id> checkAndGetCommonNeighbors(Id source, Id target,

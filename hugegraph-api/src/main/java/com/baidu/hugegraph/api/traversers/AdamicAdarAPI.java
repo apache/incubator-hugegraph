@@ -51,13 +51,12 @@ import com.google.common.collect.ImmutableMap;
  *
  * Could add more prediction algorithms in future
  */
-@Path("graphs/{graph}/traversers/")
+@Path("graphs/{graph}/traversers/adamicadar")
 @Singleton
-public class PredictionAPI extends API {
+public class AdamicAdarAPI extends API {
 
     @GET
     @Timed
-    @Path("adamicadar")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
@@ -85,38 +84,5 @@ public class PredictionAPI extends API {
         double score = traverser.adamicAdar(sourceId, targetId, dir,
                                             edgeLabel, maxDegree, limit);
         return JsonUtil.toJson(ImmutableMap.of("adamic_adar", score));
-    }
-
-    @GET
-    @Timed
-    @Path("resourceallocation")
-    @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String create(@Context GraphManager manager,
-                         @PathParam("graph") String graph,
-                         @QueryParam("vertex") String current,
-                         @QueryParam("other") String other,
-                         @QueryParam("direction") String direction,
-                         @QueryParam("label") String edgeLabel,
-                         @QueryParam("max_degree")
-                         @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
-                         @QueryParam("limit")
-                         @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get resource allocation between '{}' and '{}' " +
-                  "with direction {}, edge label {}, max degree '{}' and " +
-                  "limit '{}'", graph, current, other, direction, edgeLabel,
-                  maxDegree, limit);
-
-        Id sourceId = VertexAPI.checkAndParseVertexId(current);
-        Id targetId = VertexAPI.checkAndParseVertexId(other);
-        E.checkArgument(!current.equals(other),
-                        "The source and target vertex id can't be same");
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
-
-        HugeGraph g = graph(manager, graph);
-        PredictionTraverser traverser = new PredictionTraverser(g);
-        double score = traverser.resourceAllocation(sourceId, targetId, dir,
-                                                    edgeLabel, maxDegree,
-                                                    limit);
-        return JsonUtil.toJson(ImmutableMap.of("resource_allocation", score));
     }
 }
