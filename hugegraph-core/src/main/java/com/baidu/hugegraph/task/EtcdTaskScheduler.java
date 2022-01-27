@@ -142,7 +142,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
         TaskPriority maxDepth
     ) {
         super(graph, serverInfoDbExecutor);
-
         this.taskExecutorMap = new ConcurrentHashMap<>();
 
         for (int i = 0; i <= maxDepth.getValue(); i++) {
@@ -156,10 +155,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
         this.taskDBExecutor = taskDBExecutor;
 
         this.eventListener =  this.listenChanges();
-
+        MetaManager manager = MetaManager.instance();
         for (int i = 0; i <= maxDepth.getValue(); i++) {
             TaskPriority priority = TaskPriority.fromValue(i);
-            MetaManager.instance().listenTaskAdded(this.graphSpace(), priority, this::taskEventHandler);
+            manager.listenTaskAdded(this.graphSpace(), priority, this::taskEventHandler);
         }
     }
 
@@ -219,7 +218,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 }
                 ExecutorService executor = this.pickExecutor(task.priority());
                 if (null == executor) {
-                    System.out.println("=====> No executor available <======");
                     continue;
                 }
 
@@ -522,7 +520,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         ExecutorService executorService = this.pickExecutor(task.priority());
         if (null == executorService) {
-            System.out.println("=====> No executor available <======");
             return this.backupForLoadTaskExecutor.submit(task);   
         }
 
@@ -670,16 +667,11 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         @Override
         public void run() {
-            Thread ct = Thread.currentThread();
             try {
-                System.out.println("====> consumer runner thread: " + ct.getId() + " - " + ct.getName());
-
                 TaskStatus etcdStatus = MetaManager.instance().getTaskStatus(this.graph.graph().graphSpace(), task);
                 if (TaskStatus.COMPLETED_STATUSES.contains(etcdStatus)) {
-                    System.out.println("====> task is complete! consumer runner finished: " + ct.getId());
                     return;
                 } else if(task.status() == TaskStatus.CANCELLING || etcdStatus == TaskStatus.CANCELLING) {
-                    System.out.println("====> task is cancelling! consumer runner finished: " + ct.getId());
                     EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.CANCELLED);
                     return;
                 }
@@ -687,16 +679,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 // Detect if task is mark to hanging
                 synchronized(task) {
                     if (task.status() == TaskStatus.HANGING) {
-                        System.out.println("====> task is hanging! task should not be run: " + ct.getId());
                         EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.HANGING);
                         return;
                     }
                 }
 
                 EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.RUNNING);
-                
-                System.out.println(String.format(">>>>> [Thread %d %s] going to run task %d", ct.getId(), ct.getName(), task.id().asLong()));
-
                 this.task.run();
                 String result = task.result();
 
@@ -711,7 +699,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 EtcdTaskScheduler.updateTaskStatus(graphSpace, task, TaskStatus.FAILED);
             } finally {
                 MetaManager.instance().unlockTask(this.graph.graph().graphSpace(), task);
-                System.out.println(String.format(">>>>> [Thread %d %s] consumer run task %d finished", ct.getId(), ct.getName(), task.id().asLong()));
             }
         }
     }
@@ -821,7 +808,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     TaskPriority priority = task.priority();
                     ExecutorService executor = this.pickExecutor(priority);
                     if (null == executor) {
-                        System.out.println("=====> No executor available <======");
                         EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.SCHEDULED);
                         return;
                     }
@@ -846,12 +832,9 @@ public class EtcdTaskScheduler extends TaskScheduler {
                     EtcdTaskScheduler.updateTaskStatus(this.graphSpace(), task, TaskStatus.QUEUED);
                     // run it
                     executor.submit(new TaskRunner<>(task, this.graph));
-                } else {
-                    System.out.println("=====> Grab task lock failed");
                 }
             } catch (Exception e) {
-                System.out.println(e);
-                System.out.println(e.getStackTrace());
+                LOGGER.logCriticalError(e, "Handle task failed");
             }
         }
     }

@@ -83,7 +83,6 @@ public class GraphsAPI extends API {
     private static final String GRAPH_ACTION_CLEAR = "clear";
     private static final String GRAPH_ACTION_RELOAD = "reload";
     private static final String GRAPH_DESCRIPTION = "description";
-    private static final String CONFIRM_DROP = "I'm sure to delete the graph";
 
     @GET
     @Timed

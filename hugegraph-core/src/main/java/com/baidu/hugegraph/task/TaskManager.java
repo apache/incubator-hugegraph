@@ -103,7 +103,6 @@ public final class TaskManager {
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
-
         switch (graph.schedulerType()) {
             case "etcd": {
                     TaskScheduler scheduler = 

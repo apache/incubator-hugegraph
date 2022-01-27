@@ -1707,15 +1707,11 @@ public class MetaManager {
 
     public <V> void unlockTask(String graphSpace, HugeTask<V> task) {
         // task is not locked by current node
-        Thread ct = Thread.currentThread();
-        System.out.println(String.format(">>>>> [Thread %d %s] start to unlock task %d", ct.getId(), ct.getName(), task.id().asLong()));
         if (null == task.lockResult()) {
-            System.out.println(String.format(">>>>> [Thread %d %s] unlock task %d failed", ct.getId(), ct.getName(), task.id().asLong()));
             return;
         }
         String key = taskLockKey(graphSpace, task.id().asString());
         this.unlock(key, task.lockResult());
-        System.out.println(String.format(">>>>> [Thread %d %s] unlock task %d succeed", ct.getId(), ct.getName(), task.id().asLong()));
     }
     /**
      * Get task progress
