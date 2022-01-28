@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.kafka;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.Properties;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -30,7 +29,6 @@ import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 /**
  * Used to consume HugeGraphMutateTopic, that is used to apply mutate to storage

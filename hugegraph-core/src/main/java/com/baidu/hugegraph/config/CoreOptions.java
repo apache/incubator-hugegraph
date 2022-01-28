@@ -674,4 +674,12 @@ public class CoreOptions extends OptionHolder {
                     CollectionType::valueOf,
                     "EC"
             );
+    public static final ConfigOption<String> CLUSTER_ROLE =
+            new ConfigOption<>(
+                    "cluster.role",
+                    "Indicates the type of cluster, " +
+                    "used to determine how to cope with data-sync",
+                    allowValues("master", "slave"),
+                    "master"
+            );
 }

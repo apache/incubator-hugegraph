@@ -34,12 +34,13 @@ import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.kafka.ClusterRole;
 import com.baidu.hugegraph.kafka.KafkaMutateConsumerBuilder;
-import com.baidu.hugegraph.kafka.consumer.ConsumerBuilder;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -64,7 +65,11 @@ public class ApplicationConfig extends ResourceConfig {
         // Register GraphManager to context
         register(manager);
 
-        KafkaMutateConsumerBuilder.setGraphManager(manager);
+        String clusterRole = conf.get(CoreOptions.CLUSTER_ROLE);
+        if (clusterRole.equals(ClusterRole.SLAVE.toString())) {
+            KafkaMutateConsumerBuilder.setGraphManager(manager);
+            // TODO: build and enable consumer
+        }
         // 必须在default service下启动consumer确保资源可靠
         // manager.graph(graphSpace  graphName);
 

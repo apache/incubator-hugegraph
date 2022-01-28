@@ -29,14 +29,13 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-import org.apache.commons.lang.UnhandledException;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 /**
- * Kafka consumer encapsulation
+ * Kafka consumer encapsulation & proxy
  * @author Scorpiour
  * @since 2022-01-18
  */
@@ -69,7 +68,7 @@ public class ConsumerClient<K, V> {
             @Override
             public void run() {
                 while(!closing) {
-                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
+                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(300));
                     if (records.count() > 0) {
                        for(ConsumerRecord<K, V> record : records.records(topic)) {
                             System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));

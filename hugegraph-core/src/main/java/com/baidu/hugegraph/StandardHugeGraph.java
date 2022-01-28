@@ -162,6 +162,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
     private final String schedulerType;
 
+    private final String clusterRole;
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -199,6 +201,7 @@ public class StandardHugeGraph implements HugeGraph {
                         config.get(CoreOptions.GRAPH_READ_MODE));
         
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
+        this.clusterRole = config.get(CoreOptions.CLUSTER_ROLE);
 
         LockUtil.init(this.name);
 
@@ -1201,8 +1204,12 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String schedulerType() {
-            // TODO Auto-generated method stub
             return StandardHugeGraph.this.schedulerType;
+        }
+
+        @Override
+        public String clusterRole() {
+            return StandardHugeGraph.this.clusterRole;
         }
     }
 

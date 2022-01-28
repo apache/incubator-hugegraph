@@ -74,4 +74,5 @@ public interface HugeGraphParams {
     public RamTable ramtable();
 
     public String schedulerType();
+    public String clusterRole();
 }
