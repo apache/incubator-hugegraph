@@ -21,10 +21,16 @@ package com.baidu.hugegraph.kafka.consumer;
 
 import java.time.Duration;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import com.baidu.hugegraph.logger.HugeGraphLogger;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
+import org.apache.commons.lang.UnhandledException;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -36,35 +42,56 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
  */
 public class ConsumerClient<K, V> {
 
+    protected static final HugeGraphLogger LOGGER = 
+        Log.getLogger(ConsumerClient.class);
+
     public final String topic;
 
     protected final KafkaConsumer<K, V> consumer;
+
+    private volatile boolean closing = false;
+    private final ExecutorService asyncExecutor;
 
     protected ConsumerClient(Properties props) {
         String topic = props.getProperty("topic");
         if (Strings.isNullOrEmpty(topic)) {
             throw new InstantiationError("Topic may not be null");
         }
+
         this.topic = topic;
+        asyncExecutor = Executors.newSingleThreadExecutor();
         consumer = new KafkaConsumer<>(props);
         consumer.subscribe(ImmutableList.of(topic));
     }
 
-    public void consume() {
+    public final void consume() {
+        asyncExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                while(!closing) {
+                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
+                    if (records.count() > 0) {
+                       for(ConsumerRecord<K, V> record : records.records(topic)) {
+                            System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));
+                            try {
+                                handleRecord(record);
+                            } catch (Exception e) {
+                                LOGGER.logCustomDebug("Consume topic failed", this.getClass().getName(), record);
+                            }
+                       }
+                    }
+                    consumer.commitAsync();
+                }
+            }
+        });
+    }
 
-        ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
-        if (records.count() > 0) {
-           for(ConsumerRecord<K, V> record : records.records(this.topic)) {
-               System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));
-               
-           }
-        }
-        consumer.commitAsync();
+    protected void handleRecord(ConsumerRecord<K, V> record) {
+        throw new NotImplementedException("Cannot consume record since handleRecord is not override correctly");
     }
 
     public void close() {
-        if (null != consumer) {
-            consumer.close();
-        }
+        this.closing = true;
+        asyncExecutor.shutdownNow();
     }
 }

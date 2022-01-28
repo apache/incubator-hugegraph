@@ -57,27 +57,22 @@ public class KafkaMutateConsumer extends StandardConsumer {
     }
 
     @Override
-    public void consume() {
+    protected void handleRecord(ConsumerRecord<String, ByteBuffer> record) {
         if (null == this.manager && null == this.graph) {
             return;
         }
 
-        ConsumerRecords<String, ByteBuffer> records = this.consumer.poll(Duration.ofMillis(10000));
-        if (records.count() > 0) {
-           for(ConsumerRecord<String, ByteBuffer> record : records.records(this.topic)) {
-                System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
+        System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
 
-                String[] graphInfo = HugeGraphMutateTopicBuilder.extractGraphs(record);
-                String graphSpace = graphInfo[0];
-                String graphName = graphInfo[1];
+        String[] graphInfo = HugeGraphMutateTopicBuilder.extractGraphs(record);
+        String graphSpace = graphInfo[0];
+        String graphName = graphInfo[1];
 
-                HugeGraph graph = this.graph == null ? manager.graph(graphSpace, graphName) : this.graph;
-                BackendMutation mutation = HugeGraphMutateTopicBuilder.buildMutation(record.value());
-                graph.applyMutation(mutation);
-                graph.tx().commit();
-           }
-        }
-        consumer.commitAsync();
+        HugeGraph graph = this.graph == null ? manager.graph(graphSpace, graphName) : this.graph;
+        BackendMutation mutation = HugeGraphMutateTopicBuilder.buildMutation(record.value());
+        graph.applyMutation(mutation);
+        graph.tx().commit();
+
     }
 
     @Override
