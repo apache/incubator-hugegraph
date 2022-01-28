@@ -424,8 +424,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> iterator = this.graph.scanIterator(
                     table, codeFrom, codeTo, scanType, query);
-            return new ColumnIterator<HgKvIterator>(table, iterator, null,
-                                                    null, scanType);
+            return new ColumnIterator<HgKvIterator>(table, iterator, new byte[0],
+                                                    new byte[0], scanType);
         }
 
         @Override
@@ -490,6 +490,12 @@ public class HstoreSessionsImpl extends HstoreSessions {
             this.position = keyBegin;
             this.value = null;
             this.matched = false;
+            if (this.iter.hasNext()) {
+                this.iter.next();
+                this.gotNext = true;
+            } else {
+                this.gotNext = false;
+            };
 
             this.checkArguments();
         }
@@ -510,7 +516,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                             "Can't set SCAN_PREFIX_WITH_END and " +
                             "SCAN_LT_END/SCAN_LTE_END at the same time");
 
-            if (this.match(Session.SCAN_PREFIX_BEGIN)) {
+            if (this.match(Session.SCAN_PREFIX_BEGIN) && !matchHash()) {
                 E.checkArgument(this.keyBegin != null,
                                 "Parameter `keyBegin` can't be null " +
                                 "if set SCAN_PREFIX_WITH_BEGIN");
@@ -519,39 +525,42 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                 "if set SCAN_PREFIX_WITH_BEGIN");
             }
 
-            if (this.match(Session.SCAN_PREFIX_END)) {
+            if (this.match(Session.SCAN_PREFIX_END) && !matchHash()) {
                 E.checkArgument(this.keyEnd != null,
                                 "Parameter `keyEnd` can't be null " +
                                 "if set SCAN_PREFIX_WITH_END");
             }
 
-            if (this.match(Session.SCAN_GT_BEGIN)) {
+            if (this.match(Session.SCAN_GT_BEGIN) && !matchHash()) {
                 E.checkArgument(this.keyBegin != null,
                                 "Parameter `keyBegin` can't be null " +
                                 "if set SCAN_GT_BEGIN or SCAN_GTE_BEGIN");
             }
 
-            if (this.match(Session.SCAN_LT_END)) {
+            if (this.match(Session.SCAN_LT_END) && !matchHash()) {
                 E.checkArgument(this.keyEnd != null,
                                 "Parameter `keyEnd` can't be null " +
                                 "if set SCAN_LT_END or SCAN_LTE_END");
             }
         }
 
+        private boolean matchHash() {
+            return this.scanType == Session.SCAN_HASHCODE;
+        }
+
         private boolean match(int expected) {
             return Session.matchScanType(expected, this.scanType);
         }
 
+        boolean gotNext;
         @Override
         public boolean hasNext() {
-            this.matched = false;
-            boolean hasNext = this.iter.hasNext();
-            if (!hasNext) {
-                this.position = null;
-            } else{
+            if (this.gotNext){
                 this.position = this.iter.key();
+            } else {
+                this.position = null;
             }
-            return hasNext;
+            return gotNext;
         }
 
         private boolean filter(byte[] key) {
@@ -599,9 +608,14 @@ public class HstoreSessionsImpl extends HstoreSessions {
             if (!this.matched && !this.hasNext()) {
                 throw new NoSuchElementException();
             }
-            this.iter.next();
             BackendEntry.BackendColumn col = BackendEntry.BackendColumn.of(
                                        this.iter.key(), this.iter.value());
+            if (this.iter.hasNext()) {
+                gotNext = true;
+                this.iter.next();
+            } else {
+                gotNext = false;
+            }
             this.matched = false;
             return col;
         }
@@ -625,7 +639,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public void close() {
-            this.position = null;
+            //this.position = null;
         }
     }
 }

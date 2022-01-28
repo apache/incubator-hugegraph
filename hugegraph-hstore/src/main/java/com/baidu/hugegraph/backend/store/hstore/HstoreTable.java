@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import com.baidu.hugegraph.backend.id.EdgeId;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
@@ -344,8 +345,13 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                                  ConditionQuery query) {
         int type = Session.SCAN_GTE_BEGIN;
         type |= Session.SCAN_LT_END;
-        return session.scan(this.table(),Integer.valueOf(shard.start()),
-                            Integer.valueOf(shard.end()), type, query.bytes());
+        // TODO
+        return session.scan(this.table(), Integer.parseInt(StringUtils
+                                          .isEmpty(shard.start())? "0"
+                                          : shard.start()),
+                            Integer.parseInt(StringUtils.isEmpty(shard.end()) ?
+                                             "0" : shard.end()),
+                            type, query.bytes());
     }
 
     protected static final BackendEntryIterator newEntryIterator(

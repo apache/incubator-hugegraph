@@ -511,7 +511,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                 Assert.assertContains("Zero bytes may not occur in string " +
                                       "parameters", e.getCause().getMessage());
             });
-        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
+        } else if (backend.equals("rocksdb") || backend.equals("hbase")
+                   || backend.equals("hstore")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
