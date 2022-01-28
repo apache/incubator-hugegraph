@@ -39,8 +39,8 @@ public class StandardConsumerBuilder extends ConsumerBuilder<String, ByteBuffer>
         super();
 
         this.topic = HugeGraphSyncTopic.TOPIC;
-        this.groupId = BrokerConfig.getInstance().getGroupId();
-        this.groupInstanceId = BrokerConfig.getInstance().getGroupInstanceId();
+        this.groupId = BrokerConfig.getInstance().getSyncGroupId();
+        this.groupInstanceId = BrokerConfig.getInstance().getSyncGroupInstanceId();
         this.kafkaHost = BrokerConfig.getInstance().getKafkaHost();
         this.kafkaPort = BrokerConfig.getInstance().getKafkaPort();
         this.keyDeserializer = StringDeserializer.class;

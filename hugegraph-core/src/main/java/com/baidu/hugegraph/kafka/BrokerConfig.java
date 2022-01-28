@@ -50,12 +50,20 @@ public class BrokerConfig {
         return "9092";
     }
 
-    public String getGroupId() {
+    public String getSyncGroupId() {
         return  "hugegraph-sync-consumer-group";
     }
 
-    public String getGroupInstanceId() {
+    public String getSyncGroupInstanceId() {
         return "hugegraph-sync-consumer-instance-1";
+    }
+
+    public String getMutateGroupId() {
+        return  "hugegraph-mutate-consumer-group";
+    }
+
+    public String getMutateGroupInstanceId() {
+        return "hugegraph-mutate-consumer-instance-1";
     }
     
 }

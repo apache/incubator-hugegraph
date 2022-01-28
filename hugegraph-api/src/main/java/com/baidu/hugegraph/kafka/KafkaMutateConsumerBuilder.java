@@ -38,6 +38,8 @@ public class KafkaMutateConsumerBuilder extends StandardConsumerBuilder {
     public KafkaMutateConsumerBuilder() {
         super();
         this.topic = HugeGraphMutateTopic.TOPIC;
+        this.groupId = BrokerConfig.getInstance().getMutateGroupId();
+        this.groupInstanceId = BrokerConfig.getInstance().getMutateGroupInstanceId();
     }
 
     public static void setGraphManager(GraphManager manager) {
