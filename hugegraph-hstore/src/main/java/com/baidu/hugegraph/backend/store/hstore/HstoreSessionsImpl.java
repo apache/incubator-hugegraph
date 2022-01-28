@@ -624,7 +624,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         public long count() {
             long count = 0L;
             while (this.hasNext()) {
-                this.iter.next();
+                this.next();
                 count++;
                 this.matched = false;
                 BackendEntryIterator.checkInterrupted();
