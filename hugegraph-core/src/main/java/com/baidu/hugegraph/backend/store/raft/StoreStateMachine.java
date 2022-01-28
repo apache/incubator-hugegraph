@@ -205,11 +205,6 @@ public final class StoreStateMachine extends StateMachineAdapter {
             default:
                 throw new IllegalArgumentException("Invalid action " + action);
         }
-        // 由leader负责推送消息
-        if (this.node().selfIsLeader()) {
-
-        }
-        
     }
 
     @Override
