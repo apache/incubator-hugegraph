@@ -17,45 +17,43 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.kafka.producer;
+package com.baidu.hugegraph.kafka;
 
-import java.nio.ByteBuffer;
 import java.util.Properties;
 
-import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.producer.ProducerBuilder;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 /**
- * Standard producer builder to make producer
  * @author Scorpiour
  * @since 2022-02-02
  */
-public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>  {
+public class SyncConfProducerBuilder extends ProducerBuilder<String, String> {
 
-    private static ProducerClient<String, ByteBuffer> producer;
+    private static SyncConfProducer producer;
     private static final Object MTX = new Object();
 
-    public StandardProducerBuilder() {
+    public SyncConfProducerBuilder() {
         super();
 
         this.kafkaHost = BrokerConfig.getInstance().getKafkaHost();
         this.kafkaPort = BrokerConfig.getInstance().getKafkaPort();
         this.keySerializer = StringSerializer.class;
-        this.valueSerializer = ByteBufferSerializer.class;
+        this.valueSerializer = StringSerializer.class;
+
     }
 
     @Override
     @Deprecated
-    public ProducerBuilder<String, ByteBuffer> setKafkaHost(String host) {
+    public ProducerBuilder<String, String> setKafkaHost(String host) {
         return this;
     }
 
     @Override
     @Deprecated
-    public ProducerBuilder<String, ByteBuffer> setKafkaPort(String host) {
+    public ProducerBuilder<String, String> setKafkaPort(String host) {
         return this;
     }
 
@@ -64,21 +62,19 @@ public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>
      */
     @Override
     @Deprecated
-    public ProducerBuilder<String, ByteBuffer> setKeySerializerClass(Class<?> clazz) {
+    public ProducerBuilder<String, String> setKeySerializerClass(Class<?> clazz) {
         return this;
     }
 
     @Override
-    public ProducerBuilder<String, ByteBuffer> setValueSerializerClass(Class<?> clazz) {
+    public ProducerBuilder<String, String> setValueSerializerClass(Class<?> clazz) {
         return this;
     }
 
     @Override
-    public ProducerClient<String, ByteBuffer> build() throws IllegalArgumentException {
-
-        synchronized(StandardProducerBuilder.MTX) {
-            if (null == StandardProducerBuilder.producer) {
-                
+    public SyncConfProducer build() throws IllegalArgumentException {
+        synchronized(SyncConfProducerBuilder.MTX) {
+            if (null == SyncConfProducerBuilder.producer) {
                 this.validateOptions();
 
                 Properties props = new Properties();
@@ -89,13 +85,13 @@ public class StandardProducerBuilder extends ProducerBuilder<String, ByteBuffer>
                 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, this.valueSerializer.getName());
                 props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, this.keySerializer.getName());
                 props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
-                
-                ProducerClient<String, ByteBuffer> producer = new ProducerClient<>(props);
-                StandardProducerBuilder.producer = producer;
+
+                SyncConfProducer producer = new SyncConfProducer(props);
+                SyncConfProducerBuilder.producer = producer;
             }
         }
 
-        return StandardProducerBuilder.producer;
+        return SyncConfProducerBuilder.producer;
     }
-
+    
 }

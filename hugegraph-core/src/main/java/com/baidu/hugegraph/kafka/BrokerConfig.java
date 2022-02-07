@@ -65,5 +65,13 @@ public class BrokerConfig {
     public String getMutateGroupInstanceId() {
         return "hugegraph-mutate-consumer-instance-1";
     }
+
+    public String getConfGroupId() {
+        return "hugegraph-conf-consumer-group";
+    }
+
+    public String getConfGroupInstanceId() {
+        return "hugegraph-conf-consumer-instance-1";
+    }
     
 }

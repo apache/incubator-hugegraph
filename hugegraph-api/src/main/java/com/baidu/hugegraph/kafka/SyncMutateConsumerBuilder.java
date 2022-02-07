@@ -31,11 +31,11 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
  * @author Scorpiour
  * @since 2022-01-22
  */
-public class KafkaMutateConsumerBuilder extends StandardConsumerBuilder {
+public class SyncMutateConsumerBuilder extends StandardConsumerBuilder {
 
     private static GraphManager graphManager;
 
-    public KafkaMutateConsumerBuilder() {
+    public SyncMutateConsumerBuilder() {
         super();
         this.topic = HugeGraphMutateTopic.TOPIC;
         this.groupId = BrokerConfig.getInstance().getMutateGroupId();
@@ -43,11 +43,11 @@ public class KafkaMutateConsumerBuilder extends StandardConsumerBuilder {
     }
 
     public static void setGraphManager(GraphManager manager) {
-        KafkaMutateConsumerBuilder.graphManager = manager;
+        SyncMutateConsumerBuilder.graphManager = manager;
     }
     
     @Override
-    public KafkaMutateConsumer build() {
+    public SyncMutateConsumer build() {
         Properties props = new Properties();
 
         String bootStrapServer = this.kafkaHost + ":" + this.kafkaPort;
@@ -59,8 +59,8 @@ public class KafkaMutateConsumerBuilder extends StandardConsumerBuilder {
         props.put(ConsumerConfig.GROUP_INSTANCE_ID_CONFIG, this.groupInstanceId);
         props.put("topic", topic);
     
-        KafkaMutateConsumer consumer = new KafkaMutateConsumer(props);
-        consumer.setGraphManager(KafkaMutateConsumerBuilder.graphManager);
+        SyncMutateConsumer consumer = new SyncMutateConsumer(props);
+        consumer.setGraphManager(SyncMutateConsumerBuilder.graphManager);
         return consumer;
         
     }

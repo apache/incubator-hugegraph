@@ -17,32 +17,26 @@
  * under the License.
  */
 
+
 package com.baidu.hugegraph.kafka.topic;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 
-import com.baidu.hugegraph.backend.store.BackendMutation;
-import com.baidu.hugegraph.backend.store.raft.StoreSerializer;
 import com.baidu.hugegraph.kafka.BrokerConfig;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-
-
-public class HugeGraphSyncTopicBuilder {
+public class SyncConfTopicBuilder {
 
     private String graphName;
     private String graphSpace;
-
-    private BackendMutation mutation;
-
+    private String conf;
 
     private static final int PARTITION_COUNT = BrokerConfig.getInstance().getPartitionCount();
 
     private static final String DELIM = "/";
 
-    public HugeGraphSyncTopicBuilder() {
+    public SyncConfTopicBuilder() {
 
     }
 
@@ -63,29 +57,24 @@ public class HugeGraphSyncTopicBuilder {
         return code;
     }
 
-    public HugeGraphSyncTopicBuilder setMutation(BackendMutation mutation) {
-        this.mutation = mutation;
-        return this;
-    }
-
-    public HugeGraphSyncTopicBuilder setGraphName(String graphName) {
+    public SyncConfTopicBuilder setGraphName(String graphName) {
         this.graphName = graphName;
         return this;
     }
 
-    public HugeGraphSyncTopicBuilder setGraphSpace(String graphSpace) {
+    public SyncConfTopicBuilder setGraphSpace(String graphSpace) {
         this.graphSpace = graphSpace;
         return this;
     }
 
-    public HugeGraphSyncTopic build() {
+    public SyncConfTopicBuilder setConfigStr(String conf) {
+        this.conf = conf;
+        return this;
+    }
 
+    public SyncConfTopic build() {
         String key = this.makeKey();
-
-        byte[] value = StoreSerializer.writeMutation(mutation);
-        ByteBuffer buffer = ByteBuffer.wrap(value);
-        HugeGraphSyncTopic topic = new HugeGraphSyncTopic(key, buffer, this.calcPartition());
-
+        SyncConfTopic topic = new SyncConfTopic(key, conf, this.calcPartition());
         return topic;
     }
 
@@ -94,11 +83,12 @@ public class HugeGraphSyncTopicBuilder {
      * @param record
      * @return [{graphSpace}, {graphName}]
      */
-    public static String[] extractGraphs(ConsumerRecord<String, ByteBuffer> record) {
+    public static String[] extractGraphs(ConsumerRecord<String, String> record) {
         String[] keys = record.key().split(DELIM);
         if (keys.length != 2) {
             throw new InvalidParameterException("invalid record key: " + record.key());
         }
         return keys;
     }
+    
 }

@@ -36,12 +36,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * @author Scorpiour
  * @since 2022-01-22
  */
-public class KafkaMutateConsumer extends StandardConsumer {
+public class SyncMutateConsumer extends StandardConsumer {
 
     private GraphManager manager;
     private HugeGraph graph;
 
-    protected KafkaMutateConsumer(Properties props) {
+    protected SyncMutateConsumer(Properties props) {
         super(props);
     }
 

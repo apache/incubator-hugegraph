@@ -25,8 +25,8 @@ import java.util.Random;
 import java.util.ArrayList;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.kafka.KafkaMutateConsumer;
-import com.baidu.hugegraph.kafka.KafkaMutateConsumerBuilder;
+import com.baidu.hugegraph.kafka.SyncMutateConsumer;
+import com.baidu.hugegraph.kafka.SyncMutateConsumerBuilder;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
@@ -44,7 +44,7 @@ public class KafkaExample extends PerfExampleBase {
     private final ProducerClient<String, ByteBuffer> producer
             = new StandardProducerBuilder().build();
     private StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
-    private KafkaMutateConsumer mutateConsumer = new KafkaMutateConsumerBuilder().build();
+    private SyncMutateConsumer mutateConsumer = new SyncMutateConsumerBuilder().build();
     
     public static void main(String[] args) throws Exception {
        KafkaExample tester = new KafkaExample();
