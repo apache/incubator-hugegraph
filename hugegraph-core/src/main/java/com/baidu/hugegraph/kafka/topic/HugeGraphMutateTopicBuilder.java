@@ -91,7 +91,7 @@ public class HugeGraphMutateTopicBuilder {
     public static String[] extractGraphs(ConsumerRecord<String, ByteBuffer> record) {
         String[] keys = record.key().split(DELIM);
         if (keys.length != 2) {
-            throw new InvalidParameterException("invalid record key: " + record.key());
+            throw new InvalidParameterException("invalid record key of MutateTopic: " + record.key());
         }
         return keys;
     }

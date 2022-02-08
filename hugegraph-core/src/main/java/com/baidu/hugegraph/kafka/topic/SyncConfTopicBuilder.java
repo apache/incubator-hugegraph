@@ -54,7 +54,7 @@ public class SyncConfTopicBuilder {
     }
 
     private String makeKey() {
-        // SYNC_CONF/{graphSapce}/{serviceName}
+        // SYNC_CONF/{graphSpace}/{serviceName}
         return String.join(DELIM, PREFIX, graphSpace, serviceName);
     }
 
@@ -91,6 +91,14 @@ public class SyncConfTopicBuilder {
         SyncConfTopic topic = new SyncConfTopic(key, this.serviceRawConfig, this.calcPartition());
 
         return topic;
+    }
+
+    public static String[] extractGraphInfo(ConsumerRecord<String, String> record) {
+        String[] keys = record.key().split(DELIM);
+        if (keys.length < 3) {
+            throw new InvalidParameterException("invalid record key of SyncConfTopic: " + record.key());
+        }
+        return keys;
     }
     
 }
