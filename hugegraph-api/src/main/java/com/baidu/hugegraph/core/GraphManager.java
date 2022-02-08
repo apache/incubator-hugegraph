@@ -1043,29 +1043,49 @@ public final class GraphManager {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
         Service service;
+        Boolean syncToSlave = 
+            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMETER);
-            service = this.metaManager.getServiceConfig(parts[0], parts[1]);
+            String graphSpace = parts[0];
+            String serviceName = parts[1];
+            String serviceRawConf = this.metaManager.getServiceRawConfig(graphSpace, serviceName);
+
+            service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
+
+            if (syncToSlave) {
+                SyncConfTopic topic = new SyncConfTopicBuilder()
+                                            .setGraphSpace(graphSpace)
+                                            .setServiceName(serviceName)
+                                            .setRawConfig(serviceRawConf)
+                                            .build();
+                this.syncConfProducer.produce(topic);
+            }
         }
         
-        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
-            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
-            this.syncConfProducer.produce(topic);
-        }
+
         
     }
 
     private <T> void serviceRemoveHandler(T response) {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
+        Boolean syncToSlave = 
+            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
         for (String s : names) {
             this.services.remove(s);
-        }
-        
-        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
-            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
-            this.syncConfProducer.produce(topic);
+            if (syncToSlave) {
+                String[] parts = s.split(DELIMETER);
+                String graphSpace = parts[0];
+                String serviceName = parts[1];
+                SyncConfTopic topic = new SyncConfTopicBuilder()
+                                            .setGraphSpace(graphSpace)
+                                            .setServiceName(serviceName)
+                                            .setRawConfig("")
+                                            .build();
+                this.syncConfProducer.produce(topic);
+            }
         }
     }
 
@@ -1073,15 +1093,23 @@ public final class GraphManager {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
         Service service;
+        Boolean syncToSlave = 
+            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMETER);
-            service = this.metaManager.getServiceConfig(parts[0], parts[1]);
+            String graphSpace = parts[0];
+            String serviceName = parts[1];
+            String serviceRawConf = this.metaManager.getServiceRawConfig(graphSpace, serviceName);
+            service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
-        }
-        
-        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
-            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
-            this.syncConfProducer.produce(topic);
+            if (syncToSlave) {
+                SyncConfTopic topic = new SyncConfTopicBuilder()
+                                            .setGraphSpace(graphSpace)
+                                            .setServiceName(serviceName)
+                                            .setRawConfig(serviceRawConf)
+                                            .build();
+                this.syncConfProducer.produce(topic);                
+            }
         }
     }
 

@@ -22,27 +22,40 @@ package com.baidu.hugegraph.kafka.topic;
 
 import java.security.InvalidParameterException;
 import java.util.Map;
+import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.meta.MetaManager;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.logging.log4j.util.Strings;
 
+/**
+ * @author Scorpiour
+ * @since 2022-01-28
+ */
 public class SyncConfTopicBuilder {
-
-    private String conf;
 
     private static final int PARTITION_COUNT = BrokerConfig.getInstance().getPartitionCount();
 
+    private static final String PREFIX = "SYNC_CONF";
+
     private static final String DELIM = "/";
+
+    private String graphSpace;
+    private String serviceName;
+    private String serviceRawConfig;
 
     public SyncConfTopicBuilder() {
 
     }
 
     private String makeKey() {
-        // HUGEGRAPH/{graphSpace}/{graphName}
-        return String.join(DELIM, this.graphSpace, this.graphName);
+        // SYNC_CONF/{graphSapce}/{serviceName}
+        return String.join(DELIM, PREFIX, graphSpace, serviceName);
     }
 
     /**
@@ -50,32 +63,33 @@ public class SyncConfTopicBuilder {
      * @return
      */
     private int calcPartition() {
-        int code = this.graphName.hashCode() % PARTITION_COUNT;
+        int code = this.graphSpace.hashCode() % PARTITION_COUNT;
         if (code < 0) {
             code = -code;
         }
         return code;
     }
 
-    public <T> SyncConfTopicBuilder setEtcdResponse(T response) {
-
-        MetaManager manager = MetaManager.instance();
-
-        Map<String, String> kvMap = manager.extractKVFromResponse(response);
-        // K/V could be reset to etcd directly, there's no need to decode
-        // However, there're multiple KV at same that, that expected to be splitted into multiple topics
-
+    public SyncConfTopicBuilder setGraphSpace(String graphSpace) {
+        this.graphSpace = Optional.ofNullable(graphSpace).orElse("");
         return this;
     }
 
-    public SyncConfTopicBuilder setConfigStr(String conf) {
-        this.conf = conf;
+    public SyncConfTopicBuilder setServiceName(String serviceName) {
+        assert Strings.isNotBlank(serviceName);
+        this.serviceName = serviceName;
+        return this;
+    }
+
+    public SyncConfTopicBuilder setRawConfig(String rawConfig) {
+        this.serviceRawConfig = rawConfig;
         return this;
     }
 
     public SyncConfTopic build() {
         String key = this.makeKey();
-        SyncConfTopic topic = new SyncConfTopic(key, conf, this.calcPartition());
+        SyncConfTopic topic = new SyncConfTopic(key, this.serviceRawConfig, this.calcPartition());
+
         return topic;
     }
     

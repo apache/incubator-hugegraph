@@ -317,9 +317,17 @@ public class MetaManager {
         return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
+    public String getServiceRawConfig(String graphSpace, String service) {
+        return this.metaDriver.get(this.serviceConfKey(graphSpace, service));
+    }
+
+    public Service parseServiceRawConfig(String serviceRawConf) {
+        return JsonUtil.fromJson(serviceRawConf, Service.class);
+    }
+
     public Service getServiceConfig(String graphSpace, String service) {
-        String s = this.metaDriver.get(this.serviceConfKey(graphSpace, service));
-        return JsonUtil.fromJson(s, Service.class);
+        String s = this.getServiceRawConfig(graphSpace, service);
+        return this.parseServiceRawConfig(s);
     }
 
     public Map<String, Object> getGraphConfig(String graphSpace, String graph) {
