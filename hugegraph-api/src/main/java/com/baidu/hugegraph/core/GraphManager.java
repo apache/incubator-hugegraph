@@ -79,6 +79,11 @@ import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.k8s.K8sManager;
+import com.baidu.hugegraph.kafka.ClusterRole;
+import com.baidu.hugegraph.kafka.SyncConfProducer;
+import com.baidu.hugegraph.kafka.SyncConfProducerBuilder;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.metrics.MetricsUtil;
@@ -134,6 +139,8 @@ public final class GraphManager {
     private final Id serverId;
     private final NodeRole serverRole;
     private final String url;
+    private final ClusterRole clusterRole;
+    private SyncConfProducer syncConfProducer = null;
 
     private HugeConfig config;
 
@@ -168,6 +175,12 @@ public final class GraphManager {
         this.nodeRole = conf.get(ServerOptions.NODE_ROLE);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
+        this.clusterRole = ClusterRole.fromName(conf.get(CoreOptions.CLUSTER_ROLE));
+
+        if (this.clusterRole.equals(ClusterRole.MASTER)) {
+            this.syncConfProducer = new SyncConfProducerBuilder().build();
+        }
+
         this.listenChanges();
 
         this.initMetaManager(conf);
@@ -1035,6 +1048,12 @@ public final class GraphManager {
             service = this.metaManager.getServiceConfig(parts[0], parts[1]);
             this.services.put(s, service);
         }
+        
+        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
+            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
+            this.syncConfProducer.produce(topic);
+        }
+        
     }
 
     private <T> void serviceRemoveHandler(T response) {
@@ -1042,6 +1061,11 @@ public final class GraphManager {
                              .extractServicesFromResponse(response);
         for (String s : names) {
             this.services.remove(s);
+        }
+        
+        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
+            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
+            this.syncConfProducer.produce(topic);
         }
     }
 
@@ -1053,6 +1077,11 @@ public final class GraphManager {
             String[] parts = s.split(DELIMETER);
             service = this.metaManager.getServiceConfig(parts[0], parts[1]);
             this.services.put(s, service);
+        }
+        
+        if (this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer) {
+            SyncConfTopic topic = new SyncConfTopicBuilder().setEtcdResponse(response).build();
+            this.syncConfProducer.produce(topic);
         }
     }
 

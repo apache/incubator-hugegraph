@@ -100,7 +100,6 @@ public class ConsumerBuilder<K, V> {
         return this;
     }
 
-    
     public ConsumerClient<K, V> build() throws IllegalArgumentException {
 
         this.validateOptions();

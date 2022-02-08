@@ -39,4 +39,14 @@ public enum ClusterRole {
     public String toString() {
         return this.value;
     }
+
+    public static ClusterRole fromName(String name) {
+        if ("master".equals(name)) {
+            return ClusterRole.MASTER;
+        }
+        if ("slave".equals(name)) {
+            return ClusterRole.SLAVE; 
+        }
+        throw new IllegalArgumentException("ClusterRole name must be master or slave");
+    }
 }

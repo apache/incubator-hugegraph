@@ -21,15 +21,15 @@
 package com.baidu.hugegraph.kafka.topic;
 
 import java.security.InvalidParameterException;
+import java.util.Map;
 
 import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.meta.MetaManager;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public class SyncConfTopicBuilder {
 
-    private String graphName;
-    private String graphSpace;
     private String conf;
 
     private static final int PARTITION_COUNT = BrokerConfig.getInstance().getPartitionCount();
@@ -57,13 +57,14 @@ public class SyncConfTopicBuilder {
         return code;
     }
 
-    public SyncConfTopicBuilder setGraphName(String graphName) {
-        this.graphName = graphName;
-        return this;
-    }
+    public <T> SyncConfTopicBuilder setEtcdResponse(T response) {
 
-    public SyncConfTopicBuilder setGraphSpace(String graphSpace) {
-        this.graphSpace = graphSpace;
+        MetaManager manager = MetaManager.instance();
+
+        Map<String, String> kvMap = manager.extractKVFromResponse(response);
+        // K/V could be reset to etcd directly, there's no need to decode
+        // However, there're multiple KV at same that, that expected to be splitted into multiple topics
+
         return this;
     }
 
@@ -76,19 +77,6 @@ public class SyncConfTopicBuilder {
         String key = this.makeKey();
         SyncConfTopic topic = new SyncConfTopic(key, conf, this.calcPartition());
         return topic;
-    }
-
-    /**
-     * Extract graphSpace and graphName
-     * @param record
-     * @return [{graphSpace}, {graphName}]
-     */
-    public static String[] extractGraphs(ConsumerRecord<String, String> record) {
-        String[] keys = record.key().split(DELIM);
-        if (keys.length != 2) {
-            throw new InvalidParameterException("invalid record key: " + record.key());
-        }
-        return keys;
     }
     
 }

@@ -32,6 +32,8 @@ import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.schema.SchemaManager;
+import com.baidu.hugegraph.syncgateway.MutationDTO;
+import com.baidu.hugegraph.syncgateway.SyncMutationServer;
 
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -47,6 +49,13 @@ public class KafkaExample extends PerfExampleBase {
     private SyncMutateConsumer mutateConsumer = new SyncMutateConsumerBuilder().build();
     
     public static void main(String[] args) throws Exception {
+
+        SyncMutationServer server = new SyncMutationServer(51777);
+        server.registerListener("kafka re-send", (MutationDTO dto) -> {
+
+        });
+        server.start();
+
        KafkaExample tester = new KafkaExample();
 
         String[] arg = new String[]{ "1", "1", "1", "false"};

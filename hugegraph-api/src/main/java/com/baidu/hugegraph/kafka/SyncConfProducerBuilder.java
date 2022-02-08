@@ -67,7 +67,14 @@ public class SyncConfProducerBuilder extends ProducerBuilder<String, String> {
     }
 
     @Override
+    @Deprecated
     public ProducerBuilder<String, String> setValueSerializerClass(Class<?> clazz) {
+        return this;
+    }
+
+    @Override
+    @Deprecated
+    public ProducerBuilder<String, String> setTopic(String topic) {
         return this;
     }
 

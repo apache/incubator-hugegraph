@@ -23,6 +23,11 @@
             <version>1.8.10</version>
         </dependency>
         <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>syncgateway</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-buffer</artifactId>
             <version>4.1.52.Final</version>

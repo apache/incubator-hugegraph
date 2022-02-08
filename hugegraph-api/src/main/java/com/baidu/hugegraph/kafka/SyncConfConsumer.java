@@ -40,9 +40,8 @@ public class SyncConfConsumer extends ConsumerClient<String, String> {
     protected void handleRecord(ConsumerRecord<String, String> record) {
         System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
 
-        String[] graphInfo = SyncConfTopicBuilder.extractGraphs(record);
-        String graphSpace = graphInfo[0];
-        String graphName = graphInfo[1];
+        // String[] graphInfo = SyncConfTopicBuilder.extractGraphs(record);
+
 
         System.out.println("=========> Scorpiour : resend data to next");
     }
