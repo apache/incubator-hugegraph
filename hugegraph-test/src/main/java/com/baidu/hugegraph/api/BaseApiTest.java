@@ -36,7 +36,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
-import org.apache.http.util.TextUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
@@ -453,12 +453,12 @@ public class BaseApiTest {
                 continue;
             }
             String name = (String) properties.get("name");
-            if (TextUtils.isEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 continue;
             }
 
             String id = (String) vertice.get("id");
-            if (TextUtils.isEmpty(id)) {
+            if (StringUtils.isEmpty(id)) {
                 continue;
             }
 

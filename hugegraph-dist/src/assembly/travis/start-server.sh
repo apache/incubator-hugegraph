@@ -11,28 +11,13 @@ CONF=$BASE_DIR/conf/graphs/hugegraph.properties
 REST_CONF=$BASE_DIR/conf/rest-server.properties
 GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 
-declare -A backend_serializer_map=(["memory"]="text" ["cassandra"]="cassandra" \
-                                   ["scylladb"]="scylladb" ["mysql"]="mysql" \
-                                   ["hbase"]="hbase" ["rocksdb"]="binary" \
-                                   ["postgresql"]="postgresql")
+declare -A backend_serializer_map=(["memory"]="text" ["rocksdb"]="binary")
 
 SERIALIZER=${backend_serializer_map[$BACKEND]}
 
 # Set backend and serializer
 sed -i "s/backend=.*/backend=$BACKEND/" $CONF
 sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
-
-# Set PostgreSQL configurations if needed
-if [ "$BACKEND" == "postgresql" ]; then
-    sed -i '/org.postgresql.Driver/,+2 s/\#//g' $CONF
-fi
-
-# Set timeout for hbase
-if [ "$BACKEND" == "hbase" ]; then
-    sed -i '$arestserver.request_timeout=200' $REST_CONF
-    sed -i '$agremlinserver.timeout=200' $REST_CONF
-    sed -i 's/scriptEvaluationTimeout.*/scriptEvaluationTimeout: 200000/' $GREMLIN_CONF
-fi
 
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF

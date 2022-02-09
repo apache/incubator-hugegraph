@@ -30,32 +30,7 @@
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-cassandra</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-scylladb</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-rocksdb</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-hbase</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-mysql</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-postgresql</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -237,26 +212,6 @@
             </properties>
         </profile>
         <profile>
-            <id>cassandra</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>cassandra</backend>
-                <serializer>cassandra</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>scylladb</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>scylladb</backend>
-                <serializer>scylladb</serializer>
-            </properties>
-        </profile>
-        <profile>
             <id>rocksdb</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -264,46 +219,6 @@
             <properties>
                 <backend>rocksdb</backend>
                 <serializer>binary</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>mysql</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>mysql</backend>
-                <serializer>mysql</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>palo</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>palo</backend>
-                <serializer>palo</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>hbase</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>hbase</backend>
-                <serializer>hbase</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>postgresql</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>postgresql</backend>
-                <serializer>postgresql</serializer>
             </properties>
         </profile>
     </profiles>

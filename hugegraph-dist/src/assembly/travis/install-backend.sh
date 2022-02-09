@@ -15,20 +15,8 @@ if [ ! -d $HOME/downloads ]; then
 fi
 
 case $BACKEND in
-    cassandra)
-        $TRAVIS_DIR/install-cassandra.sh
-        ;;
-    scylladb)
-        $TRAVIS_DIR/install-scylladb.sh
-        ;;
-    hbase)
-        $TRAVIS_DIR/install-hbase.sh
-        ;;
-    mysql)
-        $TRAVIS_DIR/install-mysql-via-docker.sh
-        ;;
-    postgresql)
-        $TRAVIS_DIR/install-postgresql-via-docker.sh
+    hstore)
+        $TRAVIS_DIR/install-hstore.sh
         ;;
     *)
         # don't need to install for other backends
