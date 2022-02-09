@@ -158,6 +158,8 @@ public class GraphsAPI extends API {
         }
         Object result = ImmutableMap.of("name", name, "backend", graph.backend(), "description", description);
         LOGGER.getServerLogger().logCreateGraph(name, graph.configuration().toString());
+        LOGGER.getAuditLogger()
+                    .logCreateGraph(graphSpace, name, RestServer.EXECUTOR);
         return result;
     }
 
@@ -207,6 +209,8 @@ public class GraphsAPI extends API {
                 }
                 // truncateBackend() will open tx, so must close here(commit)
                 g.tx().commit();
+                LOGGER.getAuditLogger()
+                    .logClearGraph(graphSpace, name, RestServer.EXECUTOR);
                 return ImmutableMap.of(name, "cleared");
             case GRAPH_ACTION_RELOAD:
                 manager.reload(graphSpace, name);
@@ -227,8 +231,9 @@ public class GraphsAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
                        @PathParam("graphspace") String graphSpace) {
-
         manager.dropGraph(graphSpace, name, true);
+        LOGGER.getAuditLogger()
+            .logRemoveGraph(graphSpace, name, RestServer.EXECUTOR);
     }
 
     @PUT

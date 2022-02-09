@@ -30,6 +30,12 @@ public class LoggerExample {
         LOG.getAuditLogger().logUserLogin("Scorpiour", "pc", "/login");
         LOG.getAuditLogger().logUserLogout("Scorpiour");
         LOG.getAuditLogger().logUserAccessDenied("Scorpiour", "", new Object());
+
+        try {
+            Thread.sleep(30 * 1000);
+        } catch (Exception e) {
+
+        }
     }
     
 }
