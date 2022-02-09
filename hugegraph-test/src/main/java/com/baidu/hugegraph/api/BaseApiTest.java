@@ -495,10 +495,7 @@ public class BaseApiTest {
             String path = URL_PREFIX + urlSuffix;
             String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
             Response r = client.get(path);
-            if (r.getStatus() != 200) {
-                throw new HugeException("Failed to list " + type);
-            }
-            String content = r.readEntity(String.class);
+            String content = assertResponseStatus(200, r);
             @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> ids = list.stream().map(e -> e.get("id"))
@@ -517,10 +514,7 @@ public class BaseApiTest {
             String path = URL_PREFIX + urlSuffix;
             String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
             Response r = client.get(path);
-            if (r.getStatus() != 200) {
-                throw new HugeException("Failed to list " + type);
-            }
-            String content = r.readEntity(String.class);
+            String content = assertResponseStatus(200, r);
             @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
