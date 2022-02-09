@@ -39,11 +39,6 @@
             <artifactId>hugegraph-hstore</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
-            <artifactId>hugegraph-plugin</artifactId>
-            <version>1.0.0</version>
-          </dependency>
 
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>

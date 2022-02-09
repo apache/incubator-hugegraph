@@ -40,6 +40,7 @@ import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.client.PDConfig;
+import com.baidu.hugegraph.registerimpl.PdRegister;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.define.GraphReadMode;
@@ -60,6 +61,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.RegisterConfig;
 import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.auth.AuthManager;
@@ -583,6 +585,16 @@ public final class GraphManager {
             }
             this.metaManager.addServiceConfig(graphSpace, service);
             this.metaManager.notifyServiceAdd(graphSpace, name);
+            // register to pd
+            PdRegister register = PdRegister.getInstance();
+            RegisterConfig config = new RegisterConfig()
+                                    .setAppName(service.name())
+                                    .setGrpcAddress(this.pdPeers)
+                                    .setUrls(service.urls())
+                                    .setLabelMap(ImmutableMap.of());
+            String serviceId = register.registerService(config);
+            service.pdServiceId(serviceId);
+
             this.services.put(serviceName(graphSpace, name), service);
         } finally {
             this.metaManager.unlock(lock, this.cluster, graphSpace, name);
@@ -606,6 +618,12 @@ public final class GraphManager {
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         this.metaManager.notifyGraphSpaceUpdate(graphSpace);
         this.metaManager.unlock(lock, this.cluster, graphSpace);
+
+        String serviceId = service.pdServiceId();
+        if (StringUtils.isNotEmpty(serviceId)) {
+            PdRegister register = PdRegister.getInstance();
+            register.unregister(service.pdServiceId());
+        }
     }
 
     public HugeGraph createGraph(String graphSpace, String name,

@@ -199,7 +199,7 @@ public class ServiceApi extends API {
                 E.checkArgument(this.urls == null || this.urls.isEmpty(),
                                 "The urls must be null or empty when " +
                                 "deployment type is %s",
-                                Service.DeploymentType.MANUAL);
+                                this.deploymentType);
                 E.checkArgument(this.routeType != null &&
                                 !StringUtils.isEmpty(this.routeType),
                                 "The route type of service can't be null or " +
