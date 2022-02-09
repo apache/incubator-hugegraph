@@ -73,9 +73,6 @@
         <root level="INFO">
             <appender-ref ref="file"/>
         </root>
-        <logger name="org.apache.cassandra" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
         <logger name="org.apache.hadoop" level="INFO" additivity="false">
             <appender-ref ref="file"/>
         </logger>

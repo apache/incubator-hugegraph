@@ -2,9 +2,6 @@ import com.baidu.hugegraph.HugeFactory
 import com.baidu.hugegraph.dist.RegisterUtil
 import org.apache.tinkerpop.gremlin.structure.T
 
-RegisterUtil.registerCassandra();
-RegisterUtil.registerScyllaDB();
-
 conf = "conf/hugegraph.properties"
 graph = HugeFactory.open(conf);
 schema = graph.schema();

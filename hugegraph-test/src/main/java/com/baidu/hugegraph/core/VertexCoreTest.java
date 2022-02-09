@@ -7215,13 +7215,8 @@ public class VertexCoreTest extends BaseCoreTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
 
         String backend = graph.backend();
-        if (backend.equals("cassandra") || backend.equals("scylladb")) {
-            query.scan(String.valueOf(Long.MIN_VALUE),
-                       String.valueOf(Long.MAX_VALUE));
-        } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
-        }
+        query.scan(BackendTable.ShardSpliter.START,
+                   BackendTable.ShardSpliter.END);
 
         query.limit(1);
         String page = PageInfo.PAGE_NONE;

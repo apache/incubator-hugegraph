@@ -36,6 +36,10 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
         this.nodeManager = nodeManager;
     }
 
+    public void setPDClient(PDClient pdClient){
+        this.pdClient = pdClient;
+    }
+
     /**
      * 查询分区信息，结果通过HgNodePartitionerBuilder返回
      */
@@ -70,7 +74,7 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                          int startKey, int endKey) {
         try {
             Metapb.Partition partition = null;
-            while (partition == null || partition.getEndKey() <= endKey){
+            while (partition == null || partition.getEndKey() < endKey){
                 HgPair<Metapb.Partition, Metapb.Shard> partShard =
                         pdClient.getPartitionByCode(graphName, startKey);
                 if (partShard != null){

@@ -41,37 +41,7 @@ jobs:
 
     - stage: tinkerpop-test
       if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=cassandra SUITE=tinkerpop
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=scylladb SUITE=tinkerpop
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=mysql SUITE=tinkerpop
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=hbase SUITE=structure
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=hbase SUITE=process
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
       env: BACKEND=rocksdb SUITE=tinkerpop
-      script: $TRAVIS_DIR/run-tinkerpop-test.sh
-
-    - stage: tinkerpop-test
-      if: branch =~ env(RELEASE_BRANCH)
-      env: BACKEND=postgresql SUITE=tinkerpop
       script: $TRAVIS_DIR/run-tinkerpop-test.sh
 
     - stage: deploy
@@ -106,12 +76,7 @@ jobs:
 env:
   matrix:
     - BACKEND=memory
-    - BACKEND=cassandra
-    - BACKEND=scylladb
-    - BACKEND=mysql
-    - BACKEND=hbase
     - BACKEND=rocksdb
-    - BACKEND=postgresql
   global:
     - RELEASE_BRANCH=^release-.*$
     - RELEASE_TAG=^v[0-9]\..*$

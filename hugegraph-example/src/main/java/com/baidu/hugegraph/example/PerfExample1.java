@@ -29,7 +29,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.schema.SchemaManager;
-import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
 /**
  * Perf test for: vertex with properties
@@ -126,11 +125,7 @@ public class PerfExample1 extends PerfExampleBase {
             try {
                 graph.tx().commit();
             } catch (BackendException e) {
-                if (e.getCause() instanceof NoHostAvailableException) {
-                    LOG.warn("Failed to commit tx: {}", e.getMessage());
-                } else {
-                    throw e;
-                }
+                throw e;
             }
 
             this.vertices.addAll(personIds);

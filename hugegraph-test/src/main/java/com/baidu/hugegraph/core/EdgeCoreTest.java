@@ -511,7 +511,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 Assert.assertContains("Zero bytes may not occur in string " +
                                       "parameters", e.getCause().getMessage());
             });
-        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
+        } else if (backend.equals("rocksdb") || backend.equals("hstore")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
@@ -5077,13 +5077,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
         String backend = graph.backend();
-        if (backend.equals("cassandra") || backend.equals("scylladb")) {
-            query.scan(String.valueOf(Long.MIN_VALUE),
-                       String.valueOf(Long.MAX_VALUE));
-        } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
-        }
+
+        query.scan(BackendTable.ShardSpliter.START,
+                   BackendTable.ShardSpliter.END);
 
         query.limit(1);
         String page = PageInfo.PAGE_NONE;
