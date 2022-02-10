@@ -34,12 +34,14 @@ public class SerializerFactory {
 
     public static AbstractSerializer serializer(String name) {
         name = name.toLowerCase();
-        if ("binary".equals(name)) {
-            return new BinarySerializer();
-        } else if ("binaryscatter".equals(name)) {
-            return new BinaryScatterSerializer();
-        } else if ("text".equals(name)) {
-            return new TextSerializer();
+        switch (name) {
+            case "binary":
+                return new BinarySerializer();
+            case "binaryscatter":
+                return new BinaryScatterSerializer();
+            case "text":
+                return new TextSerializer();
+            default:
         }
 
         Class<? extends AbstractSerializer> clazz = serializers.get(name);

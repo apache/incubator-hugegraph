@@ -300,8 +300,7 @@ public final class BytesBuffer extends OutputStream {
     public byte[] readBytes() {
         int length = this.readVInt();
         assert length >= 0;
-        byte[] bytes = this.read(length);
-        return bytes;
+        return this.read(length);
     }
 
     public BytesBuffer writeBigBytes(byte[] bytes) {
@@ -317,8 +316,7 @@ public final class BytesBuffer extends OutputStream {
     public byte[] readBigBytes() {
         int length = this.readVInt();
         assert length >= 0;
-        byte[] bytes = this.read(length);
-        return bytes;
+        return this.read(length);
     }
 
     public BytesBuffer writeStringRaw(String val) {

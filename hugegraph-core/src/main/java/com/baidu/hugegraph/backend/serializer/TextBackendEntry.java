@@ -187,7 +187,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
             }
 
             // TODO: ensure the old value is a list and json format (for index)
-            if (oldValue.equals("[]")) {
+            if ("[]".equals(oldValue)) {
                 this.column(col.getKey(), newValue);
                 continue;
             }
@@ -222,12 +222,11 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
             }
 
             // TODO: ensure the old value is a list and json format (for index)
-            List<Object> values = new ArrayList<>();
             @SuppressWarnings("unchecked")
             List<Object> oldValues = JsonUtil.fromJson(oldValue, List.class);
             @SuppressWarnings("unchecked")
             List<Object> newValues = JsonUtil.fromJson(newValue, List.class);
-            values.addAll(oldValues);
+            List<Object> values = new ArrayList<>(oldValues);
             values.removeAll(newValues);
             // Update the old value
             this.column(col.getKey(), JsonUtil.toJson(values));
