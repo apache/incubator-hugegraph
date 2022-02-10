@@ -112,4 +112,6 @@ public interface AuthManager {
 
     public UserWithRole validateUser(String username, String password);
     public UserWithRole validateUser(String token);
+
+    public String username();
 }

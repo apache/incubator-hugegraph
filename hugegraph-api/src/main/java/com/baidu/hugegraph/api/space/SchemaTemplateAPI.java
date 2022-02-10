@@ -19,9 +19,9 @@
 
 package com.baidu.hugegraph.api.space;
 
+import java.util.Date;
 import java.util.Set;
 
-import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -31,7 +31,10 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.SecurityContext;
 
+import com.baidu.hugegraph.auth.HugeAuthenticator;
+import com.baidu.hugegraph.auth.HugePermission;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
@@ -87,11 +90,14 @@ public class SchemaTemplateAPI extends API {
                          JsonSchemaTemplate jsonSchemaTemplate) {
         LOG.debug("Create schema template {} for graph space: '{}'",
                   jsonSchemaTemplate, graphSpace);
-
         jsonSchemaTemplate.checkCreate(false);
 
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
         SchemaTemplate template = jsonSchemaTemplate.toSchemaTemplate();
+        template.create(new Date());
+        template.creator(manager.authManager().username());
         manager.createSchemaTemplate(graphSpace, template);
         return manager.serializer().writeSchemaTemplate(template);
     }
@@ -100,14 +106,25 @@ public class SchemaTemplateAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
-                       @PathParam("name") String name) {
+                       @PathParam("name") String name,
+                       @Context SecurityContext sc) {
         LOG.debug("Remove schema template by name '{}' for graph space",
                   name, graphSpace);
+        E.checkArgument(manager.graphSpace(graphSpace) != null,
+                        "The graph space '%s' is not exist", graphSpace);
 
-        manager.dropSchemaTemplate(graphSpace, name);
+        SchemaTemplate st = schemaTemplate(manager, graphSpace, name);
+        E.checkArgument(st != null,
+                        "Schema template '%s' does not exist", name);
+
+        String username = manager.authManager().username();
+        String role = HugeAuthenticator.RequiredPerm.roleFor(graphSpace, "*",
+                                                             HugePermission.SPACE);
+        if (st.creator().equals(username) || sc.isUserInRole(role)) {
+            manager.dropSchemaTemplate(graphSpace, name);
+        }
     }
 
     private static class JsonSchemaTemplate implements Checkable {
