@@ -35,8 +35,11 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal;
 import com.baidu.hugegraph.HugeException;
 
 /**
- * ScriptTraversal encapsulates a {@link ScriptEngine} and a script which is compiled into a {@link Traversal} at {@link Admin#applyStrategies()}.
- * This is useful for serializing traversals as the compilation can happen on the remote end where the traversal will ultimately be processed.
+ * ScriptTraversal encapsulates a {@link ScriptEngine} and a script which is
+ * compiled into a {@link Traversal} at {@link Admin#applyStrategies()}.
+ *
+ * This is useful for serializing traversals as the compilation can happen on
+ * the remote end where the traversal will ultimately be processed.
  *
  * @author Marko A. Rodriguez (http://markorodriguez.com)
  */

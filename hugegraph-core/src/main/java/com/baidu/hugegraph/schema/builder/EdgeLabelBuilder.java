@@ -200,7 +200,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
                 return false;
             }
         } else { // this false
-            if (existedEdgeLabel.enableLabelIndex() == true) {
+            if (existedEdgeLabel.enableLabelIndex()) {
                 return false;
             }
         }

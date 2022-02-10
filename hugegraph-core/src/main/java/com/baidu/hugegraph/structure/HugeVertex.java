@@ -279,7 +279,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         if (elemKeys.id() != null) {
             throw Edge.Exceptions.userSuppliedIdsNotSupported();
         }
-        Id id = HugeElement.getIdValue(elemKeys.id());
+        Id id = null;
 
         // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
@@ -323,10 +323,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         ElementHelper.attachProperties(edge, keyValues);
 
         // Set id if it not exists
-        if (id == null) {
-            edge.assignId();
-        }
-
+        edge.assignId();
         return edge;
     }
 

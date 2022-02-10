@@ -2010,6 +2010,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (label.enableLabelIndex()) {
             // Support label index, query by label index by paging
+            assert query instanceof ConditionQuery;
             ((ConditionQuery) query).eq(HugeKeys.LABEL, label.id());
             Iterator<T> iter = fetcher.apply(query);
             try {

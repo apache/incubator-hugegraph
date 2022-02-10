@@ -45,7 +45,6 @@ public class AdamicAdarAPITest extends BaseApiTest {
     @Test
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
-        name2Ids.entrySet().forEach(System.out::println);
 
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");

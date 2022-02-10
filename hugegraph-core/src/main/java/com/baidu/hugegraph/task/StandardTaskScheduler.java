@@ -707,7 +707,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private <V> Iterator<HugeTask<V>> queryTask(List<Id> ids) {
         return this.call(() -> {
-            Object[] idArray = ids.toArray(new Id[ids.size()]);
+            Object[] idArray = ids.toArray(new Id[0]);
             Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);

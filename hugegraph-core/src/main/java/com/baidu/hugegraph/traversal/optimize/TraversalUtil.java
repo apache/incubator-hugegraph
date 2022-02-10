@@ -453,6 +453,7 @@ public final class TraversalUtil {
 
         String originKey = has.getKey();
         if (values.size() > 1) {
+            // TODO: what we check now? the condition is always true?
             E.checkArgument(!originKey.equals(T.key) &&
                             !originKey.equals(T.value),
                             "Not support hasKey() or hasValue() with " +
@@ -557,11 +558,8 @@ public final class TraversalUtil {
                                               Directions dir,
                                               Iterator<Edge> edges) {
         return new FilterIterator<>(edges, edge -> {
-            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                return true;
-            }
-            return false;
+            return dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
+                   dir == Directions.IN && vertex.equals(edge.inVertex());
         });
     }
 
@@ -672,8 +670,7 @@ public final class TraversalUtil {
                 E.checkArgument(false,
                                 "Invalid data type of query value in %s, " +
                                 "expect %s for '%s', actual got %s",
-                                value, pkey.dataType(), pkey.name(),
-                                value == null ? null : classes);
+                                value, pkey.dataType(), pkey.name(), classes);
             }
 
             @SuppressWarnings("unchecked")
@@ -927,7 +924,7 @@ public final class TraversalUtil {
             throw new HugeException(
                       "Invalid value '%s', expect a list of number", value);
         }
-        return values.toArray(new Number[values.size()]);
+        return values.toArray(new Number[0]);
     }
 
     @SuppressWarnings("unchecked")

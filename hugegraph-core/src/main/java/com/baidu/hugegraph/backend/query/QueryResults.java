@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.query;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -132,9 +131,7 @@ public class QueryResults<R> {
             ids = map.keySet();
         }
 
-        return new MapperIterator<>(ids.iterator(), id -> {
-            return map.get(id);
-        });
+        return new MapperIterator<>(ids.iterator(), map::get);
     }
 
     private boolean mustSortByInputIds() {

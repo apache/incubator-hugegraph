@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class ResourceAllocationAPITest extends BaseApiTest {
 
-    private final static String PATH = TRAVERSERS_API + "/adamicadar";
+    private final static String PATH = TRAVERSERS_API + "/resourceallocation";
 
     @Before
     public void prepareSchema() {
@@ -45,7 +45,6 @@ public class ResourceAllocationAPITest extends BaseApiTest {
     @Test
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
-        name2Ids.entrySet().forEach(System.out::println);
 
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
@@ -55,7 +54,7 @@ public class ResourceAllocationAPITest extends BaseApiTest {
                                                         "other",
                                                         id2Json(joshId)));
         String content = assertResponseStatus(200, r);
-        assertJsonContains(content, "adamic_adar");
+        assertJsonContains(content, "resource_allocation");
         //Assert.assertFalse(sameNeighbors.isEmpty());
         //Assert.assertTrue(sameNeighbors.contains(peterId));
     }

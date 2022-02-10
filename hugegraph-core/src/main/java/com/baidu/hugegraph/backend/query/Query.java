@@ -282,8 +282,7 @@ public class Query implements Cloneable {
     }
 
     public void limit(long limit) {
-        E.checkArgument(limit >= 0L || limit == NO_LIMIT,
-                        "Invalid limit %s", limit);
+        E.checkArgument(limit >= 0L, "Invalid limit %s", limit);
         this.limit = limit;
     }
 
