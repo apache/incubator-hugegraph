@@ -46,10 +46,11 @@
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <!-- Use simple format for audit log to speed up -->
-            <!-- PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} - %m%n"/ -->
-            <JsonLayout compact="true" eventEol="true" locationInfo="true">
+            <PatternLayout pattern="%m%n" />
+            <!-- Use simple format for audit log to speed up -->
+            <!--JsonLayout compact="true" eventEol="true" >
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
-            </JsonLayout>
+            </JsonLayout-->
             <!-- Trigger after exceeding 1hour or 500MB -->
             <Policies>
                 <SizeBasedTriggeringPolicy size="512MB"/>
@@ -96,10 +97,13 @@
             <appender-ref ref="file"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
-            <appender-ref ref="audit"/>
+            <appender-ref ref="file"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
-            <appender-ref ref="audit"/>
+            <appender-ref ref="file"/>
+        </AsyncLogger>
+        <AsyncLogger name="audit-log-appender" level="INFO" additivity="false">
+            <appender-ref ref="audit" />
         </AsyncLogger>
     </loggers>
 </configuration>

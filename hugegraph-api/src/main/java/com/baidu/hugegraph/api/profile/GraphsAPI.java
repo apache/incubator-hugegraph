@@ -72,9 +72,6 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class GraphsAPI extends API {
 
-    private static final Logger LOG
-            = Log.logger(RestServer.class);
-
     private static final HugeGraphLogger LOGGER
             = Log.getLogger(RestServer.class);
 
@@ -91,14 +88,15 @@ public class GraphsAPI extends API {
     public Object list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @Context SecurityContext sc) {
-        LOG.debug("List graphs in graph space {}", graphSpace);
+        LOGGER.logCustomDebug("List graphs in graph space {}", RestServer.EXECUTOR, graphSpace);
         Set<String> graphs = manager.graphs(graphSpace);
-        LOG.debug("Get graphs list from graph manager with size {}",
+        LOGGER.logCustomDebug("Get graphs list from graph manager with size {}",
+                  RestServer.EXECUTOR,
                   graphs.size());
         // Filter by user role
         Set<String> filterGraphs = new HashSet<>();
         for (String graph : graphs) {
-            LOG.debug("Get graph {} and verify auth", graph);
+            LOGGER.logCustomDebug("Get graph {} and verify auth", RestServer.EXECUTOR, graph);
             String role = RequiredPerm.roleFor(graphSpace, graph,
                                                HugePermission.READ);
             if (sc.isUserInRole(role)) {
@@ -109,10 +107,10 @@ public class GraphsAPI extends API {
                     // ignore
                 }
             } else {
-                LOG.debug("The user not in role for graph {}", graph);
+                LOGGER.logCustomDebug("The user not in role for graph {}", graph);
             }
         }
-        LOG.debug("Finish list graphs with size {}", filterGraphs.size());
+        LOGGER.logCustomDebug("Finish list graphs with size {}", RestServer.EXECUTOR, filterGraphs.size());
         return ImmutableMap.of("graphs", filterGraphs);
     }
 
@@ -125,7 +123,7 @@ public class GraphsAPI extends API {
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph) {
         LOGGER.logCustomDebug("Get graph by graph space {} and name '{}' ",
-                        "zhoney",
+                        RestServer.EXECUTOR,
                         graphSpace, graph);
 
         HugeGraph g = graph(manager, graphSpace, graph);
@@ -150,7 +148,7 @@ public class GraphsAPI extends API {
                          @PathParam("name") String name,
                          Map<String, Object> configs) {
         LOGGER.logCustomDebug("Create graph {} with config options '{}' in graph space " +
-                  "'{}'", "zhoney", name, configs, graphSpace);
+                  "'{}'", RestServer.EXECUTOR, name, configs, graphSpace);
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
         graph.tx().close();
@@ -160,6 +158,8 @@ public class GraphsAPI extends API {
         }
         Object result = ImmutableMap.of("name", name, "backend", graph.backend(), "description", description);
         LOGGER.getServerLogger().logCreateGraph(name, graph.configuration().toString());
+        LOGGER.getAuditLogger()
+                    .logCreateGraph(graphSpace, name, RestServer.EXECUTOR);
         return result;
     }
 
@@ -174,7 +174,7 @@ public class GraphsAPI extends API {
         
         LOGGER.logCustomDebug(
             "Get graph configuration by name '{}'",
-            "zhoney", RestServer.EXECUTOR, graph);
+            RestServer.EXECUTOR, RestServer.EXECUTOR, graph);
 
         // HugeGraph g = graph4admin(manager, graphSpace, graph);
         HugeGraph g = graph(manager, graphSpace, graph);
@@ -194,7 +194,7 @@ public class GraphsAPI extends API {
                                @PathParam("graphspace") String graphSpace,
                                @PathParam("name") String name,
                                Map<String, Object> actionMap) {
-        LOGGER.logCustomDebug("Clear graph by name '{}'", "zhoney", name);
+        LOGGER.logCustomDebug("Clear graph by name '{}'", RestServer.EXECUTOR, name);
         E.checkArgument(actionMap != null &&
                         actionMap.containsKey(GRAPH_ACTION),
                         "Please pass '%s' for graph manage", GRAPH_ACTION);
@@ -209,6 +209,8 @@ public class GraphsAPI extends API {
                 }
                 // truncateBackend() will open tx, so must close here(commit)
                 g.tx().commit();
+                LOGGER.getAuditLogger()
+                    .logClearGraph(graphSpace, name, RestServer.EXECUTOR);
                 return ImmutableMap.of(name, "cleared");
             case GRAPH_ACTION_RELOAD:
                 manager.reload(graphSpace, name);
@@ -229,8 +231,9 @@ public class GraphsAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
                        @PathParam("graphspace") String graphSpace) {
-
         manager.dropGraph(graphSpace, name, true);
+        LOGGER.getAuditLogger()
+            .logRemoveGraph(graphSpace, name, RestServer.EXECUTOR);
     }
 
     @PUT
