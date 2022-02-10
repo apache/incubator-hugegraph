@@ -34,7 +34,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 
@@ -47,6 +46,7 @@ import com.baidu.hugegraph.api.filter.StatusFilter.Status;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.util.E;
@@ -59,7 +59,9 @@ import com.google.common.collect.ImmutableMap;
 @Singleton
 public class GraphSpaceAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    //private static final Logger LOG = Log.logger(RestServer.class);
+    private static final HugeGraphLogger LOGGER
+        = Log.getLogger(RestServer.class);
 
     private static final String GRAPH_SPACE_ACTION = "action";
     private static final String UPDATE = "update";
@@ -70,7 +72,7 @@ public class GraphSpaceAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
-        LOG.debug("List all graph spaces");
+        LOGGER.logCustomDebug("List all graph spaces", RestServer.EXECUTOR);
 
         Set<String> spaces = manager.graphSpaces();
         return ImmutableMap.of("graphSpaces", spaces);
@@ -82,7 +84,7 @@ public class GraphSpaceAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
-        LOG.debug("Get graph space by name '{}'", name);
+        LOGGER.logCustomDebug("Get graph space by name '{}'", RestServer.EXECUTOR, name);
 
         return manager.serializer().writeGraphSpace(space(manager, name));
     }
@@ -95,7 +97,7 @@ public class GraphSpaceAPI extends API {
     @RolesAllowed("admin")
     public String create(@Context GraphManager manager,
                          JsonGraphSpace jsonGraphSpace) {
-        LOG.debug("Create graph space: '{}'", jsonGraphSpace);
+        LOGGER.logCustomDebug("Create graph space: '{}'", RestServer.EXECUTOR, jsonGraphSpace);
 
         E.checkArgument(!DEFAULT_GRAPH_SPACE_NAME.equals(jsonGraphSpace),
                         "Can't create namespace with name '%s'",
@@ -108,6 +110,7 @@ public class GraphSpaceAPI extends API {
                         jsonGraphSpace.name);
         GraphSpace space = manager.createGraphSpace(
                            jsonGraphSpace.toGraphSpace());
+        LOGGER.getAuditLogger().logCreateTenant(space.name(), RestServer.EXECUTOR);
         return manager.serializer().writeGraphSpace(space);
     }
 
@@ -120,7 +123,7 @@ public class GraphSpaceAPI extends API {
     public Map<String, Object> manage(@Context GraphManager manager,
                                       @PathParam("name") String name,
                                       Map<String, Object> actionMap) {
-        LOG.debug("Manage graph space with action {}", actionMap);
+        LOGGER.logCustomDebug("Manage graph space with action {}", RestServer.EXECUTOR, actionMap);
 
         E.checkArgument(actionMap != null && actionMap.size() == 2 &&
                         actionMap.containsKey(GRAPH_SPACE_ACTION),
@@ -132,7 +135,7 @@ public class GraphSpaceAPI extends API {
         String action = (String) value;
         switch (action) {
             case "update":
-                LOG.debug("Update graph space: '{}'", name);
+                LOGGER.logCustomDebug("Update graph space: '{}'", RestServer.EXECUTOR, name);
 
                 E.checkArgument(actionMap.containsKey(UPDATE),
                                 "Please pass '%s' for graph space update",
@@ -206,11 +209,13 @@ public class GraphSpaceAPI extends API {
                     exist.configs(configs);
                 }
                 GraphSpace space = manager.createGraphSpace(exist);
+                LOGGER.getAuditLogger().logUpdateTenant(exist.name(), RestServer.EXECUTOR);
                 return space.info();
             case GRAPH_SPACE_ACTION_CLEAR:
-                LOG.debug("Clear graph space: '{}'", name);
+                LOGGER.logCustomDebug("Clear graph space: '{}'", RestServer.EXECUTOR, name);
 
                 manager.clearGraphSpace(name);
+                LOGGER.getAuditLogger().logUpdateTenant(name, RestServer.EXECUTOR);
                 return ImmutableMap.of(name, "cleared");
             default:
                 throw new AssertionError(String.format("Invalid action: '%s'",
@@ -225,8 +230,8 @@ public class GraphSpaceAPI extends API {
     @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name) {
-        LOG.debug("Remove graph space by name '{}'", name);
-
+        LOGGER.logCustomDebug("Remove graph space by name '{}'", RestServer.EXECUTOR, name);
+        LOGGER.getAuditLogger().logRemoveTenant(name, RestServer.EXECUTOR);
         manager.dropGraphSpace(name);
     }
 

@@ -85,6 +85,7 @@ public class LoginAPI extends API {
             String token = authManager.loginUser(jsonLogin.name,
                                                  jsonLogin.password,
                                                  jsonLogin.expire);
+            LOGGER.getAuditLogger().logUserLogin(jsonLogin.name, "api", "/auth/login");
             return manager.serializer()
                           .writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
@@ -112,7 +113,9 @@ public class LoginAPI extends API {
         String token = auth.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
                                                           .length());
         AuthManager authManager = manager.authManager();
+        UserWithRole userWithRole = authManager.validateUser(token);
         authManager.logoutUser(token);
+        LOGGER.getAuditLogger().logUserLogout(userWithRole.username());
     }
 
     @GET
@@ -172,6 +175,7 @@ public class LoginAPI extends API {
             authManager.createKgUser(user);
         }
         String token = authManager.createToken(jsonLogin.name, jsonLogin.expire);
+        LOGGER.getAuditLogger().logUserLogin(jsonLogin.name, "kglogin", "/auth/kglogin");
         return manager.serializer()
                       .writeMap(ImmutableMap.of("token", token));
     }
