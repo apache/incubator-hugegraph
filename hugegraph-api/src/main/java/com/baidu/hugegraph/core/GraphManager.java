@@ -1368,4 +1368,8 @@ public final class GraphManager {
                                            String graphName) {
         return this.metaManager.getGraphConfig(graphSpace, graphName);
     }
+
+    public String pdPeers() {
+        return this.pdPeers;
+    }
 }

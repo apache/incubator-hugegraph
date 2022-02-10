@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -90,12 +91,13 @@ public class ComputerDisAPI extends API {
             token = manager.authManager().createToken("");
         }
 
-        Map<String, Object> input = ImmutableMap.of(
-                            "graph", graph,
-                            "algorithm", jsonTask.algorithm,
-                            "params", jsonTask.params,
-                            "worker", jsonTask.worker,
-                            "token", token);
+        Map<String, Object> input = new HashMap<>();
+        input.put("graph", graphSpace + "/" + graph);
+        input.put("algorithm", jsonTask.algorithm);
+        input.put("params", jsonTask.params);
+        input.put("worker", jsonTask.worker);
+        input.put("token", token);
+        input.put("pd.peers", manager.pdPeers());
         HugeGraph g = graph(manager, graphSpace, graph);
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name("computer-dis:" + jsonTask.algorithm)
