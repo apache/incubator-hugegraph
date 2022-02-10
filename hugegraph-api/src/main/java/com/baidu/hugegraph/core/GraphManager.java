@@ -358,6 +358,18 @@ public final class GraphManager {
                                           Service.DeploymentType.MANUAL);
             service.description(service.name());
             service.url(this.url);
+
+            // register self to pd, should prior to etcd due to pdServiceId info
+            PdRegister pdRegister = PdRegister.getInstance();
+            RegisterConfig config = new RegisterConfig()
+                                            .setAppName(service.name())
+                                            .setUrls(service.urls())
+                                            .setGrpcAddress(this.pdPeers)
+                                            .setLabelMap(ImmutableMap.of());
+            String pdServiceId = pdRegister.registerService(config);
+            service.pdServiceId(pdServiceId);
+
+            // register to etcd
             this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
             this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
                                               this.serviceID);
@@ -591,10 +603,10 @@ public final class GraphManager {
                                     .setGrpcAddress(this.pdPeers)
                                     .setUrls(service.urls())
                                     .setLabelMap(ImmutableMap.of());
-            String serviceId = register.registerService(config);
-            service.pdServiceId(serviceId);
-            LOG.debug("pd registered, serviceId is {}, going to validate", serviceId);
-            Map<String, NodeInfos> infos = register.getServiceInfo(serviceId);
+            String pdServiceId = register.registerService(config);
+            service.pdServiceId(pdServiceId);
+            LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
+            Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
             for(Map.Entry<String, NodeInfos> entry : infos.entrySet()) {
                 NodeInfos info = entry.getValue();
                 info.getInfoList().forEach(node -> {
@@ -629,12 +641,12 @@ public final class GraphManager {
         this.metaManager.notifyGraphSpaceUpdate(graphSpace);
         this.metaManager.unlock(lock, this.cluster, graphSpace);
 
-        String serviceId = service.pdServiceId();
-        LOG.debug("Going to unregister service {} from Pd", serviceId);
-        if (StringUtils.isNotEmpty(serviceId)) {
+        String pdServiceId = service.pdServiceId();
+        LOG.debug("Going to unregister service {} from Pd", pdServiceId);
+        if (StringUtils.isNotEmpty(pdServiceId)) {
             PdRegister register = PdRegister.getInstance();
             register.unregister(service.pdServiceId());
-            LOG.debug("Service {} has been withdrew from Pd", serviceId);
+            LOG.debug("Service {} has been withdrew from Pd", pdServiceId);
         }
     }
 
