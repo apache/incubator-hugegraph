@@ -233,6 +233,8 @@ public class Service {
         infos.put("port", this.port);
         infos.put("urls", this.urls);
 
+        infos.put("pd_service_id", this.pdServiceId);
+
         return infos;
     }
 

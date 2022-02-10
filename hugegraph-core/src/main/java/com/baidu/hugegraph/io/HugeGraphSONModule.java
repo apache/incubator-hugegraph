@@ -417,6 +417,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             Set<String> urls = new HashSet<>();
 
+            String pdServiceId = null;
+
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
@@ -447,13 +449,15 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                         String urlString = jsonParser.getText();
                         urls.addAll(Arrays.asList(urlString.split(",")));
                     }
+                } else if("pd_service_id".equals(fieldName)) {
+                    pdServiceId = jsonParser.getText();
                 } else {
                     throw new HugeException("Invalid field '%s'", fieldName);
                 }
             }
             jsonParser.close();
 
-            return new Service(name, description,
+            Service service = new Service(name, description,
                                Service.ServiceType.valueOf(type),
                                Service.DeploymentType.valueOf(deploymentType),
                                count.intValue(),
@@ -464,6 +468,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                routeType,
                                port.intValue(),
                                urls);
+            service.pdServiceId(pdServiceId);
+            return service;
         }
     }
 
