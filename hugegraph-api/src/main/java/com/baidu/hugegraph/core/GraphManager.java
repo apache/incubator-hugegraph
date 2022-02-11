@@ -569,6 +569,7 @@ public final class GraphManager {
             service.pdServiceId(pdServiceId);
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
             Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
+            
             for(Map.Entry<String, NodeInfos> entry : infos.entrySet()) {
                 NodeInfos info = entry.getValue();
                 info.getInfoList().forEach(node -> {
