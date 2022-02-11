@@ -360,14 +360,7 @@ public final class GraphManager {
             service.url(this.url);
 
             // register self to pd, should prior to etcd due to pdServiceId info
-            PdRegister pdRegister = PdRegister.getInstance();
-            RegisterConfig config = new RegisterConfig()
-                                            .setAppName(service.name())
-                                            .setUrls(service.urls())
-                                            .setGrpcAddress(this.pdPeers)
-                                            .setLabelMap(ImmutableMap.of());
-            String pdServiceId = pdRegister.registerService(config);
-            service.pdServiceId(pdServiceId);
+            this.registerServiceToPd(service);
 
             // register to etcd
             this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
@@ -564,6 +557,30 @@ public final class GraphManager {
         this.graphSpaces.remove(name);
     }
 
+    private void registerServiceToPd(Service service) {
+        try {
+            PdRegister register = PdRegister.getInstance();
+            RegisterConfig config = new RegisterConfig()
+                                    .setAppName(service.name())
+                                    .setGrpcAddress(this.pdPeers)
+                                    .setUrls(service.urls())
+                                    .setLabelMap(ImmutableMap.of());
+            String pdServiceId = register.registerService(config);
+            service.pdServiceId(pdServiceId);
+            LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
+            Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
+            for(Map.Entry<String, NodeInfos> entry : infos.entrySet()) {
+                NodeInfos info = entry.getValue();
+                info.getInfoList().forEach(node -> {
+                    LOG.debug("Registered Info serviceId {}: appName: {} , id: {} , address: {}",
+                       entry.getKey(), node.getAppName(), node.getId(), node.getAddress());
+                });
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to register service to pd", e);
+        }
+    }
+
     public Service createService(String graphSpace, Service service) {
         String name = service.name();
         checkServiceName(name);
@@ -597,23 +614,7 @@ public final class GraphManager {
                 service.urls(urls);
             }
             // Register to pd. The order here is important since pdServiceId will be stored in etcd
-            PdRegister register = PdRegister.getInstance();
-            RegisterConfig config = new RegisterConfig()
-                                    .setAppName(service.name())
-                                    .setGrpcAddress(this.pdPeers)
-                                    .setUrls(service.urls())
-                                    .setLabelMap(ImmutableMap.of());
-            String pdServiceId = register.registerService(config);
-            service.pdServiceId(pdServiceId);
-            LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
-            Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
-            for(Map.Entry<String, NodeInfos> entry : infos.entrySet()) {
-                NodeInfos info = entry.getValue();
-                info.getInfoList().forEach(node -> {
-                    LOG.debug("Registered Info serviceId {}: appName: {} , id: {} , address: {}",
-                       entry.getKey(), node.getAppName(), node.getId(), node.getAddress());
-                });
-            }
+            this.registerServiceToPd(service);
             // Persist to etcd
             this.metaManager.addServiceConfig(graphSpace, service);
             this.metaManager.notifyServiceAdd(graphSpace, name);
