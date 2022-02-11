@@ -16,11 +16,24 @@
         <fabric8.version>5.6.0</fabric8.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>plugin-project</id>
+            <name>local repo</name>
+            <url>file://${project.basedir}/lib</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>1.8.10</version>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-plugin</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>

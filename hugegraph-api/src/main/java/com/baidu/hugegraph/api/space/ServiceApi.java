@@ -112,6 +112,17 @@ public class ServiceApi extends API {
         return manager.serializer().writeService(service);
     }
 
+    @POST
+    @Timed
+    @Status(Status.CREATED)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
+    @Path("k8s-register")
+    public void registerK8S(@Context GraphManager manager) throws Exception {
+        LOG.debug("Register external K8S info to pd");
+        manager.registerK8StoPd();
+    }
+
     @DELETE
     @Timed
     @Path("{name}")
@@ -199,7 +210,7 @@ public class ServiceApi extends API {
                 E.checkArgument(this.urls == null || this.urls.isEmpty(),
                                 "The urls must be null or empty when " +
                                 "deployment type is %s",
-                                Service.DeploymentType.MANUAL);
+                                this.deploymentType);
                 E.checkArgument(this.routeType != null &&
                                 !StringUtils.isEmpty(this.routeType),
                                 "The route type of service can't be null or " +

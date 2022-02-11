@@ -54,6 +54,8 @@ public class Service {
 
     private Set<String> urls;
 
+    private String pdServiceId;
+
     public Service(String name, ServiceType type,
                    DeploymentType deploymentType) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
@@ -231,7 +233,17 @@ public class Service {
         infos.put("port", this.port);
         infos.put("urls", this.urls);
 
+        infos.put("pd_service_id", this.pdServiceId);
+
         return infos;
+    }
+
+    public String pdServiceId() {
+        return this.pdServiceId;
+    }
+
+    public void pdServiceId(String serviceId) {
+        this.pdServiceId = serviceId;
     }
 
     public enum DeploymentType {
