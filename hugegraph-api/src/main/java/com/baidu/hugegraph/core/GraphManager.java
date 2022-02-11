@@ -142,6 +142,8 @@ public final class GraphManager {
 
     private K8sDriver.CA ca;
 
+    private String pdK8sServiceId;
+
     public GraphManager(HugeConfig conf, EventHub hub) {
         E.checkArgumentNotNull(conf, "The config can't be null");
         this.config = conf;
@@ -582,6 +584,17 @@ public final class GraphManager {
         }
     }
 
+    public void registerK8StoPd() throws Exception {
+        try {
+            PdRegister register = PdRegister.getInstance();
+            String pdServiceId = register.init(this.serverId.asString());
+            this.pdK8sServiceId = pdServiceId;
+        } catch (Exception e) {
+            LOG.error("Register service k8s external info to pd failed!", e);
+            throw e;
+        }
+    }
+
     public Service createService(String graphSpace, Service service) {
         String name = service.name();
         checkServiceName(name);
@@ -630,7 +643,9 @@ public final class GraphManager {
     public void dropService(String graphSpace, String name) {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
-        this.k8sManager.stopService(gs, service);
+        if (service.k8s()) {
+            this.k8sManager.stopService(gs, service);
+        }
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace, name);
         this.metaManager.removeServiceConfig(graphSpace, name);
         this.metaManager.notifyServiceRemove(graphSpace, name);

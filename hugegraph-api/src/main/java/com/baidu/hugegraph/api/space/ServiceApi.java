@@ -112,6 +112,17 @@ public class ServiceApi extends API {
         return manager.serializer().writeService(service);
     }
 
+    @POST
+    @Timed
+    @Status(Status.CREATED)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
+    @Path("k8s-register")
+    public void registerK8S(@Context GraphManager manager) throws Exception {
+        LOG.debug("Register external K8S info to pd");
+        manager.registerK8StoPd();
+    }
+
     @DELETE
     @Timed
     @Path("{name}")

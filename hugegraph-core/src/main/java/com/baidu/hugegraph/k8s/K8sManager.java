@@ -33,7 +33,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 public class K8sManager {
 
     private static final HugeGraphLogger LOGGER =
-        Log.getLogger(K8sDriver.class);
+        Log.getLogger(K8sManager.class);
 
     private K8sDriver k8sDriver;
 
