@@ -15,11 +15,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.baidu.hugegraph.store.client.util.HgStoreClientConst.ALL_PARTITION_OWNER;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                                                   HgStoreNodeProvider,
                                                   HgStoreNodeNotifier {
 
+    private static final Logger LOG = Log.logger(HstoreNodePartitionerImpl.class);
     private PDClient pdClient;
     private HgStoreNodeManager nodeManager;
 
@@ -112,9 +115,11 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
      */
     @Override
     public int notice(String graphName, HgStoreNotice storeNotice) {
+        LOG.warn(storeNotice.toString());
         if (storeNotice.getPartitionLeaders() != null) {
             storeNotice.getPartitionLeaders().forEach((partId, leader) -> {
                 pdClient.updatePartitionLeader(graphName, partId, leader);
+                LOG.warn("updatePartitionLeader:{}-{}-{} ",graphName, partId, leader);
             });
         }
         if (storeNotice.getPartitionIds() != null) {

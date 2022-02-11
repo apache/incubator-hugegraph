@@ -60,7 +60,9 @@ public abstract class HstoreSessions extends BackendSessionPool {
         public static final int SCAN_GTE_BEGIN = 0x0c;
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
-        public static final int SCAN_HASHCODE = 0x40;
+        public static final int SCAN_KEYONLY = 0x40;
+        public static final int SCAN_HASHCODE = 0x100;
+
         private HugeConfig conf;
         private String graphName;
 
