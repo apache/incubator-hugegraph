@@ -47,11 +47,9 @@ import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.JsonUtil;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationBuilder;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.core.config.json.JsonConfiguration;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -104,6 +102,8 @@ import com.google.common.collect.ImmutableSet;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+
+import javax.ws.rs.NotFoundException;
 
 public final class GraphManager {
 
@@ -1411,5 +1411,9 @@ public final class GraphManager {
     public Map<String, Object> graphConfig(String graphSpace,
                                            String graphName) {
         return this.metaManager.getGraphConfig(graphSpace, graphName);
+    }
+
+    public String pdPeers() {
+        return this.pdPeers;
     }
 }

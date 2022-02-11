@@ -1281,6 +1281,15 @@ public class StandardAuthManager implements AuthManager {
         return new UserWithRole(user.id(), username, this.rolePermission(user));
     }
 
+    @Override
+    public String username() {
+        HugeGraphAuthProxy.Context context = HugeGraphAuthProxy.getContext();
+        E.checkState(context != null,
+                     "Missing authentication context " +
+                     "when verifying resource permission");
+        return context.user().username();
+    }
+
     public void initAdmin() {
         HugeUser user = new HugeUser("admin");
         user.password(StringEncoding.hashPassword("admin"));
@@ -1297,12 +1306,5 @@ public class StandardAuthManager implements AuthManager {
         } catch (Exception e) {
             LOG.info(e.getMessage());
         }
-    }
-
-    /**
-     * Maybe can define an proxy class to choose forward or call local
-     */
-    public static boolean isLocal(AuthManager authManager) {
-        return authManager instanceof StandardAuthManager;
     }
 }
