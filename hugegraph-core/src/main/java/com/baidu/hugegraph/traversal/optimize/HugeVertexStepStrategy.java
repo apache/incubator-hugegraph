@@ -25,6 +25,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.step.TraversalParent;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.PathStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.TreeStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.util.EmptyTraversal;
@@ -57,10 +58,11 @@ public final class HugeVertexStepStrategy
         boolean batchOptimize = false;
         if (!steps.isEmpty()) {
             boolean withPath = HugeVertexStepStrategy.containsPath(traversal);
+            boolean withTree = HugeVertexStepStrategy.containsTree(traversal);
             boolean supportIn = TraversalUtil.getGraph(steps.get(0))
                                              .backendStoreFeatures()
                                              .supportsQueryWithInCondition();
-            batchOptimize = !withPath && supportIn;
+            batchOptimize = !withTree && !withPath && supportIn;
         }
 
         for (VertexStep originStep : steps) {
@@ -96,6 +98,24 @@ public final class HugeVertexStepStrategy
 
         TraversalParent parent = traversal.getParent();
         return containsPath(parent.asStep().getTraversal());
+    }
+
+    /**
+     * Does a Traversal contain any Tree step
+     * @param traversal
+     * @return the traversal or its parents contain at least one Tree step
+     */
+    protected static boolean containsTree(Traversal.Admin<?, ?> traversal) {
+        boolean hasPath = TraversalHelper.getStepsOfClass(
+                TreeStep.class, traversal).size() > 0;
+        if (hasPath) {
+            return true;
+        } else if (traversal instanceof EmptyTraversal) {
+            return false;
+        }
+
+        TraversalParent parent = traversal.getParent();
+        return containsTree(parent.asStep().getTraversal());
     }
 
     public static HugeVertexStepStrategy instance() {
