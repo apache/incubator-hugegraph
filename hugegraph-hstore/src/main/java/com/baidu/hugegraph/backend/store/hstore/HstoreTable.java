@@ -28,6 +28,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.pd.client.PDClient;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -344,6 +347,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                                  ConditionQuery query) {
         int type = Session.SCAN_GTE_BEGIN;
         type |= Session.SCAN_LT_END;
+        type |= Session.SCAN_HASHCODE;
         // TODO
         return session.scan(this.table(), Integer.parseInt(StringUtils
                                           .isEmpty(shard.start())? "0"
@@ -387,26 +391,22 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                             "The split-size must be >= %s bytes, but got %s",
                             MIN_SHARD_SIZE, splitSize);
 
-            Pair<byte[], byte[]> keyRange = session.keyRange(this.table());
-            if (keyRange == null || keyRange.getRight() == null) {
-                return super.getSplits(session, splitSize);
+            List<Shard> splits = new ArrayList<>();
+            try {
+                PDClient pdClient = HstoreSessionsImpl.getDefaultPdClient();
+                List<Metapb.Partition> partitions = pdClient.getPartitions(0,
+                                                    session.getGraphName());
+                for (Metapb.Partition partition : partitions) {
+                    String start = String.valueOf(partition.getStartKey());
+                    String end = String.valueOf(partition.getEndKey());
+                    splits.add(new Shard(start, end, 0));
+                }
+            } catch (PDException e) {
+                e.printStackTrace();
             }
 
-            long size = this.estimateDataSize(session);
-            if (size <= 0) {
-                size = this.estimateNumKeys(session) * ESTIMATE_BYTES_PER_KV;
-            }
-
-            double count = Math.ceil(size / (double) splitSize);
-            if (count <= 0) {
-                count = 1;
-            }
-
-            Range range = new Range(keyRange.getLeft(),
-                                    Range.increase(keyRange.getRight()));
-            List<Shard> splits = new ArrayList<>((int) count);
-            splits.addAll(range.splitEven((int) count));
-            return splits;
+            return splits.size() != 0 ?
+                   splits : super.getSplits(session, splitSize);
         }
 
         @Override
