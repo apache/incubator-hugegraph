@@ -94,6 +94,12 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey2</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hg-pd-client</artifactId>
+            <version>3.0.0</version>
+            <scope>compile</scope>
+        </dependency>
 
     </dependencies>
 
