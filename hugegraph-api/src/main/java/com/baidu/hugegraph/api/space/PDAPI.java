@@ -28,6 +28,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 
+import com.baidu.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import com.codahale.metrics.annotation.Timed;
@@ -53,6 +54,10 @@ public class PDAPI extends API {
             return this.client;
         }
         this.client = HstoreSessionsImpl.getDefaultPdClient();
+
+        E.checkArgument(client != null, "Get pd client error, The PD api " +
+                "is not enable.");
+
         return this.client;
     }
 

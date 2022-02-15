@@ -58,6 +58,10 @@ public class HStoreAPI extends API {
             return this.client;
         }
         this.client = HstoreSessionsImpl.getDefaultPdClient();
+
+        E.checkArgument(client != null, "Get pd client error, The hstore api " +
+                "is not enable.");
+
         return this.client;
     }
 
