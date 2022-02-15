@@ -694,7 +694,7 @@ public final class GraphManager {
                         storeName, name);
 
         HugeConfig config = new HugeConfig(propConfig);
-        this.checkOptions(config);
+        this.checkOptions(graphSpace, config);
         HugeGraph graph = this.createGraph(graphSpace, config, init);
         graph.graphSpace(graphSpace);
         String graphName = graphName(graphSpace, name);
@@ -792,9 +792,9 @@ public final class GraphManager {
         return propConfig;
     }
 
-    private void checkOptions(HugeConfig config) {
+    private void checkOptions(String graphSpace, HugeConfig config) {
         // The store cannot be the same as the existing graph
-        this.checkOptionsUnique(config, CoreOptions.STORE);
+        this.checkOptionsUnique(graphSpace, config, CoreOptions.STORE);
         // NOTE: rocksdb can't use same data path for different graph,
         // but it's not easy to check here
         String backend = config.get(CoreOptions.BACKEND);
@@ -1219,12 +1219,13 @@ public final class GraphManager {
                                   () -> TaskManager.instance().pendingTasks());
     }
 
-    private void checkOptionsUnique(HugeConfig config,
+    private void checkOptionsUnique(String graphSpace,
+                                    HugeConfig config,
                                     TypedOption<?, ?> option) {
         Object incomingValue = config.get(option);
         for (String graphName : this.graphs.keySet()) {
             String[] parts = graphName.split(DELIMETER);
-            Object existedValue = this.graph(parts[0], parts[1]).option(option);
+            Object existedValue = this.graph(graphSpace, parts[1]).option(option);
             E.checkArgument(!incomingValue.equals(existedValue),
                             "The option '%s' conflict with existed",
                             option.name());
