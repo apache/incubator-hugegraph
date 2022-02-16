@@ -695,7 +695,7 @@ public final class GraphManager {
 
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(graphSpace, config);
-        HugeGraph graph = this.createGraph(graphSpace, config, init);
+        HugeGraph graph = this.createGraph(graphSpace, config, this.authManager, init);
         graph.graphSpace(graphSpace);
         String graphName = graphName(graphSpace, name);
         if (init) {
@@ -703,7 +703,6 @@ public final class GraphManager {
             this.metaManager.addGraphConfig(graphSpace, name, configs);
             this.metaManager.notifyGraphAdd(graphSpace, name);
         }
-        graph.switchAuthManager(this.authManager);
         this.graphs.put(graphName, graph);
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         // Let gremlin server and rest server context add graph
@@ -738,7 +737,7 @@ public final class GraphManager {
     }
 
     private HugeGraph createGraph(String graphSpace, HugeConfig config,
-                                  boolean init) {
+                                  AuthManager authManager, boolean init) {
         // open succeed will fill graph instance into HugeFactory graphs(map)
         HugeGraph graph;
         try {
@@ -747,6 +746,7 @@ public final class GraphManager {
             LOG.error("Exception occur when open graph", e);
             throw e;
         }
+        graph.switchAuthManager(authManager);
         graph.graphSpace(graphSpace);
         if (this.requireAuthentication()) {
             /*
@@ -1225,7 +1225,11 @@ public final class GraphManager {
         Object incomingValue = config.get(option);
         for (String graphName : this.graphs.keySet()) {
             String[] parts = graphName.split(DELIMETER);
-            Object existedValue = this.graph(graphSpace, parts[1]).option(option);
+            HugeGraph hugeGraph = this.graph(graphSpace, parts[1]);
+            if (hugeGraph == null) {
+                continue;
+            }
+            Object existedValue = hugeGraph.option(option);
             E.checkArgument(!incomingValue.equals(existedValue),
                             "The option '%s' conflict with existed",
                             option.name());
