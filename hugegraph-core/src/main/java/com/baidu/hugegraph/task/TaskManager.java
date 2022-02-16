@@ -31,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.DateUtil;
+
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -334,7 +336,21 @@ public final class TaskManager {
              * we don't want too many immediate tasks to be inserted into queue,
              * one notify will cause all the tasks to be processed.
              */
-            this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
+            this.schedulerExecutor.submit((Callable<?>) () -> {
+                String prevContext = TaskManager.getContext();
+                try {
+                    String context = task.context();
+                    if (Strings.isNotBlank(context)) {
+                        TaskManager.setContext(task.context());
+                    } 
+                    this.scheduleOrExecuteJob();
+                } catch (Throwable e) {
+                    LOG.error("Meet error when scheduleOrExecuteJob", e);
+                } finally {
+                    TaskManager.setContext(prevContext);
+                }
+                return null;
+            });
         }
     }
 
@@ -367,12 +383,16 @@ public final class TaskManager {
 
         if (scheduler instanceof StandardTaskScheduler) {
             
+            StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
+            if (standardTaskScheduler.pendingTasks() == 0) {
+                return;
+            }
             if (!scheduler.graph().started()) {
                 return;
             }
             ServerInfoManager serverManager = scheduler.serverManager();
             String graph = scheduler.graph().name();
-
+            
             LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
             try {
                 /*
@@ -398,25 +418,27 @@ public final class TaskManager {
                 /*
                 * Master schedule tasks to suitable servers.
                 * There is no suitable server when these tasks are created
-                */
-                if (scheduler instanceof StandardTaskScheduler) {
-                    StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
-                    if (serverManager.master()) {
-                        standardTaskScheduler.scheduleTasks();
-                        if (!serverManager.onlySingleNode()) {
-                            return;
-                        }
+                */ 
+                if (serverManager.master()) {
+                    standardTaskScheduler.scheduleTasks();
+                    if (!serverManager.onlySingleNode()) {
+                        return;
                     }
-
-                    // Schedule queued tasks scheduled to current server
-                    standardTaskScheduler.executeTasksOnWorker(serverManager.selfServerId());
-
-                    // Cancel tasks scheduled to current server
-                    standardTaskScheduler.cancelTasksOnWorker(serverManager.selfServerId());
                 }
+                // Schedule queued tasks scheduled to current server
+                standardTaskScheduler.executeTasksOnWorker(serverManager.selfServerId());
+
+                // Cancel tasks scheduled to current server
+                standardTaskScheduler.cancelTasksOnWorker(serverManager.selfServerId());
+            
+            } catch(Throwable e) {
+                LOG.error("Raise throwable when scheduleOrExecuteJob", e);
+                throw e;
             } finally {
                 LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }
+        } else {
+            LOG.debug("====> Scorpiour: scheduler_type is not StandardTaskScheduler: " + scheduler.toString() );
         }
     }
 

@@ -210,9 +210,16 @@ public class StandardTaskScheduler extends TaskScheduler {
         this.tasks.put(task.id(), task);
         if (this.graph.mode().loading()) {
             LOG.info("Schedule task {} to backup for load task executor", task);
-            return this.backupForLoadTaskExecutor.submit(task);
+            return this.backupForLoadTaskExecutor.submit(() -> {
+                LOG.info("Submitted task {} as backup is going to run", task);
+                return task.callable().call();
+            });
         }
-        return this.taskExecutor.submit(task);
+        LOG.debug("====> Scorpiour: going to submit task");
+        return this.taskExecutor.submit(() -> {
+            LOG.info("Submitted task {} to taskExecutor is going to run", task);
+            return task.callable().call();
+        });
     }
 
     private <V> Future<?> resubmitTask(HugeTask<V> task) {
@@ -224,9 +231,16 @@ public class StandardTaskScheduler extends TaskScheduler {
                         task.id());
         if (this.graph.mode().loading()) {
             LOG.info("Schedule task {} to backup for load task executor", task);
-            return this.backupForLoadTaskExecutor.submit(task);
+            return this.backupForLoadTaskExecutor.submit(() -> {
+                LOG.info("Resubmitted task {} as backup is going to run", task);
+                return task.callable().call();
+            });
         }
-        return this.taskExecutor.submit(task);
+        LOG.debug("====> Scorpiour: going to resubmit task");
+        return this.taskExecutor.submit(() -> {
+            LOG.info("Resubmitted task {} as backup is going to run", task);
+            return task.callable().call();
+        });
     }
 
     public <V> void initTaskCallable(HugeTask<V> task) {
