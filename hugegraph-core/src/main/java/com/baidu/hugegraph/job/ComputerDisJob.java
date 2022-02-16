@@ -152,6 +152,7 @@ public class ComputerDisJob extends UserJob<Object> {
                                                             k8sParams);
             map = fromJson(this.task().input(), Map.class);
             map.put(INNER_JOB_ID, jobId);
+            this.task().input(toJson(map));
             LOG.info("Submit a new computer job, ID is {}", jobId);
         }
 
