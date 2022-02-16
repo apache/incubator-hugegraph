@@ -77,6 +77,7 @@ public class ComputerDisJob extends UserJob<Object> {
         Map<String, Object> map = fromJson(input, Map.class);
         String algorithm = map.get("algorithm").toString();
         String graph = map.get("graph").toString();
+        String pdPeers = map.get("pd.peers").toString();
         String token = map.get("token").toString();
         int worker = Integer.parseInt(map.get("worker").toString());
         Object value = map.get("params");
@@ -90,6 +91,7 @@ public class ComputerDisJob extends UserJob<Object> {
         }
 
         k8sParams.put("hugegraph.name", graph);
+        k8sParams.put("pd.peers", pdPeers);
         k8sParams.put("hugegraph.token", token);
         k8sParams.put("k8s.worker_instances", String.valueOf(worker));
         if (map.containsKey(INNER_JOB_ID)) {
@@ -123,6 +125,7 @@ public class ComputerDisJob extends UserJob<Object> {
         Map<String, Object> params = (Map<String, Object>) value;
         String algorithm = map.get("algorithm").toString();
         String graph = map.get("graph").toString();
+        String pdPeers = map.get("pd.peers").toString();
         String token = map.get("token").toString();
         int worker = Integer.parseInt(String.valueOf(map.get("worker")));
 
@@ -132,6 +135,7 @@ public class ComputerDisJob extends UserJob<Object> {
             k8sParams.put(item.getKey(), item.getValue().toString());
         }
         k8sParams.put("hugegraph.name", graph);
+        k8sParams.put("pd.peers", pdPeers);
         k8sParams.put("hugegraph.token", token);
         k8sParams.put("k8s.worker_instances", String.valueOf(worker));
 
