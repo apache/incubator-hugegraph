@@ -88,7 +88,8 @@ public class ComputerDisAPI extends API {
         // username is "" means generate token from current context
         String token = "";
         if (manager.isAuthRequired()) {
-            token = manager.authManager().createToken("");
+            String username = manager.authManager().username();
+            token = manager.authManager().createToken(username);
         }
 
         Map<String, Object> input = new HashMap<>();
