@@ -47,11 +47,12 @@ public class BackendProviderFactory {
     public static BackendStoreProvider open(HugeGraphParams params) {
         HugeConfig config = params.configuration();
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
-        String graph = (StringUtils.isEmpty(params.graph().graphSpace()) ?
-                        GraphSpace.DEFAULT_GRAPH_SPACE_NAME : params.graph().graphSpace())
+        BackendException.check(!StringUtils.isEmpty(params.graph().graphSpace()),
+                               "GraphSpace can not be empty for '%s'",
+                               config.get(CoreOptions.STORE));
+        String graph = params.graph().graphSpace()
                        + "/" + config.get(CoreOptions.STORE);
         boolean raftMode = config.get(CoreOptions.RAFT_MODE);
-
         BackendStoreProvider provider = newProvider(config);
         if (raftMode) {
             LOG.info("Opening backend store '{}' in raft mode for graph '{}'",

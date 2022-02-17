@@ -53,7 +53,7 @@ public class CoreOptions extends OptionHolder {
                     "graphspace",
                     "The graph space name.",
                     null,
-                    ""
+                    "DEFAULT"
             );
 
     public static final ConfigOption<String> GREMLIN_GRAPH =

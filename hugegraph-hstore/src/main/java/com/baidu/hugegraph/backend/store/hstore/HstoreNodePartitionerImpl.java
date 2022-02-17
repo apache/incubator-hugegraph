@@ -6,6 +6,7 @@ import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.store.client.*;
+import com.baidu.hugegraph.store.client.type.HgNodeStatus;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.store.term.HgPair;
 
@@ -126,6 +127,13 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
             storeNotice.getPartitionIds().forEach(partId -> {
                 pdClient.invalidPartitionCache(graphName, partId);
             });
+        }
+        if (!storeNotice.getNodeStatus().equals(
+                HgNodeStatus.PARTITION_COMMON_FAULT)
+            && !storeNotice.getNodeStatus().equals(
+                HgNodeStatus.NOT_PARTITION_LEADER)){
+            pdClient.invalidPartitionCache();
+            LOG.warn("invalidPartitionCache:{} ",storeNotice.getNodeStatus());
         }
         return 0;
     }

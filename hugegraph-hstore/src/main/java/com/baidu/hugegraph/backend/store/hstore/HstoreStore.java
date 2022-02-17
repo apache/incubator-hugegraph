@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.hstore;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.query.IdPrefixQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.MergeIterator;
 import com.baidu.hugegraph.backend.store.AbstractBackendStore;
@@ -38,12 +39,14 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -276,21 +279,54 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             HstoreTable table = getTableByQuery(query);
             Iterator<BackendEntry> entries = table.query(session, query);
             // Merge olap results as needed
-            Set<Id> olapPks = query.olapPks();
-            if (this.isGraphStore && !olapPks.isEmpty()) {
-                List<Iterator<BackendEntry>> iterators = new ArrayList<>();
-                for (Id pk : olapPks) {
-                    Query q = query.copy();
-                    table = this.table(this.olapTableName(pk));
-                    iterators.add(table.query(this.session(HugeType.OLAP), q));
-                }
-                entries = new MergeIterator<>(entries, iterators,
-                                              BackendEntry::mergable);
-            }
+            entries = getBackendEntryIterator(entries, query);
             return entries;
         } finally {
             readLock.unlock();
         }
+    }
+
+    public List<Iterator<BackendEntry>> query(List<IdPrefixQuery> queries) {
+        Lock readLock = this.storeLock.readLock();
+        readLock.lock();
+        LinkedList<Iterator<BackendEntry>> results = new LinkedList<>();
+        try {
+            this.checkOpened();
+            Session session = this.sessions.session();
+            E.checkState(!CollectionUtils.isEmpty(queries),"Please check query list.");
+            IdPrefixQuery prefixQuery = queries.get(0);
+            HstoreTable table = getTableByQuery(prefixQuery);
+            List<Iterator<BackendEntry>> iteratorList = table.query(session,
+                                                                    queries);
+            for (int i = 0; i < iteratorList.size(); i++) {
+                Iterator<BackendEntry> entries = iteratorList.get(i) ;
+                // Merge olap results as needed
+                Query query = queries.get(i);
+                entries = getBackendEntryIterator(entries, query);
+                results.add(entries);
+            }
+            return results;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    private Iterator<BackendEntry> getBackendEntryIterator(
+                                   Iterator<BackendEntry> entries,
+                                   Query query) {
+        HstoreTable table;
+        Set<Id> olapPks = query.olapPks();
+        if (this.isGraphStore && !olapPks.isEmpty()) {
+            List<Iterator<BackendEntry>> iterators = new ArrayList<>();
+            for (Id pk : olapPks) {
+                Query q = query.copy();
+                table = this.table(this.olapTableName(pk));
+                iterators.add(table.query(this.session(HugeType.OLAP), q));
+            }
+            entries = new MergeIterator<>(entries, iterators,
+                                          BackendEntry::mergable);
+        }
+        return entries;
     }
 
     @Override

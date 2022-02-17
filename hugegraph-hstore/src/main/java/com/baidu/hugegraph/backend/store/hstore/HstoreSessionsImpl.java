@@ -38,6 +38,7 @@ import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
+import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -46,6 +47,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -389,6 +391,17 @@ public class HstoreSessionsImpl extends HstoreSessions {
             HgKvIterator result = this.graph.scanIterator(table,
                                   HgOwnerKey.of(ownerKey, prefix));
             return new ColumnIterator<HgKvIterator>(table, result);
+        }
+
+        @Override
+        public List<BackendColumnIterator> scan(String table, List<HgOwnerKey> keyFrom, List<HgOwnerKey> keyTo, int scanType) {
+            List<HgKvIterator> scanIterators = ListUtils.EMPTY_LIST;
+            //List<HgKvIterator> scanIterators = this.graph.scanIterator(table, keyFrom, keyTo, scanType);
+            LinkedList<BackendColumnIterator> columnIterators = new LinkedList<>();
+            scanIterators.forEach(item ->{
+                columnIterators.add(new ColumnIterator<HgKvIterator>(table, item));
+            });
+            return columnIterators;
         }
 
         @Override
