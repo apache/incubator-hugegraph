@@ -41,7 +41,6 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.meta.lock.LockResult;
@@ -331,6 +330,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <V> HugeTask<V> task(Id id) {
         /** Here we have three scenarios:
          * 1. The task is handled by current node

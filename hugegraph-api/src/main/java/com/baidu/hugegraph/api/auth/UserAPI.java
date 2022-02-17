@@ -37,6 +37,7 @@ import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.auth.AuthManager;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -99,6 +100,9 @@ public class UserAPI extends API {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
+        if (Strings.isNotBlank(user.password())) {
+            LOGGER.getAuditLogger().logUpdatePassword(user.idString());
+        }
         user = authManager.updateUser(user, true);
         LOGGER.getAuditLogger().logUpdateUser(user.idString(), RestServer.EXECUTOR);
         return manager.serializer().writeAuthElement(user);
