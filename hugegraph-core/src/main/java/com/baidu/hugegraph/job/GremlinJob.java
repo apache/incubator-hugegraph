@@ -92,15 +92,13 @@ public class GremlinJob extends UserJob<Object> {
             this.graph().tx().commit();
         }
         Object result = traversal.result();
-        this.task().progress(100);
         if (result != null) {
             checkResultsSize(result);
-            this.task().result(TaskStatus.SUCCESS, result.toString());
+            return result;
         } else {
-            this.task().result(TaskStatus.SUCCESS, "");
+            return results;
         }
-        this.save();
-        return result;
+
     }
 
     private void checkResultsSize(Object results) {

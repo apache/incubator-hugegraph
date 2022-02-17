@@ -211,33 +211,29 @@ public class StandardTaskScheduler extends TaskScheduler {
         if (this.graph.mode().loading()) {
             return this.backupForLoadTaskExecutor.submit(() -> {
                 String currentContext = TaskManager.getContext();
-                V result = null;
                 try {
                     TaskManager.setContext(task.context());
-                    result = task.callable().call();
+                    task.run();
                 } catch (Throwable t) {
                     LOG.error("Meet error when execute task", t);
                     throw t;
                 } finally {
                     TaskManager.setContext(currentContext);
                 }
-                return result;
             });
         }
 
         return this.taskExecutor.submit(() -> {
             String currentContext = TaskManager.getContext();
-            V result = null;
             try {
                 TaskManager.setContext(task.context());
-                result = task.callable().call();
+                task.run();
             } catch (Throwable t) {
                 LOG.error("Meet error when execute task", t);
                 throw t;
             } finally {
                 TaskManager.setContext(currentContext);
             }
-            return result;
         });
     }
 
@@ -251,32 +247,28 @@ public class StandardTaskScheduler extends TaskScheduler {
         if (this.graph.mode().loading()) {
             return this.backupForLoadTaskExecutor.submit(() -> {
                 String currentContext = TaskManager.getContext();
-                V result = null;
                 try {
                     TaskManager.setContext(task.context());
-                    result = task.callable().call();
+                    task.run();
                 } catch (Throwable t) {
                     LOG.error("Meet error when execute task", t);
                     throw t;
                 } finally {
                     TaskManager.setContext(currentContext);
                 }
-                return result;
             });
         }
 
         return this.taskExecutor.submit(() -> {
             String currentContext = TaskManager.getContext();
-            V result = null;
             try {
                 TaskManager.setContext(task.context());
-                result = task.callable().call();
+                task.run();
             } catch (Throwable t) {
                 throw t;
             } finally {
                 TaskManager.setContext(currentContext);
             }
-            return result;
         });
     }
 
