@@ -52,6 +52,8 @@ public class ComputerDisJob extends UserJob<Object> {
     public static final String INNER_JOB_ID = "inner.job.id";
     public static final String FAILED_STATUS = "FAILED";
 
+    private String innerJobId;
+
     private static K8sDriverProxy k8sDriverProxy;
 
     public static boolean check(String name, Map<String, Object> parameters) {
@@ -150,6 +152,7 @@ public class ComputerDisJob extends UserJob<Object> {
         if (jobId == null) {
             jobId = k8sDriverProxy.getK8sDriver().submitJob(algorithm,
                                                             k8sParams);
+            this.innerJobId = jobId;
             map = fromJson(this.task().input(), Map.class);
             map.put(INNER_JOB_ID, jobId);
             this.task().input(toJson(map));
@@ -175,6 +178,13 @@ public class ComputerDisJob extends UserJob<Object> {
         JobStatus jobStatus = observer.jobStatus();
         Map<String, Object> innerMap = fromJson(this.task().input(), Map.class);
         innerMap.put(INNER_STATUS, jobStatus);
+        // Update jobId is missing
+        String jobId = innerMap.containsKey(INNER_JOB_ID) ?
+               innerMap.get(INNER_JOB_ID).toString() : null;
+        if (null == jobId && this.innerJobId != null) {
+            innerMap.put(INNER_JOB_ID, this.innerJobId);
+        }
+        
         this.task().input(toJson(innerMap));
 
         // We overwrite the task status by observer (maybe improve later)

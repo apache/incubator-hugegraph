@@ -639,7 +639,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
         @Override
         public void run() {
-            Thread ct = Thread.currentThread();
             MetaManager manager = MetaManager.instance();
             try {
                 LockResult result = EtcdTaskScheduler.lockTask(graphSpace, task);

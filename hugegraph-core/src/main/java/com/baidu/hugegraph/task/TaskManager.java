@@ -31,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.DateUtil;
+
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -101,7 +103,10 @@ public final class TaskManager {
         this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
         // Start after 10s waiting for HugeGraphServer startup
-        this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
+        
+        this.schedulerExecutor.scheduleWithFixedDelay(() -> {
+                                                        this.scheduleOrExecuteJob(true);
+                                                      },
                                                       10L, SCHEDULE_PERIOD,
                                                       TimeUnit.SECONDS);
     }
@@ -334,11 +339,25 @@ public final class TaskManager {
              * we don't want too many immediate tasks to be inserted into queue,
              * one notify will cause all the tasks to be processed.
              */
-            this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
+            this.schedulerExecutor.submit((Callable<?>) () -> {
+                String prevContext = TaskManager.getContext();
+                try {
+                    String context = task.context();
+                    if (Strings.isNotBlank(context)) {
+                        TaskManager.setContext(task.context());
+                    } 
+                    this.scheduleOrExecuteJob(false);
+                } catch (Throwable e) {
+                    LOG.error("Meet error when scheduleOrExecuteJob", e);
+                } finally {
+                    TaskManager.setContext(prevContext);
+                }
+                return null;
+            });
         }
     }
 
-    private void scheduleOrExecuteJob() {
+    private void scheduleOrExecuteJob(boolean skipAuth) {
         // Called by scheduler timer
         try {
             Long tid = Thread.currentThread().getId();
@@ -353,7 +372,7 @@ public final class TaskManager {
                 long taskCount = this.schedulerExecutor.getTaskCount();
                 LOG.debug("current pool thread usage: activateCount {} , queueSize {} , taskCount {}", poolActivateCount, poolQueueSize, taskCount);
                 synchronized (scheduler) {
-                    this.scheduleOrExecuteJobForGraph(scheduler);
+                    this.scheduleOrExecuteJobForGraph(scheduler, skipAuth);
                 }
                 LOG.debug("exit scheduler lock with tid {} , time {}", tid, DateUtil.now().getTime() - currentTime.getTime());
             }
@@ -362,17 +381,21 @@ public final class TaskManager {
         }
     }
 
-    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler) {
+    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler, boolean skipAuth) {
         E.checkNotNull(scheduler, "scheduler");
-
         if (scheduler instanceof StandardTaskScheduler) {
             
-            if (!scheduler.graph().started()) {
-                return;
+            StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
+            
+            if (!skipAuth) {
+                if (!scheduler.graph().started()) {
+                    return;
+                }
             }
-            ServerInfoManager serverManager = scheduler.serverManager();
-            String graph = scheduler.graph().name();
 
+            String graph;
+            ServerInfoManager serverManager = scheduler.serverManager();
+            graph = scheduler.graphName;
             LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
             try {
                 /*
@@ -398,22 +421,22 @@ public final class TaskManager {
                 /*
                 * Master schedule tasks to suitable servers.
                 * There is no suitable server when these tasks are created
-                */
-                if (scheduler instanceof StandardTaskScheduler) {
-                    StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
-                    if (serverManager.master()) {
-                        standardTaskScheduler.scheduleTasks();
-                        if (!serverManager.onlySingleNode()) {
-                            return;
-                        }
+                */ 
+                if (serverManager.master()) {
+                    standardTaskScheduler.scheduleTasks();
+                    if (!serverManager.onlySingleNode()) {
+                        return;
                     }
-
-                    // Schedule queued tasks scheduled to current server
-                    standardTaskScheduler.executeTasksOnWorker(serverManager.selfServerId());
-
-                    // Cancel tasks scheduled to current server
-                    standardTaskScheduler.cancelTasksOnWorker(serverManager.selfServerId());
                 }
+                // Schedule queued tasks scheduled to current server
+                standardTaskScheduler.executeTasksOnWorker(serverManager.selfServerId());
+
+                // Cancel tasks scheduled to current server
+                standardTaskScheduler.cancelTasksOnWorker(serverManager.selfServerId());
+            
+            } catch(Throwable e) {
+                LOG.error("Raise throwable when scheduleOrExecuteJob", e);
+                throw e;
             } finally {
                 LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }

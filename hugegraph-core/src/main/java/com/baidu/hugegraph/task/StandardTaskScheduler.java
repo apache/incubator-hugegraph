@@ -209,10 +209,32 @@ public class StandardTaskScheduler extends TaskScheduler {
         assert !this.tasks.containsKey(task.id()) : task;
         this.tasks.put(task.id(), task);
         if (this.graph.mode().loading()) {
-            LOG.info("Schedule task {} to backup for load task executor", task);
-            return this.backupForLoadTaskExecutor.submit(task);
+            return this.backupForLoadTaskExecutor.submit(() -> {
+                String currentContext = TaskManager.getContext();
+                try {
+                    TaskManager.setContext(task.context());
+                    task.run();
+                } catch (Throwable t) {
+                    LOG.error("Meet error when execute task", t);
+                    throw t;
+                } finally {
+                    TaskManager.setContext(currentContext);
+                }
+            });
         }
-        return this.taskExecutor.submit(task);
+
+        return this.taskExecutor.submit(() -> {
+            String currentContext = TaskManager.getContext();
+            try {
+                TaskManager.setContext(task.context());
+                task.run();
+            } catch (Throwable t) {
+                LOG.error("Meet error when execute task", t);
+                throw t;
+            } finally {
+                TaskManager.setContext(currentContext);
+            }
+        });
     }
 
     private <V> Future<?> resubmitTask(HugeTask<V> task) {
@@ -223,10 +245,31 @@ public class StandardTaskScheduler extends TaskScheduler {
                         "Can't resubmit task '%s' not been submitted before",
                         task.id());
         if (this.graph.mode().loading()) {
-            LOG.info("Schedule task {} to backup for load task executor", task);
-            return this.backupForLoadTaskExecutor.submit(task);
+            return this.backupForLoadTaskExecutor.submit(() -> {
+                String currentContext = TaskManager.getContext();
+                try {
+                    TaskManager.setContext(task.context());
+                    task.run();
+                } catch (Throwable t) {
+                    LOG.error("Meet error when execute task", t);
+                    throw t;
+                } finally {
+                    TaskManager.setContext(currentContext);
+                }
+            });
         }
-        return this.taskExecutor.submit(task);
+
+        return this.taskExecutor.submit(() -> {
+            String currentContext = TaskManager.getContext();
+            try {
+                TaskManager.setContext(task.context());
+                task.run();
+            } catch (Throwable t) {
+                throw t;
+            } finally {
+                TaskManager.setContext(currentContext);
+            }
+        });
     }
 
     public <V> void initTaskCallable(HugeTask<V> task) {
