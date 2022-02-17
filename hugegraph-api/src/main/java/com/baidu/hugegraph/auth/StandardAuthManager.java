@@ -41,8 +41,10 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public class StandardAuthManager implements AuthManager {
@@ -474,6 +476,24 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public List<String> listSpaceManager(String graphSpace) {
+        List<String> spaceManagers = new ArrayList<>();
+        try {
+            List<HugeBelong> belongs =
+                    this.metaManager.listBelongByGroup(graphSpace,
+                                                       IdGenerator.of(DEFAULT_SPACE_GROUP_KEY),
+                                                       -1);
+            for (HugeBelong belong : belongs) {
+                spaceManagers.add(belong.source().asString());
+            }
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                            "list space manager", e);
+        }
+        return spaceManagers;
+    }
+
+    @Override
     public Id createAdminManager(String user) {
         try {
             HugeBelong belong = new HugeBelong(ALL_GRAPH_SPACES,
@@ -501,6 +521,28 @@ public class StandardAuthManager implements AuthManager {
             throw new HugeException("Exception occurs when " +
                                     "delete space op manager", e);
         }
+    }
+
+    @Override
+    public List<String> listAdminManager() {
+        Set<String> adminManagers = new HashSet<>();
+        try {
+            List<HugeBelong> belongs =
+                    this.metaManager.listBelongByGroup(ALL_GRAPH_SPACES,
+                                                       IdGenerator.of(DEFAULT_SPACE_GROUP_KEY),
+                                                       -1);
+            for (HugeBelong belong : belongs) {
+                adminManagers.add(belong.source().asString());
+            }
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                            "list admin manager", e);
+        }
+
+        // Add DEFAULT admin
+        adminManagers.add("admin");
+
+        return new ArrayList<>(adminManagers);
     }
 
     @Override

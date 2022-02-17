@@ -19,10 +19,12 @@
 
 package com.baidu.hugegraph.api.auth;
 
+import java.util.List;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -109,6 +111,33 @@ public class ManagerAPI extends API {
         } else {
             authManager.deleteAdminManager(user);
         }
+    }
+
+    @GET
+    @Timed
+    @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin"})
+    public String list(@Context GraphManager manager,
+                       @QueryParam("type") HugePermission type,
+                       @QueryParam("graphspace") String graphSpace) {
+        LOG.debug("list graph manager: {} {}", type, graphSpace);
+
+        AuthManager authManager = manager.authManager();
+        E.checkArgument(type == HugePermission.SPACE ||
+                        type == HugePermission.ADMIN,
+                        "The type could be 'SPACE' or 'ADMIN'");
+
+        List<String> adminManagers;
+        if (type == HugePermission.SPACE) {
+            E.checkArgument(manager.graphSpace(graphSpace) != null,
+                            "The graph space is not exist");
+
+            adminManagers = authManager.listSpaceManager(graphSpace);
+        } else {
+            adminManagers = authManager.listAdminManager();
+        }
+
+        return manager.serializer().writeList("admins", adminManagers);
     }
 
     private static class JsonManager implements Checkable {
