@@ -173,7 +173,7 @@ public class ComputerDisJob extends UserJob<Object> {
         JobStatus jobStatus = observer.jobStatus();
         Map<String, Object> innerMap = fromJson(this.task().input(), Map.class);
         innerMap.put(INNER_STATUS, jobStatus);
-        // 补上jobId
+        // Update jobId is missing
         String jobId = innerMap.containsKey(INNER_JOB_ID) ?
                innerMap.get(INNER_JOB_ID).toString() : null;
         if (null == jobId && this.innerJobId != null) {
