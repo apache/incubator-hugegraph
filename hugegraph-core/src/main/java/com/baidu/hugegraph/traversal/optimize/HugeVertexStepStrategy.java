@@ -106,9 +106,9 @@ public final class HugeVertexStepStrategy
      * @return the traversal or its parents contain at least one Tree step
      */
     protected static boolean containsTree(Traversal.Admin<?, ?> traversal) {
-        boolean hasPath = TraversalHelper.getStepsOfClass(
+        boolean hasTree = TraversalHelper.getStepsOfClass(
                 TreeStep.class, traversal).size() > 0;
-        if (hasPath) {
+        if (hasTree) {
             return true;
         } else if (traversal instanceof EmptyTraversal) {
             return false;
