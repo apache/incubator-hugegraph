@@ -680,6 +680,7 @@ public final class GraphManager {
                         "The graph name '%s' has existed", name);
 
         configs.put(ServerOptions.PD_PEERS.name(), this.pdPeers);
+        configs.put(CoreOptions.GRAPH_SPACE.name(), graphSpace);
         boolean auth = this.metaManager.graphSpace(graphSpace).auth();
         if (DEFAULT_GRAPH_SPACE_NAME.equals(graphSpace) || !auth) {
             configs.put("gremlin.graph", "com.baidu.hugegraph.HugeFactory");

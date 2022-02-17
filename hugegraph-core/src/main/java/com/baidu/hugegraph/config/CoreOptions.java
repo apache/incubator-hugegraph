@@ -48,6 +48,14 @@ public class CoreOptions extends OptionHolder {
         return instance;
     }
 
+    public static final ConfigOption<String> GRAPH_SPACE =
+            new ConfigOption<>(
+                    "graphspace",
+                    "The graph space name.",
+                    null,
+                    ""
+            );
+
     public static final ConfigOption<String> GREMLIN_GRAPH =
             new ConfigOption<>(
                     "gremlin.graph",

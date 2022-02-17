@@ -164,7 +164,7 @@ public class StandardHugeGraph implements HugeGraph {
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
-        this.graphSpace = "";
+        this.graphSpace = config.get(CoreOptions.GRAPH_SPACE);
 
         this.schemaEventHub = new EventHub("schema");
         this.graphEventHub = new EventHub("graph");
