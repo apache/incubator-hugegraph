@@ -103,7 +103,10 @@ public final class TaskManager {
         this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
         // Start after 10s waiting for HugeGraphServer startup
-        this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
+        
+        this.schedulerExecutor.scheduleWithFixedDelay(() -> {
+                                                        this.scheduleOrExecuteJob(true);
+                                                      },
                                                       10L, SCHEDULE_PERIOD,
                                                       TimeUnit.SECONDS);
     }
@@ -343,7 +346,7 @@ public final class TaskManager {
                     if (Strings.isNotBlank(context)) {
                         TaskManager.setContext(task.context());
                     } 
-                    this.scheduleOrExecuteJob();
+                    this.scheduleOrExecuteJob(false);
                 } catch (Throwable e) {
                     LOG.error("Meet error when scheduleOrExecuteJob", e);
                 } finally {
@@ -354,7 +357,7 @@ public final class TaskManager {
         }
     }
 
-    private void scheduleOrExecuteJob() {
+    private void scheduleOrExecuteJob(boolean skipAuth) {
         // Called by scheduler timer
         try {
             Long tid = Thread.currentThread().getId();
@@ -369,7 +372,7 @@ public final class TaskManager {
                 long taskCount = this.schedulerExecutor.getTaskCount();
                 LOG.debug("current pool thread usage: activateCount {} , queueSize {} , taskCount {}", poolActivateCount, poolQueueSize, taskCount);
                 synchronized (scheduler) {
-                    this.scheduleOrExecuteJobForGraph(scheduler);
+                    this.scheduleOrExecuteJobForGraph(scheduler, skipAuth);
                 }
                 LOG.debug("exit scheduler lock with tid {} , time {}", tid, DateUtil.now().getTime() - currentTime.getTime());
             }
@@ -378,21 +381,21 @@ public final class TaskManager {
         }
     }
 
-    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler) {
+    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler, boolean skipAuth) {
         E.checkNotNull(scheduler, "scheduler");
-
         if (scheduler instanceof StandardTaskScheduler) {
             
             StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler)(scheduler);
-            if (standardTaskScheduler.pendingTasks() == 0) {
-                return;
-            }
-            if (!scheduler.graph().started()) {
-                return;
-            }
-            ServerInfoManager serverManager = scheduler.serverManager();
-            String graph = scheduler.graph().name();
             
+            if (!skipAuth) {
+                if (!scheduler.graph().started()) {
+                    return;
+                }
+            }
+
+            String graph;
+            ServerInfoManager serverManager = scheduler.serverManager();
+            graph = scheduler.graphName;
             LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
             try {
                 /*
@@ -437,8 +440,6 @@ public final class TaskManager {
             } finally {
                 LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }
-        } else {
-            LOG.debug("====> Scorpiour: scheduler_type is not StandardTaskScheduler: " + scheduler.toString() );
         }
     }
 

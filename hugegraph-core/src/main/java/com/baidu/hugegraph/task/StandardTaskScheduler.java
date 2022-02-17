@@ -209,16 +209,35 @@ public class StandardTaskScheduler extends TaskScheduler {
         assert !this.tasks.containsKey(task.id()) : task;
         this.tasks.put(task.id(), task);
         if (this.graph.mode().loading()) {
-            LOG.info("Schedule task {} to backup for load task executor", task);
             return this.backupForLoadTaskExecutor.submit(() -> {
-                LOG.info("Submitted task {} as backup is going to run", task);
-                return task.callable().call();
+                String currentContext = TaskManager.getContext();
+                V result = null;
+                try {
+                    TaskManager.setContext(task.context());
+                    result = task.callable().call();
+                } catch (Throwable t) {
+                    LOG.error("Meet error when execute task", t);
+                    throw t;
+                } finally {
+                    TaskManager.setContext(currentContext);
+                }
+                return result;
             });
         }
-        LOG.debug("====> Scorpiour: going to submit task");
+
         return this.taskExecutor.submit(() -> {
-            LOG.info("Submitted task {} to taskExecutor is going to run", task);
-            return task.callable().call();
+            String currentContext = TaskManager.getContext();
+            V result = null;
+            try {
+                TaskManager.setContext(task.context());
+                result = task.callable().call();
+            } catch (Throwable t) {
+                LOG.error("Meet error when execute task", t);
+                throw t;
+            } finally {
+                TaskManager.setContext(currentContext);
+            }
+            return result;
         });
     }
 
@@ -230,16 +249,34 @@ public class StandardTaskScheduler extends TaskScheduler {
                         "Can't resubmit task '%s' not been submitted before",
                         task.id());
         if (this.graph.mode().loading()) {
-            LOG.info("Schedule task {} to backup for load task executor", task);
             return this.backupForLoadTaskExecutor.submit(() -> {
-                LOG.info("Resubmitted task {} as backup is going to run", task);
-                return task.callable().call();
+                String currentContext = TaskManager.getContext();
+                V result = null;
+                try {
+                    TaskManager.setContext(task.context());
+                    result = task.callable().call();
+                } catch (Throwable t) {
+                    LOG.error("Meet error when execute task", t);
+                    throw t;
+                } finally {
+                    TaskManager.setContext(currentContext);
+                }
+                return result;
             });
         }
-        LOG.debug("====> Scorpiour: going to resubmit task");
+
         return this.taskExecutor.submit(() -> {
-            LOG.info("Resubmitted task {} as backup is going to run", task);
-            return task.callable().call();
+            String currentContext = TaskManager.getContext();
+            V result = null;
+            try {
+                TaskManager.setContext(task.context());
+                result = task.callable().call();
+            } catch (Throwable t) {
+                throw t;
+            } finally {
+                TaskManager.setContext(currentContext);
+            }
+            return result;
         });
     }
 
