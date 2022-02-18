@@ -370,11 +370,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
     @Override
     public boolean initialized() {
-        for (String table : this.tableNames()) {
-            if (!this.sessions.existsTable(table)) {
-                return false;
-            }
-        }
         return true;
     }
 
