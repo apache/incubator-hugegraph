@@ -98,6 +98,11 @@ public class MetaManager {
     public static final String META_PATH_REMOVE = "REMOVE";
     public static final String META_PATH_UPDATE = "UPDATE";
 
+    private static final String TASK_STATUS_POSTFIX = "Status";
+    private static final String TASK_PROGRESS_POSTFIX = "Progress";
+    private static final String TASK_CONTEXT_POSTFIX = "Context";
+    private static final String TASK_RETRY_POSTFIX = "Retry";
+
     public static final long LOCK_DEFAULT_LEASE = 30L;
 
     private MetaDriver metaDriver;
@@ -1627,14 +1632,39 @@ public class MetaManager {
         return taskMap.values().stream().collect(Collectors.toList());
     }
 
-    public <V> HugeTask<V> getTask(String graphSpace, String graphName, Id id) {
-        for (TaskPriority priority : TaskPriority.values()) {
-            HugeTask<V> actual = this.getTask(graphSpace, graphName, priority, id);
-            if (actual != null) {
-                return actual;
+    public <V> List<HugeTask<V>> listTasks(String graphSpace, String graphName, List<Id> idList) {
+        List<HugeTask<V>> taskList = new ArrayList<>();
+        for(Id id : idList) {
+            HugeTask<V> task = this.getTask(graphSpace, graphName, id);
+            if (null != task) {
+                taskList.add(task);
             }
         }
-        return null;
+
+        return taskList;
+    }
+
+    public <V> HugeTask<V> getTask(String graphSpace, String graphName, Id id) {
+        String taskKey = this.taskPropertyKey(graphSpace, graphName, id.asString(), TASK_STATUS_POSTFIX);
+        TaskStatus status = this.getTaskStatus(taskKey);
+        if (status == TaskStatus.UNKNOWN) {
+            return null;
+        }
+        String statusListKey = this.taskStatusListKey(graphSpace, graphName, id.asString(), status);
+        String jsonStr = this.metaDriver.get(statusListKey);
+        if (Strings.isBlank(jsonStr)) {
+            return null;
+        }
+        try {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            task.progress(this.getTaskProgress(graphSpace, graphName, task));
+            task.retries(this.getTaskRetry(graphSpace, graphName, task));
+            task.overwriteContext(this.getTaskContext(graphSpace, graphName, task));
+            return task;
+        } catch (Throwable e) {
+            // get task error
+            return null;
+        }
     }
     
     /**
@@ -1767,7 +1797,7 @@ public class MetaManager {
      * @return
      */
     public <V> int getTaskProgress(String graphSpace, String graphName, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Progress");
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_PROGRESS_POSTFIX);
         return this.getTaskProgress(key);
     }
 
@@ -1780,7 +1810,7 @@ public class MetaManager {
      * @return
      */
     public <V> int getTaskRetry(String graphSpace, String graphName, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Retry");
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_RETRY_POSTFIX);
         return this.getTaskRetry(key);
     }
 
@@ -1793,7 +1823,7 @@ public class MetaManager {
      * @return
      */
     public <V> String getTaskContext(String graphSpace, String graphName, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Context");
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_CONTEXT_POSTFIX);
         return this.getTaskContext(key);
     }
 
@@ -1819,7 +1849,7 @@ public class MetaManager {
      * @return
      */
     public <V> TaskStatus getTaskStatus(String graphSpace, String graphName, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Status");
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_STATUS_POSTFIX);
         return this.getTaskStatus(key);
     }
 
@@ -1831,21 +1861,21 @@ public class MetaManager {
      */
     public <V> void updateTaskProgress(String graphSpace, String graphName, HugeTask<V> task) {
         synchronized(task) {
-            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Progress");
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_PROGRESS_POSTFIX);
             this.metaDriver.put(key, String.valueOf(task.progress()));
         }
     }
 
     public <V> void updateTaskRetry(String graphSpace, String graphName, HugeTask<V> task) {
         synchronized(task) {
-            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Retry");
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_RETRY_POSTFIX);
             this.metaDriver.put(key ,String.valueOf(task.retries()));
         }
     }
 
     public <V> void updateTaskContext(String graphSpace, String graphName, HugeTask<V> task) {
         synchronized(task) {
-            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Context");
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_CONTEXT_POSTFIX);
             this.metaDriver.put(key, task.context());
         }
     }
@@ -1860,7 +1890,7 @@ public class MetaManager {
      * @param task
      */
     private <V> void updateTaskStatus(String graphSpace, String graphName, HugeTask<V> task) {
-        String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Status");
+        String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), TASK_STATUS_POSTFIX);
         this.metaDriver.put(key, task.status().string());
     }
 

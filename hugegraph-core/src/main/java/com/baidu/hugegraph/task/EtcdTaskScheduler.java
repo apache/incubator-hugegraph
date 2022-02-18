@@ -41,6 +41,8 @@ import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
+import com.baidu.hugegraph.iterator.ListIterator;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.meta.lock.LockResult;
@@ -351,13 +353,15 @@ public class EtcdTaskScheduler extends TaskScheduler {
         */
         LOGGER.logCustomDebug("going to fetch task {} info", "Scorpiour", id.asString());
         HugeTask<V> potential = (HugeTask<V>)this.taskMap.get(id);
-        if (potential == null) {
-            MetaManager manager = MetaManager.instance();
-            potential = manager.getTask(this.graphSpace(), this.graphName, id);
-            LOGGER.logCustomDebug("Extract task {} {} {} from etcd", "Scorpiour", potential.id().asString(), potential.status(), potential.result());
-        } else {
+        if (potential != null && TaskStatus.COMPLETED_STATUSES.contains(potential.status()) ) {
             LOGGER.logCustomDebug("Found task {} {} {} locally", "Scorpiour", potential.id().asString(), potential.status(), potential.result());
             return potential;
+        } else {
+            MetaManager manager = MetaManager.instance();
+            potential = manager.getTask(this.graphSpace(), this.graphName, id);
+            if (potential != null) {
+                LOGGER.logCustomDebug("Extract task {} {} {} from etcd", "Scorpiour", potential.id().asString(), potential.status(), potential.result());
+            }
         }
 
         LOGGER.logCustomDebug("Going to pick task result from store", "Scorpiour");
@@ -371,19 +375,21 @@ public class EtcdTaskScheduler extends TaskScheduler {
             return HugeTask.fromVertex(vertex);
         });
 
+        // combine status
         if (null != persisted) {
             LOGGER.logCustomDebug("Found task persisted in store: {}, {}", "Scorpiour", id.asString(), persisted.result());
+            if (null != potential) {
+                LOGGER.logCustomDebug("Override status to persisted", "Scorpiour");
+                persisted.status(potential.status());
+                persisted.priority(potential.priority());
+                persisted.progress(potential.progress());
+                potential.overwriteResult(persisted.result());
+            }
         } else {
-            LOGGER.logCustomDebug("No such a task persisted in store: {}", "Scorpiour", id.asString());
+            LOGGER.logCustomDebug("No such a task persisted in store: {}, try replace by potential", "Scorpiour", id.asString());
+            persisted = potential;
         }
 
-        if (null != persisted && null != potential) {
-            LOGGER.logCustomDebug("Override status to persisted", "Scorpiour");
-            persisted.status(potential.status());
-            persisted.priority(potential.priority());
-            persisted.progress(potential.progress());
-            potential.overwriteResult(persisted.result());
-        }
         if (null != persisted) {
             this.taskMap.put(id, persisted);
         }
@@ -393,16 +399,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
-        Set<Id> idSet = new HashSet<>(ids); 
         MetaManager manager = MetaManager.instance();
-        List<String> allTasks = manager.listTasks(this.graphSpace(), this.graphName);
+        List<HugeTask<V>> allTasks = manager.listTasks(this.graphSpace(), this.graphName, ids);
         
-        List<HugeTask<V>> tasks = allTasks.stream().map((jsonStr) -> {
-            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-            return task;
-        })
-        .filter((task) -> idSet.contains(task.id()))
-        .map((task) -> {
+        Map<Id, HugeTask<V>> taskMap = allTasks.stream().map((task) -> {
             // Attach callable info
             TaskCallable<?> callable = task.callable();
             // Attach graph info
@@ -410,14 +410,12 @@ public class EtcdTaskScheduler extends TaskScheduler {
             if (callable instanceof SysTaskCallable) {
                 ((SysTaskCallable<?>)callable).params(this.graph);
             }
-            task.progress(manager.getTaskProgress(this.graphSpace(), this.graphName, task));
-            task.status(manager.getTaskStatus(this.graphSpace(), this.graphName, task));
-            task.retries(manager.getTaskRetry(this.graphSpace(), this.graphName, task));
             return task;
-        })
-        .collect(Collectors.toList());
+        }).collect(Collectors.toMap(HugeTask<V>::id, v -> v));
 
-        Iterator<HugeTask<V>> iterator = tasks.iterator();
+        Iterator<HugeTask<V>> persistedTasks = this.queryTask(ids);
+
+        Iterator<HugeTask<V>> iterator = allTasks.iterator();
         return iterator;
     }
 
@@ -599,7 +597,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return this.serverManager;
     }
 
-    private <V> V call(Runnable runnable) {
+    @Override
+    protected <V> V call(Runnable runnable) {
         return this.call(Executors.callable(runnable, null));
     }
 
@@ -739,8 +738,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 EtcdTaskScheduler.updateTaskStatus(graphSpace, this.graphName, task, TaskStatus.RUNNING);
                 LOGGER.logCustomDebug("====> Going to execute task immediately", "Scorpiour");
 
-                // this.task.run();
-                String result = task.callable().call().toString();
+                this.task.run();
+                // block until task is finished
+                task.get();
+                String result = task.result(); 
                 
                 LOGGER.logCustomDebug("====>Task result is {}", "Scorpiour", result);
                 if (!Strings.isNullOrEmpty(result) ) {

@@ -35,8 +35,8 @@ curl --location --request POST 'http://localhost:8080/graphspaces/gs1/graphs/hg1
 --header 'Content-Type: application/json' \
 --data-raw '{
     "gremlin.graph": "com.baidu.hugegraph.HugeFactory",
-    "backend": "memory",
-    "serializer": "text",
+    "backend": "rocksdb",
+    "serializer": "binary",
     "store": "hg1",
     "search.text_analyzer": "jieba",
     "search.text_analyzer_mode": "INDEX",
