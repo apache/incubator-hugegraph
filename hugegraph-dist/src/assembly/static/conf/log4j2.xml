@@ -19,7 +19,7 @@
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
-            <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
+            <!--JsonLayout compact="true" eventEol="true" complete="true" locationDEBUG="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
@@ -71,10 +71,10 @@
     </appenders>
 
     <loggers>
-        <root level="INFO">
+        <root level="DEBUG">
             <appender-ref ref="file"/>
         </root>
-        <logger name="org.apache.hadoop" level="INFO" additivity="false">
+        <logger name="org.apache.hadoop" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </logger>
         <logger name="org.apache.zookeeper" level="WARN" additivity="false">
@@ -86,23 +86,23 @@
         <logger name="com.alipay.sofa" level="WARN" additivity="false">
             <appender-ref ref="file"/>
         </logger>
-        <logger name="io.netty" level="INFO" additivity="false">
+        <logger name="io.netty" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </logger>
-        <logger name="org.apache.commons" level="INFO" additivity="false">
+        <logger name="org.apache.commons" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </logger>
         <!-- Use mixed async way to output logs -->
-        <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
+        <AsyncLogger name="com.baidu.hugegraph" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </AsyncLogger>
-        <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
+        <AsyncLogger name="com.baidu.hugegraph.auth" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </AsyncLogger>
-        <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
+        <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="DEBUG" additivity="false">
             <appender-ref ref="file"/>
         </AsyncLogger>
-        <AsyncLogger name="audit-log-appender" level="INFO" additivity="false">
+        <AsyncLogger name="audit-log-appender" level="DEBUG" additivity="false">
             <appender-ref ref="audit" />
         </AsyncLogger>
     </loggers>

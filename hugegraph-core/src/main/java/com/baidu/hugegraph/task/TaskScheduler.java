@@ -50,6 +50,7 @@ public abstract class TaskScheduler {
      * Which graph the scheduler belongs to
      */
     protected final HugeGraphParams graph;
+    protected final String graphSpace;
     protected final String graphName;
 
     /**
@@ -72,12 +73,14 @@ public abstract class TaskScheduler {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
+        this.graphSpace = graph.graph().graphSpace();
         this.graphName = graph.name();
         this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
     }
 
     public TaskScheduler(TaskScheduler another) {
             this.graph = another.graph;
+            this.graphSpace = graph.graph().graphSpace();
             this.graphName = another.graphName;
             this.serverManager = another.serverManager;
     }

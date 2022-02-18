@@ -186,6 +186,11 @@ public class StandardHugeGraph implements HugeGraph {
             this.ramtable = null;
         }
 
+        String graphSpace = config.getString("graphSpace");
+
+        this.params.graph(this);
+        this.graphSpace(graphSpace);
+
         this.taskManager = TaskManager.instance();
 
         this.features = new HugeFeatures(this, true);
@@ -196,8 +201,9 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.valueOf(
                         config.get(CoreOptions.GRAPH_READ_MODE));
-        
+        LOG.info("====> Scorpiour: going to set schedulerType");
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
+        LOG.info("====> Scorpiour: schedulerType is {}", this.schedulerType);
 
         LockUtil.init(this.name);
 
@@ -214,7 +220,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.tx = new TinkerPopTransaction(this);
 
             SnowflakeIdGenerator.init(this.params);
-
+            LOG.info("====> Scorpiour going to add scheduler, space is {}", this.params.graph.graphSpace());
             this.taskManager.addScheduler(this.params);
             this.variables = null;
         } catch (Exception e) {
@@ -1200,7 +1206,6 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String schedulerType() {
-            // TODO Auto-generated method stub
             return StandardHugeGraph.this.schedulerType;
         }
     }

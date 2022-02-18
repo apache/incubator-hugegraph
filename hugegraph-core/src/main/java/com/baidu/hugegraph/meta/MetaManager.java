@@ -49,10 +49,12 @@ import com.baidu.hugegraph.task.TaskPriority;
 import com.baidu.hugegraph.task.TaskSerializer;
 import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.util.E;
@@ -61,6 +63,8 @@ import com.baidu.hugegraph.util.collection.CollectionFactory;
 import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
+
+    private static final Logger LOG = Log.logger(MetaManager.class);
 
     public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
@@ -187,8 +191,8 @@ public class MetaManager {
         this.listen(this.authEventKey(), consumer);
     }
 
-    public <T> void listenTaskAdded(String graphSpace, TaskPriority priority,  Consumer<T> consumer) {
-        String prefix = this.taskEventKey(graphSpace, priority.toString());
+    public <T> void listenTaskAdded(String graphSpace, String graphName, TaskPriority priority,  Consumer<T> consumer) {
+        String prefix = this.taskEventKey(graphSpace, graphName, priority.toString());
         this.listenPrefix(prefix, consumer);
     }
 
@@ -197,6 +201,7 @@ public class MetaManager {
     }
 
     private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+        LOG.info("====> Scorpiour : new prefix {}  listened", prefix);
         this.metaDriver.listenPrefix(prefix, consumer);
     }
 
@@ -680,20 +685,20 @@ public class MetaManager {
                            META_PATH_AUTH, META_PATH_ACCESS);
     }
 
-    private String taskPriorityKey(String graphSpace, String taskPriority, String taskId) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}/{id}
+    private String taskPriorityKey(String graphSpace, String graphName, String taskPriority, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/{graphName}/TASK/{priority}/{id}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskPriority, taskId);
+        graphSpace, graphName, META_PATH_TASK, taskPriority, taskId);
     }
 
     /**
      * All tasks
      * @return
      */
-    private String taskBaseKey(String graphSpace) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK
+    private String taskBaseKey(String graphSpace, String graphName) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/{graphName}/TASK
         return  String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK);
+        graphSpace, graphName, META_PATH_TASK);
     }
 
     /**
@@ -702,46 +707,46 @@ public class MetaManager {
      * @param taskId
      * @return
      */
-    private String taskKey(String graphSpace, String taskId) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}
+    private String taskKey(String graphSpace, String graphName, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/{graphName}/TASK/{id}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskId);
+        graphSpace, graphName, META_PATH_TASK, taskId);
     }
 
-    private String taskLockKey(String graphSpace, String taskId) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/TASK_LOCK
+    private String taskLockKey(String graphSpace, String graphName, String taskId) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/{graphName}/TASK/{id}/TASK_LOCK
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskId, META_PATH_TASK_LOCK);
+        graphSpace, graphName, META_PATH_TASK, taskId, META_PATH_TASK_LOCK);
     }
 
-    private String taskPropertyKey(String graphSpace, String taskId, String property) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{id}/{property}
+    private String taskPropertyKey(String graphSpace, String graphName, String taskId, String property) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/{graphName}/TASK/{id}/{property}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskId, property);
+        graphSpace, graphName, META_PATH_TASK, taskId, property);
     }
 
-    private String taskListKey(String graphSpace, String taskPriority) {
+    private String taskListKey(String graphSpace, String graphName, String taskPriority) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskPriority);
+        graphSpace, graphName, META_PATH_TASK, taskPriority);
     }
 
-    private String taskStatusListKey(String graphSpace, String taskId, TaskStatus status) {
+    private String taskStatusListKey(String graphSpace, String graphName, String taskId, TaskStatus status) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{statusType}/{id}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, status.name(), taskId);
+        graphSpace, graphName, META_PATH_TASK, status.name(), taskId);
     }
 
-    private String taskStatusListKey(String graphSpace,  TaskStatus status) {
+    private String taskStatusListKey(String graphSpace, String graphName, TaskStatus status) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{statusType}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, status.name());
+        graphSpace, graphName, META_PATH_TASK, status.name());
     }
 
-    private String taskEventKey(String graphSpace, String taskPriority) {
+    private String taskEventKey(String graphSpace, String graphName, String taskPriority) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
-        graphSpace, META_PATH_TASK, taskPriority);
+        graphSpace, graphName, META_PATH_TASK, taskPriority);
     }
 
     /**
@@ -751,11 +756,11 @@ public class MetaManager {
      */
     private <V> void attachTaskKeyInfo(HugeTask<V> task, String taskKey) {
         String[] parts = taskKey.split(META_PATH_DELIMITER);
-        if (parts.length < 7) {
+        if (parts.length < 8) {
             return;
         }
-        String priorityStr = parts[5];
-        String idStr = parts[6];
+        String priorityStr = parts[6];
+        String idStr = parts[7];
 
         /**
          * Only proceeding when id's are matching
@@ -1604,17 +1609,17 @@ public class MetaManager {
         return map;
     }
 
-    public List<String> listTasks(String graphSpace) {
+    public List<String> listTasks(String graphSpace, String graphName) {
         List<String> tasks = new ArrayList<>();
         for (TaskPriority priority : TaskPriority.values()) {
-            List<String> subTasks = this.listTasks(graphSpace, priority);
+            List<String> subTasks = this.listTasks(graphSpace, graphName, priority);
             tasks.addAll(subTasks);
         }
         return tasks;
     }
 
-    public List<String> listTasks(String graphSpace, TaskPriority priority) {
-        String key = taskListKey(graphSpace, priority.toString());
+    public List<String> listTasks(String graphSpace, String graphName, TaskPriority priority) {
+        String key = taskListKey(graphSpace, graphName, priority.toString());
 
         Map<String, String> taskMap = 
             this.metaDriver.scanWithPrefix(key);
@@ -1622,9 +1627,9 @@ public class MetaManager {
         return taskMap.values().stream().collect(Collectors.toList());
     }
 
-    public <V> HugeTask<V> getTask(String graphSpace, Id id) {
+    public <V> HugeTask<V> getTask(String graphSpace, String graphName, Id id) {
         for (TaskPriority priority : TaskPriority.values()) {
-            HugeTask<V> actual = this.getTask(graphSpace, priority, id);
+            HugeTask<V> actual = this.getTask(graphSpace, graphName, priority, id);
             if (actual != null) {
                 return actual;
             }
@@ -1640,16 +1645,17 @@ public class MetaManager {
      * @param id
      * @return
      */
-    public <V> HugeTask<V> getTask(String graphSpace, TaskPriority priority, Id id) {
-        String key = taskPriorityKey(graphSpace, priority.toString(), id.asString());
+    public <V> HugeTask<V> getTask(String graphSpace, String graphName, TaskPriority priority, Id id) {
+        String key = taskPriorityKey(graphSpace, graphName, priority.toString(), id.asString());
         String jsonStr = this.metaDriver.get(key);
         if (Strings.isBlank(jsonStr)) {
             return null;
         }
         try {
             HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-            task.progress(this.getTaskProgress(graphSpace, task));
-            task.retries(this.getTaskRetry(graphSpace, task));
+            task.progress(this.getTaskProgress(graphSpace, graphName, task));
+            task.retries(this.getTaskRetry(graphSpace, graphName, task));
+            task.overwriteContext(this.getTaskContext(graphSpace, graphName, task));
             return task;
         } catch (Throwable e) {
             // get task error
@@ -1664,9 +1670,9 @@ public class MetaManager {
      * @param task
      * @return
      */
-    public <V> Id createTask(String graphSpace, HugeTask<V> task) {
+    public <V> Id createTask(String graphSpace, String graphName, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
-        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
+        String key = taskPriorityKey(graphSpace, graphName, task.priority().toString(), id.asString());
         this.metaDriver.put(key, serialize(task));
 
         return id;
@@ -1679,9 +1685,9 @@ public class MetaManager {
      * @param graphSpace
      * @param task
      */
-    public <V> void clearTask(String graphSpace, HugeTask<V> task) {
+    public <V> void clearTask(String graphSpace, String graphName, HugeTask<V> task) {
         Id id = IdGenerator.of(task.id().asString());
-        String key = taskPriorityKey(graphSpace, task.priority().toString(), id.asString());
+        String key = taskPriorityKey(graphSpace, graphName, task.priority().toString(), id.asString());
         this.metaDriver.delete(key);
     }
 
@@ -1692,12 +1698,12 @@ public class MetaManager {
      * @param task
      * @return
      */
-    public <V> LockResult lockTask(String graphSpace, HugeTask<V> task) {
+    public <V> LockResult lockTask(String graphSpace, String graphName, HugeTask<V> task) {
         // task has been locked by current node
         if (task.lockResult() != null) {
             return task.lockResult();
         }
-        String key = taskLockKey(graphSpace, task.id().asString());
+        String key = taskLockKey(graphSpace, graphName, task.id().asString());
         String lease = this.metaDriver.get(key);
         if (Strings.isBlank(lease)) {
             return this.lock(key);
@@ -1705,12 +1711,12 @@ public class MetaManager {
         return new LockResult();
     }
 
-    public <V> void unlockTask(String graphSpace, HugeTask<V> task) {
+    public <V> void unlockTask(String graphSpace, String graphName, HugeTask<V> task) {
         // task is not locked by current node
         if (null == task.lockResult()) {
             return;
         }
-        String key = taskLockKey(graphSpace, task.id().asString());
+        String key = taskLockKey(graphSpace, graphName, task.id().asString());
         this.unlock(key, task.lockResult());
     }
     /**
@@ -1742,14 +1748,26 @@ public class MetaManager {
     }
 
     /**
+     * Get task context
+     * @param <V>
+     * @param taskKey
+     * @return
+     */
+    public <V> String getTaskContext(String taskKey) {
+        String value = this.metaDriver.get(taskKey);
+        return value;
+    }
+
+    /**
      * Get task progress
      * @param <V>
      * @param graphSpace
+     * @param graphName
      * @param task
      * @return
      */
-    public <V> int getTaskProgress(String graphSpace, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Progress");
+    public <V> int getTaskProgress(String graphSpace, String graphName, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Progress");
         return this.getTaskProgress(key);
     }
 
@@ -1757,12 +1775,26 @@ public class MetaManager {
      * Get task retry
      * @param <V>
      * @param graphSpace
+     * @param graphName
      * @param task
      * @return
      */
-    public <V> int getTaskRetry(String graphSpace, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Retry");
+    public <V> int getTaskRetry(String graphSpace, String graphName, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Retry");
         return this.getTaskRetry(key);
+    }
+
+    /**
+     * Get task context
+     * @param <V>
+     * @param graphSpace
+     * @param graphName
+     * @param task
+     * @return
+     */
+    public <V> String getTaskContext(String graphSpace, String graphName, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Context");
+        return this.getTaskContext(key);
     }
 
     /**
@@ -1786,8 +1818,8 @@ public class MetaManager {
      * @param task
      * @return
      */
-    public <V> TaskStatus getTaskStatus(String graphSpace, HugeTask<V> task) {
-        String key = this.taskPropertyKey(graphSpace, task.id().asString(), "Status");
+    public <V> TaskStatus getTaskStatus(String graphSpace, String graphName, HugeTask<V> task) {
+        String key = this.taskPropertyKey(graphSpace, graphName, task.id().asString(), "Status");
         return this.getTaskStatus(key);
     }
 
@@ -1797,17 +1829,24 @@ public class MetaManager {
      * @param graphSpace
      * @param task
      */
-    public <V> void updateTaskProgress(String graphSpace, HugeTask<V> task) {
+    public <V> void updateTaskProgress(String graphSpace, String graphName, HugeTask<V> task) {
         synchronized(task) {
-            String key = taskPropertyKey(graphSpace, task.id().asString(), "Progress");
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Progress");
             this.metaDriver.put(key, String.valueOf(task.progress()));
         }
     }
 
-    public <V> void updateTaskRetry(String graphSpace, HugeTask<V> task) {
+    public <V> void updateTaskRetry(String graphSpace, String graphName, HugeTask<V> task) {
         synchronized(task) {
-            String key = taskPropertyKey(graphSpace, task.id().asString(), "Retry");
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Retry");
             this.metaDriver.put(key ,String.valueOf(task.retries()));
+        }
+    }
+
+    public <V> void updateTaskContext(String graphSpace, String graphName, HugeTask<V> task) {
+        synchronized(task) {
+            String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Context");
+            this.metaDriver.put(key, task.context());
         }
     }
 
@@ -1820,30 +1859,30 @@ public class MetaManager {
      * @param graphSpace
      * @param task
      */
-    private <V> void updateTaskStatus(String graphSpace, HugeTask<V> task) {
-        String key = taskPropertyKey(graphSpace, task.id().asString(), "Status");
+    private <V> void updateTaskStatus(String graphSpace, String graphName, HugeTask<V> task) {
+        String key = taskPropertyKey(graphSpace, graphName, task.id().asString(), "Status");
         this.metaDriver.put(key, task.status().string());
     }
 
-    private <V> void removeTaskFromStatusList(String graphSpace, String taskId, TaskStatus status) {
-        String key = taskStatusListKey(graphSpace, taskId, status);
+    private <V> void removeTaskFromStatusList(String graphSpace, String graphName, String taskId, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, graphName, taskId, status);
         this.metaDriver.delete(key);
     }
 
-    private <V> void addTaskToStatusList(String graphSpace, String taskId, String jsonTask, TaskStatus status) {
-        String key = taskStatusListKey(graphSpace, taskId, status);
+    private <V> void addTaskToStatusList(String graphSpace, String graphName, String taskId, String jsonTask, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, graphName, taskId, status);
         this.metaDriver.put(key, jsonTask);
     }
 
-    public int countTaskByStatus(String graphSpace, TaskStatus status) {
-        String key = taskStatusListKey(graphSpace, status);
+    public int countTaskByStatus(String graphSpace, String graphName, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, graphName, status);
         Map<String, String> taskMap = 
             this.metaDriver.scanWithPrefix(key);
         return taskMap.size();
     }
 
-    public <V> List<HugeTask<V>> listTasksByStatus(String graphSpace, TaskStatus status) {
-        String key = taskStatusListKey(graphSpace, status);
+    public <V> List<HugeTask<V>> listTasksByStatus(String graphSpace, String graphName, TaskStatus status) {
+        String key = taskStatusListKey(graphSpace, graphName, status);
         Map<String, String> taskMap = 
             this.metaDriver.scanWithPrefix(key);
 
@@ -1858,8 +1897,9 @@ public class MetaManager {
             }
             try {
                 HugeTask<V> task = TaskSerializer.fromJson(taskJson);
-                task.progress(this.getTaskProgress(graphSpace, task));
-                task.retries(this.getTaskRetry(graphSpace, task));
+                task.progress(this.getTaskProgress(graphSpace, graphName, task));
+                task.retries(this.getTaskRetry(graphSpace, graphName, task));
+                task.context(this.getTaskContext(graphSpace, graphName, task));
                 taskList.add(task);
             } catch (Throwable e) {
                 // get task error
@@ -1878,20 +1918,20 @@ public class MetaManager {
      * @param prevStatus
      * @param currentStatus
      */
-    public <V> void migrateTaskStatus(String graphSpace, HugeTask<V> task, TaskStatus prevStatus) {
+    public <V> void migrateTaskStatus(String graphSpace, String graphName, HugeTask<V> task, TaskStatus prevStatus) {
         synchronized(task) {
             String taskId = task.id().asString();
             if (prevStatus != TaskStatus.UNKNOWN && prevStatus != TaskStatus.NEW) {
-                this.removeTaskFromStatusList(graphSpace, taskId, prevStatus);
+                this.removeTaskFromStatusList(graphSpace, graphName, taskId, prevStatus);
             }
             if (task.status() != TaskStatus.UNKNOWN && task.status() != TaskStatus.NEW) {
-                this.addTaskToStatusList(graphSpace, taskId, TaskSerializer.toJson(task), task.status());
+                this.addTaskToStatusList(graphSpace, graphName, taskId, TaskSerializer.toJson(task), task.status());
             }
-            this.updateTaskStatus(graphSpace, task);
+            this.updateTaskStatus(graphSpace, graphName, task);
         }
     }
 
-    public <V> HugeTask<V> deleteTask(String graphSpace, HugeTask<V> task) {
+    public <V> HugeTask<V> deleteTask(String graphSpace, String graphName, HugeTask<V> task) {
         /**
          * So where we should remove?
          * 1. task priority relate
@@ -1900,9 +1940,9 @@ public class MetaManager {
          */
         String taskId = task.id().asString();
 
-        String taskPriorityKey = taskPriorityKey(graphSpace, task.priority().toString(), taskId);
-        String statusListKey = taskStatusListKey(graphSpace, taskId, task.status());
-        String taskKey = taskKey(graphSpace, taskId);
+        String taskPriorityKey = taskPriorityKey(graphSpace, graphName, task.priority().toString(), taskId);
+        String statusListKey = taskStatusListKey(graphSpace, graphName, taskId, task.status());
+        String taskKey = taskKey(graphSpace, graphName, taskId);
 
         this.metaDriver.delete(taskPriorityKey);
         this.metaDriver.delete(statusListKey);
@@ -1911,8 +1951,8 @@ public class MetaManager {
         return null;
     }
 
-    public void flushAllTasks(String graphSpace) {
-        String key = taskBaseKey(graphSpace);
+    public void flushAllTasks(String graphSpace, String graphName) {
+        String key = taskBaseKey(graphSpace, graphName);
         this.metaDriver.deleteWithPrefix(key);
     }
 

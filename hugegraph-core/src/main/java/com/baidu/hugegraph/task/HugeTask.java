@@ -241,6 +241,26 @@ public class HugeTask<V> extends FutureTask<V> {
         return false;
     }
 
+    /**
+     * Force to overwrite result with a non-null value
+     * @param result
+     */
+    public synchronized void overwriteResult(String result) {
+        if (null != result) {
+            this.result = result;
+        }
+    }
+
+    /**
+     * Force to overwrite context with a non-null value
+     * @param context
+     */
+    public final void overwriteContext(String context) {
+        if (null != context) {
+            this.context = context;
+        }
+    }
+
     public void server(Id server) {
         this.server = server;
     }

@@ -688,6 +688,8 @@ public final class GraphManager {
             configs.put("gremlin.graph", "com.baidu.hugegraph.auth.HugeFactoryAuthProxy");
         }
 
+        configs.put("graphSpace", graphSpace);
+
         Configuration propConfig = this.buildConfig(configs);
         String storeName = propConfig.getString(CoreOptions.STORE.name());
         E.checkArgument(name.equals(storeName),

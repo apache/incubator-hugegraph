@@ -113,6 +113,7 @@ public final class TaskManager {
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
+        LOG.info("====> Scorpiour: schedulerType : {}", graph.schedulerType());
         switch (graph.schedulerType()) {
             case "etcd": {
                     TaskScheduler scheduler = 
@@ -360,21 +361,21 @@ public final class TaskManager {
     private void scheduleOrExecuteJob(boolean skipAuth) {
         // Called by scheduler timer
         try {
-            Long tid = Thread.currentThread().getId();
+            // Long tid = Thread.currentThread().getId();
             for (TaskScheduler entry : this.schedulers.values()) {
 
                 TaskScheduler scheduler = entry;
                 // Maybe other thread close&remove scheduler at the same time
-                Date currentTime = DateUtil.now();
-                LOG.debug("Entering scheduler lock of scheduleOrExecuteJob(), with tid {}, time {}", tid, currentTime);
-                int poolActivateCount = this.schedulerExecutor.getActiveCount();
-                int poolQueueSize = this.schedulerExecutor.getQueue().size();
-                long taskCount = this.schedulerExecutor.getTaskCount();
-                LOG.debug("current pool thread usage: activateCount {} , queueSize {} , taskCount {}", poolActivateCount, poolQueueSize, taskCount);
+                // Date currentTime = DateUtil.now();
+                // LOG.debug("Entering scheduler lock of scheduleOrExecuteJob(), with tid {}, time {}", tid, currentTime);
+                // int poolActivateCount = this.schedulerExecutor.getActiveCount();
+                // int poolQueueSize = this.schedulerExecutor.getQueue().size();
+                // long taskCount = this.schedulerExecutor.getTaskCount();
+                // LOG.debug("current pool thread usage: activateCount {} , queueSize {} , taskCount {}", poolActivateCount, poolQueueSize, taskCount);
                 synchronized (scheduler) {
                     this.scheduleOrExecuteJobForGraph(scheduler, skipAuth);
                 }
-                LOG.debug("exit scheduler lock with tid {} , time {}", tid, DateUtil.now().getTime() - currentTime.getTime());
+                // LOG.debug("exit scheduler lock with tid {} , time {}", tid, DateUtil.now().getTime() - currentTime.getTime());
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when schedule job", e);
@@ -440,7 +441,17 @@ public final class TaskManager {
             } finally {
                 LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }
-        }
+        }/* else if (scheduler instanceof EtcdTaskScheduler) {
+            LOG.debug("====> Scorpiour: use EtcdTaskScheduler for job");
+            EtcdTaskScheduler etcdTaskScheduler = (EtcdTaskScheduler)scheduler;
+            try {
+                
+            } catch (Throwable e) {
+
+            } finally {
+
+            }
+        }*/
     }
 
     private static final ThreadLocal<String> contexts = new ThreadLocal<>();
