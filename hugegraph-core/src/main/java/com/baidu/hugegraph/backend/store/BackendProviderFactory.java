@@ -47,6 +47,7 @@ public class BackendProviderFactory {
     public static BackendStoreProvider open(HugeGraphParams params) {
         HugeConfig config = params.configuration();
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
+
         BackendException.check(!StringUtils.isEmpty(params.graph().graphSpace()),
                                "GraphSpace can not be empty for '%s'",
                                config.get(CoreOptions.STORE));

@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -187,9 +188,9 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         String graphSpace = config.getString("graphSpace");
-
-        this.params.graph(this);
-        this.graphSpace(graphSpace);
+        if (!StringUtils.isEmpty(graphSpace) && StringUtils.isEmpty(this.graphSpace())) {
+            this.graphSpace(graphSpace);
+        }
 
         this.taskManager = TaskManager.instance();
 
