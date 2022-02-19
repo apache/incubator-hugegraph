@@ -113,7 +113,6 @@ public final class TaskManager {
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
-        LOG.info("====> Scorpiour: schedulerType : {}", graph.schedulerType());
         switch (graph.schedulerType()) {
             case "etcd": {
                     TaskScheduler scheduler = 
@@ -441,17 +440,7 @@ public final class TaskManager {
             } finally {
                 LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
             }
-        }/* else if (scheduler instanceof EtcdTaskScheduler) {
-            LOG.debug("====> Scorpiour: use EtcdTaskScheduler for job");
-            EtcdTaskScheduler etcdTaskScheduler = (EtcdTaskScheduler)scheduler;
-            try {
-                
-            } catch (Throwable e) {
-
-            } finally {
-
-            }
-        }*/
+        }
     }
 
     private static final ThreadLocal<String> contexts = new ThreadLocal<>();

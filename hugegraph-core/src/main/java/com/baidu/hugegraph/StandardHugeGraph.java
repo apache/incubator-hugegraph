@@ -201,9 +201,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.valueOf(
                         config.get(CoreOptions.GRAPH_READ_MODE));
-        LOG.info("====> Scorpiour: going to set schedulerType");
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
-        LOG.info("====> Scorpiour: schedulerType is {}", this.schedulerType);
 
         LockUtil.init(this.name);
 
@@ -220,7 +218,6 @@ public class StandardHugeGraph implements HugeGraph {
             this.tx = new TinkerPopTransaction(this);
 
             SnowflakeIdGenerator.init(this.params);
-            LOG.info("====> Scorpiour going to add scheduler, space is {}", this.params.graph.graphSpace());
             this.taskManager.addScheduler(this.params);
             this.variables = null;
         } catch (Exception e) {

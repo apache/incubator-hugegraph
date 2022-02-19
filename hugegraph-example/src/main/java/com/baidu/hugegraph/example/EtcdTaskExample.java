@@ -45,7 +45,6 @@ public class EtcdTaskExample {
     private static final MetaManager metaManager = MetaManager.instance();
 
     public static void main(String[] args) throws Exception {
-        LOGGER.logCustomDebug("EtcdTask Example Start {}", "Scorpiour", 0);
         String caFile = null;
         String clientCaFile = null;
         String clientKeyFile = null;
@@ -122,13 +121,11 @@ public class EtcdTaskExample {
         @Override
         protected void done() {
             super.done();
-            LOGGER.logCustomDebug(">>>> running task {} done()", "Scorpiour", this.task().id());
         }
 
         @Override
         protected void cancelled() {
             super.cancelled();
-            LOGGER.logCustomDebug(">>>> running task {} cancelled()", "Scorpiour", this.task().id());
         }
 
         @Override

@@ -206,7 +206,6 @@ public class MetaManager {
     }
 
     private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
-        LOG.info("====> Scorpiour : new prefix {}  listened", prefix);
         this.metaDriver.listenPrefix(prefix, consumer);
     }
 
