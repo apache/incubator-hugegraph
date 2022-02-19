@@ -36,27 +36,19 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.page.PageInfo;
-import com.baidu.hugegraph.backend.query.Condition;
-import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventListener;
 import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
-import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.job.EphemeralJob;
-import com.baidu.hugegraph.schema.PropertyKey;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask.P;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -74,8 +66,6 @@ public class StandardTaskScheduler extends TaskScheduler {
 
     private final Map<Id, HugeTask<?>> tasks;
 
-    private static final long NO_LIMIT = -1L;
-    private static final long PAGE_SIZE = 500L;
 
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,
@@ -694,48 +684,8 @@ public class StandardTaskScheduler extends TaskScheduler {
         this.checkOnMasterNode(op);
     }
 
-    private <V> Iterator<HugeTask<V>> queryTask(String key, Object value,
-                                                long limit, String page) {
-        return this.queryTask(ImmutableMap.of(key, value), limit, page);
-    }
-
-    private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
-                                                long limit, String page) {
-        return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-            if (page != null) {
-                query.page(page);
-            }
-            VertexLabel vl = this.graph().vertexLabel(P.TASK);
-            query.eq(HugeKeys.LABEL, vl.id());
-            for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-                PropertyKey pk = this.graph().propertyKey(entry.getKey());
-                query.query(Condition.eq(pk.id(), entry.getValue()));
-            }
-            query.showHidden(true);
-            if (limit != NO_LIMIT) {
-                query.limit(limit);
-            }
-            Iterator<Vertex> vertices = this.tx().queryVertices(query);
-            Iterator<HugeTask<V>> tasks =
-                    new MapperIterator<>(vertices, HugeTask::fromVertex);
-            // Convert iterator to list to avoid across thread tx accessed
-            return QueryResults.toList(tasks);
-        });
-    }
-
-    private <V> Iterator<HugeTask<V>> queryTask(List<Id> ids) {
-        return this.call(() -> {
-            Object[] idArray = ids.toArray(new Id[ids.size()]);
-            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
-            Iterator<HugeTask<V>> tasks =
-                    new MapperIterator<>(vertices, HugeTask::fromVertex);
-            // Convert iterator to list to avoid across thread tx accessed
-            return QueryResults.toList(tasks);
-        });
-    }
-
-    private <V> V call(Runnable runnable) {
+    @Override
+    protected <V> V call(Runnable runnable) {
         return this.call(Executors.callable(runnable, null));
     }
 

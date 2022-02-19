@@ -1133,7 +1133,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         protected <V> V call(Callable<V> callable) {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -1147,6 +1146,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public void flushAllTask() {
             // TODO Auto-generated method stub
             
+        }
+
+        @Override
+        protected <V> V call(Runnable runnable) {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 
