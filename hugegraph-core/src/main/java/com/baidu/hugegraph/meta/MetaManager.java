@@ -1614,22 +1614,45 @@ public class MetaManager {
         return map;
     }
 
-    public List<String> listTasks(String graphSpace, String graphName) {
-        List<String> tasks = new ArrayList<>();
+    private <V> HugeTask<V> parseTask(String jsonStr, String graphSpace, String graphName) {
+        if (Strings.isBlank(jsonStr)) {
+            return null;
+        }
+        try {
+            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
+            task.progress(this.getTaskProgress(graphSpace, graphName, task));
+            task.retries(this.getTaskRetry(graphSpace, graphName, task));
+            task.overwriteContext(this.getTaskContext(graphSpace, graphName, task));
+            return task;
+        } catch (Throwable e) {
+            // get task error
+            return null;
+        }
+    }
+
+    public <V> List<HugeTask<V>> listTasks(String graphSpace, String graphName) {
+        List<HugeTask<V>> tasks = new ArrayList<>();
         for (TaskPriority priority : TaskPriority.values()) {
-            List<String> subTasks = this.listTasks(graphSpace, graphName, priority);
+            List<HugeTask<V>> subTasks = this.listTasks(graphSpace, graphName, priority);
             tasks.addAll(subTasks);
         }
         return tasks;
     }
 
-    public List<String> listTasks(String graphSpace, String graphName, TaskPriority priority) {
+    public <V> List<HugeTask<V>> listTasks(String graphSpace, String graphName, TaskPriority priority) {
         String key = taskListKey(graphSpace, graphName, priority.toString());
 
         Map<String, String> taskMap = 
             this.metaDriver.scanWithPrefix(key);
 
-        return taskMap.values().stream().collect(Collectors.toList());
+        List<HugeTask<V>> taskList = taskMap.values().stream()
+        .map((jsonStr) -> {
+            HugeTask<V> task = this.parseTask(jsonStr, graphSpace, graphName);
+            return task;
+        })
+        .filter(v -> v != null).collect(Collectors.toList());
+
+        return taskList;
     }
 
     public <V> List<HugeTask<V>> listTasks(String graphSpace, String graphName, List<Id> idList) {
@@ -1652,19 +1675,7 @@ public class MetaManager {
         }
         String statusListKey = this.taskStatusListKey(graphSpace, graphName, id.asString(), status);
         String jsonStr = this.metaDriver.get(statusListKey);
-        if (Strings.isBlank(jsonStr)) {
-            return null;
-        }
-        try {
-            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-            task.progress(this.getTaskProgress(graphSpace, graphName, task));
-            task.retries(this.getTaskRetry(graphSpace, graphName, task));
-            task.overwriteContext(this.getTaskContext(graphSpace, graphName, task));
-            return task;
-        } catch (Throwable e) {
-            // get task error
-            return null;
-        }
+        return parseTask(jsonStr, graphSpace, graphName);
     }
     
     /**
@@ -1678,19 +1689,7 @@ public class MetaManager {
     public <V> HugeTask<V> getTask(String graphSpace, String graphName, TaskPriority priority, Id id) {
         String key = taskPriorityKey(graphSpace, graphName, priority.toString(), id.asString());
         String jsonStr = this.metaDriver.get(key);
-        if (Strings.isBlank(jsonStr)) {
-            return null;
-        }
-        try {
-            HugeTask<V> task = TaskSerializer.fromJson(jsonStr);
-            task.progress(this.getTaskProgress(graphSpace, graphName, task));
-            task.retries(this.getTaskRetry(graphSpace, graphName, task));
-            task.overwriteContext(this.getTaskContext(graphSpace, graphName, task));
-            return task;
-        } catch (Throwable e) {
-            // get task error
-            return null;
-        }
+        return parseTask(jsonStr, graphSpace, graphName);
     }
 
     /**
@@ -1854,6 +1853,17 @@ public class MetaManager {
     }
 
     /**
+     * Get specified task status
+     * @param graphSpace
+     * @param taskId
+     * @return
+     */
+    public TaskStatus getTaskStatus(String graphSpace, String graphName, Id taskId) {
+        String key = this.taskPropertyKey(graphSpace, graphName, taskId.asString(), TASK_STATUS_POSTFIX);
+        return this.getTaskStatus(key);
+    }
+
+    /**
      * Update task progress, only if having lease
      * @param <V>
      * @param graphSpace
@@ -1922,18 +1932,9 @@ public class MetaManager {
         }
         List<HugeTask<V>> taskList = new ArrayList<>();
         for (String taskJson : taskJsonList) {
-            if (Strings.isBlank(taskJson)) {
-                continue;
-            }
-            try {
-                HugeTask<V> task = TaskSerializer.fromJson(taskJson);
-                task.progress(this.getTaskProgress(graphSpace, graphName, task));
-                task.retries(this.getTaskRetry(graphSpace, graphName, task));
-                task.context(this.getTaskContext(graphSpace, graphName, task));
+            HugeTask<V> task = this.parseTask(taskJson, graphSpace, graphName);
+            if (null != task) {
                 taskList.add(task);
-            } catch (Throwable e) {
-                // get task error
-                continue;
             }
         }
         return taskList;

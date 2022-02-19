@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.task;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +48,7 @@ import com.baidu.hugegraph.job.EphemeralJob;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.structure.HugeVertex;
+import com.baidu.hugegraph.task.HugeTask.P;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -397,12 +399,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return persisted;
     }
 
+    /**
+     * In etcd scheduler, we need to grab task actual properties from etcd
+     */
     @Override
     public <V> Iterator<HugeTask<V>> tasks(List<Id> ids) {
         MetaManager manager = MetaManager.instance();
         List<HugeTask<V>> allTasks = manager.listTasks(this.graphSpace(), this.graphName, ids);
-        
-        Map<Id, HugeTask<V>> taskMap = allTasks.stream().map((task) -> {
+
+        Iterator<HugeTask<V>> persistedTasks = this.queryTask(ids);
+        Map<Id, HugeTask<V>> persistedMap = new HashMap<>();
+        while(persistedTasks.hasNext()) {
+            HugeTask<V> task = persistedTasks.next();
+            persistedMap.put(task.id(), task);
+        }
+
+        allTasks.stream().forEach((task) -> {
             // Attach callable info
             TaskCallable<?> callable = task.callable();
             // Attach graph info
@@ -410,19 +422,41 @@ public class EtcdTaskScheduler extends TaskScheduler {
             if (callable instanceof SysTaskCallable) {
                 ((SysTaskCallable<?>)callable).params(this.graph);
             }
-            return task;
-        }).collect(Collectors.toMap(HugeTask<V>::id, v -> v));
+            task.status(manager.getTaskStatus(this.graphSpace(), this.graphName, task));
+            HugeTask<V> persisted = persistedMap.get(task.id());
+            if (null != persisted) {
+                task.overwriteResult(persisted.result());
+            }
+        });
 
-        Iterator<HugeTask<V>> persistedTasks = this.queryTask(ids);
 
         Iterator<HugeTask<V>> iterator = allTasks.iterator();
         return iterator;
     }
 
+    /**
+     * find task from storage first, then attach related info
+     */
     @Override
     public <V> Iterator<HugeTask<V>> tasks(TaskStatus status, long limit, String page) {
+
+        Iterator<HugeTask<V>> persistedTasks = status == null
+            ? this.queryTask(ImmutableMap.of(), limit, page)
+            : this.queryTask(P.STATUS, status.code(), limit, page);
+
+        // bulid task map to attach status & properties
+        Map<Id, HugeTask<V>> persistedMap = new HashMap<>();
+
+        while(persistedTasks.hasNext()) {
+            HugeTask<V> task = persistedTasks.next();
+            persistedMap.put(task.id(), task);
+        }
+
+        List<Id> taskIdList = persistedMap.keySet().stream().collect(Collectors.toList());
+
         MetaManager manager = MetaManager.instance();
-        List<HugeTask<V>> tasks = manager.listTasksByStatus(this.graphSpace(), this.graphName, status);
+
+        List<HugeTask<V>> tasks = manager.listTasks(graphSpace, graphName, taskIdList);
 
         tasks.stream().forEach((task) -> {
             TaskCallable<?> callable = task.callable();
@@ -432,11 +466,11 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 ((SysTaskCallable<?>)callable).params(this.graph);
             }
             task.scheduler(this);
-
-            task.progress(manager.getTaskProgress(this.graphSpace(), this.graphName, task));
-            task.retries(manager.getTaskRetry(this.graphSpace(), this.graphName, task));
-            TaskStatus now = manager.getTaskStatus(this.graphSpace(), this.graphName, task);
-            task.status(now);
+            task.status(manager.getTaskStatus(this.graphSpace(), this.graphName, task));
+            HugeTask<V> persisted = persistedMap.get(task.id());
+            if (null != persisted) {
+                task.overwriteResult(persisted.result());
+            }
         });
         
         return tasks.iterator();
@@ -866,6 +900,22 @@ public class EtcdTaskScheduler extends TaskScheduler {
             try {
                 // Deserialize task
                 HugeTask<?> task = TaskSerializer.fromJson(entry.getValue());
+                Id parentId = task.parent();
+                if (parentId != null) {
+                    TaskStatus parentStatus = manager.getTaskStatus(graphSpace, graphName, parentId);    
+                    // two cases: not finished or not run
+                    if (parentStatus != TaskStatus.SUCCESS) {
+                        // prepare to reschedule
+                        if (parentStatus == TaskStatus.CANCELLED) {
+                            // fast cancel
+                            EtcdTaskScheduler.updateTaskStatus(graphSpace, graphName, task, TaskStatus.CANCELLING);
+                            return;
+                        } else {
+                            // TODO: Currently, task.parent is not used in any scenario. However, it should be implemented
+                        }
+                        
+                    }
+                }
 
                 // Try to lock the task
                 LockResult result = EtcdTaskScheduler.lockTask(this.graphSpace(), this.graphName, task);
