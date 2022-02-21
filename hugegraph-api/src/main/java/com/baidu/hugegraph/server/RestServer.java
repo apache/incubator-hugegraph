@@ -70,8 +70,6 @@ public class RestServer {
             String namespace = this.conf.get(ServerOptions.K8S_NAMESPACE);
             String kubeConfigPath = this.conf.get(
                    ServerOptions.K8S_KUBE_CONFIG);
-            String hugegraphUrl = this.conf.get(
-                   ServerOptions.K8S_HUGEGRAPH_URL);
             String enableInternalAlgorithm = this.conf.get(
                    ServerOptions.K8S_ENABLE_INTERNAL_ALGORITHM);
             String internalAlgorithmImageUrl = this.conf.get(
@@ -81,7 +79,7 @@ public class RestServer {
             Map<String, String> algorithms = this.conf.getMap(
                    ServerOptions.K8S_ALGORITHMS);
             K8sDriverProxy.setConfig(namespace, kubeConfigPath,
-                                     hugegraphUrl, enableInternalAlgorithm,
+                                     enableInternalAlgorithm,
                                      internalAlgorithmImageUrl,
                                      internalAlgorithm, algorithms);
         }

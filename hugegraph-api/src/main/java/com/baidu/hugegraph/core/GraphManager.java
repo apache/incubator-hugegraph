@@ -1317,11 +1317,10 @@ public final class GraphManager {
                     HugeConfig conf = new HugeConfig(properties);
                     Boolean k8sApiEnable = conf.get(ServerOptions.K8S_API_ENABLE);
                     if (k8sApiEnable) {
-                        String namespace = conf.get(ServerOptions.K8S_NAMESPACE);
+                        GraphSpace gs = this.metaManager.graphSpace(this.serviceGraphSpace);
+                        String namespace = gs.olapNamespace();
                         String kubeConfigPath = conf.get(
                                ServerOptions.K8S_KUBE_CONFIG);
-                        String hugegraphUrl = conf.get(
-                               ServerOptions.K8S_HUGEGRAPH_URL);
                         String enableInternalAlgorithm = conf.get(
                                ServerOptions.K8S_ENABLE_INTERNAL_ALGORITHM);
                         String internalAlgorithmImageUrl = conf.get(
@@ -1332,7 +1331,6 @@ public final class GraphManager {
                                     ServerOptions.K8S_ALGORITHMS);
                         K8sDriverProxy.setConfig(namespace,
                                                  kubeConfigPath,
-                                                 hugegraphUrl,
                                                  enableInternalAlgorithm,
                                                  internalAlgorithmImageUrl,
                                                  internalAlgorithm,
