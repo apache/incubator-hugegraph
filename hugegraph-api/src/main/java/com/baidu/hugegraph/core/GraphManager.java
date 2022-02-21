@@ -853,7 +853,7 @@ public final class GraphManager {
                 result.add(parts[1]);
             }
         }
-        return ;
+        return result;
     }
 
     public Service service(String graphSpace, String name) {
