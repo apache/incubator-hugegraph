@@ -30,11 +30,16 @@ import java.util.concurrent.Future;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.TimeUtil;
 
 public class BaseUnitTest {
+
+    protected static final Logger LOG = Log.logger(BaseUnitTest.class);
 
     @BeforeClass
     public static void init() {
@@ -67,7 +72,9 @@ public class BaseUnitTest {
             try {
                 future.get();
             } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
+                Throwable root = HugeException.rootCause(e);
+                LOG.error(root.getMessage(), root);
+                throw new RuntimeException(root.getMessage(), e);
             }
         }
     }
