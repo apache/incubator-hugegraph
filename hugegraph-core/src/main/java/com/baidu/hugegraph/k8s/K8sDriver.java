@@ -47,6 +47,8 @@ import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.HTTPGetAction;
 import io.fabric8.kubernetes.api.model.HTTPGetActionBuilder;
 import io.fabric8.kubernetes.api.model.IntOrString;
+import io.fabric8.kubernetes.api.model.LimitRange;
+import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
 import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -75,7 +77,7 @@ public class K8sDriver {
 
     protected static final Logger LOG = Log.logger(K8sDriver.class);
 
-    private static final String DELIMETER = "-";
+    private static final String DELIMITER = "-";
     private static final String COLON = ":";
     private static final String COMMA = ",";
 
@@ -202,6 +204,13 @@ public class K8sDriver {
                 .endMetadata()
                 .build();
         return this.client.namespaces().createOrReplace(namespace);
+    }
+
+    public LimitRange createLimitRange(String namespace, int cpuLimit) {
+        LimitRange range = new LimitRangeBuilder()
+            .withNewMetadata()
+            .withNamespace(namespace)
+            .
     }
 
     public boolean deleteNamespace(String name) {
@@ -455,7 +464,7 @@ public class K8sDriver {
                                            List<String> metaServers,
                                            String cluster) {
         String deploymentName = deploymentName(graphSpace, service);
-        String containerName = String.join(DELIMETER, deploymentName,
+        String containerName = String.join(DELIMITER, deploymentName,
                                            CONTAINER);
         Quantity cpu = Quantity.parse((service.cpuLimit() * 1000) + CPU_UNIT);
         Quantity memory = Quantity.parse(service.memoryLimit() + MEMORY_UNIT);
@@ -588,7 +597,11 @@ public class K8sDriver {
                 namespace = graphSpace.oltpNamespace;
                 break;
             case OLAP:
+                namespace = graphSpace.olapNamespace();
+                break;
             case STORAGE:
+                namespace = graphSpace.storageNamespace();
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Invalid service type '%s'", service.type()));
@@ -612,19 +625,19 @@ public class K8sDriver {
 
     private static String serviceName(String graphSpace,
                                       Service service) {
-        return String.join(DELIMETER, graphSpace,
+        return String.join(DELIMITER, graphSpace,
                            service.type().name().toLowerCase(), service.name());
     }
 
     private static String deploymentName(GraphSpace graphSpace,
                                          Service service) {
-        return String.join(DELIMETER, graphSpace.name(),
+        return String.join(DELIMITER, graphSpace.name(),
                            service.type().name().toLowerCase(), service.name());
     }
 
     private static String serviceName(GraphSpace graphSpace,
                                       Service service) {
-        return String.join(DELIMETER, graphSpace.name(),
+        return String.join(DELIMITER, graphSpace.name(),
                            service.type().name().toLowerCase(), service.name());
     }
 

@@ -97,6 +97,7 @@ import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
@@ -512,11 +513,34 @@ public final class GraphManager {
         return space;
     }
 
+    private void attachK8sNamespace(String namespace) {
+        if (!Strings.isNullOrEmpty(namespace)) {
+            Namespace current = k8sManager.namespace(namespace);
+            if (null == current) {
+                current = k8sManager.createNamespace(namespace,
+                    ImmutableMap.of(
+
+                    ));
+                if (null == current) {
+                    throw new HugeException("Cannot attach k8s namespace {}", namespace);
+                }
+            }
+        }
+    }
+
     public GraphSpace createGraphSpace(GraphSpace space) {
         String name = space.name();
         checkGraphSpaceName(name);
         this.limitStorage(space, space.storageLimit);
         this.metaManager.addGraphSpaceConfig(name, space);
+
+        boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
+        if (useK8s) {
+            attachK8sNamespace(space.oltpNamespace());
+            attachK8sNamespace(space.olapNamespace());
+            attachK8sNamespace(space.storageNamespace());
+        }
+
         this.metaManager.notifyGraphSpaceAdd(name);
         this.graphSpaces.put(name, space);
         return space;

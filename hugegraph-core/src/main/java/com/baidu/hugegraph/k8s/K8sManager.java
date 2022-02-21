@@ -22,6 +22,7 @@ package com.baidu.hugegraph.k8s;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
@@ -67,6 +68,10 @@ public class K8sManager {
 
     public Namespace namespace(String ns) {
         return this.k8sDriver.namespace(ns);
+    }
+
+    public Namespace createNamespace(String namespace, Map<String, String> labelMap) {
+        return this.k8sDriver.createNamespace(namespace, labelMap);
     }
 
     @SuppressWarnings("unchecked")
