@@ -846,14 +846,14 @@ public final class GraphManager {
     }
 
     public Set<String> services(String graphSpace) {
-        Set<String> services = new HashSet<>();
+        Set<String> result = new HashSet<>();
         for (String key : this.services.keySet()) {
             String[] parts = key.split(DELIMETER);
             if (parts[0].equals(graphSpace)) {
-                services.add(parts[1]);
+                result.add(parts[1]);
             }
         }
-        return services;
+        return ;
     }
 
     public Service service(String graphSpace, String name) {
@@ -1307,6 +1307,7 @@ public final class GraphManager {
                         "Note: letter is lower case", name, type);
     }
 
+    @SuppressWarnings("unchecked")
     private <T> void restPropertiesHandler(T response) {
         List<String> events = this.metaManager
                                   .extractGraphsFromResponse(response);
@@ -1319,8 +1320,9 @@ public final class GraphManager {
                     if (k8sApiEnable) {
                         GraphSpace gs = this.metaManager.graphSpace(this.serviceGraphSpace);
                         String namespace = gs.olapNamespace();
-                        String kubeConfigPath = conf.get(
-                               ServerOptions.K8S_KUBE_CONFIG);
+                        String kubeConfigPath = "/hg-ca/config";
+                        // conf.get(
+                        //ServerOptions.K8S_KUBE_CONFIG);
                         String enableInternalAlgorithm = conf.get(
                                ServerOptions.K8S_ENABLE_INTERNAL_ALGORITHM);
                         String internalAlgorithmImageUrl = conf.get(

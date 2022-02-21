@@ -299,9 +299,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     private <V> Id saveWithId(HugeTask<V> task) {
-        Exception e = new Exception("Inspect stack trace when etcd scheduler save task");
-        e.printStackTrace();
-
+        
         task.scheduler(this);
         E.checkArgumentNotNull(task, "Task can't be null");
         HugeVertex v = this.call(() -> {
