@@ -445,7 +445,7 @@ public class ServerOptions extends OptionHolder {
                     "The k8s kube config file " +
                     "when the computer service is enabled.",
                     null,
-                    ""
+                    "/hg-ca/config"
             );
 
     public static final ConfigOption<String> K8S_HUGEGRAPH_URL =

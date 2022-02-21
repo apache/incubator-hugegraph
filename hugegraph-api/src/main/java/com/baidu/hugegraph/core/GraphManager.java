@@ -846,14 +846,14 @@ public final class GraphManager {
     }
 
     public Set<String> services(String graphSpace) {
-        Set<String> services = new HashSet<>();
+        Set<String> result = new HashSet<>();
         for (String key : this.services.keySet()) {
             String[] parts = key.split(DELIMETER);
             if (parts[0].equals(graphSpace)) {
-                services.add(parts[1]);
+                result.add(parts[1]);
             }
         }
-        return services;
+        return ;
     }
 
     public Service service(String graphSpace, String name) {
@@ -1318,8 +1318,9 @@ public final class GraphManager {
                     Boolean k8sApiEnable = conf.get(ServerOptions.K8S_API_ENABLE);
                     if (k8sApiEnable) {
                         String namespace = conf.get(ServerOptions.K8S_NAMESPACE);
-                        String kubeConfigPath = conf.get(
-                               ServerOptions.K8S_KUBE_CONFIG);
+                        String kubeConfigPath = "/hg-ca/config";
+                               // conf.get(
+                               //ServerOptions.K8S_KUBE_CONFIG);
                         String hugegraphUrl = conf.get(
                                ServerOptions.K8S_HUGEGRAPH_URL);
                         String enableInternalAlgorithm = conf.get(
