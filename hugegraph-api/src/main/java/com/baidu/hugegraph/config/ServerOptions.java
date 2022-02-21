@@ -446,6 +446,18 @@ public class ServerOptions extends OptionHolder {
                     "when the computer service is enabled.",
                     null,
                     "/hg-ca/config"
+<<<<<<< HEAD
+=======
+            );
+
+    public static final ConfigOption<String> K8S_HUGEGRAPH_URL =
+            new ConfigOption<>(
+                    "k8s.hugegraph_url",
+                    "The hugegraph url for k8s work " +
+                    "when the computer service is enabled.",
+                    null,
+                    ""
+>>>>>>> origin/optimize-k8s-service
             );
 
     public static final ConfigOption<String> K8S_NAMESPACE =
