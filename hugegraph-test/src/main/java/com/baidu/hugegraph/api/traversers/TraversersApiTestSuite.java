@@ -43,7 +43,9 @@ import org.junit.runners.Suite;
     ShortestPathApiTest.class,
     SingleSourceShortestPathApiTest.class,
     TemplatePathsApiTest.class,
-    WeightedShortestPathApiTest.class
+    WeightedShortestPathApiTest.class,
+    AdamicAdarAPITest.class,
+    ResourceAllocationAPITest.class
 })
 public class TraversersApiTestSuite {
 }
