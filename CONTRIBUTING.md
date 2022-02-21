@@ -31,7 +31,7 @@ Before submitting the code, we need to do some preparation:
 
    # set name and email to push code to github
    git config user.name "{full-name}" # like "Jermy Li"
-   git config user.email "{email-address-of-github}" # like "jermy@gmail.com"
+   git config user.email "{email-address-of-github}" # like "jermy@apache.org"
    ```
 
 5. Sign the HugeGraph CLA: [https://cla-assistant.io/hugegraph/hugegraph](https://cla-assistant.io/hugegraph/hugegraph)
@@ -125,9 +125,11 @@ If we have not passed the review, don't be discouraged. Usually a commit needs t
 After the further changes, we submit them to the local repo:
 
 ```shell
-# commit all updated files in amend mode
-# instead of creating a new commit
-git commit -a --amend
+# commit all updated files in a new commit,
+# please feel free to enter any appropriate commit message, note that
+# we will squash all commits in the pull request as one commit when
+# merging into the master branch.
+git commit -a
 ```
 
 > If there are conflicts that prevent the code from being merged, we need to rebase on master branch:
