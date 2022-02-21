@@ -36,12 +36,14 @@ import javax.ws.rs.ext.Provider;
 
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.hk2.api.MultiException;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.util.Log;
 
 public class ExceptionFilter {
 
@@ -51,6 +53,8 @@ public class ExceptionFilter {
             Response.Status.NOT_FOUND.getStatusCode();
     private static final int INTERNAL_SERVER_ERROR =
             Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+
+    private static final Logger LOG = Log.logger(ExceptionFilter.class);
 
     public static class TracedExceptionMapper {
 
@@ -190,6 +194,9 @@ public class ExceptionFilter {
     }
 
     public static String formatException(Throwable exception) {
+        // LOG for exception;
+        LOG.debug("ExceptionFilter.formatException: ", exception);
+
         return formatException(exception, false);
     }
 
