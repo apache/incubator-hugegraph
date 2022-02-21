@@ -665,7 +665,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
                 // Iterate one batch, and keep iterator position
                 Set<Id> ids = InsertionOrderUtil.newSet();
-                while (ids.size() < batch && entries.hasNext()) {
+                while ((batch == Query.NO_LIMIT || ids.size() < batch) &&
+                       entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
                                                                 entries.next());
                     this.removeExpiredIndexIfNeeded(index, query.showExpired());

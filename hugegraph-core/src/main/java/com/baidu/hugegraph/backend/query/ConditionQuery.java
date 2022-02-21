@@ -60,8 +60,8 @@ public class ConditionQuery extends IdQuery {
     public static final String INDEX_SYM_EMPTY = "\u0002";
     public static final char INDEX_SYM_MAX = '\u0003';
 
-    public static final String INDEX_VALUE_NULL = "<null>";
-    public static final String INDEX_VALUE_EMPTY = "<empty>";
+    public static final String INDEX_VALUE_NULL = new String("<null>");
+    public static final String INDEX_VALUE_EMPTY = new String("<empty>");
 
     public static final Set<String> IGNORE_SYM_SET;
     static {
@@ -74,7 +74,7 @@ public class ConditionQuery extends IdQuery {
 
     private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
 
-    // Conditions will be concated with `and` by default
+    // Conditions will be contacted with `and` by default
     private List<Condition> conditions = EMPTY_CONDITIONS;
 
     private OptimizedType optimizedType = OptimizedType.NONE;
@@ -659,7 +659,7 @@ public class ConditionQuery extends IdQuery {
             return concatValues((List<?>) value);
         } else if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
-        } else if (value.equals(INDEX_VALUE_NULL)) {
+        } else if (value == INDEX_VALUE_NULL) {
             return INDEX_SYM_NULL;
         } else {
             return escapeSpecialValueIfNeeded(value.toString());

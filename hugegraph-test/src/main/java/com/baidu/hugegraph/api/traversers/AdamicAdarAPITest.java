@@ -55,7 +55,5 @@ public class AdamicAdarAPITest extends BaseApiTest {
                                                         id2Json(joshId)));
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "adamic_adar");
-        //Assert.assertFalse(sameNeighbors.isEmpty());
-        //Assert.assertTrue(sameNeighbors.contains(peterId));
     }
 }

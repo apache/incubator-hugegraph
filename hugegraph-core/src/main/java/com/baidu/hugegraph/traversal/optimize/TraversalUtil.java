@@ -453,9 +453,8 @@ public final class TraversalUtil {
 
         String originKey = has.getKey();
         if (values.size() > 1) {
-            // TODO: what we check now? the condition is always true?
-            E.checkArgument(!originKey.equals(T.key) &&
-                            !originKey.equals(T.value),
+            E.checkArgument(!originKey.equals(T.key.getAccessor()) &&
+                            !originKey.equals(T.value.getAccessor()),
                             "Not support hasKey() or hasValue() with " +
                             "multiple values");
         }
@@ -700,13 +699,9 @@ public final class TraversalUtil {
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
                                       Function<HasContainer, Boolean> func) {
-        for (Iterator<HasContainer> iter = hasContainers.iterator();
-             iter.hasNext();) {
-            HasContainer container = iter.next();
-            if (container.getKey().startsWith("~") && func.apply(container)) {
-                iter.remove();
-            }
-        }
+        hasContainers.removeIf(container -> {
+            return container.getKey().startsWith("~") && func.apply(container);
+        });
     }
 
     public static String page(GraphTraversal<?, ?> traversal) {
@@ -902,7 +897,7 @@ public final class TraversalUtil {
     }
 
     private static Number[] predicateNumbers(String value, int count) {
-        List<Number> values = predicateArgs(value);
+        List<Object> values = predicateArgs(value);
         if (values.size() != count) {
             throw new HugeException("Invalid numbers size %s, expect %s",
                                     values.size(), count);
@@ -918,7 +913,7 @@ public final class TraversalUtil {
                 // pass
             }
             if (v instanceof Number) {
-                values.set(i, (Number) v);
+                values.set(i, v);
                 continue;
             }
             throw new HugeException(

@@ -55,7 +55,5 @@ public class ResourceAllocationAPITest extends BaseApiTest {
                                                         id2Json(joshId)));
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "resource_allocation");
-        //Assert.assertFalse(sameNeighbors.isEmpty());
-        //Assert.assertTrue(sameNeighbors.contains(peterId));
     }
 }
