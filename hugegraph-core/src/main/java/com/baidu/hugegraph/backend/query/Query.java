@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class Query implements Cloneable {
 
+    // TODO: we should better not use Long.Max as the unify limit number
     public static final long NO_LIMIT = Long.MAX_VALUE;
 
     public static final long COMMIT_BATCH = 500L;

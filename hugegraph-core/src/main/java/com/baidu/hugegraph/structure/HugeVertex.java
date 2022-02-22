@@ -283,9 +283,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
-        // TODO: Why we check it? the param is HugeVertex already?
-        E.checkArgument(vertex instanceof HugeVertex,
-                        "Target vertex must be an instance of HugeVertex");
+        // If we change the vertex type from HugeVertex to Vertex, uncomment it
+        //E.checkArgument(vertex instanceof HugeVertex,
+        //                "Target vertex must be an instance of HugeVertex");
 
         // Check label
         E.checkArgument(label != null && !label.isEmpty(),
@@ -540,7 +540,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... keys) {
         // TODO: Compatible with TinkerPop properties() (HugeGraph-742)
-
         this.ensureFilledProperties(true);
 
         // Capacity should be about the following size

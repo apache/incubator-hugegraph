@@ -45,6 +45,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.graph.EdgeAPI;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.server.RestServer;
@@ -134,7 +135,7 @@ public class KneighborAPI extends TraverserAPI {
         }
 
         long size = results.size();
-        if (size > request.limit) {
+        if (request.limit != Query.NO_LIMIT && size > request.limit) {
             size = request.limit;
         }
         List<Id> neighbors = request.countOnly ?

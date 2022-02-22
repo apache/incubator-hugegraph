@@ -462,7 +462,8 @@ public class VertexAPI extends BatchAPI {
             }
             if (this.id != null) {
                 newProps[appendIndex++] = T.id;
-                newProps[appendIndex] = this.id;
+                // Keep value++ to avoid code trap
+                newProps[appendIndex++] = this.id;
             }
             return newProps;
         }

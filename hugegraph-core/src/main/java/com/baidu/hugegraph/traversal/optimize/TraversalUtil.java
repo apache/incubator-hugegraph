@@ -699,9 +699,13 @@ public final class TraversalUtil {
 
     public static void retriveSysprop(List<HasContainer> hasContainers,
                                       Function<HasContainer, Boolean> func) {
-        hasContainers.removeIf(container -> {
-            return container.getKey().startsWith("~") && func.apply(container);
-        });
+        for (Iterator<HasContainer> iter = hasContainers.iterator();
+             iter.hasNext();) {
+            HasContainer container = iter.next();
+            if (container.getKey().startsWith("~") && func.apply(container)) {
+                iter.remove();
+            }
+        }
     }
 
     public static String page(GraphTraversal<?, ?> traversal) {

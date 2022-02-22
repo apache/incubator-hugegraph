@@ -60,6 +60,7 @@ public class ConditionQuery extends IdQuery {
     public static final String INDEX_SYM_EMPTY = "\u0002";
     public static final char INDEX_SYM_MAX = '\u0003';
 
+    // Note: here we use "new String" to distinguish normal string code
     public static final String INDEX_VALUE_NULL = new String("<null>");
     public static final String INDEX_VALUE_EMPTY = new String("<empty>");
 
@@ -654,13 +655,12 @@ public class ConditionQuery extends IdQuery {
 
     public static String concatValues(Object value) {
         if (value instanceof String) {
-            return escapeSpecialValueIfNeeded((String) value);
+            return value == INDEX_VALUE_NULL ? INDEX_SYM_NULL :
+                   escapeSpecialValueIfNeeded((String) value);
         } if (value instanceof List) {
             return concatValues((List<?>) value);
         } else if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
-        } else if (value == INDEX_VALUE_NULL) {
-            return INDEX_SYM_NULL;
         } else {
             return escapeSpecialValueIfNeeded(value.toString());
         }
@@ -675,7 +675,7 @@ public class ConditionQuery extends IdQuery {
         if (value.isEmpty()) {
             // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
             value = INDEX_SYM_EMPTY;
-        } else if (value.equals(INDEX_VALUE_EMPTY)) {
+        } else if (value == INDEX_VALUE_EMPTY) {
             value = "";
         } else {
             char ch = value.charAt(0);
