@@ -46,7 +46,8 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * AdamicAdar is one of the prediction algorithms in graph, you can get more
- * info and definition in wikipedia
+ * info and definition in:
+ * https://en.wikipedia.org/wiki/Adamic/Adar_index
  */
 @Path("graphs/{graph}/traversers/adamicadar")
 @Singleton

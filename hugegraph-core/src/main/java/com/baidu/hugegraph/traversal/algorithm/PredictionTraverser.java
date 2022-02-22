@@ -43,7 +43,10 @@ public class PredictionTraverser extends OltpTraverser {
 
         double sum = 0.0;
         for (Id vid : neighbors) {
-            sum += 1.0 / Math.log(this.edgesCount(vid, step));
+            long currentDegree = this.edgesCount(vid, step);
+            if (currentDegree > 0) {
+                sum += 1.0 / Math.log(currentDegree);
+            }
         }
         return sum;
     }
@@ -57,7 +60,10 @@ public class PredictionTraverser extends OltpTraverser {
 
         double sum = 0.0;
         for (Id vid : neighbors) {
-            sum += 1.0 / this.edgesCount(vid, step);
+            long currentDegree = this.edgesCount(vid, step);
+            if (currentDegree > 0) {
+                sum += 1.0 / currentDegree;
+            }
         }
         return sum;
     }

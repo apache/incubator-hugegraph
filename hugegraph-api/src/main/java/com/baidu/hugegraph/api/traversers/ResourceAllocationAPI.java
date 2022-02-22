@@ -46,7 +46,8 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * ResourceAllocation is one of the prediction algorithms in graph, you can get
- * more info and definition in wikipedia
+ * more info and definition in:
+ * https://arxiv.org/pdf/0901.0553.pdf
  */
 @Path("graphs/{graph}/traversers/resourceallocation")
 @Singleton
