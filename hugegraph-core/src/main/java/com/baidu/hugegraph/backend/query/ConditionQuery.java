@@ -655,8 +655,7 @@ public class ConditionQuery extends IdQuery {
 
     public static String concatValues(Object value) {
         if (value instanceof String) {
-            return value == INDEX_VALUE_NULL ? INDEX_SYM_NULL :
-                   escapeSpecialValueIfNeeded((String) value);
+            return escapeSpecialValueIfNeeded((String) value);
         } if (value instanceof List) {
             return concatValues((List<?>) value);
         } else if (needConvertNumber(value)) {
@@ -677,6 +676,8 @@ public class ConditionQuery extends IdQuery {
             value = INDEX_SYM_EMPTY;
         } else if (value == INDEX_VALUE_EMPTY) {
             value = "";
+        } else if (value == INDEX_VALUE_NULL) {
+            value = INDEX_SYM_NULL;
         } else {
             char ch = value.charAt(0);
             if (ch <= INDEX_SYM_MAX) {

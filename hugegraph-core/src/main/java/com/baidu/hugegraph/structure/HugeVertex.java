@@ -283,10 +283,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
         // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
-        // If we change the vertex type from HugeVertex to Vertex, uncomment it
-        //E.checkArgument(vertex instanceof HugeVertex,
-        //                "Target vertex must be an instance of HugeVertex");
-
         // Check label
         E.checkArgument(label != null && !label.isEmpty(),
                         "Edge label can't be null or empty");
