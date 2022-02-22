@@ -108,6 +108,8 @@
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
         <fabric8.version>5.6.0</fabric8.version>
+        <pdclient.version>3.0.0</pdclient.version>
+        <pdstore.version>3.0.0</pdstore.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>

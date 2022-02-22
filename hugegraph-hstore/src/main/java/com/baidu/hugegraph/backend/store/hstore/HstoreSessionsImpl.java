@@ -26,11 +26,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.client.PDConfig;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgSessionManager;
-import com.baidu.hugegraph.store.HgStoreSession;
+import com.baidu.hugegraph.store.*;
 import com.baidu.hugegraph.store.client.HgStoreNodeManager;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.testutil.Assert;
@@ -39,19 +35,9 @@ import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
 import org.apache.commons.collections.ListUtils;
-import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -450,16 +436,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public void setMode(GraphMode mode) {
-            /*
-            HgStoreNodePartitioner partitioner =
-                                   HgStoreNodeManager.getInstance()
-                                                     .getNodePartitioner();
-            if (partitioner instanceof HgStoreNodePartitioner) {
-                ((HstoreNodePartitionerImpl) partitioner).setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
-                        Metapb.GraphWorkMode.Batch_Import :
-                        Metapb.GraphWorkMode.Normal);
-            }
-            */
+            nodePartitioner.setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
+                    Metapb.GraphWorkMode.Batch_Import :
+                    Metapb.GraphWorkMode.Normal);
         }
 
         @Override

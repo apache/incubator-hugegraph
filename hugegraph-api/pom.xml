@@ -97,7 +97,7 @@
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hg-pd-client</artifactId>
-            <version>3.0.0</version>
+            <version>${pdclient.version}</version>
             <scope>compile</scope>
         </dependency>
 
