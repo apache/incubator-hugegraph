@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.k8s;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +32,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 
 public class K8sManager {
 
@@ -122,5 +122,12 @@ public class K8sManager {
             throw new HugeException("k8sDriver is not initialized!");
         }
         return this.k8sDriver.podsRunning(graphSpace, service);
+    }
+
+    public Pod createOperatorPod(
+            String namespace, String podName,
+            Map<String, String> labels,
+            String containerName, String image) {
+        return this.k8sDriver.createPod(namespace, podName, labels, containerName, image);
     }
 }

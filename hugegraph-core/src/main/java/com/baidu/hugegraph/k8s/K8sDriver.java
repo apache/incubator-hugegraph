@@ -206,13 +206,6 @@ public class K8sDriver {
         return this.client.namespaces().createOrReplace(namespace);
     }
 
-    public LimitRange createLimitRange(String namespace, int cpuLimit) {
-        LimitRange range = new LimitRangeBuilder()
-            .withNewMetadata()
-            .withNamespace(namespace)
-            .
-    }
-
     public boolean deleteNamespace(String name) {
         return this.client.namespaces().withName(name).delete();
     }

@@ -103,6 +103,7 @@ import com.google.common.collect.ImmutableSet;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 
 import javax.ws.rs.NotFoundException;
 
@@ -369,6 +370,8 @@ public final class GraphManager {
             this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
             this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
                                               this.serviceID);
+            // add to local cache since even-handler has not been registered now
+            this.services.put(serviceName(this.serviceGraphSpace, service.name()), service);
         }
     }
 
@@ -524,7 +527,21 @@ public final class GraphManager {
                 if (null == current) {
                     throw new HugeException("Cannot attach k8s namespace {}", namespace);
                 }
+                // start operator pod
+                String containerName = "";
+                String imageName = "";
+                Pod pod = k8sManager.createOperatorPod(
+                            namespace,
+                            "huge-operator",
+                            ImmutableMap.of(),
+                            containerName,
+                            imageName);
+                if (null == pod) {
+                    // cannot create operator pod
+                }
+
             }
+
         }
     }
 
@@ -538,7 +555,6 @@ public final class GraphManager {
         if (useK8s) {
             attachK8sNamespace(space.oltpNamespace());
             attachK8sNamespace(space.olapNamespace());
-            attachK8sNamespace(space.storageNamespace());
         }
 
         this.metaManager.notifyGraphSpaceAdd(name);
