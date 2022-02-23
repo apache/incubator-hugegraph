@@ -328,16 +328,25 @@ public final class GraphManager {
         if (!useK8s) {
             return;
         }
-        String ns = config.get(ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE);
-        Namespace namespace = this.k8sManager.namespace(ns);
-        if (namespace == null) {
+        String oltp = config.get(ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE);
+        // oltp namespace
+        Namespace oltpNamespace = this.k8sManager.namespace(oltp);
+        if (oltpNamespace == null) {
             throw new HugeException(
                       "The config option: %s, value: %s does not exist",
-                      ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), ns);
+                      ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), oltp);
         }
-        graphSpace.oltpNamespace(ns);
-        graphSpace.olapNamespace(ns);
-        graphSpace.storageNamespace(ns);
+        graphSpace.oltpNamespace(oltp);
+        // olap namespace
+        String olap = "hugegraph-computer-system";
+        Namespace olapNamespace = this.k8sManager.namespace(olap);
+        if (olapNamespace == null) {
+            throw new HugeException(
+                "The config option: %s, value: %s does not exist",
+                ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), oltp);
+        }
+        graphSpace.olapNamespace(olap);
+        graphSpace.storageNamespace(oltp);
         this.updateGraphSpace(graphSpace);
     }
 
@@ -521,25 +530,17 @@ public final class GraphManager {
             Namespace current = k8sManager.namespace(namespace);
             if (null == current) {
                 current = k8sManager.createNamespace(namespace,
-                    ImmutableMap.of(
-
-                    ));
+                    ImmutableMap.of());
                 if (null == current) {
                     throw new HugeException("Cannot attach k8s namespace {}", namespace);
                 }
                 // start operator pod
-                String containerName = "";
+                // read from computer-system or default ?
+                // read from "hugegraph-computer-system" 
+                String containerName = "hugegraph-operator";
                 String imageName = "";
-                Pod pod = k8sManager.createOperatorPod(
-                            namespace,
-                            "huge-operator",
-                            ImmutableMap.of(),
-                            containerName,
-                            imageName);
-                if (null == pod) {
-                    // cannot create operator pod
-                }
 
+                k8sManager.createOperatorPod(namespace);
             }
 
         }
@@ -638,6 +639,12 @@ public final class GraphManager {
     public Service createService(String graphSpace, Service service) {
         String name = service.name();
         checkServiceName(name);
+
+        if (null != service.urls() && service.urls().contains(this.url)) {
+            throw new HugeException("url cannot be same as current url %s", this.url);
+        }
+
+
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
 
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace);

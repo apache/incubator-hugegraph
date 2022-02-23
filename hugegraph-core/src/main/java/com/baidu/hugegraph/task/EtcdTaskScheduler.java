@@ -155,7 +155,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
         this.backupForLoadTaskExecutor = backupForLoadTaskExecutor;
         this.taskDBExecutor = taskDBExecutor;
 
-
         this.eventListener =  this.listenChanges();
         MetaManager manager = MetaManager.instance();
         for (int i = 0; i <= maxDepth.getValue(); i++) {

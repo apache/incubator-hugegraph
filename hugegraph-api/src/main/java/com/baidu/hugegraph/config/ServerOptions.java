@@ -278,6 +278,13 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph/hugegraph-server:v1"
             );
+    public static final ConfigOption<String> SERVER_K8S_OPERATOR_IMAGE =
+            new ConfigOption<>(
+                    "server.k8s_operator_image",
+                    "The operator server image of k8s.",
+                    disallowEmpty(),
+                    "hugegraph-computer-operator-system/hugegraph-server:v1"
+            );
 
     public static final ConfigOption<String> SERVER_DEFAULT_K8S_NAMESPACE =
             new ConfigOption<>(
