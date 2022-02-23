@@ -405,7 +405,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
         this.propLoaded = false;
     }
 
-    protected void copyProperties(HugeElement element) {
+    public void copyProperties(HugeElement element) {
         if (element.properties == EMPTY_MAP) {
             this.properties = EMPTY_MAP;
         } else {

@@ -31,6 +31,7 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
+import com.baidu.hugegraph.vgraph.VirtualGraph;
 import com.google.common.util.concurrent.RateLimiter;
 
 /**
@@ -72,6 +73,8 @@ public interface HugeGraphParams {
     public RateLimiter writeRateLimiter();
     public RateLimiter readRateLimiter();
     public RamTable ramtable();
+
+    public VirtualGraph vGraph();
 
     public String schedulerType();
     public String clusterRole();

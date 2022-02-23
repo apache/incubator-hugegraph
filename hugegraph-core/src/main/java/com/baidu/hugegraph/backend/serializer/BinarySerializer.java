@@ -195,7 +195,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
-    protected void formatProperties(Collection<HugeProperty<?>> props,
+    public void formatProperties(Collection<HugeProperty<?>> props,
                                     BytesBuffer buffer) {
         // Write properties size
         buffer.writeVInt(props.size());
@@ -208,7 +208,7 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
-    protected void parseProperties(BytesBuffer buffer, HugeElement owner) {
+    public void parseProperties(BytesBuffer buffer, HugeElement owner) {
         int size = buffer.readVInt();
         assert size >= 0;
         for (int i = 0; i < size; i++) {

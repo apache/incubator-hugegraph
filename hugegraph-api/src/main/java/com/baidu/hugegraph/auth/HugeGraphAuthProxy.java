@@ -473,6 +473,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public Iterator<Vertex> adjacentVertexWithProp(Object... ids) {
+        return verifyElemPermission(HugePermission.READ,
+                                    this.hugegraph.adjacentVertexWithProp(ids));
+    }
+
+    @Override
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
         Iterator<Vertex> vertices = this.hugegraph.adjacentVertices(edges);
         return verifyElemPermission(HugePermission.READ, vertices);
@@ -494,6 +500,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public Iterator<Edge> edges(Object... objects) {
         return verifyElemPermission(HugePermission.READ,
                                     this.hugegraph.edges(objects));
+    }
+
+    @Override
+    public Iterator<Edge> edgesWithProp(Object... objects) {
+        return verifyElemPermission(HugePermission.READ,
+                this.hugegraph.edgesWithProp(objects));
     }
 
     @Override
@@ -961,8 +973,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         if (!(actionPerm == HugePermission.READ && ro.type().isSchema()) &&
             auditLimiter.tryAcquire()) {
             String status = result == null ? "denied" : "allowed";
-            LOGGER.getServerLogger().logVerifyResPermission(
-                username, status, action ,ro);
+            if (result == "denied") {
+                LOGGER.getAuditLogger().logUserAccessDenied(username, status, ro);
+            }
+
         }
 
         // result = null means no permission, throw if needed
@@ -1137,7 +1151,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         protected <V> V call(Callable<V> callable) {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -1151,6 +1164,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public void flushAllTask() {
             // TODO Auto-generated method stub
             
+        }
+
+        @Override
+        protected <V> V call(Runnable runnable) {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 
@@ -1317,7 +1336,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     protected static final void logUser(User user, String path) {
-        LOGGER.getAuditLogger().logUserLogin(user.username(), user.client(), path);
+        
     }
 
     static class Context {

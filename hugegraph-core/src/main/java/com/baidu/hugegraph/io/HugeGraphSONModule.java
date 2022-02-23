@@ -63,6 +63,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator.LongId;
 import com.baidu.hugegraph.backend.id.IdGenerator.StringId;
 import com.baidu.hugegraph.backend.id.IdGenerator.UuidId;
 import com.baidu.hugegraph.backend.store.Shard;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -75,9 +76,12 @@ import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Blob;
+import com.baidu.hugegraph.util.Log;
 
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
+
+    private static final HugeGraphLogger LOGGER = Log.getLogger(HugeGraphSONModule.class);
 
     private static final long serialVersionUID;
 
@@ -417,6 +421,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             Set<String> urls = new HashSet<>();
 
+            String pdServiceId = null;
+
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
@@ -447,13 +453,16 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                         String urlString = jsonParser.getText();
                         urls.addAll(Arrays.asList(urlString.split(",")));
                     }
+                } else if("pd_service_id".equals(fieldName)) {
+                    pdServiceId = jsonParser.getText();
                 } else {
-                    throw new HugeException("Invalid field '%s'", fieldName);
+                    // throw new HugeException("Invalid field '%s'", fieldName);
+                    LOGGER.logCriticalError(new HugeException("Invalid field %", fieldName), "Deserialize Service");
                 }
             }
             jsonParser.close();
 
-            return new Service(name, description,
+            Service service = new Service(name, description,
                                Service.ServiceType.valueOf(type),
                                Service.DeploymentType.valueOf(deploymentType),
                                count.intValue(),
@@ -464,6 +473,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                routeType,
                                port.intValue(),
                                urls);
+            service.pdServiceId(pdServiceId);
+            return service;
         }
     }
 

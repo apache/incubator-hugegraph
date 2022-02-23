@@ -22,13 +22,19 @@ package com.baidu.hugegraph.backend.store.hstore;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.pd.client.PDClient;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.store.HgOwnerKey;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -218,6 +224,17 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         }
         return newEntryIterator(this.queryBy(session, query), query);
     }
+    public List<Iterator<BackendEntry>> query(Session session, List<IdPrefixQuery> queries) {
+        List<BackendColumnIterator> queryByPrefixList = this.queryByPrefixList(
+                session, queries);
+        LinkedList<Iterator<BackendEntry>> iterators = new LinkedList<>();
+        for (int i = 0; i < queryByPrefixList.size(); i++) {
+            BackendEntryIterator iterator = newEntryIterator(
+                    queryByPrefixList.get(i), queries.get(i));
+            iterators.add(iterator);
+        }
+        return iterators;
+    }
 
     protected BackendColumnIterator queryBy(Session session, Query query) {
         // Query all
@@ -257,17 +274,16 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
             PageState page = PageState.fromString(query.page());
             begin= page.position();
             byte[] ownerKey = this.getOwnerScanDelegate().get();
+            int scanType = Session.SCAN_ANY |
+                    (query.withProperties() ? 0 : Session.SCAN_KEYONLY);
             if (!ArrayUtils.isEmpty(begin))
-            return query instanceof ConditionQuery ?
-                   session.scan(this.table(), ownerKey, ownerKey, begin,
-                                null, Session.SCAN_ANY,
-                                ((ConditionQuery) query).bytes()) :
-                   session.scan(this.table(), ownerKey, ownerKey, begin,
-                                null, Session.SCAN_ANY);
+            return session.scan(this.table(), ownerKey, ownerKey, begin,
+                             null, scanType,
+                             query instanceof ConditionQuery ?
+                             ((ConditionQuery) query).bytes() : null);
         }
-        return query instanceof ConditionQuery ?
-               session.scan(this.table(), ((ConditionQuery) query).bytes()) :
-               session.scan(this.table());
+        return session.scan(this.table(),query instanceof ConditionQuery ?
+                                         ((ConditionQuery) query).bytes() : null) ;
     }
 
     protected BackendColumnIterator queryById(Session session, Id id) {
@@ -299,6 +315,25 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                                             query.prefix()),
                             query.start().asBytes(),
                             query.prefix().asBytes(), type);
+    }
+
+    protected List<BackendColumnIterator> queryByPrefixList(Session session,
+                                                  List<IdPrefixQuery> queries) {
+        IdPrefixQuery query = queries.get(0);
+        int type = query.inclusiveStart() ?
+                   Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
+        type |= Session.SCAN_PREFIX_END;
+        LinkedList<HgOwnerKey> ownerKeyFrom = new LinkedList<>();
+        LinkedList<HgOwnerKey> ownerKeyTo = new LinkedList<>();
+        queries.forEach((item)->{
+            byte[] start = this.ownerByQueryDelegate.apply(item.resultType(),
+                                                           item.start());
+            ownerKeyFrom.add(HgOwnerKey.of(start, item.start().asBytes()));
+            byte[] end = this.ownerByQueryDelegate.apply(item.resultType(),
+                                                           item.prefix());
+            ownerKeyTo.add(HgOwnerKey.of(end,query.prefix().asBytes()));
+        });
+        return session.scan(this.table(), ownerKeyFrom, ownerKeyTo, type);
     }
 
     protected BackendColumnIterator queryByRange(Session session,
@@ -345,6 +380,8 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                                  ConditionQuery query) {
         int type = Session.SCAN_GTE_BEGIN;
         type |= Session.SCAN_LT_END;
+        type |= Session.SCAN_HASHCODE;
+        type |= query.withProperties() ? 0 : Session.SCAN_KEYONLY;
         // TODO
         return session.scan(this.table(), Integer.parseInt(StringUtils
                                           .isEmpty(shard.start())? "0"
@@ -388,26 +425,22 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                             "The split-size must be >= %s bytes, but got %s",
                             MIN_SHARD_SIZE, splitSize);
 
-            Pair<byte[], byte[]> keyRange = session.keyRange(this.table());
-            if (keyRange == null || keyRange.getRight() == null) {
-                return super.getSplits(session, splitSize);
+            List<Shard> splits = new ArrayList<>();
+            try {
+                PDClient pdClient = HstoreSessionsImpl.getDefaultPdClient();
+                List<Metapb.Partition> partitions = pdClient.getPartitions(0,
+                                                    session.getGraphName());
+                for (Metapb.Partition partition : partitions) {
+                    String start = String.valueOf(partition.getStartKey());
+                    String end = String.valueOf(partition.getEndKey());
+                    splits.add(new Shard(start, end, 0));
+                }
+            } catch (PDException e) {
+                e.printStackTrace();
             }
 
-            long size = this.estimateDataSize(session);
-            if (size <= 0) {
-                size = this.estimateNumKeys(session) * ESTIMATE_BYTES_PER_KV;
-            }
-
-            double count = Math.ceil(size / (double) splitSize);
-            if (count <= 0) {
-                count = 1;
-            }
-
-            Range range = new Range(keyRange.getLeft(),
-                                    Range.increase(keyRange.getRight()));
-            List<Shard> splits = new ArrayList<>((int) count);
-            splits.addAll(range.splitEven((int) count));
-            return splits;
+            return splits.size() != 0 ?
+                   splits : super.getSplits(session, splitSize);
         }
 
         @Override

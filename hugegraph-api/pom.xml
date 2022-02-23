@@ -31,6 +31,10 @@
                     <groupId>com.github.jeremyh</groupId>
                     <artifactId>jBCrypt</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.codahale.metrics</groupId>
+                    <artifactId>metrics-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -93,6 +97,12 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hg-pd-client</artifactId>
+            <version>${pdclient.version}</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>

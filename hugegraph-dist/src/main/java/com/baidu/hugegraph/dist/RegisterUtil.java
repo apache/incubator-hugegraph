@@ -72,26 +72,8 @@ public class RegisterUtil {
 
     private static void registerBackend(String backend) {
         switch (backend) {
-            case "cassandra":
-                registerCassandra();
-                break;
-            case "scylladb":
-                registerScyllaDB();
-                break;
-            case "hbase":
-                registerHBase();
-                break;
             case "rocksdb":
                 registerRocksDB();
-                break;
-            case "mysql":
-                registerMysql();
-                break;
-            case "palo":
-                registerPalo();
-                break;
-            case "postgresql":
-                registerPostgresql();
                 break;
             case "hstore":
                 registerHstore();
@@ -100,42 +82,6 @@ public class RegisterUtil {
                 throw new HugeException("Unsupported backend type '%s'",
                                         backend);
         }
-    }
-
-    public static void registerCassandra() {
-        // Register config
-        OptionSpace.register("cassandra",
-                "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
-        // Register serializer
-        SerializerFactory.register("cassandra",
-                "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
-        // Register backend
-        BackendProviderFactory.register("cassandra",
-                "com.baidu.hugegraph.backend.store.cassandra.CassandraStoreProvider");
-    }
-
-    public static void registerScyllaDB() {
-        // Register config
-        OptionSpace.register("scylladb",
-                "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
-        // Register serializer
-        SerializerFactory.register("scylladb",
-                "com.baidu.hugegraph.backend.store.cassandra.CassandraSerializer");
-        // Register backend
-        BackendProviderFactory.register("scylladb",
-                "com.baidu.hugegraph.backend.store.scylladb.ScyllaDBStoreProvider");
-    }
-
-    public static void registerHBase() {
-        // Register config
-        OptionSpace.register("hbase",
-                "com.baidu.hugegraph.backend.store.hbase.HbaseOptions");
-        // Register serializer
-        SerializerFactory.register("hbase",
-                "com.baidu.hugegraph.backend.store.hbase.HbaseSerializer");
-        // Register backend
-        BackendProviderFactory.register("hbase",
-                "com.baidu.hugegraph.backend.store.hbase.HbaseStoreProvider");
     }
 
     public static void registerRocksDB() {
@@ -149,41 +95,6 @@ public class RegisterUtil {
                 "com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstStoreProvider");
     }
 
-    public static void registerMysql() {
-        // Register config
-        OptionSpace.register("mysql",
-                "com.baidu.hugegraph.backend.store.mysql.MysqlOptions");
-        // Register serializer
-        SerializerFactory.register("mysql",
-                "com.baidu.hugegraph.backend.store.mysql.MysqlSerializer");
-        // Register backend
-        BackendProviderFactory.register("mysql",
-                "com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider");
-    }
-
-    public static void registerPalo() {
-        // Register config
-        OptionSpace.register("palo",
-                "com.baidu.hugegraph.backend.store.palo.PaloOptions");
-        // Register serializer
-        SerializerFactory.register("palo",
-                "com.baidu.hugegraph.backend.store.palo.PaloSerializer");
-        // Register backend
-        BackendProviderFactory.register("palo",
-                "com.baidu.hugegraph.backend.store.palo.PaloStoreProvider");
-    }
-
-    public static void registerPostgresql() {
-        // Register config
-        OptionSpace.register("postgresql",
-                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlOptions");
-        // Register serializer
-        SerializerFactory.register("postgresql",
-                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlSerializer");
-        // Register backend
-        BackendProviderFactory.register("postgresql",
-                "com.baidu.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
-    }
     public static void registerHstore() {
         // Register config
         OptionSpace.register("hstore",

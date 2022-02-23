@@ -60,7 +60,9 @@ public class PathFilter implements ContainerRequestFilter {
             "graphs/auth/users",
             "auth/users",
             "auth/managers",
-            "auth"
+            "auth",
+            "hstore",
+            "pd"
 
     );
 

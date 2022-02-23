@@ -9,7 +9,7 @@
 
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
         </Console>
 
@@ -19,7 +19,7 @@
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
-            <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
+            <!--JsonLayout compact="true" eventEol="true" complete="true" locationINFO="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
@@ -46,10 +46,11 @@
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <!-- Use simple format for audit log to speed up -->
-            <!-- PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} - %m%n"/ -->
-            <JsonLayout compact="true" eventEol="true" locationInfo="true">
+            <PatternLayout pattern="%m%n" />
+            <!-- Use simple format for audit log to speed up -->
+            <!--JsonLayout compact="true" eventEol="true" >
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
-            </JsonLayout>
+            </JsonLayout-->
             <!-- Trigger after exceeding 1hour or 500MB -->
             <Policies>
                 <SizeBasedTriggeringPolicy size="512MB"/>
@@ -73,9 +74,6 @@
         <root level="INFO">
             <appender-ref ref="file"/>
         </root>
-        <logger name="org.apache.cassandra" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-        </logger>
         <logger name="org.apache.hadoop" level="INFO" additivity="false">
             <appender-ref ref="file"/>
         </logger>
@@ -102,10 +100,13 @@
             <appender-ref ref="audit"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
-            <appender-ref ref="audit"/>
+            <appender-ref ref="file"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
-            <appender-ref ref="audit"/>
+            <appender-ref ref="file"/>
+        </AsyncLogger>
+        <AsyncLogger name="audit-log-appender" level="INFO" additivity="false">
+            <appender-ref ref="audit" />
         </AsyncLogger>
     </loggers>
 </configuration>

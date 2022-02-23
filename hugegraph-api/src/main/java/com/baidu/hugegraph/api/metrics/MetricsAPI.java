@@ -33,6 +33,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.metrics.MetricManager;
+import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.baidu.hugegraph.version.ApiVersion;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
@@ -282,6 +284,8 @@ public class MetricsAPI extends API {
                         exportSnapshort(helpName, timer.getSnapshot()));
             }
         }
+
+        MetricsUtil.writePrometheus(promeMetrics, MetricManager.INSTANCE.getRegistry());
 
         return promeMetrics.toString();
     }

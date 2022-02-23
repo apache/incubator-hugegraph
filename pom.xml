@@ -108,6 +108,9 @@
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
         <fabric8.version>5.6.0</fabric8.version>
+        <caffeine.vertion>2.9.2</caffeine.vertion>
+        <pdclient.version>3.0.0</pdclient.version>
+        <pdstore.version>3.0.0</pdstore.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -115,13 +118,7 @@
         <module>hugegraph-example</module>
         <module>hugegraph-dist</module>
         <module>hugegraph-test</module>
-        <module>hugegraph-cassandra</module>
-        <module>hugegraph-scylladb</module>
         <module>hugegraph-rocksdb</module>
-        <module>hugegraph-mysql</module>
-        <module>hugegraph-palo</module>
-        <module>hugegraph-hbase</module>
-        <module>hugegraph-postgresql</module>
         <module>hugegraph-hstore</module>
     </modules>
 
@@ -215,6 +212,11 @@
                 <artifactId>gremlin-driver</artifactId>
                 <version>${tinkerpop.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.vertion}</version>
+            </dependency>
 
             <!-- utility -->
             <dependency>
@@ -264,6 +266,11 @@
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-json</artifactId>
+                <version>${metrics.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
             </dependency>
             <dependency>

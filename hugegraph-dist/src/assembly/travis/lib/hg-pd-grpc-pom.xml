@@ -12,7 +12,9 @@
     <properties>
         <java.version>8</java.version>
         <grpc.version>1.39.0</grpc.version>
-        <protobuf.version>3.12.0</protobuf.version>
+        <protoc.version>3.17.2</protoc.version>
+        <protobuf.plugin.version>0.6.1</protobuf.plugin.version>
+
     </properties>
 
     <dependencies>

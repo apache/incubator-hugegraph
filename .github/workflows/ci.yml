@@ -24,6 +24,7 @@ jobs:
     env:
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
       LIB_DIR: hugegraph-dist/src/assembly/travis/lib
+      PLUGIN_DIR: hugegraph-dist/src/assembly/plugin
     strategy:
       fail-fast: false
       matrix:
@@ -56,6 +57,7 @@ jobs:
           mvn install:install-file -Dfile=$LIB_DIR/hg-store-client-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-client -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$LIB_DIR/hg-store-client-pom.xml
           mvn install:install-file -Dfile=$LIB_DIR/hg-store-grpc-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-grpc -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$LIB_DIR/hg-store-grpc-pom.xml
           mvn install:install-file -Dfile=$LIB_DIR/hg-store-term-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-term -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$LIB_DIR/hg-store-term-pom.xml
+          mvn install:install-file -Dfile=$PLUGIN_DIR/lib/hugegraph-plugin-1.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-plugin -Dversion=1.0.0 -Dpackaging=jar -DpomFile=$PLUGIN_DIR/pom.xml
           mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
 
       - name: Prepare env and service

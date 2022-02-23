@@ -448,15 +448,6 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
-    public static final ConfigOption<String> K8S_HUGEGRAPH_URL =
-            new ConfigOption<>(
-                    "k8s.hugegraph_url",
-                    "The hugegraph url for k8s work " +
-                    "when the computer service is enabled.",
-                    null,
-                    ""
-            );
-
     public static final ConfigOption<String> K8S_NAMESPACE =
             new ConfigOption<>(
                     "k8s.namespace",

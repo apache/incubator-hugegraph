@@ -37,7 +37,7 @@ import javax.ws.rs.core.Context;
 
 import com.baidu.hugegraph.auth.AuthManager;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -47,6 +47,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.Checkable;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -59,7 +60,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Singleton
 public class UserAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final HugeGraphLogger LOGGER
+        = Log.getLogger(RestServer.class);
 
     @POST
     @Timed
@@ -69,12 +71,13 @@ public class UserAPI extends API {
     @RolesAllowed({"admin"})
     public String create(@Context GraphManager manager,
                          JsonUser jsonUser) {
-        LOG.debug("Create user: {}", jsonUser);
+        LOGGER.logCustomDebug("Create user: {}", RestServer.EXECUTOR, jsonUser);
         checkCreatingBody(jsonUser);
 
         HugeUser user = jsonUser.build();
         AuthManager authManager = manager.authManager();
         user.id(authManager.createUser(user, true));
+        LOGGER.getAuditLogger().logCreateUser(user.idString(), RestServer.EXECUTOR);
         return manager.serializer().writeAuthElement(user);
     }
 
@@ -86,7 +89,7 @@ public class UserAPI extends API {
     public String update(@Context GraphManager manager,
                          @PathParam("id") String id,
                          JsonUser jsonUser) {
-        LOG.debug("Update user: {}", jsonUser);
+        LOGGER.logCustomDebug("Update user: {}", RestServer.EXECUTOR, jsonUser);
         checkUpdatingBody(jsonUser);
 
         HugeUser user;
@@ -97,7 +100,11 @@ public class UserAPI extends API {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }
         user = jsonUser.build(user);
+        if (Strings.isNotBlank(user.password())) {
+            LOGGER.getAuditLogger().logUpdatePassword(user.idString());
+        }
         user = authManager.updateUser(user, true);
+        LOGGER.getAuditLogger().logUpdateUser(user.idString(), RestServer.EXECUTOR);
         return manager.serializer().writeAuthElement(user);
     }
 
@@ -106,7 +113,7 @@ public class UserAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("List users");
+        LOGGER.logCustomDebug("List users", RestServer.EXECUTOR);
 
         AuthManager authManager = manager.authManager();
         List<HugeUser> users = authManager.listAllUsers(limit, true);
@@ -119,7 +126,7 @@ public class UserAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("id") String id) {
-        LOG.debug("Get user: {}", id);
+        LOGGER.logCustomDebug("Get user: {}", RestServer.EXECUTOR, id);
 
         AuthManager authManager = manager.authManager();
         HugeUser user = authManager.getUser(IdGenerator.of(id), true);
@@ -132,7 +139,7 @@ public class UserAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String role(@Context GraphManager manager,
                        @PathParam("id") String id) {
-        LOG.debug("Get user role: {}", id);
+        LOGGER.logCustomDebug("Get user role: {}", RestServer.EXECUTOR, id);
 
         AuthManager authManager = manager.authManager();
         HugeUser user = authManager.getUser(IdGenerator.of(id), true);
@@ -146,11 +153,12 @@ public class UserAPI extends API {
     @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
                        @PathParam("id") String id) {
-        LOG.debug("Delete user: {}", id);
+        LOGGER.logCustomDebug("Delete user: {}", RestServer.EXECUTOR, id);
 
         try {
             AuthManager authManager = manager.authManager();
             authManager.deleteUser(IdGenerator.of(id), true);
+            LOGGER.getAuditLogger().logDeleteUser(id, RestServer.EXECUTOR);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Invalid user id: " + id);
         }

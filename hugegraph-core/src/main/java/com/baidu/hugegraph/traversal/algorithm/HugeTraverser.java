@@ -123,37 +123,6 @@ public class HugeTraverser {
         return this.graph.option(CoreOptions.OLTP_COLLECTION_TYPE);
     }
 
-    protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,
-                                       Directions dir, Id label,
-                                       Set<Id> excluded, long degree,
-                                       long limit) {
-        if (limit == 0) {
-            return ImmutableSet.of();
-        }
-
-        Set<Id> neighbors = newIdSet();
-        for (Id source : vertices) {
-            Iterator<Edge> edges = this.edgesOfVertex(source, dir,
-                                                      label, degree, false);
-            while (edges.hasNext()) {
-                this.edgeIterCounter++;
-                HugeEdge e = (HugeEdge) edges.next();
-                Id target = e.id().otherVertexId();
-                boolean matchExcluded = (excluded != null &&
-                                         excluded.contains(target));
-                if (matchExcluded || neighbors.contains(target) ||
-                    sourceV.equals(target)) {
-                    continue;
-                }
-                neighbors.add(target);
-                if (limit != NO_LIMIT && neighbors.size() >= limit) {
-                    return neighbors;
-                }
-            }
-        }
-        return neighbors;
-    }
-
     protected Iterator<Id> adjacentVertices(Id source, Directions dir,
                                             Id label, long limit) {
         Iterator<Edge> edges = this.edgesOfVertex(source, dir, label, limit, false);

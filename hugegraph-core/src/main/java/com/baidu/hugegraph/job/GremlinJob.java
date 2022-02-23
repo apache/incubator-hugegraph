@@ -26,6 +26,7 @@ import java.util.Map;
 
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.exception.LimitExceedException;
+import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
@@ -90,7 +91,6 @@ public class GremlinJob extends UserJob<Object> {
             traversal.close();
             this.graph().tx().commit();
         }
-
         Object result = traversal.result();
         if (result != null) {
             checkResultsSize(result);
@@ -98,6 +98,7 @@ public class GremlinJob extends UserJob<Object> {
         } else {
             return results;
         }
+
     }
 
     private void checkResultsSize(Object results) {

@@ -19,16 +19,24 @@
 
 package com.baidu.hugegraph.k8s;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.space.GraphSpace;
 import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 import io.fabric8.kubernetes.api.model.Namespace;
 
 public class K8sManager {
+
+    private static final HugeGraphLogger LOGGER =
+        Log.getLogger(K8sManager.class);
 
     private K8sDriver k8sDriver;
 
@@ -61,10 +69,16 @@ public class K8sManager {
         return this.k8sDriver.namespace(ns);
     }
 
+    @SuppressWarnings("unchecked")
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
                                         String cluster) {
+        
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "startOltpService");
+            return Collections.EMPTY_SET;
+        }
         return this.k8sDriver.startOltpService(graphSpace, service,
                                                metaServers, cluster);
     }
@@ -84,10 +98,24 @@ public class K8sManager {
     }
 
     public void stopService(GraphSpace graphSpace, Service service) {
-        this.k8sDriver.stopOltpService(graphSpace, service);
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "stopService");
+            return;
+        }
+        switch (service.type()) {
+            case OLTP:
+                this.k8sDriver.stopOltpService(graphSpace, service);
+                break;
+            default:
+                LOGGER.logCustomDebug("Cannot stop service other than OLTP", "K8sManager");
+                break;
+        }
     }
 
     public int podsRunning(GraphSpace graphSpace, Service service) {
+        if (null == k8sDriver) {
+            throw new HugeException("k8sDriver is not initialized!");
+        }
         return this.k8sDriver.podsRunning(graphSpace, service);
     }
 }

@@ -43,12 +43,7 @@ public class ExampleUtil {
         }
         registered = true;
 
-        RegisterUtil.registerCassandra();
-        RegisterUtil.registerScyllaDB();
-        RegisterUtil.registerHBase();
         RegisterUtil.registerRocksDB();
-        RegisterUtil.registerMysql();
-        RegisterUtil.registerPalo();
     }
 
     public static HugeGraph loadGraph() {

@@ -251,7 +251,7 @@ public class K8sDriver {
         String deploymentName = serviceName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
         this.client.apps().deployments().inNamespace(namespace)
-                   .withName(deploymentName).delete();
+                .withName(deploymentName).delete();
     }
 
     public void createConfigMapForCaIfNeeded(GraphSpace graphSpace,

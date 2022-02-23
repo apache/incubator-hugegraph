@@ -24,7 +24,6 @@ public class K8sDriverProxy {
 
     private static String NAMESPACE = "";
     private static String KUBE_CONFIG_PATH = "";
-    private static String HUGEGRAPH_URL = "";
     private static String ENABLE_INTERNAL_ALGORITHM = "";
     private static String INTERNAL_ALGORITHM_IMAGE_URL = "";
     private static Map<String, String> ALGORITHM_PARAMS = null;
@@ -50,7 +49,6 @@ public class K8sDriverProxy {
     }
 
     public static void setConfig(String namespace, String kubeConfigPath,
-                                 String hugegraphUrl,
                                  String enableInternalAlgorithm,
                                  String internalAlgorithmImageUrl,
                                  String internalAlgorithm,
@@ -62,14 +60,13 @@ public class K8sDriverProxy {
         } else {
             kubeConfigFile = new File(kubeConfigPath);
         }
-        if (!kubeConfigFile.exists() || StringUtils.isEmpty(hugegraphUrl)) {
+        if (!kubeConfigFile.exists()) {
             throw new IOException("[K8s API] k8s config fail");
         }
 
         K8S_API_ENABLED = true;
         NAMESPACE = namespace;
         KUBE_CONFIG_PATH = kubeConfigFile.getAbsolutePath();
-        HUGEGRAPH_URL = hugegraphUrl;
         ENABLE_INTERNAL_ALGORITHM = enableInternalAlgorithm;
         INTERNAL_ALGORITHM_IMAGE_URL = internalAlgorithmImageUrl;
         ALGORITHM_PARAMS = algorithms;
@@ -110,7 +107,6 @@ public class K8sDriverProxy {
         // from configuration
         options.put("k8s.namespace", K8sDriverProxy.NAMESPACE);
         options.put("k8s.kube_config", K8sDriverProxy.KUBE_CONFIG_PATH);
-        options.put("hugegraph.url", K8sDriverProxy.HUGEGRAPH_URL);
         options.put("k8s.enable_internal_algorithm",
                     K8sDriverProxy.ENABLE_INTERNAL_ALGORITHM);
         options.put("k8s.internal_algorithm_image_url",

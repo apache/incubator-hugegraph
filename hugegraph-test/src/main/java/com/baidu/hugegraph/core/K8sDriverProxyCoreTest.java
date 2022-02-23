@@ -45,7 +45,6 @@ public class K8sDriverProxyCoreTest extends BaseCoreTest {
 
     private static String NAMESPACE = "hugegraph-computer-system";
     private static String KUBE_CONFIG = "conf/kube.kubeconfig";
-    private static String HUGEGRAPH_URL = "127.0.0.1:8080";
     private static String ENABLE_INTERNAL_ALGORITHM = "true";
     private static String INTERNAL_ALGORITHM_IMAGE_URL = "hugegraph/" +
             "hugegraph-computer-based-algorithm:beta1";
@@ -114,7 +113,6 @@ public class K8sDriverProxyCoreTest extends BaseCoreTest {
         try {
             K8sDriverProxy.setConfig(NAMESPACE,
                                      KUBE_CONFIG,
-                                     HUGEGRAPH_URL,
                                      ENABLE_INTERNAL_ALGORITHM,
                                      INTERNAL_ALGORITHM_IMAGE_URL,
                                      INTERNAL_ALGORITHM,

@@ -24,8 +24,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

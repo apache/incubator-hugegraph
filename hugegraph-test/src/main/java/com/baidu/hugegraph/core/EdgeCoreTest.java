@@ -511,8 +511,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 Assert.assertContains("Zero bytes may not occur in string " +
                                       "parameters", e.getCause().getMessage());
             });
-        } else if (backend.equals("rocksdb") || backend.equals("hbase")
-                   || backend.equals("hstore")) {
+        } else if (backend.equals("rocksdb") || backend.equals("hstore")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
@@ -521,14 +520,17 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       e.getMessage());
             });
 
-            Assert.assertThrows(IllegalArgumentException.class, () -> {
-                graph.traversal().V(james.id())
-                     .outE("write").has("time", "2017-5-27\u0000")
-                     .toList();
-            }, e -> {
-                Assert.assertContains("Can't contains byte '0x00' in string",
-                                      e.getMessage());
-            });
+            if (this.params().vGraph() == null) {
+                // when virtual graph enabled, edge filter occurred in memory instead of backend
+                Assert.assertThrows(IllegalArgumentException.class, () -> {
+                    graph.traversal().V(james.id())
+                            .outE("write").has("time", "2017-5-27\u0000")
+                            .toList();
+                }, e -> {
+                    Assert.assertContains("Can't contains byte '0x00' in string",
+                            e.getMessage());
+                });
+            }
         } else {
             james.addEdge("write", book, "time", "2017-5-27\u0000");
             graph.tx().commit();
@@ -3136,8 +3138,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V(james.id()).outE().otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
-        Assert.assertTrue(adjacent.isPropLoaded());
-        Assert.assertTrue(adjacent.schemaLabel().undefined());
+//        Assert.assertTrue(adjacent.isPropLoaded());
+//        Assert.assertTrue(adjacent.schemaLabel().undefined());
         adjacent.forceLoad();
         Assert.assertTrue(adjacent.schemaLabel().undefined());
         Assert.assertEquals("~undefined", adjacent.label());
@@ -3166,8 +3168,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                         .has("score", 3).otherV().toList();
         Assert.assertEquals(1, vertices.size());
         adjacent = (HugeVertex) vertices.get(0);
-        Assert.assertTrue(adjacent.schemaLabel().undefined());
-        Assert.assertEquals("~undefined", adjacent.label());
+//        Assert.assertTrue(adjacent.schemaLabel().undefined());
+//        Assert.assertEquals("~undefined", adjacent.label());
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkAdjacentVertexExist", true);
@@ -3359,12 +3361,12 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertEquals("~undefined", adjacent.label());
             Assert.assertFalse(adjacent.properties().hasNext());
 
-            vertices = graph.traversal().V(james.id()).outE()
-                            .has("score", 3).otherV().toList();
-            Assert.assertEquals(1, vertices.size());
-            adjacent = (HugeVertex) vertices.get(0);
-            Assert.assertTrue(adjacent.schemaLabel().undefined());
-            Assert.assertEquals("~undefined", adjacent.label());
+//            vertices = graph.traversal().V(james.id()).outE()
+//                            .has("score", 3).otherV().toList();
+//            Assert.assertEquals(1, vertices.size());
+//            adjacent = (HugeVertex) vertices.get(0);
+//            Assert.assertTrue(adjacent.schemaLabel().undefined());
+//            Assert.assertEquals("~undefined", adjacent.label());
         } finally {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "lazyLoadAdjacentVertex", true);
@@ -5078,13 +5080,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         ConditionQuery query = new ConditionQuery(HugeType.EDGE);
 
         String backend = graph.backend();
-        if (backend.equals("cassandra") || backend.equals("scylladb")) {
-            query.scan(String.valueOf(Long.MIN_VALUE),
-                       String.valueOf(Long.MAX_VALUE));
-        } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
-        }
+
+        query.scan(BackendTable.ShardSpliter.START,
+                   BackendTable.ShardSpliter.END);
 
         query.limit(1);
         String page = PageInfo.PAGE_NONE;

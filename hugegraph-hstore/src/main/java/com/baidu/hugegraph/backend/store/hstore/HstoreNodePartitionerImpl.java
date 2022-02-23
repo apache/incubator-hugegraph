@@ -4,8 +4,10 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.common.PartitionUtils;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.store.client.*;
+import com.baidu.hugegraph.store.client.type.HgNodeStatus;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.store.term.HgPair;
 
@@ -15,11 +17,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.baidu.hugegraph.store.client.util.HgStoreClientConst.ALL_PARTITION_OWNER;
+import com.baidu.hugegraph.util.Log;
+import org.junit.Assert;
+import org.slf4j.Logger;
 
 public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                                                   HgStoreNodeProvider,
                                                   HgStoreNodeNotifier {
 
+    private static final Logger LOG = Log.logger(HstoreNodePartitionerImpl.class);
     private PDClient pdClient;
     private HgStoreNodeManager nodeManager;
 
@@ -52,15 +58,17 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                 stores.forEach(e -> {
                     builder.add(e.getId(), -1);
                 });
-            } else if (startKey == endKey) {
+            } else if (endKey == HgStoreClientConst.EMPTY_BYTES
+                    || startKey == endKey || Arrays.equals(startKey, endKey)){
                 HgPair<Metapb.Partition, Metapb.Shard> partShard =
                        pdClient.getPartition(graphName, startKey);
                 Metapb.Shard leader = partShard.getValue();
-                builder.add(leader.getStoreId(), partShard.getKey().getId());
+                builder.add(leader.getStoreId(), pdClient.keyToCode(graphName, startKey));
             } else {
-                pdClient.scanPartitions(graphName, startKey, endKey)
-                        .forEach(e -> {
-                    builder.add(e.getValue().getStoreId(), e.getKey().getId());
+                LOG.warn("StartOwnerkey is not equal to endOwnerkey, which is meaningless!!, It is a error!!");
+                List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
+                stores.forEach(e -> {
+                    builder.add(e.getId(), -1);
                 });
             }
         } catch (PDException e) {
@@ -80,7 +88,7 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                 if (partShard != null){
                     partition = partShard.getKey();
                     Metapb.Shard leader = partShard.getValue();
-                    builder.add(leader.getStoreId(), partShard.getKey().getId());
+                    builder.add(leader.getStoreId(), startKey);
                     startKey = (int) partition.getEndKey();
                 } else {
                     break;
@@ -112,15 +120,24 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
      */
     @Override
     public int notice(String graphName, HgStoreNotice storeNotice) {
+        LOG.warn(storeNotice.toString());
         if (storeNotice.getPartitionLeaders() != null) {
             storeNotice.getPartitionLeaders().forEach((partId, leader) -> {
                 pdClient.updatePartitionLeader(graphName, partId, leader);
+                LOG.warn("updatePartitionLeader:{}-{}-{} ",graphName, partId, leader);
             });
         }
         if (storeNotice.getPartitionIds() != null) {
             storeNotice.getPartitionIds().forEach(partId -> {
                 pdClient.invalidPartitionCache(graphName, partId);
             });
+        }
+        if (!storeNotice.getNodeStatus().equals(
+                HgNodeStatus.PARTITION_COMMON_FAULT)
+            && !storeNotice.getNodeStatus().equals(
+                HgNodeStatus.NOT_PARTITION_LEADER)){
+            pdClient.invalidPartitionCache();
+            LOG.warn("invalidPartitionCache:{} ",storeNotice.getNodeStatus());
         }
         return 0;
     }
@@ -146,8 +163,8 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
 class FakeHstoreNodePartitionerImpl extends HstoreNodePartitionerImpl {
     private String hstorePeers;
     HgStoreNodeManager nodeManager;
-
-    private static int partitionCount = 2;
+    private static final Logger LOG = Log.logger(HstoreNodePartitionerImpl.class);
+    private static int partitionCount = 3;
     private static Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();
     private static Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
@@ -174,18 +191,19 @@ class FakeHstoreNodePartitionerImpl extends HstoreNodePartitionerImpl {
     @Override
     public int partition(HgNodePartitionerBuilder builder, String graphName,
                          byte[] startKey, byte[] endKey) {
-        int id1 = Arrays.hashCode(startKey)
-                  & Integer.MAX_VALUE % partitionCount;
-        int id2 = Arrays.hashCode(endKey)  & Integer.MAX_VALUE % partitionCount;
+        int startCode = PartitionUtils.calcHashcode(startKey);
+        int endCode = PartitionUtils.calcHashcode(endKey);
         if (ALL_PARTITION_OWNER == startKey) {
-            storeMap.forEach((k, v) -> {
+            storeMap.forEach((k,v)->{
                 builder.add(k, -1);
             });
-        } else if (startKey == endKey) {
-            builder.add(leaderMap.get(id1), id1);
+        } else if (endKey == HgStoreClientConst.EMPTY_BYTES || startKey == endKey || Arrays.equals(startKey, endKey)) {
+            builder.add(leaderMap.get(startCode % partitionCount), startCode);
         } else {
-            builder.add(leaderMap.get(id1), id1);
-            builder.add(leaderMap.get(id2), id2);
+            LOG.error("OwnerKey转成HashCode后已经无序了， 按照OwnerKey范围查询没意义");
+            storeMap.forEach((k,v)->{
+                builder.add(k, -1);
+            });
         }
         return 0;
     }
