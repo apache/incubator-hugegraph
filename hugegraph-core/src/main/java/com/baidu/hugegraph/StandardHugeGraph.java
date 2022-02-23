@@ -27,6 +27,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
+import com.baidu.hugegraph.backend.cache.VirtualGraphTransaction;
+import com.baidu.hugegraph.vgraph.VirtualGraph;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -162,6 +165,9 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
     private final String schedulerType;
 
+    private final boolean virtualGraphEnable;
+    private final VirtualGraph vGraph;
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -225,6 +231,14 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.close();
             LockUtil.destroy(this.name);
             throw e;
+        }
+
+        virtualGraphEnable = config.get(CoreOptions.VIRTUAL_GRAPH_ENABLE);
+        if (virtualGraphEnable) {
+            this.vGraph = new VirtualGraph(this.params);
+        }
+        else {
+            this.vGraph = null;
         }
     }
 
@@ -461,7 +475,12 @@ public class StandardHugeGraph implements HugeGraph {
         // Open a new one
         this.checkGraphNotClosed();
         try {
-            return new CachedGraphTransaction(this.params, loadGraphStore());
+            if (virtualGraphEnable) {
+                return new VirtualGraphTransaction(this.params, loadGraphStore());
+            }
+            else {
+                return new CachedGraphTransaction(this.params, loadGraphStore());
+            }
         } catch (BackendException e) {
             String message = "Failed to open graph transaction";
             LOG.error("{}", message, e);
@@ -671,6 +690,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public Iterator<Vertex> adjacentVertexWithProp(Object... ids) {
+        return this.graphTransaction().adjacentVertexWithProp(ids);
+    }
+
+    @Override
     public boolean checkAdjacentVertexExist() {
         return this.graphTransaction().checkAdjacentVertexExist();
     }
@@ -692,6 +716,14 @@ public class StandardHugeGraph implements HugeGraph {
     @Watched
     public Iterator<Edge> edges(Query query) {
         return this.graphTransaction().queryEdges(query);
+    }
+
+    @Override
+    public Iterator<Edge> edgesWithProp(Object... objects) {
+        if (objects.length == 0) {
+            return this.graphTransaction().queryEdges();
+        }
+        return this.graphTransaction().queryEdgesWithProp(objects);
     }
 
     @Override
@@ -919,6 +951,9 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Close graph {}", this);
         this.taskManager.closeScheduler(this.params);
+        if (this.vGraph != null) {
+            this.vGraph.close();
+        }
         if ("rocksdb".equalsIgnoreCase(this.backend())) {
             this.metadata(null, "flush");
         }
@@ -1200,6 +1235,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public RamTable ramtable() {
             return StandardHugeGraph.this.ramtable;
+        }
+
+        @Override
+        public VirtualGraph vGraph() {
+            return StandardHugeGraph.this.vGraph;
         }
 
         @Override

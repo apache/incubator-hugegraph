@@ -682,4 +682,91 @@ public class CoreOptions extends OptionHolder {
                     CollectionType::valueOf,
                     "EC"
             );
+
+    public static final ConfigOption<Boolean> VIRTUAL_GRAPH_ENABLE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_enable",
+                    "Whether to enable the Virtual Graph.",
+                    false
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_BATCH_BUFFER_SIZE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_batch_buffer_size",
+                    "The size of buffer for batch load in Virtual Graph.",
+                    rangeInt(0, 65535),
+                    0
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_BATCH_SIZE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_batch_size",
+                    "The size of each batch when batch loading in Virtual Graph.",
+                    rangeInt(0, 65535),
+                    50
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_BATCH_TIME_MS =
+            new ConfigOption<>(
+                    "graph.virtual_graph_batch_time_ms",
+                    "Interval in milliseconds to batch load queries in buffer of Virtual Graph.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    100
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_VERTEX_INIT_CAPACITY =
+            new ConfigOption<>(
+                    "graph.virtual_graph_vertex_init_capacity",
+                    "The minimum number of vertices cached in Virtual Graph.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    (1000 * 1000)
+            );
+
+    public static final ConfigOption<Long> VIRTUAL_GRAPH_VERTEX_MAX_SIZE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_vertex_max_size",
+                    "The maximum number of vertices cached in Virtual Graph.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (100 * 1000 * 1000L)
+            );
+
+    public static final ConfigOption<Long> VIRTUAL_GRAPH_VERTEX_EXPIRE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_vertex_expire",
+                    "The expiration time in seconds of vertex cache in Virtual Graph.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (60 * 100L)
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_EDGE_INIT_CAPACITY =
+            new ConfigOption<>(
+                    "graph.virtual_graph_edge_init_capacity",
+                    "The minimum number of edges cached in Virtual Graph.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    10000
+            );
+
+    public static final ConfigOption<Long> VIRTUAL_GRAPH_EDGE_MAX_SIZE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_edge_max_size",
+                    "The maximum number of edges cached in Virtual Graph.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (1000 * 1000L)
+            );
+
+    public static final ConfigOption<Long> VIRTUAL_GRAPH_EDGE_EXPIRE =
+            new ConfigOption<>(
+                    "graph.virtual_graph_edge_expire",
+                    "The expiration time in seconds of edge cache in Virtual Graph.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    (60 * 100L)
+            );
+
+    public static final ConfigOption<Integer> VIRTUAL_GRAPH_BATCHER_TASK_THREADS =
+            new ConfigOption<>(
+                    "graph.virtual_graph_batcher_task_threads",
+                    "The task threads of virtual graph batcher.",
+                    rangeInt(1, Math.max(4, CoreOptions.CPUS * 2)),
+                    Math.max(4, CoreOptions.CPUS / 2)
+            );
 }

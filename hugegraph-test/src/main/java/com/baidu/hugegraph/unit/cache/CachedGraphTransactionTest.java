@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.unit.cache;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -54,7 +55,9 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     @Before
     public void setup() {
-        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
+        HugeConfig conf = FakeObjects.newConfig();
+        conf.setProperty("graph.virtual_graph_enable", false);
+        HugeGraph graph = HugeFactory.open(conf);
         this.params = Whitebox.getInternalState(graph, "params");
         this.cache = new CachedGraphTransaction(this.params,
                                                 this.params.loadGraphStore());

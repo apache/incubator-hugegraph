@@ -22,15 +22,14 @@ package com.baidu.hugegraph.core;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.meta.MetaManager;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.PropertiesConfiguration;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -43,7 +42,6 @@ import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.Log;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(Suite.class)
@@ -73,21 +71,21 @@ public class CoreTestSuite {
 
     @BeforeClass
     public static void initEnv() {
+        RegisterUtil.registerServer();
         RegisterUtil.registerBackends();
     }
 
     @BeforeClass
     public static void init() {
-        List<String> endpoints = new ArrayList<>();
-        endpoints.add("http://127.0.0.1:2379");
-        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
-                            null, null, null, endpoints);
         TaskManager.instance(4);
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
         graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
 
+        List<String> endpoints = ((HugeConfig) graph.configuration()).get(ServerOptions.META_ENDPOINTS);
+        metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
+                            null, null, null, endpoints);
         authManager = new StandardAuthManager(metaManager,
                       "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg");
         authManager.initAdmin();
@@ -113,7 +111,7 @@ public class CoreTestSuite {
 
     protected static HugeGraph graph() {
         Assert.assertNotNull(graph);
-        //Assert.assertFalse(graph.closed());
+        // Assert.assertFalse(graph.closed());
         return graph;
     }
 

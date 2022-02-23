@@ -246,7 +246,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         }
 
         // Seems there is no scene to be here
-        Iterator<Edge> edges = this.graph().edges(this.id());
+        Iterator<Edge> edges = this.graph().edgesWithProp(this.id());
         Edge edge = QueryResults.one(edges);
         if (edge == null && !throwIfNotExist) {
             return false;

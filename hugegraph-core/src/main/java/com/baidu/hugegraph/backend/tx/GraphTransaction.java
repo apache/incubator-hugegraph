@@ -103,7 +103,7 @@ import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableList;
 
-public class GraphTransaction extends IndexableTransaction {
+public class GraphTransaction extends IndexableTransaction implements AutoCloseable {
 
     public static final int COMMIT_BATCH = (int) Query.COMMIT_BATCH;
 
@@ -126,7 +126,7 @@ public class GraphTransaction extends IndexableTransaction {
     private LockUtil.LocksTable locksTable;
 
     private final boolean checkCustomVertexExist;
-    private final boolean checkAdjacentVertexExist;
+    protected final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
     private final boolean removeLeftIndexOnOverwrite;
     private final boolean ignoreInvalidEntry;
@@ -289,6 +289,18 @@ public class GraphTransaction extends IndexableTransaction {
 
     protected final Collection<HugeVertex> verticesInTxRemoved() {
         return new ArrayList<>(this.removedVertices.values());
+    }
+
+    protected final Collection<HugeEdge> edgesInTxUpdated() {
+        int size = this.addedEdges.size() + this.updatedEdges.size();
+        List<HugeEdge> edges = new ArrayList<>(size);
+        edges.addAll(this.addedEdges.values());
+        edges.addAll(this.updatedEdges.values());
+        return edges;
+    }
+
+    protected final Collection<HugeEdge> edgesInTxRemoved() {
+        return new ArrayList<>(this.removedEdges.values());
     }
 
     protected final boolean removingEdgeOwner(HugeEdge edge) {
@@ -702,6 +714,11 @@ public class GraphTransaction extends IndexableTransaction {
                                        this.checkAdjacentVertexExist);
     }
 
+    public Iterator<Vertex> adjacentVertexWithProp(Object... ids) {
+        return this.queryVerticesByIds(ids, true,
+                this.checkAdjacentVertexExist);
+    }
+
     public Iterator<Vertex> queryVertices(Object... vertexIds) {
         return this.queryVerticesByIds(vertexIds, false, false);
     }
@@ -719,6 +736,14 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
                                                   boolean adjacentVertex,
                                                   boolean checkMustExist) {
+        return this.queryVerticesByIds(vertexIds, adjacentVertex, checkMustExist,
+                this::queryVerticesFromBackend);
+    }
+
+    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
+                                                  boolean adjacentVertex,
+                                                  boolean checkMustExist,
+                                                  Function<Query, Iterator<HugeVertex>> queryBackendFunction) {
         Query.checkForceCapacity(vertexIds.length);
 
         // NOTE: allowed duplicated vertices if query by duplicated ids
@@ -749,7 +774,7 @@ public class GraphTransaction extends IndexableTransaction {
         if (!query.empty()) {
             // Query from backend store
             query.mustSortByInput(false);
-            Iterator<HugeVertex> it = this.queryVerticesFromBackend(query);
+            Iterator<HugeVertex> it = queryBackendFunction.apply(query);
             QueryResults.fillMap(it, vertices);
         }
 
@@ -763,6 +788,7 @@ public class GraphTransaction extends IndexableTransaction {
                     assert !checkMustExist;
                     // Return undefined if adjacentVertex but !checkMustExist
                     vertex = HugeVertex.undefined(this.graph(), id);
+                    vertex.resetProperties();
                 } else {
                     // Return null
                     assert vertex == null;
@@ -870,8 +896,17 @@ public class GraphTransaction extends IndexableTransaction {
         return edge;
     }
 
+    public Iterator<Edge> queryEdgesWithProp(Object[] objects) {
+        return this.queryEdges(objects);
+    }
+
     protected Iterator<Edge> queryEdgesByIds(Object[] edgeIds,
                                              boolean verifyId) {
+        return this.queryEdgesByIds(edgeIds, verifyId, this::queryEdgesFromBackend);
+    }
+    protected Iterator<Edge> queryEdgesByIds(Object[] edgeIds,
+                                             boolean verifyId,
+                                             Function<Query, Iterator<HugeEdge>> queryBackendFunction) {
         Query.checkForceCapacity(edgeIds.length);
 
         // NOTE: allowed duplicated edges if query by duplicated ids
@@ -912,7 +947,7 @@ public class GraphTransaction extends IndexableTransaction {
                  * Sort at the lower layer and return directly if there is no
                  * local vertex and duplicated id.
                  */
-                Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
+                Iterator<HugeEdge> it = queryBackendFunction.apply(query);
                 @SuppressWarnings({ "unchecked", "rawtypes" })
                 Iterator<Edge> r = (Iterator) it;
                 return r;

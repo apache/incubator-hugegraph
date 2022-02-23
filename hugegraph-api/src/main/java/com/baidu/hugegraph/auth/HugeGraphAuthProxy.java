@@ -472,6 +472,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public Iterator<Vertex> adjacentVertexWithProp(Object... ids) {
+        return verifyElemPermission(HugePermission.READ,
+                                    this.hugegraph.adjacentVertexWithProp(ids));
+    }
+
+    @Override
     public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) {
         Iterator<Vertex> vertices = this.hugegraph.adjacentVertices(edges);
         return verifyElemPermission(HugePermission.READ, vertices);
@@ -493,6 +499,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public Iterator<Edge> edges(Object... objects) {
         return verifyElemPermission(HugePermission.READ,
                                     this.hugegraph.edges(objects));
+    }
+
+    @Override
+    public Iterator<Edge> edgesWithProp(Object... objects) {
+        return verifyElemPermission(HugePermission.READ,
+                this.hugegraph.edgesWithProp(objects));
     }
 
     @Override

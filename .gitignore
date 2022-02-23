@@ -19,8 +19,7 @@ target
 gen-java
 build
 node*
-/hugegraph-0.*
-/hugegraph-3.*
+/hugegraph-[0-9]*
 /dist.sh
 /.vscode
 /rocksdb-data

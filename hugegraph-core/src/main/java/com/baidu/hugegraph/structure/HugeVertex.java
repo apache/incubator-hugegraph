@@ -515,7 +515,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         }
 
         // NOTE: only adjacent vertex will reach here
-        Iterator<Vertex> vertices = this.graph().adjacentVertex(this.id());
+        Iterator<Vertex> vertices = this.graph().adjacentVertexWithProp(this.id());
         HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
         if (vertex == null && !throwIfNotExist) {
             return false;

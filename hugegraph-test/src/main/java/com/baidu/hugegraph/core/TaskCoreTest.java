@@ -279,25 +279,25 @@ public class TaskCoreTest extends BaseCoreTest {
 
         script = "g.V().hasLabel('person1').count()";
         task = runGremlinJob(script);
-        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 15);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[1000]", task.result());
 
         script = "g.V().hasLabel('person2').count()";
         task = runGremlinJob(script);
-        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 15);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[1000]", task.result());
 
         script = "g.E().count()";
         task = runGremlinJob(script);
-        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 15);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[1000]", task.result());
 
         script = "g.E().hasLabel('knows').count()";
         task = runGremlinJob(script);
-        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        task = scheduler.waitUntilTaskCompleted(task.id(), 15);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("[1000]", task.result());
     }

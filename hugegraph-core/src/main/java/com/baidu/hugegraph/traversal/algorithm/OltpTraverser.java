@@ -19,13 +19,19 @@
 
 package com.baidu.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.type.define.Directions;
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -178,6 +184,92 @@ public abstract class OltpTraverser extends HugeTraverser
                 }
             }
             return values;
+        }
+    }
+
+    protected Set<Id> adjacentVertices(Id sourceV, Set<Id> vertices,
+                                       Directions dir, Id label,
+                                       Set<Id> excluded, long degree,
+                                       long limit, boolean concurrent) {
+        if (limit == 0) {
+            return ImmutableSet.of();
+        }
+
+        Set<Id> neighbors = newSet(concurrent);
+        this.traverseIds(vertices.iterator(), new AdjacentVerticesConsumer(
+                sourceV, dir, label, excluded, degree, limit, neighbors
+        ), concurrent);
+
+        if (limit != NO_LIMIT && neighbors.size() > limit) {
+            int redundantNeighborsCount = (int) (neighbors.size() - limit);
+            List<Id> redundantNeighbors = new ArrayList<>(redundantNeighborsCount);
+            for (Id vId: neighbors) {
+                redundantNeighbors.add(vId);
+                if (redundantNeighbors.size() >= redundantNeighborsCount) {
+                    break;
+                }
+            }
+            redundantNeighbors.forEach(neighbors::remove);
+        }
+
+        return neighbors;
+    }
+
+
+    class AdjacentVerticesConsumer implements Consumer<Id> {
+
+        private Id sourceV;
+        private Directions dir;
+        private Id label;
+        private Set<Id> excluded;
+        private long degree;
+        private long limit;
+        private Set<Id> neighbors;
+
+        public AdjacentVerticesConsumer(Id sourceV, Directions dir, Id label,
+                                        Set<Id> excluded, long degree,
+                                        long limit, Set<Id> neighbors) {
+            this.sourceV = sourceV;
+            this.dir = dir;
+            this.label = label;
+            this.excluded = excluded;
+            this.degree = degree;
+            this.limit = limit;
+            this.neighbors = neighbors;
+        }
+
+        @Override
+        public void accept(Id id) {
+            Iterator<Edge> edges = edgesOfVertex(id, dir,
+                    label, degree, false);
+            while (edges.hasNext()) {
+                edgeIterCounter++;
+                HugeEdge e = (HugeEdge) edges.next();
+                Id target = e.id().otherVertexId();
+                boolean matchExcluded = (excluded != null &&
+                        excluded.contains(target));
+                if (matchExcluded || neighbors.contains(target) ||
+                        sourceV.equals(target)) {
+                    continue;
+                }
+                neighbors.add(target);
+                if (limit != NO_LIMIT && neighbors.size() >= limit) {
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public Consumer<Id> andThen(Consumer<? super Id> after) {
+            java.util.Objects.requireNonNull(after);
+            return (Id t) -> {
+                accept(t);
+                if (limit != NO_LIMIT && neighbors.size() >= limit) {
+                    return;
+                } else {
+                    after.accept(t);
+                }
+            };
         }
     }
 }
