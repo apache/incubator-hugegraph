@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.k8s;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
@@ -37,11 +36,8 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.tinkerpop.gremlin.util.config.YamlConfiguration;
 
 import io.fabric8.kubernetes.api.model.Namespace;
-import io.fabric8.kubernetes.api.model.Pod;
 
 public class K8sManager {
 
@@ -165,8 +161,7 @@ public class K8sManager {
      * @return
      */
     public void createOperatorPod(String namespace) {
-        this.loadOperator(namespace);
-               
+        this.loadOperator(namespace);         
     }
 
     // 把所有字符串hugegraph-computer-operator-system都替换成新的namespace就行了
@@ -177,6 +172,11 @@ public class K8sManager {
         }
 
         String content = this.operatorTemplate.replace("", namespace);
+        try {
+            k8sDriver.createOrReplaceByYaml(content);
+        } catch (IOException e) {
+
+        }
         
 
     }

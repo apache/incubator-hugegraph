@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.k8s;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.HTTPGetAction;
 import io.fabric8.kubernetes.api.model.HTTPGetActionBuilder;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.LimitRange;
 import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
@@ -72,6 +75,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
 
 public class K8sDriver {
 
@@ -651,6 +655,20 @@ public class K8sDriver {
                          .withName(deploymentName)
                          .get();
         return deployment.getStatus().getReadyReplicas();
+    }
+
+    public void createByYaml(String yaml) throws IOException {
+        InputStream is = new ByteArrayInputStream(yaml.getBytes());
+        try {
+
+            ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable<HasMetadata> meta
+                = this.client.load(is);
+            meta.createOrReplace();
+        } catch (Exception exc) {
+
+        } finally {
+            is.close();
+        }
     }
 
     public static class CA {
