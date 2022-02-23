@@ -657,7 +657,7 @@ public class K8sDriver {
         return deployment.getStatus().getReadyReplicas();
     }
 
-    public void createByYaml(String yaml) throws IOException {
+    public void createOrReplaceByYaml(String yaml) throws IOException {
         InputStream is = new ByteArrayInputStream(yaml.getBytes());
         try {
 

@@ -537,8 +537,8 @@ public final class GraphManager {
                 // start operator pod
                 // read from computer-system or default ?
                 // read from "hugegraph-computer-system" 
-                String containerName = "hugegraph-operator";
-                String imageName = "";
+                // String containerName = "hugegraph-operator";
+                // String imageName = "";
 
                 k8sManager.createOperatorPod(namespace);
             }
