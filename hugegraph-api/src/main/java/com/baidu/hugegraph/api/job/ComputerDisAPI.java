@@ -104,7 +104,7 @@ public class ComputerDisAPI extends API {
         builder.name("computer-dis:" + jsonTask.algorithm)
                .input(JsonUtil.toJson(input))
                .job(new ComputerDisJob());
-        HugeTask<Object> task = builder.schedule();
+        HugeTask<?> task = builder.schedule();
         return ImmutableMap.of("task_id", task.id());
     }
 
