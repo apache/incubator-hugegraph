@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
@@ -368,8 +369,9 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
-
-        LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
+        String spaceGraph = ((StandardHugeGraph) this.params()
+                            .graph()).spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -441,7 +443,9 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+        String spaceGraph = ((StandardHugeGraph) this.params()
+                            .graph()).spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());

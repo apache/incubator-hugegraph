@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -68,8 +69,8 @@ public abstract class AbstractBuilder {
 
     protected <V> V lockCheckAndCreateSchema(HugeType type, String name,
                                              Function<String, V> callback) {
-        String graph = this.transaction.graphName();
-        LockUtil.Locks locks = new LockUtil.Locks(graph);
+        String spaceGraph = ((StandardHugeGraph) this.graph).spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(type),
                              IdGenerator.of(name));

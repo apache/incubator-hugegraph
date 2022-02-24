@@ -185,7 +185,7 @@ public final class LockUtil {
         }
     }
 
-    public static List<Lock> lock(String... locks) {
+    private static List<Lock> lock(String... locks) {
         List<Lock> lockList = new ArrayList<>();
         E.checkArgument(locks.length % 3 == 0,
                         "Invalid arguments number, expect multiple of 3.");
