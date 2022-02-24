@@ -52,6 +52,7 @@ import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -144,6 +145,16 @@ public class StandardTaskScheduler extends TaskScheduler {
     @Override
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
+
+        if (task.status() == TaskStatus.NEW && Strings.isNullOrEmpty(task.context())) {
+            LOGGER.logCustomDebug("attach context to task {} ", "Scorpiour", task.id().asString());
+            String currentContext = TaskManager.getContext();
+            if (!Strings.isNullOrEmpty(currentContext)) {
+                task.context(TaskManager.getContext());
+            }
+        } else {
+            LOGGER.logCustomDebug("task {} has context already", "Scorpiour", task.id().asString());
+        }
 
         if (task.status() == TaskStatus.QUEUED) {
             /*
