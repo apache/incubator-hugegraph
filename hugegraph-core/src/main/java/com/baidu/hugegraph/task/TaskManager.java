@@ -394,9 +394,9 @@ public final class TaskManager {
                 }
             }
 
-            String graph;
+            // Ensuring the lock contains both graphSpace & graphName
             ServerInfoManager serverManager = scheduler.serverManager();
-            graph = ((StandardHugeGraph) scheduler.graph()).spaceGraphName();;
+            String graph = scheduler.graph().spaceGraphName();
             LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
             try {
                 /*

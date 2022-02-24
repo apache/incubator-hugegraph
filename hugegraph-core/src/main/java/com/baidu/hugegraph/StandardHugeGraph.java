@@ -258,6 +258,7 @@ public class StandardHugeGraph implements HugeGraph {
         return this.name;
     }
 
+    @Override
     public String spaceGraphName() {
         return this.graphSpace + "-" + this.name;
     }

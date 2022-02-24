@@ -137,6 +137,7 @@ public interface HugeGraph extends Graph {
     public String graphSpace();
     public void graphSpace(String graphSpace);
     public String name();
+    public String spaceGraphName();
     public String backend();
     public String backendVersion();
     public BackendStoreSystemInfo backendStoreSystemInfo();

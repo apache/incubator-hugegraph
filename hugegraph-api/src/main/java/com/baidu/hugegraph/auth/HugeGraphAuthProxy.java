@@ -616,6 +616,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public String spaceGraphName() {
+        return this.hugegraph.spaceGraphName();
+    }
+
+    @Override
     public String backend() {
         this.verifyAnyPermission();
         return this.hugegraph.backend();
