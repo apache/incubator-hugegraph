@@ -1,15 +1,5 @@
 #!/bin/bash
 
-
-# export META_SERVERS=http://172.20.92.17:8002
-export CLUSTER=hg
-export WITH_CA=false
-export CA_FILE=/home/hugegraph-3.0.0/ca.pem
-export CLIENT_CA=/home/hugegraph-3.0.0/kubernetes.pem
-export CLIENT_KEY=/home/hugegraph-3.0.0/kubernetes-key8.pem
-export GRAPH_SPACE=gs1
-export SERVICE_ID=sv1
-
 if [ -z "$OPEN_MONITOR" ];then
   OPEN_MONITOR="false"
 fi

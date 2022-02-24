@@ -168,7 +168,7 @@ public class K8sManager {
     public void loadOperator(String namespace) throws HugeException {
         this.loadOperatorTemplate();
         if (Strings.isNullOrEmpty(this.operatorTemplate)) {
-            throw new HugeException("cannot generate yaml config for operator: template load failed");
+            throw new HugeException("Cannot generate yaml config for operator: template load failed");
         }
 
         String content = this.operatorTemplate.replace("", namespace);

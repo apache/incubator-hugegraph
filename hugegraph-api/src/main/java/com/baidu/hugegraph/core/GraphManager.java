@@ -343,7 +343,7 @@ public final class GraphManager {
         if (olapNamespace == null) {
             throw new HugeException(
                 "The config option: %s, value: %s does not exist",
-                ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), oltp);
+                ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), olap);
         }
         graphSpace.olapNamespace(olap);
         graphSpace.storageNamespace(oltp);
