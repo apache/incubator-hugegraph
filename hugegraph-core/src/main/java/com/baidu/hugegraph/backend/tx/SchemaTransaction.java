@@ -378,13 +378,20 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     protected void updateSchema(SchemaElement schema) {
-        this.addSchema(schema);
+        LOG.debug("SchemaTransaction update {} with id '{}'",
+                  schema.type(), schema.id());
+        this.saveSchema(schema, true);
     }
 
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
+        this.saveSchema(schema, false);
+    }
+
+    private void saveSchema(SchemaElement schema, boolean update) {
+        BackendEntry entry = this.serialize(schema);
 
         // System schema just put into SystemSchemaStore in memory
         if (schema.longId() < 0L) {
@@ -396,9 +403,19 @@ public class SchemaTransaction extends IndexableTransaction {
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
+
             this.beforeWrite();
-            this.doInsert(this.serialize(schema));
-            this.indexTx.updateNameIndex(schema, false);
+
+            if (update) {
+                this.doUpdateIfPresent(entry);
+                // TODO: support updateIfPresent
+                this.indexTx.updateNameIndex(schema, false);
+            } else {
+                // TODO: support updateIfAbsentProperty
+                this.doInsert(entry);
+                this.indexTx.updateNameIndex(schema, false);
+            }
+
             this.afterWrite();
         } finally {
             locks.unlock();
@@ -459,6 +476,11 @@ public class SchemaTransaction extends IndexableTransaction {
         List<T> results = new ArrayList<>();
         Query query = new Query(type);
         Iterator<BackendEntry> entries = this.query(query).iterator();
+        /*
+         * Can use MapperIterator instead if don't need to debug:
+         * new MapperIterator<>(entries, entry -> this.deserialize(entry, type))
+         * QueryResults.fillList(iter, results);
+         */
         try {
             while (entries.hasNext()) {
                 BackendEntry entry = entries.next();

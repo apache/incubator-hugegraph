@@ -210,6 +210,15 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     @Override
+    protected void updateSchema(SchemaElement schema) {
+        super.updateSchema(schema);
+
+        this.updateCache(schema);
+
+        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
+    }
+
+    @Override
     protected void addSchema(SchemaElement schema) {
         super.addSchema(schema);
 

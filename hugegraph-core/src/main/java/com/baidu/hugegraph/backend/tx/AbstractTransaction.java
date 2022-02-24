@@ -414,6 +414,16 @@ public abstract class AbstractTransaction implements Transaction {
         this.doAction(Action.DELETE, entry);
     }
 
+    @Watched(prefix = "tx")
+    public void doUpdateIfPresent(BackendEntry entry) {
+        this.doAction(Action.UPDATE_IF_PRESENT, entry);
+    }
+
+    @Watched(prefix = "tx")
+    public void doUpdateIfAbsent(BackendEntry entry) {
+        this.doAction(Action.UPDATE_IF_ABSENT, entry);
+    }
+
     protected void doAction(Action action, BackendEntry entry) {
         LOG.debug("Transaction {} entry {}", action, entry);
         E.checkNotNull(entry, "entry");

@@ -66,6 +66,30 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         // pass
     }
 
+    public void updateIfPresent(Session session, Entry entry) {
+        // TODO: use fine-grained row lock
+        synchronized (this.table) {
+            if (this.queryExist(session, entry)) {
+                this.insert(session, entry);
+                if (session != null) {
+                    session.commit();
+                }
+            }
+        }
+    }
+
+    public void updateIfAbsent(Session session, Entry entry) {
+        // TODO: use fine-grained row lock
+        synchronized (this.table) {
+            if (!this.queryExist(session, entry)) {
+                this.insert(session, entry);
+                if (session != null) {
+                    session.commit();
+                }
+            }
+        }
+    }
+
     /**
      *  Mapping query-type to table-type
      * @param query origin query
@@ -111,6 +135,11 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public abstract Iterator<BackendEntry> query(Session session, Query query);
 
     public abstract Number queryNumber(Session session, Query query);
+
+//    public abstract boolean queryExist(Session session, Entry entry);
+    public boolean queryExist(Session session, Entry entry) {
+        return false;
+    }
 
     public abstract void insert(Session session, Entry entry);
 
