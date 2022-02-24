@@ -71,7 +71,7 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
          * vertexLabel.indexLabels()
          */
         Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
-        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        String spaceGraph = graph.graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);

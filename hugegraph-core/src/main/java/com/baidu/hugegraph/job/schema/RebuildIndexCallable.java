@@ -95,8 +95,8 @@ public class RebuildIndexCallable extends SchemaCallable {
             }
         };
 
-        String spaceGraph = ((StandardHugeGraph) this.params()
-                            .graph()).spaceGraphName();
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
@@ -165,8 +165,8 @@ public class RebuildIndexCallable extends SchemaCallable {
                  */
                 continue;
             }
-            String spaceGraph = ((StandardHugeGraph) this.params()
-                                .graph()).spaceGraphName();
+            String spaceGraph = this.params()
+                                .graph().spaceGraphName();
             LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
             try {
                 locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);

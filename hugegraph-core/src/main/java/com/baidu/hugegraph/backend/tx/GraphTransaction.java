@@ -144,7 +144,7 @@ public class GraphTransaction extends IndexableTransaction implements AutoClosea
 
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
-        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        String spaceGraph = graph.graph().spaceGraphName();
         this.locksTable = new LockUtil.LocksTable(spaceGraph);
 
         final HugeConfig conf = graph.configuration();
