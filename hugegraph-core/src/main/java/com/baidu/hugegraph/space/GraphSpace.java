@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.E;
 
 public class GraphSpace {
@@ -137,6 +138,7 @@ public class GraphSpace {
         this.roleNumberUsed = roleNumberUsed;
 
         this.auth = auth;
+
         this.configs = new HashMap<>();
         if (config != null) {
             this.configs = config;
@@ -280,6 +282,44 @@ public class GraphSpace {
         return infos;
     }
 
+    private synchronized void incrCpuUsed(int acquiredCount) {
+        if (acquiredCount < 0) {
+            throw new HugeException("cannot increase cpu used since acquired count is negative");
+        }
+        this.cpuUsed += acquiredCount;
+    }
+
+    private synchronized void decrCpuUsed(int releasedCount) {
+        if (releasedCount < 0) {
+            throw new HugeException("cannot decrease cpu used since released count is negative");
+        }
+        if (cpuUsed < releasedCount) {
+            cpuUsed = 0;
+        } else {
+            this.cpuUsed -= releasedCount;
+        }
+    }
+
+    private synchronized void incrMemoryUsed(int acquiredCount) {
+        if (acquiredCount < 0) {
+            throw new HugeException("cannot increase memory used since acquired count is negative");
+        }
+        this.memoryUsed += acquiredCount;
+    }
+
+    private synchronized void decrMemoryUsed(int releasedCount) {
+        if (releasedCount < 0) {
+            throw new HugeException("cannot decrease memory used since released count is negative");
+        }
+        if (memoryUsed < releasedCount) {
+            this.memoryUsed = 0;
+        } else {
+            this.memoryUsed -= releasedCount;
+        }
+    }
+
+
+
     public boolean tryOfferResourceFor(Service service) {
         int count = service.count();
         int leftCpu = this.cpuLimit - this.cpuUsed;
@@ -288,15 +328,15 @@ public class GraphSpace {
             service.memoryLimit() * count > leftMemory) {
             return false;
         }
-        this.cpuUsed += service.cpuLimit() * count;
-        this.memoryUsed += service.memoryLimit() * count;
+        this.incrCpuUsed(service.cpuLimit() * count);
+        this.incrMemoryUsed(service.memoryLimit() * count);
         return true;
     }
 
     public void recycleResourceFor(Service service) {
         int count = service.count();
-        this.cpuUsed -= service.cpuLimit() * count;
-        this.memoryUsed -= service.memoryLimit() * count;
+        this.decrCpuUsed(service.cpuLimit() * count);
+        this.decrMemoryUsed(service.memoryLimit() * count);
     }
 
     public boolean tryOfferGraph() {

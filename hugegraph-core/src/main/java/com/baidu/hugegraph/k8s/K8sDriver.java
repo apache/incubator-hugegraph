@@ -19,8 +19,10 @@
 
 package com.baidu.hugegraph.k8s;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,7 +48,10 @@ import io.fabric8.kubernetes.api.model.EnvVarSource;
 import io.fabric8.kubernetes.api.model.EnvVarSourceBuilder;
 import io.fabric8.kubernetes.api.model.HTTPGetAction;
 import io.fabric8.kubernetes.api.model.HTTPGetActionBuilder;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.IntOrString;
+import io.fabric8.kubernetes.api.model.LimitRange;
+import io.fabric8.kubernetes.api.model.LimitRangeBuilder;
 import io.fabric8.kubernetes.api.model.ListOptions;
 import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
@@ -70,12 +75,13 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
 
 public class K8sDriver {
 
     protected static final Logger LOG = Log.logger(K8sDriver.class);
 
-    private static final String DELIMETER = "-";
+    private static final String DELIMITER = "-";
     private static final String COLON = ":";
     private static final String COMMA = ",";
 
@@ -455,7 +461,7 @@ public class K8sDriver {
                                            List<String> metaServers,
                                            String cluster) {
         String deploymentName = deploymentName(graphSpace, service);
-        String containerName = String.join(DELIMETER, deploymentName,
+        String containerName = String.join(DELIMITER, deploymentName,
                                            CONTAINER);
         Quantity cpu = Quantity.parse((service.cpuLimit() * 1000) + CPU_UNIT);
         Quantity memory = Quantity.parse(service.memoryLimit() + MEMORY_UNIT);
@@ -588,7 +594,11 @@ public class K8sDriver {
                 namespace = graphSpace.oltpNamespace;
                 break;
             case OLAP:
+                namespace = graphSpace.olapNamespace();
+                break;
             case STORAGE:
+                namespace = graphSpace.storageNamespace();
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Invalid service type '%s'", service.type()));
@@ -612,19 +622,19 @@ public class K8sDriver {
 
     private static String serviceName(String graphSpace,
                                       Service service) {
-        return String.join(DELIMETER, graphSpace,
+        return String.join(DELIMITER, graphSpace,
                            service.type().name().toLowerCase(), service.name());
     }
 
     private static String deploymentName(GraphSpace graphSpace,
                                          Service service) {
-        return String.join(DELIMETER, graphSpace.name(),
+        return String.join(DELIMITER, graphSpace.name(),
                            service.type().name().toLowerCase(), service.name());
     }
 
     private static String serviceName(GraphSpace graphSpace,
                                       Service service) {
-        return String.join(DELIMETER, graphSpace.name(),
+        return String.join(DELIMITER, graphSpace.name(),
                            service.type().name().toLowerCase(), service.name());
     }
 
@@ -645,6 +655,20 @@ public class K8sDriver {
                          .withName(deploymentName)
                          .get();
         return deployment.getStatus().getReadyReplicas();
+    }
+
+    public void createOrReplaceByYaml(String yaml) throws IOException {
+        InputStream is = new ByteArrayInputStream(yaml.getBytes());
+        try {
+
+            ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable<HasMetadata> meta
+                = this.client.load(is);
+            meta.createOrReplace();
+        } catch (Exception exc) {
+
+        } finally {
+            is.close();
+        }
     }
 
     public static class CA {

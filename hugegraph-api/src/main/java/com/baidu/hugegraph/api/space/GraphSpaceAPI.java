@@ -39,7 +39,6 @@ import javax.ws.rs.core.SecurityContext;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.util.Strings;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;

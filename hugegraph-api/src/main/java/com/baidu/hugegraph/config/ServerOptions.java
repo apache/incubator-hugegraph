@@ -278,6 +278,13 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph/hugegraph-server:v1"
             );
+    public static final ConfigOption<String> SERVER_K8S_OPERATOR_IMAGE =
+            new ConfigOption<>(
+                    "server.k8s_operator_image",
+                    "The operator server image of k8s.",
+                    disallowEmpty(),
+                    "hugegraph-computer-operator-system/hugegraph-server:v1"
+            );
 
     public static final ConfigOption<String> SERVER_DEFAULT_K8S_NAMESPACE =
             new ConfigOption<>(
@@ -443,6 +450,15 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "k8s.kubeconfig",
                     "The k8s kube config file " +
+                    "when the computer service is enabled.",
+                    null,
+                    "/hg-ca/config"
+            );
+
+    public static final ConfigOption<String> K8S_HUGEGRAPH_URL =
+            new ConfigOption<>(
+                    "k8s.hugegraph_url",
+                    "The hugegraph url for k8s work " +
                     "when the computer service is enabled.",
                     null,
                     ""

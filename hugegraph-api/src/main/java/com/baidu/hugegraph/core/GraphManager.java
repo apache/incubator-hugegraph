@@ -97,11 +97,13 @@ import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 
 import javax.ws.rs.NotFoundException;
 
@@ -326,16 +328,25 @@ public final class GraphManager {
         if (!useK8s) {
             return;
         }
-        String ns = config.get(ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE);
-        Namespace namespace = this.k8sManager.namespace(ns);
-        if (namespace == null) {
+        String oltp = config.get(ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE);
+        // oltp namespace
+        Namespace oltpNamespace = this.k8sManager.namespace(oltp);
+        if (oltpNamespace == null) {
             throw new HugeException(
                       "The config option: %s, value: %s does not exist",
-                      ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), ns);
+                      ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), oltp);
         }
-        graphSpace.oltpNamespace(ns);
-        graphSpace.olapNamespace(ns);
-        graphSpace.storageNamespace(ns);
+        graphSpace.oltpNamespace(oltp);
+        // olap namespace
+        String olap = "hugegraph-computer-system";
+        Namespace olapNamespace = this.k8sManager.namespace(olap);
+        if (olapNamespace == null) {
+            throw new HugeException(
+                "The config option: %s, value: %s does not exist",
+                ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), olap);
+        }
+        graphSpace.olapNamespace(olap);
+        graphSpace.storageNamespace(oltp);
         this.updateGraphSpace(graphSpace);
     }
 
@@ -368,6 +379,8 @@ public final class GraphManager {
             this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
             this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
                                               this.serviceID);
+            // add to local cache since even-handler has not been registered now
+            this.services.put(serviceName(this.serviceGraphSpace, service.name()), service);
         }
     }
 
@@ -512,11 +525,39 @@ public final class GraphManager {
         return space;
     }
 
+    private void attachK8sNamespace(String namespace) {
+        if (!Strings.isNullOrEmpty(namespace)) {
+            Namespace current = k8sManager.namespace(namespace);
+            if (null == current) {
+                current = k8sManager.createNamespace(namespace,
+                    ImmutableMap.of());
+                if (null == current) {
+                    throw new HugeException("Cannot attach k8s namespace {}", namespace);
+                }
+                // start operator pod
+                // read from computer-system or default ?
+                // read from "hugegraph-computer-system" 
+                // String containerName = "hugegraph-operator";
+                // String imageName = "";
+
+                k8sManager.createOperatorPod(namespace);
+            }
+
+        }
+    }
+
     public GraphSpace createGraphSpace(GraphSpace space) {
         String name = space.name();
         checkGraphSpaceName(name);
         this.limitStorage(space, space.storageLimit);
         this.metaManager.addGraphSpaceConfig(name, space);
+
+        boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
+        if (useK8s) {
+            attachK8sNamespace(space.oltpNamespace());
+            attachK8sNamespace(space.olapNamespace());
+        }
+
         this.metaManager.notifyGraphSpaceAdd(name);
         this.graphSpaces.put(name, space);
         return space;
@@ -598,6 +639,12 @@ public final class GraphManager {
     public Service createService(String graphSpace, Service service) {
         String name = service.name();
         checkServiceName(name);
+
+        if (null != service.urls() && service.urls().contains(this.url)) {
+            throw new HugeException("url cannot be same as current url %s", this.url);
+        }
+
+
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
 
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace);
@@ -846,14 +893,14 @@ public final class GraphManager {
     }
 
     public Set<String> services(String graphSpace) {
-        Set<String> services = new HashSet<>();
+        Set<String> result = new HashSet<>();
         for (String key : this.services.keySet()) {
             String[] parts = key.split(DELIMETER);
             if (parts[0].equals(graphSpace)) {
-                services.add(parts[1]);
+                result.add(parts[1]);
             }
         }
-        return services;
+        return result;
     }
 
     public Service service(String graphSpace, String name) {
@@ -1307,6 +1354,7 @@ public final class GraphManager {
                         "Note: letter is lower case", name, type);
     }
 
+    @SuppressWarnings("unchecked")
     private <T> void restPropertiesHandler(T response) {
         List<String> events = this.metaManager
                                   .extractGraphsFromResponse(response);
@@ -1319,8 +1367,9 @@ public final class GraphManager {
                     if (k8sApiEnable) {
                         GraphSpace gs = this.metaManager.graphSpace(this.serviceGraphSpace);
                         String namespace = gs.olapNamespace();
-                        String kubeConfigPath = conf.get(
-                               ServerOptions.K8S_KUBE_CONFIG);
+                        String kubeConfigPath = "/hg-ca/config";
+                        // conf.get(
+                        //ServerOptions.K8S_KUBE_CONFIG);
                         String enableInternalAlgorithm = conf.get(
                                ServerOptions.K8S_ENABLE_INTERNAL_ALGORITHM);
                         String internalAlgorithmImageUrl = conf.get(
