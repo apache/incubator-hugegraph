@@ -38,6 +38,7 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
@@ -47,7 +48,8 @@ import com.baidu.hugegraph.util.Log;
  */
 public class ContextGremlinServer extends GremlinServer {
 
-    private static final Logger LOG = Log.logger(GremlinServer.class);
+    private static final HugeGraphLogger LOGGER =
+                                      Log.getLogger(GremlinServer.class);
 
     private static final String G_PREFIX = "__g_";
 
@@ -64,18 +66,18 @@ public class ContextGremlinServer extends GremlinServer {
 
     private void listenChanges() {
         this.eventHub.listen(Events.GRAPH_CREATE, event -> {
-            LOG.info("GremlinServer accepts event 'graph.create'");
             event.checkArgs(String.class, HugeGraph.class);
             String name = (String) event.args()[0];
             HugeGraph graph = (HugeGraph) event.args()[1];
             this.injectGraph(name, graph);
+            LOGGER.getServerLogger().logCreateGraph(graph.graphSpace(), graph.name());
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
-            LOG.info("GremlinServer accepts event 'graph.drop'");
             event.checkArgs(String.class);
             String name = (String) event.args()[0];
             this.removeGraph(name);
+            LOGGER.getServerLogger().logRemoveGraph(name);
             return null;
         });
     }
@@ -95,6 +97,7 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     public void injectAuthGraph() {
+        System.out.println();
         HugeGraphAuthProxy.setContext(Context.admin());
 
         GraphManager manager = this.getServerGremlinExecutor()
