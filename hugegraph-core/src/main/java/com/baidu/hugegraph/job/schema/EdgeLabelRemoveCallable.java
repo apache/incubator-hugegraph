@@ -55,7 +55,7 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         // TODO: use event to replace direct call
         // Remove index related data(include schema) of this edge label
         Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
-        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        String spaceGraph = graph.graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);

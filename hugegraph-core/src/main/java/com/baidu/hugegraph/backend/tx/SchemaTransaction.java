@@ -369,8 +369,8 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
-        String spaceGraph = ((StandardHugeGraph) this.params()
-                            .graph()).spaceGraphName();
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
@@ -443,8 +443,8 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        String spaceGraph = ((StandardHugeGraph) this.params()
-                            .graph()).spaceGraphName();
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),

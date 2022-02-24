@@ -49,7 +49,7 @@ public class IndexLabelRemoveCallable extends SchemaCallable {
         if (indexLabel == null) {
             return;
         }
-        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        String spaceGraph = graph.graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);

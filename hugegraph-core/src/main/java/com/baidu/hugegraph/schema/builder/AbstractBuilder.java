@@ -69,7 +69,7 @@ public abstract class AbstractBuilder {
 
     protected <V> V lockCheckAndCreateSchema(HugeType type, String name,
                                              Function<String, V> callback) {
-        String spaceGraph = ((StandardHugeGraph) this.graph).spaceGraphName();
+        String spaceGraph = this.graph.spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(type),

@@ -59,7 +59,7 @@ public class OlapPropertyKeyClearCallable extends IndexLabelRemoveCallable {
         if (indexLabel == null) {
             return;
         }
-        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        String spaceGraph = graph.graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_CLEAR, olapIndexLabel);

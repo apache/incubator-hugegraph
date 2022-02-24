@@ -645,8 +645,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        ConditionQuery query) {
         Iterator<BackendEntry> entries = super.query(query).iterator();
         return new BatchIdHolder(query, entries, batch -> {
-            String spaceGraph = ((StandardHugeGraph) this.params()
-                                .graph()).spaceGraphName();
+            String spaceGraph = this.params()
+                                .graph().spaceGraphName();
             LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
             try {
                 // Catch lock every batch
@@ -697,8 +697,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                      ConditionQuery query) {
         // Query all or one page
         Iterator<BackendEntry> entries = null;
-        String spaceGraph = ((StandardHugeGraph) this.params()
-                            .graph()).spaceGraphName();
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
