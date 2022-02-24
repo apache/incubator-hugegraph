@@ -362,32 +362,32 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                           storeFeatures().supportsOlapProperties());
 
         SchemaManager schema = graph().schema();
-        PropertyKey olap = schema.propertyKey("olap_a")
+        PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
                                  .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
-        Assert.assertEquals("olap_a", olap.name());
+        Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
         Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
-        PropertyKey pagerank = schema.propertyKey("olap_pagerank")
+        PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
                                      .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
-        Assert.assertEquals("olap_pagerank", pagerank.name());
+        Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
         Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
-        PropertyKey wcc = schema.propertyKey("olap_wcc")
+        PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
                                 .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
-        Assert.assertEquals("olap_wcc", wcc.name());
+        Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
         Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
@@ -399,56 +399,56 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                           storeFeatures().supportsOlapProperties());
 
         SchemaManager schema = graph().schema();
-        PropertyKey olap = schema.propertyKey("olap_a")
+        PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
                                  .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
-        Assert.assertEquals("olap_a", olap.name());
+        Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
         Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
         graph().clearPropertyKey(olap);
 
-        olap = graph().propertyKey("olap_a");
-        Assert.assertEquals("olap_a", olap.name());
+        olap = graph().propertyKey("olap");
+        Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
         Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
-        PropertyKey pagerank = schema.propertyKey("olap_pagerank")
+        PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
                                      .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
-        Assert.assertEquals("olap_pagerank", pagerank.name());
+        Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
         Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
         graph().clearPropertyKey(pagerank);
 
-        pagerank = graph().propertyKey("olap_pagerank");
-        Assert.assertEquals("olap_pagerank", pagerank.name());
+        pagerank = graph().propertyKey("pagerank");
+        Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
         Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
-        PropertyKey wcc = schema.propertyKey("olap_wcc")
+        PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
                                 .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
-        Assert.assertEquals("olap_wcc", wcc.name());
+        Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
         Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
 
         graph().clearPropertyKey(wcc);
 
-        wcc = graph().propertyKey("olap_wcc");
-        Assert.assertEquals("olap_wcc", wcc.name());
+        wcc = graph().propertyKey("wcc");
+        Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
         Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
@@ -460,52 +460,52 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                           storeFeatures().supportsOlapProperties());
 
         SchemaManager schema = graph().schema();
-        PropertyKey olap = schema.propertyKey("olap_a")
+        PropertyKey olap = schema.propertyKey("olap")
                                  .asText().valueSingle()
                                  .writeType(WriteType.OLAP_COMMON)
                                  .ifNotExist().create();
 
-        Assert.assertEquals("olap_a", olap.name());
+        Assert.assertEquals("olap", olap.name());
         Assert.assertEquals(DataType.TEXT, olap.dataType());
         Assert.assertEquals(Cardinality.SINGLE, olap.cardinality());
         Assert.assertEquals(WriteType.OLAP_COMMON, olap.writeType());
 
-        schema.propertyKey("olap_a").remove();
+        schema.propertyKey("olap").remove();
 
         Assert.assertThrows(NotFoundException.class, () -> {
-            schema.getPropertyKey("olap_a");
+            schema.getPropertyKey("olap");
         });
 
-        PropertyKey pagerank = schema.propertyKey("olap_pagerank")
+        PropertyKey pagerank = schema.propertyKey("pagerank")
                                      .asDouble().valueSingle()
                                      .writeType(WriteType.OLAP_RANGE)
                                      .ifNotExist().create();
 
-        Assert.assertEquals("olap_pagerank", pagerank.name());
+        Assert.assertEquals("pagerank", pagerank.name());
         Assert.assertEquals(DataType.DOUBLE, pagerank.dataType());
         Assert.assertEquals(Cardinality.SINGLE, pagerank.cardinality());
         Assert.assertEquals(WriteType.OLAP_RANGE, pagerank.writeType());
 
-        schema.propertyKey("olap_pagerank").remove();
+        schema.propertyKey("pagerank").remove();
 
         Assert.assertThrows(NotFoundException.class, () -> {
-            schema.getPropertyKey("olap_pagerank");
+            schema.getPropertyKey("pagerank");
         });
 
-        PropertyKey wcc = schema.propertyKey("olap_wcc")
+        PropertyKey wcc = schema.propertyKey("wcc")
                                 .asText().valueSingle()
                                 .writeType(WriteType.OLAP_SECONDARY)
                                 .ifNotExist().create();
 
-        Assert.assertEquals("olap_wcc", wcc.name());
+        Assert.assertEquals("wcc", wcc.name());
         Assert.assertEquals(DataType.TEXT, wcc.dataType());
         Assert.assertEquals(Cardinality.SINGLE, wcc.cardinality());
         Assert.assertEquals(WriteType.OLAP_SECONDARY, wcc.writeType());
 
-        schema.propertyKey("olap_wcc").remove();
+        schema.propertyKey("wcc").remove();
 
         Assert.assertThrows(NotFoundException.class, () -> {
-            schema.getPropertyKey("olap_wcc");
+            schema.getPropertyKey("wcc");
         });
     }
 
