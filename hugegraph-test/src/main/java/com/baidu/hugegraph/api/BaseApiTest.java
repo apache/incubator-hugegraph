@@ -46,6 +46,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -519,6 +520,8 @@ public class BaseApiTest {
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
                                      .collect(Collectors.toList());
+            Assert.assertTrue("Expect all names are unique: " + names,
+                              CollectionUtil.allUnique(names));
             Set<Integer> tasks = new HashSet<>();
             names.forEach(name -> {
                 Response response = client.delete(path, (String) name);
@@ -540,13 +543,17 @@ public class BaseApiTest {
     }
 
     protected static void waitTaskSuccess(int task) {
+        waitTaskStatus(task, "success");
+    }
+
+    protected static void waitTaskStatus(int task, String expectedStatus) {
         String status;
         do {
             Response r = client.get("/graphs/hugegraph/tasks/",
                                     String.valueOf(task));
             String content = assertResponseStatus(200, r);
             status = assertJsonContains(content, "task_status");
-        } while (!"success".equals(status));
+        } while (!status.equals(expectedStatus));
     }
 
     protected static String parseId(String content) throws IOException {
