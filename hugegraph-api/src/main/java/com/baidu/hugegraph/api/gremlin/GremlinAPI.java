@@ -104,22 +104,6 @@ public class GremlinAPI extends API {
         return transformResponseIfNeeded(response);
     }
 
-    @GET
-    @Timed
-    @Compress(buffer=(1024 * 40))
-    @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Response get(@Context HugeConfig conf,
-                        @Context HttpHeaders headers,
-                        @Context UriInfo uriInfo) {
-        String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-        String query = uriInfo.getRequestUri().getRawQuery();
-        MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
-        Response response = this.client().doGetRequest(auth, params);
-        gremlinInputHistogram.update(query.length());
-        gremlinOutputHistogram.update(response.getLength());
-        return transformResponseIfNeeded(response);
-    }
-
     private static Response transformResponseIfNeeded(Response response) {
         MediaType mediaType = response.getMediaType();
         if (mediaType != null) {
