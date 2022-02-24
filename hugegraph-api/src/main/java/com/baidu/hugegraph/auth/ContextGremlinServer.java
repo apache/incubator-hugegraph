@@ -97,7 +97,6 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     public void injectAuthGraph() {
-        System.out.println();
         HugeGraphAuthProxy.setContext(Context.admin());
 
         GraphManager manager = this.getServerGremlinExecutor()
