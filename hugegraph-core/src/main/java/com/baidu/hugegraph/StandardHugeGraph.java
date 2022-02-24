@@ -210,12 +210,13 @@ public class StandardHugeGraph implements HugeGraph {
                         config.get(CoreOptions.GRAPH_READ_MODE));
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
 
-        LockUtil.init(this.name);
+
+        LockUtil.init(this.spaceGraphName());
 
         try {
             this.storeProvider = this.loadStoreProvider();
         } catch (Exception e) {
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
@@ -229,7 +230,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.variables = null;
         } catch (Exception e) {
             this.storeProvider.close();
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
             throw e;
         }
 
@@ -255,6 +256,10 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public String name() {
         return this.name;
+    }
+
+    public String spaceGraphName() {
+        return this.graphSpace + "-" + this.name;
     }
 
     @Override
@@ -354,12 +359,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -376,11 +381,11 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.clear();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -391,11 +396,11 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void truncateGraph() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncateGraph(this);
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
     }
 
@@ -403,14 +408,14 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
@@ -418,22 +423,22 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void createSnapshot() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.createSnapshot();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has created snapshot", this.name);
     }
 
     @Override
     public void resumeSnapshot() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.resumeSnapshot();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
@@ -962,7 +967,7 @@ public class StandardHugeGraph implements HugeGraph {
         } finally {
             this.closed = true;
             this.storeProvider.close();
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
         }
         // Make sure that all transactions are closed in all threads
         E.checkState(this.tx.closed(),
@@ -973,7 +978,7 @@ public class StandardHugeGraph implements HugeGraph {
     public void clearSchedulerAndLock() {
         this.taskManager.forceRemoveScheduler(this.params);
         try {
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
         } catch (Exception e) {
             // Ignore
         }

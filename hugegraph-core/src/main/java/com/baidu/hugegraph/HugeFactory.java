@@ -76,11 +76,13 @@ public class HugeFactory {
 
         String name = config.get(CoreOptions.STORE);
         checkGraphName(name, "graph config(like hugegraph.properties)");
+        String graphSpace = config.get(CoreOptions.GRAPH_SPACE);
         name = name.toLowerCase();
-        HugeGraph graph = graphs.get(name);
+        String spaceGraphName = graphSpace + "-" + name;
+        HugeGraph graph = graphs.get(spaceGraphName);
         if (graph == null || graph.closed()) {
             graph = new StandardHugeGraph(config);
-            graphs.put(name, graph);
+            graphs.put(spaceGraphName, graph);
         } else {
             String backend = config.get(CoreOptions.BACKEND);
             E.checkState(backend.equalsIgnoreCase(graph.backend()),

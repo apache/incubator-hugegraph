@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.util.DateUtil;
 
@@ -395,7 +396,7 @@ public final class TaskManager {
 
             String graph;
             ServerInfoManager serverManager = scheduler.serverManager();
-            graph = scheduler.graphName;
+            graph = ((StandardHugeGraph) scheduler.graph()).spaceGraphName();;
             LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
             try {
                 /*

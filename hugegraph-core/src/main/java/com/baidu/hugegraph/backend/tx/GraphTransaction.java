@@ -34,6 +34,7 @@ import java.util.function.Function;
 
 import javax.ws.rs.ForbiddenException;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.exception.NotAllowException;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import org.apache.commons.collections.CollectionUtils;
@@ -143,8 +144,8 @@ public class GraphTransaction extends IndexableTransaction implements AutoClosea
 
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
-
-        this.locksTable = new LockUtil.LocksTable(graph.name());
+        String spaceGraph = ((StandardHugeGraph) graph.graph()).spaceGraphName();
+        this.locksTable = new LockUtil.LocksTable(spaceGraph);
 
         final HugeConfig conf = graph.configuration();
         this.checkCustomVertexExist =

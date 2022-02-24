@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -644,7 +645,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        ConditionQuery query) {
         Iterator<BackendEntry> entries = super.query(query).iterator();
         return new BatchIdHolder(query, entries, batch -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+            String spaceGraph = ((StandardHugeGraph) this.params()
+                                .graph()).spaceGraphName();
+            LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
             try {
                 // Catch lock every batch
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
@@ -694,7 +697,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                      ConditionQuery query) {
         // Query all or one page
         Iterator<BackendEntry> entries = null;
-        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+        String spaceGraph = ((StandardHugeGraph) this.params()
+                            .graph()).spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());
