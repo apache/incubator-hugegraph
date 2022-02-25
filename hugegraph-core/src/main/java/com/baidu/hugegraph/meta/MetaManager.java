@@ -1306,10 +1306,8 @@ public class MetaManager {
         List<HugeBelong> result = new ArrayList<>();
 
         String key = belongListKeyByUser(graphSpace, user.asString());
-        LOG.debug("====> Scorpiour : scan belong key: {}", key);
 
         Map<String, String> belongMap = this.metaDriver.scanWithPrefix(key);
-        LOG.debug("====> Scorpiour belongMap size {}", belongMap.size());
         for (Map.Entry<String, String> item : belongMap.entrySet()) {
             if (limit >=0 && result.size() >= limit) {
                 break;
