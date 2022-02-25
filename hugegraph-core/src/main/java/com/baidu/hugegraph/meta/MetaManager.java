@@ -379,6 +379,11 @@ public class MetaManager {
         this.metaDriver.put(key, name);
     }
 
+    public void clearGraphSpaceList(String name) {
+        String key = this.graphSpaceListKey(name);
+        this.metaDriver.delete(key);
+    }
+
     public void notifyServiceAdd(String graphSpace, String name) {
         this.metaDriver.put(this.serviceAddKey(),
                             this.serviceName(graphSpace, name));

@@ -597,6 +597,7 @@ public final class GraphManager {
     public void dropGraphSpace(String name) {
         this.clearGraphSpace(name);
         this.metaManager.removeGraphSpaceConfig(name);
+        this.metaManager.clearGraphSpaceList(name);
         this.metaManager.notifyGraphSpaceRemove(name);
         this.graphSpaces.remove(name);
     }
