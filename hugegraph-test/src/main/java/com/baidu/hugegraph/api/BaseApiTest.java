@@ -52,6 +52,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 public class BaseApiTest {
@@ -543,17 +544,30 @@ public class BaseApiTest {
     }
 
     protected static void waitTaskSuccess(int task) {
-        waitTaskStatus(task, "success");
+        waitTaskStatus(task, ImmutableSet.of("success"));
     }
 
-    protected static void waitTaskStatus(int task, String expectedStatus) {
+    protected static void waitTaskCompleted(int task) {
+         Set<String> completed = ImmutableSet.of("success",
+                                                 "cancelled",
+                                                 "failed");
+         waitTaskStatus(task, completed);
+    }
+
+    protected static void waitTaskStatus(int task, Set<String> expectedStatus) {
         String status;
+        int times = 0;
+        int maxTimes = 100000;
         do {
             Response r = client.get("/graphs/hugegraph/tasks/",
                                     String.valueOf(task));
             String content = assertResponseStatus(200, r);
             status = assertJsonContains(content, "task_status");
-        } while (!status.equals(expectedStatus));
+            if (times++ > maxTimes) {
+                Assert.fail(String.format("Failed to wait for task %s " +
+                                          "due to timeout", task));
+            }
+        } while (!expectedStatus.contains(status));
     }
 
     protected static String parseId(String content) throws IOException {

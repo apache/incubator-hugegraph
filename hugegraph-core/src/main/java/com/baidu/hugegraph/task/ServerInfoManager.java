@@ -160,11 +160,7 @@ public class ServerInfoManager {
             } while (page != null);
         }
 
-        HugeServerInfo serverInfo = new HugeServerInfo(server, role);
-        serverInfo.maxLoad(this.calcMaxLoad());
-        this.save(serverInfo);
-
-        LOG.info("Init server info: {}", serverInfo);
+        this.saveServerInfo(this.selfServerId, this.selfServerRole);
     }
 
     public Id selfServerId() {
@@ -186,8 +182,9 @@ public class ServerInfoManager {
 
     public void heartbeat() {
         HugeServerInfo serverInfo = this.selfServerInfo();
-        if (serverInfo == null) {
-            return;
+        if (serverInfo == null && this.selfServerId != null) {
+            serverInfo = this.saveServerInfo(this.selfServerId,
+                                             this.selfServerRole);
         }
         serverInfo.updateTime(DateUtil.now());
         this.save(serverInfo);
@@ -239,7 +236,11 @@ public class ServerInfoManager {
             }
         }
 
-        this.onlySingleNode = !hasWorkerNode;
+        boolean singleNode = !hasWorkerNode;
+        if (singleNode != this.onlySingleNode) {
+            LOG.info("Switch only_single_node to {}", singleNode);
+            this.onlySingleNode = singleNode;
+        }
 
         // Only schedule to master if there is no workers and master is suitable
         if (!hasWorkerNode) {
@@ -260,26 +261,35 @@ public class ServerInfoManager {
         return this.graph.systemTransaction();
     }
 
-    private Id save(HugeServerInfo server) {
+    private HugeServerInfo saveServerInfo(Id server, NodeRole role) {
+        HugeServerInfo serverInfo = new HugeServerInfo(server, role);
+        serverInfo.maxLoad(this.calcMaxLoad());
+        this.save(serverInfo);
+
+        LOG.info("Init server info: {}", serverInfo);
+        return serverInfo;
+    }
+
+    private Id save(HugeServerInfo serverInfo) {
         return this.call(() -> {
             // Construct vertex from server info
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
                 throw new HugeException("Schema is missing for %s '%s'",
-                                        HugeServerInfo.P.SERVER, server);
+                                        HugeServerInfo.P.SERVER, serverInfo);
             }
             HugeVertex vertex = this.tx().constructVertex(false,
-                                                          server.asArray());
+                                                          serverInfo.asArray());
             // Add or update server info in backend store
             vertex = this.tx().addVertex(vertex);
             return vertex.id();
         });
     }
 
-    private int save(Collection<HugeServerInfo> servers) {
+    private int save(Collection<HugeServerInfo> serverInfos) {
         return this.call(() -> {
-            if (servers.isEmpty()) {
-                return servers.size();
+            if (serverInfos.isEmpty()) {
+                return serverInfos.size();
             }
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
@@ -289,7 +299,7 @@ public class ServerInfoManager {
             // Save server info in batch
             GraphTransaction tx = this.tx();
             int updated = 0;
-            for (HugeServerInfo server : servers) {
+            for (HugeServerInfo server : serverInfos) {
                 if (!server.updated()) {
                     continue;
                 }
@@ -319,7 +329,11 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo selfServerInfo() {
-        return this.serverInfo(this.selfServerId);
+        HugeServerInfo selfServerInfo = this.serverInfo(this.selfServerId);
+        if (selfServerInfo == null) {
+            LOG.warn("ServerInfo is missing: {}", this.selfServerId);
+        }
+        return selfServerInfo;
     }
 
     private HugeServerInfo serverInfo(Id server) {
