@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStore;
@@ -79,7 +80,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        final String name = prefix + "-" + this.graphName();
+        final String name = prefix + "-" + this.graph().spaceGraphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.IdQuery;
@@ -98,7 +99,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private Cache<Id, Object> cache(String prefix, String type, long capacity,
                                     long entrySize, long expire) {
-        String name = prefix + "-" + this.params().name();
+        String name = prefix + "-" + this.params().graph().spaceGraphName();
         Cache<Id, Object> cache;
         switch (type) {
             case "l1":
