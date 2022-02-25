@@ -71,7 +71,6 @@ public abstract class TaskScheduler {
     /**
      * serverInfo
      */
-    protected final ServerInfoManager serverManager;
     protected EventListener eventListener = null;
 
     /**
@@ -90,14 +89,12 @@ public abstract class TaskScheduler {
         this.graph = graph;
         this.graphSpace = graph.graph().graphSpace();
         this.graphName = graph.name();
-        this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
     }
 
     public TaskScheduler(TaskScheduler another) {
             this.graph = another.graph;
             this.graphSpace = graph.graph().graphSpace();
             this.graphName = another.graphName;
-            this.serverManager = another.serverManager;
     }
 
     /**
@@ -203,16 +200,6 @@ public abstract class TaskScheduler {
 
     public String graphSpace() {
         return this.graph.graph().graphSpace();
-    }
-
-    public void checkRequirement(String op) {
-        if (!this.serverManager().master()) {
-            throw new HugeException("Can't %s task on non-master server", op);
-        }
-    }
-
-    protected ServerInfoManager serverManager() {
-        return this.serverManager;
     }
 
     protected abstract <V> V call(Callable<V> callable);

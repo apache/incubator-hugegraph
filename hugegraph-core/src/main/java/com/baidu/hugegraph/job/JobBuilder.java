@@ -71,9 +71,6 @@ public class JobBuilder<V> {
         E.checkArgumentNotNull(this.job, "Job callable can't be null");
         E.checkArgument(this.job instanceof TaskCallable,
                         "Job must be instance of TaskCallable");
-
-        this.graph.taskScheduler().checkRequirement("schedule");
-
         @SuppressWarnings("unchecked")
         TaskCallable<V> job = (TaskCallable<V>) this.job;
 

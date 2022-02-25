@@ -485,7 +485,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 this.graph.closeTx();
             });
         }
-        return this.serverManager.close();
+        return true;
     }
 
     /**
@@ -618,11 +618,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     @Override
-    protected ServerInfoManager serverManager() {
-        return this.serverManager;
-    }
-
-    @Override
     protected <V> V call(Runnable runnable) {
         return this.call(Executors.callable(runnable, null));
     }
@@ -635,14 +630,6 @@ public class EtcdTaskScheduler extends TaskScheduler {
 
     @Override
     protected void taskDone(HugeTask<?> task) {
-        if (closing) {
-            return;
-        }
-        try {
-            this.serverManager.decreaseLoad(task.load());
-        } catch (Exception e) {
-            LOGGER.logCriticalError(e, "Failed to decrease load for task '{}' on server '{}'");
-        }
     }
 
     private EventListener listenChanges() {

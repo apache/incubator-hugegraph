@@ -51,7 +51,6 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
-import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -89,13 +88,11 @@ import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -289,11 +286,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(Id serverId, NodeRole serverRole) {
-        LOG.info("Init server info [{}-{}] for graph '{}'...",
-                 serverId, serverRole, this.name);
-        this.serverInfoManager().initServerInfo(serverId, serverRole);
-
+    public void serverStarted() {
         LOG.info("Search olap property key for graph '{}'", this.name);
         this.schemaTransaction().initAndRegisterOlapTables();
 
@@ -413,8 +406,7 @@ public class StandardHugeGraph implements HugeGraph {
         try {
             this.storeProvider.truncate();
             this.storeProvider.initSystemInfo(this);
-            this.serverStarted(this.serverInfoManager().selfServerId(),
-                               this.serverInfoManager().selfServerRole());
+            this.serverStarted();
         } finally {
             LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
@@ -1023,14 +1015,6 @@ public class StandardHugeGraph implements HugeGraph {
         return scheduler;
     }
 
-    private ServerInfoManager serverInfoManager() {
-        ServerInfoManager manager = this.taskManager
-                                        .getServerInfoManager(this.params);
-        E.checkState(manager != null,
-                     "Can't find server info manager for graph '%s'", this);
-        return manager;
-    }
-
     @Override
     public AuthManager authManager() {
         throw new HugeException("Not support authManager");
@@ -1210,12 +1194,6 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public HugeConfig configuration() {
             return StandardHugeGraph.this.configuration();
-        }
-
-        @Override
-        public ServerInfoManager serverManager() {
-            // this.serverManager.initSchemaIfNeeded();
-            return StandardHugeGraph.this.serverInfoManager();
         }
 
         @Override

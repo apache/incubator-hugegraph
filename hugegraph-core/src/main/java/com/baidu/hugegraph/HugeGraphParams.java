@@ -28,7 +28,6 @@ import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.vgraph.VirtualGraph;
@@ -65,8 +64,6 @@ public interface HugeGraphParams {
     public EventHub indexEventHub();
 
     public HugeConfig configuration();
-
-    public ServerInfoManager serverManager();
 
     public AbstractSerializer serializer();
     public Analyzer analyzer();

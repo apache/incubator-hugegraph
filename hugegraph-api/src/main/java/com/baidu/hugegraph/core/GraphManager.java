@@ -70,8 +70,6 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -92,7 +90,6 @@ import com.baidu.hugegraph.space.Service;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.define.CollectionType;
 import com.baidu.hugegraph.type.define.GraphMode;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -103,9 +100,6 @@ import com.google.common.collect.ImmutableSet;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.fabric8.kubernetes.api.model.Namespace;
-import io.fabric8.kubernetes.api.model.Pod;
-
-import javax.ws.rs.NotFoundException;
 
 public final class GraphManager {
 
@@ -130,14 +124,10 @@ public final class GraphManager {
     private final K8sManager k8sManager = K8sManager.instance();
     private final String serviceGraphSpace;
     private final String serviceID;
-    private final String nodeId;
-    private final String nodeRole;
     private final String pdPeers;
 
     private final EventHub eventHub;
 
-    private final Id serverId;
-    private final NodeRole serverRole;
     private final String url;
 
     private HugeConfig config;
@@ -149,17 +139,9 @@ public final class GraphManager {
     public GraphManager(HugeConfig conf, EventHub hub) {
         E.checkArgumentNotNull(conf, "The config can't be null");
         this.config = conf;
-        String server = conf.get(ServerOptions.SERVER_ID);
-        String role = conf.get(ServerOptions.SERVER_ROLE);
         this.url = conf.get(ServerOptions.REST_SERVER_URL);
         this.startIgnoreSingleGraphError = conf.get(
                 ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
-        E.checkArgument(server != null && !server.isEmpty(),
-                        "The server name can't be null or empty");
-        E.checkArgument(role != null && !role.isEmpty(),
-                        "The server role can't be null or empty");
-        this.serverId = IdGenerator.of(server);
-        this.serverRole = NodeRole.valueOf(role.toUpperCase());
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
         this.cluster = conf.get(ServerOptions.CLUSTER);
         this.graphSpaces = new ConcurrentHashMap<>();
@@ -170,8 +152,6 @@ public final class GraphManager {
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.serviceGraphSpace = conf.get(ServerOptions.SERVICE_GRAPH_SPACE);
         this.serviceID = conf.get(ServerOptions.SERVICE_ID);
-        this.nodeId = conf.get(ServerOptions.NODE_ID);
-        this.nodeRole = conf.get(ServerOptions.NODE_ROLE);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
         this.listenChanges();
@@ -630,7 +610,7 @@ public final class GraphManager {
     public void registerK8StoPd() throws Exception {
         try {
             PdRegister register = PdRegister.getInstance();
-            String pdServiceId = register.init(this.serverId.asString());
+            String pdServiceId = register.init(this.serviceID);
             this.pdK8sServiceId = pdServiceId;
         } catch (Exception e) {
             LOG.error("Register service k8s external info to pd failed!", e);
@@ -811,7 +791,7 @@ public final class GraphManager {
         if (init) {
             try {
                 graph.initBackend();
-                graph.serverStarted(this.serverId, this.serverRole);
+                graph.serverStarted();
             } catch (BackendException e) {
                 try {
                     graph.close();
@@ -1099,7 +1079,7 @@ public final class GraphManager {
             try {
                 HugeGraph hugegraph = (HugeGraph) graph;
                 assert hugegraph != null;
-                hugegraph.serverStarted(this.serverId, this.serverRole);
+                hugegraph.serverStarted();
             } catch (HugeException e) {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
@@ -1183,7 +1163,7 @@ public final class GraphManager {
             // Create graph without init
             try {
                 HugeGraph graph = this.createGraph(parts[0], parts[1], config, false);
-                graph.serverStarted(this.serverId, this.serverRole);
+                graph.serverStarted();
                 graph.tx().close();
             } catch (HugeException e) {
                 if (!this.startIgnoreSingleGraphError) {

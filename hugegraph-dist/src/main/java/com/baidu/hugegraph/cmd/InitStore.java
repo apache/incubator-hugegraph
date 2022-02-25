@@ -111,15 +111,15 @@ public class InitStore {
             return -1;
         });
 
-        for (String graphName : sortedGraphNames) {
-            initGraph(graphConfs.get(graphName));
-        }
-
         List<String> metaEndpoints = Arrays.asList(args[5].split(","));
         Boolean withCa = args[8].equals("true") ? true : false;
         StandardAuthenticator.initAdminUserIfNeeded(restConf, metaEndpoints,
                                                     args[6], withCa, args[9],
                                                     args[10], args[11]);
+
+        for (String graphName : sortedGraphNames) {
+            initGraph(graphConfs.get(graphName));
+        }
 
         HugeFactory.shutdown(30L);
     }

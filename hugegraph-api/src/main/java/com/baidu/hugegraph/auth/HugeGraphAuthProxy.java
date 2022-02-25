@@ -83,7 +83,6 @@ import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
@@ -92,7 +91,6 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.RateLimiter;
@@ -675,9 +673,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(Id serverId, NodeRole serverRole) {
+    public void serverStarted() {
         this.verifyAdminPermission();
-        this.hugegraph.serverStarted(serverId, serverRole);
+        this.hugegraph.serverStarted();
     }
 
     @Override
@@ -1086,12 +1084,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
 
-        @Override
-        public void checkRequirement(String op) {
-            verifyAnyPermission();
-            this.taskScheduler.checkRequirement(op);
-        }
-
         private void verifyTaskPermission(HugePermission actionPerm) {
             verifyPermission(actionPerm, ResourceType.TASK);
         }
@@ -1140,12 +1132,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             return Objects.equals(currentUser.getName(), taskUser.getName()) ||
                    RolePerm.match(currentUser.role(), taskUser.role(), null);
-        }
-
-        @Override
-        protected ServerInfoManager serverManager() {
-            // TODO Auto-generated method stub
-            return null;
         }
 
         @Override

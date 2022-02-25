@@ -150,7 +150,7 @@ public interface HugeGraph extends Graph {
     public void readMode(GraphReadMode readMode);
 
     public void waitStarted();
-    public void serverStarted(Id serverId, NodeRole serverRole);
+    public void serverStarted();
     public boolean started();
     public boolean closed();
 
