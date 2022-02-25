@@ -551,6 +551,7 @@ public final class GraphManager {
         checkGraphSpaceName(name);
         this.limitStorage(space, space.storageLimit);
         this.metaManager.addGraphSpaceConfig(name, space);
+        this.metaManager.appendGraphSpaceList(name);
 
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
         if (useK8s) {
