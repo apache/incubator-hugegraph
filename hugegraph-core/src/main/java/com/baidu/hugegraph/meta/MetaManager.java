@@ -294,6 +294,13 @@ public class MetaManager {
 
     public void addSchemaTemplate(String graphSpace,
                                   SchemaTemplate template) {
+        String key = this.schemaTemplateKey(graphSpace, template.name());
+
+        String data = this.metaDriver.get(key);
+        if (null != data) {
+            throw new HugeException("Cannot create schema template since it has been created");
+        }
+
         this.metaDriver.put(this.schemaTemplateKey(graphSpace, template.name()),
                             JsonUtil.toJson(template.asMap()));
     }
