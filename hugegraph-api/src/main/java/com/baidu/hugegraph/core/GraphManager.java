@@ -551,6 +551,7 @@ public final class GraphManager {
         checkGraphSpaceName(name);
         this.limitStorage(space, space.storageLimit);
         this.metaManager.addGraphSpaceConfig(name, space);
+        this.metaManager.appendGraphSpaceList(name);
 
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
         if (useK8s) {
@@ -596,6 +597,7 @@ public final class GraphManager {
     public void dropGraphSpace(String name) {
         this.clearGraphSpace(name);
         this.metaManager.removeGraphSpaceConfig(name);
+        this.metaManager.clearGraphSpaceList(name);
         this.metaManager.notifyGraphSpaceRemove(name);
         this.graphSpaces.remove(name);
     }

@@ -381,6 +381,16 @@ public class MetaManager {
         this.metaDriver.put(this.graphSpaceAddKey(), graphSpace);
     }
 
+    public void appendGraphSpaceList(String name) {
+        String key = this.graphSpaceListKey(name);
+        this.metaDriver.put(key, name);
+    }
+
+    public void clearGraphSpaceList(String name) {
+        String key = this.graphSpaceListKey(name);
+        this.metaDriver.delete(key);
+    }
+
     public void notifyServiceAdd(String graphSpace, String name) {
         this.metaDriver.put(this.serviceAddKey(),
                             this.serviceName(graphSpace, name));
@@ -819,6 +829,12 @@ public class MetaManager {
         // HUGEGRAPH/{cluster}/GRAPHSPACE_LIST
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE_LIST);
+    }
+
+    private String graphSpaceListKey(String name) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE_LIST/{graphspace}
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                            this.cluster, META_PATH_GRAPHSPACE_LIST, name);
     }
 
     private String hstorePDPeersKey() {
@@ -1295,8 +1311,10 @@ public class MetaManager {
                                              throws IOException,
                                              ClassNotFoundException {
         List<HugeBelong> result = new ArrayList<>();
-        Map<String, String> belongMap = this.metaDriver.scanWithPrefix(
-                            belongListKeyByUser(graphSpace, user.asString()));
+
+        String key = belongListKeyByUser(graphSpace, user.asString());
+
+        Map<String, String> belongMap = this.metaDriver.scanWithPrefix(key);
         for (Map.Entry<String, String> item : belongMap.entrySet()) {
             if (limit >=0 && result.size() >= limit) {
                 break;
@@ -1535,12 +1553,8 @@ public class MetaManager {
     }
 
     public void initDefaultGraphSpace() {
-        String defaultGS = String.join(META_PATH_DELIMITER,
-                                       META_PATH_HUGEGRAPH,
-                                       this.cluster,
-                                       META_PATH_GRAPHSPACE_LIST,
-                                       "DEFAULT");
-        this.metaDriver.put(defaultGS, "DEFAULT");
+        String defaultGraphSpace = "DEFAULT";
+        this.appendGraphSpaceList(defaultGraphSpace);
     }
 
     @SuppressWarnings("unchecked")
