@@ -142,7 +142,15 @@ public class HugeGraphServer {
 
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
         if (gs != null) {
-            restServerConfig.setProperty(ServerOptions.K8S_NAMESPACE.name(), gs.olapNamespace());
+            String olapNamesapce = gs.olapNamespace();
+            if (!GraphSpace.DEFAULT_GRAPH_SPACE_NAME.equals(graphSpace)
+                    || (!StringUtils.isEmpty(olapNamesapce) && !"null".equals(olapNamesapce))) {
+                // Use olapNamespace of graph space when:
+                // 1. It's not default graph space.
+                // 2. Or it's default graph space, and olapNamespace has already been set a not 'null' value.
+                // Otherwise, use k8s.namespace in conf
+                restServerConfig.setProperty(ServerOptions.K8S_NAMESPACE.name(), olapNamesapce);
+            }
         }
 
         try {
