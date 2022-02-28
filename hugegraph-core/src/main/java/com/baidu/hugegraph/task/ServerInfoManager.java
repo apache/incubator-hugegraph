@@ -182,7 +182,8 @@ public class ServerInfoManager {
 
     public void heartbeat() {
         HugeServerInfo serverInfo = this.selfServerInfo();
-        if (serverInfo == null && this.selfServerId != null) {
+        if (serverInfo == null && this.selfServerId != null &&
+            this.selfServerRole != NodeRole.MASTER) {
             serverInfo = this.saveServerInfo(this.selfServerId,
                                              this.selfServerRole);
         }
