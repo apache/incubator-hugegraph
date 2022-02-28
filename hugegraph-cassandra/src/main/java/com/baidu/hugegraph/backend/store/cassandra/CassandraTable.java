@@ -38,6 +38,7 @@ import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.Condition.Relation;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.Query.Order;
 import com.baidu.hugegraph.backend.store.BackendEntry;
@@ -46,6 +47,7 @@ import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.CopyUtil;
@@ -95,6 +97,18 @@ public abstract class CassandraTable
                                                         this.table());
             return splitter.getSplits(0, splitSize);
         });
+    }
+
+    @Override
+    public boolean queryExist(CassandraSessionPool.Session session,
+                              CassandraBackendEntry.Row entry) {
+        Query query = new IdQuery.OneIdQuery(HugeType.UNKNOWN, entry.id());
+        Iterator<BackendEntry> iter = this.query(session, query);
+        try {
+            return iter.hasNext();
+        } finally {
+            WrappedIterator.close(iter);
+        }
     }
 
     @Override

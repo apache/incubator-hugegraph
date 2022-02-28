@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
@@ -48,6 +49,8 @@ import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.WrappedIterator;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -329,6 +332,17 @@ public abstract class MysqlTable
     }
 
     @Override
+    public boolean queryExist(Session session, MysqlBackendEntry.Row entry) {
+        Query query = new IdQuery.OneIdQuery(HugeType.UNKNOWN, entry.id());
+        Iterator<BackendEntry> iter = this.query(session, query);
+        try {
+            return iter.hasNext();
+        } finally {
+            WrappedIterator.close(iter);
+        }
+    }
+
+    @Override
     public Number queryNumber(Session session, Query query) {
         Aggregate aggregate = query.aggregateNotNull();
 
@@ -353,8 +367,8 @@ public abstract class MysqlTable
     }
 
     protected <R> Iterator<R> query(Session session, Query query,
-                                    BiFunction<Query, ResultSetWrapper, Iterator<R>>
-                                    parser) {
+                                    BiFunction<Query, ResultSetWrapper,
+                                               Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {

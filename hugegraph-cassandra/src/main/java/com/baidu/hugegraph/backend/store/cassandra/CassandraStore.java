@@ -227,17 +227,25 @@ public abstract class CassandraStore
             LOG.warn("The entry will be ignored due to no change: {}", entry);
         }
 
+        CassandraTable table;
+        if (!entry.olap()) {
+            // Oltp table
+            table = this.table(entry.type());
+        } else {
+            if (entry.type().isIndex()) {
+                // Olap index
+                table = this.table(this.olapTableName(entry.type()));
+            } else {
+                // Olap vertex
+                table = this.table(this.olapTableName(entry.subId()));
+            }
+        }
+
         switch (item.action()) {
             case INSERT:
-                // Insert olap vertex
-                if (entry.olap()) {
-                    this.table(this.olapTableName(entry.subId()))
-                        .insert(session, entry.row());
-                    break;
-                }
                 // Insert entry
                 if (entry.selfChanged()) {
-                    this.table(entry.type()).insert(session, entry.row());
+                    table.insert(session, entry.row());
                 }
                 // Insert sub rows (edges)
                 for (CassandraBackendEntry.Row row : entry.subRows()) {
@@ -245,15 +253,9 @@ public abstract class CassandraStore
                 }
                 break;
             case DELETE:
-                // Delete olap vertex index by index label
-                if (entry.olap()) {
-                    this.table(this.olapTableName(entry.type()))
-                        .delete(session, entry.row());
-                    break;
-                }
                 // Delete entry
                 if (entry.selfChanged()) {
-                    this.table(entry.type()).delete(session, entry.row());
+                    table.delete(session, entry.row());
                 }
                 // Delete sub rows (edges)
                 for (CassandraBackendEntry.Row row : entry.subRows()) {
@@ -261,15 +263,9 @@ public abstract class CassandraStore
                 }
                 break;
             case APPEND:
-                // Append olap vertex index
-                if (entry.olap()) {
-                    this.table(this.olapTableName(entry.type()))
-                        .append(session, entry.row());
-                    break;
-                }
                 // Append entry
                 if (entry.selfChanged()) {
-                    this.table(entry.type()).append(session, entry.row());
+                    table.append(session, entry.row());
                 }
                 // Append sub rows (edges)
                 for (CassandraBackendEntry.Row row : entry.subRows()) {
@@ -279,12 +275,26 @@ public abstract class CassandraStore
             case ELIMINATE:
                 // Eliminate entry
                 if (entry.selfChanged()) {
-                    this.table(entry.type()).eliminate(session, entry.row());
+                    table.eliminate(session, entry.row());
                 }
                 // Eliminate sub rows (edges)
                 for (CassandraBackendEntry.Row row : entry.subRows()) {
                     this.table(row.type()).eliminate(session, row);
                 }
+                break;
+            case UPDATE_IF_PRESENT:
+                if (entry.selfChanged()) {
+                    // TODO: forward to master-writer node
+                    table.updateIfPresent(session, entry.row());
+                }
+                assert entry.subRows().isEmpty() : entry.subRows();
+                break;
+            case UPDATE_IF_ABSENT:
+                if (entry.selfChanged()) {
+                    // TODO: forward to master-writer node
+                    table.updateIfAbsent(session, entry.row());
+                }
+                assert entry.subRows().isEmpty() : entry.subRows();
                 break;
             default:
                 throw new AssertionError(String.format(
