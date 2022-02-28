@@ -130,6 +130,8 @@ fi
 
 echo "Starting HugeGraphServer..."
 
+export JAVA_HOME=/root/jdk1.8.0_271
+
 ${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \
 ${GRAPH_SPACE} ${SERVICE_ID} ${NODE_ID} ${NODE_ROLE} ${META_SERVERS} \
 ${CLUSTER} ${PD_PEERS} ${WITH_CA} ${CA_FILE} ${CLIENT_CA} ${CLIENT_KEY} \
