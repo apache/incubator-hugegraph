@@ -53,6 +53,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
@@ -103,6 +104,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final HugeGraphLogger LOGGER
             = Log.getLogger(HugeGraphAuthProxy.class);
+    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
     private final Cache<Id, UserWithRole> usersRoleCache;
     private final Cache<Id, RateLimiter> auditLimiters;
     private final double auditLogMaxRate;
@@ -926,6 +928,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                                       Supplier<ResourceObject<V>> fetcher,
                                       Supplier<Boolean> checker) {
         // TODO: call verifyPermission() before actual action
+        LOG.info("====> Scorpiour going to verify res permission {}", actionPerm);
         Context context = getContext();
         E.checkState(context != null,
                      "Missing authentication context " +
@@ -935,12 +938,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         ResourceObject<V> ro = fetcher.get();
         String action = actionPerm.string();
 
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.logCustomDebug(
-                "Verify permission {} {} for user '{}' with role {}",
-                "Jermy Li",
-                action, ro, username, role);
-        }
+   
+        LOG.info("====> Scorpiour verify perm {} {} {} {}", action, ro, username, role);
+
+        LOGGER.logCustomDebug(
+            "Verify permission {}",
+            "Scorpiour",
+            action, ro, username, role);
+        
 
         V result = ro.operated();
         // Verify role permission

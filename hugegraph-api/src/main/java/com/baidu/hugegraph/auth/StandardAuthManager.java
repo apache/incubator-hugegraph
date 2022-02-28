@@ -1155,6 +1155,7 @@ public class StandardAuthManager implements AuthManager {
         RolePermission role = new RolePermission();
         List<String> graphSpaces = this.listGraphSpace();
         graphSpaces.add(ALL_GRAPH_SPACES);
+        LOG.info("====> Scorpiour : attach space info");
         for (String graphSpace : graphSpaces) {
             List<HugeBelong> belongs = this.listBelongByUser(graphSpace,
                                        user.id(), -1, false);
@@ -1165,6 +1166,7 @@ public class StandardAuthManager implements AuthManager {
                     HugePermission accessPerm = access.permission();
                     HugeTarget target = this.getTarget(graphSpace,
                                         access.target(), false);
+                    LOG.info("====> Scorpiour: get target {} under Access {}", target, access);
                     role.add(graphSpace, target.graph(),
                              accessPerm, target.resources());
                 }
@@ -1172,6 +1174,7 @@ public class StandardAuthManager implements AuthManager {
         }
 
         user.role(role);
+        LOG.info("====> Scorpiour, final role info {}", role);
         return role;
     }
 

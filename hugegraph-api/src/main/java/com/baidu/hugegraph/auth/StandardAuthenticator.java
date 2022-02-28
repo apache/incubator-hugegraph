@@ -66,6 +66,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
     @Override
     public UserWithRole authenticate(String username, String password,
                                      String token) {
+        LOG.info("====> Scorpiour Grab role info");
         UserWithRole userWithRole;
         if (StringUtils.isNotEmpty(token)) {
             userWithRole = this.authManager().validateUser(token);
@@ -78,6 +79,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
 
         RolePermission role = userWithRole.role();
+        LOG.info("====> Scorpiour Role is {}", userWithRole);
+
         if (role == null) {
             role = ROLE_NONE;
         } else if (USER_ADMIN.equals(userWithRole.username())) {

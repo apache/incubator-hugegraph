@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
@@ -37,12 +38,17 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 
 public interface HugeAuthenticator extends Authenticator {
+
+    public static final Logger LOG =
+                                    Log.logger(HugeAuthenticator.class);
 
     public static final String KEY_USERNAME =
                                CredentialGraphTokens.PROPERTY_USERNAME;
@@ -52,6 +58,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_ROLE = "role";
     public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
+    public static final String GENERAL_PATTERN = "*";
 
     public static final String USER_SYSTEM = RestServer.EXECUTOR;
     public static final String USER_ADMIN = "admin";
@@ -86,6 +93,9 @@ public interface HugeAuthenticator extends Authenticator {
     @Override
     public default User authenticate(final Map<String, String> credentials)
                                      throws AuthenticationException {
+
+        LOG.info("====> Scorpiour Credential Info: {}", credentials);
+
         HugeGraphAuthProxy.resetContext();
 
         User user = User.ANONYMOUS;
@@ -96,6 +106,7 @@ public interface HugeAuthenticator extends Authenticator {
 
             // Currently we just use config tokens to authenticate
             UserWithRole role = this.authenticate(username, password, token);
+            LOG.info("====> Scorpiour: userWithRole Info: {}", role);
             if (!verifyRole(role.role())) {
                 // Throw if not certified
                 String message = "Incorrect username or password";
@@ -288,8 +299,8 @@ public interface HugeAuthenticator extends Authenticator {
             }
 
             return this.roles.containsKey(graphSpace) &&
-                    this.roles.get(graphSpace).containsKey("*") &&
-                    this.roles.get(graphSpace).get("*")
+                    this.roles.get(graphSpace).containsKey(GENERAL_PATTERN) &&
+                    this.roles.get(graphSpace).get(GENERAL_PATTERN)
                             .containsKey(HugePermission.SPACE);
         }
 
@@ -322,6 +333,7 @@ public interface HugeAuthenticator extends Authenticator {
 
             String graphSpace = requiredResource.graphSpace();
             String owner = requiredResource.graph();
+            LOG.info("===> Scorpiour Match resource , owner {}", owner);
             Map<String, Map<HugePermission, Object>> innerRoles =
                                                      this.roles.get(graphSpace);
             if (innerRoles == null) {
@@ -330,8 +342,14 @@ public interface HugeAuthenticator extends Authenticator {
 
             Map<HugePermission, Object> permissions = innerRoles.get(owner);
             if (permissions == null) {
-                return false;
+                LOG.info("===> Scorpiour try to grab general perm");
+                permissions = innerRoles.get(GENERAL_PATTERN);
+                if (permissions == null) {
+                    LOG.info("===> Scorpiour no permission found, ret false");
+                    return false;
+                }
             }
+            LOG.info("===> Scorpiour Going to match now");
             Object permission = matchedAction(requiredAction, permissions);
             if (permission == null) {
                 // Deny all if no specified permission

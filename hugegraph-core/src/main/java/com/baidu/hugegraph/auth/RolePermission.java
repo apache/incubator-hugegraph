@@ -37,11 +37,15 @@ import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 
 public class RolePermission {
+
+    private static final Logger LOG = Log.logger(RolePermission.class);
 
     public static final RolePermission NONE = RolePermission.role("*",
                                               "*", HugePermission.NONE);
@@ -83,7 +87,8 @@ public class RolePermission {
         if (graphPermissions == null) {
             graphPermissions = new TreeMap<>();
         }
-
+        LOG.info("====> Scorpiour: going to add for {} - {} - {}", graphSpace, graph, action);
+        // TODO by Scorpiour: if graph is '*', list all permissions
         Map<HugePermission, List<HugeResource>> permissions =
                                                 graphPermissions.get(graph);
         if (permissions == null) {
