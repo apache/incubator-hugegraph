@@ -38,7 +38,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
@@ -94,8 +93,6 @@ public interface HugeAuthenticator extends Authenticator {
     public default User authenticate(final Map<String, String> credentials)
                                      throws AuthenticationException {
 
-        LOG.info("====> Scorpiour Credential Info: {}", credentials);
-
         HugeGraphAuthProxy.resetContext();
 
         User user = User.ANONYMOUS;
@@ -106,7 +103,6 @@ public interface HugeAuthenticator extends Authenticator {
 
             // Currently we just use config tokens to authenticate
             UserWithRole role = this.authenticate(username, password, token);
-            LOG.info("====> Scorpiour: userWithRole Info: {}", role);
             if (!verifyRole(role.role())) {
                 // Throw if not certified
                 String message = "Incorrect username or password";
@@ -333,7 +329,6 @@ public interface HugeAuthenticator extends Authenticator {
 
             String graphSpace = requiredResource.graphSpace();
             String owner = requiredResource.graph();
-            LOG.info("===> Scorpiour Match resource , owner {}", owner);
             Map<String, Map<HugePermission, Object>> innerRoles =
                                                      this.roles.get(graphSpace);
             if (innerRoles == null) {
@@ -342,14 +337,11 @@ public interface HugeAuthenticator extends Authenticator {
 
             Map<HugePermission, Object> permissions = innerRoles.get(owner);
             if (permissions == null) {
-                LOG.info("===> Scorpiour try to grab general perm");
                 permissions = innerRoles.get(GENERAL_PATTERN);
                 if (permissions == null) {
-                    LOG.info("===> Scorpiour no permission found, ret false");
                     return false;
                 }
             }
-            LOG.info("===> Scorpiour Going to match now");
             Object permission = matchedAction(requiredAction, permissions);
             if (permission == null) {
                 // Deny all if no specified permission

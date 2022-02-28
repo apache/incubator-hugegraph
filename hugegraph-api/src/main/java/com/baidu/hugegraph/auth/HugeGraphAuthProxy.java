@@ -104,7 +104,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final HugeGraphLogger LOGGER
             = Log.getLogger(HugeGraphAuthProxy.class);
-    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
     private final Cache<Id, UserWithRole> usersRoleCache;
     private final Cache<Id, RateLimiter> auditLimiters;
     private final double auditLogMaxRate;
@@ -928,7 +927,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                                       Supplier<ResourceObject<V>> fetcher,
                                       Supplier<Boolean> checker) {
         // TODO: call verifyPermission() before actual action
-        LOG.info("====> Scorpiour going to verify res permission {}", actionPerm);
         Context context = getContext();
         E.checkState(context != null,
                      "Missing authentication context " +
@@ -937,15 +935,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         Object role = context.user().role();
         ResourceObject<V> ro = fetcher.get();
         String action = actionPerm.string();
-
-   
-        LOG.info("====> Scorpiour verify perm {} {} {} {}", action, ro, username, role);
-
-        LOGGER.logCustomDebug(
-            "Verify permission {}",
-            "Scorpiour",
-            action, ro, username, role);
-        
 
         V result = ro.operated();
         // Verify role permission
