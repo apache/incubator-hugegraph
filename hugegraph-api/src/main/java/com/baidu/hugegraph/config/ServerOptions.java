@@ -286,12 +286,20 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph-computer-operator-system/hugegraph-server:v1"
             );
 
-    public static final ConfigOption<String> SERVER_DEFAULT_K8S_NAMESPACE =
+    public static final ConfigOption<String> SERVER_DEFAULT_OLTP_K8S_NAMESPACE =
             new ConfigOption<>(
-                    "server.default_k8s_namespace",
+                    "server.default_oltp_k8s_namespace",
                     "The default namespace for HugeGraph default graph space.",
                     disallowEmpty(),
                     "hugegraph-server"
+            );
+
+    public static final ConfigOption<String> SERVER_DEFAULT_OLAP_K8S_NAMESPACE =
+            new ConfigOption<>(
+                    "server.default_oltp_k8s_namespace",
+                    "The default namespace for HugeGraph default graph space.",
+                    disallowEmpty(),
+                    "hugegraph-computer-system"
             );
 
     public static final ConfigOption<Boolean> GRAPH_LOAD_FROM_LOCAL_CONFIG =
