@@ -200,7 +200,9 @@ public class StandardTaskScheduler extends TaskScheduler {
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
-        int size = this.tasks.size() + 1;
+        long size = this.tasks.values().stream()
+                        .filter((t) -> TaskStatus.PENDING_STATUSES.contains(t.status()))
+                        .count()   + 1;
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
                         size, MAX_PENDING_TASKS);
