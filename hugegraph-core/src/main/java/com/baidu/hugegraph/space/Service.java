@@ -209,11 +209,11 @@ public class Service {
     }
 
     public boolean manual() {
-        return this.deploymentType == DeploymentType.MANUAL;
+        return DeploymentType.MANUAL.equals(this.deploymentType);
     }
 
     public boolean k8s() {
-        return this.deploymentType == DeploymentType.K8S;
+        return DeploymentType.K8S.equals(this.deploymentType);
     }
 
     public Map<String, Object> info() {
