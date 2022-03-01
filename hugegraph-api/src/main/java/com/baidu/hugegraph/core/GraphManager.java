@@ -672,6 +672,9 @@ public final class GraphManager {
     public void dropService(String graphSpace, String name) {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
+        if (null == service) {
+            return;
+        }
         if (service.k8s()) {
             this.k8sManager.stopService(gs, service);
         }

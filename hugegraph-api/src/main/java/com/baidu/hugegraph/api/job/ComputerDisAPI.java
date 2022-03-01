@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.page.PageInfo;
 import com.baidu.hugegraph.core.GraphManager;
@@ -103,6 +104,7 @@ public class ComputerDisAPI extends API {
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name("computer-dis:" + jsonTask.algorithm)
                .input(JsonUtil.toJson(input))
+               .context(HugeGraphAuthProxy.getContextString())
                .job(new ComputerDisJob());
         HugeTask<?> task = builder.schedule();
         return ImmutableMap.of("task_id", task.id());
