@@ -107,6 +107,7 @@ public class HugeGraphServer {
                                      serviceId);
         restServerConfig.addProperty(ServerOptions.SERVICE_GRAPH_SPACE.name(),
                                      graphSpace);
+        restServerConfig.addProperty(ServerOptions.CLUSTER.name(), cluster);
         restServerConfig.addProperty(ServerOptions.META_ENDPOINTS.name(),
                                      "[" + String.join(",", metaEndpoints) + "]");
         restServerConfig.addProperty(ServerOptions.NODE_ID.name(), nodeId);
