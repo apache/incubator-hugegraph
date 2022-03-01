@@ -107,6 +107,9 @@ public class ServiceApi extends API {
 
         jsonService.checkCreate(false);
 
+        String username = manager.authManager().username();
+        Service temp = jsonService.toService();
+        
         Service service = manager.createService(graphSpace,
                                                 jsonService.toService());
         return manager.serializer().writeService(service);

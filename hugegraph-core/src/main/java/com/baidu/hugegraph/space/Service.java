@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.space;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,6 +57,9 @@ public class Service {
 
     private String pdServiceId;
 
+    private String creator = "";
+    private final Date createTime;
+
     public Service(String name, ServiceType type,
                    DeploymentType deploymentType) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
@@ -73,6 +77,8 @@ public class Service {
         this.cpuLimit = DEFAULT_CPU_LIMIT;
         this.memoryLimit = DEFAULT_MEMORY_LIMIT;
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
+
+        this.createTime = new Date();
     }
 
     public Service(String name, String description, ServiceType type,
@@ -94,6 +100,8 @@ public class Service {
         this.routeType = routeType;
         this.port = port;
         this.urls = urls;
+
+        this.createTime = new Date();
     }
 
     public String name() {
@@ -216,6 +224,14 @@ public class Service {
         return this.deploymentType == DeploymentType.K8S;
     }
 
+    public String creator() {
+        return this.creator;
+    }
+
+    public Date createdTime() {
+        return this.createTime;
+    }
+
     public Map<String, Object> info() {
         Map<String, Object> infos = new LinkedHashMap<>();
         infos.put("name", this.name);
@@ -234,6 +250,9 @@ public class Service {
         infos.put("urls", this.urls);
 
         infos.put("pd_service_id", this.pdServiceId);
+
+        infos.put("creator", this.creator);
+        infos.put("create_time", this.createTime);
 
         return infos;
     }

@@ -423,6 +423,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             String pdServiceId = null;
 
+            String creator = "";
+            Date createTime;
+
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
@@ -455,7 +458,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     }
                 } else if("pd_service_id".equals(fieldName)) {
                     pdServiceId = jsonParser.getText();
-                } else {
+                } else if("creator".equals(fieldName)) {
+                    creator = jsonParser.getText();
+                } else if("create_time".equals(fieldName)) {
+                    createTime = new Date(jsonParser.getText());
+                }
+                else {
                     // throw new HugeException("Invalid field '%s'", fieldName);
                     LOGGER.logCriticalError(new HugeException("Invalid field %", fieldName), "Deserialize Service");
                 }
