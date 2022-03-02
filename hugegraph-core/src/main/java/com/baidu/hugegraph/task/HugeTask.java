@@ -56,6 +56,7 @@ import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
+import com.google.common.base.Strings;
 
 public class HugeTask<V> extends FutureTask<V> {
 
@@ -170,9 +171,10 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public final void context(String context) {
-        E.checkArgument(this.context == null,
-                        "Task context must be set once, but already set '%s'",
-                        this.context);
+        if (!Strings.isNullOrEmpty(this.context)) {
+            LOG.warn("Task context must be set once, but already set '%s'", this.context);
+            return;
+        }
         E.checkArgument(this.status == TaskStatus.NEW,
                         "Task context must be set in state NEW instead of %s",
                         this.status);

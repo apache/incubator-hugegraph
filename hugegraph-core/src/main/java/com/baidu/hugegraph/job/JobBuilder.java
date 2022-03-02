@@ -36,6 +36,7 @@ public class JobBuilder<V> {
     private String name;
     private String input;
     private Job<V> job;
+    private String context;
     private Set<Id> dependencies;
 
     public static <T> JobBuilder<T> of(final HugeGraph graph) {
@@ -66,6 +67,11 @@ public class JobBuilder<V> {
         return this;
     }
 
+    public JobBuilder<V> context(String context) {
+        this.context = context;
+        return this;
+    }
+
     public HugeTask<V> schedule() {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
         E.checkArgumentNotNull(this.job, "Job callable can't be null");
@@ -77,6 +83,7 @@ public class JobBuilder<V> {
         HugeTask<V> task = new HugeTask<>(this.genTaskId(), null, job);
         task.type(this.job.type());
         task.name(this.name);
+        task.context(context);
         if (this.input != null) {
             task.input(this.input);
         }

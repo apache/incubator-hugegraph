@@ -1312,7 +1312,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return contexts.get();
     }
 
-    protected static final String getContextString() {
+    public static final String getContextString() {
         Context context = getContext();
         if (context == null) {
             return null;
