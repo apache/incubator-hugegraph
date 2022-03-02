@@ -228,7 +228,7 @@ public class VertexLabelBuilder extends AbstractBuilder
             vertexLabel.nullableKey(propertyKey.id());
         }
         vertexLabel.userdata(this.userdata);
-        this.graph().addVertexLabel(vertexLabel);
+        this.graph().updateVertexLabel(vertexLabel);
         return vertexLabel;
     }
 
@@ -246,7 +246,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         vertexLabel.removeUserdata(this.userdata);
-        this.graph().addVertexLabel(vertexLabel);
+        this.graph().updateVertexLabel(vertexLabel);
         return vertexLabel;
     }
 

@@ -196,6 +196,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void updatePropertyKey(PropertyKey key) {
+        verifySchemaPermission(HugePermission.WRITE, key);
+        this.hugegraph.updatePropertyKey(key);
+    }
+
+    @Override
     public Id removePropertyKey(Id key) {
         PropertyKey pkey = this.hugegraph.propertyKey(key);
         verifySchemaPermission(HugePermission.DELETE, pkey);
@@ -238,6 +244,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void addVertexLabel(VertexLabel label) {
         verifySchemaPermission(HugePermission.WRITE, label);
         this.hugegraph.addVertexLabel(label);
+    }
+
+    @Override
+    public void updateVertexLabel(VertexLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateVertexLabel(label);
     }
 
     @Override
@@ -294,6 +306,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void updateEdgeLabel(EdgeLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateEdgeLabel(label);
+    }
+
+    @Override
     public Id removeEdgeLabel(Id id) {
         EdgeLabel label = this.hugegraph.edgeLabel(id);
         verifySchemaPermission(HugePermission.DELETE, label);
@@ -337,6 +355,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
         verifySchemaPermission(HugePermission.WRITE, indexLabel);
         this.hugegraph.addIndexLabel(schemaLabel, indexLabel);
+    }
+
+    @Override
+    public void updateIndexLabel(IndexLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateIndexLabel(label);
     }
 
     @Override

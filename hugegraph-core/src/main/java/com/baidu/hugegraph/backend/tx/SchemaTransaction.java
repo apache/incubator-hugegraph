@@ -124,10 +124,15 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id addPropertyKey(PropertyKey propertyKey) {
         this.addSchema(propertyKey);
-        if (propertyKey.olap()) {
-            return this.createOlapPk(propertyKey);
+        if (!propertyKey.olap()) {
+            return IdGenerator.ZERO;
         }
-        return IdGenerator.ZERO;
+        return this.createOlapPk(propertyKey);
+    }
+
+    @Watched(prefix = "schema")
+    public void updatePropertyKey(PropertyKey propertyKey) {
+        this.updateSchema(propertyKey);
     }
 
     @Watched(prefix = "schema")
@@ -186,6 +191,11 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
+    public void updateVertexLabel(VertexLabel vertexLabel) {
+        this.updateSchema(vertexLabel);
+    }
+
+    @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(Id id) {
         E.checkArgumentNotNull(id, "Vertex label id can't be null");
         if (VertexLabel.OLAP_VL.id().equals(id)) {
@@ -218,6 +228,11 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
+    public void updateEdgeLabel(EdgeLabel edgeLabel) {
+        this.updateSchema(edgeLabel);
+    }
+
+    @Watched(prefix = "schema")
     public EdgeLabel getEdgeLabel(Id id) {
         E.checkArgumentNotNull(id, "Edge label id can't be null");
         return this.getSchema(HugeType.EDGE_LABEL, id);
@@ -239,49 +254,54 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
-    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
+    public void addIndexLabel(SchemaLabel baseLabel, IndexLabel indexLabel) {
         this.addSchema(indexLabel);
 
         /*
          * Update index name in base-label(VL/EL)
          * TODO: should wrap update base-label and create index in one tx.
          */
-        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
+        if (baseLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
 
         // FIXME: move schemaLabel update into updateSchema() lock block instead
-        synchronized (schemaLabel) {
-            schemaLabel.addIndexLabel(indexLabel.id());
-            this.updateSchema(schemaLabel);
+        synchronized (baseLabel) {
+            baseLabel.addIndexLabel(indexLabel.id());
+            this.updateSchema(baseLabel);
         }
+    }
+
+    @Watched(prefix = "schema")
+    public void updateIndexLabel(IndexLabel indexLabel) {
+        this.updateSchema(indexLabel);
     }
 
     @Watched(prefix = "schema")
     public void removeIndexLabelFromBaseLabel(IndexLabel indexLabel) {
         HugeType baseType = indexLabel.baseType();
         Id baseValue = indexLabel.baseValue();
-        SchemaLabel schemaLabel;
+        SchemaLabel baseLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            schemaLabel = this.getVertexLabel(baseValue);
+            baseLabel = this.getVertexLabel(baseValue);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
-            schemaLabel = this.getEdgeLabel(baseValue);
+            baseLabel = this.getEdgeLabel(baseValue);
         }
 
-        if (schemaLabel == null) {
+        if (baseLabel == null) {
             LOG.info("The base label '{}' of index label '{}' " +
                      "may be deleted before", baseValue, indexLabel);
             return;
         }
-        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
+        if (baseLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
 
         // FIXME: move schemaLabel update into updateSchema() lock block instead
-        synchronized (schemaLabel) {
-            schemaLabel.removeIndexLabel(indexLabel.id());
-            this.updateSchema(schemaLabel);
+        synchronized (baseLabel) {
+            baseLabel.removeIndexLabel(indexLabel.id());
+            this.updateSchema(baseLabel);
         }
     }
 

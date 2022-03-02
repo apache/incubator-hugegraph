@@ -287,8 +287,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.APPEND);
         indexLabel.userdata(this.userdata);
-        SchemaLabel schemaLabel = indexLabel.baseLabel();
-        this.graph().addIndexLabel(schemaLabel, indexLabel);
+        this.graph().updateIndexLabel(indexLabel);
         return indexLabel;
     }
 
@@ -303,8 +302,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         indexLabel.removeUserdata(this.userdata);
-        SchemaLabel schemaLabel = indexLabel.baseLabel();
-        this.graph().addIndexLabel(schemaLabel, indexLabel);
+        this.graph().updateIndexLabel(indexLabel);
         return indexLabel;
     }
 
