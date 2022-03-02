@@ -54,6 +54,7 @@ import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.task.StandardTaskScheduler;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.ConfigUtil;
@@ -151,7 +152,9 @@ public class GraphsAPI extends API {
                   "'{}'", RestServer.EXECUTOR, name, configs, graphSpace);
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
-        graph.tx().close();
+        if (graph.taskScheduler() instanceof StandardTaskScheduler) {
+            graph.tx().close();
+        }
         String description = (String) configs.get(GRAPH_DESCRIPTION);
         if (description == null) {
             description = Strings.EMPTY;
