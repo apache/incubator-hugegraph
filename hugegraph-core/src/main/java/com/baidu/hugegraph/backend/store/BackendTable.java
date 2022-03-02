@@ -69,7 +69,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public void updateIfPresent(Session session, Entry entry) {
         // TODO: use fine-grained row lock
         synchronized (this.table) {
-            assert !session.hasChanges();
+            assert session == null || !session.hasChanges();
             if (this.queryExist(session, entry)) {
                 this.insert(session, entry);
                 if (session != null) {
@@ -82,7 +82,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public void updateIfAbsent(Session session, Entry entry) {
         // TODO: use fine-grained row lock
         synchronized (this.table) {
-            assert !session.hasChanges();
+            assert session == null || !session.hasChanges();
             if (!this.queryExist(session, entry)) {
                 this.insert(session, entry);
                 if (session != null) {

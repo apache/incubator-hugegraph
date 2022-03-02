@@ -408,11 +408,11 @@ public class SchemaTransaction extends IndexableTransaction {
 
             if (update) {
                 this.doUpdateIfPresent(entry);
-                // TODO: support updateIfPresent
+                // TODO: also support updateIfPresent for index-update
                 this.indexTx.updateNameIndex(schema, false);
             } else {
-                // TODO: support updateIfAbsentProperty
-                this.doInsert(entry);
+                // TODO: support updateIfAbsentProperty (property: label name)
+                this.doUpdateIfAbsent(entry);
                 this.indexTx.updateNameIndex(schema, false);
             }
 
