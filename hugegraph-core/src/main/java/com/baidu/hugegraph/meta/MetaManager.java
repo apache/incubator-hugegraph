@@ -1267,6 +1267,17 @@ public class MetaManager {
         return HugeBelong.fromMap(map);
     }
 
+    public boolean existBelong(String graphSpace, Id id) {
+        String result = this.metaDriver.get(belongKey(graphSpace,
+                                                      id.asString()));
+
+        if (result == null) {
+            return false;
+        }
+
+        return true;
+    }
+
     public List<HugeBelong> listBelong(String graphSpace, List<Id> ids)
                                        throws IOException,
                                        ClassNotFoundException {

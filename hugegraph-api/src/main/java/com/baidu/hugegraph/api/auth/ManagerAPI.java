@@ -140,6 +140,34 @@ public class ManagerAPI extends API {
         return manager.serializer().writeList("admins", adminManagers);
     }
 
+    @GET
+    @Timed
+    @Path("check")
+    @Consumes(APPLICATION_JSON)
+    public String checkAdmin(@Context GraphManager manager,
+                             @QueryParam("type") HugePermission type,
+                             @QueryParam("graphspace") String graphSpace) {
+        LOG.debug("check if current user is graph manager: {} {}", type,
+                  graphSpace);
+
+        E.checkArgument(type == HugePermission.SPACE ||
+                        type == HugePermission.ADMIN,
+                        "The type could be 'SPACE' or 'ADMIN'");
+        AuthManager authManager = manager.authManager();
+        String user = authManager.username();
+
+        boolean result;
+        if (type == HugePermission.SPACE) {
+            E.checkNotNull(manager.graphSpace(graphSpace), "graphspace");
+
+            result = authManager.isSpaceManager(graphSpace, user);
+        } else {
+            result = authManager.isAdminManager(user);
+        }
+
+        return manager.serializer().writeMap(ImmutableMap.of("check", result));
+    }
+
     private static class JsonManager implements Checkable {
 
         @JsonProperty("user")
