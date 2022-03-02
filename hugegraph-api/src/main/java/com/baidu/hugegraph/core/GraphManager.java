@@ -106,7 +106,7 @@ public final class GraphManager {
     private static final Logger LOG = Log.logger(RestServer.class);
 
     private static final String NAME_REGEX = "^[a-z][a-z0-9_]{0,47}$";
-    public static final String DELIMETER = "-";
+    public static final String DELIMITER = "-";
 
     private final String cluster;
     private final String graphsDir;
@@ -199,7 +199,7 @@ public final class GraphManager {
     public void reload() {
         // Remove graphs from GraphManager
         for (String graph : this.graphs.keySet()) {
-            String[] parts = graph.split(DELIMETER);
+            String[] parts = graph.split(DELIMITER);
             this.dropGraph(parts[0], parts[1], false);
         }
         int count = 0;
@@ -431,8 +431,8 @@ public final class GraphManager {
         this.metaManager.listenAuthEvent(this::authHandler);
     }
 
-    private void loadGraphs(final Map<String, String> graphConfs) {
-        for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
+    private void loadGraphs(final Map<String, String> graphConfigs) {
+        for (Map.Entry<String, String> conf : graphConfigs.entrySet()) {
             String name = conf.getKey();
             String path = conf.getValue();
             HugeFactory.checkGraphName(name, "rest-server.properties");
@@ -452,7 +452,7 @@ public final class GraphManager {
                  Map<String, Map<String, Object>> graphConfigs) {
         for (Map.Entry<String, Map<String, Object>> conf :
                                                     graphConfigs.entrySet()) {
-            String[] parts = conf.getKey().split(DELIMETER);
+            String[] parts = conf.getKey().split(DELIMITER);
             Map<String, Object> config = conf.getValue();
             HugeFactory.checkGraphName(parts[1], "meta server");
             try {
@@ -555,12 +555,16 @@ public final class GraphManager {
     }
 
     public void clearGraphSpace(String name) {
-        // TODO: clear all roles
+        // Clear all roles
+        this.metaManager.clearGraphAuth(name);
+
+        // Clear all schemaTemplate
+        this.metaManager.clearSchemaTemplate(name);
 
         // Clear all graphs
         for (String key : this.graphs.keySet()) {
             if (key.startsWith(name)) {
-                String[] parts = key.split(DELIMETER);
+                String[] parts = key.split(DELIMITER);
                 this.dropGraph(parts[0], parts[1], true);
             }
         }
@@ -568,7 +572,7 @@ public final class GraphManager {
         // Clear all services
         for (String key : this.services.keySet()) {
             if (key.startsWith(name)) {
-                String[] parts = key.split(DELIMETER);
+                String[] parts = key.split(DELIMITER);
                 this.dropService(parts[0], parts[1]);
             }
         }
@@ -880,7 +884,7 @@ public final class GraphManager {
     public Set<String> services(String graphSpace) {
         Set<String> result = new HashSet<>();
         for (String key : this.services.keySet()) {
-            String[] parts = key.split(DELIMETER);
+            String[] parts = key.split(DELIMITER);
             if (parts[0].equals(graphSpace)) {
                 result.add(parts[1]);
             }
@@ -889,7 +893,7 @@ public final class GraphManager {
     }
 
     public Service service(String graphSpace, String name) {
-        String key = String.join(DELIMETER, graphSpace, name);
+        String key = String.join(DELIMITER, graphSpace, name);
         Service service = this.services.get(key);
         if (service == null) {
             service = this.metaManager.service(graphSpace, name);
@@ -917,7 +921,7 @@ public final class GraphManager {
     public Set<String> graphs(String graphSpace) {
         Set<String> graphs = new HashSet<>();
         for (String key : this.graphs.keySet()) {
-            String[] parts = key.split(DELIMETER);
+            String[] parts = key.split(DELIMITER);
             if (parts[0].equals(graphSpace)) {
                 graphs.add(parts[1]);
             }
@@ -926,7 +930,7 @@ public final class GraphManager {
     }
 
     public HugeGraph graph(String graphSpace, String name) {
-        String key = String.join(DELIMETER, graphSpace, name);
+        String key = String.join(DELIMITER, graphSpace, name);
         Graph graph = this.graphs.get(key);
         if (graph == null) {
             return null;
@@ -1124,7 +1128,7 @@ public final class GraphManager {
                              .extractServicesFromResponse(response);
         Service service;
         for (String s : names) {
-            String[] parts = s.split(DELIMETER);
+            String[] parts = s.split(DELIMITER);
             service = this.metaManager.getServiceConfig(parts[0], parts[1]);
             this.services.put(s, service);
         }
@@ -1143,7 +1147,7 @@ public final class GraphManager {
                              .extractServicesFromResponse(response);
         Service service;
         for (String s : names) {
-            String[] parts = s.split(DELIMETER);
+            String[] parts = s.split(DELIMITER);
             service = this.metaManager.getServiceConfig(parts[0], parts[1]);
             this.services.put(s, service);
         }
@@ -1159,7 +1163,7 @@ public final class GraphManager {
                 continue;
             }
 
-            String[] parts = graphName.split(DELIMETER);
+            String[] parts = graphName.split(DELIMITER);
             Map<String, Object> config =
                     this.metaManager.getGraphConfig(parts[0], parts[1]);
 
@@ -1189,7 +1193,7 @@ public final class GraphManager {
             }
 
             // Remove graph without clear
-            String[] parts = graphName.split(DELIMETER);
+            String[] parts = graphName.split(DELIMITER);
             try {
                 this.dropGraph(parts[0], parts[1], false);
             } catch (HugeException e) {
@@ -1259,7 +1263,7 @@ public final class GraphManager {
                                     TypedOption<?, ?> option) {
         Object incomingValue = config.get(option);
         for (String graphName : this.graphs.keySet()) {
-            String[] parts = graphName.split(DELIMETER);
+            String[] parts = graphName.split(DELIMITER);
             HugeGraph hugeGraph = this.graph(graphSpace, parts[1]);
             if (hugeGraph == null) {
                 continue;
@@ -1305,11 +1309,11 @@ public final class GraphManager {
     }
 
     private static String serviceName(String graphSpace, String service) {
-        return String.join(DELIMETER, graphSpace, service);
+        return String.join(DELIMITER, graphSpace, service);
     }
 
     private static String graphName(String graphSpace, String graph) {
-        return String.join(DELIMETER, graphSpace, graph);
+        return String.join(DELIMITER, graphSpace, graph);
     }
 
     private static void checkGraphSpaceName(String name) {
