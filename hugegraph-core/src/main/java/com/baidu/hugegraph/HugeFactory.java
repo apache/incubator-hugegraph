@@ -135,6 +135,7 @@ public class HugeFactory {
      * @param timeout seconds
      */
     public static void shutdown(long timeout) {
+        TaskManager.useFakeContext();
         try {
             if (!EventHub.destroy(timeout)) {
                 throw new TimeoutException(timeout + "s");
