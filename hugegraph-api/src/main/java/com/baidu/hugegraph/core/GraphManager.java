@@ -352,7 +352,7 @@ public final class GraphManager {
             }
         }
         if (!this.services.containsKey(this.serviceID)) {
-            Service service = new Service(this.serviceID,
+            Service service = new Service(this.serviceID, User.ADMIN.getName(),
                                           Service.ServiceType.OLTP,
                                           Service.DeploymentType.MANUAL);
             service.description(service.name());
