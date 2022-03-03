@@ -74,7 +74,15 @@ public class SchemaTemplate {
         return this.create;
     }
 
+    public Date createTime() {
+        return this.create;
+    }
+
     public Date update() {
+        return this.create;
+    }
+
+    public Date updateTme() {
         return this.create;
     }
 
@@ -91,11 +99,16 @@ public class SchemaTemplate {
     }
 
     public Map<String, String> asMap() {
-        return ImmutableMap.of("name", this.name,
-                               "schema", this.schema,
-                               "create", FORMATTER.format(this.create),
-                               "update", FORMATTER.format(this.create),
-                               "creator", this.creator);
+        String timeStr = FORMATTER.format(this.create);
+        return new ImmutableMap.Builder<String, String>()
+                                .put("name", this.name)
+                                .put("schema", this.schema)
+                                .put("create", timeStr)
+                                .put("create_time", timeStr)
+                                .put("update", timeStr)
+                                .put("update_time", timeStr)
+                                .put("creator", this.creator)
+                                .build();
     }
 
     public static SchemaTemplate fromMap(Map<String , String> map) {
