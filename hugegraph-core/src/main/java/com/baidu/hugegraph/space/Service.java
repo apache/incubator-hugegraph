@@ -57,10 +57,11 @@ public class Service {
 
     private String pdServiceId;
 
-    private String creator = "";
-    private final Date createTime;
+    private final String creator;
+    private Date createTime;
+    private Date updateTime;
 
-    public Service(String name, ServiceType type,
+    public Service(String name, String creator, ServiceType type,
                    DeploymentType deploymentType) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of service can't be null or empty");
@@ -78,10 +79,12 @@ public class Service {
         this.memoryLimit = DEFAULT_MEMORY_LIMIT;
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
 
+        this.creator = creator;
         this.createTime = new Date();
+        this.updateTime = this.createTime;
     }
 
-    public Service(String name, String description, ServiceType type,
+    public Service(String name, String creator, String description, ServiceType type,
                    DeploymentType deploymentType, int count, int running,
                    int cpuLimit, int memoryLimit, int storageLimit,
                    String routeType, int port, Set<String> urls) {
@@ -101,7 +104,9 @@ public class Service {
         this.port = port;
         this.urls = urls;
 
+        this.creator = creator;
         this.createTime = new Date();
+        this.updateTime = this.createTime;
     }
 
     public String name() {
@@ -232,6 +237,22 @@ public class Service {
         return this.createTime;
     }
 
+    public Date updateTime() {
+        return this.updateTime;
+    }
+
+    public void createTime(Date create) {
+        this.createTime = create;
+    }
+
+    public void updateTime(Date update) {
+        this.updateTime = update;
+    }
+
+    public void refreshUpdate() {
+        this.updateTime = new Date();
+    }
+
     public Map<String, Object> info() {
         Map<String, Object> infos = new LinkedHashMap<>();
         infos.put("name", this.name);
@@ -253,6 +274,7 @@ public class Service {
 
         infos.put("creator", this.creator);
         infos.put("create_time", this.createTime);
+        infos.put("update_time", this.updateTime);
 
         return infos;
     }
