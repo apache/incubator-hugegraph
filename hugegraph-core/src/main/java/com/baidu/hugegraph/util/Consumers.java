@@ -92,14 +92,10 @@ public final class Consumers<V> {
         if (Strings.isBlank(currentContext)) {
             TaskManager.useFakeContext();
         }
-        try {
-            LOG.info("Starting {} workers[{}] with queue size {}...",
-                    this.workers, name, this.queueSize);
-            for (int i = 0; i < this.workers; i++) {
-                this.executor.submit(new ContextCallable<>(this::runAndDone));
-            }
-        } finally {
-            
+        LOG.info("Starting {} workers[{}] with queue size {}...",
+                this.workers, name, this.queueSize);
+        for (int i = 0; i < this.workers; i++) {
+            this.executor.submit(new ContextCallable<>(this::runAndDone));
         }
     }
 
