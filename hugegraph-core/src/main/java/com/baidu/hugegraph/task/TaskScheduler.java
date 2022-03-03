@@ -48,6 +48,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 /**
@@ -214,6 +215,10 @@ public abstract class TaskScheduler {
      * @return
      */
     protected <V> V call(Callable<V> callable, ExecutorService executor) {
+        String prevContext = TaskManager.getContext();
+        if (Strings.isBlank(prevContext)) {
+            TaskManager.useFakeContext();
+        }
         try {
             callable = new ContextCallable<>(callable);
             return executor.submit(callable).get();
@@ -221,6 +226,8 @@ public abstract class TaskScheduler {
             LOGGER.logCriticalError(e, "");
             throw new HugeException("Failed to update/query TaskStore: %s",
             e, e.toString());
+        } finally {
+            TaskManager.setContext(prevContext);
         }
     }
 

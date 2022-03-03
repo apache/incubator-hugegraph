@@ -943,6 +943,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public synchronized void close() throws Exception {
+        TaskManager.useFakeContext();
         if (this.closed()) {
             return;
         }

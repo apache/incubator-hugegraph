@@ -85,6 +85,7 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -126,6 +127,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         HugeTask<?> task = EphemeralJobBuilder.of(this.graph())
                                               .name(element.id().asString())
                                               .job(job)
+                                              .context(TaskManager.getContext(true))
                                               .schedule();
         return task.id();
     }
