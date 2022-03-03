@@ -96,6 +96,27 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
+    public List<PropertyKey> getPropertyKeys(boolean cache) {
+        if (cache) {
+            return this.getAllSchema(HugeType.PROPERTY_KEY);
+        } else {
+            List<PropertyKey> results = new ArrayList<>();
+            Query query = new Query(HugeType.PROPERTY_KEY);
+            Iterator<BackendEntry> entries = this.query(query).iterator();
+            try {
+                while (entries.hasNext()) {
+                    results.add(this.deserialize(entries.next(),
+                                                 HugeType.PROPERTY_KEY));
+                    Query.checkForceCapacity(results.size());
+                }
+            } finally {
+                CloseableIterator.closeIterator(entries);
+            }
+            return results;
+        }
+    }
+
+    @Watched(prefix = "schema")
     public List<PropertyKey> getPropertyKeys() {
         return this.getAllSchema(HugeType.PROPERTY_KEY);
     }
@@ -586,7 +607,7 @@ public class SchemaTransaction extends IndexableTransaction {
                                                .job(callable)
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
-
+        LOG.debug("olap pk create task {}", task);
         // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
         if (graph.option(CoreOptions.TASK_SYNC_DELETION)) {

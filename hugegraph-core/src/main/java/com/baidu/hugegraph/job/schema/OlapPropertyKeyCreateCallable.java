@@ -21,8 +21,12 @@ package com.baidu.hugegraph.job.schema;
 
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.schema.PropertyKey;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class OlapPropertyKeyCreateCallable extends SchemaCallable {
+
+    protected static final Logger LOG = Log.logger(OlapPropertyKeyCreateCallable.class);
 
     @Override
     public String type() {
@@ -34,7 +38,9 @@ public class OlapPropertyKeyCreateCallable extends SchemaCallable {
         SchemaTransaction schemaTx = this.params().schemaTransaction();
         PropertyKey propertyKey = schemaTx.getPropertyKey(this.schemaId());
         // TODO: shall we sync 2 actions here?
+        LOG.debug("start create index label for olap pk");
         schemaTx.createIndexLabelForOlapPk(propertyKey);
+        LOG.debug("start create olap pk");
         schemaTx.createOlapPk(this.schemaId());
         return null;
     }
