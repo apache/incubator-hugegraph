@@ -54,6 +54,7 @@ public class SchemaTemplate {
         this.name = name;
         this.schema = schema;
         this.create = create;
+
         this.creator = creator;
     }
 
@@ -73,6 +74,10 @@ public class SchemaTemplate {
         return this.create;
     }
 
+    public Date update() {
+        return this.create;
+    }
+
     public void create(Date create) {
         this.create = create;
     }
@@ -89,6 +94,7 @@ public class SchemaTemplate {
         return ImmutableMap.of("name", this.name,
                                "schema", this.schema,
                                "create", FORMATTER.format(this.create),
+                               "update", FORMATTER.format(this.create),
                                "creator", this.creator);
     }
 
