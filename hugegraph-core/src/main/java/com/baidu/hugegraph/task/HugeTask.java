@@ -178,7 +178,11 @@ public class HugeTask<V> extends FutureTask<V> {
         E.checkArgument(this.status == TaskStatus.NEW,
                         "Task context must be set in state NEW instead of %s",
                         this.status);
-        this.context = context;
+        if (Strings.isNullOrEmpty(context)) {
+            this.context = TaskManager.getContext(true);
+        } else {
+            this.context = context;
+        }
     }
 
     public final String context() {
@@ -625,6 +629,10 @@ public class HugeTask<V> extends FutureTask<V> {
         map.put(Hidden.unHide(P.CREATE), this.create);
         map.put(Hidden.unHide(P.RETRIES), this.retries);
         map.put(Hidden.unHide(P.PRIORITY), this.priority.toString());
+  
+        if (this.context != null) {
+            map.put(Hidden.unHide(P.CONTEXT), this.context);
+        }
 
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
