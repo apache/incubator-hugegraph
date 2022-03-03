@@ -438,6 +438,10 @@ public final class TaskManager {
         return context;
     }
 
+    public static final void useFakeContext() {
+        setContext(fakeContext);
+    }
+
     public static class ContextCallable<V> implements Callable<V> {
 
         private final Callable<V> callable;
