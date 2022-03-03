@@ -157,15 +157,15 @@ public class MetaManager {
     }
 
     public <T> void listenServiceAdd(Consumer<T> consumer) {
-        this.listen(this.graphSpaceAddKey(), consumer);
+        this.listen(this.serviceAddKey(), consumer);
     }
 
     public <T> void listenServiceRemove(Consumer<T> consumer) {
-        this.listen(this.graphSpaceRemoveKey(), consumer);
+        this.listen(this.serviceRemoveKey(), consumer);
     }
 
     public <T> void listenServiceUpdate(Consumer<T> consumer) {
-        this.listen(this.graphSpaceUpdateKey(), consumer);
+        this.listen(this.serviceUpdateKey(), consumer);
     }
 
     public <T> void listenGraphAdd(Consumer<T> consumer) {
@@ -1294,6 +1294,17 @@ public class MetaManager {
 
         Map<String, Object> map = JsonUtil.fromJson(result, Map.class);
         return HugeBelong.fromMap(map);
+    }
+
+    public boolean existBelong(String graphSpace, Id id) {
+        String result = this.metaDriver.get(belongKey(graphSpace,
+                                                      id.asString()));
+
+        if (result == null) {
+            return false;
+        }
+
+        return true;
     }
 
     @SuppressWarnings("unchecked")

@@ -244,6 +244,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 this.taskMap.put(task.id(), task);
                 this.visitedTasks.add(task.id().asString());
                 task.scheduler(this);
+                // Use fake context if missing for compatible
+                if (Strings.isNullOrEmpty(task.context())) {
+                    task.overwriteContext(TaskManager.getContext(true));
+                }
                 // Update retry
                 EtcdTaskScheduler.updateTaskRetry(this.graphSpace(), this.graphName, task);
                 executor.submit(new TaskRunner<>(task, this.graph));

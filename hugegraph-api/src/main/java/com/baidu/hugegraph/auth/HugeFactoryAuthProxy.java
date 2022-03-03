@@ -73,6 +73,7 @@ public final class HugeFactoryAuthProxy {
 
     static {
         HugeGraphAuthProxy.setContext(HugeGraphAuthProxy.Context.admin());
+        TaskManager.setFakeContext(HugeGraphAuthProxy.Context.admin().user().toJson());
         HugeFactoryAuthProxy.registerPrivateActions();
     }
 

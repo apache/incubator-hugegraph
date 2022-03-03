@@ -365,6 +365,10 @@ public class StandardTaskScheduler extends TaskScheduler {
                                                           PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
+                if (Strings.isNullOrEmpty(task.context())) {
+                    task.overwriteContext(TaskManager.getContext(true));
+                }
+
                 this.initTaskCallable(task);
                 Id taskServer = task.server();
                 if (taskServer == null) {

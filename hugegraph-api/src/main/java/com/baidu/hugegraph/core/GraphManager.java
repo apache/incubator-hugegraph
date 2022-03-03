@@ -313,24 +313,25 @@ public final class GraphManager {
         if (!useK8s) {
             return;
         }
-        String oltp = config.get(ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE);
+        String oltp = config.get(ServerOptions.SERVER_DEFAULT_OLTP_K8S_NAMESPACE);
         // oltp namespace
         Namespace oltpNamespace = this.k8sManager.namespace(oltp);
         if (oltpNamespace == null) {
             throw new HugeException(
                       "The config option: %s, value: %s does not exist",
-                      ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), oltp);
+                      ServerOptions.SERVER_DEFAULT_OLTP_K8S_NAMESPACE.name(), oltp);
         }
         graphSpace.oltpNamespace(oltp);
         // olap namespace
-        String olap = "hugegraph-computer-system";
+        String olap = config.get(ServerOptions.SERVER_DEFAULT_OLAP_K8S_NAMESPACE);
         Namespace olapNamespace = this.k8sManager.namespace(olap);
         if (olapNamespace == null) {
             throw new HugeException(
                 "The config option: %s, value: %s does not exist",
-                ServerOptions.SERVER_DEFAULT_K8S_NAMESPACE.name(), olap);
+                ServerOptions.SERVER_DEFAULT_OLAP_K8S_NAMESPACE.name(), olap);
         }
         graphSpace.olapNamespace(olap);
+        // storage is same as oltp
         graphSpace.storageNamespace(oltp);
         this.updateGraphSpace(graphSpace);
     }

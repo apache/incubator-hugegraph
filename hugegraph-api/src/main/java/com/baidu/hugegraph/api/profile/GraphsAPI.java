@@ -45,6 +45,7 @@ import org.apache.logging.log4j.util.Strings;
 import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
@@ -53,6 +54,7 @@ import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.server.RestServer;
+import com.baidu.hugegraph.task.StandardTaskScheduler;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.ConfigUtil;
@@ -83,6 +85,9 @@ public class GraphsAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @Context SecurityContext sc) {
         LOGGER.logCustomDebug("List graphs in graph space {}", RestServer.EXECUTOR, graphSpace);
+        if (null == manager.graphSpace(graphSpace)) {
+            throw new HugeException("Graphspace not exist!");
+        }
         Set<String> graphs = manager.graphs(graphSpace);
         LOGGER.logCustomDebug("Get graphs list from graph manager with size {}",
                   RestServer.EXECUTOR,
@@ -119,7 +124,9 @@ public class GraphsAPI extends API {
         LOGGER.logCustomDebug("Get graph by graph space {} and name '{}' ",
                         RestServer.EXECUTOR,
                         graphSpace, graph);
-
+        if (null == manager.graphSpace(graphSpace)) {
+            throw new HugeException("Graphspace not exist!");
+        }
         HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> configs = manager.graphConfig(graphSpace, graph);
         String description = (String) configs.get(GRAPH_DESCRIPTION);
@@ -145,7 +152,9 @@ public class GraphsAPI extends API {
                   "'{}'", RestServer.EXECUTOR, name, configs, graphSpace);
         HugeGraph graph = manager.createGraph(graphSpace, name,
                                               configs, true);
-        graph.tx().close();
+        if (graph.taskScheduler() instanceof StandardTaskScheduler) {
+            graph.tx().close();
+        }
         String description = (String) configs.get(GRAPH_DESCRIPTION);
         if (description == null) {
             description = Strings.EMPTY;
