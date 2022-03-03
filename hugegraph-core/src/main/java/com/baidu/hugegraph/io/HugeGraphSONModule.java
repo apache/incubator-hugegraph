@@ -22,6 +22,7 @@ package com.baidu.hugegraph.io;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -278,6 +279,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             super(GraphSpace.class);
         }
 
+        private final SimpleDateFormat dateFormatter 
+                        = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
         @Override
         public GraphSpace deserialize(JsonParser jsonParser,
                                       DeserializationContext ctxt)
@@ -306,6 +310,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number graphNumberUsed = 0;
             Number roleNumberUsed = 0;
             Boolean auth = false;
+
+            String creator = GraphSpace.DEFAULT_CREATOR_NAME;
+            Date create = null;
+            Date update = null;
+
 
             Map<String, Object> configs = new HashMap<>();
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
@@ -343,13 +352,31 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     roleNumberUsed = jsonParser.getNumberValue();
                 } else if ("auth".equals(fieldName)) {
                     auth = jsonParser.getBooleanValue();
+                } else if ("creator".equals(fieldName)) {
+                    creator = jsonParser.getText();
+                } else if ("create_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        create = this.dateFormatter.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        create = new Date();
+                    }
+                } else if ("update_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        update = this.dateFormatter.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        update = new Date();
+                    }
                 } else {
                     configs.put(fieldName, jsonParser.getValueAsString());
                 }
             }
             jsonParser.close();
 
-            return new GraphSpace(name, description,
+            GraphSpace space = new GraphSpace(name, description,
                                   cpuLimit.intValue(),
                                   memoryLimit.intValue(),
                                   storageLimit.intValue(),
@@ -364,7 +391,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                   graphNumberUsed.intValue(),
                                   roleNumberUsed.intValue(),
                                   auth,
+                                  creator,
                                   configs);
+
+            space.updateTime(update);
+            space.createTime(create);
+            return space;
         }
     }
 
@@ -423,9 +455,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             String pdServiceId = null;
 
-            String creator = "";
-            Date createTime;
-
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
@@ -458,10 +487,6 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     }
                 } else if("pd_service_id".equals(fieldName)) {
                     pdServiceId = jsonParser.getText();
-                } else if("creator".equals(fieldName)) {
-                    creator = jsonParser.getText();
-                } else if("create_time".equals(fieldName)) {
-                    createTime = new Date(jsonParser.getText());
                 }
                 else {
                     // throw new HugeException("Invalid field '%s'", fieldName);

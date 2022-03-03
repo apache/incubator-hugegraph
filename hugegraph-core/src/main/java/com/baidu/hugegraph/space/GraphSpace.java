@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.space;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class GraphSpace {
     public static final String DEFAULT_GRAPH_SPACE_NAME = "DEFAULT";
     public static final String DEFAULT_GRAPH_SPACE_DESCRIPTION =
                                "The system default graph space";
+    public static final String DEFAULT_CREATOR_NAME = "anonymous";
 
     public static final int DEFAULT_CPU_LIMIT = 4;
     public static final int DEFAULT_MEMORY_LIMIT = 8;
@@ -63,6 +65,11 @@ public class GraphSpace {
     private int graphNumberUsed;
     private int roleNumberUsed;
 
+    private Date createTime;
+    private Date updateTime;
+    private final String creator;
+    
+
     public GraphSpace(String name) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
@@ -76,12 +83,13 @@ public class GraphSpace {
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
 
         this.auth = false;
+        this.creator = DEFAULT_CREATOR_NAME;
         this.configs = new HashMap<>();
     }
 
     public GraphSpace(String name, String description, int cpuLimit,
                       int memoryLimit, int storageLimit, int maxGraphNumber,
-                      int maxRoleNumber, boolean auth,
+                      int maxRoleNumber, boolean auth, String creator,
                       Map<String, Object> config) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
@@ -100,6 +108,10 @@ public class GraphSpace {
 
         this.auth = auth;
         this.configs = config;
+
+        this.createTime = new Date();
+        this.updateTime = this.createTime;
+        this.creator = creator;
     }
 
     public GraphSpace(String name, String description, int cpuLimit,
@@ -108,7 +120,7 @@ public class GraphSpace {
                       String olapNamespace, String storageNamespace,
                       int cpuUsed, int memoryUsed, int storageUsed,
                       int graphNumberUsed, int roleNumberUsed,
-                      boolean auth, Map<String, Object> config) {
+                      boolean auth, String creator, Map<String, Object> config) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");
         E.checkArgument(cpuLimit > 0, "The cpu limit must > 0");
@@ -138,6 +150,7 @@ public class GraphSpace {
         this.roleNumberUsed = roleNumberUsed;
 
         this.auth = auth;
+        this.creator = creator;
 
         this.configs = new HashMap<>();
         if (config != null) {
@@ -254,6 +267,30 @@ public class GraphSpace {
         this.configs.putAll(configs);
     }
 
+    public Date createTime() {
+        return this.createTime;
+    }
+
+    public Date updateTime() {
+        return this.updateTime;
+    }
+
+    public String creator() {
+        return this.creator;
+    }
+
+    public void updateTime(Date update) {
+        this.updateTime = update;
+    }
+
+    public void createTime(Date create) {
+        this.createTime = create;
+    }
+
+    public void refreshUpdate() {
+        this.updateTime = new Date();
+    }
+
     public Map<String, Object> info() {
         Map<String, Object> infos = new LinkedHashMap<>();
         infos.put("name", this.name);
@@ -279,6 +316,10 @@ public class GraphSpace {
 
         infos.put("auth", this.auth);
         infos.putAll(this.configs);
+
+        infos.put("create_time", this.createTime);
+        infos.put("update_time", this.updateTime);
+        infos.put("creator", this.creator);
         return infos;
     }
 

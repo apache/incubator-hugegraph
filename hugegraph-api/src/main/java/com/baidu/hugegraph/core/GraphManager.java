@@ -67,6 +67,7 @@ import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugeFactoryAuthProxy;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
+import com.baidu.hugegraph.auth.HugeAuthenticator.User;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
@@ -137,6 +138,9 @@ public final class GraphManager {
     private String pdK8sServiceId;
 
     public GraphManager(HugeConfig conf, EventHub hub) {
+
+        System.out.println("Init graph manager");
+
         E.checkArgumentNotNull(conf, "The config can't be null");
         this.config = conf;
         this.url = conf.get(ServerOptions.REST_SERVER_URL);
@@ -303,6 +307,7 @@ public final class GraphManager {
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
                                            Integer.MAX_VALUE, false,
+                                           User.ADMIN.getName(),
                                            ImmutableMap.of());
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
         if (!useK8s) {
@@ -487,13 +492,13 @@ public final class GraphManager {
                                         int storageLimit,
                                         int maxGraphNumber,
                                         int maxRoleNumber,
-                                        boolean auth,
+                                        boolean auth, String creator,
                                         Map<String, Object> configs) {
         checkGraphSpaceName(name);
         GraphSpace space = new GraphSpace(name, description, cpuLimit,
                                           memoryLimit, storageLimit,
                                           maxGraphNumber, maxRoleNumber,
-                                          auth, configs);
+                                          auth, creator, configs);
         return this.createGraphSpace(space);
     }
 
