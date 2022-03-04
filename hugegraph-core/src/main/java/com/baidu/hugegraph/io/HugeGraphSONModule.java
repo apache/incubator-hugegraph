@@ -98,7 +98,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     // NOTE: jackson will synchronize DateFormat
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
         serialVersionUID = 6480426922914059122L;

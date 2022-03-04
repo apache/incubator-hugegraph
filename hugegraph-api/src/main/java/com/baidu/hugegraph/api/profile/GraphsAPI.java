@@ -150,7 +150,8 @@ public class GraphsAPI extends API {
                          Map<String, Object> configs) {
         LOGGER.logCustomDebug("Create graph {} with config options '{}' in graph space " +
                   "'{}'", RestServer.EXECUTOR, name, configs, graphSpace);
-        HugeGraph graph = manager.createGraph(graphSpace, name,
+        String creator = manager.authManager().username();
+        HugeGraph graph = manager.createGraph(graphSpace, name, creator,
                                               configs, true);
         if (graph.taskScheduler() instanceof StandardTaskScheduler) {
             graph.tx().close();

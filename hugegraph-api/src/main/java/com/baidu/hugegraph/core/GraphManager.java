@@ -25,7 +25,9 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,6 +80,7 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
+import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.k8s.K8sManager;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.meta.MetaManager;
@@ -454,15 +457,35 @@ public final class GraphManager {
         }
     }
 
+    private Date parseDate(Object o) {
+        if (null == o) {
+            return null;
+        }
+        String timeStr = String.valueOf(o);
+        try {
+            return HugeGraphSONModule.DATE_FORMAT.parse(timeStr);
+        } catch (ParseException exc) {
+            return null;
+        }
+    }
+
     private void loadGraphsFromMeta(
                  Map<String, Map<String, Object>> graphConfigs) {
         for (Map.Entry<String, Map<String, Object>> conf :
                                                     graphConfigs.entrySet()) {
             String[] parts = conf.getKey().split(DELIMITER);
             Map<String, Object> config = conf.getValue();
+
+            String creator = String.valueOf(config.get("creator"));
+            Date createTime = parseDate(config.get("create_time"));
+            Date updateTime = parseDate(config.get("update_time"));
+
+
             HugeFactory.checkGraphName(parts[1], "meta server");
             try {
-                this.createGraph(parts[0], parts[1], config, false);
+                HugeGraph graph = this.createGraph(parts[0], parts[1], creator, config, false);
+                graph.createTime(createTime);
+                graph.updateTime(updateTime);
             } catch (HugeException e) {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
@@ -709,7 +732,7 @@ public final class GraphManager {
         }
     }
 
-    public HugeGraph createGraph(String graphSpace, String name,
+    public HugeGraph createGraph(String graphSpace, String name, String creator,
                                  Map<String, Object> configs, boolean init) {
         checkGraphName(name);
         GraphSpace gs = this.graphSpace(graphSpace);
@@ -742,9 +765,17 @@ public final class GraphManager {
         this.checkOptions(graphSpace, config);
         HugeGraph graph = this.createGraph(graphSpace, config, this.authManager, init);
         graph.graphSpace(graphSpace);
+
+        graph.creator(creator);
+        graph.createTime(new Date());
+        graph.refreshUpdateTime();
+
         String graphName = graphName(graphSpace, name);
         if (init) {
             this.creatingGraphs.add(graphName);
+            configs.put("creator", graph.creator());
+            configs.put("create_time", graph.createTime());
+            configs.put("update_time", graph.updateTime());
             this.metaManager.addGraphConfig(graphSpace, name, configs);
             this.metaManager.notifyGraphAdd(graphSpace, name);
         }
@@ -1172,10 +1203,13 @@ public final class GraphManager {
             String[] parts = graphName.split(DELIMITER);
             Map<String, Object> config =
                     this.metaManager.getGraphConfig(parts[0], parts[1]);
+            Object objc = config.get("creator");
+            String creator = null == objc ? GraphSpace.DEFAULT_CREATOR_NAME : String.valueOf(objc);
+
 
             // Create graph without init
             try {
-                HugeGraph graph = this.createGraph(parts[0], parts[1], config, false);
+                HugeGraph graph = this.createGraph(parts[0], parts[1], creator, config, false);
                 graph.serverStarted();
                 graph.tx().close();
             } catch (HugeException e) {
