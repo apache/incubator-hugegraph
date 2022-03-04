@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.space;
 
-import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.util.Map;
 import java.util.Set;
@@ -98,9 +98,9 @@ public class GraphSpaceAPI extends API {
                          JsonGraphSpace jsonGraphSpace) {
         LOGGER.logCustomDebug("Create graph space: '{}'", RestServer.EXECUTOR, jsonGraphSpace);
 
-        E.checkArgument(!DEFAULT_GRAPH_SPACE_NAME.equals(jsonGraphSpace),
+        E.checkArgument(!DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(jsonGraphSpace),
                         "Can't create namespace with name '%s'",
-                        DEFAULT_GRAPH_SPACE_NAME);
+                        DEFAULT_GRAPH_SPACE_SERVICE_NAME);
 
         jsonGraphSpace.checkCreate(false);
 

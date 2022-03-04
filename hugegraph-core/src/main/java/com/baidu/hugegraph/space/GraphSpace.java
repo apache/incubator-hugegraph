@@ -31,7 +31,7 @@ import com.baidu.hugegraph.util.E;
 
 public class GraphSpace {
 
-    public static final String DEFAULT_GRAPH_SPACE_NAME = "DEFAULT";
+    public static final String DEFAULT_GRAPH_SPACE_SERVICE_NAME = "DEFAULT";
     public static final String DEFAULT_GRAPH_SPACE_DESCRIPTION =
                                "The system default graph space";
     public static final String DEFAULT_CREATOR_NAME = "anonymous";

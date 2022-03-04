@@ -591,7 +591,7 @@ public class K8sDriver {
         String namespace;
         switch (service.type()) {
             case OLTP:
-                namespace = graphSpace.oltpNamespace;
+                namespace = graphSpace.oltpNamespace();
                 break;
             case OLAP:
                 namespace = graphSpace.olapNamespace();
@@ -620,22 +620,23 @@ public class K8sDriver {
         }
     }
 
-    private static String serviceName(String graphSpace,
-                                      Service service) {
-        return String.join(DELIMITER, graphSpace,
-                           service.type().name().toLowerCase(), service.name());
-    }
-
     private static String deploymentName(GraphSpace graphSpace,
                                          Service service) {
-        return String.join(DELIMITER, graphSpace.name(),
-                           service.type().name().toLowerCase(), service.name());
+        return deploymentServiceName(graphSpace, service);
     }
 
     private static String serviceName(GraphSpace graphSpace,
                                       Service service) {
-        return String.join(DELIMITER, graphSpace.name(),
-                           service.type().name().toLowerCase(), service.name());
+        return deploymentServiceName(graphSpace, service);
+    }
+
+    private static String deploymentServiceName(GraphSpace graphSpace,
+                                                Service service) {
+        String name = String.join(DELIMITER,
+                                  graphSpace.name(),
+                                  service.type().name().toLowerCase(),
+                                  service.name());
+        return name.replace("_", "-");
     }
 
     private static void sleepAWhile(int second) {

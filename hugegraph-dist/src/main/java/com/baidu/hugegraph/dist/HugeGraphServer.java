@@ -45,6 +45,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.baidu.hugegraph.core.GraphManager.NAME_REGEX;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
+
 public class HugeGraphServer {
 
     private static final Logger LOG = Log.logger(HugeGraphServer.class);
@@ -78,10 +81,12 @@ public class HugeGraphServer {
             LOG.info("Start service with 'DEFAULT' graph space");
             graphSpace = "DEFAULT";
         }
+        checkName(graphSpace, "graph space");
         if (StringUtils.isEmpty(serviceId)) {
             LOG.info("Start service with 'DEFAULT' graph space");
             serviceId = "DEFAULT";
         }
+        checkName(serviceId, "service");
 
         // try to fetch rest server config and gremlin config from etcd
         if (!withCa) {
@@ -214,6 +219,17 @@ public class HugeGraphServer {
         } catch (Throwable e) {
             LOG.error("Failed to stop HugeGraph: ", e);
         }
+    }
+
+    private static void checkName(String name, String type) {
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(name)) {
+            return;
+        }
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid name '%s' for %s, valid name is up to 128 " +
+                        "alpha-numeric characters and underscores and only " +
+                        "letters are supported as first letter. " +
+                        "Note: letter is lower case", name, type);
     }
 
     public static void main(String[] args) throws Exception {

@@ -20,7 +20,7 @@
 package com.baidu.hugegraph.core;
 
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTION;
-import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -112,7 +112,7 @@ public final class GraphManager {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
-    private static final String NAME_REGEX = "^[a-z][a-z0-9_]{0,47}$";
+    public static final String NAME_REGEX = "^[a-z][a-z0-9_]{0,47}$";
     public static final String DELIMITER = "-";
 
     private final String cluster;
@@ -305,10 +305,10 @@ public final class GraphManager {
         Map<String, GraphSpace> graphSpaceConfigs =
                                 this.metaManager.graphSpaceConfigs();
         GraphSpace graphSpace;
-        if (graphSpaceConfigs.containsKey(DEFAULT_GRAPH_SPACE_NAME)) {
+        if (graphSpaceConfigs.containsKey(DEFAULT_GRAPH_SPACE_SERVICE_NAME)) {
             return;
         }
-        graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_NAME,
+        graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                            DEFAULT_GRAPH_SPACE_DESCRIPTION,
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
@@ -766,7 +766,7 @@ public final class GraphManager {
         configs.put(ServerOptions.PD_PEERS.name(), this.pdPeers);
         configs.put(CoreOptions.GRAPH_SPACE.name(), graphSpace);
         boolean auth = this.metaManager.graphSpace(graphSpace).auth();
-        if (DEFAULT_GRAPH_SPACE_NAME.equals(graphSpace) || !auth) {
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(graphSpace) || !auth) {
             configs.put("gremlin.graph", "com.baidu.hugegraph.HugeFactory");
         } else {
             configs.put("gremlin.graph", "com.baidu.hugegraph.auth.HugeFactoryAuthProxy");
@@ -1095,8 +1095,8 @@ public final class GraphManager {
 
     private void loadGraph(String name, String path) {
         final HugeGraph graph = (HugeGraph) GraphFactory.open(path);
-        String graphName = graphName(DEFAULT_GRAPH_SPACE_NAME, name);
-        graph.graphSpace(DEFAULT_GRAPH_SPACE_NAME);
+        String graphName = graphName(DEFAULT_GRAPH_SPACE_SERVICE_NAME, name);
+        graph.graphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME);
         graph.switchAuthManager(this.authManager);
         this.graphs.put(graphName, graph);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
@@ -1376,13 +1376,16 @@ public final class GraphManager {
     }
 
     private static void checkGraphSpaceName(String name) {
-        if (DEFAULT_GRAPH_SPACE_NAME.equals(name)) {
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(name)) {
             return;
         }
         checkName(name, "graph space");
     }
 
     private static void checkServiceName(String name) {
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(name)) {
+            return;
+        }
         checkName(name, "service");
     }
 
