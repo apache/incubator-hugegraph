@@ -45,6 +45,8 @@ public class SchemaTemplate {
                         "The schema template can't be null or empty");
         this.name = name;
         this.schema = schema;
+        this.createTime = new Date();
+        this.updateTime = createTime;
     }
 
     public SchemaTemplate(String name, String schema, Date create, String creator) {
