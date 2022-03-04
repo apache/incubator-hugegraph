@@ -78,10 +78,12 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.config.TypedOption;
+import com.baidu.hugegraph.dto.ServiceDTO;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.k8s.K8sManager;
+import com.baidu.hugegraph.k8s.K8sRegister;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.metrics.MetricsUtil;
@@ -101,6 +103,7 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.gson.Gson;
 import com.baidu.hugegraph.util.collection.CollectionFactory;
 
 import io.fabric8.kubernetes.api.model.Namespace;
@@ -642,9 +645,25 @@ public final class GraphManager {
 
     public void registerK8StoPd() throws Exception {
         try {
-            PdRegister register = PdRegister.getInstance();
-            String pdServiceId = register.init(this.serviceID);
-            this.pdK8sServiceId = pdServiceId;
+            PdRegister pdRegister = PdRegister.getInstance();
+            K8sRegister k8sRegister = K8sRegister.instance();
+
+            k8sRegister.initHttpClient();
+            String rawConfig = k8sRegister.loadConfigStr();
+
+            Gson gson = new Gson();
+            ServiceDTO serviceDTO = gson.fromJson(rawConfig, ServiceDTO.class);
+            RegisterConfig config = new RegisterConfig();
+
+            config
+                .setNodePort(serviceDTO.getSpec().getPorts().get(0).getNodePort().toString())
+                .setNodeName(serviceDTO.getSpec().getClusterIP())
+                .setAppName(serviceDTO.getMetadata().getName())
+                .setGrpcAddress(this.pdPeers)
+                .setVersion(serviceDTO.getMetadata().getResourceVersion())
+                .setLabelMap(ImmutableMap.of());
+
+            this.pdK8sServiceId = pdRegister.registerService(config);
         } catch (Exception e) {
             LOG.error("Register service k8s external info to pd failed!", e);
             throw e;
