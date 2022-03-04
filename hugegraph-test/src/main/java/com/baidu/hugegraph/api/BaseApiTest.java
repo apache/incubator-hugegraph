@@ -296,7 +296,7 @@ public class BaseApiTest {
                 + "}");
     }
 
-    protected static void initIndexLabel() {
+    protected static int initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
         Response r = client.post(path, "{\n"
@@ -305,11 +305,13 @@ public class BaseApiTest {
                 + "\"base_value\": \"person\",\n"
                 + "\"index_type\": \"SECONDARY\",\n"
                 + "\"check_exist\": false,\n"
+                + "\"rebuild\": false,\n"
                 + "\"fields\": [\n"
                 + "\"city\"\n"
                 + "]\n"
                 + "}");
-        assertResponseStatus(202, r);
+        String content = assertResponseStatus(202, r);
+        return assertJsonContains(content, "task_id");
     }
 
     protected static void initEdge() {
