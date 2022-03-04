@@ -305,8 +305,19 @@ public class MetaManager {
                             JsonUtil.toJson(template.asMap()));
     }
 
+    public void updateSchemaTemplate(String graphSpace, SchemaTemplate template) {
+        String key = this.schemaTemplateKey(graphSpace, template.name());
+        this.metaDriver.put(this.schemaTemplateKey(graphSpace, template.name()),
+                            JsonUtil.toJson(template.asMap()));
+    }
+
     public void removeSchemaTemplate(String graphSpace, String name) {
         this.metaDriver.delete(this.schemaTemplateKey(graphSpace, name));
+    }
+
+    public void clearSchemaTemplate(String graphSpace) {
+        String prefix = this.schemaTemplatePrefix(graphSpace);
+        this.metaDriver.deleteWithPrefix(prefix);
     }
 
     public <T> List<String> extractGraphSpacesFromResponse(T response) {
@@ -643,6 +654,13 @@ public class MetaManager {
                            this.cluster, META_PATH_AUTH, META_PATH_USER);
     }
 
+    private String authPrefix(String graphSpace) {
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                            this.cluster, META_PATH_GRAPHSPACE, graphSpace,
+                            META_PATH_AUTH);
+    }
+
     private String groupKey(String graphSpace, String group) {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/AUTH/GROUP/{group}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
@@ -976,6 +994,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeUser> listAllUsers(long limit)
                                        throws IOException,
                                        ClassNotFoundException {
@@ -995,6 +1014,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public Id createGroup(String graphSpace, HugeGroup group)
                           throws IOException {
         String result = this.metaDriver.get(groupKey(graphSpace, group.name()));
@@ -1005,6 +1025,7 @@ public class MetaManager {
         return IdGenerator.of(group.name());
     }
 
+    @SuppressWarnings("unchecked")
     public HugeGroup updateGroup(String graphSpace, HugeGroup group)
                           throws IOException {
         String result = this.metaDriver.get(groupKey(graphSpace, group.name()));
@@ -1021,6 +1042,7 @@ public class MetaManager {
         return ori;
     }
 
+    @SuppressWarnings("unchecked")
     public HugeGroup deleteGroup(String graphSpace, Id id)
                                  throws IOException,
                                  ClassNotFoundException {
@@ -1034,6 +1056,7 @@ public class MetaManager {
         return HugeGroup.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeGroup findGroup(String graphSpace, Id id) {
         String result = this.metaDriver.get(groupKey(graphSpace,
                                                      id.asString()));
@@ -1044,6 +1067,7 @@ public class MetaManager {
         return HugeGroup.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeGroup getGroup(String graphSpace, Id id)
                               throws IOException,
                               ClassNotFoundException {
@@ -1055,6 +1079,7 @@ public class MetaManager {
         return HugeGroup.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeGroup> listGroups(String graphSpace, List<Id> ids)
                                       throws IOException,
                                       ClassNotFoundException {
@@ -1075,6 +1100,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeGroup> listAllGroups(String graphSpace, long limit)
                                          throws IOException,
                                          ClassNotFoundException {
@@ -1105,6 +1131,7 @@ public class MetaManager {
         return target.id();
     }
 
+    @SuppressWarnings("unchecked")
     public HugeTarget updateTarget(String graphSpace, HugeTarget target)
                            throws IOException {
         String result = this.metaDriver.get(targetKey(graphSpace,
@@ -1124,6 +1151,7 @@ public class MetaManager {
         return ori;
     }
 
+    @SuppressWarnings("unchecked")
     public HugeTarget deleteTarget(String graphSpace, Id id)
                                    throws IOException,
                                    ClassNotFoundException {
@@ -1137,6 +1165,7 @@ public class MetaManager {
         return HugeTarget.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeTarget findTarget(String graphSpace, Id id) {
         String result = this.metaDriver.get(targetKey(graphSpace,
                                                       id.asString()));
@@ -1147,6 +1176,7 @@ public class MetaManager {
         return HugeTarget.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeTarget getTarget(String graphSpace, Id id)
                                 throws IOException,
                                 ClassNotFoundException {
@@ -1158,6 +1188,7 @@ public class MetaManager {
         return HugeTarget.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeTarget> listTargets(String graphSpace, List<Id> ids)
                                         throws IOException,
                                         ClassNotFoundException {
@@ -1178,6 +1209,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeTarget> listAllTargets(String graphSpace, long limit)
                                            throws IOException,
                                            ClassNotFoundException {
@@ -1217,6 +1249,7 @@ public class MetaManager {
         return IdGenerator.of(belongId);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeBelong updateBelong(String graphSpace, HugeBelong belong)
                            throws IOException, ClassNotFoundException {
         HugeUser user = this.findUser(belong.source().asString());
@@ -1242,6 +1275,7 @@ public class MetaManager {
         return ori;
     }
 
+    @SuppressWarnings("unchecked")
     public HugeBelong deleteBelong(String graphSpace, Id id)
                                    throws IOException,
                                    ClassNotFoundException {
@@ -1255,6 +1289,7 @@ public class MetaManager {
         return HugeBelong.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeBelong getBelong(String graphSpace, Id id)
                                 throws IOException,
                                 ClassNotFoundException {
@@ -1278,6 +1313,7 @@ public class MetaManager {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeBelong> listBelong(String graphSpace, List<Id> ids)
                                        throws IOException,
                                        ClassNotFoundException {
@@ -1298,6 +1334,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeBelong> listAllBelong(String graphSpace, long limit)
                                           throws IOException,
                                           ClassNotFoundException {
@@ -1317,6 +1354,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeBelong> listBelongByUser(String graphSpace,
                                              Id user, long limit)
                                              throws IOException,
@@ -1350,6 +1388,7 @@ public class MetaManager {
         return items[1];
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeBelong> listBelongByGroup(String graphSpace,
                                               Id group, long limit)
                                               throws IOException,
@@ -1395,6 +1434,7 @@ public class MetaManager {
         return IdGenerator.of(accessId);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeAccess updateAccess(String graphSpace, HugeAccess access)
                                    throws IOException, ClassNotFoundException {
         HugeGroup group = this.getGroup(graphSpace, access.source());
@@ -1427,6 +1467,7 @@ public class MetaManager {
         return ori;
     }
 
+    @SuppressWarnings("unchecked")
     public HugeAccess deleteAccess(String graphSpace, Id id)
                                    throws IOException, ClassNotFoundException {
         String result = this.metaDriver.get(accessKey(graphSpace,
@@ -1439,6 +1480,7 @@ public class MetaManager {
         return HugeAccess.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeAccess findAccess(String graphSpace, Id id) {
         String result = this.metaDriver.get(accessKey(graphSpace,
                                                       id.asString()));
@@ -1449,6 +1491,7 @@ public class MetaManager {
         return HugeAccess.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public HugeAccess getAccess(String graphSpace, Id id)
                                 throws IOException, ClassNotFoundException {
         String result = this.metaDriver.get(accessKey(graphSpace,
@@ -1459,6 +1502,7 @@ public class MetaManager {
         return HugeAccess.fromMap(map);
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeAccess> listAccess(String graphSpace, List<Id> ids)
                                        throws IOException,
                                        ClassNotFoundException {
@@ -1479,6 +1523,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeAccess> listAllAccess(String graphSpace, long limit)
                                           throws IOException,
                                           ClassNotFoundException {
@@ -1498,6 +1543,7 @@ public class MetaManager {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     public List<HugeAccess> listAccessByGroup(String graphSpace,
                                               Id group, long limit)
                                               throws IOException,
@@ -1529,6 +1575,14 @@ public class MetaManager {
         return items[2];
     }
 
+    public void clearGraphAuth(String graphSpace) {
+        E.checkArgument(StringUtils.isNotEmpty(graphSpace),
+                        "The graphSpace is empty");
+        String prefix = this.authPrefix(graphSpace);
+        this.metaDriver.deleteWithPrefix(prefix);
+    }
+
+    @SuppressWarnings("unchecked")
     public List<HugeAccess> listAccessByTarget(String graphSpace,
                                                Id target, long limit)
                                                throws IOException,
@@ -1598,6 +1652,7 @@ public class MetaManager {
         this.metaDriver.put(key, JsonUtil.toJson(serverUrls));
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> restProperties(String graphSpace,
                                               String serviceId) {
         Map<String, Object> map = null;
@@ -1609,6 +1664,7 @@ public class MetaManager {
         return map;
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> restProperties(String graphSpace,
                                               String serviceId,
                                               Map<String, Object> properties) {
@@ -1628,6 +1684,7 @@ public class MetaManager {
         return map;
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> deleteRestProperties(String graphSpace,
                                                     String serviceId,
                                                     String key) {

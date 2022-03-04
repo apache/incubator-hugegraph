@@ -34,7 +34,8 @@ public class SchemaTemplate {
     private String name;
     private String schema;
 
-    protected Date create;
+    protected Date createTime;
+    protected Date updateTime;
     protected String creator;
 
     public SchemaTemplate(String name, String schema) {
@@ -44,6 +45,8 @@ public class SchemaTemplate {
                         "The schema template can't be null or empty");
         this.name = name;
         this.schema = schema;
+        this.createTime = new Date();
+        this.updateTime = createTime;
     }
 
     public SchemaTemplate(String name, String schema, Date create, String creator) {
@@ -53,7 +56,9 @@ public class SchemaTemplate {
                         "The schema template can't be null or empty");
         this.name = name;
         this.schema = schema;
-        this.create = create;
+        this.createTime = create;
+        this.updateTime = createTime;
+
         this.creator = creator;
     }
 
@@ -70,11 +75,23 @@ public class SchemaTemplate {
     }
 
     public Date create() {
-        return this.create;
+        return this.createTime;
+    }
+
+    public Date createTime() {
+        return this.createTime;
+    }
+
+    public Date update() {
+        return this.updateTime;
+    }
+
+    public Date updateTime() {
+        return this.updateTime;
     }
 
     public void create(Date create) {
-        this.create = create;
+        this.createTime = create;
     }
 
     public String creator() {
@@ -85,19 +102,38 @@ public class SchemaTemplate {
         this.creator = creator;
     }
 
+    public void updateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public void refreshUpdateTime() {
+        this.updateTime = new Date();
+    }
+
     public Map<String, String> asMap() {
-        return ImmutableMap.of("name", this.name,
-                               "schema", this.schema,
-                               "create", FORMATTER.format(this.create),
-                               "creator", this.creator);
+        String createStr = FORMATTER.format(this.createTime);
+        String updateStr = FORMATTER.format(this.updateTime);
+        return new ImmutableMap.Builder<String, String>()
+                                .put("name", this.name)
+                                .put("schema", this.schema)
+                                .put("create", createStr)
+                                .put("create_time", createStr)
+                                .put("update", updateStr)
+                                .put("update_time", updateStr)
+                                .put("creator", this.creator)
+                                .build();
     }
 
     public static SchemaTemplate fromMap(Map<String , String> map) {
         try {
-            return new SchemaTemplate(map.get("name"),
+            SchemaTemplate template = new SchemaTemplate(map.get("name"),
                                       map.get("schema"),
                                       FORMATTER.parse(map.get("create")),
                                       map.get("creator"));
+
+            template.updateTime(FORMATTER.parse(map.get("update")));
+            return template;
+
         } catch (ParseException e) {
             e.printStackTrace();
         }

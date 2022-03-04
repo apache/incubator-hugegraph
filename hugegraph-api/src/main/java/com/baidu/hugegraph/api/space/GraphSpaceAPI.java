@@ -104,11 +104,13 @@ public class GraphSpaceAPI extends API {
 
         jsonGraphSpace.checkCreate(false);
 
+        String creator = manager.authManager().username();
+
         GraphSpace exist = manager.graphSpace(jsonGraphSpace.name);
         E.checkArgument(exist == null, "The graph space '%s' has existed",
                         jsonGraphSpace.name);
         GraphSpace space = manager.createGraphSpace(
-                           jsonGraphSpace.toGraphSpace());
+                           jsonGraphSpace.toGraphSpace(creator));
         LOGGER.getAuditLogger().logCreateTenant(space.name(), RestServer.EXECUTOR);
         return manager.serializer().writeGraphSpace(space);
     }
@@ -207,6 +209,7 @@ public class GraphSpaceAPI extends API {
                 if (configs != null && !configs.isEmpty()) {
                     exist.configs(configs);
                 }
+                exist.refreshUpdate();
                 GraphSpace space = manager.createGraphSpace(exist);
                 LOGGER.getAuditLogger().logUpdateTenant(exist.name(), RestServer.EXECUTOR);
                 return space.info();
@@ -299,7 +302,7 @@ public class GraphSpaceAPI extends API {
                             "The storage graph space can't be null or empty");
         }
 
-        public GraphSpace toGraphSpace() {
+        public GraphSpace toGraphSpace(String creator) {
             GraphSpace graphSpace = new GraphSpace(this.name, this.description,
                                                    this.cpuLimit,
                                                    this.memoryLimit,
@@ -307,6 +310,7 @@ public class GraphSpaceAPI extends API {
                                                    this.maxGraphNumber,
                                                    this.maxRoleNumber,
                                                    this.auth,
+                                                   creator,
                                                    this.configs);
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);
