@@ -305,6 +305,12 @@ public class MetaManager {
                             JsonUtil.toJson(template.asMap()));
     }
 
+    public void updateSchemaTemplate(String graphSpace, SchemaTemplate template) {
+        String key = this.schemaTemplateKey(graphSpace, template.name());
+        this.metaDriver.put(this.schemaTemplateKey(graphSpace, template.name()),
+                            JsonUtil.toJson(template.asMap()));
+    }
+
     public void removeSchemaTemplate(String graphSpace, String name) {
         this.metaDriver.delete(this.schemaTemplateKey(graphSpace, name));
     }

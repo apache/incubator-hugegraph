@@ -1490,6 +1490,10 @@ public final class GraphManager {
         this.metaManager.addSchemaTemplate(graphSpace, schemaTemplate);
     }
 
+    public void updateSchemaTemplate(String graphSpace, SchemaTemplate schemaTemplate) {
+        this.metaManager.updateSchemaTemplate(graphSpace, schemaTemplate);
+    }
+
     public void dropSchemaTemplate(String graphSpace, String name) {
         this.metaManager.removeSchemaTemplate(graphSpace, name);
     }
