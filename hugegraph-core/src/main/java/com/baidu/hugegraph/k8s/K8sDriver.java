@@ -59,6 +59,7 @@ import io.fabric8.kubernetes.api.model.NamespaceList;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceQuota;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
@@ -76,6 +77,7 @@ import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
+import io.fabric8.kubernetes.client.dsl.Resource;
 
 public class K8sDriver {
 
@@ -670,6 +672,12 @@ public class K8sDriver {
         } finally {
             is.close();
         }
+    }
+    
+    public void createResourceQuota(String namespace, String yaml) {
+        InputStream is = new ByteArrayInputStream(yaml.getBytes());
+        Resource<ResourceQuota> quota = this.client.resourceQuotas().inNamespace(namespace).load(is);
+        this.client.resourceQuotas().inNamespace(namespace).create(quota.get());
     }
 
     public static class CA {

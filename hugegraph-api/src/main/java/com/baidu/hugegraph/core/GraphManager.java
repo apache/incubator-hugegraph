@@ -23,6 +23,7 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTI
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.io.ByteArrayInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -537,6 +538,10 @@ public final class GraphManager {
         return space;
     }
 
+    private void makeResourceQuota(String namespace, int cpuLimit, int memoryLimit) {
+        k8sManager.loadResourceQuota(namespace, cpuLimit, memoryLimit);   
+    }
+
     private void attachK8sNamespace(String namespace) {
         if (!Strings.isNullOrEmpty(namespace)) {
             Namespace current = k8sManager.namespace(namespace);
@@ -566,9 +571,15 @@ public final class GraphManager {
         this.metaManager.appendGraphSpaceList(name);
 
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
+
         if (useK8s) {
+            int cpuLimit = space.cpuLimit();
+            int memoryLimit = space.memoryLimit();
+
             attachK8sNamespace(space.oltpNamespace());
             attachK8sNamespace(space.olapNamespace());
+
+            this.makeResourceQuota(space.oltpNamespace, cpuLimit, memoryLimit);
         }
 
         this.metaManager.notifyGraphSpaceAdd(name);
