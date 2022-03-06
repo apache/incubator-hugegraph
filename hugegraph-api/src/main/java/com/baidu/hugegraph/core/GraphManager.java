@@ -542,7 +542,12 @@ public final class GraphManager {
         k8sManager.loadResourceQuota(namespace, cpuLimit, memoryLimit);   
     }
 
-    private void attachK8sNamespace(String namespace) {
+    /**
+     * Create or get new namespaces
+     * @param namespace
+     * @return isNewCreated
+     */
+    private boolean attachK8sNamespace(String namespace) {
         if (!Strings.isNullOrEmpty(namespace)) {
             Namespace current = k8sManager.namespace(namespace);
             if (null == current) {
@@ -558,9 +563,10 @@ public final class GraphManager {
                 // String imageName = "";
 
                 k8sManager.createOperatorPod(namespace);
+                return true;
             }
-
         }
+        return false;
     }
 
     public GraphSpace createGraphSpace(GraphSpace space) {
@@ -576,10 +582,14 @@ public final class GraphManager {
             int cpuLimit = space.cpuLimit();
             int memoryLimit = space.memoryLimit();
 
-            attachK8sNamespace(space.oltpNamespace());
-            attachK8sNamespace(space.olapNamespace());
-
-            this.makeResourceQuota(space.oltpNamespace, cpuLimit, memoryLimit);
+            boolean isNewCreated = attachK8sNamespace(space.oltpNamespace());
+            if (isNewCreated) {
+                this.makeResourceQuota(space.oltpNamespace(), cpuLimit, memoryLimit);
+            }
+            isNewCreated = attachK8sNamespace(space.olapNamespace());
+            if (isNewCreated) {
+                this.makeResourceQuota(space.olapNamespace(), cpuLimit, memoryLimit);
+            }
         }
 
         this.metaManager.notifyGraphSpaceAdd(name);
