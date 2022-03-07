@@ -625,7 +625,7 @@ public final class GraphManager {
                                     .setAppName(service.name())
                                     .setGrpcAddress(this.pdPeers)
                                     .setUrls(service.urls())
-                                    .setLabelMap(ImmutableMap.of());
+                                    .setLabelMap(ImmutableMap.of(PdRegisterType.TYPE, PdRegisterType.DDS.name()));
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
@@ -661,7 +661,7 @@ public final class GraphManager {
                 .setAppName(serviceDTO.getMetadata().getName())
                 .setGrpcAddress(this.pdPeers)
                 .setVersion(serviceDTO.getMetadata().getResourceVersion())
-                .setLabelMap(ImmutableMap.of());
+                .setLabelMap(ImmutableMap.of(PdRegisterType.TYPE, PdRegisterType.NODE_PORT.name()));
 
             this.pdK8sServiceId = pdRegister.registerService(config);
         } catch (Exception e) {
@@ -1540,5 +1540,15 @@ public final class GraphManager {
 
     public String pdPeers() {
         return this.pdPeers;
+    }
+
+
+    private static enum PdRegisterType {
+
+        NODE_PORT,
+        DDS,
+        ;
+
+        public static final String TYPE = "REGISTER_TYPE"; 
     }
 }
