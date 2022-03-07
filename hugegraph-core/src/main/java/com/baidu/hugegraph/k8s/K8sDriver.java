@@ -75,6 +75,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
 
 public class K8sDriver {
@@ -651,11 +652,19 @@ public class K8sDriver {
         String deploymentName = deploymentName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
         Deployment deployment;
-        deployment = this.client.apps().deployments()
-                         .inNamespace(namespace)
-                         .withName(deploymentName)
-                         .get();
-        return deployment.getStatus().getReadyReplicas();
+        try {
+            deployment = this.client.apps().deployments()
+                            .inNamespace(namespace)
+                            .withName(deploymentName)
+                            .get();
+            if (null == deployment) {
+                return 0;
+            }
+            return deployment.getStatus().getReadyReplicas();
+        } catch (KubernetesClientException exc) {
+            LOG.error("Get k8s deployment failed when check podsRunning", exc);
+            return 0;
+        }
     }
 
     public void createOrReplaceByYaml(String yaml) throws IOException {
