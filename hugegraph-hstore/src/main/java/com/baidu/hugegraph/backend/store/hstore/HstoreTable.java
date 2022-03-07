@@ -319,6 +319,8 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
     protected List<BackendColumnIterator> queryByPrefixList(Session session,
                                                   List<IdPrefixQuery> queries) {
+        E.checkArgument(queries.size() > 0,
+                        "The size of queries must be greater than zero");
         IdPrefixQuery query = queries.get(0);
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;

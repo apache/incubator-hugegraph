@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.store.hstore;
 
+import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.hstore.HstoreStore.HstoreGraphStore;
+import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.util.Events;
 
 public class HstoreProvider extends AbstractBackendStoreProvider {
 
@@ -38,6 +41,16 @@ public class HstoreProvider extends AbstractBackendStoreProvider {
     @Override
     protected BackendStore newGraphStore(String store) {
         return new HstoreGraphStore(this, this.namespace(), store);
+    }
+
+    @Override
+    public void truncateGraph(HugeGraph graph) {
+        this.checkOpened();
+        String g = graph.option(CoreOptions.STORE_GRAPH);
+        BackendStore store = this.stores.get(g);
+        store.truncate();
+        this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
+        LOG.debug("Graph '{}' store has been truncated", graph.name());
     }
 
     @Override
