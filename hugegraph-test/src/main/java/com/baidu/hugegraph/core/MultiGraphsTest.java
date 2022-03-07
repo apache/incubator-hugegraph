@@ -47,7 +47,6 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
-import com.baidu.hugegraph.type.define.NodeRole;
 
 import jersey.repackaged.com.google.common.collect.ImmutableList;
 
@@ -73,9 +72,9 @@ public class MultiGraphsTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
-        g1.serverStarted(IdGenerator.of("server-g2"), NodeRole.MASTER);
+        g1.serverStarted();
         HugeGraph g2 = graphs.get(1);
-        g2.serverStarted(IdGenerator.of("server-g3"), NodeRole.MASTER);
+        g2.serverStarted();
 
         SchemaManager schema = g1.schema();
 
@@ -195,8 +194,8 @@ public class MultiGraphsTest {
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
-        g1.serverStarted(IdGenerator.of("server-g1c"), NodeRole.MASTER);
-        g2.serverStarted(IdGenerator.of("server-g2c"), NodeRole.MASTER);
+        g1.serverStarted();
+        g2.serverStarted();
 
         g1.schema().propertyKey("id").asInt().create();
         g2.schema().propertyKey("id").asText().create();

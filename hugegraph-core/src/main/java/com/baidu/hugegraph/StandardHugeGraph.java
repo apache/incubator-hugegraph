@@ -20,6 +20,7 @@
 package com.baidu.hugegraph;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -51,7 +52,6 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
-import com.baidu.hugegraph.backend.cache.CachedGraphTransaction;
 import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -90,13 +90,11 @@ import com.baidu.hugegraph.structure.HugeEdgeProperty;
 import com.baidu.hugegraph.structure.HugeFeatures;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.structure.HugeVertexProperty;
-import com.baidu.hugegraph.task.ServerInfoManager;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
@@ -170,6 +168,10 @@ public class StandardHugeGraph implements HugeGraph {
     private final boolean virtualGraphEnable;
     private final VirtualGraph vGraph;
 
+    private String creator;
+    private Date createTime;
+    private Date updateTime;
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -213,12 +215,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
         this.clusterRole = config.get(CoreOptions.CLUSTER_ROLE);
 
-        LockUtil.init(this.name);
+
+        LockUtil.init(this.spaceGraphName());
 
         try {
             this.storeProvider = this.loadStoreProvider();
         } catch (Exception e) {
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message);
@@ -232,7 +235,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.variables = null;
         } catch (Exception e) {
             this.storeProvider.close();
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
             throw e;
         }
 
@@ -261,6 +264,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public String spaceGraphName() {
+        return this.graphSpace + "-" + this.name;
+    }
+
+    @Override
     public HugeGraph hugegraph() {
         return this;
     }
@@ -286,11 +294,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(Id serverId, NodeRole serverRole) {
-        LOG.info("Init server info [{}-{}] for graph '{}'...",
-                 serverId, serverRole, this.name);
-        this.serverInfoManager().initServerInfo(serverId, serverRole);
-
+    public void serverStarted() {
         LOG.info("Search olap property key for graph '{}'", this.name);
         this.schemaTransaction().initAndRegisterOlapTables();
 
@@ -357,12 +361,12 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
             this.storeProvider.initSystemInfo(this);
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -379,11 +383,11 @@ public class StandardHugeGraph implements HugeGraph {
         this.loadSystemStore().open(this.configuration);
         this.loadGraphStore().open(this.configuration);
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.clear();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
             this.loadSystemStore().close();
             this.loadSchemaStore().close();
@@ -394,11 +398,11 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void truncateGraph() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncateGraph(this);
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
     }
 
@@ -406,14 +410,13 @@ public class StandardHugeGraph implements HugeGraph {
     public void truncateBackend() {
         this.waitUntilAllTasksCompleted();
 
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
             this.storeProvider.initSystemInfo(this);
-            this.serverStarted(this.serverInfoManager().selfServerId(),
-                               this.serverInfoManager().selfServerRole());
+            this.serverStarted();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
@@ -421,22 +424,22 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void createSnapshot() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.createSnapshot();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has created snapshot", this.name);
     }
 
     @Override
     public void resumeSnapshot() {
-        LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
+        LockUtil.lock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.resumeSnapshot();
         } finally {
-            LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
+            LockUtil.unlock(this.spaceGraphName(), LockUtil.GRAPH_LOCK);
         }
         LOG.info("Graph '{}' has resumed from snapshot", this.name);
     }
@@ -948,6 +951,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public synchronized void close() throws Exception {
+        TaskManager.useFakeContext();
         if (this.closed()) {
             return;
         }
@@ -965,7 +969,7 @@ public class StandardHugeGraph implements HugeGraph {
         } finally {
             this.closed = true;
             this.storeProvider.close();
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
         }
         // Make sure that all transactions are closed in all threads
         E.checkState(this.tx.closed(),
@@ -976,7 +980,7 @@ public class StandardHugeGraph implements HugeGraph {
     public void clearSchedulerAndLock() {
         this.taskManager.forceRemoveScheduler(this.params);
         try {
-            LockUtil.destroy(this.name);
+            LockUtil.destroy(this.spaceGraphName());
         } catch (Exception e) {
             // Ignore
         }
@@ -1018,14 +1022,6 @@ public class StandardHugeGraph implements HugeGraph {
         E.checkState(scheduler != null,
                      "Can't find task scheduler for graph '%s'", this);
         return scheduler;
-    }
-
-    private ServerInfoManager serverInfoManager() {
-        ServerInfoManager manager = this.taskManager
-                                        .getServerInfoManager(this.params);
-        E.checkState(manager != null,
-                     "Can't find server info manager for graph '%s'", this);
-        return manager;
     }
 
     @Override
@@ -1207,12 +1203,6 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public HugeConfig configuration() {
             return StandardHugeGraph.this.configuration();
-        }
-
-        @Override
-        public ServerInfoManager serverManager() {
-            // this.serverManager.initSchemaIfNeeded();
-            return StandardHugeGraph.this.serverInfoManager();
         }
 
         @Override
@@ -1578,5 +1568,40 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void applyMutation(BackendMutation mutation) {
         this.graphTransaction().applyMutation(mutation);
+    }
+    
+    public String creator() {
+        return this.creator;
+    }
+
+    @Override
+    public void creator(String creator) {
+        this.creator = creator;
+    }
+
+    @Override
+    public Date createTime() {
+        return this.createTime;
+    }
+
+    @Override
+    public void createTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    @Override
+    public Date updateTime() {
+        return this.updateTime;
+    }
+
+    @Override
+    public void updateTime(Date updateTime) {
+        this.updateTime = updateTime;
+        
+    }
+
+    @Override
+    public void refreshUpdateTime() {
+        this.updateTime = new Date();
     }
 }

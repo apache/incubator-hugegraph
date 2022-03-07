@@ -79,7 +79,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        final String name = prefix + "-" + this.graphName();
+        final String name = prefix + "-" + this.graph().spaceGraphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }
@@ -145,7 +145,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.cachedTypes().put(type, false);
     }
 
-    private void clearCache(boolean notify) {
+    public void clearCache(boolean notify) {
         this.idCache.clear();
         this.nameCache.clear();
         this.arrayCaches.clear();

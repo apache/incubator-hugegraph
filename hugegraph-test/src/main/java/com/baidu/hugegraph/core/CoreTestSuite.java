@@ -21,10 +21,9 @@ package com.baidu.hugegraph.core;
 
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.StandardAuthManager;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.meta.MetaManager;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -33,13 +32,11 @@ import org.junit.runners.Suite;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.core.PropertyCoreTest.EdgePropertyCoreTest;
 import com.baidu.hugegraph.core.PropertyCoreTest.VertexPropertyCoreTest;
 import com.baidu.hugegraph.dist.RegisterUtil;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.testutil.Utils;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.Log;
 
 import java.util.List;
@@ -77,18 +74,18 @@ public class CoreTestSuite {
 
     @BeforeClass
     public static void init() {
-        TaskManager.instance(4);
-        graph = Utils.open();
-        graph.clearBackend();
-        graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
-
-        List<String> endpoints = ((HugeConfig) graph.configuration()).get(ServerOptions.META_ENDPOINTS);
+        List<String> endpoints = ImmutableList.of( "http://127.0.0.1:2379");
         metaManager.connect("hg", MetaManager.MetaDriverType.ETCD,
                             null, null, null, endpoints);
         authManager = new StandardAuthManager(metaManager,
                       "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg");
         authManager.initAdmin();
+
+        TaskManager.instance(4);
+        graph = Utils.open();
+        graph.clearBackend();
+        graph.initBackend();
+        graph.serverStarted();
     }
 
     @AfterClass

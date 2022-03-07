@@ -19,7 +19,7 @@
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
-            <!--JsonLayout compact="true" eventEol="true" complete="true" locationINFO="true">
+            <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->

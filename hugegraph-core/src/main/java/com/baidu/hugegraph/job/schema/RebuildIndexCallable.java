@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -94,7 +95,9 @@ public class RebuildIndexCallable extends SchemaCallable {
             }
         };
 
-        LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
 
@@ -162,7 +165,9 @@ public class RebuildIndexCallable extends SchemaCallable {
                  */
                 continue;
             }
-            LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+            String spaceGraph = this.params()
+                                .graph().spaceGraphName();
+            LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
             try {
                 locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
                 graphTx.removeIndex(il);

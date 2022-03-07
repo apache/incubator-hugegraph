@@ -24,6 +24,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -70,7 +71,8 @@ public class VertexLabelRemoveCallable extends SchemaCallable {
          * vertexLabel.indexLabels()
          */
         Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
+        String spaceGraph = graph.graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);

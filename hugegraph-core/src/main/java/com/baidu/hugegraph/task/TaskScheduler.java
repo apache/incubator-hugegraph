@@ -48,6 +48,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 /**
@@ -71,7 +72,6 @@ public abstract class TaskScheduler {
     /**
      * serverInfo
      */
-    protected final ServerInfoManager serverManager;
     protected EventListener eventListener = null;
 
     /**
@@ -90,14 +90,12 @@ public abstract class TaskScheduler {
         this.graph = graph;
         this.graphSpace = graph.graph().graphSpace();
         this.graphName = graph.name();
-        this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
     }
 
     public TaskScheduler(TaskScheduler another) {
             this.graph = another.graph;
             this.graphSpace = graph.graph().graphSpace();
             this.graphName = another.graphName;
-            this.serverManager = another.serverManager;
     }
 
     /**
@@ -205,16 +203,6 @@ public abstract class TaskScheduler {
         return this.graph.graph().graphSpace();
     }
 
-    public void checkRequirement(String op) {
-        if (!this.serverManager().master()) {
-            throw new HugeException("Can't %s task on non-master server", op);
-        }
-    }
-
-    protected ServerInfoManager serverManager() {
-        return this.serverManager;
-    }
-
     protected abstract <V> V call(Callable<V> callable);
     
     protected abstract <V> V call(Runnable runnable);
@@ -227,6 +215,10 @@ public abstract class TaskScheduler {
      * @return
      */
     protected <V> V call(Callable<V> callable, ExecutorService executor) {
+        String prevContext = TaskManager.getContext();
+        if (Strings.isBlank(prevContext)) {
+            TaskManager.useFakeContext();
+        }
         try {
             callable = new ContextCallable<>(callable);
             return executor.submit(callable).get();
@@ -234,6 +226,8 @@ public abstract class TaskScheduler {
             LOGGER.logCriticalError(e, "");
             throw new HugeException("Failed to update/query TaskStore: %s",
             e, e.toString());
+        } finally {
+            TaskManager.setContext(prevContext);
         }
     }
 

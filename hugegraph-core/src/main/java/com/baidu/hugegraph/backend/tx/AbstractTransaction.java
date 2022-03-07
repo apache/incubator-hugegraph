@@ -20,8 +20,11 @@
 package com.baidu.hugegraph.backend.tx;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.backend.cache.CachedSchemaTransaction;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.exception.NotAllowException;
 import org.apache.commons.lang3.StringUtils;
@@ -188,8 +191,18 @@ public abstract class AbstractTransaction implements Transaction {
          * will be queried
          */
         Set<Id> olapPks = new IdSet(CollectionType.EC);
-        for (PropertyKey propertyKey : this.graph.graph().propertyKeys()) {
+        Collection<PropertyKey> pks = this.graph.graph().propertyKeys();
+
+        List<PropertyKey> realPks= this.graph.schemaTransaction()
+                                             .getPropertyKeys(false);
+        if (pks.size() != realPks.size() || !pks.containsAll(realPks)) {
+            ((CachedSchemaTransaction) this.graph.schemaTransaction())
+                    .clearCache(false);
+        }
+        for (PropertyKey propertyKey : realPks) {
             if (propertyKey.olap()) {
+                this.store().provider()
+                    .initAndRegisterOlapTable(this.graph(), propertyKey.id());
                 olapPks.add(propertyKey.id());
             }
         }

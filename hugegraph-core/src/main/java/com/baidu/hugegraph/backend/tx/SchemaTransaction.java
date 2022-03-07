@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
@@ -91,6 +92,27 @@ public class SchemaTransaction extends IndexableTransaction {
          */
         if (this.hasUpdate()) {
             throw new BackendException("There are still dirty changes");
+        }
+    }
+
+    @Watched(prefix = "schema")
+    public List<PropertyKey> getPropertyKeys(boolean cache) {
+        if (cache) {
+            return this.getAllSchema(HugeType.PROPERTY_KEY);
+        } else {
+            List<PropertyKey> results = new ArrayList<>();
+            Query query = new Query(HugeType.PROPERTY_KEY);
+            Iterator<BackendEntry> entries = this.query(query).iterator();
+            try {
+                while (entries.hasNext()) {
+                    results.add(this.deserialize(entries.next(),
+                                                 HugeType.PROPERTY_KEY));
+                    Query.checkForceCapacity(results.size());
+                }
+            } finally {
+                CloseableIterator.closeIterator(entries);
+            }
+            return results;
         }
     }
 
@@ -368,8 +390,9 @@ public class SchemaTransaction extends IndexableTransaction {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
-
-        LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -441,7 +464,9 @@ public class SchemaTransaction extends IndexableTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -582,7 +607,7 @@ public class SchemaTransaction extends IndexableTransaction {
                                                .job(callable)
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
-
+        LOG.debug("olap pk create task {}", task);
         // If TASK_SYNC_DELETION is true, wait async thread done before
         // continue. This is used when running tests.
         if (graph.option(CoreOptions.TASK_SYNC_DELETION)) {

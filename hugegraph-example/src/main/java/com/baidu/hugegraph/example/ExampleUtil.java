@@ -74,7 +74,7 @@ public class ExampleUtil {
             graph.clearBackend();
         }
         graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+        graph.serverStarted();
 
         return graph;
     }

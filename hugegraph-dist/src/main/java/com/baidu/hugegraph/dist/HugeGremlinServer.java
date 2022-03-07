@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.dist;
 
-import static com.baidu.hugegraph.core.GraphManager.DELIMETER;
-import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.core.GraphManager.DELIMITER;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -58,7 +58,7 @@ public class HugeGremlinServer {
         if (graphsDir != null) {
             Map<String, String> configs = ConfigUtil.scanGraphsDir(graphsDir);
             for (Map.Entry<String, String> entry : configs.entrySet()) {
-                String key = String.join(DELIMETER, DEFAULT_GRAPH_SPACE_NAME,
+                String key = String.join(DELIMITER, DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                          entry.getKey());
                 settings.graphs.put(key, entry.getValue());
             }
@@ -99,7 +99,7 @@ public class HugeGremlinServer {
         if (graphsDir != null) {
             Map<String, String> configs = ConfigUtil.scanGraphsDir(graphsDir);
             for (Map.Entry<String, String> entry : configs.entrySet()) {
-                String key = String.join(DELIMETER, DEFAULT_GRAPH_SPACE_NAME,
+                String key = String.join(DELIMITER, DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                          entry.getKey());
                 settings.graphs.put(key, entry.getValue());
             }

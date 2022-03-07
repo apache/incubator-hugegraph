@@ -37,12 +37,16 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import static com.baidu.hugegraph.core.GraphManager.NAME_REGEX;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 public class HugeGraphServer {
 
@@ -77,10 +81,12 @@ public class HugeGraphServer {
             LOG.info("Start service with 'DEFAULT' graph space");
             graphSpace = "DEFAULT";
         }
+        checkName(graphSpace, "graph space");
         if (StringUtils.isEmpty(serviceId)) {
             LOG.info("Start service with 'DEFAULT' graph space");
             serviceId = "DEFAULT";
         }
+        checkName(serviceId, "service");
 
         // try to fetch rest server config and gremlin config from etcd
         if (!withCa) {
@@ -107,6 +113,9 @@ public class HugeGraphServer {
                                      serviceId);
         restServerConfig.addProperty(ServerOptions.SERVICE_GRAPH_SPACE.name(),
                                      graphSpace);
+        restServerConfig.setProperty(ServerOptions.CLUSTER.name(), cluster);
+        restServerConfig.addProperty(ServerOptions.META_ENDPOINTS.name(),
+                                     "[" + String.join(",", metaEndpoints) + "]");
         restServerConfig.addProperty(ServerOptions.NODE_ID.name(), nodeId);
         restServerConfig.addProperty(ServerOptions.NODE_ROLE.name(), nodeRole);
         restServerConfig.addProperty(ServerOptions.META_USE_CA.name(), withCa.toString());
@@ -141,10 +150,18 @@ public class HugeGraphServer {
                              clientCaFile, clientKeyFile);
 
         GraphSpace gs = this.metaManager.graphSpace(graphSpace);
-        if (gs != null) {
-            restServerConfig.setProperty(ServerOptions.K8S_NAMESPACE.name(), gs.olapNamespace());
-        }
+        String olapNamespace = (null != gs
+                                && !Strings.isNullOrEmpty(gs.olapNamespace())
+                                && !"null".equals(gs.olapNamespace()))
+            ? gs.olapNamespace()
+            : ServerOptions.SERVER_DEFAULT_OLAP_K8S_NAMESPACE.defaultValue();
 
+        // Use olapNamespace of graph space when:
+        // 1. It's not default graph space.
+        // 2. Or it's default graph space, and olapNamespace has already been set a not 'null' value.
+        // Otherwise, use k8s.namespace in conf
+        restServerConfig.setProperty(ServerOptions.K8S_NAMESPACE.name(), olapNamespace);
+    
         try {
             // Start GremlinServer
             String gsText = this.metaManager.gremlinYaml(graphSpace,
@@ -202,6 +219,17 @@ public class HugeGraphServer {
         } catch (Throwable e) {
             LOG.error("Failed to stop HugeGraph: ", e);
         }
+    }
+
+    private static void checkName(String name, String type) {
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(name)) {
+            return;
+        }
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid name '%s' for %s, valid name is up to 128 " +
+                        "alpha-numeric characters and underscores and only " +
+                        "letters are supported as first letter. " +
+                        "Note: letter is lower case", name, type);
     }
 
     public static void main(String[] args) throws Exception {

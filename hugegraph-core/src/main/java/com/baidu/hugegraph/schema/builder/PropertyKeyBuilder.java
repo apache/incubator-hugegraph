@@ -42,11 +42,13 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class PropertyKeyBuilder extends AbstractBuilder
                                 implements PropertyKey.Builder {
 
-    public static final String OLAP_PREFIX = "olap_";
+    protected static final Logger LOG = Log.logger(PropertyKeyBuilder.class);
 
     private Id id;
     private String name;
@@ -132,7 +134,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     @Override
     public SchemaElement.TaskWithSchema createWithTask() {
         HugeType type = HugeType.PROPERTY_KEY;
-        this.checkSchemaName();
+        this.checkSchemaName(this.name);
 
         return this.lockCheckAndCreateSchema(type, this.name, name -> {
             PropertyKey propertyKey = this.propertyKeyOrNull(name);
@@ -151,13 +153,11 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
             // Rebuild olap table if propertyKey exists but table miss
             if (propertyKey != null && propertyKey.olap()) {
-                if (!this.graph().existsOlapTable(propertyKey)) {
-                    this.graph().addPropertyKey(propertyKey);
-                }
+                LOG.debug("exist pk, do nothing");
                 return new SchemaElement.TaskWithSchema(propertyKey,
                                                         IdGenerator.ZERO);
             }
-
+            LOG.debug("pk not exist, create pk");
             propertyKey = this.build();
             assert propertyKey.name().equals(name);
             Id id = this.graph().addPropertyKey(propertyKey);
@@ -401,21 +401,6 @@ public class PropertyKeyBuilder extends AbstractBuilder
     public PropertyKeyBuilder checkExist(boolean checkExist) {
         this.checkExist = checkExist;
         return this;
-    }
-
-    protected void checkSchemaName() {
-        if (this.writeType.oltp()) {
-            E.checkArgument(!this.name.startsWith(OLAP_PREFIX),
-                            "Invalid oltp property key name: '%s', " +
-                            "'%s' is kept prefix for olap property key",
-                            this.name, OLAP_PREFIX);
-        } else {
-            E.checkArgument(this.name.startsWith(OLAP_PREFIX),
-                            "Invalid olap property key name: '%s', " +
-                            "olap property key must prefix with '%s'",
-                            this.name, OLAP_PREFIX);
-        }
-        super.checkSchemaName(this.name);
     }
 
     private void checkStableVars() {

@@ -98,7 +98,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private Cache<Id, Object> cache(String prefix, String type, long capacity,
                                     long entrySize, long expire) {
-        String name = prefix + "-" + this.params().name();
+        String name = prefix + "-" + this.params().graph().spaceGraphName();
         Cache<Id, Object> cache;
         switch (type) {
             case "l1":

@@ -22,6 +22,7 @@ package com.baidu.hugegraph.job.schema;
 import java.util.Set;
 
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.StandardHugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.tx.GraphTransaction;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
@@ -54,7 +55,8 @@ public class EdgeLabelRemoveCallable extends SchemaCallable {
         // TODO: use event to replace direct call
         // Remove index related data(include schema) of this edge label
         Set<Id> indexIds = ImmutableSet.copyOf(edgeLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
+        String spaceGraph = graph.graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.EDGE_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(edgeLabel, SchemaStatus.DELETING);

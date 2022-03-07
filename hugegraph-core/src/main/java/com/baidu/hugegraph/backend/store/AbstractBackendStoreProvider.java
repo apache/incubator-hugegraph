@@ -157,6 +157,7 @@ public abstract class AbstractBackendStoreProvider
     public void createOlapTable(HugeGraph graph, Id pkId) {
         String g = graph.option(CoreOptions.STORE_GRAPH);
         BackendStore store = this.stores.get(g);
+        LOG.debug("Store provider start create olap table {}", pkId);
         store.createOlapTable(pkId);
     }
 

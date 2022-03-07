@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.baidu.hugegraph.StandardHugeGraph;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -84,6 +85,7 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Action;
 import com.baidu.hugegraph.type.define.HugeKeys;
@@ -125,6 +127,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         HugeTask<?> task = EphemeralJobBuilder.of(this.graph())
                                               .name(element.id().asString())
                                               .job(job)
+                                              .context(TaskManager.getContext(true))
                                               .schedule();
         return task.id();
     }
@@ -644,7 +647,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        ConditionQuery query) {
         Iterator<BackendEntry> entries = super.query(query).iterator();
         return new BatchIdHolder(query, entries, batch -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+            String spaceGraph = this.params()
+                                .graph().spaceGraphName();
+            LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
             try {
                 // Catch lock every batch
                 locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
@@ -694,7 +699,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                      ConditionQuery query) {
         // Query all or one page
         Iterator<BackendEntry> entries = null;
-        LockUtil.Locks locks = new LockUtil.Locks(this.graphName());
+        String spaceGraph = this.params()
+                            .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockReads(LockUtil.INDEX_LABEL_DELETE, indexLabel.id());
             locks.lockReads(LockUtil.INDEX_LABEL_REBUILD, indexLabel.id());

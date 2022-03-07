@@ -46,7 +46,6 @@ import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.define.IdStrategy;
-import com.baidu.hugegraph.type.define.NodeRole;
 import com.google.common.collect.ImmutableSet;
 
 @Graph.OptIn("com.baidu.hugegraph.tinkerpop.StructureBasicSuite")
@@ -88,7 +87,7 @@ public class TestGraph implements Graph {
         }
 
         Id id = IdGenerator.of("server-tinkerpop");
-        this.graph.serverStarted(id, NodeRole.MASTER);
+        this.graph.serverStarted();
 
         this.initedBackend = true;
     }

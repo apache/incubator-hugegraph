@@ -656,6 +656,13 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "./conf/computer.yaml"
             );
+    public static final ConfigOption<String> K8S_OPERATOR_TEMPLATE = 
+            new ConfigOption<>(
+                    "k8s.operator_template",
+                    "the path of operator container template.",
+                    disallowEmpty(),
+                    "./conf/operator-template.yaml"
+            );
 
     public static final ConfigOption<Integer> OLTP_CONCURRENT_THREADS =
             new ConfigOption<>(

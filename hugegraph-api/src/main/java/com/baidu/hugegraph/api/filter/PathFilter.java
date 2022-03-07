@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.filter;
 
-import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.io.IOException;
 import java.net.URI;
@@ -84,7 +84,7 @@ public class PathFilter implements ContainerRequestFilter {
 
         UriInfo uriInfo = context.getUriInfo();
         String path = uriInfo.getBaseUri().getPath() +
-                String.join(DELIMETER, GRAPH_SPACE, DEFAULT_GRAPH_SPACE_NAME);
+                String.join(DELIMETER, GRAPH_SPACE, DEFAULT_GRAPH_SPACE_SERVICE_NAME);
         for (PathSegment segment : segments) {
             path = String.join(DELIMETER, path, segment.getPath());
         }

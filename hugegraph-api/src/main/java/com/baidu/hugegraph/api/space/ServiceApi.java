@@ -107,8 +107,12 @@ public class ServiceApi extends API {
 
         jsonService.checkCreate(false);
 
+        String username = manager.authManager().username();
+        Service temp = jsonService.toService(username);
+
+        
         Service service = manager.createService(graphSpace,
-                                                jsonService.toService());
+                                                temp);
         return manager.serializer().writeService(service);
     }
 
@@ -222,8 +226,8 @@ public class ServiceApi extends API {
             }
         }
 
-        public Service toService() {
-            Service service = new Service(this.name, this.serviceType,
+        public Service toService(String creator) {
+            Service service = new Service(this.name, creator, this.serviceType,
                                           this.deploymentType);
             service.description(this.description);
             service.count(this.count);

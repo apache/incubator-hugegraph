@@ -50,7 +50,6 @@ import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeProperty;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.task.HugeTask;
-import com.baidu.hugegraph.task.StandardTaskScheduler;
 import com.baidu.hugegraph.task.TaskCallable;
 import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.task.TaskManager;
@@ -74,6 +73,7 @@ public final class HugeFactoryAuthProxy {
 
     static {
         HugeGraphAuthProxy.setContext(HugeGraphAuthProxy.Context.admin());
+        TaskManager.setFakeContext(HugeGraphAuthProxy.Context.admin().user().toJson());
         HugeFactoryAuthProxy.registerPrivateActions();
     }
 
@@ -162,8 +162,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.schema.builder.IndexLabelBuilder.class, "lambda$0", "checkStableVars", "$SWITCH_TABLE$com$baidu$hugegraph$type$define$DataType", "$SWITCH_TABLE$com$baidu$hugegraph$type$define$IndexType", "checkBaseType", "checkIndexType", "checkFields4Range", "loadElement", "checkFields", "checkRepeatIndex", "checkRepeatIndex", "checkRepeatIndex", "checkPrimaryKeyIndex", "checkRepeatRangeIndex", "checkRepeatSearchIndex", "checkRepeatSecondaryIndex", "checkRepeatShardIndex", "checkRepeatUniqueIndex", "removeSubIndex", "hasSubIndex", "allStringIndex", "oneNumericField", "hasSameProperties");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.task.TaskManager.class, "LOG", "SCHEDULE_PERIOD", "THREADS", "MANAGER", "schedulers", "taskExecutor", "taskDbExecutor", "serverInfoDbExecutor", "schedulerExecutor", "contexts", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.task.TaskManager.class, "lambda$0", "resetContext", "closeTaskTx", "setContext", "instance", "closeSchedulerTx", "notifyNewTask", "scheduleOrExecuteJob", "scheduleOrExecuteJobForGraph");
-        Reflection.registerFieldsToFilter(com.baidu.hugegraph.task.StandardTaskScheduler.class, "LOG", "graph", "serverManager", "taskExecutor", "taskDbExecutor", "eventListener", "tasks", "taskTx", "NO_LIMIT", "PAGE_SIZE", "QUERY_INTERVAL", "MAX_PENDING_TASKS", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(com.baidu.hugegraph.task.StandardTaskScheduler.class, "lambda$0", "lambda$1", "lambda$2", "lambda$3", "lambda$4", "lambda$5", "lambda$6", "lambda$7", "tx", "listenChanges", "unlistenChanges", "submitTask", "queryTask", "queryTask", "queryTask", "call", "call", "remove", "sleep", "taskDone", "serverManager", "supportsPaging", "restore", "checkOnMasterNode", "waitUntilTaskCompleted", "scheduleTasks", "executeTasksOnWorker", "cancelTasksOnWorker");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.task.HugeTask.class, "LOG", "DECOMPRESS_RATIO", "scheduler", "callable", "type", "name", "id", "parent", "dependencies", "description", "context", "create", "server", "load", "status", "progress", "update", "retries", "input", "result", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.task.HugeTask.class, "property", "scheduler", "scheduler", "asArray", "checkPropertySize", "checkPropertySize", "checkDependenciesSuccess", "toOrderSet", "done", "callable", "setException", "set", "result", "status");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.task.TaskCallable.class, "LOG", "ERROR_COMMIT", "ERROR_MESSAGES", "task", "graph", "lastSaveTime", "saveInterval");
@@ -241,7 +239,6 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(IndexLabelBuilder.class);
 
         registerPrivateActions(TaskManager.class);
-        registerPrivateActions(StandardTaskScheduler.class);
         registerPrivateActions(HugeTask.class);
         registerPrivateActions(TaskCallable.class);
         registerPrivateActions(SysTaskCallable.class);

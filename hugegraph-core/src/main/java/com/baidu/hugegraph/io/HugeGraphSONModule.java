@@ -22,6 +22,7 @@ package com.baidu.hugegraph.io;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -97,7 +98,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     // NOTE: jackson will synchronize DateFormat
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
         serialVersionUID = 6480426922914059122L;
@@ -307,6 +308,11 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number roleNumberUsed = 0;
             Boolean auth = false;
 
+            String creator = GraphSpace.DEFAULT_CREATOR_NAME;
+            Date create = null;
+            Date update = null;
+
+
             Map<String, Object> configs = new HashMap<>();
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
@@ -343,13 +349,31 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     roleNumberUsed = jsonParser.getNumberValue();
                 } else if ("auth".equals(fieldName)) {
                     auth = jsonParser.getBooleanValue();
+                } else if ("creator".equals(fieldName)) {
+                    creator = jsonParser.getText();
+                } else if ("create_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        create = DATE_FORMAT.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        create = new Date();
+                    }
+                } else if ("update_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        update = DATE_FORMAT.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        update = new Date();
+                    }
                 } else {
                     configs.put(fieldName, jsonParser.getValueAsString());
                 }
             }
             jsonParser.close();
 
-            return new GraphSpace(name, description,
+            GraphSpace space = new GraphSpace(name, description,
                                   cpuLimit.intValue(),
                                   memoryLimit.intValue(),
                                   storageLimit.intValue(),
@@ -364,7 +388,12 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                   graphNumberUsed.intValue(),
                                   roleNumberUsed.intValue(),
                                   auth,
+                                  creator,
                                   configs);
+
+            space.updateTime(update);
+            space.createTime(create);
+            return space;
         }
     }
 
@@ -423,6 +452,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             String pdServiceId = null;
 
+            String creator = null;
+            Date createTime = null;
+            Date updateTime = null;
+
             while (jsonParser.nextToken() != JsonToken.END_OBJECT) {
                 String fieldName = jsonParser.getCurrentName();
                 jsonParser.nextToken();
@@ -455,6 +488,24 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     }
                 } else if("pd_service_id".equals(fieldName)) {
                     pdServiceId = jsonParser.getText();
+                } else if ("creator".equals(fieldName)) {
+                    creator = jsonParser.getText();
+                } else if ("create_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        createTime = DATE_FORMAT.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        createTime = new Date();
+                    }
+                } else if ("update_time".equals(fieldName)) {
+                    String val = jsonParser.getValueAsString();
+                    try {
+                        updateTime = DATE_FORMAT.parse(val);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                        updateTime = new Date();
+                    }
                 } else {
                     // throw new HugeException("Invalid field '%s'", fieldName);
                     LOGGER.logCriticalError(new HugeException("Invalid field %", fieldName), "Deserialize Service");
@@ -462,7 +513,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             }
             jsonParser.close();
 
-            Service service = new Service(name, description,
+            Service service = new Service(name, creator, description,
                                Service.ServiceType.valueOf(type),
                                Service.DeploymentType.valueOf(deploymentType),
                                count.intValue(),
@@ -474,6 +525,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                port.intValue(),
                                urls);
             service.pdServiceId(pdServiceId);
+            service.createTime(createTime);
+            service.updateTime(updateTime);
             return service;
         }
     }

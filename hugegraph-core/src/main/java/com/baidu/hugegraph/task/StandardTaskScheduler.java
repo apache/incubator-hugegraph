@@ -20,7 +20,6 @@
 package com.baidu.hugegraph.task;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import com.baidu.hugegraph.backend.id.IdGenerator;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
@@ -52,13 +52,15 @@ import com.baidu.hugegraph.task.TaskCallable.SysTaskCallable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
 
 public class StandardTaskScheduler extends TaskScheduler {
 
     private static final Logger LOG = Log.logger(TaskScheduler.class);
+
+    public static final Id OWN = IdGenerator.of("own");
 
     private final ExecutorService taskExecutor;
     private final ExecutorService backupForLoadTaskExecutor;
@@ -109,7 +111,6 @@ public class StandardTaskScheduler extends TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
-        Id selfServer = this.serverManager().selfServerId();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -118,9 +119,7 @@ public class StandardTaskScheduler extends TaskScheduler {
                 for (iter = this.findTask(status, PAGE_SIZE, page);
                      iter.hasNext();) {
                     HugeTask<V> task = iter.next();
-                    if (selfServer.equals(task.server())) {
-                        this.restore(task);
-                    }
+                    this.restore(task);
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(iter);
@@ -145,6 +144,16 @@ public class StandardTaskScheduler extends TaskScheduler {
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
 
+        if (task.status() == TaskStatus.NEW && Strings.isNullOrEmpty(task.context())) {
+            LOGGER.logCustomDebug("attach context to task {} ", "Scorpiour", task.id().asString());
+            String currentContext = TaskManager.getContext();
+            if (!Strings.isNullOrEmpty(currentContext)) {
+                task.context(TaskManager.getContext());
+            }
+        } else {
+            LOGGER.logCustomDebug("task {} has context already", "Scorpiour", task.id().asString());
+        }
+
         if (task.status() == TaskStatus.QUEUED) {
             /*
              * Just submit to queue if status=QUEUED (means re-schedule task)
@@ -166,13 +175,13 @@ public class StandardTaskScheduler extends TaskScheduler {
         // Only check if not EphemeralJob
         this.checkOnMasterNode("schedule");
 
-        if (this.serverManager().onlySingleNode() && !task.computer()) {
+        if (!task.computer()) {
             /*
              * Speed up for single node, submit task immediately
              * this can be removed without affecting logic
              */
             task.status(TaskStatus.QUEUED);
-            task.server(this.serverManager().selfServerId());
+            task.server(OWN);
             this.save(task);
             return this.submitTask(task);
         } else {
@@ -191,7 +200,9 @@ public class StandardTaskScheduler extends TaskScheduler {
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
-        int size = this.tasks.size() + 1;
+        long size = this.tasks.values().stream()
+                        .filter((t) -> TaskStatus.PENDING_STATUSES.contains(t.status()))
+                        .count()   + 1;
         E.checkArgument(size <= MAX_PENDING_TASKS,
                         "Pending tasks size %s has exceeded the max limit %s",
                         size, MAX_PENDING_TASKS);
@@ -296,18 +307,7 @@ public class StandardTaskScheduler extends TaskScheduler {
             // The task scheduled to workers, let the worker node to cancel
             this.save(task);
             assert task.server() != null : task;
-            assert this.serverManager().master();
-            if (!task.server().equals(this.serverManager().selfServerId())) {
-                /*
-                 * Remove task from memory if it's running on worker node,
-                 * but keep task in memory if it's running on master node.
-                 * cancel-scheduling will read task from backend store, if
-                 * removed this instance from memory, there will be two task
-                 * instances with same id, and can't cancel the real task that
-                 * is running but removed from memory.
-                 */
-                this.remove(task);
-            }
+            this.remove(task);
             // Notify master server to schedule and execute immediately
             TaskManager.instance().notifyNewTask(task);
             return;
@@ -335,8 +335,6 @@ public class StandardTaskScheduler extends TaskScheduler {
 
     protected synchronized void scheduleTasks() {
         // Master server schedule all scheduling tasks to suitable worker nodes
-        Collection<HugeServerInfo> scheduleInfos = this.serverManager()
-                                                       .allServerInfos();
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING,
@@ -348,33 +346,16 @@ public class StandardTaskScheduler extends TaskScheduler {
                     continue;
                 }
 
-                HugeServerInfo server = this.serverManager().pickWorkerNode(
-                                        scheduleInfos, task);
-                if (server == null) {
-                    LOG.info("The master can't find suitable servers to " +
-                             "execute task '{}', wait for next schedule",
-                             task.id());
-                    continue;
-                }
-
-                // Found suitable server, update task status
-                assert server.id() != null;
-                task.server(server.id());
+                task.server(OWN);
                 task.status(TaskStatus.SCHEDULED);
                 this.save(task);
 
-                // Update server load in memory, it will be saved at the ending
-                server.increaseLoad(task.load());
-
-                LOG.info("Scheduled task '{}' to server '{}'",
-                         task.id(), server.id());
+                LOG.info("Scheduled task '{}' to server '{}'", task.id(), OWN);
             }
             if (page != null) {
                 page = PageInfo.pageInfo(tasks);
             }
         } while (page != null);
-
-        this.serverManager().updateServerInfos(scheduleInfos);
     }
 
     protected void executeTasksOnWorker(Id server) {
@@ -384,6 +365,10 @@ public class StandardTaskScheduler extends TaskScheduler {
                                                           PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
+                if (Strings.isNullOrEmpty(task.context())) {
+                    task.overwriteContext(TaskManager.getContext(true));
+                }
+
                 this.initTaskCallable(task);
                 Id taskServer = task.server();
                 if (taskServer == null) {
@@ -448,15 +433,6 @@ public class StandardTaskScheduler extends TaskScheduler {
     @Override
     protected void taskDone(HugeTask<?> task) {
         this.remove(task);
-
-        Id selfServerId = this.serverManager().selfServerId();
-        try {
-            this.serverManager().decreaseLoad(task.load());
-        } catch (Throwable e) {
-            LOG.error("Failed to decrease load for task '{}' on server '{}'",
-                      task.id(), selfServerId, e);
-        }
-        LOG.debug("Task '{}' done on server '{}'", task.id(), selfServerId);
     }
 
     protected void remove(HugeTask<?> task) {
@@ -501,7 +477,7 @@ public class StandardTaskScheduler extends TaskScheduler {
                 this.graph.closeTx();
             });
         }
-        return this.serverManager.close();
+        return true;
     }
 
     @Override
@@ -680,19 +656,11 @@ public class StandardTaskScheduler extends TaskScheduler {
     }
 
     @Override
-    public void checkRequirement(String op) {
-        this.checkOnMasterNode(op);
-    }
-
-    @Override
     protected <V> V call(Runnable runnable) {
         return this.call(Executors.callable(runnable, null));
     }
 
     private void checkOnMasterNode(String op) {
-        if (!this.serverManager().master()) {
-            throw new HugeException("Can't %s task on non-master server", op);
-        }
     }
 
     private boolean supportsPaging() {

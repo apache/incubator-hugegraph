@@ -21,6 +21,7 @@ package com.baidu.hugegraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -138,6 +139,7 @@ public interface HugeGraph extends Graph {
     public String graphSpace();
     public void graphSpace(String graphSpace);
     public String name();
+    public String spaceGraphName();
     public String backend();
     public String backendVersion();
     public BackendStoreSystemInfo backendStoreSystemInfo();
@@ -149,8 +151,20 @@ public interface HugeGraph extends Graph {
     public GraphReadMode readMode();
     public void readMode(GraphReadMode readMode);
 
+    public String creator();
+    public void creator(String creator);
+
+    public Date createTime();
+    public void createTime(Date createTime);
+
+    public Date updateTime();
+    public void updateTime(Date updateTime);
+
+    public void refreshUpdateTime();
+    
+
     public void waitStarted();
-    public void serverStarted(Id serverId, NodeRole serverRole);
+    public void serverStarted();
     public boolean started();
     public boolean closed();
 
