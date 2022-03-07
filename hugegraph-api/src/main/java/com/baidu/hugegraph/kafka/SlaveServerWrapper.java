@@ -28,8 +28,10 @@ import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
+import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.syncgateway.MutationDTO;
 import com.baidu.hugegraph.syncgateway.SyncMutationServer;
+import com.baidu.hugegraph.util.Log;
 
 /**
  * Used to wrap the mutation sync related modules of slave
@@ -37,6 +39,9 @@ import com.baidu.hugegraph.syncgateway.SyncMutationServer;
  * @since 2022-03-03
  */
 public class SlaveServerWrapper {
+
+    private static final HugeGraphLogger LOGGER = 
+                    Log.getLogger(SlaveServerWrapper.class);
 
     private static class InstanceHolder {
         private static SlaveServerWrapper instance = new SlaveServerWrapper();
@@ -68,8 +73,12 @@ public class SlaveServerWrapper {
         Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
             public void accept(MutationDTO t) {
-                System.out.println("Recv in callback");
-                System.out.println(t.getGraphSpace() + " - " + t.getGraphName() + " size " + t.getMutation().length);
+                LOGGER.logCustomDebug("Recv in callback, {} ",
+                        "Scorpiour",
+                        t.getGraphSpace() + " - "
+                        + t.getGraphName() + " size "
+                        + t.getMutation().length);
+
                 
                 HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
                     .setBuffer(ByteBuffer.wrap(t.getMutation()))
