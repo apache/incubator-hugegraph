@@ -20,8 +20,8 @@ jobs:
         stale-pr-message: 'Due to the lack of activity, the current pr is marked as stale and will be closed after 180 days, any update will remove the stale label'
         stale-issue-label: 'inactive'
         stale-pr-label: 'inactive'
-        exempt-issue-labels: 'feature,bug,enhancement,improvement,wontfix,todo'
-        exempt-pr-labels: 'feature,bug,enhancement,improvement,wontfix,todo'
+        exempt-issue-labels: 'feature,bug,enhancement,improvement,wontfix,todo,guide,doc,help wanted'
+        exempt-pr-labels: 'feature,bug,enhancement,improvement,wontfix,todo,guide,doc,help wanted'
         exempt-all-milestones: true
 
         days-before-issue-stale: 15
@@ -29,7 +29,7 @@ jobs:
         days-before-pr-stale: 30
         days-before-pr-close: 180
         operations-per-run: 10
-        start-date: '2018-10-01T00:00:00Z'
+        start-date: '2017-10-01T00:00:00Z'
 
         exempt-all-assignees: true
         remove-stale-when-updated: true
