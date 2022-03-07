@@ -689,14 +689,6 @@ public class CoreOptions extends OptionHolder {
                     CollectionType::valueOf,
                     "EC"
             );
-    public static final ConfigOption<String> CLUSTER_ROLE =
-            new ConfigOption<>(
-                    "cluster.role",
-                    "Indicates the type of cluster, " +
-                    "used to determine how to cope with data-sync",
-                    allowValues("master", "slave"),
-                    "master"
-            );
 
     public static final ConfigOption<Boolean> VIRTUAL_GRAPH_ENABLE =
             new ConfigOption<>(
@@ -783,5 +775,23 @@ public class CoreOptions extends OptionHolder {
                     "The task threads of virtual graph batcher.",
                     rangeInt(1, Math.max(4, CoreOptions.CPUS * 2)),
                     Math.max(4, CoreOptions.CPUS / 2)
+            );
+
+
+    public static final ConfigOption<String> CLUSTER_ROLE =
+            new ConfigOption<>(
+                    "cluster.role",
+                    "Indicates the type of cluster, " +
+                    "used to determine how to cope with data-sync",
+                    allowValues("master", "slave"),
+                    "master"
+            );
+
+    public static final ConfigOption<Integer> SLAVE_CLUSTER_GRPC_PORT = 
+            new ConfigOption<>(
+                    "cluster.grpc.port",
+                    "Indicates the port of slave cluster grpc server",
+                    rangeInt(10000, 65534),
+                    51777
             );
 }

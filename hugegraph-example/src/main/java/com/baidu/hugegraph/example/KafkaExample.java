@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.ArrayList;
 
 import com.baidu.hugegraph.HugeGraph;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.kafka.SyncMutateConsumer;
 import com.baidu.hugegraph.kafka.SyncMutateConsumerBuilder;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
@@ -50,7 +51,7 @@ public class KafkaExample extends PerfExampleBase {
     
     public static void main(String[] args) throws Exception {
 
-        SyncMutationServer server = new SyncMutationServer(51777);
+        SyncMutationServer server = new SyncMutationServer(CoreOptions.SLAVE_CLUSTER_GRPC_PORT.defaultValue());
         server.registerListener("kafka re-send", (MutationDTO dto) -> {
 
         });

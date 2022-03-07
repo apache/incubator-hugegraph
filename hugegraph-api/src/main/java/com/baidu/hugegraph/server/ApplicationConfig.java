@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.server;
 
+
+
 import javax.ws.rs.ApplicationPath;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
@@ -40,7 +42,8 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.kafka.ClusterRole;
-import com.baidu.hugegraph.kafka.SyncMutateConsumerBuilder;
+import com.baidu.hugegraph.kafka.SlaveServerWrapper;
+
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -60,16 +63,10 @@ public class ApplicationConfig extends ResourceConfig {
         // Register HugeConfig to context
         register(new ConfFactory(conf));
 
-        GraphManager manager = new GraphManager(conf, hub);
+        GraphManagerFactory factory = new GraphManagerFactory(conf, hub);
 
-        // Register GraphManager to context
-        register(manager);
+        register(factory);
 
-        String clusterRole = conf.get(CoreOptions.CLUSTER_ROLE);
-        if (clusterRole.equals(ClusterRole.SLAVE.toString())) {
-            SyncMutateConsumerBuilder.setGraphManager(manager);
-            // TODO: build and enable consumer
-        }
         // 必须在default service下启动consumer确保资源可靠
         // manager.graph(graphSpace  graphName);
 
@@ -123,7 +120,13 @@ public class ApplicationConfig extends ResourceConfig {
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf, hub);
+                        String clusterRole = conf.get(CoreOptions.CLUSTER_ROLE);
+                        if (clusterRole.equals(ClusterRole.SLAVE.toString())) {
+                            // TODO: build and enable consumer
+                            SlaveServerWrapper.getInstance().init(manager);
+                        }
                     } else if (event.getType() == this.EVENT_DESTROYED) {
+                        SlaveServerWrapper.getInstance().close();
                         if (manager != null) {
                             manager.close();
                             manager.destroy();

@@ -987,13 +987,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         ResourceObject<V> ro = fetcher.get();
         String action = actionPerm.string();
 
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.logCustomDebug(
-                "Verify permission {} {} for user '{}' with role {}",
-                "Jermy Li",
-                action, ro, username, role);
-        }
-
         V result = ro.operated();
         // Verify role permission
         if (!RolePerm.match(role, actionPerm, ro)) {

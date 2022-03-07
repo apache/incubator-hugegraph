@@ -22,8 +22,7 @@ package com.baidu.hugegraph.kafka.consumer;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 
-import com.baidu.hugegraph.kafka.producer.ProducerClient;
-import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
@@ -39,7 +38,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
 
     // private final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder().build();
-    private SyncMutationClient client = new SyncMutationClient("127.0.0.1", 51777);
+    
+    private SyncMutationClient client = new SyncMutationClient("127.0.0.1", 
+            CoreOptions.SLAVE_CLUSTER_GRPC_PORT.defaultValue());
 
     protected StandardConsumer(Properties props) {
         super(props);
@@ -53,13 +54,14 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
         String graphSpace = graphInfo[0];
         String graphName = graphInfo[1];
 
+        /*
         HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
                                             .setBuffer(record.value())
                                             .setGraphSpace(graphSpace)
                                             .setGraphName(graphName)
                                             .build();
 
-                                            
+        */                               
         System.out.println("=========> Scorpiour : resend data to next");
         client.sendMutation(graphSpace, graphName, record.value().array());
         

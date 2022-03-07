@@ -143,15 +143,10 @@ public class StandardAuthManager implements AuthManager {
         E.checkState(context != null,
                      "Missing authentication context " +
                      "when verifying resource permission");
-        String username = context.user().username();
+        // String username = context.user().username();
         Object role = context.user().role();
         ResourceObject<V> ro = fetcher.get();
         String action = actionPerm.string();
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Verify permission {} {} for user '{}' with role {}",
-                      action, ro, username, role);
-        }
 
         V result = ro.operated();
         // Verify role permission

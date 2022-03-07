@@ -45,6 +45,12 @@ public class SyncMutateConsumerBuilder extends StandardConsumerBuilder {
     public static void setGraphManager(GraphManager manager) {
         SyncMutateConsumerBuilder.graphManager = manager;
     }
+
+    @Override
+    @Deprecated
+    public SyncMutateConsumerBuilder setTopic(String topic) {
+        return this;
+    }
     
     @Override
     public SyncMutateConsumer build() {
