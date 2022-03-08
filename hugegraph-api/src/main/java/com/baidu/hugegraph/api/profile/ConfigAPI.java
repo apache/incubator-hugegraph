@@ -18,7 +18,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Arrays;
@@ -35,11 +34,20 @@ public class ConfigAPI extends API {
     private static final Set<String> REST_FIELDS
             = new HashSet<>(Arrays.asList(
                 "restserver.url",
-                "restserver.max_worker_threads",
-                "restserver.min_free_memory",
-                "restserver.request_timeout",
-                "restserver.connection_idle_timeout",
-                "restserver.connection_max_requests"
+                "server.start_ignore_single_graph_error",
+                "batch.max_write_ratio",
+                "batch.max_write_threads",
+                "batch.max_vertices_per_batch",
+                "batch.max_edges_per_batch",
+                "server.k8s_url",
+                "server.k8s_use_ca",
+                "server.k8s_ca",
+                "server.k8s_client_ca",
+                "server.k8s_client_key",
+                "server.k8s_oltp_image",
+                "k8s.internal_algorithm_image_url",
+                "k8s.internal_algorithm",
+                "k8s.algorithms"
             ));
 
 
