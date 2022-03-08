@@ -281,23 +281,11 @@ public final class GraphManager {
     private void initK8sManagerIfNeeded(HugeConfig conf) {
         boolean useK8s = conf.get(ServerOptions.SERVER_USE_K8S);
         if (useK8s) {
-            String k8sUrl = conf.get(ServerOptions.SERVER_K8S_URL);
-            boolean k8sUseCa = conf.get(ServerOptions.SERVER_K8S_USE_CA);
-            String k8sCa = null;
-            String k8sClientCa = null;
-            String k8sClientKey = null;
-            if (k8sUseCa) {
-                k8sCa = conf.get(ServerOptions.SERVER_K8S_CA);
-                k8sClientCa = conf.get(ServerOptions.SERVER_K8S_CLIENT_CA);
-                k8sClientKey = conf.get(ServerOptions.SERVER_K8S_CLIENT_KEY);
-            }
             String oltpImage = conf.get(ServerOptions.SERVER_K8S_OLTP_IMAGE);
             String olapImage = conf.get(ServerOptions.SERVER_K8S_OLAP_IMAGE);
             String storageImage =
                    conf.get(ServerOptions.SERVER_K8S_STORAGE_IMAGE);
-            this.k8sManager.connect(k8sUrl, k8sCa, k8sClientCa, k8sClientKey,
-                                    oltpImage, olapImage, storageImage,
-                                    this.ca);
+            this.k8sManager.connect(oltpImage, olapImage, storageImage, this.ca);
         }
     }
 

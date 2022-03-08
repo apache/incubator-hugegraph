@@ -132,19 +132,8 @@ public class K8sDriver {
 
     private CA ca;
 
-    public K8sDriver(String url, String caFile, String clientCaFile,
-                     String clientKeyFile) {
-        Config config = new ConfigBuilder().withMasterUrl(url)
-                                           .withTrustCerts(true)
-                                           .withCaCertFile(caFile)
-                                           .withClientCertFile(clientCaFile)
-                                           .withClientKeyFile(clientKeyFile)
-                                           .build();
-        this.client = new DefaultKubernetesClient(config);
-    }
-
-    public K8sDriver(String url) {
-        Config config = new ConfigBuilder().withMasterUrl(url).build();
+    public K8sDriver() {
+        Config config = new ConfigBuilder().build();
         this.client = new DefaultKubernetesClient(config);
     }
 
