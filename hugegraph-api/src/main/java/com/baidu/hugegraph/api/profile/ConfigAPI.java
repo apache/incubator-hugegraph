@@ -99,7 +99,7 @@ public class ConfigAPI extends API {
 
         Map<String, Object> properties = (Map<String, Object>)extendProperties.get("config");
 
-        this.validateFields(properties);
+        // this.validateFields(properties);
 
         Map<String, Object> result = manager.restProperties(graphSpace, serviceName, properties);
         return manager.serializer().writeMap(result);
@@ -115,7 +115,7 @@ public class ConfigAPI extends API {
     public String rest(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        Map<String, Object> properties) {
-        validateFields(properties);
+        // this.validateFields(properties);
         checkRestUpdate(properties);
         // manager.createServiceRestConfig(graphSpace, serviceName, properties);
         return manager.serializer()
@@ -134,7 +134,7 @@ public class ConfigAPI extends API {
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("servicename") String serviceName,
                        Map<String, Object> properties) {
-        validateFields(properties);
+        // this.validateFields(properties);
         checkRestUpdate(properties);
         return manager.serializer()
                       .writeMap(manager.restProperties(graphSpace,
@@ -179,9 +179,10 @@ public class ConfigAPI extends API {
 
     
     /**
-     * 
+     * Validate the keys of properties. Not used currently
      * @param properties
      */
+    @SuppressWarnings("unused")
     private void validateFields(Map<String, Object> properties) {
         if (null == properties) {
             throw new BadRequestException("Config is null while setting rest config");
