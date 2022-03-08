@@ -1424,7 +1424,6 @@ public final class GraphManager {
                     if (k8sApiEnable) {
                         GraphSpace gs = this.metaManager.graphSpace(this.serviceGraphSpace);
                         String namespace = gs.olapNamespace();
-                        String kubeConfigPath = "/hg-ca/config";
                         // conf.get(
                         //ServerOptions.K8S_KUBE_CONFIG);
                         String enableInternalAlgorithm = conf.get(
@@ -1436,7 +1435,6 @@ public final class GraphManager {
                         Map<String, String> algorithms = conf.getMap(
                                     ServerOptions.K8S_ALGORITHMS);
                         K8sDriverProxy.setConfig(namespace,
-                                                 kubeConfigPath,
                                                  enableInternalAlgorithm,
                                                  internalAlgorithmImageUrl,
                                                  internalAlgorithm,

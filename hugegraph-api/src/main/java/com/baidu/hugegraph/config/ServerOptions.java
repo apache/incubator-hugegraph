@@ -46,7 +46,7 @@ public class ServerOptions extends OptionHolder {
                     "restserver.url",
                     "The url for listening of hugeserver.",
                     disallowEmpty(),
-                    "http://127.0.0.1:8080"
+                    "http://0.0.0.0:8080"
             );
 
     public static final ConfigOption<String> SERVER_ID =
@@ -212,7 +212,7 @@ public class ServerOptions extends OptionHolder {
                     "server.use_k8s",
                     "Whether to use k8s to support multiple tenancy.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<String> SERVER_K8S_URL =
@@ -373,8 +373,8 @@ public class ServerOptions extends OptionHolder {
                     "auth.authenticator",
                     "The class path of authenticator implementation. " +
                     "e.g., com.baidu.hugegraph.auth.StandardAuthenticator.",
-                    null,
-                    ""
+                    disallowEmpty(),
+                    "com.baidu.hugegraph.auth.StandardAuthenticator"
             );
 
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
@@ -450,26 +450,8 @@ public class ServerOptions extends OptionHolder {
                     "k8s.api",
                     "The k8s api start status " +
                     "when the computer service is enabled.",
-                    null,
-                    false
-            );
-
-    public static final ConfigOption<String> K8S_KUBE_CONFIG =
-            new ConfigOption<>(
-                    "k8s.kubeconfig",
-                    "The k8s kube config file " +
-                    "when the computer service is enabled.",
-                    null,
-                    "/hg-ca/config"
-            );
-
-    public static final ConfigOption<String> K8S_HUGEGRAPH_URL =
-            new ConfigOption<>(
-                    "k8s.hugegraph_url",
-                    "The hugegraph url for k8s work " +
-                    "when the computer service is enabled.",
-                    null,
-                    ""
+                    disallowEmpty(),
+                    true
             );
 
     public static final ConfigOption<String> K8S_NAMESPACE =
@@ -486,7 +468,7 @@ public class ServerOptions extends OptionHolder {
                     "k8s.enable_internal_algorithm",
                     "Open k8s internal algorithm",
                     null,
-                    "false"
+                    "true"
             );
 
     public static final ConfigOption<String> K8S_INTERNAL_ALGORITHM_IMAGE_URL =
