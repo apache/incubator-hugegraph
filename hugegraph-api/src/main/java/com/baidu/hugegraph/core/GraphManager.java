@@ -622,12 +622,13 @@ public final class GraphManager {
         try {
             PdRegister register = PdRegister.getInstance();
             RegisterConfig config = new RegisterConfig()
-                                    .setAppName(service.name())
+                                    .setAppName(this.cluster)
                                     .setGrpcAddress(this.pdPeers)
                                     .setUrls(service.urls())
                                     .setLabelMap(ImmutableMap.of(
-                                        PdRegisterType.TYPE, PdRegisterType.DDS.name(),
-                                        PdRegisterType.GRAPHSPACE, this.serviceGraphSpace
+                                            PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.DDS.name(),
+                                            PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
+                                            PdRegisterLabel.SERVICE_NAME.name(),           service.name()
                                     ));
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
@@ -661,12 +662,13 @@ public final class GraphManager {
             config
                 .setNodePort(serviceDTO.getSpec().getPorts().get(0).getNodePort().toString())
                 .setNodeName(serviceDTO.getSpec().getClusterIP())
-                .setAppName(serviceDTO.getMetadata().getName())
+                .setAppName(this.cluster)
                 .setGrpcAddress(this.pdPeers)
                 .setVersion(serviceDTO.getMetadata().getResourceVersion())
                 .setLabelMap(ImmutableMap.of(
-                    PdRegisterType.TYPE, PdRegisterType.NODE_PORT.name(),
-                    PdRegisterType.GRAPHSPACE, this.serviceGraphSpace
+                        PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.NODE_PORT.name(),
+                        PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
+                        PdRegisterLabel.SERVICE_NAME.name(),    serviceDTO.getMetadata().getName()
                 ));
 
             this.pdK8sServiceId = pdRegister.registerService(config);
@@ -1552,8 +1554,12 @@ public final class GraphManager {
         NODE_PORT,
         DDS,
         ;
-
-        public static final String TYPE = "REGISTER_TYPE";
-        public static final String GRAPHSPACE = "GRAPHSPACE";
+    }
+    
+    private static enum PdRegisterLabel {
+        REGISTER_TYPE,
+        GRAPHSPACE,
+        SERVICE_NAME,
+        ;
     }
 }
