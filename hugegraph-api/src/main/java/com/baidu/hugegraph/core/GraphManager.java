@@ -1478,10 +1478,24 @@ public final class GraphManager {
         return map == null ? new HashMap<>() : map;
     }
 
+    public Map<String, Object> restProperties(String graphSpace, String serviceName) {
+        Map<String, Object> map;
+        map = this.metaManager.restProperties(graphSpace, serviceName);
+        return map == null ? new HashMap<>() : map;
+    }
+
     public Map<String, Object> restProperties(String graphSpace,
                                               Map<String, Object> properties) {
         return this.metaManager.restProperties(graphSpace,
                                                this.serviceID,
+                                               properties);
+    }
+
+    public Map<String, Object> restProperties(String graphSpace,
+                                              String serviceName,
+                                              Map<String, Object> properties) {
+        return this.metaManager.restProperties(graphSpace,
+                                               serviceName,
                                                properties);
     }
 
@@ -1490,6 +1504,16 @@ public final class GraphManager {
         Map<String, Object> map;
         map = this.metaManager.deleteRestProperties(graphSpace,
                                                     this.serviceID,
+                                                    key);
+        return map == null ? new HashMap<>() : map;
+    }
+
+    public Map<String, Object> deleteRestProperties(String graphSpace,
+                                                    String serviceName,
+                                                    String key) {
+        Map<String, Object> map;
+        map = this.metaManager.deleteRestProperties(graphSpace,
+                                                    serviceName,
                                                     key);
         return map == null ? new HashMap<>() : map;
     }
