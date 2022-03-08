@@ -625,7 +625,10 @@ public final class GraphManager {
                                     .setAppName(service.name())
                                     .setGrpcAddress(this.pdPeers)
                                     .setUrls(service.urls())
-                                    .setLabelMap(ImmutableMap.of(PdRegisterType.TYPE, PdRegisterType.DDS.name()));
+                                    .setLabelMap(ImmutableMap.of(
+                                        PdRegisterType.TYPE, PdRegisterType.DDS.name(),
+                                        PdRegisterType.GRAPHSPACE, this.serviceGraphSpace
+                                    ));
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
@@ -661,7 +664,10 @@ public final class GraphManager {
                 .setAppName(serviceDTO.getMetadata().getName())
                 .setGrpcAddress(this.pdPeers)
                 .setVersion(serviceDTO.getMetadata().getResourceVersion())
-                .setLabelMap(ImmutableMap.of(PdRegisterType.TYPE, PdRegisterType.NODE_PORT.name()));
+                .setLabelMap(ImmutableMap.of(
+                    PdRegisterType.TYPE, PdRegisterType.NODE_PORT.name(),
+                    PdRegisterType.GRAPHSPACE, this.serviceGraphSpace
+                ));
 
             this.pdK8sServiceId = pdRegister.registerService(config);
         } catch (Exception e) {
@@ -1549,6 +1555,7 @@ public final class GraphManager {
         DDS,
         ;
 
-        public static final String TYPE = "REGISTER_TYPE"; 
+        public static final String TYPE = "REGISTER_TYPE";
+        public static final String GRAPHSPACE = "GRAPHSPACE";
     }
 }
