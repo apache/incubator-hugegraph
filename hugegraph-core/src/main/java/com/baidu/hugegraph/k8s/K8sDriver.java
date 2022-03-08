@@ -635,9 +635,9 @@ public class K8sDriver {
                                                 Service service) {
         String name = String.join(DELIMITER,
                                   graphSpace.name(),
-                                  service.type().name().toLowerCase(),
+                                  service.type().name(),
                                   service.name());
-        return name.replace("_", "-");
+        return name.replace("_", "-").toLowerCase();
     }
 
     private static void sleepAWhile(int second) {
