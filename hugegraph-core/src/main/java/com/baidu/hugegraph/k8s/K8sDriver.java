@@ -246,8 +246,37 @@ public class K8sDriver {
     public void stopOltpService(GraphSpace graphSpace, Service service) {
         String deploymentName = serviceName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
+        LOG.info("Stop deployment {} in namespace {}",
+                 deploymentName, namespace);
         this.client.apps().deployments().inNamespace(namespace)
-                .withName(deploymentName).delete();
+                   .withName(deploymentName).delete();
+        Deployment deployment = this.client.apps().deployments()
+                .inNamespace(namespace).withName(deploymentName).get();
+        int count = 0;
+        while (deployment != null && count++ < 10) {
+            deployment = this.client.apps().deployments().inNamespace(namespace)
+                             .withName(deploymentName).get();
+            sleepAWhile(1);
+        }
+        if (deployment != null) {
+            throw new HugeException("Failed to stop deployment: %s", deployment);
+        }
+
+        LOG.info("Stop service {} in namespace {}", service, namespace);
+        String serviceName = deploymentName;
+        this.client.services().inNamespace(namespace)
+                   .withName(serviceName).delete();
+        io.fabric8.kubernetes.api.model.Service svc = this.client.services()
+                .inNamespace(namespace).withName(serviceName).get();
+        count = 0;
+        while (svc != null && count++ < 10) {
+            svc = this.client.services().inNamespace(namespace)
+                      .withName(serviceName).get();
+            sleepAWhile(1);
+        }
+        if (svc != null) {
+            throw new HugeException("Failed to stop service: %s", svc);
+        }
     }
 
     public void createConfigMapForCaIfNeeded(GraphSpace graphSpace,
@@ -398,6 +427,7 @@ public class K8sDriver {
                     .build();
         }
 
+        LOG.info("Start service {} in namespace {}", service, namespace);
         this.client.services().inNamespace(namespace).create(service);
 
         service = this.client.services()
@@ -414,6 +444,7 @@ public class K8sDriver {
         Deployment deployment = this.constructDeployment(graphSpace, service,
                                                          metaServers, cluster);
         String namespace = namespace(graphSpace, service);
+        LOG.info("Start deployment {} in namespace {}", deployment, namespace);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
 
