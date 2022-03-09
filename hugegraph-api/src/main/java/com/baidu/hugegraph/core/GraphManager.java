@@ -618,6 +618,11 @@ public final class GraphManager {
                                             PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
                                             PdRegisterLabel.SERVICE_NAME.name(),           service.name()
                                     ));
+
+            String ddsHost = this.metaManager.getDDSHost();
+            if (!Strings.isNullOrEmpty(ddsHost)) {
+                config.setDdsHost(ddsHost);
+            }
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
@@ -659,6 +664,10 @@ public final class GraphManager {
                         PdRegisterLabel.SERVICE_NAME.name(),    serviceDTO.getMetadata().getName()
                 ));
 
+            String ddsHost = this.metaManager.getDDSHost();
+            if (!Strings.isNullOrEmpty(ddsHost)) {
+                config.setDdsHost(ddsHost);
+            }
             this.pdK8sServiceId = pdRegister.registerService(config);
         } catch (Exception e) {
             LOG.error("Register service k8s external info to pd failed!", e);

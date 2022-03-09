@@ -98,6 +98,8 @@ public class MetaManager {
     public static final String META_PATH_REMOVE = "REMOVE";
     public static final String META_PATH_UPDATE = "UPDATE";
 
+    public static final String META_PATH_DDS = "DDS_HOST";
+
     private static final String TASK_STATUS_POSTFIX = "Status";
     private static final String TASK_PROGRESS_POSTFIX = "Progress";
     private static final String TASK_CONTEXT_POSTFIX = "Context";
@@ -786,6 +788,15 @@ public class MetaManager {
         // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphSpace}/TASK/{priority}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_GRAPHSPACE,
         graphSpace, graphName, META_PATH_TASK, taskPriority);
+    }
+
+    /**
+     * Get DDS (eureka) host, format should be "ip:port", with no /
+     * @return
+     */
+    private String ddsHostKey() {
+        // HUGEGRAPH/{cluster}/DDS_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_DDS);
     }
 
     /**
@@ -2087,6 +2098,12 @@ public class MetaManager {
 
     public String hstorePDPeers() {
         return this.metaDriver.get(hstorePDPeersKey());
+    }
+
+    public String getDDSHost() {
+        String key = this.ddsHostKey();
+        String host = this.metaDriver.get(key);
+        return host;
     }
 
     public enum MetaDriverType {

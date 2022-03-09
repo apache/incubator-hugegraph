@@ -56,6 +56,8 @@ public class PdRegisterExample {
             "GRAPHSPACE", "hg1",
             "SERVICE_NAME", "sv1" 
         ));
+        config.setDdsHost("127.0.0.1:2399");
+        
         String serviceId = register.registerService(config);
 
         try {
