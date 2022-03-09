@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.util.SafeDateUtil;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -354,7 +355,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        create = DATE_FORMAT.parse(val);
+                        create = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         create = new Date();
@@ -362,7 +363,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        update = DATE_FORMAT.parse(val);
+                        update = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         update = new Date();
@@ -496,7 +497,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        createTime = DATE_FORMAT.parse(val);
+                        createTime = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         createTime = new Date();
@@ -504,7 +505,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        updateTime = DATE_FORMAT.parse(val);
+                        updateTime = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         updateTime = new Date();
