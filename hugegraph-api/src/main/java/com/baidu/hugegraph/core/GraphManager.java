@@ -351,6 +351,9 @@ public final class GraphManager {
                                           Service.DeploymentType.MANUAL);
             service.description(service.name());
             service.url(this.url);
+            service.serviceId(serviceId(this.serviceGraphSpace,
+                                        Service.ServiceType.OLTP,
+                                        this.serviceID));
 
             // register self to pd, should prior to etcd due to pdServiceId info
             this.registerServiceToPd(service);
@@ -362,6 +365,12 @@ public final class GraphManager {
             // add to local cache since even-handler has not been registered now
             this.services.put(serviceName(this.serviceGraphSpace, service.name()), service);
         }
+    }
+
+    private static String serviceId(String graphSpace, Service.ServiceType type,
+                                    String serviceName) {
+        return String.join(DELIMITER, graphSpace, type.name(), serviceName)
+                     .replace("_", "-").toLowerCase();
     }
 
     public boolean isAuth() {
@@ -704,6 +713,8 @@ public final class GraphManager {
                 }
                 service.urls(urls);
             }
+            service.serviceId(serviceId(graphSpace, service.type(),
+                                        service.name()));
             // Register to pd. The order here is important since pdServiceId will be stored in etcd
             this.registerServiceToPd(service);
             // Persist to etcd

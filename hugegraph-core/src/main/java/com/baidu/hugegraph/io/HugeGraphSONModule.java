@@ -450,6 +450,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             Set<String> urls = new HashSet<>();
 
+            String serviceId = null;
             String pdServiceId = null;
 
             String creator = null;
@@ -486,6 +487,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                         String urlString = jsonParser.getText();
                         urls.addAll(Arrays.asList(urlString.split(",")));
                     }
+                } else if("service_id".equals(fieldName)) {
+                    serviceId = jsonParser.getText();
                 } else if("pd_service_id".equals(fieldName)) {
                     pdServiceId = jsonParser.getText();
                 } else if ("creator".equals(fieldName)) {
@@ -524,6 +527,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                routeType,
                                port.intValue(),
                                urls);
+            service.serviceId(serviceId);
             service.pdServiceId(pdServiceId);
             service.createTime(createTime);
             service.updateTime(updateTime);
