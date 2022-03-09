@@ -260,7 +260,7 @@ public class ServerOptions extends OptionHolder {
                     "server.k8s_oltp_image",
                     "The oltp server image of k8s.",
                     disallowEmpty(),
-                    "hugegraph/hugegraph-server:v1"
+                    "127.0.0.1/kgs_bd/hugegraphserver:3.0.0"
             );
 
     public static final ConfigOption<String> SERVER_K8S_OLAP_IMAGE =
@@ -323,7 +323,7 @@ public class ServerOptions extends OptionHolder {
                     "server.start_ignore_single_graph_error",
                     "Whether to start ignore single graph error.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
@@ -365,7 +365,7 @@ public class ServerOptions extends OptionHolder {
                     "exception.allow_trace",
                     "Whether to allow exception trace stack.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<String> AUTHENTICATOR =
@@ -483,15 +483,28 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "k8s.internal_algorithm",
                     "K8s internal algorithm",
-                    null,
-                    "[]"
+                    disallowEmpty(),
+                    "[page-rank, degree-centrality, wcc, triangle-count, rings, rings-with-filter, betweenness-centrality, closeness-centrality, lpa, links, kcore, louvain, clustering-coefficient]"
             );
 
     public static final ConfigListOption<String> K8S_ALGORITHMS =
             new ConfigListOption<>(
                     "k8s.algorithms",
                     "K8s algorithms",
-                    null,
-                    "[]"
+                    disallowEmpty(),
+                    "[page-rank:com.baidu.hugegraph.computer.algorithm.centrality.pagerank.PageRankParams, \n" +
+                            "degree-centrality:com.baidu.hugegraph.computer.algorithm.centrality.degree.DegreeCentralityParams, \n" +
+                            "wcc:com.baidu.hugegraph.computer.algorithm.community.wcc.WccParams, \n" +
+                            "triangle-count:com.baidu.hugegraph.computer.algorithm.community.trianglecount.TriangleCountParams, \n" +
+                            "rings:com.baidu.hugegraph.computer.algorithm.path.rings.RingsDetectionParams, \n" +
+                            "rings-with-filter:com.baidu.hugegraph.computer.algorithm.path.rings.filter.RingsDetectionWithFilterParams, \n" +
+                            "betweenness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.betweenness.BetweennessCentralityParams, \n" +
+                            "closeness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.closeness.ClosenessCentralityParams, \n" +
+                            "lpa:com.baidu.hugegraph.computer.algorithm.community.lpa.LpaParams, \n" +
+                            "links:com.baidu.hugegraph.computer.algorithm.path.links.LinksParams, \n" +
+                            "kcore:com.baidu.hugegraph.computer.algorithm.community.kcore.KCoreParams, \n" +
+                            "louvain:com.baidu.hugegraph.computer.algorithm.community.louvain.LouvainParams, \n" +
+                            "clustering-coefficient:com.baidu.hugegraph.computer.algorithm.community.cc.ClusteringCoefficientParams \n" +
+                            "]"
             );
 }
