@@ -625,7 +625,8 @@ public final class GraphManager {
                                     .setLabelMap(ImmutableMap.of(
                                             PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.DDS.name(),
                                             PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
-                                            PdRegisterLabel.SERVICE_NAME.name(),           service.name()
+                                            PdRegisterLabel.SERVICE_NAME.name(),    service.name(),
+                                            PdRegisterLabel.SERVICE_ID.name(),      service.serviceId()
                                     ));
 
             String ddsHost = this.metaManager.getDDSHost();
@@ -670,7 +671,8 @@ public final class GraphManager {
                 .setLabelMap(ImmutableMap.of(
                         PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.NODE_PORT.name(),
                         PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
-                        PdRegisterLabel.SERVICE_NAME.name(),    serviceDTO.getMetadata().getName()
+                        PdRegisterLabel.SERVICE_NAME.name(),    serviceDTO.getMetadata().getName(),
+                        PdRegisterLabel.SERVICE_ID.name(),      serviceDTO.getMetadata().getNamespace() + "-" + serviceDTO.getMetadata().getName()
                 ));
 
             String ddsHost = this.metaManager.getDDSHost();
@@ -1568,6 +1570,7 @@ public final class GraphManager {
         REGISTER_TYPE,
         GRAPHSPACE,
         SERVICE_NAME,
+        SERVICE_ID,
         ;
     }
 }
