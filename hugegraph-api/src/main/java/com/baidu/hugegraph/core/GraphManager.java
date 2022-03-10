@@ -584,11 +584,17 @@ public final class GraphManager {
 
             boolean isNewCreated = attachK8sNamespace(space.oltpNamespace());
             if (isNewCreated) {
-                this.makeResourceQuota(space.oltpNamespace(), cpuLimit, memoryLimit);
+                if (space.oltpNamespace().equals(space.olapNamespace())) {
+                    this.makeResourceQuota(space.oltpNamespace(), cpuLimit * 2, memoryLimit * 2);
+                } else {
+                    this.makeResourceQuota(space.oltpNamespace(), cpuLimit, memoryLimit);
+                }
             }
-            isNewCreated = attachK8sNamespace(space.olapNamespace());
-            if (isNewCreated) {
-                this.makeResourceQuota(space.olapNamespace(), cpuLimit, memoryLimit);
+            if (!space.oltpNamespace().equals(space.olapNamespace())) {
+                isNewCreated = attachK8sNamespace(space.olapNamespace());
+                if (isNewCreated) {
+                    this.makeResourceQuota(space.olapNamespace(), cpuLimit, memoryLimit);
+                }
             }
         }
 
