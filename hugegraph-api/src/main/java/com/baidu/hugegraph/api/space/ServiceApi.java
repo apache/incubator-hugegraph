@@ -162,9 +162,11 @@ public class ServiceApi extends API {
                              @PathParam("graphspace") String graphSpace, 
                              @PathParam("name") String serviceName) {
         Service service = service(manager, graphSpace, serviceName);
-        if (null == service || 0 == service.running()) {
-            
-
+        if (!service.k8s()) {
+            throw new BadRequestException("Cannot stop service in Manual mode");
+        }
+        if (0 == service.running()) {
+            manager.startService(graphSpace, service);
         }
 
     }

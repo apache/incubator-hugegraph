@@ -739,6 +739,19 @@ public final class GraphManager {
         return service;
     }
 
+    public void startService(String graphSpace, Service service) {
+        List<String> endpoints = this.config.get(ServerOptions.META_ENDPOINTS);
+        GraphSpace gs = this.graphSpace(graphSpace);
+        Set<String> urls = this.k8sManager.startService(gs, service, endpoints, this.cluster);
+        if (!urls.isEmpty()) {
+            String url = urls.iterator().next();
+            String[] parts = url.split(":");
+            service.port(Integer.valueOf(parts[parts.length - 1]));
+        }
+        service.urls(urls);
+        this.registerServiceToPd(service);
+    }
+
     public void dropService(String graphSpace, String name) {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
@@ -991,6 +1004,9 @@ public final class GraphManager {
             k8sManager.stopService(gs, service);
             service.running(0);
             this.metaManager.updateServiceConfig(graphSpace, service);
+            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
+                PdRegister.getInstance().unregister(service.pdServiceId());
+            }
         }
     }
 
