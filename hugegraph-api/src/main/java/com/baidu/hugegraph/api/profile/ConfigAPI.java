@@ -57,7 +57,7 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String getRestConfig(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace) {
+                                @PathParam("graphspace") String graphSpace) {
         return manager.serializer()
                       .writeMap(manager.restProperties(graphSpace));
     }
@@ -68,8 +68,8 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String getRestConfig(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace,
-                       @PathParam("servicename") String serviceName) {
+                                @PathParam("graphspace") String graphSpace,
+                                @PathParam("servicename") String serviceName) {
         return manager.serializer()
                       .writeMap(manager.restProperties(graphSpace,
                                                        serviceName));
@@ -93,8 +93,8 @@ public class ConfigAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public String restAll(@Context GraphManager manager,
-                        @PathParam("graphspace") String graphSpace,
-                        Map<String, Object> extendProperties) {
+                          @PathParam("graphspace") String graphSpace,
+                          Map<String, Object> extendProperties) {
         String serviceName = String.valueOf(extendProperties.get("name"));
 
         Map<String, Object> properties = (Map<String, Object>)extendProperties.get("config");
