@@ -984,6 +984,16 @@ public final class GraphManager {
         return service;
     }
 
+    public void stopService(String graphSpace, String name) {
+        Service service = this.service(graphSpace, name);
+        if (null != service && service.k8s()) {
+            GraphSpace gs = this.graphSpace(graphSpace);
+            k8sManager.stopService(gs, service);
+            service.running(0);
+            this.metaManager.updateServiceConfig(graphSpace, service);
+        }
+    }
+
     public Set<HugeGraph> graphs() {
         Set<HugeGraph> graphs = new HashSet<>();
         for (Graph g : this.graphs.values()) {
