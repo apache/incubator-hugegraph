@@ -23,10 +23,12 @@ import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Singleton;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -122,9 +124,51 @@ public class ServiceApi extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     @Path("k8s-register")
+    @RolesAllowed({"admin", "$dynamic"})
     public void registerK8S(@Context GraphManager manager) throws Exception {
         LOG.debug("Register external K8S info to pd");
         manager.registerK8StoPd();
+    }
+
+    @PUT
+    @Timed
+    @Status(Status.OK)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @Path("stop/{name}")
+    @RolesAllowed({"admin", "$dynamic"})
+    public void stopService(@Context GraphManager manager,
+                            @PathParam("graphspace") String graphSpace,
+                            @PathParam("name") String serviceName) {
+
+        Service service = service(manager, graphSpace, serviceName);
+        if (null == service || 0 == service.running()) {
+            return;
+        }
+        if (!service.k8s()) {
+            throw new BadRequestException("Cannot stop service in Manual mode");
+        }
+        manager.stopService(graphSpace, serviceName);
+
+    }
+
+    @PUT
+    @Timed
+    @Status(Status.OK)
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @Path("start/{name}")
+    public void startService(@Context GraphManager manager,
+                             @PathParam("graphspace") String graphSpace, 
+                             @PathParam("name") String serviceName) {
+        Service service = service(manager, graphSpace, serviceName);
+        if (!service.k8s()) {
+            throw new BadRequestException("Cannot stop service in Manual mode");
+        }
+        if (0 == service.running()) {
+            manager.startService(graphSpace, service);
+        }
+
     }
 
     @DELETE
