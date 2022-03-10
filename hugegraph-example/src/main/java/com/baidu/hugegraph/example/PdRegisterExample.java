@@ -43,6 +43,12 @@ public class PdRegisterExample {
 
         String appName = "hugegraph"; //cluster name
         String peer = "127.0.0.1:8686";
+
+        Map<String, String> labels = ImmutableMap.of(
+            "REGISTER_TYPE", "DDS", // DDS  NODE_PORT
+            "GRAPHSPACE", "hg1",
+            "SERVICE_NAME", "sv1" 
+        );
         
         PdRegister register = PdRegister.getInstance();
         RegisterConfig config = new RegisterConfig();
@@ -51,11 +57,7 @@ public class PdRegisterExample {
         config.setUrls(new HashSet<>(Arrays.asList("127.0.0.1:8080")));
         config.setNodeName("127.0.0.1");
         config.setNodePort("23456");
-        config.setLabelMap(ImmutableMap.of(
-            "REGISTER_TYPE", "DDS", // DDS  NODE_PORT
-            "GRAPHSPACE", "hg1",
-            "SERVICE_NAME", "sv1" 
-        ));
+        config.setLabelMap(labels);
         config.setDdsHost("127.0.0.1:2399");
         
         String serviceId = register.registerService(config);
