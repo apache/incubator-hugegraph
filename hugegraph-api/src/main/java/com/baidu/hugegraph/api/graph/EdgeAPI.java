@@ -479,7 +479,7 @@ public class EdgeAPI extends BatchAPI {
                                    Directions.OUT, labelId, sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
         if (newEdge.id != null) {
-            E.checkArgument(edgeId.equals(newEdge.id),
+            E.checkArgument(edgeId.asString().equals(newEdge.id),
                             "The ids are different between server and " +
                             "request body ('%s' != '%s'). And note the sort " +
                             "key values should either be null or equal to " +

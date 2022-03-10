@@ -17,6 +17,9 @@ public class K8sDriverProxy {
 
     private static final Logger LOG = Log.logger(K8sDriverProxy.class);
 
+    private static final String CONFIG_PATH_SUFFIX = "/.kube/config";
+    private static final String USER_HOME = "user.home";
+
     private static final String USER_DIR = System.getProperty("user.dir");
 
     private static boolean K8S_API_ENABLED = false;
@@ -47,18 +50,15 @@ public class K8sDriverProxy {
         K8S_API_ENABLED = false;
     }
 
-    public static void setConfig(String namespace, String kubeConfigPath,
+    public static void setConfig(String namespace,
                                  String enableInternalAlgorithm,
                                  String internalAlgorithmImageUrl,
                                  String internalAlgorithm,
                                  Map<String, String> algorithms)
                                  throws IOException {
         File kubeConfigFile;
-        if (!kubeConfigPath.startsWith("/")) {
-            kubeConfigFile = new File(USER_DIR + "/" + kubeConfigPath);
-        } else {
-            kubeConfigFile = new File(kubeConfigPath);
-        }
+        String path = System.getProperty(USER_HOME) + CONFIG_PATH_SUFFIX;
+        kubeConfigFile = new File(path);
         if (!kubeConfigFile.exists()) {
             throw new IOException("[K8s API] k8s config fail");
         }

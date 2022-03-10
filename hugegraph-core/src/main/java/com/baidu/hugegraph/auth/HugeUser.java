@@ -142,6 +142,9 @@ public class HugeUser extends Entity {
             case P.AVATAR:
                 this.avatar = (String) value;
                 break;
+            case P.DESCRIPTION:
+                this.description = (String) value;
+                break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
         }
@@ -179,6 +182,11 @@ public class HugeUser extends Entity {
             list.add(this.avatar);
         }
 
+        if (this.description != null) {
+            list.add(P.DESCRIPTION);
+            list.add(this.description);
+        }
+
         return super.asArray(list);
     }
 
@@ -202,6 +210,10 @@ public class HugeUser extends Entity {
 
         if (this.avatar != null) {
             map.put(Hidden.unHide(P.AVATAR), this.avatar);
+        }
+
+        if (this.description != null) {
+            map.put(Hidden.unHide(P.DESCRIPTION), this.description);
         }
 
         return super.asMap(map);
@@ -228,6 +240,7 @@ public class HugeUser extends Entity {
         public static final String PHONE = "~user_phone";
         public static final String EMAIL = "~user_email";
         public static final String AVATAR = "~user_avatar";
+        public static final String DESCRIPTION = "~user_description";
 
         public static String unhide(String key) {
             final String prefix = Hidden.hide("user_");
@@ -257,7 +270,8 @@ public class HugeUser extends Entity {
                                     .properties(properties)
                                     .usePrimaryKeyId()
                                     .primaryKeys(P.NAME)
-                                    .nullableKeys(P.PHONE, P.EMAIL, P.AVATAR)
+                                    .nullableKeys(P.PHONE, P.EMAIL, P.AVATAR,
+                                                  P.DESCRIPTION)
                                     .enableLabelIndex(true)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -271,6 +285,7 @@ public class HugeUser extends Entity {
             props.add(createPropertyKey(P.PHONE));
             props.add(createPropertyKey(P.EMAIL));
             props.add(createPropertyKey(P.AVATAR));
+            props.add(createPropertyKey(P.DESCRIPTION));
 
             return super.initProperties(props);
         }

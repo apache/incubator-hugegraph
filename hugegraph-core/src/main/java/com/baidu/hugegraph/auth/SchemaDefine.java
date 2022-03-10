@@ -21,10 +21,11 @@ package com.baidu.hugegraph.auth;
 
 import java.io.Serializable;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import com.baidu.hugegraph.util.SafeDateUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 
 import com.baidu.hugegraph.backend.id.IdGenerator;
@@ -42,7 +43,7 @@ import com.baidu.hugegraph.util.E;
 
 public abstract class SchemaDefine {
 
-    public static SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static String FORMATTER = "yyyy-MM-dd HH:mm:ss";
 
     protected final HugeGraphParams graph;
     protected final String label;
@@ -188,9 +189,9 @@ public abstract class SchemaDefine {
             }
 
             map.put(unhideField(this.label(), CREATE),
-                    FORMATTER.format(this.create));
+                    SafeDateUtil.format(this.create, FORMATTER));
             map.put(unhideField(this.label(), UPDATE),
-                    FORMATTER.format(this.update));
+                    SafeDateUtil.format(this.update, FORMATTER));
             map.put(unhideField(this.label(), CREATOR), this.creator);
 
             return map;
@@ -200,11 +201,11 @@ public abstract class SchemaDefine {
             E.checkNotNull(key, "property key");
             try {
                 if (key.equals(hideField(this.label(), CREATE))) {
-                    this.create = FORMATTER.parse(value.toString());
+                    this.create = SafeDateUtil.parse(value.toString(), FORMATTER);
                     return true;
                 }
                 if (key.equals(hideField(this.label(), UPDATE))) {
-                    this.update = FORMATTER.parse(value.toString());
+                    this.update = SafeDateUtil.parse(value.toString(), FORMATTER);
                     return true;
                 }
                 if (key.equals(hideField(this.label(), CREATOR))) {
