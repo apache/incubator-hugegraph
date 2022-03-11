@@ -41,7 +41,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
-import com.baidu.hugegraph.kafka.ClusterRole;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.SlaveServerWrapper;
 
 import com.baidu.hugegraph.util.E;
@@ -120,8 +120,8 @@ public class ApplicationConfig extends ResourceConfig {
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf, hub);
-                        String clusterRole = conf.get(CoreOptions.CLUSTER_ROLE);
-                        if (clusterRole.equals(ClusterRole.SLAVE.toString())) {
+
+                        if (BrokerConfig.getInstance().isSlave()) {
                             // TODO: build and enable consumer
                             SlaveServerWrapper.getInstance().init(manager);
                         }

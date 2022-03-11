@@ -41,7 +41,7 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
     // private final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder().build();
     
     MetaManager manager = MetaManager.instance();
-    private SyncMutationClient client = new SyncMutationClient(manager.getKafkaSlaveServerHost(), manager.getKafkaBrokerPort());
+    private SyncMutationClient client = new SyncMutationClient(manager.getKafkaSlaveServerHost(), manager.getKafkaSlaveServerPort());
 
     protected StandardConsumer(Properties props) {
         super(props);

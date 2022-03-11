@@ -74,5 +74,4 @@ public interface HugeGraphParams {
     public VirtualGraph vGraph();
 
     public String schedulerType();
-    public String clusterRole();
 }

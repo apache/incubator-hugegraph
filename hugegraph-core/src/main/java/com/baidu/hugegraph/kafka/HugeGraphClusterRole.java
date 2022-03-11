@@ -24,14 +24,15 @@ package com.baidu.hugegraph.kafka;
  * @author Scorpiour
  * @since 2022-01-27
  */
-public enum ClusterRole {
+public enum HugeGraphClusterRole {
 
-    MASTER("master"),
-    SLAVE("slave"),
+    NONE("NONE"),
+    MASTER("MASTER"),
+    SLAVE("SLAVE"),
     ;
     private final String value;
 
-    private ClusterRole(String value) {
+    private HugeGraphClusterRole(String value) {
         this.value = value;
     }
 
@@ -40,13 +41,13 @@ public enum ClusterRole {
         return this.value;
     }
 
-    public static ClusterRole fromName(String name) {
-        if ("master".equals(name)) {
-            return ClusterRole.MASTER;
+    public static HugeGraphClusterRole fromName(String name) {
+        if ("MASTER".equals(name)) {
+            return HugeGraphClusterRole.MASTER;
         }
-        if ("slave".equals(name)) {
-            return ClusterRole.SLAVE; 
+        if ("SLAVE".equals(name)) {
+            return HugeGraphClusterRole.SLAVE; 
         }
-        throw new IllegalArgumentException("ClusterRole name must be master or slave");
+        return HugeGraphClusterRole.NONE;
     }
 }

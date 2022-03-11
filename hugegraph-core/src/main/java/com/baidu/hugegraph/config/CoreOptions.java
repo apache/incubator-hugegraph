@@ -776,14 +776,4 @@ public class CoreOptions extends OptionHolder {
                     rangeInt(1, Math.max(4, CoreOptions.CPUS * 2)),
                     Math.max(4, CoreOptions.CPUS / 2)
             );
-
-
-    public static final ConfigOption<String> CLUSTER_ROLE =
-            new ConfigOption<>(
-                    "cluster.role",
-                    "Indicates the type of cluster, " +
-                    "used to determine how to cope with data-sync",
-                    allowValues("master", "slave"),
-                    "master"
-            );
 }

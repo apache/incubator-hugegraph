@@ -46,7 +46,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
-import com.baidu.hugegraph.kafka.ClusterRole;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
@@ -339,8 +339,7 @@ public abstract class AbstractTransaction implements Transaction {
         assert mutations.length > 0;
         this.committing2Backend = true;
 
-        String clusterRole = this.graph.clusterRole();
-        Boolean needToSync = clusterRole.equals(ClusterRole.MASTER.toString());
+        Boolean needToSync = BrokerConfig.getInstance().isMaster();
 
         // If an exception occurred, catch in the upper layer and rollback
         this.store.beginTx();

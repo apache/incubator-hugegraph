@@ -83,7 +83,7 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.k8s.K8sManager;
-import com.baidu.hugegraph.kafka.ClusterRole;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.SyncConfProducer;
 import com.baidu.hugegraph.kafka.SyncConfProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
@@ -141,7 +141,6 @@ public final class GraphManager {
     private final EventHub eventHub;
 
     private final String url;
-    private final ClusterRole clusterRole;
     private SyncConfProducer syncConfProducer = null;
 
     private HugeConfig config;
@@ -171,9 +170,8 @@ public final class GraphManager {
         this.serviceID = conf.get(ServerOptions.SERVICE_ID);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
-        this.clusterRole = ClusterRole.fromName(conf.get(CoreOptions.CLUSTER_ROLE));
 
-        if (this.clusterRole.equals(ClusterRole.MASTER)) {
+        if (BrokerConfig.getInstance().isMaster()) {
             this.syncConfProducer = new SyncConfProducerBuilder().build();
         }
 
@@ -1241,7 +1239,7 @@ public final class GraphManager {
                              .extractServicesFromResponse(response);
         Service service;
         Boolean syncToSlave = 
-            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
+            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
             String graphSpace = parts[0];
@@ -1269,7 +1267,7 @@ public final class GraphManager {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
         Boolean syncToSlave = 
-            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
+            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             this.services.remove(s);
             if (syncToSlave) {
@@ -1291,7 +1289,7 @@ public final class GraphManager {
                              .extractServicesFromResponse(response);
         Service service;
         Boolean syncToSlave = 
-            this.clusterRole.equals(ClusterRole.MASTER) && null != this.syncConfProducer;
+            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
             String graphSpace = parts[0];

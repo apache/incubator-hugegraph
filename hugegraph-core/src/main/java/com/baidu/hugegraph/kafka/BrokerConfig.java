@@ -30,6 +30,25 @@ public class BrokerConfig {
 
     private static class ConfigHolder {
         public final static BrokerConfig instance = new BrokerConfig();
+        public final static HugeGraphClusterRole clusterRole = ConfigHolder.getClusterRole();
+        public final static String brokerHost = ConfigHolder.getKafkaHost();
+        public final static String brokerPort = ConfigHolder.getKafkaPort();
+        public final static int partitionCount = 1;
+
+        private static HugeGraphClusterRole getClusterRole() {
+            MetaManager manager = MetaManager.instance();
+            String val = manager.getHugeGraphClusterRole();
+            HugeGraphClusterRole role = HugeGraphClusterRole.fromName(val);
+            return role;
+        }
+
+        private static String getKafkaHost() {
+            return MetaManager.instance().getKafkaBrokerHost();
+        }
+
+        private static String getKafkaPort() {
+            return MetaManager.instance().getKafkaBrokerPort();
+        }
     }
 
     private BrokerConfig() {
@@ -40,16 +59,28 @@ public class BrokerConfig {
         return ConfigHolder.instance;
     }
 
+    public HugeGraphClusterRole getClusterRole() {
+        return ConfigHolder.clusterRole;
+    }
+
     public int getPartitionCount() {
-        return 1;
+        return ConfigHolder.partitionCount;
     }
 
     public String getKafkaHost() {
-        return MetaManager.instance().getKafkaBrokerHost();
+        return ConfigHolder.brokerHost;
     }
 
     public String getKafkaPort() {
-        return MetaManager.instance().getKafkaBrokerPort();
+        return ConfigHolder.brokerPort;
+    }
+
+    public Boolean isMaster() {
+        return HugeGraphClusterRole.MASTER.equals(ConfigHolder.clusterRole);
+    }
+
+    public Boolean isSlave() {
+        return HugeGraphClusterRole.SLAVE.equals(ConfigHolder.clusterRole);
     }
 
     public String getSyncGroupId() {

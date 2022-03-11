@@ -102,6 +102,7 @@ public class MetaManager {
     public static final String META_PATH_KAFKA = "KAFKA";
     public static final String META_PATH_HOST = "HOST";
     public static final String META_PATH_PORT = "PORT";
+    public static final String META_PATH_DATA_SYNC_ROLE = "DATA_SYNC_ROLE";
     public static final String META_PATH_SLAVE_SERVER_HOST = "SLAVE_SERVER_HOST";
     public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
 
@@ -810,6 +811,11 @@ public class MetaManager {
     private String ddsHostKey() {
         // HUGEGRAPH/{cluster}/DDS_HOST
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_DDS);
+    }
+
+    private String hugeClusterRoleKey() {
+        // HUGEGRAPH/{clusterRole}/KAFKA/DATA_SYNC_ROLE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_DATA_SYNC_ROLE);
     }
 
     private String kafkaHostKey() {
@@ -2140,6 +2146,12 @@ public class MetaManager {
         return host;
     }
 
+    public String getHugeGraphClusterRole() {
+        String key = this.hugeClusterRoleKey();
+        String role = this.metaDriver.get(key);
+        return role;
+    }
+
     public String getKafkaBrokerHost() {
         String key = this.kafkaHostKey();
         return this.metaDriver.get(key);
@@ -2155,9 +2167,11 @@ public class MetaManager {
         return this.metaDriver.get(key);
     }
 
-    public String getKafkaSlaveServerPort() {
+    public Integer getKafkaSlaveServerPort() {
         String key = this.kafkaSlavePortKey();
-        return this.metaDriver.get(key);
+        String portStr = this.metaDriver.get(key);
+        int port = Integer.parseInt(portStr);
+        return port;
     }
 
     public enum MetaDriverType {

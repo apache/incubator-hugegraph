@@ -32,6 +32,7 @@ import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.syncgateway.MutationDTO;
 import com.baidu.hugegraph.syncgateway.SyncMutationServer;
@@ -51,7 +52,7 @@ public class KafkaExample extends PerfExampleBase {
     
     public static void main(String[] args) throws Exception {
 
-        SyncMutationServer server = new SyncMutationServer(CoreOptions.SLAVE_CLUSTER_GRPC_PORT.defaultValue());
+        SyncMutationServer server = new SyncMutationServer(MetaManager.instance().getKafkaSlaveServerPort());
         server.registerListener("kafka re-send", (MutationDTO dto) -> {
 
         });

@@ -164,7 +164,6 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
     private final String schedulerType;
 
-    private final String clusterRole;
     private final boolean virtualGraphEnable;
     private final VirtualGraph vGraph;
 
@@ -213,8 +212,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.readMode = GraphReadMode.valueOf(
                         config.get(CoreOptions.GRAPH_READ_MODE));
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
-        this.clusterRole = config.get(CoreOptions.CLUSTER_ROLE);
-
 
         LockUtil.init(this.spaceGraphName());
 
@@ -1238,11 +1235,6 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public String schedulerType() {
             return StandardHugeGraph.this.schedulerType;
-        }
-
-        @Override
-        public String clusterRole() {
-            return StandardHugeGraph.this.clusterRole;
         }
     }
 
