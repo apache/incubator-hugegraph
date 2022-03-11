@@ -22,6 +22,10 @@ sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
+echo "k8s.api=false" >> $REST_CONF
+echo "server.use_k8s=false" >> $REST_CONF
+echo "graph.load_from_local_config=true" >> $REST_CONF
+
 $BIN/init-store.sh
 
 AGENT_JAR=${HOME_DIR}/${TRAVIS_DIR}/jacocoagent.jar

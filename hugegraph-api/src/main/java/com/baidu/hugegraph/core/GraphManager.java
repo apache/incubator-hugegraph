@@ -294,23 +294,11 @@ public final class GraphManager {
     private void initK8sManagerIfNeeded(HugeConfig conf) {
         boolean useK8s = conf.get(ServerOptions.SERVER_USE_K8S);
         if (useK8s) {
-            String k8sUrl = conf.get(ServerOptions.SERVER_K8S_URL);
-            boolean k8sUseCa = conf.get(ServerOptions.SERVER_K8S_USE_CA);
-            String k8sCa = null;
-            String k8sClientCa = null;
-            String k8sClientKey = null;
-            if (k8sUseCa) {
-                k8sCa = conf.get(ServerOptions.SERVER_K8S_CA);
-                k8sClientCa = conf.get(ServerOptions.SERVER_K8S_CLIENT_CA);
-                k8sClientKey = conf.get(ServerOptions.SERVER_K8S_CLIENT_KEY);
-            }
             String oltpImage = conf.get(ServerOptions.SERVER_K8S_OLTP_IMAGE);
             String olapImage = conf.get(ServerOptions.SERVER_K8S_OLAP_IMAGE);
             String storageImage =
                    conf.get(ServerOptions.SERVER_K8S_STORAGE_IMAGE);
-            this.k8sManager.connect(k8sUrl, k8sCa, k8sClientCa, k8sClientKey,
-                                    oltpImage, olapImage, storageImage,
-                                    this.ca);
+            this.k8sManager.connect(oltpImage, olapImage, storageImage, this.ca);
         }
     }
 
@@ -376,6 +364,9 @@ public final class GraphManager {
                                           Service.DeploymentType.MANUAL);
             service.description(service.name());
             service.url(this.url);
+            service.serviceId(serviceId(this.serviceGraphSpace,
+                                        Service.ServiceType.OLTP,
+                                        this.serviceID));
 
             // register self to pd, should prior to etcd due to pdServiceId info
             this.registerServiceToPd(service);
@@ -387,6 +378,12 @@ public final class GraphManager {
             // add to local cache since even-handler has not been registered now
             this.services.put(serviceName(this.serviceGraphSpace, service.name()), service);
         }
+    }
+
+    private static String serviceId(String graphSpace, Service.ServiceType type,
+                                    String serviceName) {
+        return String.join(DELIMITER, graphSpace, type.name(), serviceName)
+                     .replace("_", "-").toLowerCase();
     }
 
     public boolean isAuth() {
@@ -635,10 +632,20 @@ public final class GraphManager {
         try {
             PdRegister register = PdRegister.getInstance();
             RegisterConfig config = new RegisterConfig()
-                                    .setAppName(service.name())
+                                    .setAppName(this.cluster)
                                     .setGrpcAddress(this.pdPeers)
                                     .setUrls(service.urls())
-                                    .setLabelMap(ImmutableMap.of());
+                                    .setLabelMap(ImmutableMap.of(
+                                            PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.DDS.name(),
+                                            PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
+                                            PdRegisterLabel.SERVICE_NAME.name(),    service.name(),
+                                            PdRegisterLabel.SERVICE_ID.name(),      service.serviceId()
+                                    ));
+
+            String ddsHost = this.metaManager.getDDSHost();
+            if (!Strings.isNullOrEmpty(ddsHost)) {
+                config.setDdsHost(ddsHost);
+            }
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
@@ -671,11 +678,20 @@ public final class GraphManager {
             config
                 .setNodePort(serviceDTO.getSpec().getPorts().get(0).getNodePort().toString())
                 .setNodeName(serviceDTO.getSpec().getClusterIP())
-                .setAppName(serviceDTO.getMetadata().getName())
+                .setAppName(this.cluster)
                 .setGrpcAddress(this.pdPeers)
                 .setVersion(serviceDTO.getMetadata().getResourceVersion())
-                .setLabelMap(ImmutableMap.of());
+                .setLabelMap(ImmutableMap.of(
+                        PdRegisterLabel.REGISTER_TYPE.name(),   PdRegisterType.NODE_PORT.name(),
+                        PdRegisterLabel.GRAPHSPACE.name(),      this.serviceGraphSpace,
+                        PdRegisterLabel.SERVICE_NAME.name(),    serviceDTO.getMetadata().getName(),
+                        PdRegisterLabel.SERVICE_ID.name(),      serviceDTO.getMetadata().getNamespace() + "-" + serviceDTO.getMetadata().getName()
+                ));
 
+            String ddsHost = this.metaManager.getDDSHost();
+            if (!Strings.isNullOrEmpty(ddsHost)) {
+                config.setDdsHost(ddsHost);
+            }
             this.pdK8sServiceId = pdRegister.registerService(config);
         } catch (Exception e) {
             LOG.error("Register service k8s external info to pd failed!", e);
@@ -721,6 +737,8 @@ public final class GraphManager {
                 }
                 service.urls(urls);
             }
+            service.serviceId(serviceId(graphSpace, service.type(),
+                                        service.name()));
             // Register to pd. The order here is important since pdServiceId will be stored in etcd
             this.registerServiceToPd(service);
             // Persist to etcd
@@ -732,6 +750,19 @@ public final class GraphManager {
         }
 
         return service;
+    }
+
+    public void startService(String graphSpace, Service service) {
+        List<String> endpoints = this.config.get(ServerOptions.META_ENDPOINTS);
+        GraphSpace gs = this.graphSpace(graphSpace);
+        Set<String> urls = this.k8sManager.startService(gs, service, endpoints, this.cluster);
+        if (!urls.isEmpty()) {
+            String url = urls.iterator().next();
+            String[] parts = url.split(":");
+            service.port(Integer.valueOf(parts[parts.length - 1]));
+        }
+        service.urls(urls);
+        this.registerServiceToPd(service);
     }
 
     public void dropService(String graphSpace, String name) {
@@ -977,6 +1008,19 @@ public final class GraphManager {
             this.metaManager.updateServiceConfig(graphSpace, service);
         }
         return service;
+    }
+
+    public void stopService(String graphSpace, String name) {
+        Service service = this.service(graphSpace, name);
+        if (null != service && service.k8s()) {
+            GraphSpace gs = this.graphSpace(graphSpace);
+            k8sManager.stopService(gs, service);
+            service.running(0);
+            this.metaManager.updateServiceConfig(graphSpace, service);
+            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
+                PdRegister.getInstance().unregister(service.pdServiceId());
+            }
+        }
     }
 
     public Set<HugeGraph> graphs() {
@@ -1475,7 +1519,6 @@ public final class GraphManager {
                     if (k8sApiEnable) {
                         GraphSpace gs = this.metaManager.graphSpace(this.serviceGraphSpace);
                         String namespace = gs.olapNamespace();
-                        String kubeConfigPath = "/hg-ca/config";
                         // conf.get(
                         //ServerOptions.K8S_KUBE_CONFIG);
                         String enableInternalAlgorithm = conf.get(
@@ -1487,7 +1530,6 @@ public final class GraphManager {
                         Map<String, String> algorithms = conf.getMap(
                                     ServerOptions.K8S_ALGORITHMS);
                         K8sDriverProxy.setConfig(namespace,
-                                                 kubeConfigPath,
                                                  enableInternalAlgorithm,
                                                  internalAlgorithmImageUrl,
                                                  internalAlgorithm,
@@ -1529,10 +1571,24 @@ public final class GraphManager {
         return map == null ? new HashMap<>() : map;
     }
 
+    public Map<String, Object> restProperties(String graphSpace, String serviceName) {
+        Map<String, Object> map;
+        map = this.metaManager.restProperties(graphSpace, serviceName);
+        return map == null ? new HashMap<>() : map;
+    }
+
     public Map<String, Object> restProperties(String graphSpace,
                                               Map<String, Object> properties) {
         return this.metaManager.restProperties(graphSpace,
                                                this.serviceID,
+                                               properties);
+    }
+
+    public Map<String, Object> restProperties(String graphSpace,
+                                              String serviceName,
+                                              Map<String, Object> properties) {
+        return this.metaManager.restProperties(graphSpace,
+                                               serviceName,
                                                properties);
     }
 
@@ -1541,6 +1597,16 @@ public final class GraphManager {
         Map<String, Object> map;
         map = this.metaManager.deleteRestProperties(graphSpace,
                                                     this.serviceID,
+                                                    key);
+        return map == null ? new HashMap<>() : map;
+    }
+
+    public Map<String, Object> deleteRestProperties(String graphSpace,
+                                                    String serviceName,
+                                                    String key) {
+        Map<String, Object> map;
+        map = this.metaManager.deleteRestProperties(graphSpace,
+                                                    serviceName,
                                                     key);
         return map == null ? new HashMap<>() : map;
     }
@@ -1597,5 +1663,21 @@ public final class GraphManager {
 
     public String pdPeers() {
         return this.pdPeers;
+    }
+
+
+    private static enum PdRegisterType {
+
+        NODE_PORT,
+        DDS,
+        ;
+    }
+    
+    private static enum PdRegisterLabel {
+        REGISTER_TYPE,
+        GRAPHSPACE,
+        SERVICE_NAME,
+        SERVICE_ID,
+        ;
     }
 }

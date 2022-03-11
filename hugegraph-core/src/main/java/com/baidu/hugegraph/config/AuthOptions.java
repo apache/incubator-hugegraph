@@ -45,8 +45,8 @@ public class AuthOptions extends OptionHolder {
                     "The class path of authenticator implemention. " +
                     "e.g., com.baidu.hugegraph.auth.StandardAuthenticator, " +
                     "or com.baidu.hugegraph.auth.ConfigAuthenticator.",
-                    null,
-                    ""
+                    disallowEmpty(),
+                    "com.baidu.hugegraph.auth.StandardAuthenticator"
             );
 
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =

@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.baidu.hugegraph.util.SafeDateUtil;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.Tree;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -354,7 +355,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        create = DATE_FORMAT.parse(val);
+                        create = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         create = new Date();
@@ -362,7 +363,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        update = DATE_FORMAT.parse(val);
+                        update = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         update = new Date();
@@ -450,6 +451,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             Set<String> urls = new HashSet<>();
 
+            String serviceId = null;
             String pdServiceId = null;
 
             String creator = null;
@@ -486,6 +488,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                         String urlString = jsonParser.getText();
                         urls.addAll(Arrays.asList(urlString.split(",")));
                     }
+                } else if("service_id".equals(fieldName)) {
+                    serviceId = jsonParser.getText();
                 } else if("pd_service_id".equals(fieldName)) {
                     pdServiceId = jsonParser.getText();
                 } else if ("creator".equals(fieldName)) {
@@ -493,7 +497,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        createTime = DATE_FORMAT.parse(val);
+                        createTime = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         createTime = new Date();
@@ -501,7 +505,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
                     try {
-                        updateTime = DATE_FORMAT.parse(val);
+                        updateTime = SafeDateUtil.parse(val, DF);
                     } catch (ParseException e) {
                         e.printStackTrace();
                         updateTime = new Date();
@@ -524,6 +528,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                                routeType,
                                port.intValue(),
                                urls);
+            service.serviceId(serviceId);
             service.pdServiceId(pdServiceId);
             service.createTime(createTime);
             service.updateTime(updateTime);

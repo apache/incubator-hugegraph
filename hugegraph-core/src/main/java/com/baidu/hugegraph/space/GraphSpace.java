@@ -203,7 +203,7 @@ public class GraphSpace {
     }
 
     public String oltpNamespace() {
-        return this.olapNamespace;
+        return this.oltpNamespace;
     }
 
     public void oltpNamespace(String oltpNamespace) {

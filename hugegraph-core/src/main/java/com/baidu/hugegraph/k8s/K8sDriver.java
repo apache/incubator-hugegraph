@@ -75,6 +75,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.ParameterNamespaceListVisitFromServerGetDeleteRecreateWaitApplicable;
 
 public class K8sDriver {
@@ -131,19 +132,8 @@ public class K8sDriver {
 
     private CA ca;
 
-    public K8sDriver(String url, String caFile, String clientCaFile,
-                     String clientKeyFile) {
-        Config config = new ConfigBuilder().withMasterUrl(url)
-                                           .withTrustCerts(true)
-                                           .withCaCertFile(caFile)
-                                           .withClientCertFile(clientCaFile)
-                                           .withClientKeyFile(clientKeyFile)
-                                           .build();
-        this.client = new DefaultKubernetesClient(config);
-    }
-
-    public K8sDriver(String url) {
-        Config config = new ConfigBuilder().withMasterUrl(url).build();
+    public K8sDriver() {
+        Config config = new ConfigBuilder().build();
         this.client = new DefaultKubernetesClient(config);
     }
 
@@ -256,8 +246,37 @@ public class K8sDriver {
     public void stopOltpService(GraphSpace graphSpace, Service service) {
         String deploymentName = serviceName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
+        LOG.info("Stop deployment {} in namespace {}",
+                 deploymentName, namespace);
         this.client.apps().deployments().inNamespace(namespace)
-                .withName(deploymentName).delete();
+                   .withName(deploymentName).delete();
+        Deployment deployment = this.client.apps().deployments()
+                .inNamespace(namespace).withName(deploymentName).get();
+        int count = 0;
+        while (deployment != null && count++ < 10) {
+            deployment = this.client.apps().deployments().inNamespace(namespace)
+                             .withName(deploymentName).get();
+            sleepAWhile(1);
+        }
+        if (deployment != null) {
+            throw new HugeException("Failed to stop deployment: %s", deployment);
+        }
+
+        LOG.info("Stop service {} in namespace {}", service, namespace);
+        String serviceName = deploymentName;
+        this.client.services().inNamespace(namespace)
+                   .withName(serviceName).delete();
+        io.fabric8.kubernetes.api.model.Service svc = this.client.services()
+                .inNamespace(namespace).withName(serviceName).get();
+        count = 0;
+        while (svc != null && count++ < 10) {
+            svc = this.client.services().inNamespace(namespace)
+                      .withName(serviceName).get();
+            sleepAWhile(1);
+        }
+        if (svc != null) {
+            throw new HugeException("Failed to stop service: %s", svc);
+        }
     }
 
     public void createConfigMapForCaIfNeeded(GraphSpace graphSpace,
@@ -408,6 +427,7 @@ public class K8sDriver {
                     .build();
         }
 
+        LOG.info("Start service {} in namespace {}", service, namespace);
         this.client.services().inNamespace(namespace).create(service);
 
         service = this.client.services()
@@ -424,6 +444,7 @@ public class K8sDriver {
         Deployment deployment = this.constructDeployment(graphSpace, service,
                                                          metaServers, cluster);
         String namespace = namespace(graphSpace, service);
+        LOG.info("Start deployment {} in namespace {}", deployment, namespace);
         deployment = this.client.apps().deployments().inNamespace(namespace)
                                 .createOrReplace(deployment);
 
@@ -634,9 +655,9 @@ public class K8sDriver {
                                                 Service service) {
         String name = String.join(DELIMITER,
                                   graphSpace.name(),
-                                  service.type().name().toLowerCase(),
+                                  service.type().name(),
                                   service.name());
-        return name.replace("_", "-");
+        return name.replace("_", "-").toLowerCase();
     }
 
     private static void sleepAWhile(int second) {
@@ -651,11 +672,19 @@ public class K8sDriver {
         String deploymentName = deploymentName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
         Deployment deployment;
-        deployment = this.client.apps().deployments()
-                         .inNamespace(namespace)
-                         .withName(deploymentName)
-                         .get();
-        return deployment.getStatus().getReadyReplicas();
+        try {
+            deployment = this.client.apps().deployments()
+                            .inNamespace(namespace)
+                            .withName(deploymentName)
+                            .get();
+            if (null == deployment) {
+                return 0;
+            }
+            return deployment.getStatus().getReadyReplicas();
+        } catch (KubernetesClientException exc) {
+            LOG.error("Get k8s deployment failed when check podsRunning", exc);
+            return 0;
+        }
     }
 
     public void createOrReplaceByYaml(String yaml) throws IOException {

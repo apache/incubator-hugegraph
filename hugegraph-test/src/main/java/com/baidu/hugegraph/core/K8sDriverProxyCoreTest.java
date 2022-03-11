@@ -112,7 +112,6 @@ public class K8sDriverProxyCoreTest extends BaseCoreTest {
 
         try {
             K8sDriverProxy.setConfig(NAMESPACE,
-                                     KUBE_CONFIG,
                                      ENABLE_INTERNAL_ALGORITHM,
                                      INTERNAL_ALGORITHM_IMAGE_URL,
                                      INTERNAL_ALGORITHM,

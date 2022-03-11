@@ -55,6 +55,7 @@ public class Service {
 
     private Set<String> urls;
 
+    private String serviceId;
     private String pdServiceId;
 
     private final String creator;
@@ -270,6 +271,7 @@ public class Service {
         infos.put("port", this.port);
         infos.put("urls", this.urls);
 
+        infos.put("service_id", this.serviceId);
         infos.put("pd_service_id", this.pdServiceId);
 
         infos.put("creator", this.creator);
@@ -277,6 +279,14 @@ public class Service {
         infos.put("update_time", this.updateTime);
 
         return infos;
+    }
+
+    public String serviceId() {
+        return this.serviceId;
+    }
+
+    public void serviceId(String serviceId) {
+        this.serviceId = serviceId;
     }
 
     public String pdServiceId() {

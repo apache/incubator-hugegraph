@@ -27,6 +27,7 @@ import java.util.Map;
 import javax.security.sasl.AuthenticationException;
 
 import com.baidu.hugegraph.auth.SchemaDefine;
+import com.baidu.hugegraph.util.SafeDateUtil;
 import org.junit.After;
 import org.junit.Test;
 
@@ -104,11 +105,9 @@ public class AuthTest extends BaseCoreTest {
                                         "user_password", "pass1",
                                         "user_creator", "admin"));
         expected.putAll(ImmutableMap.of("user_create",
-                                        SchemaDefine.FORMATTER.format(
-                                                              user.create()),
+                                        SafeDateUtil.format(user.create(), SchemaDefine.FORMATTER),
                                         "user_update",
-                                        SchemaDefine.FORMATTER.format(
-                                                              user.update()),
+                                        SafeDateUtil.format(user.update(), SchemaDefine.FORMATTER),
                                         "id", user.id()));
 
         Assert.assertEquals(expected, user.asMap());
