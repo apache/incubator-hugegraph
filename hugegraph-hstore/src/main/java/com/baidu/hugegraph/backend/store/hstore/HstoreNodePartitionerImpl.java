@@ -12,6 +12,7 @@ import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.store.term.HgPair;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,24 +54,30 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
     public int partition(HgNodePartitionerBuilder builder, String graphName,
                          byte[] startKey, byte[] endKey) {
         try {
+            HashSet<HgNodePartition> partitions = null;
             if (HgStoreClientConst.ALL_PARTITION_OWNER == startKey) {
                 List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
-                stores.forEach(e -> {
-                    builder.add(e.getId(), -1);
-                });
+                partitions = new HashSet<>(stores.size());
+                for (Metapb.Store store:stores) {
+                    partitions.add(HgNodePartition.of(store.getId(), -1));
+                }
+
             } else if (endKey == HgStoreClientConst.EMPTY_BYTES
                     || startKey == endKey || Arrays.equals(startKey, endKey)){
                 HgPair<Metapb.Partition, Metapb.Shard> partShard =
                        pdClient.getPartition(graphName, startKey);
                 Metapb.Shard leader = partShard.getValue();
-                builder.add(leader.getStoreId(), pdClient.keyToCode(graphName, startKey));
+                partitions = new HashSet<>(1);
+                partitions.add(HgNodePartition.of(leader.getStoreId(),
+                                                  pdClient.keyToCode(graphName, startKey)));
             } else {
                 LOG.warn("StartOwnerkey is not equal to endOwnerkey, which is meaningless!!, It is a error!!");
                 List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
-                stores.forEach(e -> {
-                    builder.add(e.getId(), -1);
-                });
+                for (Metapb.Store store:stores) {
+                    partitions.add(HgNodePartition.of(store.getId(), -1));
+                }
             }
+            builder.setPartitions(partitions);
         } catch (PDException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -81,6 +88,7 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
     public int partition(HgNodePartitionerBuilder builder, String graphName,
                          int startKey, int endKey) {
         try {
+            HashSet<HgNodePartition> partitions = new HashSet<>();
             Metapb.Partition partition = null;
             while (partition == null || partition.getEndKey() < endKey){
                 HgPair<Metapb.Partition, Metapb.Shard> partShard =
@@ -88,12 +96,13 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
                 if (partShard != null){
                     partition = partShard.getKey();
                     Metapb.Shard leader = partShard.getValue();
-                    builder.add(leader.getStoreId(), startKey);
+                    partitions.add(HgNodePartition.of(leader.getStoreId(), startKey));
                     startKey = (int) partition.getEndKey();
                 } else {
                     break;
                 }
             }
+            builder.setPartitions(partitions);
         } catch (PDException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -193,18 +202,20 @@ class FakeHstoreNodePartitionerImpl extends HstoreNodePartitionerImpl {
                          byte[] startKey, byte[] endKey) {
         int startCode = PartitionUtils.calcHashcode(startKey);
         int endCode = PartitionUtils.calcHashcode(endKey);
+        HashSet<HgNodePartition> partitions = new HashSet<>(storeMap.size());
         if (ALL_PARTITION_OWNER == startKey) {
             storeMap.forEach((k,v)->{
-                builder.add(k, -1);
+                partitions.add(HgNodePartition.of(k, -1));
             });
         } else if (endKey == HgStoreClientConst.EMPTY_BYTES || startKey == endKey || Arrays.equals(startKey, endKey)) {
-            builder.add(leaderMap.get(startCode % partitionCount), startCode);
+            partitions.add(HgNodePartition.of(leaderMap.get(startCode % partitionCount), startCode));
         } else {
             LOG.error("OwnerKey转成HashCode后已经无序了， 按照OwnerKey范围查询没意义");
             storeMap.forEach((k,v)->{
-                builder.add(k, -1);
+                partitions.add(HgNodePartition.of(k, -1));
             });
         }
+        builder.setPartitions(partitions);
         return 0;
     }
 

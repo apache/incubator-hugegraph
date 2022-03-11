@@ -30,12 +30,14 @@ import com.baidu.hugegraph.store.*;
 import com.baidu.hugegraph.store.client.HgStoreNodeManager;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +57,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
     private static volatile HstoreNodePartitionerImpl nodePartitioner = null;
     private static volatile Set<String> INFO_INITIALIZED_GRAPH =
                             Collections.synchronizedSet(new HashSet<>());
+    private static final Logger LOG = Log.logger(HstoreSessionsImpl.class);
+
     public HstoreSessionsImpl(HugeConfig config, String database,
                               String store) {
         super(config, database, store);
@@ -439,9 +443,23 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public void setMode(GraphMode mode) {
-            nodePartitioner.setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
-                    Metapb.GraphWorkMode.Batch_Import :
-                    Metapb.GraphWorkMode.Normal);
+            if (!mode.equals(GraphMode.LOADING)){
+                nodePartitioner.setWorkMode(this.getGraphName(),
+                                            Metapb.GraphWorkMode.Normal);
+            } else{
+                HgKvIterator results =  this.graph.scanIterator("g+v", 1);
+                if (!results.hasNext()){
+                    nodePartitioner.setWorkMode(this.getGraphName(),
+                                                Metapb.GraphWorkMode.Batch_Import);
+                } else{
+                    LOG.warn("The database already has vertex data, " +
+                             "so you cannot set the state to LOADING");
+                }
+
+            }
+            //nodePartitioner.setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
+            //        Metapb.GraphWorkMode.Batch_Import :
+            //        Metapb.GraphWorkMode.Normal);
         }
 
         @Override
