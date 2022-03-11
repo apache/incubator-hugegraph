@@ -212,7 +212,7 @@ public class ServerOptions extends OptionHolder {
                     "server.use_k8s",
                     "Whether to use k8s to support multiple tenancy.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<String> SERVER_K8S_URL =
@@ -451,7 +451,7 @@ public class ServerOptions extends OptionHolder {
                     "The k8s api start status " +
                     "when the computer service is enabled.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<String> K8S_NAMESPACE =

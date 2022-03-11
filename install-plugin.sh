@@ -28,3 +28,4 @@ fi
 
 PLUGIN_DIR=./hugegraph-dist/src/assembly/plugin
 mvn install:install-file -Dfile=$PLUGIN_DIR/lib/hugegraph-plugin-1.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-plugin -Dversion=1.0.0 -Dpackaging=jar -DpomFile=$PLUGIN_DIR/pom.xml
+mvn install:install-file -Dfile=$PLUGIN_DIR/lib/syncgateway-1.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=syncgateway -Dversion=1.0.0 -Dpackaging=jar -DpomFile=$PLUGIN_DIR/syncgateway-pom.xml
