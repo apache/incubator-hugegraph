@@ -786,12 +786,4 @@ public class CoreOptions extends OptionHolder {
                     allowValues("master", "slave"),
                     "master"
             );
-
-    public static final ConfigOption<Integer> SLAVE_CLUSTER_GRPC_PORT = 
-            new ConfigOption<>(
-                    "cluster.grpc.port",
-                    "Indicates the port of slave cluster grpc server",
-                    rangeInt(10000, 65534),
-                    51777
-            );
 }

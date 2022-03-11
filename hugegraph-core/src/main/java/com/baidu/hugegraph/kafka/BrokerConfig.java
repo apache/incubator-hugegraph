@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.kafka;
 
+import com.baidu.hugegraph.meta.MetaManager;
+
 /**
  * BrokerConfig used to init producer and consumer
  * @author Scorpiour
@@ -43,11 +45,11 @@ public class BrokerConfig {
     }
 
     public String getKafkaHost() {
-        return "127.0.0.1";
+        return MetaManager.instance().getKafkaBrokerHost();
     }
 
     public String getKafkaPort() {
-        return "9092";
+        return MetaManager.instance().getKafkaBrokerPort();
     }
 
     public String getSyncGroupId() {

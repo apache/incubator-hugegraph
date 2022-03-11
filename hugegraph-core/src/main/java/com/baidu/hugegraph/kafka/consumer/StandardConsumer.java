@@ -26,6 +26,7 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
+import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.syncgateway.SyncMutationClient;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -39,8 +40,8 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
 
     // private final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder().build();
     
-    private SyncMutationClient client = new SyncMutationClient("127.0.0.1", 
-            CoreOptions.SLAVE_CLUSTER_GRPC_PORT.defaultValue());
+    MetaManager manager = MetaManager.instance();
+    private SyncMutationClient client = new SyncMutationClient(manager.getKafkaSlaveServerHost(), manager.getKafkaBrokerPort());
 
     protected StandardConsumer(Properties props) {
         super(props);

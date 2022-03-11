@@ -99,6 +99,11 @@ public class MetaManager {
     public static final String META_PATH_UPDATE = "UPDATE";
 
     public static final String META_PATH_DDS = "DDS_HOST";
+    public static final String META_PATH_KAFKA = "KAFKA";
+    public static final String META_PATH_HOST = "HOST";
+    public static final String META_PATH_PORT = "PORT";
+    public static final String META_PATH_SLAVE_SERVER_HOST = "SLAVE_SERVER_HOST";
+    public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
 
     private static final String TASK_STATUS_POSTFIX = "Status";
     private static final String TASK_PROGRESS_POSTFIX = "Progress";
@@ -805,6 +810,27 @@ public class MetaManager {
     private String ddsHostKey() {
         // HUGEGRAPH/{cluster}/DDS_HOST
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_DDS);
+    }
+
+    private String kafkaHostKey() {
+        // HUGEGRAPH/hg/KAFKA/BROKER_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_HOST);
+
+    }
+
+    private String kafkaPortKey() {
+        // HUGEGRAPH/hg/KAFKA/BROKER_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_PORT);
+    }
+
+    private String kafkaSlaveHostKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SLAVE_SERVER_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SLAVE_SERVER_HOST);
+    }
+
+    private String kafkaSlavePortKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SLAVE_SERVER_PORT
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SLAVE_SERVER_PORT);
     }
 
     /**
@@ -2112,6 +2138,26 @@ public class MetaManager {
         String key = this.ddsHostKey();
         String host = this.metaDriver.get(key);
         return host;
+    }
+
+    public String getKafkaBrokerHost() {
+        String key = this.kafkaHostKey();
+        return this.metaDriver.get(key);
+    }
+
+    public String getKafkaBrokerPort() {
+        String key = this.kafkaPortKey();
+        return this.metaDriver.get(key);
+    }
+
+    public String getKafkaSlaveServerHost() {
+        String key = this.kafkaSlaveHostKey();
+        return this.metaDriver.get(key);
+    }
+
+    public String getKafkaSlaveServerPort() {
+        String key = this.kafkaSlavePortKey();
+        return this.metaDriver.get(key);
     }
 
     public enum MetaDriverType {

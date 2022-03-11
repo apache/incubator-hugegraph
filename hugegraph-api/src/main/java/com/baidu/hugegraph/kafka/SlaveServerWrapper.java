@@ -29,6 +29,7 @@ import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
+import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.syncgateway.MutationDTO;
 import com.baidu.hugegraph.syncgateway.SyncMutationServer;
 import com.baidu.hugegraph.util.Log;
@@ -68,7 +69,8 @@ public class SlaveServerWrapper {
 
 
     private void initServer() {
-        server = new SyncMutationServer(CoreOptions.SLAVE_CLUSTER_GRPC_PORT.defaultValue());
+        MetaManager manager = MetaManager.instance();
+        server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
         
         Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
