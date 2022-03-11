@@ -275,7 +275,7 @@ public class HugeTask<V> extends FutureTask<V> {
     @Override
     public void run() {
         if (this.cancelled()) {
-            // Scheduled task is running after cancelled
+            // A task is running after cancelled which scheduled/queued before
             return;
         }
 
@@ -283,6 +283,11 @@ public class HugeTask<V> extends FutureTask<V> {
         try {
             assert this.status.code() < TaskStatus.RUNNING.code() : this.status;
             if (this.checkDependenciesSuccess()) {
+                /*
+                 * FIXME: worker node may reset status to RUNNING here, and the
+                 *        status in DB is CANCELLING that set by master node,
+                 *        it will lead to cancel() operation not to take effect.
+                 */
                 this.status(TaskStatus.RUNNING);
                 super.run();
             }
@@ -308,7 +313,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 // Callback for saving status to store
                 this.callable.cancelled();
             } else {
-                // Maybe the worker is still running then set status SUCCESS
+                // Maybe worker node is still running then set status SUCCESS
                 cancelled = false;
             }
         } catch (Throwable e) {

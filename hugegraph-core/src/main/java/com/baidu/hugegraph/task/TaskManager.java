@@ -50,7 +50,7 @@ public final class TaskManager {
                                "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
-    protected static final int SCHEDULE_PERIOD = 1; // Unit second
+    protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
 
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
@@ -79,10 +79,11 @@ public final class TaskManager {
         // For schedule task to run, just one thread is ok
         this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
-        // Start after 10s waiting for HugeGraphServer startup
+        // Start after 10x period time waiting for HugeGraphServer startup
         this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
-                                                      10L, SCHEDULE_PERIOD,
-                                                      TimeUnit.SECONDS);
+                                                      10 * SCHEDULE_PERIOD,
+                                                      SCHEDULE_PERIOD,
+                                                      TimeUnit.MILLISECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {

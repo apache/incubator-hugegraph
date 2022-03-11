@@ -44,6 +44,7 @@ public class TaskApiTest extends BaseApiTest {
 
     @Test
     public void testList() {
+        // create a task
         int taskId = this.rebuild();
 
         Response r = client().get(path, ImmutableMap.of("limit", -1));
@@ -52,6 +53,12 @@ public class TaskApiTest extends BaseApiTest {
         assertArrayContains(tasks, "id", taskId);
 
         waitTaskSuccess(taskId);
+
+        r = client().get(path, String.valueOf(taskId));
+        content = assertResponseStatus(200, r);
+        String status = assertJsonContains(content, "task_status");
+        Assert.assertEquals("success", status);
+
         /*
          * FIXME: sometimes may get results of RUNNING tasks after the task
          *        status is SUCCESS, which is stored in DB if there are worker
@@ -62,23 +69,36 @@ public class TaskApiTest extends BaseApiTest {
         r = client().get(path, ImmutableMap.of("status", "RUNNING"));
         content = assertResponseStatus(200, r);
         tasks = assertJsonContains(content, "tasks");
-        Assert.assertTrue(tasks.toString(), tasks.isEmpty());
+        String message = String.format("Expect none RUNNING tasks(%d), " +
+                                       "but got %s", taskId, tasks);
+        Assert.assertTrue(message, tasks.isEmpty());
     }
 
     @Test
     public void testGet() {
+        // create a task
         int taskId = this.rebuild();
 
         Response r = client().get(path, String.valueOf(taskId));
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "id");
+
+        waitTaskSuccess(taskId);
+
+        r = client().get(path, String.valueOf(taskId));
+        content = assertResponseStatus(200, r);
+        String status = assertJsonContains(content, "task_status");
+        Assert.assertEquals("success", status);
     }
 
     @Test
     public void testCancel() {
+        // create a task
         int taskId = this.gremlinJob();
 
         sleepAWhile();
+
+        // cancel task
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
         Response r = client().put(path, String.valueOf(taskId), "", params);
         String content = r.readEntity(String.class);
@@ -88,6 +108,12 @@ public class TaskApiTest extends BaseApiTest {
             String status = assertJsonContains(content, "task_status");
             Assert.assertTrue(status, status.equals("cancelling") ||
                                       status.equals("cancelled"));
+            /*
+             * NOTE: should be waitTaskStatus(taskId, "cancelled"), but worker
+             * node may ignore the CANCELLING status due to now we can't atomic
+             * update task status, and then the task is running to SUCCESS.
+             */
+            waitTaskCompleted(taskId);
         } else {
             assert r.getStatus() == 400;
             String error = String.format(
@@ -103,14 +129,17 @@ public class TaskApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
+        // create a task
         int taskId = this.rebuild();
 
         waitTaskSuccess(taskId);
+        // delete task
         Response r = client().delete(path, String.valueOf(taskId));
         assertResponseStatus(204, r);
     }
 
     private int rebuild() {
+        // create a rebuild_index task
         String rebuildPath = "/graphs/hugegraph/jobs/rebuild/indexlabels";
         String personByCity = "personByCity";
         Map<String, Object> params = ImmutableMap.of();
