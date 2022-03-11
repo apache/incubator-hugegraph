@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -67,6 +68,7 @@ import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
+import io.fabric8.kubernetes.api.model.apps.DeploymentStatus;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBindingBuilder;
 import io.fabric8.kubernetes.api.model.rbac.Subject;
@@ -680,7 +682,12 @@ public class K8sDriver {
             if (null == deployment) {
                 return 0;
             }
-            return deployment.getStatus().getReadyReplicas();
+            DeploymentStatus status = deployment.getStatus();
+            if (null == status) {
+                return 0;
+            }
+            Integer replica = status.getReadyReplicas();
+            return Optional.ofNullable(replica).orElse(0);
         } catch (KubernetesClientException exc) {
             LOG.error("Get k8s deployment failed when check podsRunning", exc);
             return 0;
