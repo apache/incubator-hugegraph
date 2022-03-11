@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.tx;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -47,8 +46,7 @@ import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.kafka.BrokerConfig;
-import com.baidu.hugegraph.kafka.producer.ProducerClient;
-import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.kafka.ClientFactory;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
@@ -80,16 +78,12 @@ public abstract class AbstractTransaction implements Transaction {
 
     protected final AbstractSerializer serializer;
 
-    protected final ProducerClient<String, ByteBuffer> producer;
-
     public AbstractTransaction(HugeGraphParams graph, BackendStore store) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
 
         this.graph = graph;
         this.serializer = this.graph.serializer();
-
-        this.producer = new StandardProducerBuilder().build();
     
         this.store = store;
         this.reset();
@@ -352,7 +346,7 @@ public abstract class AbstractTransaction implements Transaction {
                     .setGraphSpace(this.graph().graphSpace())
                     .setMutation(mutation)
                     .build();
-                this.producer.produce(topic);
+                ClientFactory.getInstance().getStandardProducer().produce(topic);
             }
         }
 

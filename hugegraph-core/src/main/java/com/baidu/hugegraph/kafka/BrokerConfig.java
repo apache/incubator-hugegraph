@@ -20,13 +20,18 @@
 package com.baidu.hugegraph.kafka;
 
 import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.util.Log;
+
+import org.slf4j.Logger;
 
 /**
  * BrokerConfig used to init producer and consumer
  * @author Scorpiour
  * @since 2022-01-18
  */
-public class BrokerConfig {
+public final class BrokerConfig {
+
+    private static final Logger log = Log.logger(BrokerConfig.class);
 
     private static class ConfigHolder {
         public final static BrokerConfig instance = new BrokerConfig();
@@ -39,6 +44,7 @@ public class BrokerConfig {
             MetaManager manager = MetaManager.instance();
             String val = manager.getHugeGraphClusterRole();
             HugeGraphClusterRole role = HugeGraphClusterRole.fromName(val);
+            log.info("====> Scorpiour: Get cluster role is {}", role);
             return role;
         }
 
@@ -76,6 +82,7 @@ public class BrokerConfig {
     }
 
     public Boolean isMaster() {
+        log.info("====> Scorpiour: Check is master now");
         return HugeGraphClusterRole.MASTER.equals(ConfigHolder.clusterRole);
     }
 

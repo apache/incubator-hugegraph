@@ -55,7 +55,6 @@ public class SlaveServerWrapper {
     private volatile boolean closing = false;
 
     private SyncMutationServer server = null;
-    private ProducerClient<String, ByteBuffer> producer = null;
     private SyncMutateConsumer consumer = null;
 
     private void initConsumer(GraphManager manager) {
@@ -63,15 +62,11 @@ public class SlaveServerWrapper {
         consumer = new SyncMutateConsumerBuilder().build();
     }
 
-    private void initProducer() {
-        producer = new StandardProducerBuilder().build();
-    }
-
-
     private void initServer() {
         MetaManager manager = MetaManager.instance();
         server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
-        
+        ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
+
         Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
             public void accept(MutationDTO t) {
@@ -97,9 +92,6 @@ public class SlaveServerWrapper {
 
         // Init consumer first
         this.initConsumer(manager);
-
-        // Then init producer to handle mutation
-        this.initProducer();
         
         // At last, init server wait for grpc 
         initServer();
@@ -121,14 +113,6 @@ public class SlaveServerWrapper {
             }
         } catch (Exception e) {
             
-        }
-        // close producer
-        try {
-            if (null != producer) {
-                producer.close();
-            }
-        } catch (Exception e) {
-
         }
         // close consumer
         try {
