@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.unit.cache;
 
+import com.baidu.hugegraph.structure.HugeEdge;
+import com.baidu.hugegraph.structure.HugeVertexProperty;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,12 +67,25 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
 
     private HugeVertex newVertex(Id id) {
         HugeGraph graph = this.cache().graph();
+        graph.schema().propertyKey("name").asText()
+                .checkExist(false).create();
         graph.schema().vertexLabel("person")
-                      .idStrategy(IdStrategy.CUSTOMIZE_NUMBER)
-                      .checkExist(false)
-                      .create();
+                .idStrategy(IdStrategy.CUSTOMIZE_NUMBER)
+                .properties("name").nullableKeys("name")
+                .checkExist(false)
+                .create();
         VertexLabel vl = graph.vertexLabel("person");
         return new HugeVertex(graph, id, vl);
+    }
+
+    private HugeEdge newEdge(HugeVertex out, HugeVertex in){
+        HugeGraph graph = this.cache().graph();
+        graph.schema().edgeLabel("person_know_person")
+                .sourceLabel("person")
+                .targetLabel("person")
+                .checkExist(false)
+                .create();
+        return out.addEdge("person_know_person",in);
     }
 
     @Test
@@ -125,4 +140,87 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(2L,
                             Whitebox.invoke(cache, "verticesCache", "size"));
     }
+
+
+    @Test
+    public void testClearEdgeCacheWhenDeleteVertex(){
+        CachedGraphTransaction cache = this.cache();
+        HugeVertex v1 = this.newVertex(IdGenerator.of(1));
+        HugeVertex v2 = this.newVertex(IdGenerator.of(2));
+        HugeVertex v3 = this.newVertex(IdGenerator.of(3));
+
+        cache.addVertex(v1);
+        cache.addVertex(v2);
+        cache.commit();
+        HugeEdge edge = this.newEdge(v1,v2);
+        cache.addEdge(edge);
+        cache.commit();
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(1)).hasNext());
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(2)).hasNext());
+
+        Assert.assertEquals(2L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+        cache.removeVertex(v3);
+        cache.commit();
+        Assert.assertEquals(0L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(1)).hasNext());
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(2)).hasNext());
+        Assert.assertEquals(2L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+
+        cache.removeVertex(v1);
+        cache.commit();
+
+        Assert.assertEquals(0L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+        Assert.assertFalse(cache.queryEdgesByVertex(IdGenerator.of(2)).hasNext());
+
+    }
+
+    @Test
+    public void testClearEdgeCacheWhenUpdateVertex(){
+        CachedGraphTransaction cache = this.cache();
+        HugeVertex v1 = this.newVertex(IdGenerator.of(1));
+        HugeVertex v2 = this.newVertex(IdGenerator.of(2));
+        HugeVertex v3 = this.newVertex(IdGenerator.of(3));
+
+        cache.addVertex(v1);
+        cache.addVertex(v2);
+        cache.commit();
+        HugeEdge edge = this.newEdge(v1,v2);
+        cache.addEdge(edge);
+        cache.commit();
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(1)).hasNext());
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(2)).hasNext());
+
+        Assert.assertEquals(2L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+
+        ///update property of v3
+        cache.addVertexProperty(new HugeVertexProperty<>(v3,
+                cache.graph().schema().getPropertyKey("name"),"test-name"));
+        cache.commit();
+        Assert.assertEquals(0L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(1)).hasNext());
+        Assert.assertTrue(cache.queryEdgesByVertex(IdGenerator.of(2)).hasNext());
+        Assert.assertEquals(2L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+
+        cache.addVertexProperty(new HugeVertexProperty<>(v1,
+                cache.graph().schema().getPropertyKey("name"),"test-name"));
+        cache.commit();
+
+        Assert.assertEquals(0L,
+                Whitebox.invoke(cache, "edgesCache", "size"));
+        String name = cache.queryEdgesByVertex(IdGenerator.of(1)).next().outVertex()
+                .value("name");
+        Assert.assertEquals("test-name",name);
+
+
+    }
 }
+
