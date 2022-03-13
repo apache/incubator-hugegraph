@@ -551,7 +551,6 @@ public final class GraphManager {
 
                 k8sManager.createOperatorPod(namespace);
             }
-
         }
     }
 

@@ -50,6 +50,9 @@ public class GraphSpace {
     private int memoryLimit; // GB
     public int storageLimit; // GB
 
+    private int computeCpuLimit;
+    private int computeMemoryLimit; // GB
+
     public String oltpNamespace;
     private String olapNamespace;
     private String storageNamespace;
@@ -81,6 +84,9 @@ public class GraphSpace {
         this.cpuLimit = DEFAULT_CPU_LIMIT;
         this.memoryLimit = DEFAULT_MEMORY_LIMIT;
         this.storageLimit = DEFAULT_STORAGE_LIMIT;
+
+        this.computeCpuLimit = DEFAULT_CPU_LIMIT;
+        this.computeMemoryLimit = DEFAULT_MEMORY_LIMIT;
 
         this.auth = false;
         this.creator = DEFAULT_CREATOR_NAME;
@@ -202,6 +208,27 @@ public class GraphSpace {
         this.storageLimit = storageLimit;
     }
 
+    public int computeCpuLimit() {
+        return this.computeCpuLimit;
+    }
+
+    public void computeCpuLimit(int computeCpuLimit) {
+        E.checkArgument(computeCpuLimit > 0,
+                        "The compute cpu limit must be > 0, but got: %s", computeCpuLimit);
+        this.computeCpuLimit = computeCpuLimit;
+    }
+
+    public int computeMemoryLimit() {
+        return this.computeMemoryLimit;
+    }
+
+    public void computeMemoryLimit(int computeMemoryLimit) {
+        E.checkArgument(computeMemoryLimit > 0,
+                        "The compute memory limit must be > 0, but got: %s",
+                        computeMemoryLimit);
+        this.computeMemoryLimit = computeMemoryLimit;
+    }
+
     public String oltpNamespace() {
         return this.oltpNamespace;
     }
@@ -299,6 +326,9 @@ public class GraphSpace {
         infos.put("cpu_limit", this.cpuLimit);
         infos.put("memory_limit", this.memoryLimit);
         infos.put("storage_limit", this.storageLimit);
+
+        infos.put("compute_cpu_limit", this.computeCpuLimit);
+        infos.put("compute_memory_limit", this.computeMemoryLimit);
 
         infos.put("oltp_namespace", this.oltpNamespace);
         infos.put("olap_namespace", this.olapNamespace);
