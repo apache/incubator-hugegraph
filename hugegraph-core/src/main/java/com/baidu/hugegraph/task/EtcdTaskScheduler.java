@@ -199,10 +199,8 @@ public class EtcdTaskScheduler extends TaskScheduler {
     }
 
     private <V> void restoreTaskFromStatus(TaskStatus status) {
-        LOGGER.logCustomDebug("====> Restoring tasks from status {}", "Scorpiour", status);
         MetaManager manager = MetaManager.instance();
         List<HugeTask<V>> taskList = manager.listTasksByStatus(this.graphSpace(), this.graphName, status);
-        LOGGER.logCustomDebug("====> found {} tasks", "Scorpiour", taskList.size());
         for(HugeTask<V> task : taskList) {
             if (null == task) {
                 continue;

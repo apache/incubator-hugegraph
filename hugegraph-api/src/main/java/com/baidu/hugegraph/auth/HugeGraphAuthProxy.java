@@ -54,6 +54,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
@@ -979,13 +980,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         Object role = context.user().role();
         ResourceObject<V> ro = fetcher.get();
         String action = actionPerm.string();
-
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.logCustomDebug(
-                "Verify permission {} {} for user '{}' with role {}",
-                "Jermy Li",
-                action, ro, username, role);
-        }
 
         V result = ro.operated();
         // Verify role permission

@@ -78,6 +78,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
 
         RolePermission role = userWithRole.role();
+
         if (role == null) {
             role = ROLE_NONE;
         } else if (USER_ADMIN.equals(userWithRole.username())) {
