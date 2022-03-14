@@ -185,11 +185,11 @@ public class GraphSpaceAPI extends API {
                     exist.storageLimit = storageLimit;
                 }
 
-                int computeCpuLimit = (int) graphSpaceMap.get("compute_cpu_limit");
+                int computeCpuLimit = (int) graphSpaceMap.getOrDefault("compute_cpu_limit", 0);
                 if (computeCpuLimit != 0) {
                     exist.computeCpuLimit(computeCpuLimit);
                 }
-                int computeMemoryLimit = (int) graphSpaceMap.get("compute_memory_limit");
+                int computeMemoryLimit = (int) graphSpaceMap.getOrDefault("compute_memory_limit", 0);
                 if (computeMemoryLimit != 0) {
                     exist.computeMemoryLimit(computeMemoryLimit);
                 }
