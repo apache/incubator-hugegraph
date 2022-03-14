@@ -103,6 +103,14 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("newSecurityException")
     );
 
+    private static final Set<String> HSTORE_CLASSES = ImmutableSet.of(
+            "com.baidu.hugegraph.backend.store.hstore.HstoreStore",
+            "com.baidu.hugegraph.backend.store.hstore.HstoreTable",
+            "com.baidu.hugegraph.backend.store.hstore.HstoreSessionsImpl",
+            "com.baidu.hugegraph.backend.store.hstore.HstoreTables",
+            "com.baidu.hugegraph.backend.store.hstore.HstoreProvider"
+    );
+
     @Override
     public void checkPermission(Permission permission) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
@@ -143,7 +151,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(Thread thread) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -154,7 +163,8 @@ public class HugeSecurityManager extends SecurityManager {
     public void checkAccess(ThreadGroup threadGroup) {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -182,7 +192,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkRead(FileDescriptor fd) {
         if (callFromGremlin() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException("Not allowed to read fd via Gremlin");
         }
         super.checkRead(fd);
@@ -193,7 +204,7 @@ public class HugeSecurityManager extends SecurityManager {
         if (callFromGremlin() && !callFromCaffeine() &&
             !readGroovyInCurrentDir(file) &&
             !callFromSnapshot() && !callFromRaft() &&
-            !callFromSofaRpc()) {
+            !callFromSofaRpc() && !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -202,7 +213,8 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file, Object context) {
-        if (callFromGremlin() && !callFromRaft() && !callFromSofaRpc()) {
+        if (callFromGremlin() && !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to read file via Gremlin: %s", file);
         }
@@ -212,7 +224,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkWrite(FileDescriptor fd) {
         if (callFromGremlin() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException("Not allowed to write fd via Gremlin");
         }
         super.checkWrite(fd);
@@ -221,7 +234,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkWrite(String file) {
         if (callFromGremlin() && !callFromSnapshot() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException("Not allowed to write file via Gremlin");
         }
         super.checkWrite(file);
@@ -257,7 +271,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkConnect(String host, int port) {
         if (callFromGremlin() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to connect socket via Gremlin");
         }
@@ -302,7 +317,8 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertiesAccess() {
         if (callFromGremlin() && !callFromSofaRpc() &&
-            !callFromNewSecurityException()) {
+            !callFromNewSecurityException() &&
+            !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to access system properties via Gremlin");
         }
@@ -314,7 +330,7 @@ public class HugeSecurityManager extends SecurityManager {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
             !WHITE_SYSTEM_PROPERTYS.contains(key) &&
             !callFromSnapshot() && !callFromRaft() &&
-            !callFromSofaRpc()) {
+            !callFromSofaRpc() && !callFromHStore()) {
             throw newSecurityException(
                   "Not allowed to access system property(%s) via Gremlin", key);
         }
@@ -429,6 +445,10 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromSofaRpc() {
         return callFromWorkerWithClass(SOFA_RPC_CLASSES);
+    }
+
+    private static boolean callFromHStore() {
+        return callFromWorkerWithClass(HSTORE_CLASSES);
     }
 
     private static boolean callFromNewSecurityException() {
