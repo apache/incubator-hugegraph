@@ -185,6 +185,15 @@ public class GraphSpaceAPI extends API {
                     exist.storageLimit = storageLimit;
                 }
 
+                int computeCpuLimit = (int) graphSpaceMap.get("compute_cpu_limit");
+                if (computeCpuLimit != 0) {
+                    exist.computeCpuLimit(computeCpuLimit);
+                }
+                int computeMemoryLimit = (int) graphSpaceMap.get("compute_memory_limit");
+                if (computeMemoryLimit != 0) {
+                    exist.computeMemoryLimit(computeMemoryLimit);
+                }
+
                 String oltpNamespace =
                         (String) graphSpaceMap.get("oltp_namespace");
                 if (oltpNamespace != null &&
@@ -252,6 +261,11 @@ public class GraphSpaceAPI extends API {
         @JsonProperty("storage_limit")
         public int storageLimit;
 
+        @JsonProperty("compute_cpu_limit")
+        public int computeCpuLimit = 0;
+        @JsonProperty("compute_memory_limit")
+        public int computeMemoryLimit = 0;
+
         @JsonProperty("oltp_namespace")
         public String oltpNamespace;
         @JsonProperty("olap_namespace")
@@ -315,6 +329,8 @@ public class GraphSpaceAPI extends API {
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);
             graphSpace.storageNamespace(this.storageNamespace);
+            graphSpace.computeCpuLimit(this.computeCpuLimit);
+            graphSpace.computeMemoryLimit(this.computeMemoryLimit);
 
             graphSpace.configs(this.configs);
 
