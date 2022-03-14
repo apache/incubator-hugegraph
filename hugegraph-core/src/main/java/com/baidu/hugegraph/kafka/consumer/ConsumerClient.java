@@ -39,7 +39,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
  * @author Scorpiour
  * @since 2022-01-18
  */
-public class ConsumerClient<K, V> {
+public abstract class ConsumerClient<K, V> {
 
     protected static final HugeGraphLogger LOGGER = 
         Log.getLogger(ConsumerClient.class);
@@ -85,9 +85,7 @@ public class ConsumerClient<K, V> {
         });
     }
 
-    protected void handleRecord(ConsumerRecord<K, V> record) {
-        throw new NotImplementedException("Cannot consume record since handleRecord is not override correctly");
-    }
+    protected abstract void handleRecord(ConsumerRecord<K, V> record);
 
     public void close() {
         this.closing = true;

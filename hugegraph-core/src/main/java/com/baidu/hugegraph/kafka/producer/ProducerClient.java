@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.baidu.hugegraph.kafka.topic.TopicBase;
+import com.baidu.hugegraph.meta.MetaManager;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -83,6 +84,12 @@ public class ProducerClient<K, V> {
         if (closing) {
             throw new IllegalStateException("Cannot produce when producer is closing");
         }
+        MetaManager manager = MetaManager.instance();
+        boolean needSync = manager.needKafkaSyncBroker();
+        if (!needSync) {
+            return null;
+        }
+
         return asyncExecutor.submit(new Runnable() {
             @Override
             public void run() {

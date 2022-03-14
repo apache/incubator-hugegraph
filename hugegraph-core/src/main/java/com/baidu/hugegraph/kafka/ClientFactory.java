@@ -21,6 +21,8 @@ package com.baidu.hugegraph.kafka;
 
 import java.nio.ByteBuffer;
 
+import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
+import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 
@@ -35,6 +37,8 @@ public class ClientFactory {
 
         public static final ProducerClient<String, ByteBuffer> standardProducer = 
             new StandardProducerBuilder().build();
+
+        public static final StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
     }
 
     private ClientFactory() {
@@ -47,6 +51,10 @@ public class ClientFactory {
 
     public ProducerClient<String, ByteBuffer> getStandardProducer() {
         return ClientInstanceHolder.standardProducer;
+    }
+
+    public StandardConsumer getStandardConsumer() {
+        return ClientInstanceHolder.standardConsumer;
     }
     
 }

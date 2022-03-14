@@ -31,7 +31,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
  * @author Scorpiour
  * @since 2022-01-18
  */
-public class ConsumerBuilder<K, V> {
+public abstract class ConsumerBuilder<K, V> {
 
     /**
      * Bootstrap broker host
@@ -100,6 +100,9 @@ public class ConsumerBuilder<K, V> {
         return this;
     }
 
+    public abstract ConsumerClient<K, V> build() throws IllegalArgumentException;
+
+    /*
     public ConsumerClient<K, V> build() throws IllegalArgumentException {
 
         this.validateOptions();
@@ -118,6 +121,6 @@ public class ConsumerBuilder<K, V> {
         ConsumerClient<K, V> client = new ConsumerClient<>(props);
 
         return client;
-    }
+    }*/
     
 }

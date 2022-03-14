@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
@@ -64,28 +65,31 @@ public class SlaveServerWrapper {
 
     private void initServer() {
         MetaManager manager = MetaManager.instance();
-        server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
-        ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
+        if (BrokerConfig.getInstance().isSlave()) {
+            server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
+            ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
 
-        Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
+            Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
-            public void accept(MutationDTO t) {
-                LOGGER.logCustomDebug("Recv in callback, {} ",
-                        "Scorpiour",
-                        t.getGraphSpace() + " - "
-                        + t.getGraphName() + " size "
-                        + t.getMutation().length);
+                public void accept(MutationDTO t) {
+                    LOGGER.logCustomDebug("Recv in callback, {} ",
+                            "Scorpiour",
+                            t.getGraphSpace() + " - "
+                            + t.getGraphName() + " size "
+                            + t.getMutation().length);
 
-                
-                HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
-                    .setBuffer(ByteBuffer.wrap(t.getMutation()))
-                    .setGraphSpace(t.getGraphSpace())
-                    .setGraphName(t.getGraphName())
-                    .build();
-                producer.produce(topic);
-            }
-        };
-        server.registerListener("", callback);
+                    
+                    HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
+                        .setBuffer(ByteBuffer.wrap(t.getMutation()))
+                        .setGraphSpace(t.getGraphSpace())
+                        .setGraphName(t.getGraphName())
+                        .build();
+                    producer.produce(topic);
+                }
+            };
+        
+            server.registerListener("", callback);
+        }
     }
 
     public void init(GraphManager manager) {

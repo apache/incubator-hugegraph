@@ -42,8 +42,9 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.ClientFactory;
 import com.baidu.hugegraph.kafka.SlaveServerWrapper;
-
+import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -124,6 +125,9 @@ public class ApplicationConfig extends ResourceConfig {
                         if (BrokerConfig.getInstance().isSlave()) {
                             // TODO: build and enable consumer
                             SlaveServerWrapper.getInstance().init(manager);
+                        } else if (BrokerConfig.getInstance().isMaster()) {
+                            StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();
+                            consumer.consume();
                         }
                     } else if (event.getType() == this.EVENT_DESTROYED) {
                         SlaveServerWrapper.getInstance().close();

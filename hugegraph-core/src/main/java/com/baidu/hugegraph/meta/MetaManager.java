@@ -105,6 +105,8 @@ public class MetaManager {
     public static final String META_PATH_DATA_SYNC_ROLE = "DATA_SYNC_ROLE";
     public static final String META_PATH_SLAVE_SERVER_HOST = "SLAVE_SERVER_HOST";
     public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
+    public static final String META_PATH_SYNC_BROKER = "SYNC_BROKER";
+    public static final String META_PATH_SYNC_STORAGE = "SYNC_STORAGE";
 
     private static final String TASK_STATUS_POSTFIX = "Status";
     private static final String TASK_PROGRESS_POSTFIX = "Progress";
@@ -837,6 +839,16 @@ public class MetaManager {
     private String kafkaSlavePortKey() {
         // HUGEGRAPH/{cluster}/KAFKA/SLAVE_SERVER_PORT
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SLAVE_SERVER_PORT);
+    }
+
+    private String kafkaSyncBrokerKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SYNC_BROKER
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SYNC_BROKER);
+    }
+
+    private String kafkaSyncStorageKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SYNC_STORAGE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SYNC_STORAGE);
     }
 
     /**
@@ -2172,6 +2184,31 @@ public class MetaManager {
         String portStr = this.metaDriver.get(key);
         int port = Integer.parseInt(portStr);
         return port;
+    }
+
+    /**
+     * Indicates when if need sync data between hugegraph-server & broker
+     * Should be functioned dynamically
+     * If returns true, both Master and slave will be produce topics to broker
+     * @return
+     */
+    public boolean needKafkaSyncBroker() {
+        String key = this.kafkaSyncBrokerKey();
+        String res = this.metaDriver.get(key);
+        return "1".equals(res);
+    }
+
+    /**
+     * Indicates when if need sync data between hugegraph-server & storage
+     * Should be functioned dynamically
+     * If returns true, Master's consumer will consume data from broker, then push to slave,
+     * while Slave will consume data from broker, then commit them to storage
+     * @return
+     */
+    public boolean needKafkaSyncStorage() {
+        String key = this.kafkaSyncStorageKey();
+        String res = this.metaDriver.get(key);
+        return "1".equals(res);
     }
 
     public enum MetaDriverType {
