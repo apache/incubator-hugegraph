@@ -26,18 +26,31 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.client.PDConfig;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.*;
+import com.baidu.hugegraph.store.HgKvEntry;
+import com.baidu.hugegraph.store.HgKvIterator;
+import com.baidu.hugegraph.store.HgOwnerKey;
+import com.baidu.hugegraph.store.HgScanQuery;
+import com.baidu.hugegraph.store.HgSessionManager;
+import com.baidu.hugegraph.store.HgStoreSession;
 import com.baidu.hugegraph.store.client.HgStoreNodeManager;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
-import org.apache.commons.collections.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,7 +67,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
     private static volatile PDClient DEFAULT_PD_CLIENT;
     private static volatile HstoreNodePartitionerImpl nodePartitioner = null;
     private static volatile Set<String> INFO_INITIALIZED_GRAPH =
-                            Collections.synchronizedSet(new HashSet<>());
+            Collections.synchronizedSet(new HashSet<>());
+    private static final Logger LOG = Log.logger(HstoreSessionsImpl.class);
+
     public HstoreSessionsImpl(HugeConfig config, String database,
                               String store) {
         super(config, database, store);
@@ -72,13 +87,13 @@ public class HstoreSessionsImpl extends HstoreSessions {
             synchronized (INITIALIZED_NODE) {
                 if (!INITIALIZED_NODE) {
                     HgStoreNodeManager nodeManager =
-                                       HgStoreNodeManager.getInstance();
+                            HgStoreNodeManager.getInstance();
                     DEFAULT_PD_CLIENT = PDClient.create(PDConfig.of(
-                                        config.get(HstoreOptions.PD_PEERS))
-                                        .setEnablePDNotify(true));
+                                                                        config.get(HstoreOptions.PD_PEERS))
+                                                                .setEnablePDNotify(true));
                     nodePartitioner = FakeHstoreNodePartitionerImpl
-                                      .NodePartitionerFactory
-                                      .getNodePartitioner(config,nodeManager);
+                            .NodePartitionerFactory
+                            .getNodePartitioner(config,nodeManager);
                     nodeManager.setNodeProvider(nodePartitioner);
                     nodeManager.setNodePartitioner(nodePartitioner);
                     nodeManager.setNodeNotifier(nodePartitioner);
@@ -221,10 +236,10 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public void reset() {
-           if (this.changedSize != 0){
-               this.rollback();
-               this.changedSize = 0;
-           }
+            if (this.changedSize != 0){
+                this.rollback();
+                this.changedSize = 0;
+            }
         }
         /**
          * Any change in the session
@@ -271,7 +286,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public boolean existsTable(String tableName) {
-           return this.graph.existsTable(tableName);
+            return this.graph.existsTable(tableName);
         }
 
         @Override
@@ -339,7 +354,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         @Override
         public byte[] get(String table, byte[] key) {
             return this.graph.get(table,
-                   HgOwnerKey.of(HgStoreClientConst.ALL_PARTITION_OWNER, key));
+                                  HgOwnerKey.of(HgStoreClientConst.ALL_PARTITION_OWNER, key));
         }
 
         @Override
@@ -361,7 +376,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] conditionQueryToByte) {
             assert !this.hasChanges();
             HgKvIterator results =
-                         this.graph.scanIterator(table, conditionQueryToByte);
+                    this.graph.scanIterator(table, conditionQueryToByte);
             return new ColumnIterator<HgKvIterator>(table, results);
         }
 
@@ -375,7 +390,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] prefix) {
             assert !this.hasChanges();
             HgKvIterator result = this.graph.scanIterator(table,
-                                  HgOwnerKey.of(ownerKey, prefix));
+                                                          HgOwnerKey.of(ownerKey, prefix));
             return new ColumnIterator<HgKvIterator>(table, result);
         }
 
@@ -399,9 +414,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] keyTo, int scanType) {
             assert !this.hasChanges();
             HgKvIterator result = this.graph.scanIterator(table,
-                                  HgOwnerKey.of(ownerKeyFrom,keyFrom),
-                                  HgOwnerKey.of(ownerKeyTo,keyTo),
-                                  scanType);
+                                                          HgOwnerKey.of(ownerKeyFrom,keyFrom),
+                                                          HgOwnerKey.of(ownerKeyTo,keyTo),
+                                                          scanType);
             return new ColumnIterator<HgKvIterator>(table, result, keyFrom,
                                                     keyTo, scanType);
         }
@@ -413,9 +428,23 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] query) {
             assert !this.hasChanges();
             HgKvIterator result = this.graph.scanIterator(table,
-                                  HgOwnerKey.of(ownerKeyFrom,keyFrom),
-                                  HgOwnerKey.of(ownerKeyTo,keyTo),
-                                  scanType,query);
+                                                          HgOwnerKey.of(ownerKeyFrom,keyFrom),
+                                                          HgOwnerKey.of(ownerKeyTo,keyTo),
+                                                          scanType,query);
+            return new ColumnIterator<HgKvIterator>(table, result, keyFrom,
+                                                    keyTo, scanType);
+        }
+        @Override
+        public BackendColumnIterator scan(String table, byte[] ownerKeyFrom,
+                                          byte[] ownerKeyTo, byte[] keyFrom,
+                                          byte[] keyTo, int scanType,
+                                          byte[] query,byte[] position) {
+            assert !this.hasChanges();
+            HgKvIterator result = this.graph.scanIterator(table,
+                                                          HgOwnerKey.of(ownerKeyFrom,keyFrom),
+                                                          HgOwnerKey.of(ownerKeyTo,keyTo),
+                                                          scanType,query);
+            result.seek(position);
             return new ColumnIterator<HgKvIterator>(table, result, keyFrom,
                                                     keyTo, scanType);
         }
@@ -439,9 +468,23 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         @Override
         public void setMode(GraphMode mode) {
-            nodePartitioner.setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
-                    Metapb.GraphWorkMode.Batch_Import :
-                    Metapb.GraphWorkMode.Normal);
+            if (!mode.equals(GraphMode.LOADING)){
+                nodePartitioner.setWorkMode(this.getGraphName(),
+                                            Metapb.GraphWorkMode.Normal);
+            } else{
+                HgKvIterator results =  this.graph.scanIterator("g+v", 1);
+                if (!results.hasNext()){
+                    nodePartitioner.setWorkMode(this.getGraphName(),
+                                                Metapb.GraphWorkMode.Batch_Import);
+                } else{
+                    LOG.warn("The database already has vertex data, " +
+                             "so you cannot set the state to LOADING");
+                }
+
+            }
+            //nodePartitioner.setWorkMode(this.getGraphName(), mode.equals(GraphMode.LOADING) ?
+            //        Metapb.GraphWorkMode.Batch_Import :
+            //        Metapb.GraphWorkMode.Normal);
         }
 
         @Override
@@ -462,10 +505,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
         private final byte[] keyEnd;
         private final int scanType;
 
-        private byte[] position;
-        private byte[] value;   
+        private byte[] value;
         private boolean matched;
-
+        private byte[] position;
         public ColumnIterator(String table, T results) {
             this(table, results, null, null, 0);
         }
@@ -482,12 +524,12 @@ public class HstoreSessionsImpl extends HstoreSessions {
             this.keyBegin = keyBegin;
             this.keyEnd = keyEnd;
             this.scanType = scanType;
-            this.position = keyBegin;
             this.value = null;
             this.matched = false;
             if (this.iter.hasNext()) {
                 this.iter.next();
                 this.gotNext = true;
+                this.position=iter.position();
             } else {
                 this.gotNext = false;
             };
@@ -497,17 +539,17 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
         private void checkArguments() {
             E.checkArgument(!(this.match(Session.SCAN_PREFIX_BEGIN) &&
-                            this.match(Session.SCAN_PREFIX_END)),
+                              this.match(Session.SCAN_PREFIX_END)),
                             "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                             "SCAN_PREFIX_WITH_END at the same time");
 
             E.checkArgument(!(this.match(Session.SCAN_PREFIX_BEGIN) &&
-                            this.match(Session.SCAN_GT_BEGIN)),
+                              this.match(Session.SCAN_GT_BEGIN)),
                             "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                             "SCAN_GT_BEGIN/SCAN_GTE_BEGIN at the same time");
 
             E.checkArgument(!(this.match(Session.SCAN_PREFIX_END) &&
-                            this.match(Session.SCAN_LT_END)),
+                              this.match(Session.SCAN_LT_END)),
                             "Can't set SCAN_PREFIX_WITH_END and " +
                             "SCAN_LT_END/SCAN_LTE_END at the same time");
 
@@ -551,7 +593,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         @Override
         public boolean hasNext() {
             if (this.gotNext){
-                this.position = this.iter.key();
+                this.position = this.iter.position();
             } else {
                 this.position = null;
             }
@@ -604,7 +646,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 throw new NoSuchElementException();
             }
             BackendEntry.BackendColumn col = BackendEntry.BackendColumn.of(
-                                       this.iter.key(), this.iter.value());
+                    this.iter.key(), this.iter.value());
             if (this.iter.hasNext()) {
                 gotNext = true;
                 this.iter.next();

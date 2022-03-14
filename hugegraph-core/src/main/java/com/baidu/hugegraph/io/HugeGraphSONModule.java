@@ -354,19 +354,27 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     creator = jsonParser.getText();
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
-                    try {
-                        create = SafeDateUtil.parse(val, DF);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
+                    if (val == null) {
                         create = new Date();
+                    } else {
+                        try {
+                            create = SafeDateUtil.parse(val, DF);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                            create = new Date();
+                        }
                     }
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
-                    try {
-                        update = SafeDateUtil.parse(val, DF);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
+                    if (val == null) {
                         update = new Date();
+                    } else {
+                        try {
+                            update = SafeDateUtil.parse(val, DF);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                            update = new Date();
+                        }
                     }
                 } else {
                     configs.put(fieldName, jsonParser.getValueAsString());

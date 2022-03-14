@@ -148,11 +148,10 @@ public class ConfigAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
-    public String rest(@Context GraphManager manager,
+    public void rest(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("key") String key) {
-        return manager.serializer()
-                      .writeMap(manager.deleteRestProperties(graphSpace, key));
+        manager.deleteRestProperties(graphSpace, key);
     }
 
     @GET

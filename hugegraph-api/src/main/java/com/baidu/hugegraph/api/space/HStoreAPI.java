@@ -26,14 +26,19 @@ import java.util.Map;
 import javax.inject.Singleton;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import com.baidu.hugegraph.backend.store.hstore.HstoreOptions;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.pd.client.PDConfig;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.api.API;
@@ -45,7 +50,6 @@ import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.backend.store.hstore.HstoreSessionsImpl;
 
 @Path("hstore")
 @Singleton
@@ -53,14 +57,21 @@ public class HStoreAPI extends API {
     private static final Logger LOG = Log.logger(RestServer.class);
     private PDClient client;
 
-    protected synchronized PDClient client() {
+    protected synchronized PDClient client(HugeConfig config) {
         if (this.client != null) {
             return this.client;
         }
-        this.client = HstoreSessionsImpl.getDefaultPdClient();
+
+        String pdPeers = config.get(HstoreOptions.PD_PEERS);
+
+        E.checkArgument(StringUtils.isNotEmpty(pdPeers), "Please set pd addrs" +
+                        " use config: pd.peers");
+
+        this.client =
+                PDClient.create(PDConfig.of(pdPeers).setEnablePDNotify(false));
 
         E.checkArgument(client != null, "Get pd client error, The hstore api " +
-                "is not enable.");
+                        "is not enable.");
 
         return this.client;
     }
@@ -68,7 +79,8 @@ public class HStoreAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Object list(@QueryParam("offlineExcluded")
+    public Object list(@Context HugeConfig config,
+                       @QueryParam("offlineExcluded")
                        @DefaultValue("true") boolean offlineExcluded) {
 
         LOG.debug("List all hstore node");
@@ -77,7 +89,7 @@ public class HStoreAPI extends API {
 
         List<Metapb.Store> stores = null;
         try {
-            stores = client().getStoreStatus(offlineExcluded);
+            stores = client(config).getStoreStatus(offlineExcluded);
         } catch (PDException e) {
             throw new HugeException("Get hstore nodes error", e);
         }
@@ -95,12 +107,13 @@ public class HStoreAPI extends API {
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Object get(@Context GraphManager manager,
+    public Object get(@Context HugeConfig config,
+                      @Context GraphManager manager,
                       @PathParam("id") long id) {
 
         Metapb.Store store = null;
         try {
-            store = client().getStore(id);
+            store = client(config).getStore(id);
         } catch (PDException e) {
             throw new HugeException("Get hstore node by id error", e);
         }
@@ -119,7 +132,7 @@ public class HStoreAPI extends API {
         List<Metapb.Partition> partitions = null;
 
         try {
-            partitions = client().getPartitionsByStore(id);
+            partitions = client(config).getPartitionsByStore(id);
         } catch (PDException e) {
             throw new HugeException("Get partitions by node id error", e);
         }
@@ -140,5 +153,98 @@ public class HStoreAPI extends API {
         storeInfo.put("partitions", partitionInfos);
 
         return storeInfo;
+    }
+
+    @GET
+    @Timed
+    @Path("status")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Object status(@Context HugeConfig config) {
+
+        LOG.debug("Get hstore cluster status");
+
+        String status = null;
+        try {
+            status = client(config).getClusterStats().getState().name();
+        } catch (PDException e) {
+            throw new HugeException("Get store cluster status error", e);
+        }
+
+        return ImmutableMap.of("status", status);
+    }
+
+    @GET
+    @Timed
+    @Path("split")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Object split(@Context HugeConfig config) {
+
+        LOG.debug("Trigger the cluster to split...");
+
+        try {
+            client(config).splitData();
+        } catch (PDException e) {
+            throw new HugeException("Trigger split error", e);
+        }
+
+        return "success";
+    }
+
+    @GET
+    @Timed
+    @Path("{id}/startup")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Object startup(@Context HugeConfig config,
+                        @PathParam("id") long id) {
+
+        LOG.debug("Query Hstore cluster status");
+        Metapb.Store oldStore = null;
+        try {
+            oldStore = client(config).getStore(id);
+        } catch (PDException e) {
+            throw new HugeException(String.format("Get hstore node(%s) error", id),
+                                    e);
+        }
+
+        Metapb.Store newStore = Metapb.Store.newBuilder(oldStore)
+                                            .setState(Metapb.StoreState.Up)
+                                            .build();
+        try {
+            client(config).updateStore(newStore);
+        } catch (PDException e) {
+            throw new HugeException(String.format("Startup node(%s) error", id),
+                                    e);
+        }
+
+        return "success";
+    }
+
+    @GET
+    @Timed
+    @Path("{id}/shutdown")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public Object shutdown(@Context HugeConfig config,
+                         @PathParam("id") long id) {
+
+        LOG.info("shutdown hstore node: %s");
+
+        Metapb.Store oldStore = null;
+        try {
+            oldStore = client(config).getStore(id);
+        } catch (PDException e) {
+            throw new HugeException(String.format("Get hstore node(%s) error", id),
+                                    e);
+        }
+        Metapb.Store newStore = Metapb.Store.newBuilder(oldStore)
+                                            .setState(Metapb.StoreState.Up)
+                                            .build();
+        try {
+            client(config).updateStore(newStore);
+        } catch (PDException e) {
+            throw new HugeException(String.format("Shutdown node(%s) error", id),
+                                    e);
+        }
+
+        return "success";
     }
 }
