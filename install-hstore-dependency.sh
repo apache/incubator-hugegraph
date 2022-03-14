@@ -33,3 +33,6 @@ mvn install:install-file -Dfile=$TRAVIS_DIR/hg-pd-grpc-3.0.0.jar -DgroupId=com.b
 mvn install:install-file -Dfile=$TRAVIS_DIR/hg-store-client-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-client -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/hg-store-client-pom.xml
 mvn install:install-file -Dfile=$TRAVIS_DIR/hg-store-grpc-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-grpc -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/hg-store-grpc-pom.xml
 mvn install:install-file -Dfile=$TRAVIS_DIR/hg-store-term-3.0.0.jar -DgroupId=com.baidu.hugegraph -DartifactId=hg-store-term -Dversion=3.0.0 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/hg-store-term-pom.xml
+mvn install:install-file -Dfile=$TRAVIS_DIR/hugegraph-computer-0.1.1.pom -DgroupId=com.baidu.hugegraph -DartifactId=hugegraph-computer -Dversion=0.1.1 -Dpackaging=pom
+mvn install:install-file -Dfile=$TRAVIS_DIR/computer-driver-0.1.1.jar -DgroupId=com.baidu.hugegraph -DartifactId=computer-driver -Dversion=0.1.1 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/computer-driver-pom.xml
+mvn install:install-file -Dfile=$TRAVIS_DIR/computer-k8s-0.1.1.jar -DgroupId=com.baidu.hugegraph -DartifactId=computer-k8s -Dversion=0.1.1 -Dpackaging=jar -DpomFile=$TRAVIS_DIR/computer-k8s-pom.xml

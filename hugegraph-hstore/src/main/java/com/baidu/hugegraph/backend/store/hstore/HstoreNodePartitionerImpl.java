@@ -79,6 +79,7 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
             }
             builder.setPartitions(partitions);
         } catch (PDException e) {
+            LOG.error("An error occurred while getting partition information :{}" ,e.getMessage());
             throw new RuntimeException(e.getMessage(), e);
         }
         return 0;
@@ -104,6 +105,7 @@ public class HstoreNodePartitionerImpl implements HgStoreNodePartitioner,
             }
             builder.setPartitions(partitions);
         } catch (PDException e) {
+            LOG.error("An error occurred while getting partition information :{}" ,e.getMessage());
             throw new RuntimeException(e.getMessage(), e);
         }
         return 0;

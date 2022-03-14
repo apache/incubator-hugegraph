@@ -83,7 +83,7 @@ public class RolePermission {
         if (graphPermissions == null) {
             graphPermissions = new TreeMap<>();
         }
-
+        // TODO by Scorpiour: if graph is '*', list all permissions
         Map<HugePermission, List<HugeResource>> permissions =
                                                 graphPermissions.get(graph);
         if (permissions == null) {

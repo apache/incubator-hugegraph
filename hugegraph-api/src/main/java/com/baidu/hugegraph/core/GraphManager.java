@@ -23,6 +23,7 @@ import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTI
 import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.io.ByteArrayInputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -545,7 +546,16 @@ public final class GraphManager {
         return space;
     }
 
-    private void attachK8sNamespace(String namespace) {
+    private void makeResourceQuota(String namespace, int cpuLimit, int memoryLimit) {
+        k8sManager.loadResourceQuota(namespace, cpuLimit, memoryLimit);   
+    }
+
+    /**
+     * Create or get new namespaces
+     * @param namespace
+     * @return isNewCreated
+     */
+    private boolean attachK8sNamespace(String namespace) {
         if (!Strings.isNullOrEmpty(namespace)) {
             Namespace current = k8sManager.namespace(namespace);
             if (null == current) {
@@ -561,9 +571,10 @@ public final class GraphManager {
                 // String imageName = "";
 
                 k8sManager.createOperatorPod(namespace);
+                return true;
             }
-
         }
+        return false;
     }
 
     public GraphSpace createGraphSpace(GraphSpace space) {
@@ -574,9 +585,28 @@ public final class GraphManager {
         this.metaManager.appendGraphSpaceList(name);
 
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
+
         if (useK8s) {
-            attachK8sNamespace(space.oltpNamespace());
-            attachK8sNamespace(space.olapNamespace());
+            int cpuLimit = space.cpuLimit();
+            int memoryLimit = space.memoryLimit();
+
+            int computeCpuLimit = space.computeCpuLimit() == 0 ? space.cpuLimit() : space.computeCpuLimit();
+            int computeMemoryLimit = space.computeMemoryLimit() == 0 ? space.memoryLimit() : space.computeMemoryLimit();
+
+            boolean isNewCreated = attachK8sNamespace(space.oltpNamespace());
+            if (isNewCreated) {
+                if (space.oltpNamespace().equals(space.olapNamespace())) {
+                    this.makeResourceQuota(space.oltpNamespace(), cpuLimit + computeCpuLimit, memoryLimit + computeMemoryLimit);
+                } else {
+                    this.makeResourceQuota(space.oltpNamespace(), cpuLimit, memoryLimit);
+                }
+            }
+            if (!space.oltpNamespace().equals(space.olapNamespace())) {
+                isNewCreated = attachK8sNamespace(space.olapNamespace());
+                if (isNewCreated) {
+                    this.makeResourceQuota(space.olapNamespace(), computeCpuLimit, computeMemoryLimit);
+                }
+            }
         }
 
         this.metaManager.notifyGraphSpaceAdd(name);
@@ -726,7 +756,7 @@ public final class GraphManager {
             if (service.k8s()) {
                 List<String> endpoints = this.config.get(
                                          ServerOptions.META_ENDPOINTS);
-                Set<String> urls = this.k8sManager.startService(
+                Set<String> urls = this.k8sManager.createService(
                                    gs, service, endpoints, this.cluster);
                 if (!urls.isEmpty()) {
                     String url = urls.iterator().next();
@@ -763,6 +793,19 @@ public final class GraphManager {
         this.registerServiceToPd(service);
     }
 
+    public void stopService(String graphSpace, String name) {
+        Service service = this.service(graphSpace, name);
+        if (null != service && service.k8s()) {
+            GraphSpace gs = this.graphSpace(graphSpace);
+            k8sManager.stopService(gs, service);
+            service.running(0);
+            this.metaManager.updateServiceConfig(graphSpace, service);
+            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
+                PdRegister.getInstance().unregister(service.pdServiceId());
+            }
+        }
+    }
+
     public void dropService(String graphSpace, String name) {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
@@ -770,7 +813,7 @@ public final class GraphManager {
             return;
         }
         if (service.k8s()) {
-            this.k8sManager.stopService(gs, service);
+            this.k8sManager.deleteService(gs, service);
         }
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace, name);
         this.metaManager.removeServiceConfig(graphSpace, name);
@@ -1006,19 +1049,6 @@ public final class GraphManager {
             this.metaManager.updateServiceConfig(graphSpace, service);
         }
         return service;
-    }
-
-    public void stopService(String graphSpace, String name) {
-        Service service = this.service(graphSpace, name);
-        if (null != service && service.k8s()) {
-            GraphSpace gs = this.graphSpace(graphSpace);
-            k8sManager.stopService(gs, service);
-            service.running(0);
-            this.metaManager.updateServiceConfig(graphSpace, service);
-            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
-                PdRegister.getInstance().unregister(service.pdServiceId());
-            }
-        }
     }
 
     public Set<HugeGraph> graphs() {

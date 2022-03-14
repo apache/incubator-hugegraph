@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.HugeGraphAuthProxy.Context;
@@ -41,8 +42,12 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.Namifiable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 
 public interface HugeAuthenticator extends Authenticator {
+
+    public static final Logger LOG =
+                                    Log.logger(HugeAuthenticator.class);
 
     public static final String KEY_USERNAME =
                                CredentialGraphTokens.PROPERTY_USERNAME;
@@ -52,6 +57,7 @@ public interface HugeAuthenticator extends Authenticator {
     public static final String KEY_ROLE = "role";
     public static final String KEY_ADDRESS = "address";
     public static final String KEY_PATH = "path";
+    public static final String GENERAL_PATTERN = "*";
 
     public static final String USER_SYSTEM = RestServer.EXECUTOR;
     public static final String USER_ADMIN = "admin";
@@ -86,6 +92,7 @@ public interface HugeAuthenticator extends Authenticator {
     @Override
     public default User authenticate(final Map<String, String> credentials)
                                      throws AuthenticationException {
+
         HugeGraphAuthProxy.resetContext();
 
         User user = User.ANONYMOUS;
@@ -288,8 +295,8 @@ public interface HugeAuthenticator extends Authenticator {
             }
 
             return this.roles.containsKey(graphSpace) &&
-                    this.roles.get(graphSpace).containsKey("*") &&
-                    this.roles.get(graphSpace).get("*")
+                    this.roles.get(graphSpace).containsKey(GENERAL_PATTERN) &&
+                    this.roles.get(graphSpace).get(GENERAL_PATTERN)
                             .containsKey(HugePermission.SPACE);
         }
 
@@ -330,7 +337,10 @@ public interface HugeAuthenticator extends Authenticator {
 
             Map<HugePermission, Object> permissions = innerRoles.get(owner);
             if (permissions == null) {
-                return false;
+                permissions = innerRoles.get(GENERAL_PATTERN);
+                if (permissions == null) {
+                    return false;
+                }
             }
             Object permission = matchedAction(requiredAction, permissions);
             if (permission == null) {

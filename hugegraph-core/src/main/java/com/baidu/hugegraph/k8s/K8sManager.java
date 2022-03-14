@@ -20,8 +20,10 @@
 package com.baidu.hugegraph.k8s;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 
+import org.yaml.snakeyaml.Yaml;
 
 import io.fabric8.kubernetes.api.model.Namespace;
 
@@ -96,6 +99,20 @@ public class K8sManager {
     }
 
     @SuppressWarnings("unchecked")
+    public Set<String> createOltpService(GraphSpace graphSpace,
+                                        Service service,
+                                        List<String> metaServers,
+                                        String cluster) {
+        
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "startOltpService");
+            return Collections.EMPTY_SET;
+        }
+        return this.k8sDriver.createOltpService(graphSpace, service,
+                                               metaServers, cluster);
+    }
+
+    @SuppressWarnings("unchecked")
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
@@ -109,17 +126,31 @@ public class K8sManager {
                                                metaServers, cluster);
     }
 
-    public Set<String> startService(GraphSpace graphSpace, Service service,
+    public Set<String> createService(GraphSpace graphSpace, Service service,
                                     List<String> metaServers, String cluster) {
         switch (service.type()) {
             case OLTP:
-                return this.startOltpService(graphSpace, service, metaServers,
+                return this.createOltpService(graphSpace, service, metaServers,
                                              cluster);
             case OLAP:
             case STORAGE:
             default:
                 throw new AssertionError(String.format(
                           "Invalid service type '%s'", service.type()));
+        }
+    }
+
+    public Set<String> startService(GraphSpace graphSpace, Service service,
+                                    List<String> metaServers, String cluster) {
+        switch (service.type()) {
+            case OLTP:
+                return this.startOltpService(graphSpace, service, metaServers,
+                            cluster);
+            case OLAP:
+            case STORAGE:
+            default:
+                throw new AssertionError(String.format(
+                "Invalid service type '%s'", service.type()));
         }
     }
 
@@ -131,6 +162,21 @@ public class K8sManager {
         switch (service.type()) {
             case OLTP:
                 this.k8sDriver.stopOltpService(graphSpace, service);
+            case OLAP:
+            case STORAGE:
+            default:
+                LOGGER.logCustomDebug("Cannot stop service other than OLTP", "K8sManager");
+        }
+    }
+
+    public void deleteService(GraphSpace graphSpace, Service service) {
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "stopService");
+            return;
+        }
+        switch (service.type()) {
+            case OLTP:
+                this.k8sDriver.deleteOltpService(graphSpace, service);
                 break;
             default:
                 LOGGER.logCustomDebug("Cannot stop service other than OLTP", "K8sManager");
@@ -171,7 +217,47 @@ public class K8sManager {
         } catch (IOException e) {
 
         }
-        
+    }
 
+    @SuppressWarnings("unchecked")
+    public void loadResourceQuota(String namespace, int cpuLimit, int memoryLimit) throws HugeException {
+        Yaml yaml = new Yaml();
+        FileInputStream inputStream = null;
+
+        try {
+
+            inputStream = new FileInputStream(CoreOptions.K8S_QUOTA_TEMPLATE.defaultValue());
+            Map<String, Object> quotaMap = yaml.load(inputStream);
+            Map<String, Object> metaData = (Map<String, Object>)quotaMap.get("metadata");
+            Map<String, Object> spec = (Map<String, Object>)quotaMap.get("spec");
+            Map<String, Object> hard = (Map<String, Object>)spec.get("hard");
+
+            metaData.put("name", namespace + "-resource-quota");
+
+            String cpuLimitStr = String.valueOf(cpuLimit);
+            String memLimitStr = String.valueOf(memoryLimit) + "Gi";
+            hard.put("requests.cpu", cpuLimitStr);
+            hard.put("limits.cpu", cpuLimitStr);
+            hard.put("requests.memory", memLimitStr);
+            hard.put("limits.memory", memLimitStr);
+
+            StringWriter writer = new StringWriter();
+            yaml.dump(quotaMap, writer);
+            
+            String yamlStr = writer.toString();
+
+            k8sDriver.createResourceQuota(namespace, yamlStr);
+
+        } catch (Exception e) {
+
+        } finally {
+            if (null != inputStream) {
+                try {
+                    inputStream.close();
+                } catch (IOException exc) {
+
+                }
+            }
+        }
     }
 }

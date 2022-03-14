@@ -663,6 +663,13 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "./conf/operator-template.yaml"
             );
+    public static final ConfigOption<String> K8S_QUOTA_TEMPLATE =
+            new ConfigOption<>(
+                    "k8s.quota_template",
+                    "the path of resource quota template.",
+                    disallowEmpty(),
+                    "./conf/resource-quota-template.yaml"
+            );
 
     public static final ConfigOption<Integer> OLTP_CONCURRENT_THREADS =
             new ConfigOption<>(

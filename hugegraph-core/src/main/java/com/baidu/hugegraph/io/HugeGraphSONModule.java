@@ -298,6 +298,9 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number memoryLimit = 0;
             Number storageLimit = 0;
 
+            Number computeCpuLimit = 0;
+            Number computeMemoryLimit = 0;
+
             String oltpNamespace = null;
             String olapNamespace = null;
             String storageNamespace = null;
@@ -330,6 +333,10 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     cpuLimit = jsonParser.getNumberValue();
                 } else if ("memory_limit".equals(fieldName)) {
                     memoryLimit = jsonParser.getNumberValue();
+                } else if ("compute_cpu_limit".equals(fieldName)) {
+                    computeCpuLimit = jsonParser.getNumberValue();
+                } else if ("compute_memory_limit".equals(fieldName)) {
+                    computeMemoryLimit = jsonParser.getNumberValue();
                 } else if ("storage_limit".equals(fieldName)) {
                     storageLimit = jsonParser.getNumberValue();
                 } else if ("oltp_namespace".equals(fieldName)) {
@@ -354,19 +361,27 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     creator = jsonParser.getText();
                 } else if ("create_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
-                    try {
-                        create = SafeDateUtil.parse(val, DF);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
+                    if (val == null) {
                         create = new Date();
+                    } else {
+                        try {
+                            create = SafeDateUtil.parse(val, DF);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                            create = new Date();
+                        }
                     }
                 } else if ("update_time".equals(fieldName)) {
                     String val = jsonParser.getValueAsString();
-                    try {
-                        update = SafeDateUtil.parse(val, DF);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
+                    if (val == null) {
                         update = new Date();
+                    } else {
+                        try {
+                            update = SafeDateUtil.parse(val, DF);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                            update = new Date();
+                        }
                     }
                 } else {
                     configs.put(fieldName, jsonParser.getValueAsString());
@@ -394,6 +409,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
             space.updateTime(update);
             space.createTime(create);
+            space.computeCpuLimit(computeCpuLimit.intValue());
+            space.computeMemoryLimit(computeMemoryLimit.intValue());
             return space;
         }
     }

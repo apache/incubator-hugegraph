@@ -54,6 +54,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
