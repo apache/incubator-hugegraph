@@ -213,8 +213,8 @@ public class GraphSpace {
     }
 
     public void computeCpuLimit(int computeCpuLimit) {
-        E.checkArgument(computeCpuLimit > 0,
-                        "The compute cpu limit must be > 0, but got: %s", computeCpuLimit);
+        E.checkArgument(computeCpuLimit >= 0,
+                        "The compute cpu limit must be >= 0, but got: %s", computeCpuLimit);
         this.computeCpuLimit = computeCpuLimit;
     }
 
@@ -223,8 +223,8 @@ public class GraphSpace {
     }
 
     public void computeMemoryLimit(int computeMemoryLimit) {
-        E.checkArgument(computeMemoryLimit > 0,
-                        "The compute memory limit must be > 0, but got: %s",
+        E.checkArgument(computeMemoryLimit >= 0,
+                        "The compute memory limit must be >= 0, but got: %s",
                         computeMemoryLimit);
         this.computeMemoryLimit = computeMemoryLimit;
     }
