@@ -460,7 +460,7 @@ public class ServerOptions extends OptionHolder {
                     "The hugegraph url for k8s work " +
                     "when the computer service is enabled.",
                     null,
-                    ""
+                    "hugegraph-computer-system"
             );
 
     public static final ConfigOption<String> K8S_ENABLE_INTERNAL_ALGORITHM =
