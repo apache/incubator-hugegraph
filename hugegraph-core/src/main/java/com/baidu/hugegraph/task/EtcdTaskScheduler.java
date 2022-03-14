@@ -242,6 +242,10 @@ public class EtcdTaskScheduler extends TaskScheduler {
                 this.taskMap.put(task.id(), task);
                 this.visitedTasks.add(task.id().asString());
                 task.scheduler(this);
+                // Use fake context if missing for compatible
+                if (Strings.isNullOrEmpty(task.context())) {
+                    task.overwriteContext(TaskManager.getContext(true));
+                }
                 // Update retry
                 EtcdTaskScheduler.updateTaskRetry(this.graphSpace(), this.graphName, task);
                 executor.submit(new TaskRunner<>(task, this.graph));
@@ -425,6 +429,24 @@ public class EtcdTaskScheduler extends TaskScheduler {
         return iterator;
     }
 
+    private int pendingTaskCount() {
+        MetaManager manager = MetaManager.instance();
+        int counter = 0;
+        for(TaskStatus status: TaskStatus.PENDING_STATUSES) {
+            counter += manager.countTaskByStatus(graphSpace, graphName, status);
+        }
+        return counter;
+    }
+
+    private int finalizedTaskCount() {
+        MetaManager manager = MetaManager.instance();
+        int counter = 0;
+        for(TaskStatus status: TaskStatus.COMPLETED_STATUSES) {
+            counter += manager.countTaskByStatus(graphSpace, graphName, status);
+        }
+        return counter;
+    }
+
     /**
      * find task from storage first, then attach related info
      */
@@ -579,7 +601,7 @@ public class EtcdTaskScheduler extends TaskScheduler {
             return this.backupForLoadTaskExecutor.submit(task);   
         }
 
-        int size = this.taskMap.size();
+        int size = this.pendingTaskCount() + 1;
         E.checkArgument(size < MAX_PENDING_TASKS,
             "Pending tasks size %s has exceeded the max limit %s",
             size + 1, MAX_PENDING_TASKS);

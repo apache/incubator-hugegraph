@@ -23,8 +23,10 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.task.HugeTask;
+import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.util.E;
+import com.google.common.base.Strings;
 
 public class EphemeralJobBuilder<V> {
 
@@ -32,6 +34,7 @@ public class EphemeralJobBuilder<V> {
 
     private String name;
     private String input;
+    private String context;
     private EphemeralJob<V> job;
 
     // Use negative task id for ephemeral task
@@ -60,6 +63,13 @@ public class EphemeralJobBuilder<V> {
         return this;
     }
 
+    public EphemeralJobBuilder<V> context(String context) {
+        this.context = Strings.isNullOrEmpty(context) 
+            ? TaskManager.getContext(true)
+            : context;
+        return this;
+    }
+
     public HugeTask<V> schedule() {
         E.checkArgumentNotNull(this.name, "Job name can't be null");
         E.checkArgumentNotNull(this.job, "Job can't be null");
@@ -67,6 +77,7 @@ public class EphemeralJobBuilder<V> {
         HugeTask<V> task = new HugeTask<>(this.genTaskId(), null, this.job);
         task.type(this.job.type());
         task.name(this.name);
+        task.context(this.context);
         if (this.input != null) {
             task.input(this.input);
         }

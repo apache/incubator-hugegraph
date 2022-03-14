@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.api.space;
 
-import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_NAME;
+import static com.baidu.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
 
 import java.util.Map;
 import java.util.Set;
@@ -98,17 +98,19 @@ public class GraphSpaceAPI extends API {
                          JsonGraphSpace jsonGraphSpace) {
         LOGGER.logCustomDebug("Create graph space: '{}'", RestServer.EXECUTOR, jsonGraphSpace);
 
-        E.checkArgument(!DEFAULT_GRAPH_SPACE_NAME.equals(jsonGraphSpace),
+        E.checkArgument(!DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(jsonGraphSpace),
                         "Can't create namespace with name '%s'",
-                        DEFAULT_GRAPH_SPACE_NAME);
+                        DEFAULT_GRAPH_SPACE_SERVICE_NAME);
 
         jsonGraphSpace.checkCreate(false);
+
+        String creator = manager.authManager().username();
 
         GraphSpace exist = manager.graphSpace(jsonGraphSpace.name);
         E.checkArgument(exist == null, "The graph space '%s' has existed",
                         jsonGraphSpace.name);
         GraphSpace space = manager.createGraphSpace(
-                           jsonGraphSpace.toGraphSpace());
+                           jsonGraphSpace.toGraphSpace(creator));
         LOGGER.getAuditLogger().logCreateTenant(space.name(), RestServer.EXECUTOR);
         return manager.serializer().writeGraphSpace(space);
     }
@@ -183,6 +185,15 @@ public class GraphSpaceAPI extends API {
                     exist.storageLimit = storageLimit;
                 }
 
+                int computeCpuLimit = (int) graphSpaceMap.get("compute_cpu_limit");
+                if (computeCpuLimit != 0) {
+                    exist.computeCpuLimit(computeCpuLimit);
+                }
+                int computeMemoryLimit = (int) graphSpaceMap.get("compute_memory_limit");
+                if (computeMemoryLimit != 0) {
+                    exist.computeMemoryLimit(computeMemoryLimit);
+                }
+
                 String oltpNamespace =
                         (String) graphSpaceMap.get("oltp_namespace");
                 if (oltpNamespace != null &&
@@ -207,6 +218,7 @@ public class GraphSpaceAPI extends API {
                 if (configs != null && !configs.isEmpty()) {
                     exist.configs(configs);
                 }
+                exist.refreshUpdate();
                 GraphSpace space = manager.createGraphSpace(exist);
                 LOGGER.getAuditLogger().logUpdateTenant(exist.name(), RestServer.EXECUTOR);
                 return space.info();
@@ -248,6 +260,11 @@ public class GraphSpaceAPI extends API {
         public int memoryLimit;
         @JsonProperty("storage_limit")
         public int storageLimit;
+
+        @JsonProperty("compute_cpu_limit")
+        public int computeCpuLimit = 0;
+        @JsonProperty("compute_memory_limit")
+        public int computeMemoryLimit = 0;
 
         @JsonProperty("oltp_namespace")
         public String oltpNamespace;
@@ -299,7 +316,7 @@ public class GraphSpaceAPI extends API {
                             "The storage graph space can't be null or empty");
         }
 
-        public GraphSpace toGraphSpace() {
+        public GraphSpace toGraphSpace(String creator) {
             GraphSpace graphSpace = new GraphSpace(this.name, this.description,
                                                    this.cpuLimit,
                                                    this.memoryLimit,
@@ -307,10 +324,13 @@ public class GraphSpaceAPI extends API {
                                                    this.maxGraphNumber,
                                                    this.maxRoleNumber,
                                                    this.auth,
+                                                   creator,
                                                    this.configs);
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);
             graphSpace.storageNamespace(this.storageNamespace);
+            graphSpace.computeCpuLimit(this.computeCpuLimit);
+            graphSpace.computeMemoryLimit(this.computeMemoryLimit);
 
             graphSpace.configs(this.configs);
 

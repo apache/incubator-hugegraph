@@ -27,6 +27,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -37,6 +38,7 @@ import com.baidu.hugegraph.auth.HugeAuthenticator;
 import com.baidu.hugegraph.auth.HugePermission;
 import org.slf4j.Logger;
 
+import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter;
 import com.baidu.hugegraph.core.GraphManager;
@@ -125,6 +127,37 @@ public class SchemaTemplateAPI extends API {
         if (st.creator().equals(username) || sc.isUserInRole(role)) {
             manager.dropSchemaTemplate(graphSpace, name);
         }
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    public String update(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
+                       @PathParam("name") String name,
+                       @Context SecurityContext sc,
+                       JsonSchemaTemplate jsonSchemaTemplate) {
+
+        SchemaTemplate old = schemaTemplate(manager, graphSpace, name);
+        if (null == old) {
+            throw new HugeException("Schema template {} does not exist", name);
+        }
+
+        String username = manager.authManager().username();
+        String role = HugeAuthenticator.RequiredPerm.roleFor(graphSpace, "*",
+                                                             HugePermission.SPACE);
+        if (old.creator().equals(username) || sc.isUserInRole(role)) {
+            SchemaTemplate template = jsonSchemaTemplate.toSchemaTemplate();
+            template.creator(old.creator());
+            template.create(old.create());
+            template.refreshUpdateTime();
+
+            manager.updateSchemaTemplate(graphSpace, template);
+            return manager.serializer().writeSchemaTemplate(template);
+        }
+        throw new HugeException("No permission to update schema template");
+
     }
 
     private static class JsonSchemaTemplate implements Checkable {

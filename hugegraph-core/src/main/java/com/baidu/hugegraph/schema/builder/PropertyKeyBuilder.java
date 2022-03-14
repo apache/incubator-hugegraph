@@ -42,9 +42,13 @@ import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class PropertyKeyBuilder extends AbstractBuilder
                                 implements PropertyKey.Builder {
+
+    protected static final Logger LOG = Log.logger(PropertyKeyBuilder.class);
 
     private Id id;
     private String name;
@@ -149,13 +153,11 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
             // Rebuild olap table if propertyKey exists but table miss
             if (propertyKey != null && propertyKey.olap()) {
-                if (!this.graph().existsOlapTable(propertyKey)) {
-                    this.graph().addPropertyKey(propertyKey);
-                }
+                LOG.debug("exist pk, do nothing");
                 return new SchemaElement.TaskWithSchema(propertyKey,
                                                         IdGenerator.ZERO);
             }
-
+            LOG.debug("pk not exist, create pk");
             propertyKey = this.build();
             assert propertyKey.name().equals(name);
             Id id = this.graph().addPropertyKey(propertyKey);

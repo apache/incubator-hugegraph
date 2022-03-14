@@ -20,6 +20,7 @@
 package com.baidu.hugegraph;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -164,6 +165,10 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final boolean virtualGraphEnable;
     private final VirtualGraph vGraph;
+
+    private String creator;
+    private Date createTime;
+    private Date updateTime;
 
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
@@ -943,6 +948,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public synchronized void close() throws Exception {
+        TaskManager.useFakeContext();
         if (this.closed()) {
             return;
         }
@@ -1549,5 +1555,41 @@ public class StandardHugeGraph implements HugeGraph {
         public HugeGraphCacheNotifier(EventHub hub, CacheNotifier proxy) {
             super(hub, proxy);
         }
+    }
+
+    @Override
+    public String creator() {
+        return this.creator;
+    }
+
+    @Override
+    public void creator(String creator) {
+        this.creator = creator;
+    }
+
+    @Override
+    public Date createTime() {
+        return this.createTime;
+    }
+
+    @Override
+    public void createTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    @Override
+    public Date updateTime() {
+        return this.updateTime;
+    }
+
+    @Override
+    public void updateTime(Date updateTime) {
+        this.updateTime = updateTime;
+        
+    }
+
+    @Override
+    public void refreshUpdateTime() {
+        this.updateTime = new Date();
     }
 }

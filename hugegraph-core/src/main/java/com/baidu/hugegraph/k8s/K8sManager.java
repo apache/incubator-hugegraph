@@ -20,8 +20,10 @@
 package com.baidu.hugegraph.k8s;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 
+import org.yaml.snakeyaml.Yaml;
 
 import io.fabric8.kubernetes.api.model.Namespace;
 
@@ -57,16 +60,10 @@ public class K8sManager {
     private K8sManager() {
     }
 
-    public void connect(String url, String caFile, String clientCaFile,
-                        String clientKeyFile, String oltpImage,
+    public void connect(String oltpImage,
                         String olapImage, String storageImage,
                         K8sDriver.CA ca) {
-        E.checkArgument(url != null && !url.isEmpty(),
-                        "The url of k8s can't be null or empty");
-        this.k8sDriver = caFile == null || caFile.isEmpty() ?
-                         new K8sDriver(url) :
-                         new K8sDriver(url, caFile, clientCaFile,
-                                       clientKeyFile);
+        this.k8sDriver = new K8sDriver();
         this.k8sDriver.ca(ca);
         this.k8sDriver.oltpImage(oltpImage);
         this.k8sDriver.olapImage(olapImage);
@@ -177,7 +174,47 @@ public class K8sManager {
         } catch (IOException e) {
 
         }
-        
+    }
 
+    @SuppressWarnings("unchecked")
+    public void loadResourceQuota(String namespace, int cpuLimit, int memoryLimit) throws HugeException {
+        Yaml yaml = new Yaml();
+        FileInputStream inputStream = null;
+
+        try {
+
+            inputStream = new FileInputStream(CoreOptions.K8S_QUOTA_TEMPLATE.defaultValue());
+            Map<String, Object> quotaMap = yaml.load(inputStream);
+            Map<String, Object> metaData = (Map<String, Object>)quotaMap.get("metadata");
+            Map<String, Object> spec = (Map<String, Object>)quotaMap.get("spec");
+            Map<String, Object> hard = (Map<String, Object>)spec.get("hard");
+
+            metaData.put("name", namespace + "-resource-quota");
+
+            String cpuLimitStr = String.valueOf(cpuLimit);
+            String memLimitStr = String.valueOf(memoryLimit) + "Gi";
+            hard.put("requests.cpu", cpuLimitStr);
+            hard.put("limits.cpu", cpuLimitStr);
+            hard.put("requests.memory", memLimitStr);
+            hard.put("limits.memory", memLimitStr);
+
+            StringWriter writer = new StringWriter();
+            yaml.dump(quotaMap, writer);
+            
+            String yamlStr = writer.toString();
+
+            k8sDriver.createResourceQuota(namespace, yamlStr);
+
+        } catch (Exception e) {
+
+        } finally {
+            if (null != inputStream) {
+                try {
+                    inputStream.close();
+                } catch (IOException exc) {
+
+                }
+            }
+        }
     }
 }

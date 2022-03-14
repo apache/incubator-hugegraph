@@ -64,6 +64,7 @@ public final class TaskManager {
     protected static final int SCHEDULE_PERIOD = 3; // Unit second
     private static int THREADS;
     private static TaskManager MANAGER;
+    private static String fakeContext;
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
 
@@ -72,6 +73,8 @@ public final class TaskManager {
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
+
+
 
     public static TaskManager instance(int threads) {
         THREADS = threads;
@@ -111,6 +114,10 @@ public final class TaskManager {
                                                       },
                                                       10L, SCHEDULE_PERIOD,
                                                       TimeUnit.SECONDS);
+    }
+
+    public static void setFakeContext(String fakeContext) {
+        TaskManager.fakeContext = fakeContext;
     }
 
     public void addScheduler(HugeGraphParams graph) {
@@ -420,7 +427,19 @@ public final class TaskManager {
     }
 
     public static final String getContext() {
-        return contexts.get();
+        return TaskManager.getContext(false);
+    }
+
+    public static final String getContext(boolean useFake) {
+        String context = contexts.get();
+        if (Strings.isEmpty(context) && useFake) {
+            context = TaskManager.fakeContext;
+        }
+        return context;
+    }
+
+    public static final void useFakeContext() {
+        setContext(fakeContext);
     }
 
     public static class ContextCallable<V> implements Callable<V> {

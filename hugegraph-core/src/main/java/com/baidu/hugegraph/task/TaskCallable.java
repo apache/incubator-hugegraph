@@ -31,6 +31,7 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class TaskCallable<V> implements Callable<V> {
@@ -138,6 +139,9 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
     protected void task(HugeTask<V> task) {
         this.task = task;
+        if (Strings.isNullOrEmpty(this.task.context())) {
+            this.task.overwriteContext(TaskManager.getContext(true));
+        }
     }
 
     public HugeTask<V> task() {

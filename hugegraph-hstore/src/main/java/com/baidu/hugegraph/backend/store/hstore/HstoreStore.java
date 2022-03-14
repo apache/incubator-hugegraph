@@ -547,7 +547,9 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         @Override
         public void createOlapTable(Id pkId) {
             HstoreTable table = new HstoreTables.OlapTable(this.store(), pkId);
+            LOG.info("Hstore create olap table {}", table.table());
             super.sessions.createTable(table.table());
+            LOG.info("Hstore finish create olap table");
             registerTableManager(this.olapTableName(pkId), table);
             LOG.info("OLAP table {} has been created", table.table());
         }

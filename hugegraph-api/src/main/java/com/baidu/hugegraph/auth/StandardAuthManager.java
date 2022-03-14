@@ -494,6 +494,20 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public boolean isSpaceManager(String graphSpace, String user) {
+        try {
+            String belongId =
+                    this.metaManager.belongId(user, DEFAULT_SPACE_GROUP_KEY);
+
+            return this.metaManager.existBelong(graphSpace,
+                                                IdGenerator.of(belongId));
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when check if is space " +
+                                    "manager.", e);
+        }
+    }
+
+    @Override
     public Id createAdminManager(String user) {
         try {
             HugeBelong belong = new HugeBelong(ALL_GRAPH_SPACES,
@@ -529,7 +543,7 @@ public class StandardAuthManager implements AuthManager {
         try {
             List<HugeBelong> belongs =
                     this.metaManager.listBelongByGroup(ALL_GRAPH_SPACES,
-                                                       IdGenerator.of(DEFAULT_SPACE_GROUP_KEY),
+                                                       IdGenerator.of(DEFAULT_ADMIN_GROUP_KEY),
                                                        -1);
             for (HugeBelong belong : belongs) {
                 adminManagers.add(belong.source().asString());
@@ -543,6 +557,23 @@ public class StandardAuthManager implements AuthManager {
         adminManagers.add("admin");
 
         return new ArrayList<>(adminManagers);
+    }
+
+    public boolean isAdminManager(String user) {
+
+        if ("admin".equals(user)) {
+            return true;
+        }
+
+        try {
+            String belongId =
+                    this.metaManager.belongId(user, DEFAULT_ADMIN_GROUP_KEY);
+            return this.metaManager.existBelong(ALL_GRAPH_SPACES,
+                                                IdGenerator.of(belongId));
+        } catch (Exception e) {
+            throw new HugeException("Exception occurs when " +
+                                            "check whether is manager", e);
+        }
     }
 
     @Override

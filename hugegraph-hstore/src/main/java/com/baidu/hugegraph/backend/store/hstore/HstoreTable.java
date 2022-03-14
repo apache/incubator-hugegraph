@@ -269,18 +269,16 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected BackendColumnIterator queryAll(Session session, Query query) {
-        byte[] begin;
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
-            begin= page.position();
             byte[] ownerKey = this.getOwnerScanDelegate().get();
             int scanType = Session.SCAN_ANY |
                     (query.withProperties() ? 0 : Session.SCAN_KEYONLY);
-            if (!ArrayUtils.isEmpty(begin))
-            return session.scan(this.table(), ownerKey, ownerKey, begin,
+            return session.scan(this.table(), ownerKey, ownerKey, null,
                              null, scanType,
                              query instanceof ConditionQuery ?
-                             ((ConditionQuery) query).bytes() : null);
+                             ((ConditionQuery) query).bytes() : null,
+                             page.position());
         }
         return session.scan(this.table(),query instanceof ConditionQuery ?
                                          ((ConditionQuery) query).bytes() : null) ;
@@ -314,11 +312,13 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix()),
                             query.start().asBytes(),
-                            query.prefix().asBytes(), type);
+                            query.prefix().asBytes(), type, null);
     }
 
     protected List<BackendColumnIterator> queryByPrefixList(Session session,
                                                   List<IdPrefixQuery> queries) {
+        E.checkArgument(queries.size() > 0,
+                        "The size of queries must be greater than zero");
         IdPrefixQuery query = queries.get(0);
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;

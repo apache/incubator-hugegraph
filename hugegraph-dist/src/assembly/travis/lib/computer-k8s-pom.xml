@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>hugegraph-computer</artifactId>
+        <groupId>com.baidu.hugegraph</groupId>
+        <version>0.1.1</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>computer-k8s</artifactId>
+
+    <properties>
+        <fabric8.version>5.6.0</fabric8.version>
+        <lombok.version>1.18.0</lombok.version>
+        <sundrio.version>0.40.1</sundrio.version>
+        <maven.jsonschema2pojo.plugin.version>1.1.0</maven.jsonschema2pojo.plugin.version>
+        <maven.bundle.plugin.version>5.1.2</maven.bundle.plugin.version>
+        <maven.antrun.plugin.version>3.0.0</maven.antrun.plugin.version>
+        <maven.apt.plugin.version>1.1.3</maven.apt.plugin.version>
+        <mavem.replacer.plugin.version>1.5.3</mavem.replacer.plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>computer-driver</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+            <version>${fabric8.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>
