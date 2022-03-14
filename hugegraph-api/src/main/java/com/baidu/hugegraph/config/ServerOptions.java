@@ -492,19 +492,18 @@ public class ServerOptions extends OptionHolder {
                     "k8s.algorithms",
                     "K8s algorithms",
                     disallowEmpty(),
-                    "[page-rank:com.baidu.hugegraph.computer.algorithm.centrality.pagerank.PageRankParams, \n" +
-                            "degree-centrality:com.baidu.hugegraph.computer.algorithm.centrality.degree.DegreeCentralityParams, \n" +
-                            "wcc:com.baidu.hugegraph.computer.algorithm.community.wcc.WccParams, \n" +
-                            "triangle-count:com.baidu.hugegraph.computer.algorithm.community.trianglecount.TriangleCountParams, \n" +
-                            "rings:com.baidu.hugegraph.computer.algorithm.path.rings.RingsDetectionParams, \n" +
-                            "rings-with-filter:com.baidu.hugegraph.computer.algorithm.path.rings.filter.RingsDetectionWithFilterParams, \n" +
-                            "betweenness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.betweenness.BetweennessCentralityParams, \n" +
-                            "closeness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.closeness.ClosenessCentralityParams, \n" +
-                            "lpa:com.baidu.hugegraph.computer.algorithm.community.lpa.LpaParams, \n" +
-                            "links:com.baidu.hugegraph.computer.algorithm.path.links.LinksParams, \n" +
-                            "kcore:com.baidu.hugegraph.computer.algorithm.community.kcore.KCoreParams, \n" +
-                            "louvain:com.baidu.hugegraph.computer.algorithm.community.louvain.LouvainParams, \n" +
-                            "clustering-coefficient:com.baidu.hugegraph.computer.algorithm.community.cc.ClusteringCoefficientParams \n" +
-                            "]"
+                    "page-rank:com.baidu.hugegraph.computer.algorithm.centrality.pagerank.PageRankParams",
+                    "degree-centrality:com.baidu.hugegraph.computer.algorithm.centrality.degree.DegreeCentralityParams",
+                    "wcc:com.baidu.hugegraph.computer.algorithm.community.wcc.WccParams",
+                    "triangle-count:com.baidu.hugegraph.computer.algorithm.community.trianglecount.TriangleCountParams",
+                    "rings:com.baidu.hugegraph.computer.algorithm.path.rings.RingsDetectionParams",
+                    "rings-with-filter:com.baidu.hugegraph.computer.algorithm.path.rings.filter.RingsDetectionWithFilterParams",
+                    "betweenness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.betweenness.BetweennessCentralityParams",
+                    "closeness-centrality:com.baidu.hugegraph.computer.algorithm.centrality.closeness.ClosenessCentralityParams",
+                    "lpa:com.baidu.hugegraph.computer.algorithm.community.lpa.LpaParams",
+                    "links:com.baidu.hugegraph.computer.algorithm.path.links.LinksParams",
+                    "kcore:com.baidu.hugegraph.computer.algorithm.community.kcore.KCoreParams",
+                    "louvain:com.baidu.hugegraph.computer.algorithm.community.louvain.LouvainParams",
+                    "clustering-coefficient:com.baidu.hugegraph.computer.algorithm.community.cc.ClusteringCoefficientParams"
             );
 }
