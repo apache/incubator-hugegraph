@@ -28,15 +28,21 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.kafka.SyncMutateConsumer;
 import com.baidu.hugegraph.kafka.SyncMutateConsumerBuilder;
+import com.baidu.hugegraph.kafka.consumer.ConsumerBuilder;
+import com.baidu.hugegraph.kafka.consumer.ConsumerClient;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.schema.SchemaManager;
 import com.baidu.hugegraph.syncgateway.MutationDTO;
 import com.baidu.hugegraph.syncgateway.SyncMutationServer;
 
+import org.apache.kafka.common.serialization.ByteBufferDeserializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -45,24 +51,28 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
  * Example of using kafka client
  */
 public class KafkaExample extends PerfExampleBase {
-    private final ProducerClient<String, ByteBuffer> producer
-            = new StandardProducerBuilder().build();
-    private StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
-    private SyncMutateConsumer mutateConsumer = new SyncMutateConsumerBuilder().build();
+    // private final ProducerClient<String, ByteBuffer> producer
+    //        = new StandardProducerBuilder().build();
+   // private StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
+   // private SyncMutateConsumer mutateConsumer = new SyncMutateConsumerBuilder().build();
     
     public static void main(String[] args) throws Exception {
 
+
+/*
         SyncMutationServer server = new SyncMutationServer(MetaManager.instance().getKafkaSlaveServerPort());
         server.registerListener("kafka re-send", (MutationDTO dto) -> {
 
         });
         server.start();
-
+*/
        KafkaExample tester = new KafkaExample();
 
         String[] arg = new String[]{ "1", "1", "1", "false"};
 
-        tester.test(arg);
+        tester.consumeExample(null);
+
+        // tester.test(arg);
 
     }
 
@@ -105,7 +115,7 @@ public class KafkaExample extends PerfExampleBase {
 
     @Override
     protected void testInsert(GraphManager graph, int times, int multiple) {
-
+/*
         produceExample(graph, 0, 0);
 
         try {
@@ -113,7 +123,7 @@ public class KafkaExample extends PerfExampleBase {
         } catch (Exception e) {
 
         }
-
+*/
         consumeExample(graph.graph());
 
         try {
@@ -122,9 +132,9 @@ public class KafkaExample extends PerfExampleBase {
 
         }
 
-        producer.close();
-        standardConsumer.close();
-        mutateConsumer.close();
+        // producer.close();
+        // standardConsumer.close();
+   //     mutateConsumer.close();
     }
 
 
@@ -187,7 +197,19 @@ public class KafkaExample extends PerfExampleBase {
 
     private String consumeExample(HugeGraph graph) {
         
-        standardConsumer.consume();
+       // standardConsumer.consume();
+
+        ConsumerClient<String, ByteBuffer> consumer = new ConsumerBuilder<String, ByteBuffer>()
+            .setTopic(HugeGraphSyncTopic.TOPIC)
+            .setKafkaHost("127.0.0.1")
+            .setKafkaPort("9092")
+            .setKeyDeserializerClass(StringDeserializer.class)
+            .setValueDeserializerClass(ByteBufferDeserializer.class)
+            .setGroupId("example-consumer-group")
+            .setGroupInstanceId("example-consumer-group-1")
+            .build();
+
+        consumer.consume();
 
         try {
             Thread.sleep(1000 * 30);
@@ -195,7 +217,7 @@ public class KafkaExample extends PerfExampleBase {
 
         }
         
-        mutateConsumer.consume(graph);
+    //    mutateConsumer.consume(graph);
 
         return "";
     }

@@ -100,8 +100,8 @@ public class MetaManager {
 
     public static final String META_PATH_DDS = "DDS_HOST";
     public static final String META_PATH_KAFKA = "KAFKA";
-    public static final String META_PATH_HOST = "HOST";
-    public static final String META_PATH_PORT = "PORT";
+    public static final String META_PATH_HOST = "BROKER_HOST";
+    public static final String META_PATH_PORT = "BROKER_PORT";
     public static final String META_PATH_DATA_SYNC_ROLE = "DATA_SYNC_ROLE";
     public static final String META_PATH_SLAVE_SERVER_HOST = "SLAVE_SERVER_HOST";
     public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
@@ -819,13 +819,13 @@ public class MetaManager {
     }
 
     private String kafkaHostKey() {
-        // HUGEGRAPH/hg/KAFKA/BROKER_HOST
+        // HUGEGRAPH/{cluster}/KAFKA/BROKER_HOST
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_HOST);
 
     }
 
     private String kafkaPortKey() {
-        // HUGEGRAPH/hg/KAFKA/BROKER_HOST
+        // HUGEGRAPH/{cluster}/KAFKA/BROKER_PORT
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_PORT);
     }
 

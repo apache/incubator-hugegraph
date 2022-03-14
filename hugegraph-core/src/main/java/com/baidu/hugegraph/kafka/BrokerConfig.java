@@ -49,11 +49,15 @@ public final class BrokerConfig {
         }
 
         private static String getKafkaHost() {
-            return MetaManager.instance().getKafkaBrokerHost();
+            String result =MetaManager.instance().getKafkaBrokerHost();
+            log.info("====> Scorpiour: get Kafka Host {}", result);
+            return result;
         }
 
         private static String getKafkaPort() {
-            return MetaManager.instance().getKafkaBrokerPort();
+            String result = MetaManager.instance().getKafkaBrokerPort();
+            log.info("====> Scorpiour: get Kafka port {}", result);
+            return result;
         }
     }
 

@@ -68,7 +68,7 @@ public class ConsumerClient<K, V> {
             @Override
             public void run() {
                 while(!closing) {
-                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(300));
+                    ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
                     if (records.count() > 0) {
                        for(ConsumerRecord<K, V> record : records.records(topic)) {
                             System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));
