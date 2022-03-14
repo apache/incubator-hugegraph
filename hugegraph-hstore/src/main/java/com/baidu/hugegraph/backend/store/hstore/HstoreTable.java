@@ -312,7 +312,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix()),
                             query.start().asBytes(),
-                            query.prefix().asBytes(), type);
+                            query.prefix().asBytes(), type, null);
     }
 
     protected List<BackendColumnIterator> queryByPrefixList(Session session,

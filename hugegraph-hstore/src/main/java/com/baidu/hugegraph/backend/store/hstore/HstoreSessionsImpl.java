@@ -430,7 +430,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             HgKvIterator result = this.graph.scanIterator(table,
                                                           HgOwnerKey.of(ownerKeyFrom,keyFrom),
                                                           HgOwnerKey.of(ownerKeyTo,keyTo),
-                                                          scanType,query);
+                                                          0, scanType, query);
             return new ColumnIterator<HgKvIterator>(table, result, keyFrom,
                                                     keyTo, scanType);
         }
