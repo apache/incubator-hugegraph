@@ -237,17 +237,72 @@ public class K8sDriver {
                           .get();
     }
 
-    public Set<String> startOltpService(GraphSpace graphSpace,
+    public Set<String> createOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
                                         String cluster) {
         this.createConfigMapForCaIfNeeded(graphSpace, service);
-        this.createServcieAccountIfNeeded(graphSpace, service);
+        this.createServiceAccountIfNeeded(graphSpace, service);
         this.createDeployment(graphSpace, service, metaServers, cluster);
         return this.createService(graphSpace, service);
     }
 
+    
+    public Set<String> startOltpService(GraphSpace graphSpace,
+                                        Service service,
+                                        List<String> metaServers,
+                                        String cluster) {
+        // Get & check config map
+        String namespace = namespace(graphSpace, service);
+        ConfigMap configMap = this.client.configMaps()
+                                         .inNamespace(namespace)
+                                         .withName(CA_CONFIG_MAP_NAME)
+                                         .get();
+        if (null == configMap) {
+            throw new HugeException("Cannot start OLTP service since configMap does not exist!");
+        }
+
+        // Get & check service account
+        ServiceAccount serviceAccount = this.client.serviceAccounts()
+                                                  .inNamespace(namespace)
+                                                  .withName(SERVICE_ACCOUNT_NAME)
+                                                  .get();
+
+        if (null == serviceAccount) {
+            throw new HugeException("Cannot start OLTP service since service account is not created!");
+        }
+        // Get & check deployment
+        String deploymentName = deploymentName(graphSpace, service);
+        Deployment deployment = this.client.apps().deployments()
+                                                  .inNamespace(namespace)
+                                                  .withName(deploymentName)
+                                                  .get();
+        if (null == deployment) {
+            throw new HugeException("Cannot start OLTP service since deployment is not created!");
+        }
+                // start service
+        return this.createService(graphSpace, service);
+    }
+
     public void stopOltpService(GraphSpace graphSpace, Service service) {
+        String serviceName = serviceName(graphSpace, service);
+        String namespace = namespace(graphSpace, service);
+        this.client.services().inNamespace(namespace).withName(serviceName).delete();
+
+        io.fabric8.kubernetes.api.model.Service svc = this.client.services()
+                .inNamespace(namespace).withName(serviceName).get();
+        int count = 0;
+        while (svc != null && count++ < 10) {
+            svc = this.client.services().inNamespace(namespace)
+                      .withName(serviceName).get();
+            sleepAWhile(1);
+        }
+        if (svc != null) {
+            throw new HugeException("Failed to stop service: %s", svc);
+        }
+    }
+
+    public void deleteOltpService(GraphSpace graphSpace, Service service) {
         String deploymentName = serviceName(graphSpace, service);
         String namespace = namespace(graphSpace, service);
         LOG.info("Stop deployment {} in namespace {}",
@@ -326,7 +381,7 @@ public class K8sDriver {
                    .create(cm);
     }
 
-    private void createServcieAccountIfNeeded(GraphSpace graphSpace,
+    private void createServiceAccountIfNeeded(GraphSpace graphSpace,
                                               Service service) {
         String namespace = namespace(graphSpace, service);
         ServiceAccount serviceAccount = this.client

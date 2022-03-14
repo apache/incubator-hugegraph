@@ -99,6 +99,20 @@ public class K8sManager {
     }
 
     @SuppressWarnings("unchecked")
+    public Set<String> createOltpService(GraphSpace graphSpace,
+                                        Service service,
+                                        List<String> metaServers,
+                                        String cluster) {
+        
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "startOltpService");
+            return Collections.EMPTY_SET;
+        }
+        return this.k8sDriver.createOltpService(graphSpace, service,
+                                               metaServers, cluster);
+    }
+
+    @SuppressWarnings("unchecked")
     public Set<String> startOltpService(GraphSpace graphSpace,
                                         Service service,
                                         List<String> metaServers,
@@ -112,17 +126,31 @@ public class K8sManager {
                                                metaServers, cluster);
     }
 
-    public Set<String> startService(GraphSpace graphSpace, Service service,
+    public Set<String> createService(GraphSpace graphSpace, Service service,
                                     List<String> metaServers, String cluster) {
         switch (service.type()) {
             case OLTP:
-                return this.startOltpService(graphSpace, service, metaServers,
+                return this.createOltpService(graphSpace, service, metaServers,
                                              cluster);
             case OLAP:
             case STORAGE:
             default:
                 throw new AssertionError(String.format(
                           "Invalid service type '%s'", service.type()));
+        }
+    }
+
+    public Set<String> startService(GraphSpace graphSpace, Service service,
+                                    List<String> metaServers, String cluster) {
+        switch (service.type()) {
+            case OLTP:
+                return this.startOltpService(graphSpace, service, metaServers,
+                            cluster);
+            case OLAP:
+            case STORAGE:
+            default:
+                throw new AssertionError(String.format(
+                "Invalid service type '%s'", service.type()));
         }
     }
 
@@ -134,6 +162,21 @@ public class K8sManager {
         switch (service.type()) {
             case OLTP:
                 this.k8sDriver.stopOltpService(graphSpace, service);
+            case OLAP:
+            case STORAGE:
+            default:
+                LOGGER.logCustomDebug("Cannot stop service other than OLTP", "K8sManager");
+        }
+    }
+
+    public void deleteService(GraphSpace graphSpace, Service service) {
+        if (null == k8sDriver) {
+            LOGGER.logCriticalError(new HugeException("k8sDriver is not initialized!"), "stopService");
+            return;
+        }
+        switch (service.type()) {
+            case OLTP:
+                this.k8sDriver.deleteOltpService(graphSpace, service);
                 break;
             default:
                 LOGGER.logCustomDebug("Cannot stop service other than OLTP", "K8sManager");
