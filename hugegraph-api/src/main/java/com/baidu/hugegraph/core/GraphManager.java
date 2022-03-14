@@ -745,7 +745,7 @@ public final class GraphManager {
             if (service.k8s()) {
                 List<String> endpoints = this.config.get(
                                          ServerOptions.META_ENDPOINTS);
-                Set<String> urls = this.k8sManager.startService(
+                Set<String> urls = this.k8sManager.createService(
                                    gs, service, endpoints, this.cluster);
                 if (!urls.isEmpty()) {
                     String url = urls.iterator().next();
@@ -782,6 +782,19 @@ public final class GraphManager {
         this.registerServiceToPd(service);
     }
 
+    public void stopService(String graphSpace, String name) {
+        Service service = this.service(graphSpace, name);
+        if (null != service && service.k8s()) {
+            GraphSpace gs = this.graphSpace(graphSpace);
+            k8sManager.stopService(gs, service);
+            service.running(0);
+            this.metaManager.updateServiceConfig(graphSpace, service);
+            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
+                PdRegister.getInstance().unregister(service.pdServiceId());
+            }
+        }
+    }
+
     public void dropService(String graphSpace, String name) {
         GraphSpace gs = this.graphSpace(graphSpace);
         Service service = this.metaManager.service(graphSpace, name);
@@ -789,7 +802,7 @@ public final class GraphManager {
             return;
         }
         if (service.k8s()) {
-            this.k8sManager.stopService(gs, service);
+            this.k8sManager.deleteService(gs, service);
         }
         LockResult lock = this.metaManager.lock(this.cluster, graphSpace, name);
         this.metaManager.removeServiceConfig(graphSpace, name);
@@ -1025,19 +1038,6 @@ public final class GraphManager {
             this.metaManager.updateServiceConfig(graphSpace, service);
         }
         return service;
-    }
-
-    public void stopService(String graphSpace, String name) {
-        Service service = this.service(graphSpace, name);
-        if (null != service && service.k8s()) {
-            GraphSpace gs = this.graphSpace(graphSpace);
-            k8sManager.stopService(gs, service);
-            service.running(0);
-            this.metaManager.updateServiceConfig(graphSpace, service);
-            if (!Strings.isNullOrEmpty(service.pdServiceId())) {
-                PdRegister.getInstance().unregister(service.pdServiceId());
-            }
-        }
     }
 
     public Set<HugeGraph> graphs() {
