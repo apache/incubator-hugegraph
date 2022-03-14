@@ -397,7 +397,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             /*
              * Update edge cache if any vertex or edge changed
              * For vertex change, the edges linked with should also be updated
-             * Before we use a more precise strategy,now we just clear all the edge cache
+             * Before we find a more precise strategy, just clear all the edge cache now
              */
             boolean invalidEdgesCache = (edgesInTxSize + updates.size() + deletions.size()) > 0;
             if (invalidEdgesCache && this.enableCacheEdge()) {
