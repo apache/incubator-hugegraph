@@ -346,7 +346,8 @@ public final class GraphManager {
                                   entry.getValue());
             }
         }
-        if (!this.services.containsKey(this.serviceID)) {
+        if (!this.services.containsKey(serviceName(this.serviceGraphSpace,
+                                                   this.serviceID))) {
             Service service = new Service(this.serviceID, User.ADMIN.getName(),
                                           Service.ServiceType.OLTP,
                                           Service.DeploymentType.MANUAL);
