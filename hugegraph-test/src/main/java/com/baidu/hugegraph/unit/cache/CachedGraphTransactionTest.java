@@ -141,7 +141,6 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
                             Whitebox.invoke(cache, "verticesCache", "size"));
     }
 
-
     @Test
     public void testEdgeCacheClearWhenDeleteVertex() {
         CachedGraphTransaction cache = this.cache();
