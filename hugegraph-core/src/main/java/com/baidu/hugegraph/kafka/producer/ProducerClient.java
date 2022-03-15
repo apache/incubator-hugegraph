@@ -65,18 +65,14 @@ public class ProducerClient<K, V> {
         if (closing) {
             throw new IllegalStateException("Cannot produce when producer is closing");
         }
-        return asyncExecutor.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ProducerRecord<K, V> record = new ProducerRecord<>(topic, partition, key, value);
-                    RecordMetadata meta = producer.send(record).get();
-                    System.out.println(meta);
-                } catch (Exception e) {
-        
-                }
-                producer.flush();
+        return asyncExecutor.submit(() -> {
+            try {
+                ProducerRecord<K, V> record = new ProducerRecord<>(topic, partition, key, value);
+                producer.send(record);
+            } catch (Exception e) {
+    
             }
+            // producer.flush();
         });
     }
 

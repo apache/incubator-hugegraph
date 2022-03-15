@@ -71,7 +71,6 @@ public abstract class ConsumerClient<K, V> {
                     ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
                     if (records.count() > 0) {
                        for(ConsumerRecord<K, V> record : records.records(topic)) {
-                            System.out.println(String.format("Going to consumer [%s] - %s", record.key().toString(), record.value().toString()));
                             try {
                                 handleRecord(record);
                             } catch (Exception e) {

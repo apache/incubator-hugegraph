@@ -46,7 +46,6 @@ public class SyncConfConsumer extends ConsumerClient<String, String> {
 
     @Override
     protected void handleRecord(ConsumerRecord<String, String> record) {
-        System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
 
         List<String> etcdKV = SyncConfTopicBuilder.extractKeyValue(record);
         String etcdKey = etcdKV.get(0);
@@ -58,10 +57,10 @@ public class SyncConfConsumer extends ConsumerClient<String, String> {
             client.sendMutation(space, etcdKey, etcdVal.getBytes());
 
         } else if (config.isSlave()) {
-            manager.putOrDeleteRaw(etcdKey, etcdVal);
+            if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
+                manager.putOrDeleteRaw(etcdKey, etcdVal);
+            }
         }
-
-        System.out.println("=========> Scorpiour : resend data to next");
     }
     
 }

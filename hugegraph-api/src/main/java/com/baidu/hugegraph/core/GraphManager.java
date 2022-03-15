@@ -146,7 +146,7 @@ public final class GraphManager {
 
     public GraphManager(HugeConfig conf, EventHub hub) {
 
-        System.out.println("Init graph manager");
+        LOG.info("Init graph manager");
 
         E.checkArgumentNotNull(conf, "The config can't be null");
         this.config = conf;

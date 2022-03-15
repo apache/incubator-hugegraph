@@ -53,19 +53,16 @@ public final class BrokerConfig {
             MetaManager manager = MetaManager.instance();
             String val = manager.getHugeGraphClusterRole();
             HugeGraphClusterRole role = HugeGraphClusterRole.fromName(val);
-            log.info("====> Scorpiour: Get cluster role is {}", role);
             return role;
         }
 
         private static String getKafkaHost() {
             String result =MetaManager.instance().getKafkaBrokerHost();
-            log.info("====> Scorpiour: get Kafka Host {}", result);
             return result;
         }
 
         private static String getKafkaPort() {
             String result = MetaManager.instance().getKafkaBrokerPort();
-            log.info("====> Scorpiour: get Kafka port {}", result);
             return result;
         }
     }
@@ -146,7 +143,6 @@ public final class BrokerConfig {
     }
 
     public Boolean isMaster() {
-        log.info("====> Scorpiour: Check is master now");
         return HugeGraphClusterRole.MASTER.equals(ConfigHolder.clusterRole);
     }
 

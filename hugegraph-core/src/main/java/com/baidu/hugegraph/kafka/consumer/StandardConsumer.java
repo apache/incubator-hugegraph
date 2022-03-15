@@ -22,10 +22,8 @@ package com.baidu.hugegraph.kafka.consumer;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 
-import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.ClientFactory;
-import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
-import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.syncgateway.SyncMutationClient;
@@ -38,8 +36,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * @since 2022-01-25
  */
 public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
-
-    // private final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder().build();
     
     MetaManager manager = MetaManager.instance();
     private SyncMutationClient client = ClientFactory.getInstance().getSyncMutationClient();
@@ -50,25 +46,13 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
 
     @Override
     protected void handleRecord(ConsumerRecord<String, ByteBuffer> record) {
-        System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
+        if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
+            String[] graphInfo = HugeGraphSyncTopicBuilder.extractGraphs(record);
+            String graphSpace = graphInfo[0];
+            String graphName = graphInfo[1];                       
 
-        String[] graphInfo = HugeGraphSyncTopicBuilder.extractGraphs(record);
-        String graphSpace = graphInfo[0];
-        String graphName = graphInfo[1];
-
-        /*
-        HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
-                                            .setBuffer(record.value())
-                                            .setGraphSpace(graphSpace)
-                                            .setGraphName(graphName)
-                                            .build();
-
-        */                               
-        System.out.println("=========> Scorpiour : resend data to next");
-        client.sendMutation(graphSpace, graphName, record.value().array());
-        
-        System.out.println("=========> Scorpiour : send done");
-        // producer.produce(topic);
+            client.sendMutation(graphSpace, graphName, record.value().array());
+        }
     }
     
 }

@@ -304,15 +304,9 @@ public final class HugeFactoryAuthProxy {
         String code;
         code = String.format("Reflection.registerFieldsToFilter(%s.class, \"%s\");",
                              clazz.getCanonicalName(), String.join("\", \"", fields));
-        if (!fields.isEmpty()) {
-            System.out.println(code);
-        }
 
         code = String.format("Reflection.registerMethodsToFilter(%s.class, \"%s\");",
                              clazz.getCanonicalName(), String.join("\", \"", methods));
-        if (!methods.isEmpty()) {
-            System.out.println(code);
-        }
 
         return true;
     }
