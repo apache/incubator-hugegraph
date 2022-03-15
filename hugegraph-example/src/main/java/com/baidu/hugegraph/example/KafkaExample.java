@@ -198,7 +198,7 @@ public class KafkaExample extends PerfExampleBase {
     private String consumeExample(HugeGraph graph) {
         
        // standardConsumer.consume();
-
+/*
         ConsumerClient<String, ByteBuffer> consumer = new ConsumerBuilder<String, ByteBuffer>()
             .setTopic(HugeGraphSyncTopic.TOPIC)
             .setKafkaHost("127.0.0.1")
@@ -210,7 +210,7 @@ public class KafkaExample extends PerfExampleBase {
             .build();
 
         consumer.consume();
-
+*/
         try {
             Thread.sleep(1000 * 30);
         } catch (Exception e) {
