@@ -28,16 +28,21 @@ import java.util.concurrent.Future;
 
 import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.topic.TopicBase;
+// import com.baidu.hugegraph.util.Log;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+
+// import org.slf4j.Logger;
 /**
  * Kafka producer encapsulation
  * @author Scorpiour
  * @since 2022-01-18
  */
 public class ProducerClient<K, V> {
+
+    // private static final Logger LOG = Log.logger(ProducerClient.class);
 
     private final KafkaProducer<K, V> producer;
     private volatile boolean closing = false;
@@ -98,14 +103,14 @@ public class ProducerClient<K, V> {
                                 topic.getPartition(),
                                 topic.getKey(),
                                 topic.getValue());
-                    RecordMetadata meta = producer.send(record).get();
-                    System.out.println(meta);
-                    System.out.println("=========> Produce new topic + " + topic.getTopic() + " " + topic.getKey());
+                    //RecordMetadata meta = 
+                    producer.send(record); //.get();
+                    // LOG.debug("--- Produce topic {} offset : {}", meta.topic(), meta.offset());
                 } catch (Exception e) {
                     System.out.println(e.getStackTrace());
                 }
-                producer.flush();
-                System.out.println("=========> Produce flush");
+                // producer.flush();
+                // System.out.println("=========> Produce flush");
             }
         });
     }

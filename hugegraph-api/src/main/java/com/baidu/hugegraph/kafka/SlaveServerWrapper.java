@@ -19,14 +19,12 @@
 
 package com.baidu.hugegraph.kafka;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
-import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
@@ -61,9 +59,10 @@ public class SlaveServerWrapper {
     private void initConsumer(GraphManager manager) {
         SyncMutateConsumerBuilder.setGraphManager(manager);
         consumer = new SyncMutateConsumerBuilder().build();
+        consumer.consume();
     }
 
-    private void initServer() {
+    private void initServer() throws IOException {
         MetaManager manager = MetaManager.instance();
         if (BrokerConfig.getInstance().isSlave()) {
             server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
@@ -72,12 +71,6 @@ public class SlaveServerWrapper {
             Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
                 public void accept(MutationDTO t) {
-                    LOGGER.logCustomDebug("Recv in callback, {} ",
-                            "Scorpiour",
-                            t.getGraphSpace() + " - "
-                            + t.getGraphName() + " size "
-                            + t.getMutation().length);
-
                     
                     HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
                         .setBuffer(ByteBuffer.wrap(t.getMutation()))
@@ -89,6 +82,7 @@ public class SlaveServerWrapper {
             };
         
             server.registerListener("", callback);
+            server.start();
         }
     }
 
@@ -98,7 +92,11 @@ public class SlaveServerWrapper {
         this.initConsumer(manager);
         
         // At last, init server wait for grpc 
-        initServer();
+        try {
+            initServer();
+        } catch (IOException ioe) {
+            LOGGER.logCriticalError(ioe, "Init Slave cluster Kafka-sync-server failed!");
+        }
 
     }
 

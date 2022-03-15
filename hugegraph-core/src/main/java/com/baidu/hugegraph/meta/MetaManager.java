@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -224,6 +225,16 @@ public class MetaManager {
         this.metaDriver.listenPrefix(prefix, consumer);
     }
 
+
+    /**
+     * Get raw config from etcd
+     * @param key
+     * @return
+     */
+    public String getRaw(String key) {
+        String result = this.metaDriver.get(key);
+        return Optional.ofNullable(result).orElse("");
+    }
 
 
     public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {

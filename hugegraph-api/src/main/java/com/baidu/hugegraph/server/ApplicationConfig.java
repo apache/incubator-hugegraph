@@ -123,7 +123,6 @@ public class ApplicationConfig extends ResourceConfig {
                         manager = new GraphManager(conf, hub);
 
                         if (BrokerConfig.getInstance().isSlave()) {
-                            // TODO: build and enable consumer
                             SlaveServerWrapper.getInstance().init(manager);
                         } else if (BrokerConfig.getInstance().isMaster()) {
                             StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();

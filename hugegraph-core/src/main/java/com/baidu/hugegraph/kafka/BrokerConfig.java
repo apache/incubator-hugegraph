@@ -74,6 +74,10 @@ public final class BrokerConfig {
         this.manager = MetaManager.instance();
         this.SYNC_BROKER_KEY = manager.kafkaSyncBrokerKey();
         this.SYNC_STORAGE_KEY = manager.kafkaSyncStorageKey();
+        
+        this.updateNeedSyncBroker();
+        this.updateNeedSyncStorage();
+
         manager.listenKafkaConfig(this::kafkaConfigEventHandler);
     }
 
@@ -88,6 +92,17 @@ public final class BrokerConfig {
             }
         }
     }
+
+    private void updateNeedSyncBroker() {
+        String res = manager.getRaw(this.SYNC_BROKER_KEY);
+        this.needSyncBroker = "1".equals(res);
+    }
+
+    private void updateNeedSyncStorage() {
+        String res = manager.getRaw(this.SYNC_STORAGE_KEY);
+        this.needSyncStorage = "1".equals(res);
+    }
+
 
         /**
      * Indicates when if need sync data between hugegraph-server & broker
