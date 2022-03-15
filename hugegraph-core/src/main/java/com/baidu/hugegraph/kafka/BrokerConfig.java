@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.kafka;
 
+import java.util.Map;
+
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.util.Log;
 
@@ -32,6 +34,12 @@ import org.slf4j.Logger;
 public final class BrokerConfig {
 
     private static final Logger log = Log.logger(BrokerConfig.class);
+    private final MetaManager manager;
+    private final String SYNC_BROKER_KEY;
+    private final String SYNC_STORAGE_KEY;
+
+    private volatile boolean needSyncBroker = false;
+    private volatile boolean needSyncStorage = false;
 
     private static class ConfigHolder {
         public final static BrokerConfig instance = new BrokerConfig();
@@ -39,6 +47,7 @@ public final class BrokerConfig {
         public final static String brokerHost = ConfigHolder.getKafkaHost();
         public final static String brokerPort = ConfigHolder.getKafkaPort();
         public final static int partitionCount = 1;
+
 
         private static HugeGraphClusterRole getClusterRole() {
             MetaManager manager = MetaManager.instance();
@@ -62,7 +71,43 @@ public final class BrokerConfig {
     }
 
     private BrokerConfig() {
+        this.manager = MetaManager.instance();
+        this.SYNC_BROKER_KEY = manager.kafkaSyncBrokerKey();
+        this.SYNC_STORAGE_KEY = manager.kafkaSyncStorageKey();
+        manager.listenKafkaConfig(this::kafkaConfigEventHandler);
+    }
 
+    private <T> void kafkaConfigEventHandler(T response) {
+        Map<String, String> events = manager.extractKVFromResponse(response);
+        for(Map.Entry<String, String> entry : events.entrySet()) {
+            String key = entry.getKey();
+            if (this.SYNC_BROKER_KEY.equals(key)) {
+                this.needSyncBroker = "1".equals(entry.getValue());
+            } else if (this.SYNC_STORAGE_KEY.equals(key)) {
+                this.needSyncStorage = "1".equals(entry.getValue());
+            }
+        }
+    }
+
+        /**
+     * Indicates when if need sync data between hugegraph-server & broker
+     * Should be functioned dynamically
+     * If returns true, both Master and slave will be produce topics to broker
+     * @return
+     */
+    public boolean needKafkaSyncBroker() {
+        return this.needSyncBroker;
+    }
+
+    /**
+     * Indicates when if need sync data between hugegraph-server & storage
+     * Should be functioned dynamically
+     * If returns true, Master's consumer will consume data from broker, then push to slave,
+     * while Slave will consume data from broker, then commit them to storage
+     * @return
+     */
+    public boolean needKafkaSyncStorage() {
+        return this.needSyncStorage;
     }
 
     public static BrokerConfig getInstance() {
@@ -116,6 +161,5 @@ public final class BrokerConfig {
 
     public String getConfGroupInstanceId() {
         return "hugegraph-conf-consumer-instance-1";
-    }
-    
+    }    
 }
