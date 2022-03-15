@@ -36,7 +36,6 @@ import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
@@ -44,6 +43,8 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.ClientFactory;
 import com.baidu.hugegraph.kafka.SlaveServerWrapper;
+import com.baidu.hugegraph.kafka.SyncConfConsumer;
+import com.baidu.hugegraph.kafka.SyncConfConsumerBuilder;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
@@ -119,19 +120,26 @@ public class ApplicationConfig extends ResourceConfig {
 
                 @Override
                 public void onEvent(ApplicationEvent event) {
+                    SyncConfConsumer confConsumer = null;
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf, hub);
+
+                        confConsumer = new SyncConfConsumerBuilder().build();
+                        confConsumer.consume();
 
                         if (BrokerConfig.getInstance().isSlave()) {
                             SlaveServerWrapper.getInstance().init(manager);
                         } else if (BrokerConfig.getInstance().isMaster()) {
                             StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();
                             consumer.consume();
+
+                            ClientFactory.getInstance().getSyncConfProducer();
                         }
 
-                        // TODO listen etcd config
-                        
                     } else if (event.getType() == this.EVENT_DESTROYED) {
+                        if (null != confConsumer) {
+                            confConsumer.close();
+                        }
                         SlaveServerWrapper.getInstance().close();
                         if (manager != null) {
                             manager.close();

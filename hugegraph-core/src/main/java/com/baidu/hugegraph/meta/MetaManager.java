@@ -221,7 +221,7 @@ public class MetaManager {
         this.metaDriver.listen(key, consumer);
     }
 
-    private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+    public <T> void listenPrefix(String prefix, Consumer<T> consumer) {
         this.metaDriver.listenPrefix(prefix, consumer);
     }
 

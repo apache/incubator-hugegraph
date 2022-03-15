@@ -19,14 +19,34 @@
 
 package com.baidu.hugegraph.kafka.producer;
 
+import java.util.Map;
 import java.util.Properties;
+
+import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
+import com.baidu.hugegraph.meta.MetaManager;
 
 /**
  * Sync etcd service conf from master to slave
  */
 public class SyncConfProducer extends ProducerClient<String, String> {
 
+    private final MetaManager manager = MetaManager.instance();
+
     protected SyncConfProducer(Properties props) {
         super(props);
+
+        if (BrokerConfig.getInstance().isMaster()) {
+            manager.listenPrefix(MetaManager.META_PATH_HUGEGRAPH, this::listenEtcdChanged);
+        }
+    }
+
+    private <T> void listenEtcdChanged(T response) {
+        Map<String, String> map = manager.extractKVFromResponse(response);
+        map.entrySet().forEach((entry) -> {
+            SyncConfTopic topic = new SyncConfTopicBuilder().setKey(entry.getKey()).setValue(entry.getValue()).build();
+            this.produce(topic);
+        });
     }
 }

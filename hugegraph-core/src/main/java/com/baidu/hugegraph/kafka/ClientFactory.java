@@ -25,6 +25,8 @@ import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.kafka.producer.SyncConfProducer;
+import com.baidu.hugegraph.kafka.producer.SyncConfProducerBuilder;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.syncgateway.SyncMutationClient;
 
@@ -36,14 +38,20 @@ public class ClientFactory {
 
     private static class ClientInstanceHolder {
         public static final ClientFactory factory = new ClientFactory();
-
+        /**
+         * Producers
+         */
         public static final ProducerClient<String, ByteBuffer> standardProducer = 
             new StandardProducerBuilder().build();
-
+        public static final SyncConfProducer syncConfProducer = new SyncConfProducerBuilder().build();
+        /**
+         * Consumers
+         */
         public static final StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
         public static final SyncMutationClient syncMutationClient = new SyncMutationClient(
                             MetaManager.instance().getKafkaSlaveServerHost(),
                             MetaManager.instance().getKafkaSlaveServerPort());
+
     }
 
     private ClientFactory() {
@@ -65,5 +73,8 @@ public class ClientFactory {
     public SyncMutationClient getSyncMutationClient() {
         return ClientInstanceHolder.syncMutationClient;
     }
-    
+
+    public SyncConfProducer getSyncConfProducer() {
+        return ClientInstanceHolder.syncConfProducer;
+    }
 }

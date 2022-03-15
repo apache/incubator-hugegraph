@@ -94,23 +94,16 @@ public class ProducerClient<K, V> {
             return null;
         }
 
-        return asyncExecutor.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ProducerRecord<K, V> record = new ProducerRecord<>(
-                                topic.getTopic(),
-                                topic.getPartition(),
-                                topic.getKey(),
-                                topic.getValue());
-                    //RecordMetadata meta = 
-                    producer.send(record); //.get();
-                    // LOG.debug("--- Produce topic {} offset : {}", meta.topic(), meta.offset());
-                } catch (Exception e) {
-                    System.out.println(e.getStackTrace());
-                }
-                // producer.flush();
-                // System.out.println("=========> Produce flush");
+        return asyncExecutor.submit(() -> {
+            try {
+                ProducerRecord<K, V> record = new ProducerRecord<>(
+                            topic.getTopic(),
+                            topic.getPartition(),
+                            topic.getKey(),
+                            topic.getValue());
+                producer.send(record); //.get();
+            } catch (Exception e) {
+                System.out.println(e.getStackTrace());
             }
         });
     }
