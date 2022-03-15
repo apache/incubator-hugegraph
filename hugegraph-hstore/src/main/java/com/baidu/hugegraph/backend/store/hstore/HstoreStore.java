@@ -286,18 +286,25 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         }
     }
 
-    public List<Iterator<BackendEntry>> query(List<IdPrefixQuery> queries) {
+    public List<Iterator<BackendEntry>> query(List<HugeType>typeList,
+                                              List<IdPrefixQuery> queries) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
         LinkedList<Iterator<BackendEntry>> results = new LinkedList<>();
         try {
             this.checkOpened();
             Session session = this.sessions.session();
-            E.checkState(!CollectionUtils.isEmpty(queries),"Please check query list.");
-            IdPrefixQuery prefixQuery = queries.get(0);
-            HstoreTable table = getTableByQuery(prefixQuery);
-            List<Iterator<BackendEntry>> iteratorList = table.query(session,
-                                                                    queries);
+            E.checkState(!CollectionUtils.isEmpty(queries) &&
+                         !CollectionUtils.isEmpty(typeList) ,
+                         "Please check query list or type list.");
+            HstoreTable table = null;
+            StringBuilder builder = new StringBuilder();
+            for (HugeType type : typeList) {
+                builder.append((table = this.table(type)).table()).append(",");
+            }
+            List<Iterator<BackendEntry>> iteratorList =
+                    table.query(session, queries,
+                                builder.substring(0, builder.length() - 1));
             for (int i = 0; i < iteratorList.size(); i++) {
                 Iterator<BackendEntry> entries = iteratorList.get(i) ;
                 // Merge olap results as needed
