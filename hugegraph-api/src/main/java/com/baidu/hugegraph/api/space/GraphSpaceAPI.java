@@ -311,9 +311,6 @@ public class GraphSpaceAPI extends API {
             E.checkArgument(this.olapNamespace != null &&
                             !StringUtils.isEmpty(this.olapNamespace),
                             "The olap graph space can't be null or empty");
-            E.checkArgument(this.storageNamespace != null &&
-                            !StringUtils.isEmpty(this.storageNamespace),
-                            "The storage graph space can't be null or empty");
         }
 
         public GraphSpace toGraphSpace(String creator) {
