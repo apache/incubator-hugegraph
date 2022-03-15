@@ -19,12 +19,12 @@
 
 package com.baidu.hugegraph.kafka;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 
+import com.alipay.sofa.jraft.util.concurrent.ConcurrentHashSet;
 import com.baidu.hugegraph.meta.MetaManager;
-import com.baidu.hugegraph.util.Log;
-
-import org.slf4j.Logger;
 
 /**
  * BrokerConfig used to init producer and consumer
@@ -33,13 +33,17 @@ import org.slf4j.Logger;
  */
 public final class BrokerConfig {
 
-    private static final Logger log = Log.logger(BrokerConfig.class);
     private final MetaManager manager;
     private final String SYNC_BROKER_KEY;
     private final String SYNC_STORAGE_KEY;
+    private final String FILTER_GRAPH_KEY;
+    private final String FILTER_GRAPH_SPACE_KEY;
 
     private volatile boolean needSyncBroker = false;
     private volatile boolean needSyncStorage = false;
+
+    private final Set<String> filteredGraph = new ConcurrentHashSet<>();
+    private final Set<String> filteredGraphSpace = new ConcurrentHashSet<>();
 
     private static class ConfigHolder {
         public final static BrokerConfig instance = new BrokerConfig();
@@ -71,6 +75,8 @@ public final class BrokerConfig {
         this.manager = MetaManager.instance();
         this.SYNC_BROKER_KEY = manager.kafkaSyncBrokerKey();
         this.SYNC_STORAGE_KEY = manager.kafkaSyncStorageKey();
+        this.FILTER_GRAPH_KEY = manager.kafkaFilterGraphKey();
+        this.FILTER_GRAPH_SPACE_KEY = manager.kafkaFilterGraphspaceKey();
         
         this.updateNeedSyncBroker();
         this.updateNeedSyncStorage();
@@ -86,6 +92,14 @@ public final class BrokerConfig {
                 this.needSyncBroker = "1".equals(entry.getValue());
             } else if (this.SYNC_STORAGE_KEY.equals(key)) {
                 this.needSyncStorage = "1".equals(entry.getValue());
+            } else if (this.FILTER_GRAPH_KEY.equals(key)) {
+                String[] graphs = entry.getValue().split(",");
+                this.filteredGraph.clear();
+                this.filteredGraph.addAll(Arrays.asList(graphs));
+            } else if (this.FILTER_GRAPH_SPACE_KEY.equals(key)) {
+                String[] graphSpaces = entry.getValue().split(",");
+                this.filteredGraphSpace.clear();
+                this.filteredGraphSpace.addAll(Arrays.asList(graphSpaces));
             }
         }
     }
@@ -176,5 +190,13 @@ public final class BrokerConfig {
 
     public String getConfPrefix() {
         return "GLOBAL-";
+    }
+
+    public boolean graphSpaceFiltered(String graphSpace) {
+        return filteredGraphSpace.contains(graphSpace);
+    }
+
+    public boolean graphFiltered(String graphSpace, String graph) {
+        return this.filteredGraph.contains(graph);
     }
 }

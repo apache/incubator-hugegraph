@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.kafka.producer;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -26,6 +27,7 @@ import com.baidu.hugegraph.kafka.BrokerConfig;
 import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
 import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
 import com.baidu.hugegraph.meta.MetaManager;
+import com.google.common.base.Strings;
 
 /**
  * Sync etcd service conf from master to slave
@@ -54,6 +56,27 @@ public class SyncConfProducer extends ProducerClient<String, String> {
                 || key.contains(MetaManager.META_PATH_DDS)
             ) {
                 return;
+            }
+
+            String graphSpace = null;
+
+            // Check if graph is filtered, If it is true skip
+            if (key.contains(MetaManager.META_PATH_GRAPH)) {
+                List<String> info = manager.extractGraphFromKey(key);
+                graphSpace = info.get(0);
+                String graph = info.get(1);
+                if (BrokerConfig.getInstance().graphFiltered(graphSpace, graph)) {
+                    return;
+                }
+            }
+
+            if (key.contains(MetaManager.META_PATH_GRAPHSPACE)) {
+                if (Strings.isNullOrEmpty(graphSpace)) {
+                    graphSpace = manager.extractGraphSpaceFromKey(key);
+                }
+                if (BrokerConfig.getInstance().graphSpaceFiltered(graphSpace)) {
+                    return;
+                }
             }
 
             SyncConfTopic topic = new SyncConfTopicBuilder()

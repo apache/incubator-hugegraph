@@ -21,6 +21,8 @@ package com.baidu.hugegraph.meta;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -106,6 +108,7 @@ public class MetaManager {
     public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
     public static final String META_PATH_SYNC_BROKER = "SYNC_BROKER";
     public static final String META_PATH_SYNC_STORAGE = "SYNC_STORAGE";
+    public static final String META_PATH_KAFKA_FILTER = "FILTER";
 
     private static final String TASK_STATUS_POSTFIX = "Status";
     private static final String TASK_PROGRESS_POSTFIX = "Progress";
@@ -358,6 +361,22 @@ public class MetaManager {
     public void clearSchemaTemplate(String graphSpace) {
         String prefix = this.schemaTemplatePrefix(graphSpace);
         this.metaDriver.deleteWithPrefix(prefix);
+    }
+
+    public String extractGraphSpaceFromKey(String key) {
+        String[] parts = key.split(META_PATH_DELIMITER);
+        if (parts.length < 4) {
+            return null;
+        }
+        return parts[3];
+    }
+
+    public List<String> extractGraphFromKey(String key) {
+        String[] parts = key.split(META_PATH_DELIMITER);
+        if (parts.length < 6) {
+            return Collections.EMPTY_LIST;
+        }
+        return Arrays.asList(parts[3], parts[5]);
     }
 
     public <T> List<String> extractGraphSpacesFromResponse(T response) {
@@ -658,7 +677,7 @@ public class MetaManager {
     }
 
     private String graphConfKey(String graphSpace, String graph) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF/{graph}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_GRAPH_CONF, graph);
@@ -883,6 +902,18 @@ public class MetaManager {
     public String kafkaSyncStorageKey() {
         // HUGEGRAPH/{cluster}/KAFKA/SYNC_STORAGE
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SYNC_STORAGE);
+    }
+
+    public String kafkaFilterGraphKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/FILTER/GRAPHSPACE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                this.cluster, META_PATH_KAFKA, META_PATH_KAFKA_FILTER, META_PATH_GRAPHSPACE);
+    }
+
+    public String kafkaFilterGraphspaceKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/FILTER/GRAPH
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                this.cluster, META_PATH_KAFKA, META_PATH_KAFKA_FILTER, META_PATH_GRAPH);
     }
 
     /**
