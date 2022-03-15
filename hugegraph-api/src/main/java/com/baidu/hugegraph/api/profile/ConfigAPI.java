@@ -147,11 +147,24 @@ public class ConfigAPI extends API {
     @Path("rest/{key}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public void rest(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace,
-                       @PathParam("key") String key) {
+                     @PathParam("graphspace") String graphSpace,
+                     @PathParam("key") String key) {
         manager.deleteRestProperties(graphSpace, key);
+    }
+
+    @DELETE
+    @Timed
+    @Path("rest/{servicename}/{key}")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$dynamic"})
+    public void rest(@Context GraphManager manager,
+                     @PathParam("graphspace") String graphSpace,
+                     @PathParam("servicename") String serviceName,
+                     @PathParam("key") String key) {
+        manager.deleteRestProperties(graphSpace, serviceName, key);
     }
 
     @GET
