@@ -55,11 +55,11 @@ public class SyncMutateConsumer extends StandardConsumer {
     }
 
     @Override
-    protected void handleRecord(ConsumerRecord<String, ByteBuffer> record) {
+    protected boolean handleRecord(ConsumerRecord<String, ByteBuffer> record) {
 
         if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
             if (null == this.manager && null == this.graph) {
-                return;
+                return true;
             }
 
             String[] graphInfo = HugeGraphMutateTopicBuilder.extractGraphs(record);
@@ -70,7 +70,9 @@ public class SyncMutateConsumer extends StandardConsumer {
             BackendMutation mutation = HugeGraphMutateTopicBuilder.buildMutation(record.value());
             graph.applyMutation(mutation);
             graph.tx().commit();
+            return true;
         }
+        return false;
 
     }
 

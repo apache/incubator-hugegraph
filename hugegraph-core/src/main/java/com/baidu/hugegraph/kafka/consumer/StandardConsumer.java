@@ -45,14 +45,16 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
     }
 
     @Override
-    protected void handleRecord(ConsumerRecord<String, ByteBuffer> record) {
+    protected boolean handleRecord(ConsumerRecord<String, ByteBuffer> record) {
         if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
             String[] graphInfo = HugeGraphSyncTopicBuilder.extractGraphs(record);
             String graphSpace = graphInfo[0];
             String graphName = graphInfo[1];                       
 
             client.sendMutation(graphSpace, graphName, record.value().array());
+            return true;
         }
+        return false;
     }
     
 }

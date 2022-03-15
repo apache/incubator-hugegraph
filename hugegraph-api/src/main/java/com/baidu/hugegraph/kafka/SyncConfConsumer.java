@@ -45,22 +45,20 @@ public class SyncConfConsumer extends ConsumerClient<String, String> {
     protected final BrokerConfig config = BrokerConfig.getInstance();
 
     @Override
-    protected void handleRecord(ConsumerRecord<String, String> record) {
-
-        List<String> etcdKV = SyncConfTopicBuilder.extractKeyValue(record);
-        String etcdKey = etcdKV.get(0);
-        String etcdVal = etcdKV.get(1);
-        if (config.isMaster()) {
-
-            String space = config.getConfPrefix();
-
-            client.sendMutation(space, etcdKey, etcdVal.getBytes());
-
-        } else if (config.isSlave()) {
-            if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
-                manager.putOrDeleteRaw(etcdKey, etcdVal);
+    protected boolean handleRecord(ConsumerRecord<String, String> record) {
+        if (BrokerConfig.getInstance().needKafkaSyncStorage()) {
+            List<String> etcdKV = SyncConfTopicBuilder.extractKeyValue(record);
+            String etcdKey = etcdKV.get(0);
+            String etcdVal = etcdKV.get(1);
+            if (config.isMaster()) {
+                String space = config.getConfPrefix();
+                client.sendMutation(space, etcdKey, etcdVal.getBytes());
+            } else if (config.isSlave()) {
+                 manager.putOrDeleteRaw(etcdKey, etcdVal);
             }
+            return true;
         }
+        return false;
     }
     
 }

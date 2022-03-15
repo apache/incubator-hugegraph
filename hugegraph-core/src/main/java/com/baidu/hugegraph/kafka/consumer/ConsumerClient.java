@@ -29,7 +29,6 @@ import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -64,27 +63,33 @@ public abstract class ConsumerClient<K, V> {
     }
 
     public final void consume() {
-        asyncExecutor.submit(new Runnable() {
-            @Override
-            public void run() {
-                while(!closing) {
+        asyncExecutor.submit(() -> {
+            while(!closing) {
+                boolean commit = false;
+                try {
                     ConsumerRecords<K, V> records = consumer.poll(Duration.ofMillis(1000));
+
                     if (records.count() > 0) {
-                       for(ConsumerRecord<K, V> record : records.records(topic)) {
+                        for(ConsumerRecord<K, V> record : records.records(topic)) {
                             try {
-                                handleRecord(record);
+                                commit = handleRecord(record);
                             } catch (Exception e) {
                                 LOGGER.logCustomDebug("Consume topic failed", this.getClass().getName(), record);
                             }
-                       }
+                        }
                     }
-                    consumer.commitAsync();
+                } catch (Throwable t) {
+                    
+                } finally {
+                    if (commit) {
+                        consumer.commitAsync();
+                    }
                 }
             }
         });
     }
 
-    protected abstract void handleRecord(ConsumerRecord<K, V> record);
+    protected abstract boolean handleRecord(ConsumerRecord<K, V> record);
 
     public void close() {
         this.closing = true;
