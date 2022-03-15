@@ -306,13 +306,17 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
         type |= Session.SCAN_PREFIX_END;
+        byte[] position = null;
+        if (query.paging()) {
+            position = PageState.fromString(query.page()).position();
+        }
         return session.scan(this.table(),
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.start()),
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix()),
                             query.start().asBytes(),
-                            query.prefix().asBytes(), type, null);
+                            query.prefix().asBytes(), type, null, position);
     }
 
     protected List<BackendColumnIterator> queryByPrefixList(Session session,
