@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
+import com.baidu.hugegraph.kafka.producer.SyncConfProducer;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
@@ -55,20 +56,20 @@ public class SlaveServerWrapper {
 
     private volatile boolean closing = false;
 
-    private SyncMutationServer server = null;
-    private SyncMutateConsumer consumer = null;
+    private final SyncMutationServer server = new SyncMutationServer(MetaManager.instance().getKafkaSlaveServerPort());
+    private final SyncMutateConsumer consumer = new SyncMutateConsumerBuilder().build();
+
+    private final ProducerClient<String, ByteBuffer> standardProducer = ClientFactory.getInstance().getStandardProducer();
+    private final SyncConfProducer syncConfProducer = ClientFactory.getInstance().getSyncConfProducer();
 
     private void initConsumer(GraphManager manager) {
         SyncMutateConsumerBuilder.setGraphManager(manager);
-        consumer = new SyncMutateConsumerBuilder().build();
         consumer.consume();
     }
 
     private void initServer() throws IOException {
-        MetaManager manager = MetaManager.instance();
         if (BrokerConfig.getInstance().isSlave()) {
-            server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
-            ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
+            // ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
             String CONF_PREFIX = BrokerConfig.getInstance().getConfPrefix();
 
             Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
@@ -81,7 +82,7 @@ public class SlaveServerWrapper {
                             .setKey(t.getGraphName())
                             .setValue(new String(t.getMutation()))
                             .build();
-                        // producer.produce(topic);
+                        syncConfProducer.produce(topic);
 
                     } else {
                         HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
@@ -89,7 +90,7 @@ public class SlaveServerWrapper {
                             .setGraphSpace(t.getGraphSpace())
                             .setGraphName(t.getGraphName())
                             .build();
-                        producer.produce(topic);
+                        standardProducer.produce(topic);
                     }
                 }
             };
