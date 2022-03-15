@@ -176,5 +176,9 @@ public final class BrokerConfig {
 
     public String getConfGroupInstanceId() {
         return "hugegraph-conf-consumer-instance-1";
-    }    
+    }
+
+    public String getConfPrefix() {
+        return "GLOBAL-";
+    }
 }

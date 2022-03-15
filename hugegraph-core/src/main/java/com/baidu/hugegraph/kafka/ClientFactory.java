@@ -25,6 +25,8 @@ import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.kafka.consumer.StandardConsumerBuilder;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.producer.StandardProducerBuilder;
+import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.syncgateway.SyncMutationClient;
 
 /**
  * @author Scorpiour
@@ -39,6 +41,9 @@ public class ClientFactory {
             new StandardProducerBuilder().build();
 
         public static final StandardConsumer standardConsumer = new StandardConsumerBuilder().build();
+        public static final SyncMutationClient syncMutationClient = new SyncMutationClient(
+                            MetaManager.instance().getKafkaSlaveServerHost(),
+                            MetaManager.instance().getKafkaSlaveServerPort());
     }
 
     private ClientFactory() {
@@ -55,6 +60,10 @@ public class ClientFactory {
 
     public StandardConsumer getStandardConsumer() {
         return ClientInstanceHolder.standardConsumer;
+    }
+
+    public SyncMutationClient getSyncMutationClient() {
+        return ClientInstanceHolder.syncMutationClient;
     }
     
 }

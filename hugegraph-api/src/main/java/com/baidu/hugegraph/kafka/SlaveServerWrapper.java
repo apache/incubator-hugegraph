@@ -27,6 +27,8 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.kafka.producer.ProducerClient;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
+import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
 import com.baidu.hugegraph.logger.HugeGraphLogger;
 import com.baidu.hugegraph.meta.MetaManager;
 import com.baidu.hugegraph.syncgateway.MutationDTO;
@@ -67,17 +69,28 @@ public class SlaveServerWrapper {
         if (BrokerConfig.getInstance().isSlave()) {
             server = new SyncMutationServer(manager.getKafkaSlaveServerPort());
             ProducerClient<String, ByteBuffer> producer = ClientFactory.getInstance().getStandardProducer();
+            String CONF_PREFIX = BrokerConfig.getInstance().getConfPrefix();
 
             Consumer<MutationDTO> callback = new Consumer<MutationDTO>() {
 
                 public void accept(MutationDTO t) {
-                    
-                    HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
-                        .setBuffer(ByteBuffer.wrap(t.getMutation()))
-                        .setGraphSpace(t.getGraphSpace())
-                        .setGraphName(t.getGraphName())
-                        .build();
-                    producer.produce(topic);
+
+                    String graphSpace = t.getGraphSpace();
+                    if (CONF_PREFIX.equals(graphSpace)) {
+                        SyncConfTopic topic = new SyncConfTopicBuilder()
+                            .setKey(t.getGraphName())
+                            .setValue(new String(t.getMutation()))
+                            .build();
+                        // producer.produce(topic);
+
+                    } else {
+                        HugeGraphMutateTopic topic = new HugeGraphMutateTopicBuilder()
+                            .setBuffer(ByteBuffer.wrap(t.getMutation()))
+                            .setGraphSpace(t.getGraphSpace())
+                            .setGraphName(t.getGraphName())
+                            .build();
+                        producer.produce(topic);
+                    }
                 }
             };
         

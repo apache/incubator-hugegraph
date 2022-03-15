@@ -24,6 +24,7 @@ import java.security.InvalidParameterException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -32,6 +33,7 @@ import com.baidu.hugegraph.meta.MetaManager;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.util.Strings;
+import org.javatuples.Tuple;
 
 /**
  * @author Scorpiour
@@ -45,17 +47,16 @@ public class SyncConfTopicBuilder {
 
     private static final String DELIM = "/";
 
-    private String graphSpace;
-    private String serviceName;
-    private String serviceRawConfig;
+    private String key;
+    private String value;
 
     public SyncConfTopicBuilder() {
 
     }
 
     private String makeKey() {
-        // SYNC_CONF/{graphSpace}/{serviceName}
-        return String.join(DELIM, PREFIX, graphSpace, serviceName);
+        // SYNC_CONF/{key}
+        return String.join(DELIM, PREFIX, this.key);
     }
 
     /**
@@ -63,42 +64,35 @@ public class SyncConfTopicBuilder {
      * @return
      */
     private int calcPartition() {
-        int code = this.graphSpace.hashCode() % PARTITION_COUNT;
-        if (code < 0) {
-            code = -code;
-        }
-        return code;
+        return 0;
     }
 
-    public SyncConfTopicBuilder setGraphSpace(String graphSpace) {
-        this.graphSpace = Optional.ofNullable(graphSpace).orElse("");
+    public SyncConfTopicBuilder setKey(String key) {
+        assert Strings.isNotBlank(key);
+        this.key = key;
         return this;
     }
 
-    public SyncConfTopicBuilder setServiceName(String serviceName) {
-        assert Strings.isNotBlank(serviceName);
-        this.serviceName = serviceName;
-        return this;
-    }
-
-    public SyncConfTopicBuilder setRawConfig(String rawConfig) {
-        this.serviceRawConfig = rawConfig;
+    public SyncConfTopicBuilder setValue(String value) {
+        this.value = value;
         return this;
     }
 
     public SyncConfTopic build() {
         String key = this.makeKey();
-        SyncConfTopic topic = new SyncConfTopic(key, this.serviceRawConfig, this.calcPartition());
+        SyncConfTopic topic = new SyncConfTopic(key, this.value, this.calcPartition());
 
         return topic;
     }
 
-    public static String[] extractGraphInfo(ConsumerRecord<String, String> record) {
-        String[] keys = record.key().split(DELIM);
-        if (keys.length < 3) {
-            throw new InvalidParameterException("invalid record key of SyncConfTopic: " + record.key());
-        }
-        return keys;
+    public static List<String> extractKeyValue(ConsumerRecord<String, String> record) {
+        String key = record.getKey();
+        String value = record.getValue();
+
+        int subLen = PREFIX.length();
+
+        String etcdKey = key.substring(subLen + 1);
+        return Arrays.asList(etcdKey, value);
     }
     
 }

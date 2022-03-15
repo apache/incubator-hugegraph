@@ -84,11 +84,6 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.io.HugeGraphSONModule;
 import com.baidu.hugegraph.k8s.K8sManager;
-import com.baidu.hugegraph.kafka.BrokerConfig;
-import com.baidu.hugegraph.kafka.SyncConfProducer;
-import com.baidu.hugegraph.kafka.SyncConfProducerBuilder;
-import com.baidu.hugegraph.kafka.topic.SyncConfTopic;
-import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
 import com.baidu.hugegraph.k8s.K8sRegister;
 import com.baidu.hugegraph.license.LicenseVerifier;
 import com.baidu.hugegraph.meta.MetaManager;
@@ -142,7 +137,6 @@ public final class GraphManager {
     private final EventHub eventHub;
 
     private final String url;
-    private SyncConfProducer syncConfProducer = null;
 
     private HugeConfig config;
 
@@ -171,10 +165,6 @@ public final class GraphManager {
         this.serviceID = conf.get(ServerOptions.SERVICE_ID);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
-
-        if (BrokerConfig.getInstance().isMaster()) {
-            this.syncConfProducer = new SyncConfProducerBuilder().build();
-        }
 
         this.listenChanges();
 
@@ -676,6 +666,7 @@ public final class GraphManager {
             }
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
+            /*
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
             Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
             
@@ -685,7 +676,7 @@ public final class GraphManager {
                     LOG.debug("Registered Info serviceId {}: appName: {} , id: {} , address: {}",
                        entry.getKey(), node.getAppName(), node.getId(), node.getAddress());
                 });
-            }
+            }*/
         } catch (Exception e) {
             LOG.error("Failed to register service to pd", e);
         }
@@ -1268,8 +1259,6 @@ public final class GraphManager {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
         Service service;
-        Boolean syncToSlave = 
-            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
             String graphSpace = parts[0];
@@ -1278,39 +1267,14 @@ public final class GraphManager {
 
             service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
-
-            if (syncToSlave) {
-                SyncConfTopic topic = new SyncConfTopicBuilder()
-                                            .setGraphSpace(graphSpace)
-                                            .setServiceName(serviceName)
-                                            .setRawConfig(serviceRawConf)
-                                            .build();
-                this.syncConfProducer.produce(topic);
-            }
         }
-        
-
-        
     }
 
     private <T> void serviceRemoveHandler(T response) {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
-        Boolean syncToSlave = 
-            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             this.services.remove(s);
-            if (syncToSlave) {
-                String[] parts = s.split(DELIMITER);
-                String graphSpace = parts[0];
-                String serviceName = parts[1];
-                SyncConfTopic topic = new SyncConfTopicBuilder()
-                                            .setGraphSpace(graphSpace)
-                                            .setServiceName(serviceName)
-                                            .setRawConfig("")
-                                            .build();
-                this.syncConfProducer.produce(topic);
-            }
         }
     }
 
@@ -1318,8 +1282,6 @@ public final class GraphManager {
         List<String> names = this.metaManager
                              .extractServicesFromResponse(response);
         Service service;
-        Boolean syncToSlave = 
-            BrokerConfig.getInstance().isMaster() && null != this.syncConfProducer;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
             String graphSpace = parts[0];
@@ -1327,14 +1289,6 @@ public final class GraphManager {
             String serviceRawConf = this.metaManager.getServiceRawConfig(graphSpace, serviceName);
             service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
-            if (syncToSlave) {
-                SyncConfTopic topic = new SyncConfTopicBuilder()
-                                            .setGraphSpace(graphSpace)
-                                            .setServiceName(serviceName)
-                                            .setRawConfig(serviceRawConf)
-                                            .build();
-                this.syncConfProducer.produce(topic);                
-            }
         }
     }
 

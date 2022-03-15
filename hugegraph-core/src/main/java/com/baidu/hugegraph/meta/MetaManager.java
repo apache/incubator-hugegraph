@@ -236,6 +236,20 @@ public class MetaManager {
         return Optional.ofNullable(result).orElse("");
     }
 
+    /**
+     * Put raw config to etcd. Delete if val is empty!
+     * @param key
+     * @param val
+     * @return
+     */
+    public void putOrDeleteRaw(String key, String val) {
+        if (StringUtils.isEmpty(val)) {
+            this.metaDriver.delete(key);
+        } else {
+            this.metaDriver.put(key, val);
+        }
+    }
+
 
     public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {
         this.bindNamespace(graphSpace, namespace, BindingType.OLTP);

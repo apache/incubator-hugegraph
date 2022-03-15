@@ -17,11 +17,9 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.kafka;
+package com.baidu.hugegraph.kafka.producer;
 
 import java.util.Properties;
-
-import com.baidu.hugegraph.kafka.producer.ProducerClient;
 
 /**
  * Sync etcd service conf from master to slave

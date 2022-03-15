@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Properties;
 
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.kafka.ClientFactory;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopic;
 import com.baidu.hugegraph.kafka.topic.HugeGraphMutateTopicBuilder;
 import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
@@ -41,7 +42,7 @@ public class StandardConsumer extends ConsumerClient<String, ByteBuffer> {
     // private final ProducerClient<String, ByteBuffer> producer = new StandardProducerBuilder().build();
     
     MetaManager manager = MetaManager.instance();
-    private SyncMutationClient client = new SyncMutationClient(manager.getKafkaSlaveServerHost(), manager.getKafkaSlaveServerPort());
+    private SyncMutationClient client = ClientFactory.getInstance().getSyncMutationClient();
 
     protected StandardConsumer(Properties props) {
         super(props);

@@ -19,10 +19,13 @@
 
 package com.baidu.hugegraph.kafka;
 
+import java.util.List;
 import java.util.Properties;
 
 import com.baidu.hugegraph.kafka.consumer.ConsumerClient;
 import com.baidu.hugegraph.kafka.topic.SyncConfTopicBuilder;
+import com.baidu.hugegraph.meta.MetaManager;
+import com.baidu.hugegraph.syncgateway.SyncMutationClient;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
@@ -32,18 +35,31 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  */
 public class SyncConfConsumer extends ConsumerClient<String, String> {
 
+    private final SyncMutationClient client = ClientFactory.getInstance().getSyncMutationClient();
+    private final MetaManager manager = MetaManager.instance();
+
     protected SyncConfConsumer(Properties props) {
         super(props);
     }
+
+    protected final BrokerConfig config = BrokerConfig.getInstance();
 
     @Override
     protected void handleRecord(ConsumerRecord<String, String> record) {
         System.out.println(String.format("Going to consumer [%s]", record.key().toString()));
 
-        String[] graphInfo = SyncConfTopicBuilder.extractGraphInfo(record);
-        String graphSpace = graphInfo[1];
-        String serviceName = graphInfo[2];
+        List<String> etcdKV = SyncConfTopicBuilder.extractKeyValue(record);
+        String etcdKey = etcdKV.get(0);
+        String etcdVal = etcdKV.get(1);
+        if (config.isMaster()) {
 
+            String space = config.getConfPrefix();
+
+            client.sendMutation(space, etcdKey, etcdVal.getBytes());
+
+        } else if (config.isSlave()) {
+            manager.putOrDeleteRaw(etcdKey, etcdVal);
+        }
 
         System.out.println("=========> Scorpiour : resend data to next");
     }

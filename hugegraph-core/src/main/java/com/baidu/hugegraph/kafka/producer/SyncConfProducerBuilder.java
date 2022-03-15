@@ -17,11 +17,11 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.kafka;
+package com.baidu.hugegraph.kafka.producer;
 
 import java.util.Properties;
 
-import com.baidu.hugegraph.kafka.producer.ProducerBuilder;
+import com.baidu.hugegraph.kafka.BrokerConfig;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
