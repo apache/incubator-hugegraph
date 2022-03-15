@@ -45,7 +45,21 @@ public class SyncConfProducer extends ProducerClient<String, String> {
     private <T> void listenEtcdChanged(T response) {
         Map<String, String> map = manager.extractKVFromResponse(response);
         map.entrySet().forEach((entry) -> {
-            SyncConfTopic topic = new SyncConfTopicBuilder().setKey(entry.getKey()).setValue(entry.getValue()).build();
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            if (key.contains(MetaManager.META_PATH_TASK)
+                || key.contains(MetaManager.META_PATH_TASK_LOCK)
+                || key.contains(MetaManager.META_PATH_KAFKA)
+                || key.contains(MetaManager.META_PATH_DDS)
+            ) {
+                return;
+            }
+
+            SyncConfTopic topic = new SyncConfTopicBuilder()
+                                            .setKey(key)
+                                            .setValue(value)
+                                            .build();
             this.produce(topic);
         });
     }

@@ -65,8 +65,6 @@ import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
 
-    private static final Logger LOG = Log.logger(MetaManager.class);
-
     public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
 

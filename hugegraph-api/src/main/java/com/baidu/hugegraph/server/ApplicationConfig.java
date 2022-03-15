@@ -124,12 +124,15 @@ public class ApplicationConfig extends ResourceConfig {
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf, hub);
 
-                        confConsumer = new SyncConfConsumerBuilder().build();
-                        confConsumer.consume();
-
                         if (BrokerConfig.getInstance().isSlave()) {
+                            confConsumer = new SyncConfConsumerBuilder().build();
+                            confConsumer.consume();
+
                             SlaveServerWrapper.getInstance().init(manager);
                         } else if (BrokerConfig.getInstance().isMaster()) {
+                            confConsumer = new SyncConfConsumerBuilder().build();
+                            confConsumer.consume();
+
                             StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();
                             consumer.consume();
 
