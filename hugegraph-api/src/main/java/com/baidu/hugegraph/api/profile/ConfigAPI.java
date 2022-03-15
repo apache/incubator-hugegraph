@@ -55,7 +55,7 @@ public class ConfigAPI extends API {
     @Timed
     @Path("rest")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String getRestConfig(@Context GraphManager manager,
                                 @PathParam("graphspace") String graphSpace) {
         return manager.serializer()
@@ -66,7 +66,7 @@ public class ConfigAPI extends API {
     @Timed
     @Path("rest/{servicename}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String getRestConfig(@Context GraphManager manager,
                                 @PathParam("graphspace") String graphSpace,
                                 @PathParam("servicename") String serviceName) {
@@ -79,7 +79,7 @@ public class ConfigAPI extends API {
     @Timed
     @Path("rest/config-fields")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String getRestConfigFields(@Context GraphManager manager) {
 
         return manager.serializer().writeList("fields", REST_FIELDS);
@@ -91,7 +91,7 @@ public class ConfigAPI extends API {
     @Path("rest")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String restAll(@Context GraphManager manager,
                           @PathParam("graphspace") String graphSpace,
                           Map<String, Object> extendProperties) {
@@ -111,7 +111,7 @@ public class ConfigAPI extends API {
     @Path("rest")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String rest(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        Map<String, Object> properties) {
@@ -129,7 +129,7 @@ public class ConfigAPI extends API {
     @Path("rest/{servicename}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"admin", "$dynamic"})
     public String rest(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @PathParam("servicename") String serviceName,
