@@ -20,20 +20,13 @@
 
 package com.baidu.hugegraph.kafka.topic;
 
-import java.security.InvalidParameterException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import com.baidu.hugegraph.kafka.BrokerConfig;
-import com.baidu.hugegraph.meta.MetaManager;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.util.Strings;
-import org.javatuples.Tuple;
 
 /**
  * @author Scorpiour
@@ -86,8 +79,8 @@ public class SyncConfTopicBuilder {
     }
 
     public static List<String> extractKeyValue(ConsumerRecord<String, String> record) {
-        String key = record.getKey();
-        String value = record.getValue();
+        String key = record.key();
+        String value = record.value();
 
         int subLen = PREFIX.length();
 
