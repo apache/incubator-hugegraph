@@ -128,6 +128,9 @@ public class ApplicationConfig extends ResourceConfig {
                             StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();
                             consumer.consume();
                         }
+
+                        // TODO listen etcd config
+                        
                     } else if (event.getType() == this.EVENT_DESTROYED) {
                         SlaveServerWrapper.getInstance().close();
                         if (manager != null) {
