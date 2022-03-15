@@ -1713,6 +1713,21 @@ public class MetaManager {
         return map;
     }
 
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> clearRestProperties(String graphSpace,
+                                                    String serviceId) {
+        Map<String, Object> map = null;
+        String key = restPropertiesKey(graphSpace, serviceId);
+        String result = this.metaDriver.get(key);
+        if (StringUtils.isNotEmpty(result)) {
+            map = JsonUtil.fromJson(result, Map.class);
+            this.metaDriver.delete(key);
+        }
+        return map;
+    }
+
+    
+
     private <V> HugeTask<V> parseTask(String jsonStr, String graphSpace, String graphName) {
         if (Strings.isBlank(jsonStr)) {
             return null;

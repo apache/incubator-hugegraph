@@ -1585,6 +1585,13 @@ public final class GraphManager {
         return map == null ? new HashMap<>() : map;
     }
 
+    public Map<String, Object> clearRestProperties(String graphSpace,
+                                                   String serviceName) {
+        Map<String, Object> map;
+        map = this.metaManager.clearRestProperties(graphSpace, serviceName);
+        return map == null ? new HashMap<>() : map;
+    }
+
     public String gremlinYaml(String graphSpace) {
         return this.metaManager.gremlinYaml(graphSpace, this.serviceID);
     }

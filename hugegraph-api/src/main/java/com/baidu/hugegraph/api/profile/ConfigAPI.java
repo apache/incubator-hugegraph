@@ -144,14 +144,14 @@ public class ConfigAPI extends API {
 
     @DELETE
     @Timed
-    @Path("rest/{key}")
+    @Path("rest/{servicename}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$dynamic"})
     public void rest(@Context GraphManager manager,
                      @PathParam("graphspace") String graphSpace,
-                     @PathParam("key") String key) {
-        manager.deleteRestProperties(graphSpace, key);
+                     @PathParam("servicename") String serviceName) {
+        manager.clearRestProperties(graphSpace, serviceName);
     }
 
     @DELETE
