@@ -347,7 +347,8 @@ public final class GraphManager {
                                   entry.getValue());
             }
         }
-        if (!this.services.containsKey(this.serviceID)) {
+        if (!this.services.containsKey(serviceName(this.serviceGraphSpace,
+                                                   this.serviceID))) {
             Service service = new Service(this.serviceID, User.ADMIN.getName(),
                                           Service.ServiceType.OLTP,
                                           Service.DeploymentType.MANUAL);
@@ -1590,6 +1591,13 @@ public final class GraphManager {
         map = this.metaManager.deleteRestProperties(graphSpace,
                                                     serviceName,
                                                     key);
+        return map == null ? new HashMap<>() : map;
+    }
+
+    public Map<String, Object> clearRestProperties(String graphSpace,
+                                                   String serviceName) {
+        Map<String, Object> map;
+        map = this.metaManager.clearRestProperties(graphSpace, serviceName);
         return map == null ? new HashMap<>() : map;
     }
 

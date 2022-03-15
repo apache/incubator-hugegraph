@@ -184,7 +184,7 @@ public class HStoreAPI extends API {
         try {
             client(config).splitData();
         } catch (PDException e) {
-            throw new HugeException("Trigger split error", e);
+            throw new HugeException("split error: " + e.getMessage(), e);
         }
 
         return "success";

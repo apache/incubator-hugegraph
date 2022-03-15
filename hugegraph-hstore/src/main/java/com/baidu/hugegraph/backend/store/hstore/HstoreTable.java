@@ -224,9 +224,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         }
         return newEntryIterator(this.queryBy(session, query), query);
     }
-    public List<Iterator<BackendEntry>> query(Session session, List<IdPrefixQuery> queries) {
+    public List<Iterator<BackendEntry>> query(Session session, List<IdPrefixQuery> queries,String tableName) {
         List<BackendColumnIterator> queryByPrefixList = this.queryByPrefixList(
-                session, queries);
+                session, queries, tableName);
         LinkedList<Iterator<BackendEntry>> iterators = new LinkedList<>();
         for (int i = 0; i < queryByPrefixList.size(); i++) {
             BackendEntryIterator iterator = newEntryIterator(
@@ -306,17 +306,22 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         int type = query.inclusiveStart() ?
                    Session.SCAN_GTE_BEGIN : Session.SCAN_GT_BEGIN;
         type |= Session.SCAN_PREFIX_END;
+        byte[] position = null;
+        if (query.paging()) {
+            position = PageState.fromString(query.page()).position();
+        }
         return session.scan(this.table(),
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.start()),
                             this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix()),
                             query.start().asBytes(),
-                            query.prefix().asBytes(), type, null);
+                            query.prefix().asBytes(), type, null, position);
     }
 
+
     protected List<BackendColumnIterator> queryByPrefixList(Session session,
-                                                  List<IdPrefixQuery> queries) {
+                                                  List<IdPrefixQuery> queries,String tableName) {
         E.checkArgument(queries.size() > 0,
                         "The size of queries must be greater than zero");
         IdPrefixQuery query = queries.get(0);
@@ -333,7 +338,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                                            item.prefix());
             ownerKeyTo.add(HgOwnerKey.of(end,query.prefix().asBytes()));
         });
-        return session.scan(this.table(), ownerKeyFrom, ownerKeyTo, type);
+        return session.scan(tableName, ownerKeyFrom, ownerKeyTo, type);
     }
 
     protected BackendColumnIterator queryByRange(Session session,
