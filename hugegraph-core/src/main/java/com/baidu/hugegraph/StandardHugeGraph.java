@@ -246,6 +246,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public BackendStoreProvider storeProvider() {
+        return this.storeProvider;
+    }
+
+    @Override
     public String graphSpace() {
         return this.graphSpace;
     }

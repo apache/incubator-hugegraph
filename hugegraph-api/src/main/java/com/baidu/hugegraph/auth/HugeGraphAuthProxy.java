@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import javax.ws.rs.ForbiddenException;
 
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
@@ -167,6 +168,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         SchemaManager schema = this.hugegraph.schema();
         schema.proxy(this);
         return schema;
+    }
+
+    @Override
+    public BackendStoreProvider storeProvider() {
+        return this.hugegraph.storeProvider();
     }
 
     @Override

@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.baidu.hugegraph</groupId>
-    <artifactId>syncgateway</artifactId>
-    <version>1.0.0</version>
-    <name>syncgateway</name>
-    <description>Gateway of mutation sync between clusters</description>
+    <artifactId>hg-pd-grpc</artifactId>
+    <version>3.0.0</version>
 
     <properties>
-        <java.version>8</java.version>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+
+        <os.plugin.version>1.6.0</os.plugin.version>
         <grpc.version>1.39.0</grpc.version>
         <protoc.version>3.17.2</protoc.version>
         <protobuf.plugin.version>0.6.1</protobuf.plugin.version>
@@ -18,19 +21,16 @@
     </properties>
 
     <dependencies>
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
             <version>${grpc.version}</version>
         </dependency>
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
             <version>${grpc.version}</version>
         </dependency>
-
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
@@ -40,38 +40,77 @@
     </dependencies>
 
     <build>
-
+        <sourceDirectory>${basedir}/src/main/java</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/main/proto</directory>
+            </resource>
+        </resources>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
                 <artifactId>os-maven-plugin</artifactId>
-                <version>1.5.0.Final</version>
+                <version>${os.plugin.version}</version>
             </extension>
         </extensions>
-
         <plugins>
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
-                <version>0.5.1</version>
-
+                <version>${protobuf.plugin.version}</version>
+                <extensions>true</extensions>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>
+                        com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}
+                    </protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
-                    <protoSourceRoot>./proto</protoSourceRoot>
+                    <pluginArtifact>
+                        io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
+                    </pluginArtifact>
+                    <!--默认值-->
+                    <protoSourceRoot>${project.basedir}/src/main/proto</protoSourceRoot>
+                    <!--默认值-->
+                    <!--<outputDirectory>${project.build.directory}/generated-sources/protobuf/java</outputDirectory>-->
+                    <outputDirectory>${project.basedir}/src/main/java</outputDirectory>
+                    <!--设置是否在生成java文件之前清空outputDirectory的文件，默认值为true，设置为false时也会覆盖同名文件-->
+                    <clearOutputDirectory>false</clearOutputDirectory>
+                    <!--更多配置信息可以查看https://www.xolstice.org/protobuf-maven-plugin/compile-mojo.html-->
                 </configuration>
-
                 <executions>
                     <execution>
+                        <!--在执行mvn compile的时候会执行以下操作-->
+                        <phase>generate-sources</phase>
                         <goals>
+                            <!--生成OuterClass类-->
                             <goal>compile</goal>
+                            <!--生成Grpc类-->
                             <goal>compile-custom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>src/main/java</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- remove all java files before compile -->
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
-
 </project>
