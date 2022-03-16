@@ -98,6 +98,7 @@ public class MetaManager {
     public static final String META_PATH_ADD = "ADD";
     public static final String META_PATH_REMOVE = "REMOVE";
     public static final String META_PATH_UPDATE = "UPDATE";
+    public static final String META_PATH_CLEAR = "CLEAR";
 
     public static final String META_PATH_DDS = "DDS_HOST";
     public static final String META_PATH_KAFKA = "KAFKA";
@@ -190,6 +191,10 @@ public class MetaManager {
 
     public <T> void listenGraphRemove(Consumer<T> consumer) {
         this.listen(this.graphRemoveKey(), consumer);
+    }
+
+    public <T> void listenGraphClear(Consumer<T> consumer) {
+        this.listen(this.graphClearKey(), consumer);
     }
 
     public <T> void listenRestPropertiesUpdate(String graphSpace,
@@ -533,6 +538,11 @@ public class MetaManager {
                             this.graphName(graphSpace, graph));
     }
 
+    public void notifyGraphClear(String graphSpace, String graph) {
+        this.metaDriver.put(this.graphClearKey(),
+                            this.graphName(graphSpace, graph));
+    }
+
     public LockResult lock(String... keys) {
         return this.lock(LOCK_DEFAULT_LEASE, keys);
     }
@@ -628,6 +638,13 @@ public class MetaManager {
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_EVENT,
                            META_PATH_GRAPH, META_PATH_UPDATE);
+    }
+
+    private String graphClearKey() {
+        // HUGEGRAPH/{cluster}/EVENT/GRAPH/CLEAR
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                           this.cluster, META_PATH_EVENT,
+                           META_PATH_GRAPH, META_PATH_CLEAR);
     }
 
     private String graphSpaceConfKey(String name) {
@@ -2176,9 +2193,7 @@ public class MetaManager {
      * Used for task collection examine, when task status changed 
      * @param <V>
      * @param graphSpace
-     * @param taskId
      * @param prevStatus
-     * @param currentStatus
      */
     public <V> void migrateTaskStatus(String graphSpace, String graphName, HugeTask<V> task, TaskStatus prevStatus) {
         synchronized(task) {

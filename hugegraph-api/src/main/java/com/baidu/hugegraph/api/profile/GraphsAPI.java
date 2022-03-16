@@ -213,6 +213,7 @@ public class GraphsAPI extends API {
                 }
                 // truncateBackend() will open tx, so must close here(commit)
                 g.tx().commit();
+                manager.meta().notifyGraphClear(graphSpace, name);
                 LOGGER.getAuditLogger()
                     .logClearGraph(graphSpace, name, RestServer.EXECUTOR);
                 return ImmutableMap.of(name, "cleared");

@@ -62,6 +62,7 @@ import com.baidu.hugegraph.auth.HugeGraphAuthProxy;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
+import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -204,6 +205,10 @@ public final class GraphManager {
         this.addMetrics(conf);
         // listen meta changes, e.g. watch dynamically graph add/remove
         this.listenMetaChanges();
+    }
+
+    public MetaManager meta() {
+        return this.metaManager;
     }
 
     public void reload() {
@@ -434,6 +439,7 @@ public final class GraphManager {
         this.metaManager.listenGraphAdd(this::graphAddHandler);
         this.metaManager.listenGraphRemove(this::graphRemoveHandler);
         this.metaManager.listenGraphUpdate(this::graphUpdateHandler);
+        this.metaManager.listenGraphClear(this::graphClearHandler);
 
         this.metaManager.listenRestPropertiesUpdate(
                          this.serviceGraphSpace, this.serviceID,
@@ -1408,6 +1414,21 @@ public final class GraphManager {
                     String readMode = configs.get(
                            CoreOptions.GRAPH_READ_MODE.name()).toString();
                     hugeGraph.readMode(GraphReadMode.valueOf(readMode));
+                }
+            }
+        }
+    }
+
+    private <T> void graphClearHandler(T response) {
+        List<String> graphNames = this.metaManager
+                                      .extractGraphsFromResponse(response);
+        for (String graphName : graphNames) {
+            if (this.graphs.containsKey(graphName)) {
+                Graph graph = this.graphs.get(graphName);
+                if (graph instanceof HugeGraph) {
+                    HugeGraph hugeGraph = (HugeGraph) graph;
+                    ((AbstractBackendStoreProvider) hugeGraph.storeProvider())
+                            .notifyAndWaitEvent(Events.STORE_CLEAR);
                 }
             }
         }

@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -67,6 +68,8 @@ public interface HugeGraph extends Graph {
     public HugeGraph hugegraph();
 
     public SchemaManager schema();
+
+    public BackendStoreProvider storeProvider();
 
     public Id getNextId(HugeType type);
 
