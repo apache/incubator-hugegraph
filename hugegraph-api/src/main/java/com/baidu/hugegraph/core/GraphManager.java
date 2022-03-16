@@ -43,7 +43,6 @@ import com.baidu.hugegraph.k8s.K8sDriverProxy;
 import com.baidu.hugegraph.meta.lock.LockResult;
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
 import com.baidu.hugegraph.registerimpl.PdRegister;
 import com.baidu.hugegraph.space.SchemaTemplate;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
@@ -75,6 +74,7 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -336,10 +336,29 @@ public final class GraphManager {
         this.updateGraphSpace(graphSpace);
     }
 
+    /**
+     * Force overwrite internalAlgorithmImageUrl
+     */
+    public void overwriteAlgorithmImageUrl(String imageUrl) {
+        if (StringUtils.isNotBlank(imageUrl)) {
+            ServerOptions.K8S_INTERNAL_ALGORITHM_IMAGE_URL = new ConfigOption<>(
+                    "k8s.internal_algorithm_image_url",
+                    "K8s internal algorithm image url",
+                    null,
+                    imageUrl
+            );
+        }
+    }
+
     private void loadGraphSpaces() {
         Map<String, GraphSpace> graphSpaceConfigs =
                                 this.metaManager.graphSpaceConfigs();
         this.graphSpaces.putAll(graphSpaceConfigs);
+        for(Map.Entry<String, GraphSpace> entry : graphSpaceConfigs.entrySet()) {
+            if (this.serviceGraphSpace.equals(entry.getKey())) {
+                overwriteAlgorithmImageUrl(entry.getValue().internalAlgorithmImageUrl());
+            }
+        }
     }
 
     private void loadServices() {
@@ -1255,9 +1274,13 @@ public final class GraphManager {
     private <T> void graphSpaceAddHandler(T response) {
         List<String> names = this.metaManager
                                  .extractGraphSpacesFromResponse(response);
+
         for (String gs : names) {
             GraphSpace graphSpace = this.metaManager.getGraphSpaceConfig(gs);
             this.graphSpaces.put(gs, graphSpace);
+            if (this.serviceGraphSpace.equals(gs)) {
+                overwriteAlgorithmImageUrl(graphSpace.internalAlgorithmImageUrl());
+            }
         }
     }
 
@@ -1275,6 +1298,9 @@ public final class GraphManager {
         for (String gs : names) {
             GraphSpace graphSpace = this.metaManager.getGraphSpaceConfig(gs);
             this.graphSpaces.put(gs, graphSpace);
+            if (this.serviceGraphSpace.equals(gs)) {
+                overwriteAlgorithmImageUrl(graphSpace.internalAlgorithmImageUrl());
+            }
         }
     }
 

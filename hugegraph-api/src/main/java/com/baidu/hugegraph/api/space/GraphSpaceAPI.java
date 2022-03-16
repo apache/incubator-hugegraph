@@ -287,6 +287,9 @@ public class GraphSpaceAPI extends API {
         @JsonProperty("operator_image_path")
         public String operatorImagePath = "";
 
+        @JsonProperty("internal_algorithm_image_url")
+        public String internalAlgorithmImageUrl = "";
+
         @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgument(this.name != null &&
@@ -332,6 +335,7 @@ public class GraphSpaceAPI extends API {
             graphSpace.computeCpuLimit(this.computeCpuLimit);
             graphSpace.computeMemoryLimit(this.computeMemoryLimit);
             graphSpace.operatorImagePath(this.operatorImagePath);
+            graphSpace.internalAlgorithmImageUrl(this.internalAlgorithmImageUrl);
 
             graphSpace.configs(this.configs);
 
@@ -344,12 +348,13 @@ public class GraphSpaceAPI extends API {
                                  "storageLimit=%s, oltpNamespace=%s" +
                                  "olapNamespace=%s, storageNamespace=%s" +
                                  "maxGraphNumber=%s, maxRoleNumber=%s, " +
-                                 "configs=%s, operatorImagePath=%s}", this.name, this.description,
+                                 "configs=%s, operatorImagePath=%s, " +
+                                 "internalAlgorithmImageUrl=%s}", this.name, this.description,
                                  this.cpuLimit, this.memoryLimit,
                                  this.storageLimit, this.oltpNamespace,
                                  this.olapNamespace, this.storageLimit,
                                  this.maxGraphNumber, this.maxRoleNumber,
-                                 this.configs, this.operatorImagePath);
+                                 this.configs, this.operatorImagePath, this.internalAlgorithmImageUrl);
         }
     }
 }

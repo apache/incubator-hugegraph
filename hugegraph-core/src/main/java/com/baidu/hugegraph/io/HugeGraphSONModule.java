@@ -313,6 +313,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Boolean auth = false;
 
             String operatorImagePath = "";
+            String internalAlgorithmImageUrl = "";
 
             String creator = GraphSpace.DEFAULT_CREATOR_NAME;
             Date create = null;
@@ -361,6 +362,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     auth = jsonParser.getBooleanValue();
                 } else if("operator_image_path".equals(fieldName)) {
                     operatorImagePath = jsonParser.getText();
+                } else if("internal_algorithm_image_url".equals(fieldName)) {
+                    internalAlgorithmImageUrl = jsonParser.getText();
                 } else if ("creator".equals(fieldName)) {
                     creator = jsonParser.getText();
                 } else if ("create_time".equals(fieldName)) {
@@ -416,6 +419,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             space.computeCpuLimit(computeCpuLimit.intValue());
             space.computeMemoryLimit(computeMemoryLimit.intValue());
             space.operatorImagePath(operatorImagePath);
+            space.internalAlgorithmImageUrl(internalAlgorithmImageUrl);
             return space;
         }
     }
