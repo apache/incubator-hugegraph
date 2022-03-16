@@ -22,6 +22,7 @@ public class k8sExample {
     private static String output = "/home/scorpiour/HugeGraph/hugegraph/.vscode/result.yaml";
 
     private static final String template = "hugegraph-computer-operator-system";
+    private static final String image = "image: hugegraph/hugegraph-computer-operator:latest";
     private static final String namespace = "hugegraph-custom-system";
 
     private static final RegExp regex = new RegExp("\\shugegraph-computer-operator-system(\\r\\n|\\n)");
@@ -53,12 +54,13 @@ public class k8sExample {
             char buffer[] = new char[length];
             reader.read(buffer, 0, length);
             String content = new String(buffer);
-            content = content.replaceAll(template, namespace);
+            String next = content.replaceAll(template, namespace);
+            String finalTxt = next.replaceAll(image, "image: hello world");
             reader.close();
 
             File out = new File(output);
             FileWriter writer = new FileWriter(out);
-            writer.write(content);
+            writer.write(finalTxt);
             writer.close();
 
             StringReader sr = new StringReader(content);

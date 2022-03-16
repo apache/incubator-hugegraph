@@ -68,6 +68,9 @@ public class GraphSpace {
     private int graphNumberUsed;
     private int roleNumberUsed;
 
+    private String operatorImagePath = ""; // path of compute operator image
+    private String internalAlgorithmImageUrl = "";
+
     private Date createTime;
     private Date updateTime;
     private final String creator;
@@ -294,6 +297,24 @@ public class GraphSpace {
         this.configs.putAll(configs);
     }
 
+    public void operatorImagePath(String path) {
+        this.operatorImagePath = path;
+    }
+
+    public String operatorImagePath() {
+        return this.operatorImagePath;
+    }
+
+    public void internalAlgorithmImageUrl(String url) {
+        if (StringUtils.isNotBlank(url)) {
+            this.internalAlgorithmImageUrl = url;
+        }
+    }
+
+    public String internalAlgorithmImageUrl() {
+        return this.internalAlgorithmImageUrl;
+    }
+
     public Date createTime() {
         return this.createTime;
     }
@@ -346,6 +367,9 @@ public class GraphSpace {
 
         infos.put("auth", this.auth);
         infos.putAll(this.configs);
+
+        infos.put("operator_image_path", this.operatorImagePath);
+        infos.put("internal_algorithm_image_url", this.internalAlgorithmImageUrl);
 
         infos.put("create_time", this.createTime);
         infos.put("update_time", this.updateTime);

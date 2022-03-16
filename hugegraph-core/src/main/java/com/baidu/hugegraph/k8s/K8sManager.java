@@ -52,6 +52,10 @@ public class K8sManager {
     private static final K8sManager INSTANCE = new K8sManager();
 
     private String operatorTemplate;
+    private static final String TEMPLATE_NAMESPACE
+        = "hugegraph-computer-operator-system";
+    private static final String TEMPLATE_OPERATOR_IMAGE
+        = "image: hugegraph/hugegraph-computer-operator:latest";
 
     public static K8sManager instance() {
         return INSTANCE;
@@ -200,18 +204,24 @@ public class K8sManager {
      * @param image
      * @return
      */
-    public void createOperatorPod(String namespace) {
-        this.loadOperator(namespace);         
+    public void createOperatorPod(String namespace, String imagePath) {
+        if (Strings.isNullOrEmpty(imagePath)) {
+            LOGGER.logCriticalError(new IllegalArgumentException("imagePath should not be empty"), "Cannot create operator pod");
+            return;
+        }
+        this.loadOperator(namespace, imagePath);         
     }
 
     // 把所有字符串hugegraph-computer-operator-system都替换成新的namespace就行了
-    public void loadOperator(String namespace) throws HugeException {
+    public void loadOperator(String namespace, String imagePath) throws HugeException {
         this.loadOperatorTemplate();
         if (Strings.isNullOrEmpty(this.operatorTemplate)) {
             throw new HugeException("Cannot generate yaml config for operator: template load failed");
         }
 
-        String content = this.operatorTemplate.replace("", namespace);
+        String content = this.operatorTemplate.replaceAll(TEMPLATE_NAMESPACE, namespace);
+        String image = "image: " + imagePath;
+        content = content.replaceAll(TEMPLATE_OPERATOR_IMAGE, image);
         try {
             k8sDriver.createOrReplaceByYaml(content);
         } catch (IOException e) {
@@ -249,7 +259,7 @@ public class K8sManager {
             k8sDriver.createResourceQuota(namespace, yamlStr);
 
         } catch (Exception e) {
-
+            LOGGER.logCriticalError(e, "Failed to load resource quota!");
         } finally {
             if (null != inputStream) {
                 try {
