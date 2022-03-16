@@ -118,8 +118,8 @@ public final class GraphManager {
 
     private final String cluster;
     private final String graphsDir;
-    private final boolean startIgnoreSingleGraphError;
-    private final boolean graphLoadFromLocalConfig;
+    private final Boolean startIgnoreSingleGraphError;
+    private final Boolean graphLoadFromLocalConfig;
     private final Map<String, GraphSpace> graphSpaces;
     private final Map<String, Service> services;
     private final Map<String, Graph> graphs;
@@ -146,7 +146,7 @@ public final class GraphManager {
 
     public GraphManager(HugeConfig conf, EventHub hub) {
 
-        System.out.println("Init graph manager");
+        LOG.info("Init graph manager");
 
         E.checkArgumentNotNull(conf, "The config can't be null");
         this.config = conf;
@@ -165,6 +165,7 @@ public final class GraphManager {
         this.serviceID = conf.get(ServerOptions.SERVICE_ID);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
         this.eventHub = hub;
+
         this.listenChanges();
 
         this.initMetaManager(conf);
@@ -181,9 +182,9 @@ public final class GraphManager {
         } else {
             this.authManager = null;
         }
-
-        this.graphLoadFromLocalConfig =
-             conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
+        Object y = conf.get(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG);
+        this.graphLoadFromLocalConfig = Boolean.valueOf(y.toString());
+             
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
             Map<String, String> graphConfigs =
@@ -666,6 +667,7 @@ public final class GraphManager {
             }
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
+            /*
             LOG.debug("pd registered, serviceId is {}, going to validate", pdServiceId);
             Map<String, NodeInfos> infos = register.getServiceInfo(pdServiceId);
             
@@ -675,7 +677,7 @@ public final class GraphManager {
                     LOG.debug("Registered Info serviceId {}: appName: {} , id: {} , address: {}",
                        entry.getKey(), node.getAppName(), node.getId(), node.getAddress());
                 });
-            }
+            }*/
         } catch (Exception e) {
             LOG.error("Failed to register service to pd", e);
         }
@@ -1260,7 +1262,11 @@ public final class GraphManager {
         Service service;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
-            service = this.metaManager.getServiceConfig(parts[0], parts[1]);
+            String graphSpace = parts[0];
+            String serviceName = parts[1];
+            String serviceRawConf = this.metaManager.getServiceRawConfig(graphSpace, serviceName);
+
+            service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
         }
     }
@@ -1279,7 +1285,10 @@ public final class GraphManager {
         Service service;
         for (String s : names) {
             String[] parts = s.split(DELIMITER);
-            service = this.metaManager.getServiceConfig(parts[0], parts[1]);
+            String graphSpace = parts[0];
+            String serviceName = parts[1];
+            String serviceRawConf = this.metaManager.getServiceRawConfig(graphSpace, serviceName);
+            service = this.metaManager.parseServiceRawConfig(serviceRawConf);
             this.services.put(s, service);
         }
     }

@@ -65,6 +65,7 @@ import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.AuthOptions;
@@ -757,6 +758,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         this.hugegraph.resumeSnapshot();
     }
 
+    @Override
+    public void applyMutation(BackendMutation mutation) {
+        this.hugegraph.applyMutation(mutation);
+    }
 
     @Override
     public String creator() {
@@ -840,12 +845,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         });
     }
 
+    @SuppressWarnings("unused")
     private <V extends AuthElement> V verifyUserPermission(
                                       HugePermission actionPerm,
                                       V elementFetcher) {
         return verifyUserPermission(actionPerm, true, () -> elementFetcher);
     }
 
+    @SuppressWarnings("unused")
     private <V extends AuthElement> List<V> verifyUserPermission(
                                             HugePermission actionPerm,
                                             List<V> elems) {

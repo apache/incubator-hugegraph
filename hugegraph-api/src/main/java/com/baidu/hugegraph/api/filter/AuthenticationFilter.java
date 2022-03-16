@@ -270,15 +270,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 }
             }
 
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.logCustomDebug(
-                    "Verify permission {} {} for user '{}' with role {}",
-                    "Jermy Li",
-                    requiredPerm.action().string(),
-                    requiredPerm.resourceObject(),
-                    this.user.username(), this.user.role());
-            }
-
             if (!valid &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
                     LOGGER.getAuditLogger().logUserAccessDenied(

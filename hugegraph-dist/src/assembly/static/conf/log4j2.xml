@@ -9,17 +9,42 @@
 
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
-            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
         </Console>
+
+        <RollingRandomAccessFile name="error" fileName="${LOG_PATH}/error-${FILE_NAME}.log"
+            filePattern="${LOG_PATH}/$${date:yyyy-MM}/error-${FILE_NAME}-%d{yyyy-MM-dd-HH}-%i.gz"
+            bufferedIO="false" immediateFlush="true">
+            <ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
+            <!--JsonLayout compact="false" eventEol="true" locationInfo="true">
+                <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
+            </JsonLayout-->
+            <!-- Trigger after exceeding 1day or 50MB -->
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${LOG_PATH}" maxDepth="2">
+                    <IfFileName glob="*/*.log"/>
+                    <!-- Limit log amount & size -->
+                    <IfAny>
+                        <IfAccumulatedFileSize exceeds="2GB" />
+                        <IfAccumulatedFileCount exceeds="100" />
+                    </IfAny>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
 
         <!-- Normal server log config -->
         <RollingRandomAccessFile name="file" fileName="${LOG_PATH}/${FILE_NAME}.log"
             filePattern="${LOG_PATH}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log"
-            bufferedIO="true" bufferSize="524288" immediateFlush="false">
+            bufferedIO="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
             <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
-            <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
+            <!--JsonLayout compact="true" eventEol="true" >
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
@@ -45,7 +70,6 @@
             filePattern="${LOG_PATH}/$${date:yyyy-MM}/audit-${FILE_NAME}-%d{yyyy-MM-dd-HH}-%i.gz"
             bufferedIO="true" bufferSize="524288" immediateFlush="false">
             <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
-            <!-- Use simple format for audit log to speed up -->
             <PatternLayout pattern="%m%n" />
             <!-- Use simple format for audit log to speed up -->
             <!--JsonLayout compact="true" eventEol="true" >
@@ -72,35 +96,43 @@
 
     <loggers>
         <root level="INFO">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </root>
         <logger name="org.apache.hadoop" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <logger name="org.apache.zookeeper" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <logger name="com.datastax.driver" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <logger name="com.alipay.sofa" level="WARN" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <logger name="io.netty" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <logger name="org.apache.commons" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </logger>
         <!-- Use mixed async way to output logs -->
         <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
+            <appender-ref ref="console"/>
             <appender-ref ref="file"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.auth" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
+            <appender-ref ref="console"/>
         </AsyncLogger>
         <AsyncLogger name="com.baidu.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
+            <appender-ref ref="console"/>
         </AsyncLogger>
         <AsyncLogger name="audit-log-appender" level="INFO" additivity="false">
             <appender-ref ref="audit" />

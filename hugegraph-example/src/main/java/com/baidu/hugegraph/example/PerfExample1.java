@@ -37,7 +37,10 @@ public class PerfExample1 extends PerfExampleBase {
 
     public static void main(String[] args) throws Exception {
         PerfExample1 tester = new PerfExample1();
-        tester.test(args);
+
+        String[] arg = new String[]{ "1", "1", "1", "false"};
+
+        tester.test(arg);
 
         // Stop daemon thread
         HugeFactory.shutdown(30L);

@@ -36,6 +36,7 @@ import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
+import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.TypedOption;
@@ -266,4 +267,6 @@ public interface HugeGraph extends Graph {
                                  HugeCountStepStrategy.instance());
         TraversalStrategies.GlobalCache.registerStrategies(clazz, strategies);
     }
+
+    public void applyMutation(BackendMutation mutation);
 }

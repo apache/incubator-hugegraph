@@ -223,7 +223,6 @@ public class GraphsAPI extends API {
                 throw new AssertionError(String.format(
                           "Invalid graph action: '%s'", action));
         }
-
     }
 
     @DELETE
@@ -235,9 +234,11 @@ public class GraphsAPI extends API {
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name,
                        @PathParam("graphspace") String graphSpace) {
+        
         manager.dropGraph(graphSpace, name, true);
         LOGGER.getAuditLogger()
-            .logRemoveGraph(graphSpace, name, RestServer.EXECUTOR);
+                .logRemoveGraph(graphSpace, name, manager.authManager().username());
+
     }
 
     @PUT

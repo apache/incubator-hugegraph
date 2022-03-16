@@ -156,7 +156,6 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String kgLogin(@Context GraphManager manager,
                           KgJsonLogin jsonLogin) {
-
         LOGGER.logCustomDebug("Kg user login: {}", RestServer.EXECUTOR, jsonLogin);
         checkCreatingBody(jsonLogin);
         String content = String.format("%s:%s", jsonLogin.name,

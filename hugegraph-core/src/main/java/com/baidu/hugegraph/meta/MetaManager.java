@@ -21,11 +21,14 @@ package com.baidu.hugegraph.meta;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -64,8 +67,6 @@ import io.fabric8.kubernetes.api.model.Namespace;
 
 public class MetaManager {
 
-    private static final Logger LOG = Log.logger(MetaManager.class);
-
     public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
 
@@ -99,6 +100,15 @@ public class MetaManager {
     public static final String META_PATH_UPDATE = "UPDATE";
 
     public static final String META_PATH_DDS = "DDS_HOST";
+    public static final String META_PATH_KAFKA = "KAFKA";
+    public static final String META_PATH_HOST = "BROKER_HOST";
+    public static final String META_PATH_PORT = "BROKER_PORT";
+    public static final String META_PATH_DATA_SYNC_ROLE = "DATA_SYNC_ROLE";
+    public static final String META_PATH_SLAVE_SERVER_HOST = "SLAVE_SERVER_HOST";
+    public static final String META_PATH_SLAVE_SERVER_PORT = "SLAVE_SERVER_PORT";
+    public static final String META_PATH_SYNC_BROKER = "SYNC_BROKER";
+    public static final String META_PATH_SYNC_STORAGE = "SYNC_STORAGE";
+    public static final String META_PATH_KAFKA_FILTER = "FILTER";
 
     private static final String TASK_STATUS_POSTFIX = "Status";
     private static final String TASK_PROGRESS_POSTFIX = "Progress";
@@ -203,13 +213,44 @@ public class MetaManager {
         this.listenPrefix(prefix, consumer);
     }
 
+    public <T> void listenKafkaConfig(Consumer<T> consumer) {
+        String prefix = this.kafkaPrefixKey();
+        this.listenPrefix(prefix, consumer);
+    }
+
     private <T> void listen(String key, Consumer<T> consumer) {
         this.metaDriver.listen(key, consumer);
     }
 
-    private <T> void listenPrefix(String prefix, Consumer<T> consumer) {
+    public <T> void listenPrefix(String prefix, Consumer<T> consumer) {
         this.metaDriver.listenPrefix(prefix, consumer);
     }
+
+
+    /**
+     * Get raw config from etcd
+     * @param key
+     * @return
+     */
+    public String getRaw(String key) {
+        String result = this.metaDriver.get(key);
+        return Optional.ofNullable(result).orElse("");
+    }
+
+    /**
+     * Put raw config to etcd. Delete if val is empty!
+     * @param key
+     * @param val
+     * @return
+     */
+    public void putOrDeleteRaw(String key, String val) {
+        if (StringUtils.isEmpty(val)) {
+            this.metaDriver.delete(key);
+        } else {
+            this.metaDriver.put(key, val);
+        }
+    }
+
 
     public void bindOltpNamespace(GraphSpace graphSpace, Namespace namespace) {
         this.bindNamespace(graphSpace, namespace, BindingType.OLTP);
@@ -322,6 +363,22 @@ public class MetaManager {
         this.metaDriver.deleteWithPrefix(prefix);
     }
 
+    public String extractGraphSpaceFromKey(String key) {
+        String[] parts = key.split(META_PATH_DELIMITER);
+        if (parts.length < 4) {
+            return null;
+        }
+        return parts[3];
+    }
+
+    public List<String> extractGraphFromKey(String key) {
+        String[] parts = key.split(META_PATH_DELIMITER);
+        if (parts.length < 6) {
+            return Collections.EMPTY_LIST;
+        }
+        return Arrays.asList(parts[3], parts[5]);
+    }
+
     public <T> List<String> extractGraphSpacesFromResponse(T response) {
         return this.metaDriver.extractValuesFromResponse(response);
     }
@@ -346,9 +403,17 @@ public class MetaManager {
         return JsonUtil.fromJson(gs, GraphSpace.class);
     }
 
+    public String getServiceRawConfig(String graphSpace, String service) {
+        return this.metaDriver.get(this.serviceConfKey(graphSpace, service));
+    }
+
+    public Service parseServiceRawConfig(String serviceRawConf) {
+        return JsonUtil.fromJson(serviceRawConf, Service.class);
+    }
+
     public Service getServiceConfig(String graphSpace, String service) {
-        String s = this.metaDriver.get(this.serviceConfKey(graphSpace, service));
-        return JsonUtil.fromJson(s, Service.class);
+        String s = this.getServiceRawConfig(graphSpace, service);
+        return this.parseServiceRawConfig(s);
     }
 
     public Map<String, Object> getGraphConfig(String graphSpace, String graph) {
@@ -612,7 +677,7 @@ public class MetaManager {
     }
 
     private String graphConfKey(String graphSpace, String graph) {
-        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF
+        // HUGEGRAPH/{cluster}/GRAPHSPACE/{graphspace}/GRAPH_CONF/{graph}
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
                            this.cluster, META_PATH_GRAPHSPACE,
                            graphSpace, META_PATH_GRAPH_CONF, graph);
@@ -797,6 +862,58 @@ public class MetaManager {
     private String ddsHostKey() {
         // HUGEGRAPH/{cluster}/DDS_HOST
         return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_DDS);
+    }
+
+    private String hugeClusterRoleKey() {
+        // HUGEGRAPH/{clusterRole}/KAFKA/DATA_SYNC_ROLE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_DATA_SYNC_ROLE);
+    }
+
+    private String kafkaPrefixKey() {
+        // HUGEGRAPH/{cluster}/KAFKA
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA);
+    }
+
+    private String kafkaHostKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/BROKER_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_HOST);
+    }
+
+    private String kafkaPortKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/BROKER_PORT
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_PORT);
+    }
+
+    private String kafkaSlaveHostKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SLAVE_SERVER_HOST
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SLAVE_SERVER_HOST);
+    }
+
+    private String kafkaSlavePortKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SLAVE_SERVER_PORT
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SLAVE_SERVER_PORT);
+    }
+
+    public String kafkaSyncBrokerKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SYNC_BROKER
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SYNC_BROKER);
+    }
+
+    public String kafkaSyncStorageKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/SYNC_STORAGE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH, this.cluster, META_PATH_KAFKA, META_PATH_SYNC_STORAGE);
+    }
+
+    public String kafkaFilterGraphKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/FILTER/GRAPHSPACE
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                this.cluster, META_PATH_KAFKA, META_PATH_KAFKA_FILTER, META_PATH_GRAPHSPACE);
+    }
+
+    public String kafkaFilterGraphspaceKey() {
+        // HUGEGRAPH/{cluster}/KAFKA/FILTER/GRAPH
+        return String.join(META_PATH_DELIMITER, META_PATH_HUGEGRAPH,
+                this.cluster, META_PATH_KAFKA, META_PATH_KAFKA_FILTER, META_PATH_GRAPH);
     }
 
     /**
@@ -2119,6 +2236,34 @@ public class MetaManager {
         String key = this.ddsHostKey();
         String host = this.metaDriver.get(key);
         return host;
+    }
+
+    public String getHugeGraphClusterRole() {
+        String key = this.hugeClusterRoleKey();
+        String role = this.metaDriver.get(key);
+        return role;
+    }
+
+    public String getKafkaBrokerHost() {
+        String key = this.kafkaHostKey();
+        return this.metaDriver.get(key);
+    }
+
+    public String getKafkaBrokerPort() {
+        String key = this.kafkaPortKey();
+        return this.metaDriver.get(key);
+    }
+
+    public String getKafkaSlaveServerHost() {
+        String key = this.kafkaSlaveHostKey();
+        return this.metaDriver.get(key);
+    }
+
+    public Integer getKafkaSlaveServerPort() {
+        String key = this.kafkaSlavePortKey();
+        String portStr = this.metaDriver.get(key);
+        int port = Integer.parseInt(portStr);
+        return port;
     }
 
     public enum MetaDriverType {

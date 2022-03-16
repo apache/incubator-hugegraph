@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.server;
 
+
+
 import javax.ws.rs.ApplicationPath;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
@@ -38,6 +40,12 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
+import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.ClientFactory;
+import com.baidu.hugegraph.kafka.SlaveServerWrapper;
+import com.baidu.hugegraph.kafka.SyncConfConsumer;
+import com.baidu.hugegraph.kafka.SyncConfConsumerBuilder;
+import com.baidu.hugegraph.kafka.consumer.StandardConsumer;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
@@ -57,8 +65,12 @@ public class ApplicationConfig extends ResourceConfig {
         // Register HugeConfig to context
         register(new ConfFactory(conf));
 
-        // Register GraphManager to context
-        register(new GraphManagerFactory(conf, hub));
+        GraphManagerFactory factory = new GraphManagerFactory(conf, hub);
+
+        register(factory);
+
+        // 必须在default service下启动consumer确保资源可靠
+        // manager.graph(graphSpace  graphName);
 
         // Register WorkLoad to context
         register(new WorkLoadFactory());
@@ -108,9 +120,30 @@ public class ApplicationConfig extends ResourceConfig {
 
                 @Override
                 public void onEvent(ApplicationEvent event) {
+                    SyncConfConsumer confConsumer = null;
                     if (event.getType() == this.EVENT_INITED) {
                         manager = new GraphManager(conf, hub);
+
+                        if (BrokerConfig.getInstance().isSlave()) {
+                            confConsumer = new SyncConfConsumerBuilder().build();
+                            confConsumer.consume();
+
+                            SlaveServerWrapper.getInstance().init(manager);
+                        } else if (BrokerConfig.getInstance().isMaster()) {
+                            confConsumer = new SyncConfConsumerBuilder().build();
+                            confConsumer.consume();
+
+                            StandardConsumer consumer = ClientFactory.getInstance().getStandardConsumer();
+                            consumer.consume();
+
+                            ClientFactory.getInstance().getSyncConfProducer();
+                        }
+
                     } else if (event.getType() == this.EVENT_DESTROYED) {
+                        if (null != confConsumer) {
+                            confConsumer.close();
+                        }
+                        SlaveServerWrapper.getInstance().close();
                         if (manager != null) {
                             manager.close();
                             manager.destroy();

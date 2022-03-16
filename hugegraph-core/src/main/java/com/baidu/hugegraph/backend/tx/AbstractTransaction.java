@@ -45,6 +45,10 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.exception.NotFoundException;
+import com.baidu.hugegraph.kafka.BrokerConfig;
+import com.baidu.hugegraph.kafka.ClientFactory;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopic;
+import com.baidu.hugegraph.kafka.topic.HugeGraphSyncTopicBuilder;
 import com.baidu.hugegraph.perf.PerfUtil.Watched;
 import com.baidu.hugegraph.schema.PropertyKey;
 import com.baidu.hugegraph.type.HugeType;
@@ -80,7 +84,7 @@ public abstract class AbstractTransaction implements Transaction {
 
         this.graph = graph;
         this.serializer = this.graph.serializer();
-
+    
         this.store = store;
         this.reset();
 
@@ -329,19 +333,34 @@ public abstract class AbstractTransaction implements Transaction {
         assert mutations.length > 0;
         this.committing2Backend = true;
 
+        Boolean needToSync = BrokerConfig.getInstance().isMaster();
+
         // If an exception occurred, catch in the upper layer and rollback
         this.store.beginTx();
         for (BackendMutation mutation : mutations) {
             this.store.mutate(mutation);
-        }
-        this.store.commitTx();
 
+            if (needToSync) {
+                HugeGraphSyncTopic topic = new HugeGraphSyncTopicBuilder()
+                    .setGraphName(this.graphName())
+                    .setGraphSpace(this.graph().graphSpace())
+                    .setMutation(mutation)
+                    .build();
+                ClientFactory.getInstance().getStandardProducer().produce(topic);
+            }
+        }
+
+        
+
+        this.store.commitTx();
+  
         this.committing2Backend = false;
     }
 
     protected void rollbackBackend() {
         this.committing2Backend = false;
         this.store.rollbackTx();
+        // TODO kafka rollback 
     }
 
     protected BackendMutation prepareCommit() {
@@ -449,4 +468,8 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
+    @Watched(prefix = "tx")
+    public void applyMutation(BackendMutation mutation) {
+        this.mutation = mutation;
+    }
 }
