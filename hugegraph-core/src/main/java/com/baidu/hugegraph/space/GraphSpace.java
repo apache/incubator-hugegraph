@@ -259,9 +259,6 @@ public class GraphSpace {
     }
 
     public void storageNamespace(String storageNamespace) {
-        E.checkArgument(storageNamespace != null &&
-                        !StringUtils.isEmpty(storageNamespace),
-                        "The storage graph space can't be null or empty");
         this.storageNamespace = storageNamespace;
     }
 
