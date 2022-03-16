@@ -471,7 +471,7 @@ public class ServerOptions extends OptionHolder {
                     "true"
             );
 
-    public static ConfigOption<String> K8S_INTERNAL_ALGORITHM_IMAGE_URL =
+    public static final ConfigOption<String> K8S_INTERNAL_ALGORITHM_IMAGE_URL =
             new ConfigOption<>(
                     "k8s.internal_algorithm_image_url",
                     "K8s internal algorithm image url",

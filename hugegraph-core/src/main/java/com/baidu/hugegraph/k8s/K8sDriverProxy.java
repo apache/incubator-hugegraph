@@ -50,6 +50,26 @@ public class K8sDriverProxy {
         K8S_API_ENABLED = false;
     }
 
+    public static String getNamespace() {
+        return NAMESPACE;
+    }
+
+    public static String getEnableInternalAlgorithm() {
+        return ENABLE_INTERNAL_ALGORITHM;
+    }
+
+    public static String getInternalAlgorithmImageUrl() {
+        return INTERNAL_ALGORITHM_IMAGE_URL;
+    }
+
+    public static String getInternalAlgorithm() {
+        return INTERNAL_ALGORITHM;
+    }
+
+    public static Map<String, String> getAlgorithms() {
+        return ALGORITHM_PARAMS;
+    }
+
     public static void setConfig(String namespace,
                                  String enableInternalAlgorithm,
                                  String internalAlgorithmImageUrl,
