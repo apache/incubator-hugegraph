@@ -677,6 +677,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
         @Override
         public void close() {
             //this.position = null;
+            if (this.iter != null ){
+                this.iter.close();
+            }
         }
     }
 }
