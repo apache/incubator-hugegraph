@@ -567,7 +567,7 @@ public final class GraphManager {
      * @param namespace
      * @return isNewCreated
      */
-    private boolean attachK8sNamespace(String namespace) {
+    private boolean attachK8sNamespace(String namespace, String olapOperatorImage, Boolean isOlap) {
         if (!Strings.isNullOrEmpty(namespace)) {
             Namespace current = k8sManager.namespace(namespace);
             if (null == current) {
@@ -581,8 +581,9 @@ public final class GraphManager {
                 // read from "hugegraph-computer-system" 
                 // String containerName = "hugegraph-operator";
                 // String imageName = "";
-
-                k8sManager.createOperatorPod(namespace);
+                if (isOlap) {
+                    k8sManager.createOperatorPod(namespace, olapOperatorImage);
+                }
                 return true;
             }
         }
@@ -604,17 +605,17 @@ public final class GraphManager {
 
             int computeCpuLimit = space.computeCpuLimit() == 0 ? space.cpuLimit() : space.computeCpuLimit();
             int computeMemoryLimit = space.computeMemoryLimit() == 0 ? space.memoryLimit() : space.computeMemoryLimit();
-
-            boolean isNewCreated = attachK8sNamespace(space.oltpNamespace());
+            boolean isOlap = space.oltpNamespace().equals(space.olapNamespace());
+            boolean isNewCreated = attachK8sNamespace(space.oltpNamespace(), space.operatorImagePath(), isOlap);
             if (isNewCreated) {
-                if (space.oltpNamespace().equals(space.olapNamespace())) {
+                if (isOlap) {
                     this.makeResourceQuota(space.oltpNamespace(), cpuLimit + computeCpuLimit, memoryLimit + computeMemoryLimit);
                 } else {
                     this.makeResourceQuota(space.oltpNamespace(), cpuLimit, memoryLimit);
                 }
             }
-            if (!space.oltpNamespace().equals(space.olapNamespace())) {
-                isNewCreated = attachK8sNamespace(space.olapNamespace());
+            if (!isOlap) {
+                isNewCreated = attachK8sNamespace(space.olapNamespace(), space.operatorImagePath(), true);
                 if (isNewCreated) {
                     this.makeResourceQuota(space.olapNamespace(), computeCpuLimit, computeMemoryLimit);
                 }

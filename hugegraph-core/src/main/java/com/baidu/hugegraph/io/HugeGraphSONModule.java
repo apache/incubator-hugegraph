@@ -312,6 +312,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             Number roleNumberUsed = 0;
             Boolean auth = false;
 
+            String operatorImagePath = "";
+
             String creator = GraphSpace.DEFAULT_CREATOR_NAME;
             Date create = null;
             Date update = null;
@@ -357,6 +359,8 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                     roleNumberUsed = jsonParser.getNumberValue();
                 } else if ("auth".equals(fieldName)) {
                     auth = jsonParser.getBooleanValue();
+                } else if("operator_image_path".equals(fieldName)) {
+                    operatorImagePath = jsonParser.getText();
                 } else if ("creator".equals(fieldName)) {
                     creator = jsonParser.getText();
                 } else if ("create_time".equals(fieldName)) {
@@ -411,6 +415,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
             space.createTime(create);
             space.computeCpuLimit(computeCpuLimit.intValue());
             space.computeMemoryLimit(computeMemoryLimit.intValue());
+            space.operatorImagePath(operatorImagePath);
             return space;
         }
     }
