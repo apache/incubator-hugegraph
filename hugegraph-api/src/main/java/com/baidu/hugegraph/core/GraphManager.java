@@ -298,12 +298,16 @@ public final class GraphManager {
         if (graphSpaceConfigs.containsKey(DEFAULT_GRAPH_SPACE_SERVICE_NAME)) {
             return;
         }
+        String oltpNs = config.get(
+                ServerOptions.SERVER_DEFAULT_OLTP_K8S_NAMESPACE);
+        String olapNs = config.get(
+                ServerOptions.SERVER_DEFAULT_OLAP_K8S_NAMESPACE);
         graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                            DEFAULT_GRAPH_SPACE_DESCRIPTION,
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
                                            Integer.MAX_VALUE, Integer.MAX_VALUE,
-                                           Integer.MAX_VALUE, false,
-                                           User.ADMIN.getName(),
+                                           Integer.MAX_VALUE, oltpNs, olapNs,
+                                           false, User.ADMIN.getName(),
                                            ImmutableMap.of());
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
         if (!useK8s) {
@@ -347,20 +351,18 @@ public final class GraphManager {
                                   entry.getValue());
             }
         }
+        Service service = new Service(this.serviceID, User.ADMIN.getName(),
+                                      Service.ServiceType.OLTP,
+                                      Service.DeploymentType.MANUAL);
+        service.description(service.name());
+        service.url(this.url);
+        service.serviceId(serviceId(this.serviceGraphSpace,
+                                    Service.ServiceType.OLTP,
+                                    this.serviceID));
+        // register self to pd, should prior to etcd due to pdServiceId info
+        this.registerServiceToPd(service);
         if (!this.services.containsKey(serviceName(this.serviceGraphSpace,
                                                    this.serviceID))) {
-            Service service = new Service(this.serviceID, User.ADMIN.getName(),
-                                          Service.ServiceType.OLTP,
-                                          Service.DeploymentType.MANUAL);
-            service.description(service.name());
-            service.url(this.url);
-            service.serviceId(serviceId(this.serviceGraphSpace,
-                                        Service.ServiceType.OLTP,
-                                        this.serviceID));
-
-            // register self to pd, should prior to etcd due to pdServiceId info
-            this.registerServiceToPd(service);
-
             // register to etcd
             this.metaManager.addServiceConfig(this.serviceGraphSpace, service);
             this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
@@ -512,6 +514,25 @@ public final class GraphManager {
                 LOG.error("Failed to wait graph started", e);
             }
         });
+    }
+
+    private GraphSpace createGraphSpace(String name, String description,
+                                        int cpuLimit, int memoryLimit,
+                                        int storageLimit,
+                                        int maxGraphNumber,
+                                        int maxRoleNumber,
+                                        String oltpNamespace,
+                                        String olapNamespace,
+                                        boolean auth, String creator,
+                                        Map<String, Object> configs) {
+        checkGraphSpaceName(name);
+        GraphSpace space = new GraphSpace(name, description, cpuLimit,
+                                          memoryLimit, storageLimit,
+                                          maxGraphNumber, maxRoleNumber,
+                                          auth, creator, configs);
+        space.oltpNamespace(oltpNamespace);
+        space.olapNamespace(olapNamespace);
+        return this.createGraphSpace(space);
     }
 
     private GraphSpace createGraphSpace(String name, String description,
