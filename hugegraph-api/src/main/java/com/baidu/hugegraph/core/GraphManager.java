@@ -74,6 +74,7 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.config.ConfigOption;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -346,6 +347,13 @@ public final class GraphManager {
      */
     public void overwriteAlgorithmImageUrl(String imageUrl) {
         if (StringUtils.isNotBlank(imageUrl) && this.k8sApiEnabled) {
+
+            ServerOptions.K8S_INTERNAL_ALGORITHM_IMAGE_URL = new ConfigOption<>(
+                    "k8s.internal_algorithm_image_url",
+                    "K8s internal algorithm image url",
+                    null,
+                    imageUrl
+            );
 
             String namespace = K8sDriverProxy.getNamespace();
             String enableInternalAlgorithm = K8sDriverProxy.getEnableInternalAlgorithm();
