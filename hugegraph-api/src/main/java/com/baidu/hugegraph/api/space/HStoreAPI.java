@@ -81,7 +81,7 @@ public class HStoreAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Object list(@Context HugeConfig config,
                        @QueryParam("offlineExcluded")
-                       @DefaultValue("true") boolean offlineExcluded) {
+                       @DefaultValue("false") boolean offlineExcluded) {
 
         LOG.debug("List all hstore node");
 
@@ -212,8 +212,7 @@ public class HStoreAPI extends API {
         try {
             client(config).updateStore(newStore);
         } catch (PDException e) {
-            throw new HugeException(String.format("Startup node(%s) error", id),
-                                    e);
+            throw new HugeException("Startup error: " + e.getMessage(), e);
         }
 
         return "success";
@@ -236,13 +235,12 @@ public class HStoreAPI extends API {
                                     e);
         }
         Metapb.Store newStore = Metapb.Store.newBuilder(oldStore)
-                                            .setState(Metapb.StoreState.Up)
+                                            .setState(Metapb.StoreState.Tombstone)
                                             .build();
         try {
             client(config).updateStore(newStore);
         } catch (PDException e) {
-            throw new HugeException(String.format("Shutdown node(%s) error", id),
-                                    e);
+            throw new HugeException("Shutdown error: " + e.getMessage(), e);
         }
 
         return "success";
