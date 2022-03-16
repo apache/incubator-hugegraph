@@ -213,6 +213,18 @@ public class GraphSpaceAPI extends API {
                     exist.storageNamespace(storageNamespace);
                 }
 
+                String operatorImagePath = 
+                        (String) graphSpaceMap.getOrDefault("operator_image_path", "");
+                if (!Strings.isEmpty(operatorImagePath)) {
+                    exist.operatorImagePath(operatorImagePath);
+                }
+        
+                String internalAlgorithmImageUrl = 
+                        (String) graphSpaceMap.getOrDefault("internal_algorithm_image_url", "");
+                if (!Strings.isEmpty(internalAlgorithmImageUrl)) {
+                    exist.internalAlgorithmImageUrl(internalAlgorithmImageUrl);
+                }
+
                 @SuppressWarnings("unchecked")
                 Map<String, Object> configs = (Map<String, Object>) graphSpaceMap.get("configs");
                 if (configs != null && !configs.isEmpty()) {
