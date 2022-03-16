@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store.hstore;
 import java.util.List;
 import java.util.Set;
 
-import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.store.HgOwnerKey;
 import com.baidu.hugegraph.type.define.GraphMode;
 import org.apache.commons.lang3.tuple.Pair;
@@ -75,8 +74,8 @@ public abstract class HstoreSessions extends BackendSessionPool {
 
         public abstract Pair<byte[], byte[]> keyRange(String table);
 
-        public abstract void put(String table, byte[] ownerKey, byte[] key,
-                                 byte[] value);
+        public abstract void put(String table, byte[] ownerKey,
+                                 byte[] key, byte[] value);
 
         public abstract void increase(String table, byte[] ownerKey,
                                       byte[] key, byte[] value);
@@ -86,8 +85,8 @@ public abstract class HstoreSessions extends BackendSessionPool {
         public abstract void deletePrefix(String table, byte[] ownerKey,
                                           byte[] key);
 
-        public abstract void deleteRange(String table,byte[] ownerKeyFrom,
-                                         byte[] ownerKeyTo,byte[] keyFrom,
+        public abstract void deleteRange(String table, byte[] ownerKeyFrom,
+                                         byte[] ownerKeyTo, byte[] keyFrom,
                                          byte[] keyTo);
         public abstract byte[] get(String table, byte[] key);
 
@@ -122,18 +121,18 @@ public abstract class HstoreSessions extends BackendSessionPool {
                                                    byte[] ownerKeyTo,
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
-                                                   int scanType,byte[] query);
+                                                   int scanType, byte[] query);
         public abstract BackendColumnIterator scan(String table,
                                                    byte[] ownerKeyFrom,
                                                    byte[] ownerKeyTo,
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
-                                                   int scanType,byte[] query ,
+                                                   int scanType, byte[] query ,
                                                    byte[] position);
         public abstract BackendColumnIterator scan(String table,
                                                    int codeFrom,
                                                    int codeTo,
-                                                   int scanType,byte[] query);
+                                                   int scanType, byte[] query);
 
         public static boolean matchScanType(int expected, int actual) {
             return (expected & actual) == expected;

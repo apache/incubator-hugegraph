@@ -34,10 +34,7 @@ import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.store.HgOwnerKey;
 import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
-import org.apache.commons.collections.ListUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 

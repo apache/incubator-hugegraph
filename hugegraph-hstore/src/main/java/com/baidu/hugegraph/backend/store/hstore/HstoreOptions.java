@@ -58,5 +58,4 @@ public class HstoreOptions extends OptionHolder {
             "hstore.shard_count", "Number of copies,"
             + "which PD controls partition copies based on.",
             disallowEmpty(), 0);
-
 }
