@@ -132,7 +132,7 @@ public class ComputerDisJob extends UserJob<Object> {
         int worker = Integer.parseInt(String.valueOf(map.get("worker")));
 
         Map<String, String> k8sParams = new HashMap<>();
-        k8sParams.put("job.partitions_count", String.valueOf(worker * 10));
+        k8sParams.put("job.partitions_count", String.valueOf(worker * 2));
         for (Map.Entry<String, Object> item : params.entrySet()) {
             k8sParams.put(item.getKey(), item.getValue().toString());
         }
