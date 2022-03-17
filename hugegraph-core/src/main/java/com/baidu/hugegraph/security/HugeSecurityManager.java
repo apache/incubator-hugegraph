@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.security.Permission;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.slf4j.Logger;
 
@@ -126,6 +127,17 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("newSecurityException")
     );
 
+    private static final Set<String> ignoreCheck = new CopyOnWriteArraySet<>();
+
+    public static void addIgnoreCheck(String clazz) {
+        if (callFromGremlin()) {
+            throw newSecurityException(
+                  "Not allowed to add ignore check via Gremlin");
+        }
+
+        ignoreCheck.add(clazz);
+    }
+
     @Override
     public void checkPermission(Permission permission) {
         if (DENIED_PERMISSIONS.contains(permission.getName()) &&
@@ -167,7 +179,7 @@ public class HugeSecurityManager extends SecurityManager {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
             !callFromBackendThread() && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() && !callFromIgnore()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -179,7 +191,7 @@ public class HugeSecurityManager extends SecurityManager {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
             !callFromBackendThread() && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc()) {
+            !callFromRaft() && !callFromSofaRpc() && !callFromIgnore()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -473,6 +485,10 @@ public class HugeSecurityManager extends SecurityManager {
 
     private static boolean callFromNewSecurityException() {
         return callFromMethods(NEW_SECURITY_EXCEPTION);
+    }
+
+    private static boolean callFromIgnore() {
+        return callFromWorkerWithClass(ignoreCheck);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
