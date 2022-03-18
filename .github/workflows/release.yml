@@ -36,7 +36,8 @@ jobs:
         if: contains(env.TAG_NAME, "-")
         run: mv "$(find hugegraph-*.tar.gz | head -1)" hugegraph-${TAG_NAME/#v/}.tar.gz
 
-      - uses: xresloader/upload-to-github-release@master
+      - name: Upload to GitHub
+        uses: xresloader/upload-to-github-release@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
