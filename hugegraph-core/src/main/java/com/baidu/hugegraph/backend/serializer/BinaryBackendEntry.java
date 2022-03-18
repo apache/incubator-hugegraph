@@ -139,11 +139,12 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
-    public void columns(BackendColumn... bytesColumns) {
-        this.columns.addAll(Arrays.asList(bytesColumns));
+    public void columns(BackendColumn bytesColumn) {
+        this.columns.add(bytesColumn);
         long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
-        E.checkState(this.columns.size() <= maxSize,
-                     "Too many columns in one entry: %s", maxSize);
+        if (this.columns.size() > maxSize) {
+            E.checkState(false, "Too many columns in one entry: %s", maxSize);
+        }
     }
 
     public BackendColumn removeColumn(int index) {

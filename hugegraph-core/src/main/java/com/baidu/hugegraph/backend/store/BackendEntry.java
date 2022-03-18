@@ -87,7 +87,7 @@ public interface BackendEntry extends Idfiable {
     public Collection<BackendColumn> columns();
 
     public void columns(Collection<BackendColumn> columns);
-    public void columns(BackendColumn... columns);
+    public void columns(BackendColumn column);
 
     public void merge(BackendEntry other);
     public boolean mergable(BackendEntry other);
@@ -104,6 +104,7 @@ public interface BackendEntry extends Idfiable {
 
     public interface BackendIterator<T> extends Iterator<T>, AutoCloseable {
 
+        @Override
         public void close();
 
         public byte[] position();

@@ -85,9 +85,7 @@ public class BinaryScatterSerializerTest extends BaseUnitTest {
         byte[] bytes = originEntry.id().asBytes();
         BackendEntry parsedEntry = new BinaryBackendEntry(originEntry.type(),
                                                           bytes);
-        for (BackendEntry.BackendColumn col : originEntry.columns()) {
-            parsedEntry.columns(col);
-        }
+        parsedEntry.columns(originEntry.columns());
         return parsedEntry;
     }
 }

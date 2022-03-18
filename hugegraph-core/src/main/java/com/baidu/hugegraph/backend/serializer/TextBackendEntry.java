@@ -265,11 +265,9 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     }
 
     @Override
-    public void columns(BackendColumn... bytesColumns) {
-        for (BackendColumn column : bytesColumns) {
-            this.columns.put(StringEncoding.decode(column.name),
-                             StringEncoding.decode(column.value));
-        }
+    public void columns(BackendColumn bytesColumn) {
+        this.columns.put(StringEncoding.decode(bytesColumn.name),
+                         StringEncoding.decode(bytesColumn.value));
     }
 
     @Override
