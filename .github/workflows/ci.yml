@@ -70,13 +70,19 @@ jobs:
           #mysql user: 'root' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
           #mysql password: ${{ secrets.DatabasePassword }} # Required if "mysql user" exists. The password for the "mysql user"
 
-      - name: Run test
+      - name: Run unit test
         run: |
-          $TRAVIS_DIR/run-core-test.sh $BACKEND
-          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
 
-      - name: Run Raft test
+      - name: Run core test
+        run: |
+          $TRAVIS_DIR/run-core-test.sh $BACKEND
+
+      - name: Run api test
+        run: |
+          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
+
+      - name: Run raft test
         if: ${{ env.BACKEND == 'rocksdb' }}
         run: |
           $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR

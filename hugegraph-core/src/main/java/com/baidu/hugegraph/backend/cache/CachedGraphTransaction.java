@@ -216,16 +216,51 @@ public final class CachedGraphTransaction extends GraphTransaction {
         }
     }
 
+    private boolean enableCacheVertex() {
+        return this.verticesCache.capacity() > 0L;
+    }
+
+    private boolean enableCacheEdge() {
+        return this.edgesCache.capacity() > 0L;
+    }
+
+    private boolean needCacheVertex(HugeVertex vertex) {
+        return vertex.sizeOfSubProperties() <= MAX_CACHE_PROPS_PER_VERTEX;
+    }
+
     @Override
+    @Watched(prefix = "graphcache")
     protected final Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
-        if (!query.ids().isEmpty() && query.conditions().isEmpty()) {
+        if (this.enableCacheVertex() &&
+            query.idsSize() > 0 && query.conditionsSize() == 0) {
             return this.queryVerticesByIds((IdQuery) query);
         } else {
             return super.queryVerticesFromBackend(query);
         }
     }
 
+    @Watched(prefix = "graphcache")
     private Iterator<HugeVertex> queryVerticesByIds(IdQuery query) {
+        if (query.idsSize() == 1) {
+            Id vertexId = query.ids().iterator().next();
+            HugeVertex vertex = (HugeVertex) this.verticesCache.get(vertexId);
+            if (vertex != null) {
+                if (!vertex.expired()) {
+                    return QueryResults.iterator(vertex);
+                }
+                this.verticesCache.invalidate(vertexId);
+            }
+            Iterator<HugeVertex> rs = super.queryVerticesFromBackend(query);
+            vertex = QueryResults.one(rs);
+            if (vertex == null) {
+                return QueryResults.emptyIterator();
+            }
+            if (needCacheVertex(vertex)) {
+                this.verticesCache.update(vertex.id(), vertex);
+            }
+            return QueryResults.iterator(vertex);
+        }
+
         IdQuery newQuery = new IdQuery(HugeType.VERTEX, query);
         List<HugeVertex> vertices = new ArrayList<>();
         for (Id vertexId : query.ids()) {
@@ -254,11 +289,10 @@ public final class CachedGraphTransaction extends GraphTransaction {
             // Generally there are not too much data with id query
             ListIterator<HugeVertex> listIterator = QueryResults.toList(rs);
             for (HugeVertex vertex : listIterator.list()) {
-                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
-                    // Skip large vertex
-                    continue;
+                // Skip large vertex
+                if (needCacheVertex(vertex)) {
+                    this.verticesCache.update(vertex.id(), vertex);
                 }
-                this.verticesCache.update(vertex.id(), vertex);
             }
             results.extend(listIterator);
         }
@@ -267,14 +301,15 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    @Watched
+    @Watched(prefix = "graphcache")
     protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         RamTable ramtable = this.params().ramtable();
         if (ramtable != null && ramtable.matched(query)) {
             return ramtable.query(query);
         }
 
-        if (query.empty() || query.paging() || query.bigCapacity()) {
+        if (!this.enableCacheEdge() || query.empty() ||
+            query.paging() || query.bigCapacity()) {
             // Query all edges or query edges in paging, don't cache it
             return super.queryEdgesFromBackend(query);
         }
@@ -321,6 +356,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
+    @Watched(prefix = "graphcache")
     protected final void commitMutation2Backend(BackendMutation... mutations) {
         // Collect changes before commit
         Collection<HugeVertex> updates = this.verticesInTxUpdated();
@@ -333,28 +369,38 @@ public final class CachedGraphTransaction extends GraphTransaction {
         try {
             super.commitMutation2Backend(mutations);
             // Update vertex cache
-            for (HugeVertex vertex : updates) {
-                vertexIds[vertexOffset++] = vertex.id();
-                if (vertex.sizeOfSubProperties() > MAX_CACHE_PROPS_PER_VERTEX) {
-                    // Skip large vertex
-                    this.verticesCache.invalidate(vertex.id());
-                    continue;
+            if (this.enableCacheVertex()) {
+                for (HugeVertex vertex : updates) {
+                    vertexIds[vertexOffset++] = vertex.id();
+                    if (needCacheVertex(vertex)) {
+                        // Update cache
+                        this.verticesCache.updateIfPresent(vertex.id(), vertex);
+                    } else {
+                        // Skip large vertex
+                        this.verticesCache.invalidate(vertex.id());
+                    }
                 }
-                this.verticesCache.updateIfPresent(vertex.id(), vertex);
             }
         } finally {
             // Update removed vertex in cache whatever success or fail
-            for (HugeVertex vertex : deletions) {
-                vertexIds[vertexOffset++] = vertex.id();
-                this.verticesCache.invalidate(vertex.id());
-            }
-            if (vertexOffset > 0) {
-                this.notifyChanges(Cache.ACTION_INVALIDED,
-                                   HugeType.VERTEX, vertexIds);
+            if (this.enableCacheVertex()) {
+                for (HugeVertex vertex : deletions) {
+                    vertexIds[vertexOffset++] = vertex.id();
+                    this.verticesCache.invalidate(vertex.id());
+                }
+                if (vertexOffset > 0) {
+                    this.notifyChanges(Cache.ACTION_INVALIDED,
+                                       HugeType.VERTEX, vertexIds);
+                }
             }
 
-            // Update edge cache if any edges change
-            if (edgesInTxSize > 0) {
+            /*
+             * Update edge cache if any vertex or edge changed
+             * For vertex change, the edges linked with should also be updated
+             * Before we find a more precise strategy, just clear all the edge cache now
+             */
+            boolean invalidEdgesCache = (edgesInTxSize + updates.size() + deletions.size()) > 0;
+            if (invalidEdgesCache && this.enableCacheEdge()) {
                 // TODO: Use a more precise strategy to update the edge cache
                 this.edgesCache.clear();
                 this.notifyChanges(Cache.ACTION_CLEARED, HugeType.EDGE, null);

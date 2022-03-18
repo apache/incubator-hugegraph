@@ -218,6 +218,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             /*
              * Due to EphemeralJob won't be serialized and deserialized through
              * shared storage, submit EphemeralJob immediately on master
+             * NOTE: don't need to save EphemeralJob task
              */
             task.status(TaskStatus.QUEUED);
             return this.submitTask(task);
@@ -228,8 +229,8 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         if (this.serverManager().onlySingleNode() && !task.computer()) {
             /*
-             * Speed up for single node, submit task immediately
-             * this can be removed without affecting logic
+             * Speed up for single node, submit task immediately,
+             * this code can be removed without affecting logic
              */
             task.status(TaskStatus.QUEUED);
             task.server(this.serverManager().selfServerId());
@@ -237,7 +238,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             return this.submitTask(task);
         } else {
             /*
-             * Just set SCHEDULING status and save task
+             * Just set SCHEDULING status and save task,
              * it will be scheduled by periodic scheduler worker
              */
             task.status(TaskStatus.SCHEDULING);
@@ -394,6 +395,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
                 if (taskServer.equals(server)) {
                     task.status(TaskStatus.QUEUED);
+                    this.save(task);
                     this.submitTask(task);
                 }
             }
@@ -467,6 +469,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> void save(HugeTask<V> task) {
+        LOG.debug("Saving task: {}", task);
         task.scheduler(this);
         E.checkArgumentNotNull(task, "Task can't be null");
         this.call(() -> {

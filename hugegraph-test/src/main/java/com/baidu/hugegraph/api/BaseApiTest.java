@@ -46,11 +46,13 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.baidu.hugegraph.HugeException;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 public class BaseApiTest {
@@ -294,7 +296,7 @@ public class BaseApiTest {
                 + "}");
     }
 
-    protected static void initIndexLabel() {
+    protected static int initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
         Response r = client.post(path, "{\n"
@@ -303,11 +305,13 @@ public class BaseApiTest {
                 + "\"base_value\": \"person\",\n"
                 + "\"index_type\": \"SECONDARY\",\n"
                 + "\"check_exist\": false,\n"
+                + "\"rebuild\": false,\n"
                 + "\"fields\": [\n"
                 + "\"city\"\n"
                 + "]\n"
                 + "}");
-        assertResponseStatus(202, r);
+        String content = assertResponseStatus(202, r);
+        return assertJsonContains(content, "task_id");
     }
 
     protected static void initEdge() {
@@ -495,10 +499,7 @@ public class BaseApiTest {
             String path = URL_PREFIX + urlSuffix;
             String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
             Response r = client.get(path);
-            if (r.getStatus() != 200) {
-                throw new HugeException("Failed to list " + type);
-            }
-            String content = r.readEntity(String.class);
+            String content = assertResponseStatus(200, r);
             @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> ids = list.stream().map(e -> e.get("id"))
@@ -517,14 +518,13 @@ public class BaseApiTest {
             String path = URL_PREFIX + urlSuffix;
             String type = urlSuffix.substring(urlSuffix.lastIndexOf('/') + 1);
             Response r = client.get(path);
-            if (r.getStatus() != 200) {
-                throw new HugeException("Failed to list " + type);
-            }
-            String content = r.readEntity(String.class);
+            String content = assertResponseStatus(200, r);
             @SuppressWarnings("rawtypes")
             List<Map> list = readList(content, type, Map.class);
             List<Object> names = list.stream().map(e -> e.get("name"))
                                      .collect(Collectors.toList());
+            Assert.assertTrue("Expect all names are unique: " + names,
+                              CollectionUtil.allUnique(names));
             Set<Integer> tasks = new HashSet<>();
             names.forEach(name -> {
                 Response response = client.delete(path, (String) name);
@@ -546,13 +546,30 @@ public class BaseApiTest {
     }
 
     protected static void waitTaskSuccess(int task) {
+        waitTaskStatus(task, ImmutableSet.of("success"));
+    }
+
+    protected static void waitTaskCompleted(int task) {
+         Set<String> completed = ImmutableSet.of("success",
+                                                 "cancelled",
+                                                 "failed");
+         waitTaskStatus(task, completed);
+    }
+
+    protected static void waitTaskStatus(int task, Set<String> expectedStatus) {
         String status;
+        int times = 0;
+        int maxTimes = 100000;
         do {
             Response r = client.get("/graphs/hugegraph/tasks/",
                                     String.valueOf(task));
             String content = assertResponseStatus(200, r);
             status = assertJsonContains(content, "task_status");
-        } while (!"success".equals(status));
+            if (times++ > maxTimes) {
+                Assert.fail(String.format("Failed to wait for task %s " +
+                                          "due to timeout", task));
+            }
+        } while (!expectedStatus.contains(status));
     }
 
     protected static String parseId(String content) throws IOException {

@@ -176,7 +176,7 @@ public class TaskAPI extends API {
 
     private static TaskStatus parseStatus(String status) {
         try {
-            return TaskStatus.valueOf(status);
+            return TaskStatus.valueOf(status.toUpperCase());
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
                       "Status value must be in %s, but got '%s'",
