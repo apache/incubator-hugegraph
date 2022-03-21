@@ -127,15 +127,15 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("newSecurityException")
     );
 
-    private static final Set<String> ignoreCheck = new CopyOnWriteArraySet<>();
+    private static final Set<String> ignoreCheckedClasses = new CopyOnWriteArraySet<>();
 
-    public static void addIgnoreCheck(String clazz) {
+    public static void ignoreCheckedClass(String clazz) {
         if (callFromGremlin()) {
             throw newSecurityException(
                   "Not allowed to add ignore check via Gremlin");
         }
 
-        ignoreCheck.add(clazz);
+        ignoreCheckedClasses.add(clazz);
     }
 
     @Override
@@ -179,7 +179,7 @@ public class HugeSecurityManager extends SecurityManager {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
             !callFromBackendThread() && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc() && !callFromIgnore()) {
+            !callFromRaft() && !callFromSofaRpc() && !callFromIgnoreCheckedClass()) {
             throw newSecurityException(
                   "Not allowed to access thread via Gremlin");
         }
@@ -191,7 +191,8 @@ public class HugeSecurityManager extends SecurityManager {
         if (callFromGremlin() && !callFromCaffeine() &&
             !callFromAsyncTasks() && !callFromEventHubNotify() &&
             !callFromBackendThread() && !callFromBackendHbase() &&
-            !callFromRaft() && !callFromSofaRpc() && !callFromIgnore()) {
+            !callFromRaft() && !callFromSofaRpc() &&
+            !callFromIgnoreCheckedClass()) {
             throw newSecurityException(
                   "Not allowed to access thread group via Gremlin");
         }
@@ -487,8 +488,8 @@ public class HugeSecurityManager extends SecurityManager {
         return callFromMethods(NEW_SECURITY_EXCEPTION);
     }
 
-    private static boolean callFromIgnore() {
-        return callFromWorkerWithClass(ignoreCheck);
+    private static boolean callFromIgnoreCheckedClass() {
+        return callFromWorkerWithClass(ignoreCheckedClasses);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
