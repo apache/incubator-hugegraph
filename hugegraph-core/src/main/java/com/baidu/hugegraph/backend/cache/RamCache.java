@@ -405,13 +405,13 @@ public class RamCache extends AbstractCache<Id, Object> {
                     }
 
                     /*
-                     * Link the node to the rear before to the last if we
-                     * have not locked the node itself, because dumpKeys()
+                     * Link the node to the `rear` before to the `last` if we
+                     * have not locked the `node` itself, because dumpKeys()
                      * may get the new node with next=null.
                      * TODO: it also depends on memory barrier.
                      */
 
-                    // Build the link between `node` and the rear
+                    // Build the link between `node` and the `rear`
                     node.next = this.rear;
                     assert this.rear.prev == last : this.rear.prev;
                     this.rear.prev = node;
@@ -445,12 +445,12 @@ public class RamCache extends AbstractCache<Id, Object> {
                         continue;
                     }
 
-                    // Break the link between the head and `first`
+                    // Break the link between the `head` and `first`
                     assert first.next != null;
                     this.head.next = first.next;
                     first.next.prev = this.head;
 
-                    // Clear the links of the first node
+                    // Clear the links of the `first` node
                     first.prev = this.empty;
                     first.next = this.empty;
 
@@ -469,13 +469,12 @@ public class RamCache extends AbstractCache<Id, Object> {
             assert node != this.head && node != this.rear;
 
             while (true) {
-                LinkNode<K, V> prev = node.prev;
-                if (prev == this.empty) {
-                    assert node.next == this.empty;
-                    // Ignore the node if it has been removed
+                if (node.prev == this.empty || node.next == this.empty) {
+                    // Ignore the `node` if it has been removed
                     return null;
                 }
 
+                LinkNode<K, V> prev = node.prev;
                 List<Lock> locks = this.lock(prev, node);
                 try {
                     if (prev != node.prev) {
@@ -487,9 +486,10 @@ public class RamCache extends AbstractCache<Id, Object> {
                         continue;
                     }
                     assert node.next != null : node;
+                    assert node.next != this.empty : node.next;
                     assert node.next != node.prev : node.next;
 
-                    // Build the link between node.prev and node.next
+                    // Break `node` & Build the link between node.prev~node.next
                     node.prev.next = node.next;
                     node.next.prev = node.prev;
 
