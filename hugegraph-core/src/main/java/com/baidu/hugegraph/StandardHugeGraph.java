@@ -933,7 +933,7 @@ public class StandardHugeGraph implements HugeGraph {
              */
             this.close();
         } catch (Throwable e) {
-            LOG.warn("Failed to close graph {}", e, this);
+            LOG.warn("Failed to close graph {} {}", this, e);
         }
     }
 

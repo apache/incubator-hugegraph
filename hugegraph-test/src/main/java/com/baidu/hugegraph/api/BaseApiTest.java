@@ -57,8 +57,8 @@ import com.google.common.collect.Multimap;
 
 public class BaseApiTest {
 
-    private static String BASE_URL = "http://127.0.0.1:8080";
-    private static String GRAPH = "hugegraph";
+    private static final String BASE_URL = "http://127.0.0.1:8080";
+    private static final String GRAPH = "hugegraph";
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "pa";
 
@@ -643,7 +643,7 @@ public class BaseApiTest {
                 break;
             }
         }
-        Assert.assertTrue(message, found != null);
+        Assert.assertNotNull(message, found);
         return found;
     }
 }

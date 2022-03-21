@@ -29,7 +29,7 @@ import com.baidu.hugegraph.util.E;
 public final class LevelCache extends AbstractCache<Id, Object> {
 
     // For multi-layer caches
-    private final AbstractCache<Id, Object> caches[];
+    private final AbstractCache<Id, Object>[] caches;
 
     @SuppressWarnings("unchecked")
     public LevelCache(AbstractCache<Id, Object> lavel1,

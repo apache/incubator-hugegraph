@@ -453,8 +453,8 @@ public final class TraversalUtil {
 
         String originKey = has.getKey();
         if (values.size() > 1) {
-            E.checkArgument(!originKey.equals(T.key) &&
-                            !originKey.equals(T.value),
+            E.checkArgument(!originKey.equals(T.key.getAccessor()) &&
+                            !originKey.equals(T.value.getAccessor()),
                             "Not support hasKey() or hasValue() with " +
                             "multiple values");
         }
@@ -557,11 +557,8 @@ public final class TraversalUtil {
                                               Directions dir,
                                               Iterator<Edge> edges) {
         return new FilterIterator<>(edges, edge -> {
-            if (dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
-                dir == Directions.IN && vertex.equals(edge.inVertex())) {
-                return true;
-            }
-            return false;
+            return dir == Directions.OUT && vertex.equals(edge.outVertex()) ||
+                   dir == Directions.IN && vertex.equals(edge.inVertex());
         });
     }
 
@@ -672,8 +669,7 @@ public final class TraversalUtil {
                 E.checkArgument(false,
                                 "Invalid data type of query value in %s, " +
                                 "expect %s for '%s', actual got %s",
-                                value, pkey.dataType(), pkey.name(),
-                                value == null ? null : classes);
+                                value, pkey.dataType(), pkey.name(), classes);
             }
 
             @SuppressWarnings("unchecked")
@@ -905,7 +901,7 @@ public final class TraversalUtil {
     }
 
     private static Number[] predicateNumbers(String value, int count) {
-        List<Number> values = predicateArgs(value);
+        List<Object> values = predicateArgs(value);
         if (values.size() != count) {
             throw new HugeException("Invalid numbers size %s, expect %s",
                                     values.size(), count);
@@ -921,13 +917,13 @@ public final class TraversalUtil {
                 // pass
             }
             if (v instanceof Number) {
-                values.set(i, (Number) v);
+                values.set(i, v);
                 continue;
             }
             throw new HugeException(
                       "Invalid value '%s', expect a list of number", value);
         }
-        return values.toArray(new Number[values.size()]);
+        return values.toArray(new Number[0]);
     }
 
     @SuppressWarnings("unchecked")

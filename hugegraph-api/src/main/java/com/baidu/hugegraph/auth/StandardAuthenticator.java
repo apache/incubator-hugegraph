@@ -82,7 +82,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String notEmptyPrompt = "The admin password can't be empty";
         Console console = System.console();
         while (true) {
-            String password = "";
+            String password;
             if (console != null) {
                 char[] chars = console.readPassword(inputPrompt);
                 password = new String(chars);

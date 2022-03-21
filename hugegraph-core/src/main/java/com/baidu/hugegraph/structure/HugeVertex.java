@@ -279,13 +279,10 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         if (elemKeys.id() != null) {
             throw Edge.Exceptions.userSuppliedIdsNotSupported();
         }
-        Id id = HugeElement.getIdValue(elemKeys.id());
+        Id id = null;
 
         // Check target vertex
         E.checkArgumentNotNull(vertex, "Target vertex can't be null");
-        E.checkArgument(vertex instanceof HugeVertex,
-                        "Target vertex must be an instance of HugeVertex");
-
         // Check label
         E.checkArgument(label != null && !label.isEmpty(),
                         "Edge label can't be null or empty");
@@ -322,11 +319,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         // Set properties
         ElementHelper.attachProperties(edge, keyValues);
 
-        // Set id if it not exists
-        if (id == null) {
-            edge.assignId();
-        }
-
+        edge.assignId();
         return edge;
     }
 
@@ -543,7 +536,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... keys) {
         // TODO: Compatible with TinkerPop properties() (HugeGraph-742)
-
         this.ensureFilledProperties(true);
 
         // Capacity should be about the following size
@@ -612,7 +604,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     public HugeVertex prepareRemoved() {
         // NOTE: clear edges/properties of the cloned vertex and return
         HugeVertex vertex = this.clone();
-        vertex.removed(true); /* Remove self */
+        // Remove self
+        vertex.removed(true);
         vertex.resetEdges();
         vertex.resetProperties();
         return vertex;

@@ -72,6 +72,7 @@ public class EdgeStep {
     public EdgeStep(HugeGraph g, Directions direction, List<String> labels,
                     Map<String, Object> properties,
                     long degree, long skipDegree) {
+        E.checkArgumentNotNull(g, "The graph can't be null");
         E.checkArgument(degree == NO_LIMIT || degree > 0L,
                         "The max degree must be > 0 or == -1, but got: %s",
                         degree);
@@ -122,8 +123,7 @@ public class EdgeStep {
 
     public Id[] edgeLabels() {
         int elsSize = this.labels.size();
-        Id[] edgeLabels = this.labels.keySet().toArray(new Id[elsSize]);
-        return edgeLabels;
+        return this.labels.keySet().toArray(new Id[elsSize]);
     }
 
     public void swithDirection() {
@@ -131,8 +131,7 @@ public class EdgeStep {
     }
 
     public long limit() {
-        long limit = this.skipDegree > 0L ? this.skipDegree : this.degree;
-        return limit;
+        return this.skipDegree > 0L ? this.skipDegree : this.degree;
     }
 
     @Override

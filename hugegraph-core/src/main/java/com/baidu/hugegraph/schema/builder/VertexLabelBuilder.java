@@ -200,15 +200,10 @@ public class VertexLabelBuilder extends AbstractBuilder
 
         // this.enableLabelIndex == null, it means true.
         if (this.enableLabelIndex == null || this.enableLabelIndex) {
-            if (!existedVertexLabel.enableLabelIndex()) {
-                return false;
-            }
+            return existedVertexLabel.enableLabelIndex();
         } else { // this.enableLabelIndex is false
-            if (existedVertexLabel.enableLabelIndex() == true) {
-                return false;
-            }
+            return !existedVertexLabel.enableLabelIndex();
         }
-        return true;
     }
 
     @Override

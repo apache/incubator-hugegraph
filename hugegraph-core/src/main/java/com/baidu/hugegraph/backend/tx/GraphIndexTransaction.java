@@ -283,7 +283,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 break;
             case UNIQUE:
                 value = ConditionQuery.concatValues(allPropValues);
-                assert !value.equals("");
+                assert !"".equals(value);
                 Id id = element.id();
                 // TODO: add lock for updating unique index
                 if (!removed && this.existUniqueValue(indexLabel, value, id)) {
@@ -665,7 +665,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
                 // Iterate one batch, and keep iterator position
                 Set<Id> ids = InsertionOrderUtil.newSet();
-                while ((ids.size() < batch || batch == Query.NO_LIMIT) &&
+                while ((batch == Query.NO_LIMIT || ids.size() < batch) &&
                        entries.hasNext()) {
                     HugeIndex index = this.serializer.readIndex(graph(), query,
                                                                 entries.next());

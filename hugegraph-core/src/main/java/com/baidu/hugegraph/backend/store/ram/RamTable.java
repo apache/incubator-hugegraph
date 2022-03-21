@@ -278,6 +278,7 @@ public final class RamTable {
             for (Condition cond : cq.conditions()) {
                 if (cond.equals(BOTH_COND)) {
                     direction = Directions.BOTH;
+                    break;
                 }
             }
         }

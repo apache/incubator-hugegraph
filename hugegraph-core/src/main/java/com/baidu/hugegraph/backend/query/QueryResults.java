@@ -131,9 +131,7 @@ public class QueryResults<R> {
             ids = map.keySet();
         }
 
-        return new MapperIterator<>(ids.iterator(), id -> {
-            return map.get(id);
-        });
+        return new MapperIterator<>(ids.iterator(), map::get);
     }
 
     private boolean mustSortByInputIds() {

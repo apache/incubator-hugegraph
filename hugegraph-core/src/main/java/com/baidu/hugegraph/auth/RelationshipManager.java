@@ -122,9 +122,7 @@ public class RelationshipManager<T extends Relationship> {
         Iterator<Edge> edges = this.tx().queryEdges(id);
         if (edges.hasNext()) {
             Edge edge = edges.next();
-            if (this.label.equals(edge.label())) {
-                return true;
-            }
+            return this.label.equals(edge.label());
         }
         return false;
     }
@@ -161,7 +159,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private Iterator<Edge> queryById(List<Id> ids) {
-        Object[] idArray = ids.toArray(new Id[ids.size()]);
+        Object[] idArray = ids.toArray(new Id[0]);
         return this.tx().queryEdges(idArray);
     }
 

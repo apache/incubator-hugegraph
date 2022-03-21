@@ -405,7 +405,7 @@ public class VertexAPI extends BatchAPI {
             E.checkArgument(req.updateStrategies != null &&
                             !req.updateStrategies.isEmpty(),
                             "Parameter 'update_strategies' can't be empty");
-            E.checkArgument(req.createIfNotExist == true,
+            E.checkArgument(req.createIfNotExist,
                             "Parameter 'create_if_not_exist' " +
                             "dose not support false now");
         }
@@ -462,6 +462,7 @@ public class VertexAPI extends BatchAPI {
             }
             if (this.id != null) {
                 newProps[appendIndex++] = T.id;
+                // Keep value++ to avoid code trap
                 newProps[appendIndex++] = this.id;
             }
             return newProps;

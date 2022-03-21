@@ -130,8 +130,8 @@ public class TableBackendEntry implements BackendEntry {
     private final List<Row> subRows;
 
     // NOTE: selfChanged is false when the row has not changed but subRows has.
-    private boolean selfChanged = true;
-    private boolean olap = false;
+    private boolean selfChanged;
+    private boolean olap;
 
     public TableBackendEntry(Id id) {
         this(null, id);
@@ -149,6 +149,7 @@ public class TableBackendEntry implements BackendEntry {
         this.row = row;
         this.subRows = new ArrayList<>();
         this.selfChanged = true;
+        this.olap = false;
     }
 
     @Override
@@ -195,6 +196,7 @@ public class TableBackendEntry implements BackendEntry {
         this.olap = olap;
     }
 
+    @Override
     public boolean olap() {
         return this.olap;
     }

@@ -118,9 +118,7 @@ public class EntityManager<T extends Entity> {
         Iterator<Vertex> vertices = this.tx().queryVertices(id);
         if (vertices.hasNext()) {
             Vertex vertex = vertices.next();
-            if (this.label.equals(vertex.label())) {
-                return true;
-            }
+            return this.label.equals(vertex.label());
         }
         return false;
     }
@@ -145,7 +143,7 @@ public class EntityManager<T extends Entity> {
     }
 
     private Iterator<Vertex> queryById(List<Id> ids) {
-        Object[] idArray = ids.toArray(new Id[ids.size()]);
+        Object[] idArray = ids.toArray(new Id[0]);
         return this.tx().queryVertices(idArray);
     }
 

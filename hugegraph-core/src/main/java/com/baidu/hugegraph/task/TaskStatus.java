@@ -48,7 +48,7 @@ public enum TaskStatus implements SerialEnum {
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
 
-    private byte status = 0;
+    private byte status;
     private String name;
 
     static {

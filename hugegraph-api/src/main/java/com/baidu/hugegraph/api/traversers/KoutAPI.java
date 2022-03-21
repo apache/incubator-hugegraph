@@ -154,6 +154,7 @@ public class KoutAPI extends TraverserAPI {
         if (request.withPath) {
             paths.addAll(results.paths(request.limit));
         }
+
         Iterator<Vertex> iter = QueryResults.emptyIterator();
         if (request.withVertex && !request.countOnly) {
             Set<Id> ids = new HashSet<>(neighbors);

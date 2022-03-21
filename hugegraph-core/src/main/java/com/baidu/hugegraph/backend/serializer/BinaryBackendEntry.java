@@ -191,10 +191,7 @@ public class BinaryBackendEntry implements BackendEntry {
         if (this.columns.size() != other.columns.size()) {
             return false;
         }
-        if (!this.columns.containsAll(other.columns)) {
-            return false;
-        }
-        return true;
+        return this.columns.containsAll(other.columns);
     }
 
     protected static final class BinaryId implements Id {

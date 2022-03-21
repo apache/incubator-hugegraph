@@ -91,9 +91,7 @@ public final class ConditionQueryFlatten {
                 continue;
             }
             ConditionQuery cq = newQueryFromRelations(query, relations);
-            if (cq != null) {
-                queries.add(cq);
-            }
+            queries.add(cq);
         }
 
         return queries;
