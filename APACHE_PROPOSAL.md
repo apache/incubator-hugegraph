@@ -62,27 +62,27 @@ In the early stage of the project, we referred to the storage structure of Titan
 
 Due to a small and limited number of committers, the project has a relatively small risk of becoming an orphan project. However, the committers have been operating the HugeGraph Community for 3 years in the spirit of open source, and continue to develop new contributors to participate.
 
-#### Inexperience with Open Source:
+#### Inexperience with Open Source
 
 HugeGraph has been open sourced on GitHub for 3 years, during which committers submitted code and documents in full compliance with open source specifications and requirements.
 
-#### Length of Incubation:
+#### Length of Incubation
 
 Expect to enter incubation in 4 months and graduate in about 2 years.
 
-#### Homogenous Developers:
+#### Homogenous Developers
 
 The developers on the current list come from several different companies plus many independent volunteers, but the most of committers are from Baidu. The developers are geographically concentrated in China now. They are experienced with working in a distributed environment in other open source projects, e.g. OpenStack.
 
-#### Reliance on Salaried Developers:
+#### Reliance on Salaried Developers
 
 Most of the developers are paid by their employer to contribute to this project. Given some volunteer developers and the committers' sense of ownership for the code, the project could continue even if no salaried developers contributed to the project.
 
-#### Relationships with Other Apache Products:
+#### Relationships with Other Apache Products
 
 HugeGraph follows the Apache TinkerPop specification, uses Apache Commons, Apache HttpClient, and Apache HttpCore to implement the basic functions. Users can choose Apache Cassandra or Apache HBase as one of the storage backends of HugeGraph.
 
-#### An Excessive Fascination with the Apache Brand:
+#### An Excessive Fascination with the Apache Brand
 
 Although we expect that the Apache brand may help attract more contributors, our interest in starting this project is based on the factors mentioned in the fundamentals section. We are interested in joining ASF to increase our connections in the open source world. Based on extensive collaboration, it is possible to build a community of developers and committers that live longer than the founder.
 
@@ -103,7 +103,7 @@ This project consists of 2 core sub-projects and 2 other sub-projects, all of wh
 
 The codes are currently under Apache License Version 2.0, and have been verified there is no intellectual property or license issues when being released to open source by Baidu in 2018. Baidu will provide SGA and all committers will sign ICLA after HugeGraph is accepted into the Incubator.
 
-#### External Dependencies:
+#### External Dependencies
 
 As all dependencies are managed by Apache Maven, none of the external libraries need to be packaged in a source distribution. All dependencies have Apache compatible licenses except for 4 dependencies: MySQL Connector(GPL), word(GPL), JBoss Logging 3(LGPL) and jnr-posix(LGPL+GPL), we will remove these dependencies in future.
 
@@ -259,7 +259,7 @@ None
 
 ### Required Resources
 
-#### Mailing lists:
+#### Mailing lists
 
 - hugegraph-dev: [dev@hugegraph.incubator.apache.org](mailto:dev@hugegraph.incubator.apache.org) for development and users discussions.
 - hugegraph-private: [private@hugegraph.incubator.apache.org](mailto:private@hugegraph.incubator.apache.org) for PPMC discussions.
@@ -276,11 +276,11 @@ None
 3. `hugegraph-commons`: https://github.com/hugegraph/hugegraph-commons.git
 4. `hugegraph-toolchain`: https://github.com/hugegraph/hugegraph-toolchain.git
 
-#### Issue Tracking:
+#### Issue Tracking
 
 The community would like to continue using [GitHub Issues](https://github.com/hugegraph/hugegraph/issues) (but will moved to github.com/apache/).
 
-#### Other Resources:
+#### Other Resources
 
 - The community has already choosed [GitHub actions](https://github.com/hugegraph/hugegraph/actions) as continuous integration tools.
 - The community has already used [codecov](https://github.com/marketplace/codecov) to check code coverage.
@@ -302,17 +302,17 @@ The community would like to continue using [GitHub Issues](https://github.com/hu
 
 ### Sponsors
 
-#### Champion:
+#### Champion
 
 - Willem Ning Jiang (ningjiang at apache dot org)
 
-#### Nominated Mentors:
+#### Nominated Mentors
 
 - Trista Pan (panjuan at apache dot org)
 - Lidong Dai (lidongdai at apache dot org)
 - Xiangdong Huang (hxd at apache dot org)
 - Yu Li (liyu at apache dot org)
 
-#### Sponsoring Entity:
+#### Sponsoring Entity
 
 We are expecting the Apache Incubator could sponsor this project.
