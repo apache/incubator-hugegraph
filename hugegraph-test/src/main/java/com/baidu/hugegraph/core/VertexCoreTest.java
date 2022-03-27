@@ -2952,7 +2952,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByIdWithGraphAPIAndNotCommitedUpdate() {
+    public void testQueryByIdWithGraphAPIAndNotCommittedUpdate() {
         HugeGraph graph = graph();
         init10Vertices();
 
@@ -2975,7 +2975,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByIdWithGraphAPIAndNotCommitedRemoved() {
+    public void testQueryByIdWithGraphAPIAndNotCommittedRemoved() {
         HugeGraph graph = graph();
         init10Vertices();
 

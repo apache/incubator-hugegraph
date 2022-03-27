@@ -2634,7 +2634,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedUpdate() {
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommittedUpdate() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -2655,7 +2655,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedRemoved() {
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommittedRemoved() {
         HugeGraph graph = graph();
         init18Edges();
 
