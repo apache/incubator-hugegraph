@@ -3692,7 +3692,7 @@ public class VertexCoreTest extends BaseCoreTest {
              .remove(); // avoid merge property mode
         graph.tx().commit();
 
-        // qeury again after commit
+        // query again after commit
         vertices = graph.traversal().V().hasLabel("person")
                         .has("age", P.between(-1, 21)).toList();
         Assert.assertEquals(3, vertices.size());
