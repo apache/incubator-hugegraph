@@ -231,7 +231,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfInt() {
+    public void testAddVertexWithInvalidPropertyValueOfInt() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -256,7 +256,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfLong() {
+    public void testAddVertexWithInvalidPropertyValueOfLong() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -276,7 +276,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfFloat() {
+    public void testAddVertexWithInvalidPropertyValueOfFloat() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -298,7 +298,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfDouble() {
+    public void testAddVertexWithInvalidPropertyValueOfDouble() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
