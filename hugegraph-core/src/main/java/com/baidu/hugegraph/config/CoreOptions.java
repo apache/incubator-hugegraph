@@ -182,7 +182,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
             new ConfigOption<>(
                     "raft.backend_threads",
-                    "The thread number used to apply task to bakcend.",
+                    "The thread number used to apply task to backend.",
                     rangeInt(0, Integer.MAX_VALUE),
                     CPUS
             );
