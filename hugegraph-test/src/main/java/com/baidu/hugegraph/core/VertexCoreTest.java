@@ -7835,7 +7835,7 @@ public class VertexCoreTest extends BaseCoreTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 /*
                  * When query vertices/edge in page, the limit will be regard
-                 * as page size, it shoudn't exceed capacity
+                 * as page size, it shouldn't exceed capacity
                  */
                 g.V().has("~page", "").limit(capacity + 1).toList();
             });
