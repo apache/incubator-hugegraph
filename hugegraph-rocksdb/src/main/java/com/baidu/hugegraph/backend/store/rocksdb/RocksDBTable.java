@@ -62,11 +62,11 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
-    private final RocksDBShardSpliter shardSpliter;
+    private final RocksDBShardSplitter shardSplitter;
 
     public RocksDBTable(String database, String table) {
         super(String.format("%s+%s", database, table));
-        this.shardSpliter = new RocksDBShardSpliter(this.table());
+        this.shardSplitter = new RocksDBShardSplitter(this.table());
     }
 
     @Override
@@ -75,7 +75,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            return this.shardSpliter.getSplits(session, splitSize);
+            return this.shardSplitter.getSplits(session, splitSize);
         });
     }
 
@@ -261,8 +261,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
     protected BackendColumnIterator queryByRange(Session session, Shard shard,
                                                  String page) {
-        byte[] start = this.shardSpliter.position(shard.start());
-        byte[] end = this.shardSpliter.position(shard.end());
+        byte[] start = this.shardSplitter.position(shard.start());
+        byte[] end = this.shardSplitter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
             E.checkArgument(start == null ||
@@ -271,7 +271,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             start = position;
         }
         if (start == null) {
-            start = ShardSpliter.START_BYTES;
+            start = ShardSplitter.START_BYTES;
         }
         int type = Session.SCAN_GTE_BEGIN;
         if (end != null) {
@@ -304,14 +304,14 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return BinaryEntryIterator.sizeOfEntry(entry);
     }
 
-    private static class RocksDBShardSpliter extends ShardSpliter<Session> {
+    private static class RocksDBShardSplitter extends ShardSplitter<Session> {
 
         private static final String MEM_SIZE = "rocksdb.size-all-mem-tables";
         private static final String SST_SIZE = "rocksdb.total-sst-files-size";
 
         private static final String NUM_KEYS = "rocksdb.estimate-num-keys";
 
-        public RocksDBShardSpliter(String table) {
+        public RocksDBShardSplitter(String table) {
             super(table);
         }
 

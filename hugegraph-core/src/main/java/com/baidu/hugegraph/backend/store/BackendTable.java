@@ -120,9 +120,9 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     public abstract void eliminate(Session session, Entry entry);
 
-    /****************************** ShardSpliter ******************************/
+    /****************************** ShardSplitter ******************************/
 
-    public static abstract class ShardSpliter<Session extends BackendSession> {
+    public static abstract class ShardSplitter<Session extends BackendSession> {
 
         // The min shard size should >= 1M to prevent too many number of shards
         protected static final int MIN_SHARD_SIZE = (int) Bytes.MB;
@@ -142,7 +142,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
         private final String table;
 
-        public ShardSpliter(String table) {
+        public ShardSplitter(String table) {
             this.table = table;
         }
 

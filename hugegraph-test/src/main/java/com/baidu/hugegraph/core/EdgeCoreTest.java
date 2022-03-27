@@ -5147,8 +5147,8 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
         } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
+            query.scan(BackendTable.ShardSplitter.START,
+                       BackendTable.ShardSplitter.END);
         }
 
         query.limit(1);

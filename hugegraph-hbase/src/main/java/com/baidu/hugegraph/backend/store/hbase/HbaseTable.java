@@ -77,11 +77,11 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     protected static final byte[] CF = "f".getBytes();
 
-    private final HbaseShardSpliter shardSpliter;
+    private final HbaseShardSplitter shardSplitter;
 
     public HbaseTable(String table) {
         super(table);
-        this.shardSpliter = new HbaseShardSpliter(this.table());
+        this.shardSplitter = new HbaseShardSplitter(this.table());
     }
 
     public static List<byte[]> cfs() {
@@ -94,7 +94,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            return this.shardSpliter.getSplits(session, splitSize);
+            return this.shardSplitter.getSplits(session, splitSize);
         });
     }
 
@@ -245,8 +245,8 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
 
     protected <R> R queryByRange(HbaseSession<R> session,
                                  Shard shard, String page) {
-        byte[] start = this.shardSpliter.position(shard.start());
-        byte[] end = this.shardSpliter.position(shard.end());
+        byte[] start = this.shardSplitter.position(shard.start());
+        byte[] end = this.shardSplitter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
             E.checkArgument(start == null ||
@@ -286,9 +286,9 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
         }
     }
 
-    private static class HbaseShardSpliter extends ShardSpliter<Session> {
+    private static class HbaseShardSplitter extends ShardSplitter<Session> {
 
-        public HbaseShardSpliter(String table) {
+        public HbaseShardSplitter(String table) {
             super(table);
         }
 
