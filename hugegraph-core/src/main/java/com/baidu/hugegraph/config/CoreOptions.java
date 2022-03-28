@@ -575,7 +575,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<Long> SNOWFLAKE_DATACENTER_ID =
             new ConfigOption<>(
-                    "snowflake.datecenter_id",
+                    "snowflake.datacenter_id",
                     "The datacenter id of snowflake id generator.",
                     disallowEmpty(),
                     0L
