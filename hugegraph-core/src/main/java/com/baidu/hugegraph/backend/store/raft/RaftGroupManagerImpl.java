@@ -84,7 +84,7 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
         Status status = this.raftNode.node().transferLeadershipTo(peerId);
         if (!status.isOk()) {
             throw new BackendException(
-                      "Failed to transafer leader to '%s', raft error: %s",
+                      "Failed to transfer leader to '%s', raft error: %s",
                       endpoint, status.getErrorMsg());
         }
         return peerId.toString();
