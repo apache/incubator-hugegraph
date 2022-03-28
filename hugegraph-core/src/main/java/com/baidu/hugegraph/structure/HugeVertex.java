@@ -295,7 +295,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         // Check sortKeys
         List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
         E.checkArgument(keys.containsAll(edgeLabel.sortKeys()),
-                        "The sort key(s) must be setted for the edge " +
+                        "The sort key(s) must be set for the edge " +
                         "with label: '%s'", edgeLabel.name());
 
         // Check whether passed all non-null props
@@ -307,7 +307,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
-                            "of edge label '%s' must be setted, " +
+                            "of edge label '%s' must be set, " +
                             "but missed keys: %s",
                             this.graph().mapPkId2Name(nonNullKeys),
                             edgeLabel.name(),

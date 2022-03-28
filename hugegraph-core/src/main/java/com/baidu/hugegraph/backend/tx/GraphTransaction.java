@@ -1544,7 +1544,7 @@ public class GraphTransaction extends IndexableTransaction {
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             HugeGraph graph = this.graph();
             E.checkArgument(false, "All non-null property keys %s of " +
-                            "vertex label '%s' must be setted, missed keys %s",
+                            "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
                             graph.mapPkId2Name(missed));
         }
