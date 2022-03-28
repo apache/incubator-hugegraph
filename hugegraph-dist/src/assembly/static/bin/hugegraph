@@ -97,8 +97,8 @@ status() {
 
 # Get status of HugeGraphServer to ensure it is alive
 get_status() {
-    HTPP_CODE=`curl -I -s -w "%{http_code}" -o /dev/null $DETECT_URL`
-    if [ $HTPP_CODE = 200 ]; then
+    HTTP_CODE=`curl -I -s -w "%{http_code}" -o /dev/null $DETECT_URL`
+    if [ $HTTP_CODE = 200 ]; then
         return 0
     else
         return 1
