@@ -192,8 +192,8 @@ public class WhereBuilder {
 
         int size = clauses.size();
         int i = 0;
-        for (StringBuilder cluase : clauses) {
-            this.builder.append(cluase);
+        for (StringBuilder clause : clauses) {
+            this.builder.append(clause);
             if (++i != size) {
                 this.builder.append(" AND ");
             }
