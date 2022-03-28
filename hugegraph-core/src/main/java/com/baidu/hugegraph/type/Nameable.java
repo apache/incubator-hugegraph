@@ -19,7 +19,7 @@ package com.baidu.hugegraph.type;
  *
  * @author Matthias Broecheler (me@matthiasb.com)
  */
-public interface Namifiable {
+public interface Nameable {
     /**
      * Returns the unique name of this entity.
      *

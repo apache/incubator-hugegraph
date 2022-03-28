@@ -28,13 +28,13 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.type.Namifiable;
+import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.type.Typifiable;
 import com.baidu.hugegraph.type.define.SchemaStatus;
 import com.baidu.hugegraph.util.E;
 import com.google.common.base.Objects;
 
-public abstract class SchemaElement implements Namifiable, Typifiable,
+public abstract class SchemaElement implements Nameable, Typifiable,
                                                Cloneable {
 
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
