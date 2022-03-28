@@ -30,7 +30,7 @@ public final class ApiVersion {
      * version 0.2:
      * [0.2] HugeGraph-527: First add the version to the hugegraph module
      * [0.3] HugeGraph-525: Add versions check of components and api
-     * [0.4] HugeGraph-162: Add schema builder to seperate client and
+     * [0.4] HugeGraph-162: Add schema builder to separate client and
      *       inner interface.
      * [0.5] HugeGraph-498: Support three kind of id strategy
      *
