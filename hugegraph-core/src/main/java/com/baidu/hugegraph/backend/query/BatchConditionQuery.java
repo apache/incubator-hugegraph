@@ -21,6 +21,7 @@ package com.baidu.hugegraph.backend.query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import com.baidu.hugegraph.backend.query.Condition.RelationType;
 import com.baidu.hugegraph.type.HugeType;
@@ -75,7 +76,7 @@ public class BatchConditionQuery extends ConditionQuery {
                 continue;
             }
             Object key = r.key();
-            if (!this.condition(key).equals(query.condition(key))) {
+            if (Objects.equals(this.condition(key), query.condition(key))) {
                 return false;
             }
         }
