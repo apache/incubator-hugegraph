@@ -204,7 +204,7 @@ public class WhereBuilder {
     /**
      * Concat as: key in (value1, value2...)
      * @param key the key to be concatted with 'IN' operator
-     * @param values the values to be concated with ',' and wappred by '()'
+     * @param values the values to be concated with ',' and wrapped by '()'
      * @return WhereBuilder
      */
     public WhereBuilder in(String key, List<Object> values) {
