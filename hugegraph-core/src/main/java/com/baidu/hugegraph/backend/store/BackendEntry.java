@@ -90,7 +90,7 @@ public interface BackendEntry extends Idfiable {
     public void columns(BackendColumn... columns);
 
     public void merge(BackendEntry other);
-    public boolean mergable(BackendEntry other);
+    public boolean mergeable(BackendEntry other);
 
     public void clear();
 

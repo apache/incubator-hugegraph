@@ -163,7 +163,7 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
-    public boolean mergable(BackendEntry other) {
+    public boolean mergeable(BackendEntry other) {
         if (!(other instanceof BinaryBackendEntry)) {
             return false;
         }
