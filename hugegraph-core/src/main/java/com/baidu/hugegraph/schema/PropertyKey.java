@@ -33,7 +33,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.schema.builder.SchemaBuilder;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Propfiable;
+import com.baidu.hugegraph.type.Propertiable;
 import com.baidu.hugegraph.type.define.AggregateType;
 import com.baidu.hugegraph.type.define.Cardinality;
 import com.baidu.hugegraph.type.define.DataType;
@@ -41,7 +41,7 @@ import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LongEncoding;
 
-public class PropertyKey extends SchemaElement implements Propfiable {
+public class PropertyKey extends SchemaElement implements Propertiable {
 
     private DataType dataType;
     private Cardinality cardinality;
