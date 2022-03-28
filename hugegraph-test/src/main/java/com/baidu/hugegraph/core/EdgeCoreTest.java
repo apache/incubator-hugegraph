@@ -3310,7 +3310,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals("designer", vertices.get(0).label());
 
         Assert.assertThrows(HugeException.class, () -> {
-            // try to override vertex designer-456 wirh programmer-456
+            // try to override vertex designer-456 with programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",
                             "name", "marko", "age", 20, "city", "Beijing");
             graph.tx().commit();
@@ -3326,7 +3326,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "checkCustomVertexExist", false);
         params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
-            // override vertex designer-456 wirh programmer-456
+            // override vertex designer-456 with programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",
                             "name", "marko", "age", 21, "city", "Beijing");
             graph.tx().commit();
