@@ -42,7 +42,7 @@ public class AuthOptions extends OptionHolder {
     public static final ConfigOption<String> AUTHENTICATOR =
             new ConfigOption<>(
                     "auth.authenticator",
-                    "The class path of authenticator implemention. " +
+                    "The class path of authenticator implementation. " +
                     "e.g., com.baidu.hugegraph.auth.StandardAuthenticator, " +
                     "or com.baidu.hugegraph.auth.ConfigAuthenticator.",
                     null,
