@@ -79,16 +79,16 @@ public class PerfExample2 extends PerfExampleBase {
         for (int time = 0; time < times; time++) {
             LOG.debug("============== random person vertex ===============");
             for (int i = 0; i < PERSON_NUM * multiple; i++) {
-                Vertex vetex = graph.addVertex(T.label, "person");
-                personIds.add(vetex.id());
-                LOG.debug("Add person: {}", vetex);
+                Vertex vertex = graph.addVertex(T.label, "person");
+                personIds.add(vertex.id());
+                LOG.debug("Add person: {}", vertex);
             }
 
             LOG.debug("============== random software vertex ============");
             for (int i = 0; i < SOFTWARE_NUM * multiple; i++) {
-                Vertex vetex = graph.addVertex(T.label, "software");
-                softwareIds.add(vetex.id());
-                LOG.debug("Add software: {}", vetex);
+                Vertex vertex = graph.addVertex(T.label, "software");
+                softwareIds.add(vertex.id());
+                LOG.debug("Add software: {}", vertex);
             }
 
             LOG.debug("========== random knows & created edges ==========");
