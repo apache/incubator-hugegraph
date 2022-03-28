@@ -76,7 +76,7 @@ public class BatchConditionQuery extends ConditionQuery {
                 continue;
             }
             Object key = r.key();
-            if (Objects.equals(this.condition(key), query.condition(key))) {
+            if (!Objects.equals(this.condition(key), query.condition(key))) {
                 return false;
             }
         }
