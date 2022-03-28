@@ -26,7 +26,7 @@ public enum HugeKeys {
     /* Column names of schema type (common) */
     ID(1, "id"),
     NAME(2, "name"),
-    TIMESTANMP(3, "timestamp"),
+    TIMESTAMP(3, "timestamp"),
     SCHEMA_TYPE(4, "schema_type"),
 
     USER_DATA(10, "user_data"),
