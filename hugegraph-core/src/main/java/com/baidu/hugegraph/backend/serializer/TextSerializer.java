@@ -161,7 +161,7 @@ public class TextSerializer extends AbstractSerializer {
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(
-                          "Invalid value of non-sigle property: %s", colValue);
+                          "Invalid value of non-single property: %s", colValue);
             }
             for (Object v : (Collection<?>) value) {
                 v = JsonUtil.castNumber(v, pkey.dataType().clazz());
