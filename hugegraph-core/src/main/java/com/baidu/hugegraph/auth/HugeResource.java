@@ -43,7 +43,7 @@ import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
 import com.baidu.hugegraph.type.Nameable;
-import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.type.Typeable;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -144,8 +144,8 @@ public class HugeResource {
     }
 
     private boolean filter(Nameable element) {
-        assert !(element instanceof Typifiable) || this.type.match(
-               ResourceType.from(((Typifiable) element).type()));
+        assert !(element instanceof Typeable) || this.type.match(
+               ResourceType.from(((Typeable) element).type()));
 
         return this.matchLabel(element.name());
     }

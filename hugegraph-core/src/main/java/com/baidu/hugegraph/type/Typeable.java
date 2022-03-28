@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.type;
 
-public interface Typifiable {
+public interface Typeable {
 
     // Return schema/data type
     public HugeType type();
