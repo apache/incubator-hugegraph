@@ -1393,7 +1393,7 @@ public class GraphTransaction extends IndexableTransaction {
                             query, keys, HugeKeys.SORT_VALUES);
             query.query(conditions);
             /*
-             * Reset all userprop since transfered to sort-keys, ignore other
+             * Reset all userprop since transferred to sort-keys, ignore other
              * userprop(if exists) that it will be filtered by queryEdges(Query)
              */
             query.resetUserpropConditions();
