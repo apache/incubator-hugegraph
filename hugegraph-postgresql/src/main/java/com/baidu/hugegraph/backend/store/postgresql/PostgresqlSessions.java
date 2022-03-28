@@ -72,7 +72,7 @@ public class PostgresqlSessions extends MysqlSessions {
             try {
                 conn.createStatement().execute(sql);
             } catch (PSQLException e) {
-                // CockroackDB not support 'template' arg of CREATE DATABASE
+                // CockroachDB not support 'template' arg of CREATE DATABASE
                 if (e.getMessage().contains("syntax error at or near " +
                                             "\"template\"")) {
                     sql = String.format(COCKROACH_DB_CREATE, this.database());
