@@ -37,7 +37,7 @@ To find the Java binary in your environment, run the appropriate command for you
 To build without executing tests:
 
 1. Click on "File" -> "Open", choose your project location.
-2. Open maven view by click "View" -> "Tool Windows" -> "Maven Porjects".
+2. Open maven view by click "View" -> "Tool Windows" -> "Maven Projects".
 3. Choose root module "hugegraph: Distributed Graph Database", unfold the 
 menu of "Lifecycle".
 4. Click the "Toggle 'Skip Tests' Mode" button which is located on the top
