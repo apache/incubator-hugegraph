@@ -80,7 +80,7 @@ public final class StoreSerializer {
             buffer.write(entry.type().code());
             // write id
             buffer.writeBytes(entry.id().asBytes());
-            // wirte subId
+            // write subId
             if (entry.subId() != null) {
                 buffer.writeId(entry.subId());
             } else {

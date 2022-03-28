@@ -411,7 +411,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               "for vertex '%s'", key, val, property.element());
                 }
             };
-            // End wirte properties
+            // End write properties
             generator.writeEndObject();
         }
     }
