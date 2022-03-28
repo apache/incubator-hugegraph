@@ -148,7 +148,7 @@ public class StringEncodingTest {
     }
 
     @Test
-    public void testDeompress() {
+    public void testDecompress() {
         Assert.assertEquals("", StringEncoding.decompress(Bytes.fromHex(
                             "4c5a34426c6f636b12000000000000000000000000")));
         Assert.assertEquals("abc", StringEncoding.decompress(Bytes.fromHex(
