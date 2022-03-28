@@ -174,17 +174,16 @@ public abstract class AbstractComputer implements Computer {
         this.config.childConfigurationsAt(sub);
 
         E.checkArgument(nodes.size() >= 1,
-                        "Must contain one '%s' node",
-                        sub);
+                        "Node '%s' must contain", sub);
 
         ImmutableNode root = null;
         NodeModel<ImmutableNode> nodeModel = null;
         NodeHandler<ImmutableNode> nodeHandler = null;
         Map<String, Object> results = new HashMap<>(nodes.size());
         for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
-            E.checkArgument((nodeModel = node.getNodeModel()) != null
-                            && (nodeHandler = nodeModel.getNodeHandler()) != null
-                            && (root = nodeHandler.getRootNode()) != null,
+            E.checkArgument((nodeModel = node.getNodeModel()) != null &&
+                           (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                           (root = nodeHandler.getRootNode()) != null,
                            "Node '%s' must contain root", node);
             results.put(root.getNodeName(), root.getValue());
         }

@@ -1668,7 +1668,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private final class TraversalStrategyProxy<T extends TraversalStrategy>
                   implements TraversalStrategy<T> {
-        final TraversalStrategy<T> origin;
+        private final TraversalStrategy<T> origin;
 
         public TraversalStrategyProxy(TraversalStrategy<T> origin) {
             this.origin = origin;
@@ -1728,8 +1728,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public int compareTo(final Class<? extends TraversalStrategy>
-                                   otherTraversalCategory) {
+        public int compareTo(Class<? extends TraversalStrategy>
+                                             otherTraversalCategory) {
             return this.origin.compareTo(otherTraversalCategory);
         }
 

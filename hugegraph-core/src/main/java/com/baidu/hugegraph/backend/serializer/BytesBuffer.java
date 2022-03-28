@@ -123,7 +123,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer forReadWritten() {
-        ((Buffer)this.buffer).flip();
+        ((Buffer) this.buffer).flip();
         return this;
     }
 
@@ -173,7 +173,7 @@ public final class BytesBuffer extends OutputStream {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         ByteBuffer newBuffer = ByteBuffer.allocate(newcapacity);
-        ((Buffer)this.buffer).flip();
+        ((Buffer) this.buffer).flip();
         newBuffer.put(this.buffer);
         this.buffer = newBuffer;
     }

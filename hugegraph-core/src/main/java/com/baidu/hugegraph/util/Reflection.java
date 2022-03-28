@@ -82,7 +82,7 @@ public class Reflection {
                                               String ... fieldNames) {
         if (registerFieldsToFilterMethod == null) {
             throw new NotSupportException(
-                      "No support this method 'registerFieldsToFilter'");
+                      "Reflection.registerFieldsToFilter()");
         }
 
         try {
@@ -100,8 +100,7 @@ public class Reflection {
                                                String ... methodNames) {
         if (registerMethodsToFilterMethod == null) {
             throw new NotSupportException(
-                      "Currently Java version no support " +
-                      "the method 'registerMethodsToFilterMethod'");
+                      "Reflection.registerMethodsToFilterMethod()");
         }
 
         try {
@@ -111,7 +110,7 @@ public class Reflection {
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
                       "Register class '{}' filter method '{}' is failed",
-                       containingClass, Arrays.toString(methodNames));
+                      containingClass, Arrays.toString(methodNames));
         }
     }
 }

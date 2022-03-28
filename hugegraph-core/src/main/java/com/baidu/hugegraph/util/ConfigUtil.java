@@ -87,7 +87,7 @@ public final class ConfigUtil {
                 E.checkArgument((nodeModel = node.getNodeModel()) != null
                   && (nodeHandler = nodeModel.getNodeHandler()) != null
                   && (root = nodeHandler.getRootNode()) != null,
-                 "Node '%s' must contain root", node);
+                  "Node '%s' must contain root", node);
             }
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file '%s'",
