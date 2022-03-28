@@ -373,11 +373,11 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         /**
-         * Scan records by multi rowkey prefixs from a table
+         * Scan records by multi rowkey prefixes from a table
          */
-        public default R scan(String table, Set<byte[]> prefixs) {
+        public default R scan(String table, Set<byte[]> prefixes) {
             FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
-            for (byte[] prefix : prefixs) {
+            for (byte[] prefix : prefixes) {
                 FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
                 List<RowRange> ranges = new ArrayList<>();
                 ranges.add(new RowRange(prefix, true, null, true));
