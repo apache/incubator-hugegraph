@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -34,7 +35,6 @@ import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.RaftClosure;
-import com.baidu.hugegraph.backend.store.raft.RaftNode;
 import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
@@ -53,14 +53,14 @@ public class RpcForwarder {
     private final PeerId nodeId;
     private final RaftClientService rpcClient;
 
-    public RpcForwarder(RaftNode node) {
-        this.nodeId = node.node().getNodeId().getPeerId();
-        this.rpcClient = ((NodeImpl) node.node()).getRpcService();
+    public RpcForwarder(Node node) {
+        this.nodeId = node.getNodeId().getPeerId();
+        this.rpcClient = ((NodeImpl) node).getRpcService();
         E.checkNotNull(this.rpcClient, "rpc client");
     }
 
     public void forwardToLeader(PeerId leaderId, StoreCommand command,
-                                RaftStoreClosure closure) {
+                                RaftStoreClosure future) {
         E.checkNotNull(leaderId, "leader id");
         E.checkState(!leaderId.equals(this.nodeId),
                      "Invalid state: current node is the leader, there is " +
@@ -80,7 +80,7 @@ public class RpcForwarder {
             public void setResponse(StoreCommandResponse response) {
                 if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
-                    closure.complete(Status.OK(), () -> null);
+                    future.complete(Status.OK(), () -> null);
                 } else {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,
@@ -90,13 +90,13 @@ public class RpcForwarder {
                                          "is [%s], failed to forward request " +
                                          "to leader: %s",
                                          leaderId, response.getMessage());
-                    closure.failure(status, e);
+                    future.failure(status, e);
                 }
             }
 
             @Override
             public void run(Status status) {
-                closure.run(status);
+                future.run(status);
             }
         };
         this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
@@ -112,7 +112,7 @@ public class RpcForwarder {
                   this.nodeId, leaderId);
 
         RaftClosure<T> future = new RaftClosure<>();
-        RpcResponseClosure<T> responseClosure = new RpcResponseClosure<T>() {
+        RpcResponseClosure<T> responseDone = new RpcResponseClosure<T>() {
             @Override
             public void setResponse(T response) {
                 FieldDescriptor fd = response.getDescriptorForType()
@@ -142,7 +142,7 @@ public class RpcForwarder {
                 future.run(status);
             }
         };
-        this.waitRpc(leaderId.getEndpoint(), request, responseClosure);
+        this.waitRpc(leaderId.getEndpoint(), request, responseDone);
         return future;
     }
 
@@ -151,7 +151,8 @@ public class RpcForwarder {
         E.checkNotNull(endpoint, "leader endpoint");
         try {
             this.rpcClient.invokeWithDone(endpoint, request, done,
-                                          WAIT_RPC_TIMEOUT).get();
+                                          WAIT_RPC_TIMEOUT)
+                          .get();
         } catch (InterruptedException e) {
             throw new BackendException("Invoke rpc request was interrupted, " +
                                        "please try again later", e);
