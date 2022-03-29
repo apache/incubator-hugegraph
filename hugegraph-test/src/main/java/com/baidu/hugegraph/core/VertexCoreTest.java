@@ -5192,6 +5192,68 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByJointIndexesWithSearchAndTwoRangeIndexesAndWithin() {
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("type").asInt().ifNotExist().create();
+        schema.propertyKey("kid").asInt().ifNotExist().create();
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("confirmType").asInt().ifNotExist().create();
+
+        schema.vertexLabel("test")
+              .properties("confirmType", "name", "kid", "type")
+              .nullableKeys("confirmType", "name", "type")
+              .primaryKeys("kid")
+              .ifNotExist().create();
+
+        schema.indexLabel("test_by_type")
+              .onV("test").by("type")
+              .range()
+              .ifNotExist().create();
+        schema.indexLabel("test_by_confirmType")
+              .onV("test").by("confirmType")
+              .range()
+              .ifNotExist().create();
+        schema.indexLabel("test_by_name")
+              .onV("test").by("name")
+              .search()
+              .ifNotExist().create();
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "test", "name", "诚信",
+                        "confirmType", 0, "type", 0, "kid", 0);
+        graph.addVertex(T.label, "test", "name", "诚信",
+                        "confirmType", 1, "type", 1, "kid", 1);
+        graph.addVertex(T.label, "test", "name", "诚信文明",
+                        "confirmType", 2, "type", 1, "kid", 2);
+        graph.addVertex(T.label, "test", "name", "诚信文明",
+                        "confirmType", 3, "type", 1, "kid", 3);
+
+        List<Vertex> vertices;
+        vertices = graph().traversal().V()
+                          .has("type", 1)
+                          .has("confirmType", P.within(0, 1, 2, 3))
+                          .has("name", Text.contains("诚信"))
+                          .toList();
+        Assert.assertEquals(3, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("type", 1)
+                          .has("confirmType", P.within(0, 1, 2, 3))
+                          .has("name", Text.contains("文明"))
+                          .toList();
+        Assert.assertEquals(2, vertices.size());
+
+        vertices = graph().traversal().V()
+                          .has("type", 0)
+                          .has("confirmType", P.within(0, 1, 3))
+                          .has("name", Text.contains("诚信"))
+                          .toList();
+        Assert.assertEquals(1, vertices.size());
+    }
+
+    @Test
     public void testQueryByShardIndex() {
         SchemaManager schema = graph().schema();
 
