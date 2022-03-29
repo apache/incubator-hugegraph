@@ -1053,7 +1053,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
                                                          MatchedIndex index) {
-        IndexQueries queries = new IndexQueries();
+        IndexQueries queries = IndexQueries.of(query);
         List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
 
         // Handle range/search indexes
@@ -1174,7 +1174,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static IndexQueries constructQueries(ConditionQuery query,
                                                  Set<IndexLabel> ils,
                                                  Set<Id> propKeys) {
-        IndexQueries queries = new IndexQueries();
+        IndexQueries queries = IndexQueries.of(query);
 
         for (IndexLabel il : ils) {
             List<Id> fields = il.indexFields();
@@ -1627,12 +1627,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
                    extends HashMap<IndexLabel, ConditionQuery> {
 
         private static final long serialVersionUID = 1400326138090922676L;
+        private static final IndexQueries EMPTY = new IndexQueries(null);
 
-        public static final IndexQueries EMPTY = new IndexQueries();
+        private final ConditionQuery parentQuery;
+
+        public IndexQueries(ConditionQuery parentQuery) {
+            this.parentQuery = parentQuery;
+        }
 
         public static IndexQueries of(IndexLabel il, ConditionQuery query) {
-            IndexQueries indexQueries = new IndexQueries();
+            IndexQueries indexQueries = new IndexQueries(query);
             indexQueries.put(il, query);
+            return indexQueries;
+        }
+
+        public static IndexQueries of(ConditionQuery parentQuery) {
+            IndexQueries indexQueries = new IndexQueries(parentQuery);
             return indexQueries;
         }
 
@@ -1660,26 +1670,36 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         public Query asJointQuery() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            Collection<Query> queries = (Collection) this.values();;
-            return new JointQuery(this.rootQuery().resultType(), queries);
+            Collection<Query> queries = (Collection) this.values();
+            return new JointQuery(this.rootQuery().resultType(),
+                                  this.parentQuery, queries);
         }
 
         private static class JointQuery extends Query {
 
             private final Collection<Query> queries;
+            private final ConditionQuery parentQuery;
 
-            public JointQuery(HugeType type, Collection<Query> queries) {
+            public JointQuery(HugeType type, ConditionQuery parentQuery,
+                              Collection<Query> queries) {
                 super(type, parent(queries));
+                this.parentQuery = parentQuery;
                 this.queries = queries;
             }
 
             @Override
             public Query originQuery() {
+                return this.parentQuery;
+            }
+
+            @SuppressWarnings("unused")
+            public Query originJointQuery() {
                 List<Query> origins = new ArrayList<>();
                 for (Query q : this.queries) {
                     origins.add(q.originQuery());
                 }
-                return new JointQuery(this.resultType(), origins);
+                return new JointQuery(this.resultType(),
+                                      this.parentQuery, origins);
             }
 
             @Override

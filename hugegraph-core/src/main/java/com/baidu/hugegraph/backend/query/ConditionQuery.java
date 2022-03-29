@@ -618,11 +618,26 @@ public class ConditionQuery extends IdQuery {
     public void registerResultsFilter(Function<HugeElement, Boolean> filter) {
         assert this.resultsFilter == null;
         this.resultsFilter = filter;
+    }
 
+    public void updateResultsFilter() {
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ConditionQuery cq = ((ConditionQuery) originQuery);
-            cq.registerResultsFilter(filter);
+            ConditionQuery originCQ = ((ConditionQuery) originQuery);
+            if (this.resultsFilter != null) {
+                originCQ.updateResultsFilter(this.resultsFilter);
+            } else {
+                originCQ.updateResultsFilter();
+            }
+        }
+    }
+
+    protected void updateResultsFilter(Function<HugeElement, Boolean> filter) {
+        this.resultsFilter = filter;
+        Query originQuery = this.originQuery();
+        if (originQuery instanceof ConditionQuery) {
+            ConditionQuery originCQ = ((ConditionQuery) originQuery);
+            originCQ.updateResultsFilter(filter);
         }
     }
 
