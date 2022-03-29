@@ -53,6 +53,10 @@ public class ContextGremlinServer extends GremlinServer {
 
     private final EventHub eventHub;
 
+    static {
+        HugeGraphAuthProxy.setContext(Context.admin());
+    }
+
     public ContextGremlinServer(final Settings settings, EventHub eventHub) {
         /*
          * pass custom Executor https://github.com/apache/tinkerpop/pull/813
