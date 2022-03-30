@@ -122,5 +122,11 @@ public class HugeGraphServer {
             server.stop();
             LOG.info("HugeGraphServer stopped");
         }, "hugegraph-server-shutdown"));
+        /*
+         * HugeFactory shutdown hook be invoked before server stop, so that
+         * eventHub execute notify event on a shutdown executor, so here
+         * remove the HugeFactory shutdown hook.
+         */
+        HugeFactory.removeShutdownHook();
     }
 }
