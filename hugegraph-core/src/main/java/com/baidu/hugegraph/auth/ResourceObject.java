@@ -22,7 +22,7 @@ package com.baidu.hugegraph.auth;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.schema.SchemaElement;
 import com.baidu.hugegraph.structure.HugeElement;
-import com.baidu.hugegraph.type.Namifiable;
+import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.util.E;
 
 public class ResourceObject<V> {
@@ -89,7 +89,7 @@ public class ResourceObject<V> {
     }
 
     public static ResourceObject<?> of(String graph, ResourceType type,
-                                       Namifiable elem) {
+                                       Nameable elem) {
         return new ResourceObject<>(graph, type, elem);
     }
 }

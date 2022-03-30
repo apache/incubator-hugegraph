@@ -356,7 +356,7 @@ public final class RamTable {
             assert vertex < Integer.MAX_VALUE;
             this.verticesHigh.put(vertex, position);
         } else {
-            throw new HugeException("Out of vertices capaticy %s",
+            throw new HugeException("Out of vertices capacity %s",
                                     this.verticesCapacity);
         }
     }
@@ -369,7 +369,7 @@ public final class RamTable {
             assert vertex < Integer.MAX_VALUE;
             return this.verticesHigh.get(vertex);
         } else {
-            throw new HugeException("Out of vertices capaticy %s: %s",
+            throw new HugeException("Out of vertices capacity %s: %s",
                                     this.verticesCapacity, vertex);
         }
     }

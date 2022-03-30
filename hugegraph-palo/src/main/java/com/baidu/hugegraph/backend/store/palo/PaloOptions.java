@@ -86,7 +86,7 @@ public class PaloOptions extends OptionHolder {
     public static final ConfigOption<Integer> PALO_POLL_INTERVAL =
             new ConfigOption<>(
                     "palo.poll_interval",
-                    "The execution peroid of the background thread that " +
+                    "The execution period of the background thread that " +
                     "check whether need to load file data into Palo.",
                     rangeInt(5, Integer.MAX_VALUE),
                     5

@@ -90,10 +90,10 @@ public abstract class CassandraTable
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            CassandraShard spliter = new CassandraShard(session,
+            CassandraShard splitter = new CassandraShard(session,
                                                         session.keyspace(),
                                                         this.table());
-            return spliter.getSplits(0, splitSize);
+            return splitter.getSplits(0, splitSize);
         });
     }
 

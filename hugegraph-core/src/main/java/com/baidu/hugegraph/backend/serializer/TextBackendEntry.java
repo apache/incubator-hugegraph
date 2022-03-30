@@ -278,7 +278,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     }
 
     @Override
-    public boolean mergable(BackendEntry other) {
+    public boolean mergeable(BackendEntry other) {
         if (!(other instanceof TextBackendEntry)) {
             return false;
         }

@@ -310,7 +310,7 @@ public abstract class CassandraStore
                 iterators.add(table.query(this.session(), q));
             }
             entries = new MergeIterator<>(entries, iterators,
-                                          BackendEntry::mergable);
+                                          BackendEntry::mergeable);
         }
         return entries;
     }

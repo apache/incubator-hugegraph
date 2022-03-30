@@ -57,18 +57,18 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     private static final Logger LOG = Log.logger(InMemoryDBTable.class);
 
     protected final Map<Id, BackendEntry> store;
-    private final InMemoryShardSpliter shardSpliter;
+    private final InMemoryShardSplitter shardSplitter;
 
     public InMemoryDBTable(HugeType type) {
         super(type.name());
         this.store = new ConcurrentHashMap<>();
-        this.shardSpliter = new InMemoryShardSpliter(this.table());
+        this.shardSplitter = new InMemoryShardSplitter(this.table());
     }
 
     public InMemoryDBTable(HugeType type, Map<Id, BackendEntry> store) {
         super(type.name());
         this.store = store;
-        this.shardSpliter = new InMemoryShardSpliter(this.table());
+        this.shardSplitter = new InMemoryShardSplitter(this.table());
     }
 
     @Override
@@ -77,7 +77,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            return this.shardSpliter.getSplits(session, splitSize);
+            return this.shardSplitter.getSplits(session, splitSize);
         });
     }
 
@@ -328,9 +328,9 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         return false;
     }
 
-    private class InMemoryShardSpliter extends ShardSpliter<BackendSession> {
+    private class InMemoryShardSplitter extends ShardSplitter<BackendSession> {
 
-        public InMemoryShardSpliter(String table) {
+        public InMemoryShardSplitter(String table) {
             super(table);
         }
 

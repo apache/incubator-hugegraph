@@ -240,9 +240,9 @@ public abstract class SchemaDefine {
         protected abstract Object[] asArray();
     }
 
-    // NOTE: travis-ci fails if class Entity implements Namifiable
+    // NOTE: travis-ci fails if class Entity implements Nameable
     public static abstract class Entity extends AuthElement
-                           implements com.baidu.hugegraph.type.Namifiable {
+                           implements com.baidu.hugegraph.type.Nameable {
 
         private static final long serialVersionUID = 4113319546914811762L;
 

@@ -231,7 +231,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfInt() {
+    public void testAddVertexWithInvalidPropertyValueOfInt() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -256,7 +256,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfLong() {
+    public void testAddVertexWithInvalidPropertyValueOfLong() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -276,7 +276,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfFloat() {
+    public void testAddVertexWithInvalidPropertyValueOfFloat() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -298,7 +298,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testAddVertexWithInvalidPropertValueOfDouble() {
+    public void testAddVertexWithInvalidPropertyValueOfDouble() {
         HugeGraph graph = graph();
 
         SchemaManager schema = graph.schema();
@@ -2952,7 +2952,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByIdWithGraphAPIAndNotCommitedUpdate() {
+    public void testQueryByIdWithGraphAPIAndNotCommittedUpdate() {
         HugeGraph graph = graph();
         init10Vertices();
 
@@ -2975,7 +2975,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryByIdWithGraphAPIAndNotCommitedRemoved() {
+    public void testQueryByIdWithGraphAPIAndNotCommittedRemoved() {
         HugeGraph graph = graph();
         init10Vertices();
 
@@ -3692,7 +3692,7 @@ public class VertexCoreTest extends BaseCoreTest {
              .remove(); // avoid merge property mode
         graph.tx().commit();
 
-        // qeury again after commit
+        // query again after commit
         vertices = graph.traversal().V().hasLabel("person")
                         .has("age", P.between(-1, 21)).toList();
         Assert.assertEquals(3, vertices.size());
@@ -7408,8 +7408,8 @@ public class VertexCoreTest extends BaseCoreTest {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
         } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
+            query.scan(BackendTable.ShardSplitter.START,
+                       BackendTable.ShardSplitter.END);
         }
 
         query.limit(1);
@@ -7835,7 +7835,7 @@ public class VertexCoreTest extends BaseCoreTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 /*
                  * When query vertices/edge in page, the limit will be regard
-                 * as page size, it shoudn't exceed capacity
+                 * as page size, it shouldn't exceed capacity
                  */
                 g.V().has("~page", "").limit(capacity + 1).toList();
             });

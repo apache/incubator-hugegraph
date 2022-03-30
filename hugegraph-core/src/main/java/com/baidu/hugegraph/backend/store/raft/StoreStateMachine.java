@@ -90,7 +90,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 future.get();
             }
         } catch (Throwable e) {
-            String title = "StateMachine occured critical error";
+            String title = "StateMachine occurred critical error";
             LOG.error("{}", title, e);
             Status status = new Status(RaftError.ESTATEMACHINE,
                                        "%s: %s", title, e.getMessage());
@@ -204,7 +204,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
             return false;
         }
         /*
-         * Snapshot load occured in RaftNode constructor, specifically at step
+         * Snapshot load occurred in RaftNode constructor, specifically at step
          * `this.node = this.initRaftNode()`, at this time the NodeImpl is null
          * in RaftNode so we can't call `this.node().nodeId()`
          */

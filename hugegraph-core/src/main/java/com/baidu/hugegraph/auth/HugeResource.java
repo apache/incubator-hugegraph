@@ -42,8 +42,8 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.auth.SchemaDefine.AuthElement;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.traversal.optimize.TraversalUtil;
-import com.baidu.hugegraph.type.Namifiable;
-import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.type.Nameable;
+import com.baidu.hugegraph.type.Typeable;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -124,7 +124,7 @@ public class HugeResource {
                 return this.filter((AuthElement) resourceObject.operated());
             }
             if (resType.isSchema() || CHECK_NAME_RESS.contains(resType)) {
-                return this.filter((Namifiable) resourceObject.operated());
+                return this.filter((Nameable) resourceObject.operated());
             }
         }
 
@@ -137,15 +137,15 @@ public class HugeResource {
 
     private boolean filter(AuthElement element) {
         assert this.type.match(element.type());
-        if (element instanceof Namifiable) {
-            return this.filter((Namifiable) element);
+        if (element instanceof Nameable) {
+            return this.filter((Nameable) element);
         }
         return true;
     }
 
-    private boolean filter(Namifiable element) {
-        assert !(element instanceof Typifiable) || this.type.match(
-               ResourceType.from(((Typifiable) element).type()));
+    private boolean filter(Nameable element) {
+        assert !(element instanceof Typeable) || this.type.match(
+               ResourceType.from(((Typeable) element).type()));
 
         return this.matchLabel(element.name());
     }
@@ -248,7 +248,7 @@ public class HugeResource {
     public static boolean allowed(ResourceObject<?> resourceObject) {
         // Allowed to access system(hidden) schema by anyone
         if (resourceObject.type().isSchema()) {
-            Namifiable schema = (Namifiable) resourceObject.operated();
+            Nameable schema = (Nameable) resourceObject.operated();
             return Hidden.isHidden(schema.name());
         }
 
@@ -264,7 +264,7 @@ public class HugeResource {
         return JsonUtil.fromJson(resources, type);
     }
 
-    public static class NameObject implements Namifiable {
+    public static class NameObject implements Nameable {
 
         public static final NameObject ANY = new NameObject("*");
 

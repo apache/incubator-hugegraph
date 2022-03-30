@@ -128,7 +128,7 @@ public class MysqlSerializer extends TableSerializer {
     protected void parseProperties(HugeElement element,
                                    TableBackendEntry.Row row) {
         String properties = row.column(HugeKeys.PROPERTIES);
-        // Query edge will wraped by a vertex, whose properties is empty
+        // Query edge will wrapped by a vertex, whose properties is empty
         if (properties.isEmpty()) {
             return;
         }

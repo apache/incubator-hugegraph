@@ -29,13 +29,13 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Indexfiable;
-import com.baidu.hugegraph.type.Propfiable;
+import com.baidu.hugegraph.type.Indexable;
+import com.baidu.hugegraph.type.Propertiable;
 import com.baidu.hugegraph.util.E;
 import com.google.common.base.Objects;
 
 public abstract class SchemaLabel extends SchemaElement
-                                  implements Indexfiable, Propfiable {
+                                  implements Indexable, Propertiable {
 
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;

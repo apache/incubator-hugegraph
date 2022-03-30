@@ -63,7 +63,7 @@ public class MultiGraphsTest {
             graph.initBackend();
             graph.clearBackend();
         }
-        destoryGraphs(graphs);
+        destroyGraphs(graphs);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class MultiGraphsTest {
         for (HugeGraph graph : graphs) {
             graph.clearBackend();
         }
-        destoryGraphs(graphs);
+        destroyGraphs(graphs);
     }
 
     @Test
@@ -211,7 +211,7 @@ public class MultiGraphsTest {
         for (HugeGraph graph : graphs) {
             graph.clearBackend();
         }
-        destoryGraphs(graphs);
+        destroyGraphs(graphs);
     }
 
     @Test
@@ -273,7 +273,7 @@ public class MultiGraphsTest {
         g2.clearBackend();
         g3.clearBackend();
 
-        destoryGraphs(ImmutableList.of(g1, g2, g3));
+        destroyGraphs(ImmutableList.of(g1, g2, g3));
     }
 
     @Test
@@ -301,7 +301,7 @@ public class MultiGraphsTest {
         g2.clearBackend();
         graph.clearBackend();
 
-        destoryGraphs(ImmutableList.of(g1, g2, graph));
+        destroyGraphs(ImmutableList.of(g1, g2, graph));
     }
 
     @Test
@@ -343,7 +343,7 @@ public class MultiGraphsTest {
                                   root.getMessage());
         });
 
-        destoryGraphs(ImmutableList.of(g1));
+        destroyGraphs(ImmutableList.of(g1));
     }
 
     private static List<HugeGraph> openGraphs(String... graphNames) {
@@ -355,7 +355,7 @@ public class MultiGraphsTest {
         return graphs;
     }
 
-    private static void destoryGraphs(List<HugeGraph> graphs) {
+    private static void destroyGraphs(List<HugeGraph> graphs) {
         for (HugeGraph graph : graphs) {
             try {
                 graph.close();

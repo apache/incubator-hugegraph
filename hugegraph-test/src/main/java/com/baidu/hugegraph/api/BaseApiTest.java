@@ -448,7 +448,7 @@ public class BaseApiTest {
 
         List<Map> vertices = readList(content, "vertices", Map.class);
 
-        Map<String, String> vertextName2Ids = new HashMap<>();
+        Map<String, String> vertexName2Ids = new HashMap<>();
         for (Map vertex : vertices) {
             Map properties = (Map) vertex.get("properties");
             if (properties == null ||
@@ -466,10 +466,10 @@ public class BaseApiTest {
                 continue;
             }
 
-            vertextName2Ids.put(name, id);
+            vertexName2Ids.put(name, id);
         }
 
-        return vertextName2Ids;
+        return vertexName2Ids;
     }
 
     protected static String id2Json(String params) {

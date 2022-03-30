@@ -36,7 +36,7 @@ public enum UpdateStrategy {
     SUM {
         @Override
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
-            // TODO: Improve preformance? (like write a method in common module)
+            // TODO: Improve performance? (like write a method in common module)
             BigDecimal oldNumber = new BigDecimal(oldProperty.toString());
             BigDecimal newNumber = new BigDecimal(newProperty.toString());
             return oldNumber.add(newNumber);

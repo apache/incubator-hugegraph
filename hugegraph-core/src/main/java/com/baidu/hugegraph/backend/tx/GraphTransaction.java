@@ -1393,7 +1393,7 @@ public class GraphTransaction extends IndexableTransaction {
                             query, keys, HugeKeys.SORT_VALUES);
             query.query(conditions);
             /*
-             * Reset all userprop since transfered to sort-keys, ignore other
+             * Reset all userprop since transferred to sort-keys, ignore other
              * userprop(if exists) that it will be filtered by queryEdges(Query)
              */
             query.resetUserpropConditions();
@@ -1544,7 +1544,7 @@ public class GraphTransaction extends IndexableTransaction {
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             HugeGraph graph = this.graph();
             E.checkArgument(false, "All non-null property keys %s of " +
-                            "vertex label '%s' must be setted, missed keys %s",
+                            "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
                             graph.mapPkId2Name(missed));
         }

@@ -90,10 +90,10 @@ public class PerfExample1 extends PerfExampleBase {
                 Random random = new Random();
                 int age = random.nextInt(70);
                 String name = "P" + random.nextInt();
-                Vertex vetex = graph.addVertex(T.label, "person",
-                                               "name", name, "age", age);
-                personIds.add(vetex.id());
-                LOG.debug("Add person: {}", vetex);
+                Vertex vertex = graph.addVertex(T.label, "person",
+                                                "name", name, "age", age);
+                personIds.add(vertex.id());
+                LOG.debug("Add person: {}", vertex);
             }
 
             LOG.debug("============== random software vertex ============");
@@ -101,11 +101,11 @@ public class PerfExample1 extends PerfExampleBase {
                 Random random = new Random();
                 int price = random.nextInt(10000) + 1;
                 String name = "S" + random.nextInt();
-                Vertex vetex = graph.addVertex(T.label, "software",
-                                               "name", name, "lang", "java",
-                                               "price", price);
-                softwareIds.add(vetex.id());
-                LOG.debug("Add software: {}", vetex);
+                Vertex vertex = graph.addVertex(T.label, "software",
+                                                "name", name, "lang", "java",
+                                                "price", price);
+                softwareIds.add(vertex.id());
+                LOG.debug("Add software: {}", vertex);
             }
 
             LOG.debug("========== random knows & created edges ==========");

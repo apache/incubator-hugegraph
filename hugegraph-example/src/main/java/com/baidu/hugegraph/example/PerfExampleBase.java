@@ -222,14 +222,14 @@ public abstract class PerfExampleBase {
                 continue;
             }
 
-            LOG.debug("Qeury vertex {}: {}", i, id);
+            LOG.debug("Query vertex {}: {}", i, id);
             Vertex vertex = graph.queryVertex(id);
             if (!vertex.id().equals(id)) {
-                LOG.warn("Qeury vertex by id {} returned {}", id, vertex);
+                LOG.warn("Query vertex by id {} returned {}", id, vertex);
             }
             total++;
         }
-        LOG.debug("Qeury vertices with thread({}): {}", thread, total);
+        LOG.debug("Query vertices with thread({}): {}", thread, total);
     }
 
     protected void testQueryEdge(GraphManager graph,
@@ -248,7 +248,7 @@ public abstract class PerfExampleBase {
                 continue;
             }
 
-            LOG.debug("Qeury vertex {}: {}", i, id);
+            LOG.debug("Query vertex {}: {}", i, id);
             Iterator<Edge> edges = graph.queryVertexEdge(id, Directions.OUT);
             while (edges.hasNext()) {
                 totalE++;
@@ -256,7 +256,7 @@ public abstract class PerfExampleBase {
             }
             totalV++;
         }
-        LOG.debug("Qeury edges of vertices({}) with thread({}): {}",
+        LOG.debug("Query edges of vertices({}) with thread({}): {}",
                   totalV, thread, totalE);
     }
 

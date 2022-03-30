@@ -57,9 +57,9 @@ public class Example2 {
 
         GraphTraversalSource g = graph.traversal();
 
-        GraphTraversal<Vertex, Vertex> vertexs = g.V();
+        GraphTraversal<Vertex, Vertex> vertices = g.V();
         System.out.println(">>>> query all vertices: size=" +
-                           vertexs.toList().size());
+                           vertices.toList().size());
 
         List<Edge> edges = g.E().toList();
         System.out.println(">>>> query all edges: size=" +

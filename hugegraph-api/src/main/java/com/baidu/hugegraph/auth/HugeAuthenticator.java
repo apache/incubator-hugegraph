@@ -37,7 +37,7 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.type.Namifiable;
+import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
@@ -432,7 +432,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public ResourceObject<?> resourceObject() {
-            Namifiable elem = HugeResource.NameObject.ANY;
+            Nameable elem = HugeResource.NameObject.ANY;
             return ResourceObject.of(this.owner, this.resource, elem);
         }
 

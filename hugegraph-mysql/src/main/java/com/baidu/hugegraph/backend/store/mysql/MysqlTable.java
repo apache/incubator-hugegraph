@@ -65,14 +65,14 @@ public abstract class MysqlTable
     private String insertTemplateTtl;
     private String deleteTemplate;
 
-    private final MysqlShardSpliter shardSpliter;
+    private final MysqlShardSplitter shardSplitter;
 
     public MysqlTable(String table) {
         super(table);
         this.insertTemplate = null;
         this.insertTemplateTtl = null;
         this.deleteTemplate = null;
-        this.shardSpliter = new MysqlShardSpliter(this.table());
+        this.shardSplitter = new MysqlShardSplitter(this.table());
     }
 
     @Override
@@ -81,7 +81,7 @@ public abstract class MysqlTable
             E.checkArgument(args.length == 1,
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
-            return this.shardSpliter.getSplits(session, splitSize);
+            return this.shardSplitter.getSplits(session, splitSize);
         });
     }
 
@@ -445,8 +445,8 @@ public abstract class MysqlTable
         Shard shard = (Shard) scan.value();
 
         String page = query.page();
-        if (MysqlShardSpliter.START.equals(shard.start()) &&
-            MysqlShardSpliter.END.equals(shard.end()) &&
+        if (MysqlShardSplitter.START.equals(shard.start()) &&
+            MysqlShardSplitter.END.equals(shard.end()) &&
             (page == null || page.isEmpty())) {
             this.wrapLimit(select, query);
             return select;
@@ -459,7 +459,7 @@ public abstract class MysqlTable
             this.wrapPage(select, query, true);
             // < end
             WhereBuilder where = this.newWhereBuilder(false);
-            if (!MysqlShardSpliter.END.equals(shard.end())) {
+            if (!MysqlShardSplitter.END.equals(shard.end())) {
                 where.and();
                 where.lt(formatKey(partitionKey), shard.end());
             }
@@ -468,12 +468,12 @@ public abstract class MysqlTable
             // >= start
             WhereBuilder where = this.newWhereBuilder();
             boolean hasStart = false;
-            if (!MysqlShardSpliter.START.equals(shard.start())) {
+            if (!MysqlShardSplitter.START.equals(shard.start())) {
                 where.gte(formatKey(partitionKey), shard.start());
                 hasStart = true;
             }
             // < end
-            if (!MysqlShardSpliter.END.equals(shard.end())) {
+            if (!MysqlShardSplitter.END.equals(shard.end())) {
                 if (hasStart) {
                     where.and();
                 }
@@ -698,14 +698,14 @@ public abstract class MysqlTable
         return names;
     }
 
-    private static class MysqlShardSpliter extends ShardSpliter<Session> {
+    private static class MysqlShardSplitter extends ShardSplitter<Session> {
 
         private static final String BASE64 =
                 "0123456789=?ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
                 "abcdefghijklmnopqrstuvwxyz";
         private static final int COUNT = 64;
 
-        public MysqlShardSpliter(String table) {
+        public MysqlShardSplitter(String table) {
             super(table);
         }
 

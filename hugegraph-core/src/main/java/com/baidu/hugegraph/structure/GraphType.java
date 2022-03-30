@@ -19,8 +19,8 @@
 
 package com.baidu.hugegraph.structure;
 
-import com.baidu.hugegraph.type.Namifiable;
-import com.baidu.hugegraph.type.Typifiable;
+import com.baidu.hugegraph.type.Nameable;
+import com.baidu.hugegraph.type.Typeable;
 
-public interface GraphType extends Namifiable, Typifiable {
+public interface GraphType extends Nameable, Typeable {
 }

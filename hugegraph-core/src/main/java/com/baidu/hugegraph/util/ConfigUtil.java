@@ -71,7 +71,7 @@ public final class ConfigUtil {
     }
 
     public static Map<String, String> scanGraphsDir(String graphsDirPath) {
-        LOG.info("Scaning option 'graphs' directory '{}'", graphsDirPath);
+        LOG.info("Scanning option 'graphs' directory '{}'", graphsDirPath);
         File graphsDir = new File(graphsDirPath);
         E.checkArgument(graphsDir.exists() && graphsDir.isDirectory(),
                         "Please ensure the path '%s' of option 'graphs' " +

@@ -2634,7 +2634,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedUpdate() {
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommittedUpdate() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -2655,7 +2655,7 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryEdgesByIdWithGraphAPIAndNotCommitedRemoved() {
+    public void testQueryEdgesByIdWithGraphAPIAndNotCommittedRemoved() {
         HugeGraph graph = graph();
         init18Edges();
 
@@ -3310,7 +3310,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals("designer", vertices.get(0).label());
 
         Assert.assertThrows(HugeException.class, () -> {
-            // try to override vertex designer-456 wirh programmer-456
+            // try to override vertex designer-456 with programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",
                             "name", "marko", "age", 20, "city", "Beijing");
             graph.tx().commit();
@@ -3326,7 +3326,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "checkCustomVertexExist", false);
         params().graphEventHub().notify(Events.CACHE, "clear", null).get();
         try {
-            // override vertex designer-456 wirh programmer-456
+            // override vertex designer-456 with programmer-456
             graph.addVertex(T.label, "programmer", T.id, "456",
                             "name", "marko", "age", 21, "city", "Beijing");
             graph.tx().commit();
@@ -5147,8 +5147,8 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
         } else {
-            query.scan(BackendTable.ShardSpliter.START,
-                       BackendTable.ShardSpliter.END);
+            query.scan(BackendTable.ShardSplitter.START,
+                       BackendTable.ShardSplitter.END);
         }
 
         query.limit(1);

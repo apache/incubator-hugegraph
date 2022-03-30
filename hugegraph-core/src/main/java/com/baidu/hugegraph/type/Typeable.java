@@ -19,11 +19,8 @@
 
 package com.baidu.hugegraph.type;
 
-import java.util.Set;
+public interface Typeable {
 
-import com.baidu.hugegraph.backend.id.Id;
-
-public interface Indexfiable {
-
-    public Set<Id> indexLabels();
+    // Return schema/data type
+    public HugeType type();
 }

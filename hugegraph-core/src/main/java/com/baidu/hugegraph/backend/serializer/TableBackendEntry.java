@@ -275,7 +275,7 @@ public class TableBackendEntry implements BackendEntry {
     }
 
     @Override
-    public boolean mergable(BackendEntry other) {
+    public boolean mergeable(BackendEntry other) {
         if (!(other instanceof TableBackendEntry)) {
             return false;
         }

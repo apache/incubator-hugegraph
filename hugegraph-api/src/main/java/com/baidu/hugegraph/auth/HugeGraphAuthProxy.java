@@ -93,7 +93,7 @@ import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
 import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.type.Namifiable;
+import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.type.define.NodeRole;
@@ -790,7 +790,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
          */
         verifyResPermission(actionPerm, true, () -> {
             String graph = this.hugegraph.name();
-            Namifiable elem = HugeResource.NameObject.ANY;
+            Nameable elem = HugeResource.NameObject.ANY;
             return ResourceObject.of(graph, resType, elem);
         });
     }
@@ -869,7 +869,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                                       ResourceType resType, String name) {
         verifyResPermission(actionPerm, true, () -> {
             String graph = this.hugegraph.name();
-            Namifiable elem = HugeResource.NameObject.of(name);
+            Nameable elem = HugeResource.NameObject.of(name);
             return ResourceObject.of(graph, resType, elem);
         });
     }
@@ -1105,7 +1105,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             Object r = verifyResPermission(actionPerm, throwIfNoPerm, () -> {
                 String graph = HugeGraphAuthProxy.this.hugegraph.name();
                 String name = task.id().toString();
-                Namifiable elem = HugeResource.NameObject.of(name);
+                Nameable elem = HugeResource.NameObject.of(name);
                 return ResourceObject.of(graph, ResourceType.TASK, elem);
             }, () -> {
                 return hasTaskPermission(task);

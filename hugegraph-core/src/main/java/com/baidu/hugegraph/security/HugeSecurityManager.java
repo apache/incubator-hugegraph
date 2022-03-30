@@ -64,7 +64,7 @@ public class HugeSecurityManager extends SecurityManager {
             "com.github.benmanes.caffeine.cache.BoundedLocalCache"
     );
 
-    private static final Set<String> WHITE_SYSTEM_PROPERTYS = ImmutableSet.of(
+    private static final Set<String> WHITE_SYSTEM_PROPERTIES = ImmutableSet.of(
             "line.separator",
             "file.separator",
             "java.specification.version", // Sofa
@@ -350,7 +350,7 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkPropertyAccess(String key) {
         if (!callFromAcceptClassLoaders() && callFromGremlin() &&
-            !WHITE_SYSTEM_PROPERTYS.contains(key) && !callFromBackendHbase() &&
+            !WHITE_SYSTEM_PROPERTIES.contains(key) && !callFromBackendHbase() &&
             !callFromSnapshot() && !callFromRaft() &&
             !callFromSofaRpc()) {
             throw newSecurityException(

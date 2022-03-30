@@ -23,7 +23,7 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 
-public interface Propfiable {
+public interface Propertiable {
 
     public Set<Id> properties();
 }

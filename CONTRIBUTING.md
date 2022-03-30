@@ -36,7 +36,7 @@ Before submitting the code, we need to do some preparation:
 
 5. Sign the HugeGraph CLA: [https://cla-assistant.io/hugegraph/hugegraph](https://cla-assistant.io/hugegraph/hugegraph)
 
-Optional: You can use [Github desktop](https://desktop.github.com/) to greatly simplify the commit and update process.
+Optional: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the commit and update process.
 
 ## 2. Create an Issue on GitHub
 
@@ -150,7 +150,7 @@ And push it to GitHub fork repo again:
 git push -f origin bugfix-branch:bugfix-branch
 ```
 
-Github will automatically update the Pull Request after we push it, just wait for code review.
+GitHub will automatically update the Pull Request after we push it, just wait for code review.
 
 Any question please contact to us through [hugegraph@googlegroups.com](mailto:hugegraph@googlegroups.com) or [other contact information](https://hugegraph.github.io/hugegraph-doc/).
 

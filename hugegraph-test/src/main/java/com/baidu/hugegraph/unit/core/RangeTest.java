@@ -26,7 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.backend.store.BackendTable.ShardSpliter.Range;
+import com.baidu.hugegraph.backend.store.BackendTable.ShardSplitter.Range;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.testutil.Assert;
 

@@ -98,7 +98,7 @@ public class TaskExample {
 
         @Override
         public Integer call() throws Exception {
-            System.out.println(">>>> runing task with parameter: " +
+            System.out.println(">>>> running task with parameter: " +
                                this.task().input());
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
                 System.out.println(">>>> progress " + i);

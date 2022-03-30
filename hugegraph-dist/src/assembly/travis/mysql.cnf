@@ -6,7 +6,7 @@ character_set_server="utf8"
 collation_server="utf8_bin"
 
 # Ensure operations involving astral characters fail loudly,
-# rather than mysql silently replacing each each byte of the
+# rather than mysql silently replacing each byte of the
 # original character with a U+FFFD replacement character.
 # See bug 1275425.
 sql_mode="NO_ENGINE_SUBSTITUTION,STRICT_ALL_TABLES"

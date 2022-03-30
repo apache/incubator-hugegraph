@@ -49,7 +49,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithSimpleStrategy() {
+    public void testParseReplicaWithSimpleStrategy() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -73,7 +73,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithNetworkTopologyStrategy() {
+    public void testParseReplicaWithNetworkTopologyStrategy() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -98,7 +98,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithSimpleStrategyAndEmptyReplica() {
+    public void testParseReplicaWithSimpleStrategyAndEmptyReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -117,7 +117,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithSimpleStrategyAndDoubleReplica() {
+    public void testParseReplicaWithSimpleStrategyAndDoubleReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -136,7 +136,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithSimpleStrategyAndStringReplica() {
+    public void testParseReplicaWithSimpleStrategyAndStringReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -155,7 +155,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithNetworkTopologyStrategyAndStringReplica() {
+    public void testParseReplicaWithNetworkTopologyStrategyAndStringReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -174,7 +174,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithNetworkTopologyStrategyWithoutDatacenter() {
+    public void testParseReplicaWithNetworkTopologyStrategyWithoutDatacenter() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -193,7 +193,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithNetworkTopologyStrategyAndEmptyReplica() {
+    public void testParseReplicaWithNetworkTopologyStrategyAndEmptyReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 
@@ -212,7 +212,7 @@ public class CassandraTest {
     }
 
     @Test
-    public void testParseRepilcaWithNetworkTopologyStrategyAndDoubleReplica() {
+    public void testParseReplicaWithNetworkTopologyStrategyAndDoubleReplica() {
         String strategy = CassandraOptions.CASSANDRA_STRATEGY.name();
         String replica = CassandraOptions.CASSANDRA_REPLICATION.name();
 

@@ -505,7 +505,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                     iterators.add(table.query(this.session(HugeType.OLAP), q));
                 }
                 entries = new MergeIterator<>(entries, iterators,
-                                              BackendEntry::mergable);
+                                              BackendEntry::mergeable);
             }
             return entries;
         } finally {
