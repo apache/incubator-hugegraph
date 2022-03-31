@@ -595,16 +595,17 @@ public class VertexCoreTest extends BaseCoreTest {
 
         schema.vertexLabel("soft").properties("name", "tags", "score",
                                               "country", "category")
-              .primaryKeys("name").create();
+              .primaryKeys("name")
+              .create();
 
-        schema.indexLabel("softByTag").onV("soft").secondary()
-              .by("tags").create();
+        schema.indexLabel("softByTag").onV("soft").by("tags")
+              .secondary().create();
 
-        schema.indexLabel("softByCategory").onV("soft").search()
-              .by("category").create();
+        schema.indexLabel("softByScore").onV("soft").by("score")
+              .secondary().create();
 
-        schema.indexLabel("softByScore").onV("soft").secondary()
-              .by("score").create();
+        schema.indexLabel("softByCategory").onV("soft").by("category")
+              .search().create();
 
         HugeGraph graph = graph();
 
@@ -627,7 +628,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         ImmutableList.of("hello graph", "graph database"),
                         "tags", ImmutableList.of("graphdb", "gremlin"));
 
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices;
         vertices = graph.traversal().V()
@@ -643,27 +644,23 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, vertices.size());
 
         Assert.assertThrows(IllegalStateException.class, () -> {
-            graph.traversal().V().has("soft", "tags",
-                                      "gremlin").toList();
+            graph.traversal().V().has("soft", "tags", "gremlin").toList();
         });
 
         // query by contains
         vertices = graph.traversal().V()
-                        .has("soft", "tags",
-                             ConditionP.contains("gremlin"))
+                        .has("soft", "tags", ConditionP.contains("gremlin"))
                         .toList();
         Assert.assertEquals(2, vertices.size());
 
         // secondary-index with list/set of number properties
         vertices = graph.traversal().V()
-                        .has("soft", "score",
-                             ConditionP.contains(5))
+                        .has("soft", "score", ConditionP.contains(5))
                         .toList();
         Assert.assertEquals(3, vertices.size());
 
         vertices = graph.traversal().V()
-                        .has("soft", "name",
-                             "hugegraph").toList();
+                        .has("soft", "name", "hugegraph").toList();
         Assert.assertEquals(1, vertices.size());
 
         // add a new tag
@@ -672,17 +669,18 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.tx().commit();
 
         vertices = graph.traversal().V()
-                        .has("soft", "tags",
-                             ConditionP.contains("new_tag")).toList();
+                        .has("soft", "tags", ConditionP.contains("new_tag"))
+                        .toList();
         Assert.assertEquals(1, vertices.size());
 
         // delete tag gremlin
         vertex = graph.addVertex(T.label, "soft", "name", "hugegraph",
                                  "country", "china",
                                  "score", ImmutableList.of(5, 4, 3),
-                                 "category",
-                                 ImmutableList.of("hello graph", "graph database"),
-                                 "tags", ImmutableList.of("graphdb", "new_tag"));
+                                 "category", ImmutableList.of("hello graph",
+                                                              "graph database"),
+                                 "tags", ImmutableList.of("graphdb",
+                                                          "new_tag"));
         graph.tx().commit();
 
         vertices = graph.traversal().V()
@@ -5229,6 +5227,8 @@ public class VertexCoreTest extends BaseCoreTest {
                         "confirmType", 2, "type", 1, "kid", 2);
         graph.addVertex(T.label, "test", "name", "诚信文明",
                         "confirmType", 3, "type", 1, "kid", 3);
+
+        this.mayCommitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V()
