@@ -48,7 +48,6 @@ public class AdamicAdarAPITest extends BaseApiTest {
 
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
-        String peterId = name2Ids.get("peter");
         Response r = client().get(PATH, ImmutableMap.of("vertex",
                                                         id2Json(markoId),
                                                         "other",
