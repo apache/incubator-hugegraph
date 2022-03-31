@@ -828,7 +828,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private ConditionQuery constructSearchQuery(ConditionQuery query,
                                                 MatchedIndex index) {
-        ConditionQuery originQuery = query;
+        ConditionQuery newQuery = query;
         Set<Id> indexFields = new HashSet<>();
         // Convert has(key, text) to has(key, textContainsAny(word1, word2))
         for (IndexLabel il : index.indexLabels()) {
@@ -836,39 +836,40 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 continue;
             }
             Id indexField = il.indexField();
-            String fieldValue = (String) query.userpropValue(indexField);
+            String fieldValue = (String) newQuery.userpropValue(indexField);
             Set<String> words = this.segmentWords(fieldValue);
             indexFields.add(indexField);
 
-            query = query.copy();
-            query.unsetCondition(indexField);
-            query.query(Condition.textContainsAny(indexField, words));
+            newQuery = newQuery.copy();
+            newQuery.unsetCondition(indexField);
+            newQuery.query(Condition.textContainsAny(indexField, words));
         }
 
         // Register results filter to compare property value and search text
-        query.registerResultsFilter(elem -> {
-            for (Condition cond : originQuery.conditions()) {
-                Object key = cond.isRelation() ? ((Relation) cond).key() : null;
+        newQuery.registerResultsFilter(element -> {
+            assert element != null;
+            for (Condition cond : query.conditions()) {
+                Object key = cond.isRelation() ?
+                             ((Relation) cond).key() : null;
                 if (key instanceof Id && indexFields.contains(key)) {
                     // This is an index field of search index
                     Id field = (Id) key;
-                    assert elem != null;
-                    HugeProperty<?> property = elem.getProperty(field);
+                    HugeProperty<?> property = element.getProperty(field);
                     String propValue = propertyValueToString(property.value());
-                    String fieldValue = (String) originQuery.userpropValue(field);
+                    String fieldValue = (String) query.userpropValue(field);
                     if (this.matchSearchIndexWords(propValue, fieldValue)) {
                         continue;
                     }
                     return false;
                 }
-                if (!cond.test(elem)) {
+                if (!cond.test(element)) {
                     return false;
                 }
             }
             return true;
         });
 
-        return query;
+        return newQuery;
     }
 
     private boolean matchSearchIndexWords(String propValue, String fieldValue) {
@@ -1732,7 +1733,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.query = query;
             this.element = element;
             this.tx = null;
-            this.leftIndexes = query.getElementLeftIndex(element.id());
+            this.leftIndexes = query.getLeftIndexOfElement(element.id());
         }
 
         @Override
