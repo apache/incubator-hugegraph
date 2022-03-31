@@ -205,7 +205,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "Beijing", "age", 20);
         graph.addVertex(T.label, "person", "name", "Hebe",
                         "city", "Taipei", "age", 21);
-        graph.tx().commit();
+        this.commitTx();
 
         long count = graph.traversal().V().count().next();
         Assert.assertEquals(6, count);
@@ -324,7 +324,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "review", "id", 1,
                                         "comment", "looks good!",
                                         "comment", "LGTM!");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("review", "id", 1);
         Assert.assertEquals(ImmutableList.of("looks good!", "LGTM!"),
@@ -337,7 +337,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex = graph.addVertex(T.label, "review", "id", 2,
                                  "comment",
                                  ImmutableList.of("looks good 2!", "LGTM!"));
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableList.of("looks good 2!", "LGTM!"),
@@ -350,7 +350,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex = graph.addVertex(T.label, "review", "id", 3,
                                  "comment",
                                  new String[]{"looks good 3!", "LGTM!"});
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("review", "id", 3);
         Assert.assertEquals(ImmutableList.of("looks good 3!", "LGTM!"),
@@ -408,7 +408,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "soft", "name", "soft" + i,
                             "updateTime", i);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         long count = graph.traversal().V()
                           .has("soft", "updateTime",
@@ -422,7 +422,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "soft", "name", "soft" + i,
                             "updateTime", 2 * i);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         count = graph.traversal().V()
                      .has("soft", "updateTime",
@@ -446,7 +446,7 @@ public class VertexCoreTest extends BaseCoreTest {
                             "age", i,
                             "score", i);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         count = graph.traversal().V()
                      .hasLabel("developer")
@@ -462,7 +462,7 @@ public class VertexCoreTest extends BaseCoreTest {
                             "age", i * 2,
                             "score", i * 2);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         count = graph.traversal().V()
                      .hasLabel("developer")
@@ -498,7 +498,7 @@ public class VertexCoreTest extends BaseCoreTest {
                             "age", i * 3,
                             "score", i * 3);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         if (!removeLeftIndexOnOverwrite) {
             Whitebox.setInternalState(params().graphTransaction(),
@@ -535,7 +535,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "soft", "name", "soft" + i,
                             "country", "china", "updateTime", i);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         long count = graph.traversal().V()
                           .hasLabel("soft")
@@ -550,7 +550,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "soft", "name", "soft" + i,
                             "country", "china", "updateTime", i * 2);
         }
-        graph.tx().commit();
+        this.commitTx();
 
         count = graph.traversal().V()
                      .hasLabel("soft")
@@ -569,7 +569,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "contribution", "+1",
                                         "contribution", "+2",
                                         "contribution", "+2");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("review", "id", 1);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
@@ -578,7 +578,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex = graph.addVertex(T.label, "review", "id", 2,
                                  "contribution",
                                  ImmutableSet.of("+1", "+1", "+2"));
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("review", "id", 2);
         Assert.assertEquals(ImmutableSet.of("+1", "+2"),
@@ -628,7 +628,8 @@ public class VertexCoreTest extends BaseCoreTest {
                         ImmutableList.of("hello graph", "graph database"),
                         "tags", ImmutableList.of("graphdb", "gremlin"));
 
-        this.mayCommitTx();
+        // TODO: test mayCommitTx() after support textContains(collection, str)
+        this.commitTx();
 
         List<Vertex> vertices;
         vertices = graph.traversal().V()
@@ -666,7 +667,8 @@ public class VertexCoreTest extends BaseCoreTest {
         // add a new tag
         Vertex vertex = vertices.get(0);
         vertex.property("tags", ImmutableSet.of("new_tag"));
-        graph.tx().commit();
+
+        this.commitTx();
 
         vertices = graph.traversal().V()
                         .has("soft", "tags", ConditionP.contains("new_tag"))
@@ -681,7 +683,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                                               "graph database"),
                                  "tags", ImmutableList.of("graphdb",
                                                           "new_tag"));
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V()
                         .has("soft", "tags", ConditionP.contains("gremlin"))
@@ -700,7 +702,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // remove
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V()
                         .has("soft", "tags", ConditionP.contains("new_tag"))
@@ -778,6 +780,8 @@ public class VertexCoreTest extends BaseCoreTest {
         // Absent 'age' and 'city'
         Vertex vertex = graph().addVertex(T.label, "person", "name", "Baby");
         Assert.assertEquals("Baby", vertex.value("name"));
+
+        this.mayCommitTx();
     }
 
     @Test
@@ -805,7 +809,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertFalse(vertex.values("cnt").hasNext());
         Assert.assertFalse(vertex.values("age").hasNext());
 
-        graph().tx().commit();
+        this.commitTx();
 
         // Exist 'fav' after commit then query
         vertex = graph().vertex(vertex.id());
@@ -879,7 +883,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex v1 = graph.addVertex(T.label, "programmer", "name", "marko",
                                     "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
@@ -889,7 +893,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex v2 = graph.addVertex(T.label, "programmer", "name", "marko",
                                     "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNotEquals(v1.id(), v2.id());
 
@@ -919,7 +923,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex v1 = graph.addVertex(T.label, "programmer", "name", "marko",
                                     "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
@@ -929,7 +933,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex v2 = graph.addVertex(T.label, "programmer", "name", "marko",
                                     "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNotEquals(v1.id(), v2.id());
 
@@ -972,7 +976,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
         graph.addVertex(T.label, "programmer", "name", "marko",
                         "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         String programmerId = graph.vertexLabel("programmer").id().asString();
         String vid = String.format("%s:%s!%s", programmerId, "marko", "1I");
@@ -995,7 +999,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
         graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
                         "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V("123456").toList();
         Assert.assertEquals(1, vertices.size());
@@ -1051,7 +1055,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "age", 18, "city", "Beijing");
         graph.addVertex(T.label, "programmer", T.id, 61695499031416832L,
                         "name", "marko", "age", 19, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V(123456).toList();
         Assert.assertEquals(1, vertices.size());
@@ -1114,7 +1118,8 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "programmer",
                         T.id, "835e1153928149578691cf79258e90ee",
                         "name", "marko", "age", 19, "city", "Beijing");
-        graph.tx().commit();
+
+        this.commitTx();
         Assert.assertEquals(2L, graph.traversal().V().count().next());
 
         Object uuid = Text.uuid("835e1153928149578691cf79258e90eb");
@@ -1191,12 +1196,12 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testAddVertexWithTtl() {
         Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
                                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1213,12 +1218,12 @@ public class VertexCoreTest extends BaseCoreTest {
                         T.label, "follower", "name",
                         "Baby", "age", 3, "city", "Beijing",
                         "birth", graph().now() - 1000L);
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(1100L);
@@ -1228,7 +1233,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(1100L);
@@ -1246,13 +1251,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
                                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V()
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1281,7 +1286,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            "age", 6, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
                                            "age", 7, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has("age", 5);
         Assert.assertTrue(vertices.hasNext());
@@ -1302,7 +1307,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1345,7 +1350,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            "age", 7, "city", "Beijing");
         Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
                                            "age", 5, "city", "Shanghai");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has("city",
                                                                 "Shanghai");
@@ -1376,7 +1381,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1415,13 +1420,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
                                         "age", 3, "city", "Beijing Haidian");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has(
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1441,12 +1446,12 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "fan", "name", "Baby",
                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "fan", "name", "Baby2",
                               "age", 3, "city", "Beijing");
-            graph().tx().commit();
+            this.commitTx();
         });
 
         try {
@@ -1457,7 +1462,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "fan", "name", "Baby2",
                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
     }
 
     @Test
@@ -1467,13 +1472,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby",
                                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V()
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1484,7 +1489,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // Override
         vertex = graph().addVertex(T.label, "fan", "name", "Baby",
                                    "age", 3, "city", "Shanghai");
-        graph().tx().commit();
+        this.commitTx();
 
         // Due to overridden vertices are expired,
         // query will lead to async delete
@@ -1494,7 +1499,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("city", "Shanghai");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1526,7 +1531,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            "age", 9, "city", "Beijing");
         Vertex vertex5 = graph().addVertex(T.label, "fan", "name", "Baby5",
                                            "age", 11, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has("age", 7);
         Assert.assertTrue(vertices.hasNext());
@@ -1547,7 +1552,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(5));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1568,7 +1573,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            "age", 10, "city", "Beijing");
         Vertex vertex10 = graph().addVertex(T.label, "fan", "name", "Baby10",
                                             "age", 12, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
         /*
          * Due to overridden vertices are expired,
          * query will lead to async delete
@@ -1595,7 +1600,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(6));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1642,7 +1647,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            "age", 9, "city", "Beijing");
         Vertex vertex6 = graph().addVertex(T.label, "fan", "name", "Baby6",
                                            "age", 5, "city", "Shanghai");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has("city",
                                                                 "Shanghai");
@@ -1673,7 +1678,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(3));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1698,7 +1703,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex12 = graph().addVertex(T.label, "fan",
                                             "name", "Baby12", "age", 6,
                                             "city", "Shenzhen");
-        graph().tx().commit();
+        this.commitTx();
 
         // Due to overridden vertices are expired, query will lead to async delete
         vertices = graph().traversal().V().has("city", "Shanghai");
@@ -1736,7 +1741,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1783,13 +1788,13 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph().addVertex(T.label, "fan", "name", "Baby1",
                                           "age", 3, "city", "Beijing Haidian");
-        graph().tx().commit();
+        this.commitTx();
 
         Iterator<Vertex> vertices = graph().traversal().V().has(
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1799,7 +1804,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         vertex = graph().addVertex(T.label, "fan", "name", "Baby2",
                                    "age", 3, "city", "Shanghai Pudong");
-        graph().tx().commit();
+        this.commitTx();
 
         // Due to overridden vertices are expired, query will lead to async delete
         vertices = graph().traversal().V().has("city",
@@ -1810,7 +1815,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                                Text.contains("Pudong"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1828,7 +1833,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryVertexWithTtlInTx() {
         Vertex vertex1 = graph().addVertex(T.label, "fan", "name", "Baby1",
                                            "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
         // Add vertices in tx
         Vertex vertex2 = graph().addVertex(T.label, "fan", "name", "Baby2",
                                            "age", 3, "city", "Beijing");
@@ -1840,7 +1845,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().vertices(vertex2);
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(vertex2, vertices.next());
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1863,7 +1868,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "fan", "name", "Baby1",
                           "age", 3, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
         // Add vertices in tx
         graph().addVertex(T.label, "fan", "name", "Baby2",
                           "age", 3, "city", "Beijing");
@@ -1872,7 +1877,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                            .has("city", "Beijing");
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1900,7 +1905,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           "age", 6, "city", "Beijing");
         graph().addVertex(T.label, "fan", "name", "Baby5",
                           "age", 7, "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
 
         // Add vertices in tx
         graph().addVertex(T.label, "fan", "name", "Baby6",
@@ -1933,7 +1938,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph().traversal().V().has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -1975,7 +1980,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           "age", 7, "city", "Beijing");
         graph().addVertex(T.label, "fan", "name", "Baby6",
                           "age", 5, "city", "Shanghai");
-        graph().tx().commit();
+        this.commitTx();
 
         // Add vertices in tx
         graph().addVertex(T.label, "fan", "name", "Baby7",
@@ -2020,7 +2025,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", P.lte(4));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(4, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -2060,7 +2065,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "fan", "name", "Baby1",
                           "age", 3, "city", "Beijing Haidian");
-        graph().tx().commit();
+        this.commitTx();
 
         graph().addVertex(T.label, "fan", "name", "Baby2",
                           "age", 3, "city", "Beijing Haidian");
@@ -2069,7 +2074,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                     "city", Text.contains("Haidian"));
         Assert.assertTrue(vertices.hasNext());
         Assert.assertEquals(2, IteratorUtils.count(vertices));
-        graph().tx().commit();
+        this.commitTx();
 
         try {
             Thread.sleep(3100L);
@@ -2096,6 +2101,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist().create();
 
         init10Vertices();
+        this.commitTx();
+
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(1));
@@ -2125,7 +2132,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id9.asObject(), olapPropName, "i");
         graph.addVertex(T.id, id10.asObject(), olapPropName, "j");
 
-        graph.tx().commit();
+        this.commitTx();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2181,6 +2188,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist().create();
 
         init10Vertices();
+        this.commitTx();
+
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(1));
@@ -2210,7 +2219,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id9.asObject(), olapPropName, "i");
         graph.addVertex(T.id, id10.asObject(), olapPropName, "j");
 
-        graph.tx().commit();
+        this.commitTx();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2267,6 +2276,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist().create();
 
         init10Vertices();
+        this.commitTx();
+
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(1));
@@ -2296,7 +2307,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id9.asObject(), olapPropName, 0.9D);
         graph.addVertex(T.id, id10.asObject(), olapPropName, 1.0D);
 
-        graph.tx().commit();
+        this.commitTx();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2391,6 +2402,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist().create();
 
         init10Vertices();
+        this.commitTx();
+
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(1));
@@ -2420,7 +2433,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id9.asObject(), "pagerank", 0.9D);
         graph.addVertex(T.id, id10.asObject(), "pagerank", 1.0D);
 
-        graph.tx().commit();
+        this.commitTx();
 
         graph.addVertex(T.id, id1.asObject(), "wcc", "a");
         graph.addVertex(T.id, id2.asObject(), "wcc", "a");
@@ -2433,7 +2446,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id9.asObject(), "wcc", "f");
         graph.addVertex(T.id, id10.asObject(), "wcc", "f");
 
-        graph.tx().commit();
+        this.commitTx();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2565,6 +2578,8 @@ public class VertexCoreTest extends BaseCoreTest {
               .ifNotExist().create();
 
         init10Vertices();
+        this.commitTx();
+
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
                                               LongEncoding.encodeNumber(1));
@@ -2574,12 +2589,12 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
         graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
 
-        graph.tx().commit();
+        this.commitTx();
 
         graph.addVertex(T.id, id1.asObject(), "wcc", "a");
         graph.addVertex(T.id, id2.asObject(), "wcc", "b");
 
-        graph.tx().commit();
+        this.commitTx();
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2668,6 +2683,51 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryOlapWithUpdates() {
+        Assume.assumeTrue("Not support olap properties",
+                          storeFeatures().supportsOlapProperties());
+
+        HugeGraph graph = graph();
+        SchemaManager schema = graph.schema();
+        schema.propertyKey("pagerank")
+              .asDouble().valueSingle()
+              .writeType(WriteType.OLAP_RANGE)
+              .ifNotExist().create();
+
+        init10Vertices();
+        this.commitTx();
+
+        String author = graph.vertexLabel("author").id().asString();
+        Id id1 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(1));
+        Id id2 = SplicingIdGenerator.splicing(author,
+                                              LongEncoding.encodeNumber(2));
+
+        graph.addVertex(T.id, id1.asObject(), "pagerank", 0.1D);
+        graph.addVertex(T.id, id2.asObject(), "pagerank", 0.2D);
+
+        graph.readMode(GraphReadMode.ALL);
+
+        // FIXME: expect to throw error here
+//        Assert.assertThrows(IllegalArgumentException.class, () -> {
+//            graph.traversal().V().has("pagerank", 0.1D).toList();
+//        }, e -> {
+//            Assert.assertContains("not allowed to query by olap " +
+//                                 "when there are uncommitted records",
+//                                 e.toString());
+//        });
+
+        this.commitTx();
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .has("pagerank", 0.2D)
+                                     .toList();
+        Assert.assertEquals(1, vertices.size());
+
+        graph.readMode(GraphReadMode.OLTP_ONLY);
+    }
+
+    @Test
     public void testQueryAll() {
         HugeGraph graph = graph();
         init10Vertices();
@@ -2730,14 +2790,15 @@ public class VertexCoreTest extends BaseCoreTest {
             // Query with limit
             graph.traversal().V().limit(3).toList();
         });
-        graph.tx().commit();
+
+        this.commitTx();
         Assert.assertEquals(4L, graph.traversal().V().count().next());
         List<Vertex> vertices = graph.traversal().V().limit(3).toList();
         Assert.assertEquals(3, vertices.size());
 
         // Query all with limit after delete twice
         graph.traversal().V().limit(3).drop().iterate();
-        graph.tx().commit();
+        this.commitTx();
         vertices = graph.traversal().V().limit(3).toList();
         Assert.assertEquals(1, vertices.size());
     }
@@ -2976,6 +3037,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryByIdWithGraphAPIAndNotCommitedRemoved() {
         HugeGraph graph = graph();
         init10Vertices();
+        this.commitTx();
 
         List<Vertex> vertices = graph.traversal().V()
                                      .hasLabel("author").toList();
@@ -3092,7 +3154,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Query by vertex label with limit
         graph.traversal().V().hasLabel("book").limit(3).drop().iterate();
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("book")
                         .limit(3).toList();
@@ -3310,7 +3372,8 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.traversal().V().hasLabel("person")
              .has("city", "Beijing").limit(2)
              .drop().iterate();
-        graph.tx().commit();
+        this.commitTx();
+
         vertices = graph.traversal().V().hasLabel("person")
                         .has("city", "Beijing").limit(2).toList();
         Assert.assertEquals(1, vertices.size());
@@ -3657,7 +3720,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.traversal().V().hasLabel("person")
              .has("age", P.between(3, 21)).limit(3)
              .drop().iterate();
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("person")
                         .has("age", P.between(3, 21)).limit(3).toList();
@@ -3688,7 +3751,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // override vertex without age (in backend) and make left index
         graph.addVertex(T.label, "person", "name", "Baby","city", "Hongkong")
              .remove(); // avoid merge property mode
-        graph.tx().commit();
+        this.mayCommitTx();
 
         // qeury again after commit
         vertices = graph.traversal().V().hasLabel("person")
@@ -3747,7 +3810,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 8,
                           "int", Integer.MIN_VALUE + 1);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("number")
                                      .has("int", 0).toList();
@@ -3829,7 +3892,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 10,
                           "long", Long.MIN_VALUE + 1);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("number")
                                      .has("long", 0).toList();
@@ -3924,7 +3987,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 12,
                           "float", -secondSmallest);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("number")
                                      .has("float", 7).toList();
@@ -4037,7 +4100,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 9, "double", min15);
         graph().addVertex(T.label, "number", "id", 10, "double", -min15);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("number")
                                      .has("double", 7).toList();
@@ -4124,7 +4187,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "number", "id", 8,
                           "double", -secondSmallest);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("number")
                                      .has("double", 0.123456789012345678901d)
@@ -4232,7 +4295,8 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.traversal().V().hasLabel("person")
              .has("birth", P.between(dates[1], dates[4]))
              .limit(2).drop().iterate();
-        graph.tx().commit();
+        this.commitTx();
+
         vertices = graph.traversal().V().hasLabel("person")
                         .has("birth", P.between(dates[1], dates[4]))
                         .limit(2).toList();
@@ -4368,7 +4432,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "user", "id", 1, "uuid", uuid1);
         graph().addVertex(T.label, "user", "id", 2, "uuid", uuid2);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("user")
                                      .has("uuid", uuid1).toList();
@@ -4397,7 +4461,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "user", "id", 1, "blob", blob1);
         graph().addVertex(T.label, "user", "id", 2, "blob", blob2);
 
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("user")
                                      .has("blob", blob1).toList();
@@ -4429,7 +4493,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, vertices.size());
 
         // Committed
-        graph.tx().commit();
+        this.commitTx();
         vertices = graph.traversal().V()
                         .hasLabel("author")
                         .has("lived", Text.contains("Bay Area"))
@@ -4462,7 +4526,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "James Gosling",  "age", 62,
                         "lived", "San Francisco Bay Area");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         // By authorByLivedSearch index
         List<Vertex> vertices = graph.traversal().V()
@@ -4506,7 +4570,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "lived", "Tokyo Bay");
         graph.addVertex(T.label, "author", "id", 5, "name", "James", "age", 62,
                         "lived", "San Francisco Bay Area");
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices = graph.traversal().V()
                                      .hasLabel("author")
@@ -4575,7 +4639,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "lived", "Tokyo Bay");
         graph.addVertex(T.label, "author", "id", 5, "name", "James", "age", 62,
                         "lived", "San Francisco Bay Area");
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices = graph.traversal().V()
                                      .hasLabel("author")
@@ -4601,14 +4665,14 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "James Gosling",  "age", 62,
                         "lived", "San Francisco Bay Area");
-        graph.tx().commit();
+        this.commitTx();
 
         // Override the origin vertex with different property value
         // and then lead to index left
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "James Gosling",  "age", 62,
                         "lived", "San Francisco, California, U.S.");
-        graph.tx().commit();
+        this.commitTx();
 
         // Set breakpoint to observe the store before and after this statement
         List<Vertex> vertices = graph.traversal().V().hasLabel("author")
@@ -4630,7 +4694,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "James Gosling",  "age", 62,
                         "lived", "San Francisco Bay Area");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertThrows(NoIndexException.class, () -> {
             graph.traversal().V().hasLabel("author")
@@ -4686,7 +4750,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "Beijing", "age", 28);
         graph.addVertex(T.label, "person", "name", "Zhangyi",
                         "city", "Hongkong", "age", 29);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().has("age", 28).toList();
         Assert.assertEquals(0, vertices.size());
@@ -4703,7 +4767,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "Beijing", "age", 28);
         graph.addVertex(T.label, "person", "name", "Zhangyi",
                         "city", "Hongkong", "age", 29);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().has("city", "Beijing")
                                      .toList();
@@ -4801,9 +4865,10 @@ public class VertexCoreTest extends BaseCoreTest {
                         "age", 18, "city", "Beijing");
         Vertex v = graph.addVertex(T.label, "person", "name", "james",
                                    "age", 19, "city", "Hongkong");
-        graph().tx().commit();
+        this.commitTx();
 
         v.property("age", 20);
+        // Don't commit
 
         List<Vertex> vertices = graph.traversal().V()
                                      .where(__.values("age").is(20))
@@ -4889,7 +4954,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "person", "name", "Tom",
                           "city", "Hongkong", "age", 3);
-        graph().tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V().has("age", 3).toList();
@@ -4900,6 +4965,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("age", 3).toList();
         Assert.assertEquals(1, vertices.size());
 
+        /*
+         * NOTE: may block if not commit records:
+         * Lock [hugegraph_il_delete:3] is locked by other operation
+         */
         graph().schema().indexLabel("personByCityAndAge").onV("person")
                .by("city", "age").ifNotExist().create();
 
@@ -4932,6 +5001,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           "city", "Hongkong", "age", 3);
         graph().addVertex(T.label, "cat", "name", "Baby",
                           "city", "Hongkong", "age", 3);
+        this.mayCommitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V().has("age", 3)
@@ -4956,7 +5026,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "city", "Hongkong", "age", 3);
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph().traversal().V().has("age", 3)
                                        .has("city", "Hongkong")
@@ -4988,7 +5058,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "city", "Hongkong", "age", 3);
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
                                        .has("city", "Hongkong").toList();
@@ -5005,7 +5075,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph().addVertex(T.label, "dog", "name", "Tom",
                           "age", 8, "weight", 3);
-        graph().tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph().traversal().V().has("age", P.gt(2))
                                        .has("weight", P.lt(10)).toList();
@@ -5030,7 +5100,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "dog", "name", "Coco", "age", 3,
                           "description", "yellow hair golden tail");
 
-        graph().tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V()
@@ -5077,7 +5147,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           "city", "Shanghai",
                           "description", "yellow hair golden tail");
 
-        graph().tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V()
@@ -5139,7 +5209,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           "city", "Shanghai Pudong",
                           "description", "yellow hair golden tail");
 
-        graph().tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices;
         vertices = graph().traversal().V()
@@ -5272,7 +5342,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "Beijing", "age", 23);
         graph.addVertex(T.label, "person", "name", "p5",
                         "city", "Beijing", "age", 29);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph().traversal().V()
                                        .has("city", "Hongkong")
@@ -5755,15 +5825,16 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("userByName").onV("user").by("name").unique()
               .create();
         Vertex v = graph().addVertex(T.label, "user", "name", "Tom");
-        graph().tx().commit();
+        this.commitTx();
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "name", "Tom");
-            graph().tx().commit();
+            this.commitTx();
         });
 
         v.remove();
         graph().addVertex(T.label, "user", "name", "Tom");
-        graph().tx().commit();
+        this.commitTx();
     }
 
     @Test
@@ -5777,7 +5848,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph().addVertex(T.label, "user", "name", "Tom");
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "name", "Tom");
-            graph().tx().commit();
+            this.commitTx();
         });
     }
 
@@ -5792,16 +5863,17 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex tom = graph().addVertex(T.label, "user", "name", "Tom");
         Vertex jack = graph().addVertex(T.label, "user", "name", "Jack");
         Vertex james = graph().addVertex(T.label, "user", "name", "James");
-        graph().tx().commit();
+        this.commitTx();
 
         tom.remove();
-        graph().tx().commit();
+        this.commitTx();
+
         jack.property("name", "Tom");
-        graph().tx().commit();
+        this.commitTx();
 
         james.remove();
         jack.property("name", "James");
-        graph().tx().commit();
+        this.commitTx();
     }
 
     @Test
@@ -5816,38 +5888,38 @@ public class VertexCoreTest extends BaseCoreTest {
               .unique().create();
         graph().addVertex(T.label, "user", "name", "Tom",
                           "city", "Beijing", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
 
         // Nullable properties
         graph().addVertex(T.label, "user", "name", "Tom", "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "name", "Tom", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "city", "Beijing", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "name", "Tom");
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "city", "Beijing");
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user");
-        graph().tx().commit();
+        this.commitTx();
 
         // Empty String properties
         graph().addVertex(T.label, "user", "name", "", "city", "", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "name", "", "city", "");
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "name", "", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "city", "", "age", 18);
-        graph().tx().commit();
+        this.commitTx();
         graph().addVertex(T.label, "user", "name", "");
-        graph().tx().commit();
+        this.commitTx();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "age", 18);
-            graph().tx().commit();
+            this.commitTx();
         }, e -> {
             String message = e.getMessage();
             Assert.assertTrue(message.contains("Unique constraint " +
@@ -5855,16 +5927,16 @@ public class VertexCoreTest extends BaseCoreTest {
             Assert.assertTrue(message.contains("conflict is found"));
         });
         graph().addVertex(T.label, "user", "city", "");
-        graph().tx().commit();
+        this.commitTx();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user");
-            graph().tx().commit();
+            this.commitTx();
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph().addVertex(T.label, "user", "city", "\u0001");
-            graph().tx().commit();
+            this.commitTx();
         });
     }
 
@@ -5885,7 +5957,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .create();
 
         graph.addVertex(T.label, "node", "name", "tom");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertThrows(NoIndexException.class, () -> {
             graph.traversal().V().hasLabel("node").has("name", "tom").next();
@@ -5910,7 +5982,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = vertex("author", "id", 1);
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V().toList();
         Assert.assertEquals(9, vertices.size());
@@ -5935,7 +6007,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "author", "id", 2,
                         "name", "Guido van Rossum", "age", 61,
                         "lived", "California");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices = graph.traversal().V().toList();
         Assert.assertEquals(2, vertices.size());
@@ -5946,7 +6018,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // remove vertex without label index
         Vertex vertex = vertex("author2", "id", 1);
         graph.removeVertex(vertex.label(), vertex.id());
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V().toList();
         Assert.assertEquals(1, vertices.size());
@@ -5957,7 +6029,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // remove vertex with label index
         vertex = vertex("author", "id", 2);
         graph.removeVertex(vertex.label(), vertex.id());
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V().toList();
         Assert.assertEquals(0, vertices.size());
@@ -5976,7 +6048,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = vertex("author", "id", 1);
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertices = graph.traversal().V().toList();
         Assert.assertEquals(9, vertices.size());
@@ -5986,7 +6058,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         // Remove again
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
     }
 
     @Test
@@ -6016,7 +6088,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         for (int i = 0; i < vertices.size(); i++) {
             vertices.get(i).remove();
-            graph.tx().commit();
+            this.mayCommitTx();
             Assert.assertEquals(9 - i, graph.traversal().V().toList().size());
         }
     }
@@ -6026,13 +6098,13 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         // Add properties
         vertex.property("name", "Tom2");
         vertex.property("age", 10);
         vertex.property("lived", "USA");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Tom2", vertex.property("name").value());
@@ -6045,13 +6117,13 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Tom", vertex.property("name").value());
 
         vertex.property("name", "Tom2");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Tom2", vertex.property("name").value());
@@ -6062,13 +6134,13 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Tom",
                                         "city", "Hongkong", "age", 3);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("person", "name", "Tom");
         Assert.assertEquals(3, vertex.property("age").value());
 
         vertex.property("age", 4);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertEquals(4, vertex.property("age").value());
         vertex = vertex("person", "name", "Tom");
@@ -6091,7 +6163,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Jim");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             vertex.property("prop-not-exist", "2017-1-1");
@@ -6103,7 +6175,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Jim");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertEquals(1, vertex.property("id").value());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -6123,7 +6195,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "c\u0002", "age", 2);
         graph.addVertex(T.label, "person", "name", "3",
                         "city", "d\u0003", "age", 3);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         List<Vertex> vertices;
 
@@ -6146,7 +6218,7 @@ public class VertexCoreTest extends BaseCoreTest {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
                                 "city", "a\u0000", "age", 0);
-                graph.tx().commit();
+                this.commitTx();
             }, e -> {
                 if (e instanceof BackendException) {
                     Assert.assertContains("0x00", e.getCause().getMessage());
@@ -6157,7 +6229,7 @@ public class VertexCoreTest extends BaseCoreTest {
         } else {
             graph.addVertex(T.label, "person", "name", "0",
                             "city", "a\u0000", "age", 0);
-            graph.tx().commit();
+            this.commitTx();
 
             vertices = graph.traversal().V().has("city", "a\u0000").toList();
             Assert.assertEquals(1, vertices.size());
@@ -6173,7 +6245,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0000", "age", 3);
-            graph.tx().commit();
+            this.commitTx();
         }, e -> {
             Assert.assertContains("Illegal leading char '\\u0' in index",
                                   e.getMessage());
@@ -6182,7 +6254,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0001", "age", 3);
-            graph.tx().commit();
+            this.commitTx();
         }, e -> {
             Assert.assertContains("Illegal leading char '\\u1' in index",
                                   e.getMessage());
@@ -6191,7 +6263,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0002", "age", 3);
-            graph.tx().commit();
+            this.commitTx();
         }, e -> {
             Assert.assertContains("Illegal leading char '\\u2' in index",
                                   e.getMessage());
@@ -6200,7 +6272,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0003", "age", 3);
-            graph.tx().commit();
+            this.commitTx();
         }, e -> {
             Assert.assertContains("Illegal leading char '\\u3' in index",
                                   e.getMessage());
@@ -6213,10 +6285,10 @@ public class VertexCoreTest extends BaseCoreTest {
                           storeFeatures().supportsMergeVertexProperty());
 
         HugeGraph graph = graph();
-        // "city" is a nonnullable property
+        // "city" is a non-nullable property
         graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
                         "birth", "1992-11-17 12:00:00.000");
-        graph.tx().commit();
+        this.commitTx();
         Vertex vertex = vertex("person", "name", "marko");
         Assert.assertEquals("Beijing", vertex.value("city"));
         Assert.assertEquals(Utils.date("1992-11-17 12:00:00.000"),
@@ -6225,7 +6297,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // append property 'age'
         graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
                         "age", 26);
-        graph.tx().commit();
+        this.commitTx();
         Assert.assertEquals("Beijing", vertex.value("city"));
         vertex = vertex("person", "name", "marko");
         Assert.assertEquals(26, (int) vertex.value("age"));
@@ -6234,7 +6306,7 @@ public class VertexCoreTest extends BaseCoreTest {
         // update property "birth" and keep the original properties unchanged
         graph.addVertex(T.label, "person", "name", "marko", "city", "Beijing",
                         "birth", "1993-11-17 12:00:00.000");
-        graph.tx().commit();
+        this.commitTx();
         vertex = vertex("person", "name", "marko");
         Assert.assertEquals("Beijing", vertex.value("city"));
         Assert.assertEquals(26, (int) vertex.value("age"));
@@ -6247,14 +6319,14 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex v = graph.addVertex(T.label, "author", "id", 1,
                                    "name", "Tom", "age", 10, "lived", "USA");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         // Remove "name" property
         Assert.assertTrue(v.property("name").isPresent());
         Assert.assertTrue(v.property("lived").isPresent());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             v.property("name").remove();
-            graph.tx().commit();
+            this.commitTx();
         });
         Assert.assertTrue(v.property("name").isPresent());
         Assert.assertTrue(v.property("lived").isPresent());
@@ -6264,7 +6336,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertTrue(vertex.property("name").isPresent());
         Assert.assertTrue(vertex.property("lived").isPresent());
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
         Assert.assertTrue(vertex.property("name").isPresent());
         Assert.assertFalse(vertex.property("lived").isPresent());
 
@@ -6328,7 +6400,7 @@ public class VertexCoreTest extends BaseCoreTest {
         initPersonIndex(true);
 
         graph.addVertex(T.label, "person", "name", "Baby", "city", "");
-        graph.tx().commit();
+        this.commitTx();
 
         Vertex vertex = graph.traversal().V().has("city", "").next();
         Assert.assertEquals("Baby", vertex.value("name"));
@@ -6342,7 +6414,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vl = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vl.size());
@@ -6357,7 +6429,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         vertex.property("age", 5);
         vertex.property("city", "Shanghai");
-        graph.tx().commit();
+        this.commitTx();
 
         vl = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(0, vl.size());
@@ -6378,7 +6450,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vl = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(1, vl.size());
@@ -6387,7 +6459,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, vl.size());
 
         vertex.property("city", "Shanghai");
-        graph.tx().commit();
+        this.commitTx();
 
         vl = graph.traversal().V().has("city", "Hongkong").toList();
         Assert.assertEquals(0, vl.size());
@@ -6403,7 +6475,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         Vertex vertex = graph.addVertex(T.label, "person", "name", "Baby",
                                         "city", "Hongkong", "age", 3);
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vl = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(1, vl.size());
@@ -6412,7 +6484,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, vl.size());
 
         vertex.property("age", 5);
-        graph.tx().commit();
+        this.commitTx();
 
         vl = graph.traversal().V().has("age", 3).toList();
         Assert.assertEquals(0, vl.size());
@@ -6428,8 +6500,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "computer", "name", "1st", "band", "10Gbps",
                         "cpu", "2GHz", "ram", "8GB", "price", 1000);
-        graph.tx().commit();
-
+        this.commitTx();
 
         List<Vertex> vl = graph.traversal().V().has("cpu", "2GHz").toList();
         Assert.assertEquals(1, vl.size());
@@ -6446,11 +6517,11 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex.property("lived").remove();
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -6461,7 +6532,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex.property("lived").remove();
         vertex.property("lived").remove();
@@ -6469,7 +6540,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex.property("lived", "Hangzhou");
         vertex.property("lived", "Shanghai");
 
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -6484,7 +6555,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex.property("lived").remove();
         vertex.property("lived", "Shanghai");
 
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -6495,7 +6566,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Vertex vertex = vertex("author", "id", 1);
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -6519,9 +6590,13 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testUpdateVertexPropertyOfAddingVertex() {
         HugeGraph graph = graph();
+        Vertex vertex0 = graph.addVertex(T.label, "author", "id", 1,
+                                         "name", "Tom", "lived", "Beijing");
+        vertex0.property("lived").remove();
+
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.commitTx();
 
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "Tom", "lived", "Beijing");
@@ -6539,7 +6614,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.commitTx();
 
         vertex.remove();
 
@@ -6556,7 +6631,7 @@ public class VertexCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
-        graph.tx().commit();
+        this.commitTx();
 
         graph.traversal().V(vertex.id()).drop().iterate();
 
@@ -6604,7 +6679,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
                         "bestScore", 96, "testNum", 1, "rank", 8, "reword", 8);
-        graph.tx().commit();
+        this.commitTx();
 
         Vertex tom = graph.traversal().V().hasLabel("student")
                           .has("name", "Tom").next();
@@ -6619,7 +6694,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("testNum", 1);
         tom.property("rank", 12);
         tom.property("reword", 12);
-        graph.tx().commit();
+        this.commitTx();
 
         tom = graph.traversal().V().hasLabel("student")
                    .has("name", "Tom").next();
@@ -6634,7 +6709,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("testNum", 1);
         tom.property("rank", 8);
         tom.property("reword", 8);
-        graph.tx().commit();
+        this.commitTx();
 
         tom = graph.traversal().V().hasLabel("student")
                    .has("name", "Tom").next();
@@ -6650,7 +6725,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("testNum", 1);
         tom.property("rank", 1);
         tom.property("reword", 1);
-        graph.tx().commit();
+        this.commitTx();
 
         tom = graph.traversal().V().hasLabel("student")
                    .has("name", "Tom").next();
@@ -6713,7 +6788,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(ImmutableSet.of(8, 12), result.value("rank"));
         Assert.assertEquals(ImmutableList.of(8, 12), result.value("reword"));
 
-        graph.tx().commit();
+        this.commitTx();
 
         result = graph.traversal().V().hasLabel("student")
                       .has("name", "Tom").next();
@@ -6748,7 +6823,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(ImmutableList.of(2, 1),
                             tom.value("reword"));
 
-        graph.tx().commit();
+        this.commitTx();
         result = graph.traversal().V().hasLabel("student")
                       .has("name", "Tom").next();
         Assert.assertEquals(65, result.value("worstScore"));
@@ -6827,7 +6902,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
                         "bestScore", 96, "testNum", 1, "no", "001");
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("student")
                                      .has("name", "Tom").toList();
@@ -6864,7 +6939,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("bestScore", 98);
         tom.property("testNum", 1);
         tom.property("no", "002");
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("student")
                         .has("name", "Tom").toList();
@@ -6902,7 +6977,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("bestScore", 99);
         tom.property("testNum", 1);
         tom.property("no", "003");
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("student")
                         .has("name", "Tom").toList();
@@ -6940,7 +7015,7 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("bestScore", 100);
         tom.property("testNum", 1);
         tom.property("no", "004");
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("student")
                         .has("name", "Tom").toList();
@@ -6978,19 +7053,19 @@ public class VertexCoreTest extends BaseCoreTest {
         tom.property("bestScore", 99);
         tom.property("testNum", 1);
         tom.property("no", "005");
-        graph.tx().commit();
+        this.commitTx();
 
         tom.property("worstScore", 65);
         tom.property("bestScore", 93);
         tom.property("testNum", 1);
         tom.property("no", "006");
-        graph.tx().commit();
+        this.commitTx();
 
         tom.property("worstScore", 58);
         tom.property("bestScore", 63);
         tom.property("testNum", 1);
         tom.property("no", "007");
-        graph.tx().commit();
+        this.commitTx();
 
         vertices = graph.traversal().V().hasLabel("student")
                         .has("name", "Tom").toList();
@@ -7076,7 +7151,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
                         "bestScore", 96, "testNum", 1, "no", "001",
                         "rank", 1, "reword", 1);
-        graph.tx().commit();
+        this.commitTx();
 
         List<Vertex> vertices = graph.traversal().V().hasLabel("student")
                                      .has("name", "Tom").toList();
@@ -7107,7 +7182,7 @@ public class VertexCoreTest extends BaseCoreTest {
             reword = random.nextInt();
             rewords.add(reword);
             tom.property("reword", reword);
-            graph.tx().commit();
+            this.commitTx();
 
             tom = graph.traversal().V().hasLabel("student")
                        .has("name", "Tom").next();
@@ -7130,7 +7205,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "name", "Tom", "lived", "Beijing");
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "Tom", "lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Vertex vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -7143,7 +7218,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7155,7 +7230,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -7168,7 +7243,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.addVertex(T.label, "author", "id", 1,
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("lived").isPresent());
@@ -7185,7 +7260,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.traversal().V().hasLabel("author").has("id", 1).next().remove();
         graph.addVertex(T.label, "author", "id", 1,
                         "name", "Tom", "lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Vertex vertex = vertex("author", "id", 1);
         Assert.assertTrue(vertex.property("lived").isPresent());
@@ -7200,7 +7275,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.remove();
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7213,7 +7288,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.remove();
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7226,7 +7301,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.remove();
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7241,7 +7316,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex.property("lived", "Wuhan");
         graph.addVertex(T.label, "author", "id", 1, "name", "Tom",
                         "lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertTrue(vertex.property("lived").isPresent());
@@ -7256,7 +7331,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived", "Wuhan");
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7268,7 +7343,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived", "Wuhan");
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Shanghai", vertex.property("lived").value());
@@ -7281,7 +7356,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("name", "Tomcat");
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertEquals("Tomcat", vertex.property("name").value());
@@ -7295,7 +7370,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived", "Shanghai");
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("lived").isPresent());
@@ -7308,7 +7383,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("name", "Tomcat");
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("lived").isPresent());
@@ -7325,7 +7400,7 @@ public class VertexCoreTest extends BaseCoreTest {
         vertex.property("lived").remove();
         graph.addVertex(T.label, "author", "id", 1, "name", "Tom",
                         "lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertTrue(vertex.property("lived").isPresent());
@@ -7340,7 +7415,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived").remove();
         vertex.remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         Assert.assertNull(vertex("author", "id", 1));
     }
@@ -7352,7 +7427,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived").remove();
         vertex.property("lived", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertTrue(vertex.property("lived").isPresent());
@@ -7367,7 +7442,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         vertex.property("lived").remove();
         vertex.property("name", "Tomcat");
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("lived").isPresent());
@@ -7381,7 +7456,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("lived").remove();
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("lived").isPresent());
@@ -7394,7 +7469,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                         "name", "Tom", "lived", "Beijing");
         vertex.property("age").remove();
         vertex.property("lived").remove();
-        graph.tx().commit();
+        this.mayCommitTx();
 
         vertex = vertex("author", "id", 1);
         Assert.assertFalse(vertex.property("age").isPresent());
@@ -7407,7 +7482,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "person", "name", "marko",
                         "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.mayCommitTx();
         Vertex vertex = vertex("person", "name", "marko");
         Assert.assertTrue(vertex.property("age").isPresent());
         Assert.assertEquals(18, vertex.value("age"));
@@ -7415,7 +7490,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals("Beijing", vertex.value("city"));
 
         graph.addVertex(T.label, "person", "name", "marko", "city", "Wuhan");
-        graph.tx().commit();
+        this.mayCommitTx();
         vertex = vertex("person", "name", "marko");
         Assert.assertFalse(vertex.property("age").isPresent());
         Assert.assertTrue(vertex.property("city").isPresent());
@@ -7423,7 +7498,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "person", "name", "marko",
                         "age", 19, "city", "Shanghai");
-        graph.tx().commit();
+        this.mayCommitTx();
         vertex = vertex("person", "name", "marko");
         Assert.assertTrue(vertex.property("age").isPresent());
         Assert.assertEquals(19, vertex.value("age"));
@@ -7431,7 +7506,6 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals("Shanghai", vertex.value("city"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testScanVertex() {
         HugeGraph graph = graph();
@@ -7440,12 +7514,14 @@ public class VertexCoreTest extends BaseCoreTest {
                           storeFeatures().supportsScanToken() ||
                           storeFeatures().supportsScanKeyRange());
         init10Vertices();
+        this.commitTx();
 
         List<Vertex> vertices = new LinkedList<>();
 
         long splitSize = 1 * 1024 * 1024;
-        Object splits = graph.metadata(HugeType.VERTEX, "splits", splitSize);
-        for (Shard split : (List<Shard>) splits) {
+        List<Shard> splits = graph.metadata(HugeType.VERTEX, "splits",
+                                            splitSize);
+        for (Shard split : splits) {
             ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
             q.scan(split.start(), split.end());
             vertices.addAll(ImmutableList.copyOf(graph.vertices(q)));
@@ -7461,6 +7537,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           storeFeatures().supportsScanToken() ||
                           storeFeatures().supportsScanKeyRange());
         init10Vertices();
+        this.commitTx();
 
         List<Vertex> vertices = new LinkedList<>();
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -7953,6 +8030,27 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalStateException.class, () -> {
             graph.traversal().V()
                  .has("~page", "").range(2, 10)
+                 .toList();
+        });
+    }
+
+    @Test
+    public void testQueryByPageWithtUncommittedRecords() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "author", "id", 1,
+                        "name", "James Gosling", "age", 62,
+                        "lived", "Canadian");
+        graph.addVertex(T.label, "author", "id", 2,
+                        "name", "Guido van Rossum", "age", 61,
+                        "lived", "California");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            graph.traversal().V()
+                 .has("~page", "")
                  .toList();
         });
     }
@@ -8604,16 +8702,16 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
                         "age", 18, "city", "Beijing");
-        graph.tx().commit();
+        this.commitTx();
 
         graph.addVertex(T.label, "programmer", T.id, "123456", "name", "marko",
                         "age", 19, "city", "Beijing");
-        graph.tx().commit();
+        this.commitTx();
 
         graph.addVertex(T.label, "designer", T.id, "123456", "name", "marko",
                         "age", 18, "city", "Beijing");
         Assert.assertThrows(HugeException.class, () -> {
-            graph.tx().commit();
+            this.commitTx();
         });
     }
 
@@ -8627,7 +8725,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "user", T.id, 123);
         graph.addVertex(T.label, "user", T.id, 456);
         graph.addVertex(T.label, "user", T.id, 789);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         GraphTraversalSource g = graph.traversal();
         List<Vertex> vertices;
@@ -8662,7 +8760,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "user1", T.id, 123);
         graph.addVertex(T.label, "user2", T.id, 456);
         graph.addVertex(T.label, "user2", T.id, 789);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         GraphTraversalSource g = graph.traversal();
         List<Vertex> vertices;
@@ -8800,7 +8898,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex3 = graph.addVertex(T.label, "person", "name",
                                          "xyz\u0003abc", "city", "Hongkong",
                                          "age", 13);
-        graph.tx().commit();
+        this.mayCommitTx();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -8888,7 +8986,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex6 = graph.addVertex(T.label, "person", "name", "6",
                                          "city", "\u0001",
                                          "age", 15);
-        graph.tx().commit();
+        this.commitTx();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -8990,7 +9088,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                          "city", "Beijing", "age", 23);
         Vertex vertex5 = graph.addVertex(T.label, "person", "name", "秦始皇帝",
                                          "city", "Beijing", "age", 29);
-        graph.tx().commit();
+        this.commitTx();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -9037,7 +9135,7 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "book", "name", "java-4");
         graph.addVertex(T.label, "book", "name", "java-5");
 
-        graph.tx().commit();
+        this.mayCommitTx();
     }
 
     private void init100Books() {
@@ -9047,7 +9145,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.addVertex(T.label, "book", "name", "java-" + i, "price", i);
         }
 
-        graph.tx().commit();
+        this.commitTx();
     }
 
     private void init5Persons() {
@@ -9069,7 +9167,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "city", "Taipei", "age", 21,
                         "birth", Utils.date("2016-01-01 00:00:00.000"));
 
-        graph.tx().commit();
+        this.commitTx();
     }
 
     private void init100Persons() {
@@ -9083,7 +9181,7 @@ public class VertexCoreTest extends BaseCoreTest {
                             "age", i % 11);
         }
 
-        graph.tx().commit();
+        this.commitTx();
     }
 
     private void init5Computers() {
@@ -9107,7 +9205,7 @@ public class VertexCoreTest extends BaseCoreTest {
                         "band", "asus", "cpu", "3.2GHz", "ram", "16GB",
                         "price", 6999);
 
-        graph.tx().commit();
+        this.commitTx();
     }
 
     private void initPageTestData() {
@@ -9193,7 +9291,7 @@ public class VertexCoreTest extends BaseCoreTest {
             graph().addVertex(T.label, "software", T.id, id, "name", "marko",
                               "lang", "java", "price", price);
         }
-        graph().tx().commit();
+        this.commitTx();
     }
 
     private Vertex vertex(String label, String pkName, Object pkValue) {

@@ -111,6 +111,10 @@ public class BaseCoreTest {
         }
     }
 
+    protected void commitTx() {
+        graph().tx().commit();
+    }
+
     protected BackendFeatures storeFeatures() {
         return graph().backendStoreFeatures();
     }
