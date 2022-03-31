@@ -157,6 +157,8 @@ public class HugeFactory {
             shutdown.compareAndSet(true, false);
             throw new HugeException("Failed to shutdown", e);
         }
+
+        LOG.info("HugeFactory shutdown");
     }
 
     public static void removeShutdownHook() {
