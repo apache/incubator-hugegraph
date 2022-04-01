@@ -778,10 +778,9 @@ public class GraphTransaction extends IndexableTransaction {
 
     public Iterator<Vertex> queryVertices(Query query) {
         if (this.hasUpdate()) {
-            E.checkArgument(this.removedVertices.isEmpty() ||
-                            query.noLimitAndOffset(),
+            E.checkArgument(query.noLimitAndOffset(),
                             "It's not allowed to query with offser/limit " +
-                            "when there are uncommitted delete records.");
+                            "when there are uncommitted records.");
             // TODO: also add check: no SCAN, no OLAP
             E.checkArgument(!query.paging(),
                             "It's not allowed to query by paging when " +
@@ -943,10 +942,9 @@ public class GraphTransaction extends IndexableTransaction {
     @Watched
     public Iterator<Edge> queryEdges(Query query) {
         if (this.hasUpdate()) {
-            E.checkArgument(this.removedEdges.isEmpty() ||
-                            query.noLimitAndOffset(),
+            E.checkArgument(query.noLimitAndOffset(),
                             "It's not allowed to query with offser/limit " +
-                            "when there are uncommitted delete records.");
+                            "when there are uncommitted records.");
             // TODO: also add check: no SCAN, no OLAP
             E.checkArgument(!query.paging(),
                             "It's not allowed to query by paging when " +

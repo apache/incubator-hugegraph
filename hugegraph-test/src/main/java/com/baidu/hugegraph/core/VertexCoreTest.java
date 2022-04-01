@@ -2100,8 +2100,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_COMMON)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2187,8 +2186,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2275,8 +2273,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2401,8 +2398,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2577,8 +2573,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_SECONDARY)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2694,8 +2689,7 @@ public class VertexCoreTest extends BaseCoreTest {
               .writeType(WriteType.OLAP_RANGE)
               .ifNotExist().create();
 
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         String author = graph.vertexLabel("author").id().asString();
         Id id1 = SplicingIdGenerator.splicing(author,
@@ -2768,7 +2762,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithLimit() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         // Query all with limit
         List<Vertex> vertices = graph.traversal().V().limit(6).toList();
@@ -2776,12 +2770,13 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryAllWithLimitAfterDelete() {
+    public void testQueryAllWithLimitAfterUncommittedDelete() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         // Query all with limit after delete
         graph.traversal().V().limit(6).drop().iterate();
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query count with uncommitted records
             graph.traversal().V().count().next();
@@ -2789,6 +2784,10 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
             graph.traversal().V().limit(3).toList();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with offset
+            graph.traversal().V().range(1, -1).toList();
         });
 
         this.commitTx();
@@ -2804,9 +2803,36 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryAllWithLimitAfterUncommittedInsert() {
+        HugeGraph graph = graph();
+        this.init10VerticesAndCommit();
+
+        // Query all with limit after insert
+        graph.addVertex(T.label, "author", "id", 3,
+                        "name", "test", "age", 88,
+                        "lived", "California");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().V().count().next();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with limit
+            graph.traversal().V().limit(3).toList();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with offset
+            graph.traversal().V().range(1, -1).toList();
+        });
+
+        this.commitTx();
+        Assert.assertEquals(11L, graph.traversal().V().count().next());
+    }
+
+    @Test
     public void testQueryAllWithLimitByQueryVertices() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         Query query = new Query(HugeType.VERTEX);
         query.limit(1);
@@ -2819,7 +2845,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithLimit0() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         // Query all with limit 0
         List<Vertex> vertices = graph.traversal().V().limit(0).toList();
@@ -2840,7 +2866,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithIllegalLimit() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().limit(-2).toList();
@@ -2854,7 +2880,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithOffset() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = graph.traversal().V().range(8, 100).toList();
         Assert.assertEquals(2, vertices.size());
@@ -2866,7 +2892,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithOffsetAndLimit() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = graph.traversal().V().range(8, 9).toList();
         Assert.assertEquals(1, vertices.size());
@@ -2890,7 +2916,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithOffsetAndLimitWithMultiTimes() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = graph.traversal().V()
                                      .range(1, 6)
@@ -2924,7 +2950,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryAllWithIllegalOffsetOrLimit() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().range(8, 7).toList();
@@ -2947,6 +2973,7 @@ public class VertexCoreTest extends BaseCoreTest {
     public void testQueryWithSplicingId() {
         HugeGraph graph = graph();
         init10Vertices();
+
         List<Vertex> vertices = graph.traversal().V().toList();
         String bookId = graph.vertexLabel("book").id().asString();
         Assert.assertTrue(Utils.containsId(vertices,
@@ -3036,8 +3063,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByIdWithGraphAPIAndNotCommitedRemoved() {
         HugeGraph graph = graph();
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = graph.traversal().V()
                                      .hasLabel("author").toList();
@@ -3145,7 +3171,7 @@ public class VertexCoreTest extends BaseCoreTest {
     @Test
     public void testQueryByLabelWithLimit() {
         HugeGraph graph = graph();
-        init10Vertices();
+        this.init10VerticesAndCommit();
 
         // Query by vertex label with limit
         List<Vertex> vertices = graph.traversal().V().hasLabel("book")
@@ -7513,8 +7539,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support scan",
                           storeFeatures().supportsScanToken() ||
                           storeFeatures().supportsScanKeyRange());
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = new LinkedList<>();
 
@@ -7536,8 +7561,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support scan",
                           storeFeatures().supportsScanToken() ||
                           storeFeatures().supportsScanKeyRange());
-        init10Vertices();
-        this.commitTx();
+        this.init10VerticesAndCommit();
 
         List<Vertex> vertices = new LinkedList<>();
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -9112,6 +9136,11 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, vertices.size());
         Assert.assertTrue(vertices.contains(vertex3));
         Assert.assertTrue(vertices.contains(vertex4));
+    }
+
+    private void init10VerticesAndCommit() {
+        this.init10Vertices();
+        this.commitTx();
     }
 
     private void init10Vertices() {
