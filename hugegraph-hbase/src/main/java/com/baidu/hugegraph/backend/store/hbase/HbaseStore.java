@@ -54,7 +54,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private static final Logger LOG = Log.logger(HbaseStore.class);
 
-    private static final BackendFeatures FEATURES = new HbaseFeatures();
+    private static BackendFeatures FEATURES;
 
     private final String store;
     private final String namespace;
@@ -67,13 +67,14 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
     private HbaseSessions sessions;
 
     public HbaseStore(final BackendStoreProvider provider,
-                      final String namespace, final String store) {
+                      final String namespace, final String store, boolean enablePartition) {
         this.tables = new HashMap<>();
 
         this.provider = provider;
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
+        this.FEATURES = new HbaseFeatures(enablePartition);
 
         this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
@@ -442,9 +443,9 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
         private final HbaseTables.Counters counters;
 
-        public HbaseSchemaStore(BackendStoreProvider provider,
+        public HbaseSchemaStore(HugeConfig config, BackendStoreProvider provider,
                                 String namespace, String store) {
-            super(provider, namespace, store);
+            super(provider, namespace, store, config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
 
             this.counters = new HbaseTables.Counters();
 
@@ -491,7 +492,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         private boolean enablePartition;
         public HbaseGraphStore(HugeConfig config, BackendStoreProvider provider,
                                String namespace, String store) {
-            super(provider, namespace, store);
+            super(provider, namespace, store, config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
             this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue();
             registerTableManager(HugeType.VERTEX,
                                  new HbaseTables.Vertex(store, enablePartition));
