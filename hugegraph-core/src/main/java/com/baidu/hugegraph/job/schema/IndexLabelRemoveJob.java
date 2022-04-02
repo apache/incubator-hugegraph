@@ -60,8 +60,9 @@ public class IndexLabelRemoveJob extends SchemaJob {
             // Set index label to "deleting" status
             schemaTx.updateSchemaStatus(indexLabel, SchemaStatus.DELETING);
             try {
-                // Remove label from indexLabels of vertex or edge label
-                removeIndexLabelFromBaseLabel(schemaTx, indexLabel);
+                // Remove indexLabel from indexLabels of vertex/edge label
+                schemaTx.removeIndexLabelFromBaseLabel(indexLabel);
+
                 // Remove index data
                 // TODO: use event to replace direct call
                 graphTx.removeIndex(indexLabel);

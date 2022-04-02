@@ -581,7 +581,7 @@ public class TextSerializer extends AbstractSerializer {
         vertexLabel.properties(readIds(properties));
         vertexLabel.primaryKeys(readIds(primaryKeys));
         vertexLabel.nullableKeys(readIds(nullableKeys));
-        vertexLabel.indexLabels(readIds(indexLabels));
+        vertexLabel.addIndexLabels(readIds(indexLabels));
         vertexLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                        Boolean.class));
         readUserdata(vertexLabel, entry);
@@ -643,7 +643,7 @@ public class TextSerializer extends AbstractSerializer {
         edgeLabel.properties(readIds(properties));
         edgeLabel.sortKeys(readIds(sortKeys));
         edgeLabel.nullableKeys(readIds(nullablekeys));
-        edgeLabel.indexLabels(readIds(indexLabels));
+        edgeLabel.addIndexLabels(readIds(indexLabels));
         edgeLabel.enableLabelIndex(JsonUtil.fromJson(enableLabelIndex,
                                                      Boolean.class));
         readUserdata(edgeLabel, entry);
