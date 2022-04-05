@@ -36,12 +36,12 @@ public class HbaseFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanKeyPrefix() {
-        return !enablePartition;
+        return !this.enablePartition;
     }
 
     @Override
     public boolean supportsScanKeyRange() {
-        return !enablePartition;
+        return !this.enablePartition;
     }
 
     @Override

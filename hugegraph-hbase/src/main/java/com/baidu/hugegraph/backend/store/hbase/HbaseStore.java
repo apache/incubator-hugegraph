@@ -54,7 +54,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private static final Logger LOG = Log.logger(HbaseStore.class);
 
-    private static BackendFeatures FEATURES;
+    private final BackendFeatures FEATURES;
 
     private final String store;
     private final String namespace;
@@ -66,8 +66,8 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     private HbaseSessions sessions;
 
-    public HbaseStore(final BackendStoreProvider provider,
-                      final String namespace, final String store, boolean enablePartition) {
+    public HbaseStore(BackendStoreProvider provider,
+                      String namespace, String store, boolean enablePartition) {
         this.tables = new HashMap<>();
 
         this.provider = provider;
