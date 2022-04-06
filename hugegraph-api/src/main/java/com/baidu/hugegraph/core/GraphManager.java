@@ -337,33 +337,28 @@ public final class GraphManager {
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
-            try {
-                if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
-                    hugegraph.initBackend();
-                    if (this.requireAuthentication()) {
-                        String token = config.get(
-                                              ServerOptions.AUTH_ADMIN_TOKEN);
-                        try {
-                            this.authenticator.initAdminUser(token);
-                        } catch (Exception e) {
-                            throw new BackendException(
-                                      "The backend store of '%s' can't " +
-                                      "initialize admin user", hugegraph.name());
-                        }
+            if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
+                hugegraph.initBackend();
+                if (this.requireAuthentication()) {
+                    String token = config.get(ServerOptions.AUTH_ADMIN_TOKEN);
+                    try {
+                        this.authenticator.initAdminUser(token);
+                    } catch (Exception e) {
+                        throw new BackendException(
+                                  "The backend store of '%s' can't " +
+                                  "initialize admin user", hugegraph.name());
                     }
                 }
-                BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
-                if (!info.exists()) {
-                    throw new BackendException(
+            }
+            BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
+            if (!info.exists()) {
+                throw new BackendException(
                           "The backend store of '%s' has not been initialized",
                           hugegraph.name());
-                }
-                if (!info.checkVersion()) {
-                    throw new BackendException(
-                              "The backend store version is inconsistent");
-                }
-            } finally {
-                hugegraph.tx().close();
+            }
+            if (!info.checkVersion()) {
+                throw new BackendException(
+                          "The backend store version is inconsistent");
             }
         }
     }
