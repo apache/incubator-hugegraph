@@ -251,10 +251,10 @@ public class ServerOptions extends OptionHolder {
                     "hugegraph"
             );
 
-    public static final ConfigOption<Boolean>  DYNAMIC_LISTEN_GRAPH_CHANGES =
+    public static final ConfigOption<Boolean> ENABLE_DYNAMIC_CREATE_DROP =
             new ConfigOption<>(
-                    "dynamic_create_graph",
-                    "Whether to listen graph changes dynamically",
+                    "graphs.enable_dynamic_create_drop",
+                    "Whether to enable create or drop graph dynamically.",
                     disallowEmpty(),
                     true
             );

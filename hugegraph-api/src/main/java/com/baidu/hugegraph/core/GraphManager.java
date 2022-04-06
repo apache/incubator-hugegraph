@@ -81,6 +81,7 @@ public final class GraphManager {
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
+    private final HugeConfig hugeConfig;
 
     private Id server;
     private NodeRole role;
@@ -94,9 +95,8 @@ public final class GraphManager {
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
-        if (conf.get(ServerOptions.DYNAMIC_LISTEN_GRAPH_CHANGES)) {
-            this.listenChanges();
-        }
+        this.hugeConfig = conf;
+        this.listenChanges();
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log
@@ -159,6 +159,10 @@ public final class GraphManager {
     }
 
     public HugeGraph createGraph(String name, String configText) {
+        E.checkArgument(hugeConfig.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to create graph dynamically, " +
+                                "please set `enable_dynamic_create_drop` to true.",
+                        name);
         E.checkArgument(StringUtils.isNotEmpty(name),
                         "The graph name can't be null or empty");
         E.checkArgument(!this.graphs().contains(name),
@@ -173,6 +177,10 @@ public final class GraphManager {
 
     public void dropGraph(String name) {
         HugeGraph graph = this.graph(name);
+        E.checkArgument(hugeConfig.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to drop graph dynamically, " +
+                                "please set `enable_dynamic_create_drop` to true.",
+                        name);
         E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
         E.checkArgument(this.graphs.size() > 1,
                         "The graph '%s' is the only one, not allowed to delete",
