@@ -160,8 +160,8 @@ public final class GraphManager {
 
     public HugeGraph createGraph(String name, String configText) {
         E.checkArgument(hugeConfig.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
-                        "Not allowed to create graph dynamically, " +
-                                "please set `enable_dynamic_create_drop` to true.",
+                        "Not allowed to create graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
                         name);
         E.checkArgument(StringUtils.isNotEmpty(name),
                         "The graph name can't be null or empty");
@@ -178,8 +178,8 @@ public final class GraphManager {
     public void dropGraph(String name) {
         HugeGraph graph = this.graph(name);
         E.checkArgument(hugeConfig.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
-                        "Not allowed to drop graph dynamically, " +
-                                "please set `enable_dynamic_create_drop` to true.",
+                        "Not allowed to drop graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
                         name);
         E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
         E.checkArgument(this.graphs.size() > 1,
