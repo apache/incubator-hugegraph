@@ -94,7 +94,9 @@ public final class GraphManager {
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
-        this.listenChanges();
+        if (conf.get(ServerOptions.DYNAMIC_CREATE_GRAPH)) {
+            this.listenChanges();
+        }
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         // this.installLicense(conf, "");
         // Raft will load snapshot firstly then launch election and replay log

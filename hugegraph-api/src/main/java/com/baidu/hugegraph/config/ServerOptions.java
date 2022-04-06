@@ -250,4 +250,12 @@ public class ServerOptions extends OptionHolder {
                     null,
                     "hugegraph"
             );
+
+    public static final ConfigOption<Boolean>  DYNAMIC_CREATE_GRAPH =
+            new ConfigOption<>(
+                    "dynamic_create_graph",
+                    "Whether to create graph dynamically",
+                    disallowEmpty(),
+                    true
+            );
 }
