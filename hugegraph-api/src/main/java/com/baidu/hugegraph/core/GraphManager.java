@@ -94,7 +94,7 @@ public final class GraphManager {
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
-        if (conf.get(ServerOptions.DYNAMIC_CREATE_GRAPH)) {
+        if (conf.get(ServerOptions.DYNAMIC_LISTEN_GRAPH_CHANGES)) {
             this.listenChanges();
         }
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
