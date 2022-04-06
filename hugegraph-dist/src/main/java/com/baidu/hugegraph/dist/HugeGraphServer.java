@@ -119,12 +119,14 @@ public class HugeGraphServer {
         HugeGraphServer.register();
 
         HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
+
         /*
          * HugeFactory.shutdown hook may be invoked before server stop,
          * causes event-hub can't execute notification events for another
          * shutdown executor such as gremling-stop-shutdown
          */
         HugeFactory.removeShutdownHook();
+
         CompletableFuture<?> serverStopped = new CompletableFuture<>();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraphServer stopping");
