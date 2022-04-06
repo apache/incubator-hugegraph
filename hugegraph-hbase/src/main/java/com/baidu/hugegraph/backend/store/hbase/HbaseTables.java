@@ -21,7 +21,11 @@ package com.baidu.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 
+import com.baidu.hugegraph.backend.id.EdgeId;
+import com.baidu.hugegraph.backend.serializer.BytesBuffer;
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
@@ -109,8 +113,8 @@ public class HbaseTables {
 
         public static final String TABLE = HugeType.VERTEX.string();
 
-        public Vertex(String store) {
-            super(joinTableName(store, TABLE));
+        public Vertex(String store, boolean enablePartition) {
+            super(joinTableName(store, TABLE), enablePartition);
         }
 
         @Override
@@ -130,8 +134,8 @@ public class HbaseTables {
 
         public static final String TABLE_SUFFIX = HugeType.EDGE.string();
 
-        public Edge(String store, boolean out) {
-            super(joinTableName(store, table(out)));
+        public Edge(String store, boolean out, boolean enablePartition) {
+            super(joinTableName(store, table(out)), enablePartition);
         }
 
         private static String table(boolean out) {
@@ -139,12 +143,12 @@ public class HbaseTables {
             return (out ? 'o' : 'i') + TABLE_SUFFIX;
         }
 
-        public static Edge out(String store) {
-            return new Edge(store, true);
+        public static Edge out(String store, boolean enablePartition) {
+            return new Edge(store, true, enablePartition);
         }
 
-        public static Edge in(String store) {
-            return new Edge(store, false);
+        public static Edge in(String store, boolean enablePartition) {
+            return new Edge(store, false, enablePartition);
         }
 
         @Override
@@ -161,13 +165,17 @@ public class HbaseTables {
 
         @Override
         protected void parseRowColumns(Result row, BackendEntry entry,
-                                       Query query) throws IOException {
+                                       Query query, boolean enablePartition) throws IOException {
             /*
              * Collapse owner-vertex id from edge id, NOTE: unneeded to
              * collapse if BinarySerializer.keyWithIdPrefix set to true
              */
             byte[] key = row.getRow();
-            key = Arrays.copyOfRange(key, entry.id().length(), key.length);
+            if (enablePartition) {
+                key = Arrays.copyOfRange(key, entry.id().length() + 2, key.length);
+            } else {
+                key = Arrays.copyOfRange(key, entry.id().length(), key.length);
+            }
 
             long total = query.total();
             CellScanner cellScanner = row.cellScanner();

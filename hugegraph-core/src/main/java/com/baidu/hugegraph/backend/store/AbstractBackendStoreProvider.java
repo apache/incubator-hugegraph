@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -61,9 +62,9 @@ public abstract class AbstractBackendStoreProvider
                      "The BackendStoreProvider has not been opened");
     }
 
-    protected abstract BackendStore newSchemaStore(String store);
+    protected abstract BackendStore newSchemaStore(HugeConfig config, String store);
 
-    protected abstract BackendStore newGraphStore(String store);
+    protected abstract BackendStore newGraphStore(HugeConfig config, String store);
 
     @Override
     public void listen(EventListener listener) {
@@ -170,13 +171,13 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadSchemaStore(final String name) {
+    public BackendStore loadSchemaStore(HugeConfig config, String name) {
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
                   this.type(), name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
-            BackendStore s = this.newSchemaStore(name);
+            BackendStore s = this.newSchemaStore(config, name);
             this.stores.putIfAbsent(name, s);
         }
 
@@ -186,13 +187,13 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
+    public BackendStore loadGraphStore(HugeConfig config, String name) {
         LOG.debug("The '{}' StoreProvider load GraphStore '{}'",
-                  this.type(),  name);
+                  this.type(), name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
-            BackendStore s = this.newGraphStore(name);
+            BackendStore s = this.newGraphStore(config, name);
             this.stores.putIfAbsent(name, s);
         }
 
@@ -202,8 +203,8 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadSystemStore(String name) {
-        return this.loadGraphStore(name);
+    public BackendStore loadSystemStore(HugeConfig config, String name) {
+        return this.loadGraphStore(config, name);
     }
 
     @Override

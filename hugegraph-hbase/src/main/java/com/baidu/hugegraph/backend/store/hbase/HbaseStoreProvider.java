@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseGraphStore;
 import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseSchemaStore;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public class HbaseStoreProvider extends AbstractBackendStoreProvider {
 
@@ -31,13 +32,13 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected BackendStore newSchemaStore(String store) {
-        return new HbaseSchemaStore(this, this.namespace(), store);
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
+        return new HbaseSchemaStore(config, this, this.namespace(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(String store) {
-        return new HbaseGraphStore(this, this.namespace(), store);
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
+        return new HbaseGraphStore(config, this, this.namespace(), store);
     }
 
     @Override

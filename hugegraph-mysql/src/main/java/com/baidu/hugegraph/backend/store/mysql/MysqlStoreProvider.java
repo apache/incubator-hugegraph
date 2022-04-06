@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlGraphStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStore.MysqlSchemaStore;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public class MysqlStoreProvider extends AbstractBackendStoreProvider {
 
@@ -31,12 +32,12 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected BackendStore newSchemaStore(String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new MysqlSchemaStore(this, this.database(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new MysqlGraphStore(this, this.database(), store);
     }
 

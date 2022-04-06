@@ -227,6 +227,23 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
+    public void createPreSplitTable(String table, List<byte[]> cfs, short numOfPartitions) throws IOException {
+        TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
+                TableName.valueOf(this.namespace, table));
+        for (byte[] cf : cfs) {
+            builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
+                    .build());
+        }
+        byte[][] splits = new byte[numOfPartitions - 1][org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
+        for (short split = 1; split < numOfPartitions; split++) {
+            splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
+        }
+        builder.setCoprocessor(COPROCESSOR_AGGR);
+        try (Admin admin = this.hbase.getAdmin()) {
+            admin.createTable(builder.build(), splits);
+        }
+    }
+
     public void dropTable(String table) throws IOException {
         TableName tableName = TableName.valueOf(this.namespace, table);
         try (Admin admin = this.hbase.getAdmin()) {

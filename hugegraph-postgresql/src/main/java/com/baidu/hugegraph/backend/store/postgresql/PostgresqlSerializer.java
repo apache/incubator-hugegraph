@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store.postgresql;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.logging.log4j.util.Strings;
 
 import com.baidu.hugegraph.backend.id.IdUtil;
@@ -29,6 +30,10 @@ import com.baidu.hugegraph.structure.HugeIndex;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class PostgresqlSerializer extends MysqlSerializer {
+
+    public PostgresqlSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     public BackendEntry writeIndex(HugeIndex index) {

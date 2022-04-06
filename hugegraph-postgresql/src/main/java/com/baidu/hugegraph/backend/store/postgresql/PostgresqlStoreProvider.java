@@ -29,18 +29,19 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
 import com.baidu.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 
 public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
     @Override
-    protected BackendStore newSchemaStore(String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new PostgresqlSchemaStore(this, this.database(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new PostgresqlGraphStore(this, this.database(), store);
     }
 

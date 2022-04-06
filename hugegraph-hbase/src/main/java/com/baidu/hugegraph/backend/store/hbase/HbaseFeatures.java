@@ -23,6 +23,12 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 
 public class HbaseFeatures implements BackendFeatures {
 
+    private boolean enablePartition;
+
+    public HbaseFeatures(boolean enablePartition) {
+        this.enablePartition = enablePartition;
+    }
+
     @Override
     public boolean supportsScanToken() {
         return false;
@@ -30,12 +36,12 @@ public class HbaseFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsScanKeyPrefix() {
-        return true;
+        return !this.enablePartition;
     }
 
     @Override
     public boolean supportsScanKeyRange() {
-        return true;
+        return !this.enablePartition;
     }
 
     @Override

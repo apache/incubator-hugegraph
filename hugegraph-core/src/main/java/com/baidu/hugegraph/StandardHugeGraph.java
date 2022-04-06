@@ -447,17 +447,17 @@ public class StandardHugeGraph implements HugeGraph {
 
     private BackendStore loadSchemaStore() {
         String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
-        return this.storeProvider.loadSchemaStore(name);
+        return this.storeProvider.loadSchemaStore(this.configuration, name);
     }
 
     private BackendStore loadGraphStore() {
         String name = this.configuration.get(CoreOptions.STORE_GRAPH);
-        return this.storeProvider.loadGraphStore(name);
+        return this.storeProvider.loadGraphStore(this.configuration, name);
     }
 
     private BackendStore loadSystemStore() {
         String name = this.configuration.get(CoreOptions.STORE_SYSTEM);
-        return this.storeProvider.loadSystemStore(name);
+        return this.storeProvider.loadSystemStore(this.configuration, name);
     }
 
     @Watched
@@ -498,7 +498,7 @@ public class StandardHugeGraph implements HugeGraph {
     private AbstractSerializer serializer() {
         String name = this.configuration.get(CoreOptions.SERIALIZER);
         LOG.debug("Loading serializer '{}' for graph '{}'", name, this.name);
-        AbstractSerializer serializer = SerializerFactory.serializer(name);
+        AbstractSerializer serializer = SerializerFactory.serializer(this.configuration, name);
         if (serializer == null) {
             throw new HugeException("Can't load serializer with name " + name);
         }

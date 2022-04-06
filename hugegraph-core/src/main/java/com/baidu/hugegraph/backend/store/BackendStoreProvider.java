@@ -35,11 +35,12 @@ public interface BackendStoreProvider {
     // Graph name (that's database name)
     public String graph();
 
-    public BackendStore loadSystemStore(String name);
+    public BackendStore loadSystemStore(HugeConfig config, String name);
 
-    public BackendStore loadSchemaStore(String name);
+    public BackendStore loadSchemaStore(HugeConfig config, String name);
 
-    public BackendStore loadGraphStore(String name);
+    public BackendStore loadGraphStore(HugeConfig config, String name);
+
 
     public void open(String name);
 

@@ -45,7 +45,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     @Override
-    public BackendStore loadSchemaStore(String name) {
+    public BackendStore loadSchemaStore(HugeConfig config, String name) {
         LOG.debug("ScyllaDBStoreProvider load SchemaStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {
@@ -61,7 +61,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     @Override
-    public BackendStore loadGraphStore(String name) {
+    public BackendStore loadGraphStore(HugeConfig config, String name) {
         LOG.debug("ScyllaDBStoreProvider load GraphStore '{}'", name);
 
         if (!this.stores.containsKey(name)) {

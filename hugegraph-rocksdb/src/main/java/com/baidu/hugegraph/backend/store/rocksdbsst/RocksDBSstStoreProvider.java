@@ -22,11 +22,12 @@ package com.baidu.hugegraph.backend.store.rocksdbsst;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBStoreProvider;
 import com.baidu.hugegraph.backend.store.rocksdbsst.RocksDBSstStore.RocksDBSstGraphStore;
+import com.baidu.hugegraph.config.HugeConfig;
 
 public class RocksDBSstStoreProvider extends RocksDBStoreProvider {
 
     @Override
-    protected BackendStore newGraphStore(String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new RocksDBSstGraphStore(this, this.database(), store);
     }
 

@@ -19,11 +19,36 @@
 
 package com.baidu.hugegraph.backend.store.hbase;
 
+import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.util.Log;
+import org.slf4j.Logger;
+import java.util.Arrays;
 
 public class HbaseSerializer extends BinarySerializer {
 
-    public HbaseSerializer() {
-        super(false, true);
+    private static final Logger LOG = Log.logger(HbaseSerializer.class);
+    private final short vertexLogicPartitions;
+    private final short edgeLogicPartitions;
+
+    public HbaseSerializer(HugeConfig config) {
+        super(false, true, config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
+        this.vertexLogicPartitions = config.get(HbaseOptions.HBASE_VERTEX_PARTITION).shortValue();
+        this.edgeLogicPartitions = config.get(HbaseOptions.HBASE_EDGE_PARTITION).shortValue();
+        LOG.debug("vertexLogicPartitions: " + vertexLogicPartitions);
+    }
+
+    @Override
+    protected short getPartition(HugeType type, Id id) {
+        int hashcode = Arrays.hashCode(id.asBytes());
+        short partition = 1;
+        if (type.isEdge()) {
+            partition = (short) (hashcode % this.edgeLogicPartitions);
+        } else if (type.isVertex()) {
+            partition = (short) (hashcode % this.vertexLogicPartitions);
+        }
+        return partition > 0 ? partition : (short) -partition;
     }
 }

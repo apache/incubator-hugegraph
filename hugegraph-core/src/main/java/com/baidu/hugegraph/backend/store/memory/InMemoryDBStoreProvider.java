@@ -26,6 +26,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import com.baidu.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Events;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
@@ -66,12 +67,12 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected BackendStore newSchemaStore(String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new InMemorySchemaStore(this, this.graph(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new InMemoryGraphStore(this, this.graph(), store);
     }
 

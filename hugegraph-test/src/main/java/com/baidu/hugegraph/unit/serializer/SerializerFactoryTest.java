@@ -19,6 +19,9 @@
 
 package com.baidu.hugegraph.unit.serializer;
 
+import com.baidu.hugegraph.config.HugeConfig;
+import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.unit.FakeObjects;
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -34,18 +37,19 @@ public class SerializerFactoryTest extends BaseUnitTest {
 
     @Test
     public void testSerializer() {
-        AbstractSerializer serializer = SerializerFactory.serializer("text");
+        HugeConfig config = FakeObjects.newConfig();
+        AbstractSerializer serializer = SerializerFactory.serializer(config,"text");
         Assert.assertEquals(TextSerializer.class, serializer.getClass());
 
-        serializer = SerializerFactory.serializer("binary");
+        serializer = SerializerFactory.serializer(config, "binary");
         Assert.assertEquals(BinarySerializer.class, serializer.getClass());
 
-        serializer = SerializerFactory.serializer("binaryscatter");
+        serializer = SerializerFactory.serializer(config, "binaryscatter");
         Assert.assertEquals(BinaryScatterSerializer.class,
                             serializer.getClass());
 
         Assert.assertThrows(BackendException.class, () -> {
-            SerializerFactory.serializer("invalid");
+            SerializerFactory.serializer(config, "invalid");
         }, e -> {
             Assert.assertContains("Not exists serializer:", e.getMessage());
         });
@@ -53,9 +57,10 @@ public class SerializerFactoryTest extends BaseUnitTest {
 
     @Test
     public void testRegister() {
+        HugeConfig config = FakeObjects.newConfig();
         SerializerFactory.register("fake", FakeSerializer.class.getName());
         Assert.assertEquals(FakeSerializer.class,
-                            SerializerFactory.serializer("fake").getClass());
+                            SerializerFactory.serializer(config, "fake").getClass());
 
         Assert.assertThrows(BackendException.class, () -> {
             // exist
@@ -82,8 +87,12 @@ public class SerializerFactoryTest extends BaseUnitTest {
 
     public static class FakeSerializer extends BinarySerializer {
 
+        public FakeSerializer(HugeConfig config){
+            super(config);
+        }
+
         public FakeSerializer() {
-            super(true, true);
+            super(true, true, false);
         }
     }
 }

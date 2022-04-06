@@ -707,6 +707,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeEdgeId(Id id) {
+        // owner-vertex + dir + edge-label + sort-values + other-vertex
         EdgeId edge = (EdgeId) id;
         this.writeId(edge.ownerVertexId());
         this.write(edge.directionCode());
@@ -767,11 +768,14 @@ public final class BytesBuffer extends OutputStream {
         return new BinaryId(this.bytes(), null);
     }
 
-    public BinaryId parseId(HugeType type) {
+    public BinaryId parseId(HugeType type, boolean enablePartition) {
         if (type.isIndex()) {
             return this.readIndexId(type);
         }
         // Parse id from bytes
+        if ((type.isVertex() || type.isEdge()) && enablePartition) {
+            this.readShort();
+        }
         int start = this.buffer.position();
         /*
          * Since edge id in edges table doesn't prefix with leading 0x7e,

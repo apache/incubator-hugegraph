@@ -22,6 +22,7 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.Set;
 import java.util.concurrent.Future;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -97,10 +98,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadSchemaStore(final String name) {
+    public synchronized BackendStore loadSchemaStore(HugeConfig config, String name) {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
-            BackendStore store = this.provider.loadSchemaStore(name);
+            BackendStore store = this.provider.loadSchemaStore(config, name);
             this.checkNonSharedStore(store);
             this.schemaStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SCHEMA, this.schemaStore);
@@ -109,10 +110,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadGraphStore(String name) {
+    public synchronized BackendStore loadGraphStore(HugeConfig config, String name) {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
-            BackendStore store = this.provider.loadGraphStore(name);
+            BackendStore store = this.provider.loadGraphStore(config, name);
             this.checkNonSharedStore(store);
             this.graphStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.GRAPH, this.graphStore);
@@ -121,10 +122,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadSystemStore(String name) {
+    public synchronized BackendStore loadSystemStore(HugeConfig config, String name) {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
-            BackendStore store = this.provider.loadSystemStore(name);
+            BackendStore store = this.provider.loadSystemStore(config, name);
             this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
             this.context.addStore(StoreType.SYSTEM, this.systemStore);

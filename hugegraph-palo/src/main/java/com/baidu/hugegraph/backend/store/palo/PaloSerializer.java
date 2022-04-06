@@ -21,10 +21,15 @@ package com.baidu.hugegraph.backend.store.palo;
 
 import com.baidu.hugegraph.backend.serializer.TableBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSerializer;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.SchemaLabel;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
 public class PaloSerializer extends MysqlSerializer {
+
+    public PaloSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     protected void writeEnableLabelIndex(SchemaLabel schema,

@@ -34,6 +34,7 @@ import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -63,6 +64,10 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
 public abstract class TableSerializer extends AbstractSerializer {
+
+    public TableSerializer(HugeConfig config) {
+        super(config);
+    }
 
     @Override
     public TableBackendEntry newBackendEntry(HugeType type, Id id) {
