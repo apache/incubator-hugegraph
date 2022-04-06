@@ -250,4 +250,12 @@ public class ServerOptions extends OptionHolder {
                     null,
                     "hugegraph"
             );
+
+    public static final ConfigOption<Boolean> ENABLE_DYNAMIC_CREATE_DROP =
+            new ConfigOption<>(
+                    "graphs.enable_dynamic_create_drop",
+                    "Whether to enable create or drop graph dynamically.",
+                    disallowEmpty(),
+                    true
+            );
 }
