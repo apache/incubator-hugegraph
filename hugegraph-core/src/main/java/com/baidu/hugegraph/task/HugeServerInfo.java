@@ -51,7 +51,7 @@ public class HugeServerInfo {
 
     // Unit millisecond
     private static final long EXPIRED_INTERVAL =
-                              TaskManager.SCHEDULE_PERIOD * 1000L * 3;
+                              TaskManager.SCHEDULE_PERIOD * 10;
 
     private Id id;
     private NodeRole role;

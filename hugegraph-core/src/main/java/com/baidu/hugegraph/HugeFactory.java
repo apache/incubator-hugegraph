@@ -24,6 +24,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
@@ -43,19 +44,23 @@ public class HugeFactory {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
+    private static final Thread shutdownHook = new Thread(() -> {
+        LOG.info("HugeGraph is shutting down");
+        HugeFactory.shutdown(30L);
+    }, "hugegraph-shutdown");
+
     static {
         SerialEnum.registerInternalEnums();
         HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            LOG.info("HugeGraph is shutting down");
-            HugeFactory.shutdown(30L);
-        }, "hugegraph-shutdown"));
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
 
     private static final Map<String, HugeGraph> graphs = new HashMap<>();
+
+    private static final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = config instanceof HugeConfig ?
@@ -138,6 +143,9 @@ public class HugeFactory {
      * @param timeout seconds
      */
     public static void shutdown(long timeout) {
+        if (!shutdown.compareAndSet(false, true)) {
+            return;
+        }
         try {
             if (!EventHub.destroy(timeout)) {
                 throw new TimeoutException(timeout + "s");
@@ -146,7 +154,14 @@ public class HugeFactory {
             OltpTraverser.destroy();
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
+            shutdown.compareAndSet(true, false);
             throw new HugeException("Failed to shutdown", e);
         }
+
+        LOG.info("HugeFactory shutdown");
+    }
+
+    public static void removeShutdownHook() {
+        Runtime.getRuntime().removeShutdownHook(shutdownHook);
     }
 }
