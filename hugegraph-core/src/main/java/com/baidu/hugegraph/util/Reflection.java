@@ -31,7 +31,7 @@ public class Reflection {
 
     private static final Logger LOG = Log.logger(Reflection.class);
 
-    private static final Class reflectionClazz;
+    private static final Class<?> reflectionClazz;
     private static final Method registerFieldsToFilterMethod;
     private static final Method registerMethodsToFilterMethod;
 
@@ -43,7 +43,7 @@ public class Reflection {
     static {
         Method registerFieldsToFilterMethodTemp = null;
         Method registerMethodsToFilterMethodTemp = null;
-        Class reflectionClazzTemp = null;
+        Class<?> reflectionClazzTemp = null;
         try {
             reflectionClazzTemp = Class.forName(
                                   JDK_INTERNAL_REFLECT_REFLECTION);
