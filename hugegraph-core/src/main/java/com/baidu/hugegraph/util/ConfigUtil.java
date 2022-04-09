@@ -66,9 +66,12 @@ public final class ConfigUtil {
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
                                            config.childConfigurationsAt(
                                            NODE_GRAPHS);
-            if (nodes != null && !nodes.isEmpty() && nodes.size() != 1) {
+            if (nodes == null || nodes.isEmpty()) {
                 return;
             }
+            E.checkArgument(nodes.size() == 1,
+                            "Not allowed to specify multiple '%s' " +
+                            "nodes in config file '%s'", NODE_GRAPHS, conf);
 
             ImmutableNode root = null;
             NodeHandler<ImmutableNode> nodeHandler = null;
