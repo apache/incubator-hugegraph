@@ -232,10 +232,6 @@ public class ExceptionFilter {
         }
     }
 
-    public static String formatException(Throwable exception) {
-        return formatException(exception, false);
-    }
-
     public static String formatException(Throwable exception, boolean trace) {
         String clazz = exception.getClass().toString();
         String message = exception.getMessage() != null ?

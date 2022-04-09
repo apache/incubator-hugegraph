@@ -171,17 +171,17 @@ public abstract class AbstractComputer implements Computer {
 
     private Map<String, Object> readSubConfig(String sub) {
         List<HierarchicalConfiguration<ImmutableNode>> nodes =
-        this.config.childConfigurationsAt(sub);
+                                       this.config.childConfigurationsAt(sub);
 
         E.checkArgument(nodes.size() >= 1,
-                        "Node '%s' must contain", sub);
+                        "'%s' must be contained in config '%s'", sub);
 
         ImmutableNode root = null;
-        NodeModel<ImmutableNode> nodeModel = null;
         NodeHandler<ImmutableNode> nodeHandler = null;
         Map<String, Object> results = new HashMap<>(nodes.size());
         for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
-            E.checkArgument((nodeModel = node.getNodeModel()) != null &&
+            NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
+            E.checkArgument(nodeModel != null &&
                            (nodeHandler = nodeModel.getNodeHandler()) != null &&
                            (root = nodeHandler.getRootNode()) != null,
                            "Node '%s' must contain root", node);

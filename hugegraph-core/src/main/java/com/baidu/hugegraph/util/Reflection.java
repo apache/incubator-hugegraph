@@ -46,7 +46,7 @@ public class Reflection {
         Class reflectionClazzTemp = null;
         try {
             reflectionClazzTemp = Class.forName(
-                                        JDK_INTERNAL_REFLECT_REFLECTION);
+                                  JDK_INTERNAL_REFLECT_REFLECTION);
         } catch (ClassNotFoundException e) {
             try {
                 reflectionClazzTemp = Class.forName(SUN_REFLECT_REFLECTION);
@@ -79,7 +79,7 @@ public class Reflection {
     }
 
     public static void registerFieldsToFilter(Class<?> containingClass,
-                                              String ... fieldNames) {
+                                              String... fieldNames) {
         if (registerFieldsToFilterMethod == null) {
             throw new NotSupportException(
                       "Reflection.registerFieldsToFilter()");
@@ -87,17 +87,17 @@ public class Reflection {
 
         try {
             registerFieldsToFilterMethod.setAccessible(true);
-            registerFieldsToFilterMethod.invoke(
-            reflectionClazz, containingClass, fieldNames);
+            registerFieldsToFilterMethod.invoke(reflectionClazz,
+                                                containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Register class '{}' filter fields '{}' is failed",
+                      "Failed to register class '%s' fields to filter: %s",
                        containingClass, Arrays.toString(fieldNames));
         }
     }
 
     public static void registerMethodsToFilter(Class<?> containingClass,
-                                               String ... methodNames) {
+                                               String... methodNames) {
         if (registerMethodsToFilterMethod == null) {
             throw new NotSupportException(
                       "Reflection.registerMethodsToFilterMethod()");
@@ -105,11 +105,11 @@ public class Reflection {
 
         try {
             registerMethodsToFilterMethod.setAccessible(true);
-            registerMethodsToFilterMethod.invoke(
-            reflectionClazz, containingClass, methodNames);
+            registerMethodsToFilterMethod.invoke(reflectionClazz,
+                                                 containingClass, methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Register class '{}' filter method '{}' is failed",
+                      "Failed to register class '%s' methods to filter: %s",
                       containingClass, Arrays.toString(methodNames));
         }
     }

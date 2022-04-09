@@ -148,8 +148,16 @@ public class GraphsAPI extends API {
     public File getConf(@Context GraphManager manager,
                         @PathParam("name") String name) {
         LOG.debug("Get graph configuration by name '{}'", name);
-        throw new NotSupportedException("Can't access the api in " +
-                  "a node which started with non local file config.");
+
+        HugeGraph g = graph4admin(manager, name);
+
+        HugeConfig config = (HugeConfig) g.configuration();
+        File file = config.file();
+        if (file == null) {
+            throw new NotSupportedException("Can't access the api in " +
+                      "a node which started with non local file config.");
+        }
+        return file;
     }
 
     @DELETE

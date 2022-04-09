@@ -67,26 +67,26 @@ public final class ConfigUtil {
         try {
 
             FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-                new FileBasedConfigurationBuilder(YAMLConfiguration.class)
-                    .configure(params.fileBased().setFileName(conf));
+            new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+                .configure(params.fileBased().setFileName(conf));
             YAMLConfiguration config = (YAMLConfiguration) builder
                                                            .getConfiguration();
 
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
                                            config.childConfigurationsAt(
                                            NODE_GRAPHS);
-            E.checkArgument(nodes == null || nodes.isEmpty()
-                            || nodes.size() == 1,
-              "Not allowed to specify multiple '%s' nodes in " +
-              "config file '%s'", NODE_GRAPHS, conf);
+            E.checkArgument(nodes == null ||
+                            nodes.isEmpty() || nodes.size() == 1,
+                            "Not allowed to specify multiple '%s' " +
+                            "nodes in config file '%s'", NODE_GRAPHS, conf);
 
             ImmutableNode root = null;
-            NodeModel<ImmutableNode> nodeModel = null;
             NodeHandler<ImmutableNode> nodeHandler = null;
             for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
-                E.checkArgument((nodeModel = node.getNodeModel()) != null
-                  && (nodeHandler = nodeModel.getNodeHandler()) != null
-                  && (root = nodeHandler.getRootNode()) != null,
+                NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
+                E.checkArgument(nodeModel != null &&
+                  (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                  (root = nodeHandler.getRootNode()) != null,
                   "Node '%s' must contain root", node);
             }
         } catch (ConfigurationException e) {
@@ -117,7 +117,7 @@ public final class ConfigUtil {
     }
 
     public static String writeToFile(String dir, String graphName,
-                                   HugeConfig config) {
+                                     HugeConfig config) {
         E.checkArgument(FileUtils.getFile(dir).exists(),
                         "The directory '%s' must exist", dir);
         String fileName = Paths.get(dir, graphName + CONF_SUFFIX).toString();
