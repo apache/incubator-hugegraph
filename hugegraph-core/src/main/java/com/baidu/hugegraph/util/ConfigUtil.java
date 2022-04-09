@@ -19,27 +19,19 @@
 
 package com.baidu.hugegraph.util;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.CharArrayReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Collections2;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.YAMLConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.tree.ImmutableNode;
@@ -47,7 +39,6 @@ import org.apache.commons.configuration2.tree.NodeHandler;
 import org.apache.commons.configuration2.tree.NodeModel;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.core.config.yaml.YamlConfiguration;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -75,10 +66,9 @@ public final class ConfigUtil {
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
                                            config.childConfigurationsAt(
                                            NODE_GRAPHS);
-            E.checkArgument(nodes == null ||
-                            nodes.isEmpty() || nodes.size() == 1,
-                            "Not allowed to specify multiple '%s' " +
-                            "nodes in config file '%s'", NODE_GRAPHS, conf);
+            if (nodes != null && !nodes.isEmpty() && nodes.size() != 1) {
+                return;
+            }
 
             ImmutableNode root = null;
             NodeHandler<ImmutableNode> nodeHandler = null;
