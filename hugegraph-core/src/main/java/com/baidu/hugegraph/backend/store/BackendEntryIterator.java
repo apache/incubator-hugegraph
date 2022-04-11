@@ -52,6 +52,11 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
     @Override
     public boolean hasNext() {
         if (this.reachLimit()) {
+            try {
+                this.close();
+            } catch (Exception e) {
+                throw new BackendException("Failed to close iterator", e);
+            }
             return false;
         }
 
@@ -69,6 +74,11 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
         // Stop if reach limit
         if (this.reachLimit()) {
+            try {
+                this.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             throw new NoSuchElementException();
         }
 

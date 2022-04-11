@@ -1753,7 +1753,20 @@ public class GraphTransaction extends IndexableTransaction {
         // Stop if reach limit
         return new LimitIterator<>(results, elem -> {
             long count = query.goOffset(1L);
-            return query.reachLimit(count - 1L);
+            if (query.reachLimit(count - 1L)) {
+                try {
+                    if (results instanceof CIter) {
+                        ((CIter<?>) results).close();
+                    } else {
+                        LOG.warn("Failed to close iterator {}({})", results,
+                                 results.getClass());
+                    }
+                } catch (Exception e) {
+                    throw new HugeException("Failed to close iterator", e);
+                }
+                return true;
+            }
+            return false;
         });
     }
 
