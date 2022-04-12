@@ -41,6 +41,7 @@ scriptEngines: {
           com.baidu.hugegraph.traversal.algorithm.steps.EdgeStep,
           com.baidu.hugegraph.traversal.algorithm.steps.RepeatEdgeStep,
           com.baidu.hugegraph.traversal.algorithm.steps.WeightedEdgeStep,
+          com.baidu.hugegraph.traversal.optimize.ConditionP,
           com.baidu.hugegraph.traversal.optimize.Text,
           com.baidu.hugegraph.traversal.optimize.TraversalUtil,
           com.baidu.hugegraph.util.DateUtil
