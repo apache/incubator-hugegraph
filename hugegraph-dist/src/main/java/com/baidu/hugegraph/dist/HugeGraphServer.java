@@ -31,6 +31,8 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
 
+import java.util.concurrent.CompletableFuture;
+
 public class HugeGraphServer {
 
     private static final Logger LOG = Log.logger(HugeGraphServer.class);
@@ -117,10 +119,21 @@ public class HugeGraphServer {
         HugeGraphServer.register();
 
         HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
+
+        /*
+         * HugeFactory.shutdown hook may be invoked before server stop,
+         * causes event-hub can't execute notification events for another
+         * shutdown executor such as gremling-stop-shutdown
+         */
+        HugeFactory.removeShutdownHook();
+
+        CompletableFuture<?> serverStopped = new CompletableFuture<>();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("HugeGraphServer stopping");
             server.stop();
             LOG.info("HugeGraphServer stopped");
+            serverStopped.complete(null);
         }, "hugegraph-server-shutdown"));
+        serverStopped.get();
     }
 }
