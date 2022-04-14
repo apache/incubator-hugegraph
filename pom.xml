@@ -106,7 +106,7 @@
         <metrics.version>3.1.0</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
-        <checkstyle.version>3.1.0</checkstyle.version>
+        <checkstyle.version>3.1.2</checkstyle.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
