@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.unit.serializer;
 
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.type.HugeType;
-import com.baidu.hugegraph.unit.FakeObjects;
 import org.junit.Test;
 
 import com.baidu.hugegraph.backend.BackendException;
@@ -30,8 +27,10 @@ import com.baidu.hugegraph.backend.serializer.BinaryScatterSerializer;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.serializer.TextSerializer;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.unit.BaseUnitTest;
+import com.baidu.hugegraph.unit.FakeObjects;
 
 public class SerializerFactoryTest extends BaseUnitTest {
 

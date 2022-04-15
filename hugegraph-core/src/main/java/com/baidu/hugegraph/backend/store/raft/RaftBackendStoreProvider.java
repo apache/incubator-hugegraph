@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store.raft;
 import java.util.Set;
 import java.util.concurrent.Future;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
