@@ -4,6 +4,8 @@ Thanks for taking the time to contribute! As an open source project, HugeGraph i
 
 The following is a contribution guide for HugeGraph:
 
+<img width="884" alt="image" src="https://user-images.githubusercontent.com/9625821/159643158-8bf72c0a-93c3-4a58-8912-7b2ab20ced1d.png">
+
 ## 1. Preparation
 
 We can contribute by reporting issues, submitting code patches or any other feedback.
