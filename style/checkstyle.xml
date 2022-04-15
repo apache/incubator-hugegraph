@@ -24,16 +24,16 @@
             <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
             <message key="name.invalidPattern"  value="Package name ''{0}'' must match pattern ''{1}''."/>
         </module>
-        <module name="ImportOrder">
-            <property name="staticGroups"
-                      value="org.apache,java,javax,org,com,com.baidu.hugegraph"/>
-            <property name="separatedStaticGroups" value="true"/>
-            <property name="groups" value="org.apache,java,javax,org,com,com.baidu.hugegraph"/>
-            <property name="ordered" value="true"/>
-            <property name="separated" value="true"/>
-            <property name="option" value="top"/>
-            <property name="sortStaticImportsAlphabetically" value="true"/>
-        </module>
+<!--        <module name="ImportOrder">-->
+<!--            <property name="staticGroups"-->
+<!--                      value="org.apache,java,javax,org,com,com.baidu.hugegraph"/>-->
+<!--            <property name="separatedStaticGroups" value="true"/>-->
+<!--            <property name="groups" value="org.apache,java,javax,org,com,com.baidu.hugegraph"/>-->
+<!--            <property name="ordered" value="true"/>-->
+<!--            <property name="separated" value="true"/>-->
+<!--            <property name="option" value="top"/>-->
+<!--            <property name="sortStaticImportsAlphabetically" value="true"/>-->
+<!--        </module>-->
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
         <module name="UnusedImports"/>
