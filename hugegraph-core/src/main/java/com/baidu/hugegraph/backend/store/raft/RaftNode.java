@@ -38,6 +38,7 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
+import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.util.LZ4Util;
@@ -48,7 +49,7 @@ public final class RaftNode {
     private static final Logger LOG = Log.logger(RaftNode.class);
 
     private final RaftContext context;
-    private RaftGroupService raftGroupService;
+    private final RaftGroupService raftGroupService;
     private final Node node;
     private final StoreStateMachine stateMachine;
     private final AtomicReference<LeaderInfo> leaderInfo;
@@ -59,7 +60,9 @@ public final class RaftNode {
         this.context = context;
         this.stateMachine = new StoreStateMachine(context);
         try {
-            this.node = this.initRaftNode();
+            this.raftGroupService = this.initRaftNode();
+            // Start node
+            this.node = this.raftGroupService.start(false);
             LOG.info("Start raft node: {}", this);
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
@@ -111,7 +114,7 @@ public final class RaftNode {
         }
     }
 
-    private Node initRaftNode() throws IOException {
+    private RaftGroupService initRaftNode() throws IOException {
         NodeOptions nodeOptions = this.context.nodeOptions();
         nodeOptions.setFsm(this.stateMachine);
         /*
@@ -122,12 +125,25 @@ public final class RaftNode {
         PeerId endpoint = this.context.endpoint();
         /*
          * Start raft node with shared rpc server:
-         * return new RaftGroupService(groupId, endpoint, nodeOptions,
-         *                             this.context.rpcServer(), true)
-         *        .start(false)
          */
-        return RaftServiceFactory.createAndInitRaftNode(groupId, endpoint,
-                                                        nodeOptions);
+        RpcServer rpcServer = this.context.rpcServer();
+        LOG.info("The raft endpoint '{}', initial group peers [{}]",
+                 endpoint, nodeOptions.getInitialConf());
+        // Shared rpc server
+        return new RaftGroupService(groupId, endpoint, nodeOptions,
+                                    rpcServer, true);
+    }
+
+    public void close() {
+        if (this.raftGroupService != null) {
+            this.raftGroupService.shutdown();
+            try {
+                this.raftGroupService.join();
+            } catch (final InterruptedException e) {
+                throw new RaftException("Interrupted while shutdown " +
+                                                "raftGroupService");
+            }
+        }
     }
 
     private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
@@ -215,12 +231,12 @@ public final class RaftNode {
                 Thread.sleep(RaftContext.POLL_INTERVAL);
             } catch (InterruptedException e) {
                 throw new BackendException("Interrupted while waiting for " +
-                                           "raft group '%s' log sync", group, e);
+                                           "raft group '%s' log synced", group, e);
             }
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' log sync timeout(%sms)",
+                          "Waiting for raft group '%s' log synced timeout(%sms)",
                           group, consumedTime);
             }
         }

@@ -175,6 +175,10 @@ public final class RaftContext {
         return this.raftNode;
     }
 
+    public RpcServer rpcServer() {
+        return this.rpcServer;
+    }
+
     public RpcForwarder rpcForwarder() {
         return this.rpcForwarder;
     }

@@ -236,7 +236,7 @@ public class CoreOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> RAFT_INSTALL_SNAPSHOT_TIMEOUT =
             new ConfigOption<>(
-                    "raft.rpc_timeout",
+                    "raft.install_snapshot_rpc_timeout",
                     "The install snapshot rpc timeout for jraft rpc.",
                     positiveInt(),
                     // jraft default value is 5 * 60 * 1000

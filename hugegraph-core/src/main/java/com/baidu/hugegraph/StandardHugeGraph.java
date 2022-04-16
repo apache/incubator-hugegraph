@@ -369,7 +369,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
-            this.storeProvider.truncate();
+            this.storeProvider.truncate(this);
             this.storeProvider.initSystemInfo(this);
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
