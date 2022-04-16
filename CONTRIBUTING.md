@@ -109,7 +109,7 @@ Please sign the HugeGraph CLA when contributing code for the first time. You can
 
 `I have read the CLA Document and I hereby sign the CLA`
 
-Note that please make sure the email address you submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
+Note: please make sure the email address you used to submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
 <img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163522445-2a50a72a-dea2-434f-9868-3a0d40d0d037.png">
 
 ## 5. Code review
