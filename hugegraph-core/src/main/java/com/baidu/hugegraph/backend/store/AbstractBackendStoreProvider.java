@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;

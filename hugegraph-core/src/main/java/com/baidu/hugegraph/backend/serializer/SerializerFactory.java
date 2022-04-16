@@ -19,13 +19,11 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.type.HugeType;
 
 public class SerializerFactory {
 
