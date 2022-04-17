@@ -369,7 +369,7 @@ public final class RaftRequests {
             }
             case 16: {
               int rawValue = input.readEnum();
-              StoreAction value = StoreAction.valueOf(rawValue);
+              com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction value = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.valueOf(rawValue);
               if (value == null) {
                 unknownFields.mergeVarintField(2, rawValue);
               } else {
