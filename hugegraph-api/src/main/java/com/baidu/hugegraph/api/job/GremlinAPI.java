@@ -65,7 +65,7 @@ public class GremlinAPI extends API {
 
     private static final int MAX_NAME_LENGTH = 256;
 
-    private static final Histogram gremlinJobInputHistogram =
+    private static final Histogram GREMLIN_JOB_INPUT_HISTOGRAM =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
 
     @POST
@@ -79,7 +79,7 @@ public class GremlinAPI extends API {
                                 GremlinRequest request) {
         LOG.debug("Graph [{}] schedule gremlin job: {}", graph, request);
         checkCreatingBody(request);
-        gremlinJobInputHistogram.update(request.gremlin.length());
+        GREMLIN_JOB_INPUT_HISTOGRAM.update(request.gremlin.length());
 
         HugeGraph g = graph(manager, graph);
         request.aliase(graph, "graph");

@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.baidu.hugegraph.util.Log;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
@@ -36,8 +37,11 @@ import com.baidu.hugegraph.rpc.RpcClientProviderWithAuth;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.StringEncoding;
+import org.slf4j.Logger;
 
 public class StandardAuthenticator implements HugeAuthenticator {
+
+    private static final Logger LOG = Log.logger(StandardAuthenticator.class);
 
     private static final String INITING_STORE = "initing_store";
 
@@ -95,7 +99,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
             if (!password.isEmpty()) {
                 return password;
             }
-            System.out.println(notEmptyPrompt);
+            LOG.info(notEmptyPrompt);
         }
     }
 

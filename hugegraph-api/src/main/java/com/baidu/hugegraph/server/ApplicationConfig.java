@@ -71,7 +71,7 @@ public class ApplicationConfig extends ResourceConfig {
     private class ConfFactory extends AbstractBinder
                               implements Factory<HugeConfig> {
 
-        private HugeConfig conf = null;
+        private HugeConfig conf;
 
         public ConfFactory(HugeConfig conf) {
             E.checkNotNull(conf, "configuration");
@@ -101,16 +101,11 @@ public class ApplicationConfig extends ResourceConfig {
 
         public GraphManagerFactory(HugeConfig conf, EventHub hub) {
             register(new ApplicationEventListener() {
-                private final ApplicationEvent.Type EVENT_INITED =
-                              ApplicationEvent.Type.INITIALIZATION_FINISHED;
-                private final ApplicationEvent.Type EVENT_DESTROYED =
-                              ApplicationEvent.Type.DESTROY_FINISHED;
-
                 @Override
                 public void onEvent(ApplicationEvent event) {
-                    if (event.getType() == this.EVENT_INITED) {
+                    if (event.getType() == ApplicationEvent.Type.INITIALIZATION_FINISHED) {
                         GraphManagerFactory.this.manager = new GraphManager(conf, hub);
-                    } else if (event.getType() == this.EVENT_DESTROYED) {
+                    } else if (event.getType() == ApplicationEvent.Type.DESTROY_FINISHED) {
                         if (GraphManagerFactory.this.manager != null) {
                             GraphManagerFactory.this.manager.close();
                         }

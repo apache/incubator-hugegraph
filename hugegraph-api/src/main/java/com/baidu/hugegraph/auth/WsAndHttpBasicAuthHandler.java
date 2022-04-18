@@ -19,24 +19,6 @@
 
 package com.baidu.hugegraph.auth;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaderNames.UPGRADE;
-import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_PASSWORD;
-import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
-
-import java.nio.charset.Charset;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.tinkerpop.gremlin.server.Settings;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
-import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
-import org.apache.tinkerpop.gremlin.server.handler.AbstractAuthenticationHandler;
-import org.apache.tinkerpop.gremlin.server.handler.SaslAuthenticationHandler;
-
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -45,6 +27,23 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpMessage;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.util.ReferenceCountUtil;
+import org.apache.tinkerpop.gremlin.server.Settings;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
+import org.apache.tinkerpop.gremlin.server.handler.AbstractAuthenticationHandler;
+import org.apache.tinkerpop.gremlin.server.handler.SaslAuthenticationHandler;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
+import static io.netty.handler.codec.http.HttpHeaderNames.UPGRADE;
+import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_PASSWORD;
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
 
 /**
  * An Authentication Handler for doing WebSocket and Http Basic auth
@@ -114,19 +113,16 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                     sendError(ctx, msg);
                     return;
                 }
-                byte[] userPass = null;
+                byte[] userPass;
                 try {
                     final String encoded = header.substring(basic.length());
                     userPass = this.decoder.decode(encoded);
-                } catch (IndexOutOfBoundsException iae) {
-                    sendError(ctx, msg);
-                    return;
-                } catch (IllegalArgumentException iae) {
+                } catch (IndexOutOfBoundsException | IllegalArgumentException iae) {
                     sendError(ctx, msg);
                     return;
                 }
                 String authorization = new String(userPass,
-                                                  Charset.forName("UTF-8"));
+                        StandardCharsets.UTF_8);
                 String[] split = authorization.split(":");
                 if (split.length != 2) {
                     sendError(ctx, msg);
@@ -155,7 +151,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
         private void sendError(ChannelHandlerContext ctx, Object msg) {
             // Close the connection as soon as the error message is sent.
             ctx.writeAndFlush(new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED))
-               .addListener(ChannelFutureListener.CLOSE);
+                .addListener(ChannelFutureListener.CLOSE);
             ReferenceCountUtil.release(msg);
         }
     }

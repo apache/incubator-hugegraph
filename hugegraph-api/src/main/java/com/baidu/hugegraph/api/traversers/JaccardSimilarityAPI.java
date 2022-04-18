@@ -84,7 +84,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         double similarity;
         try (JaccardSimilarTraverser traverser =
                                      new JaccardSimilarTraverser(g)) {
-             similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
+            similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
                                                       edgeLabel, maxDegree);
         }
         return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",

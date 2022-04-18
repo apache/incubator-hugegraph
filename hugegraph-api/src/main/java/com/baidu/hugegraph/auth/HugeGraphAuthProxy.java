@@ -210,16 +210,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public PropertyKey propertyKey(String key) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.propertyKey(key);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.propertyKey(key));
     }
 
     @Override
     public PropertyKey propertyKey(Id key) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.propertyKey(key);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.propertyKey(key));
     }
 
     @Override
@@ -249,23 +245,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public VertexLabel vertexLabel(String label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.vertexLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.vertexLabel(label));
     }
 
     @Override
     public VertexLabel vertexLabel(Id label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.vertexLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.vertexLabel(label));
     }
 
     @Override
     public VertexLabel vertexLabelOrNone(Id label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.vertexLabelOrNone(label);
-        });
+        return verifySchemaPermission(HugePermission.READ,
+            () -> this.hugegraph.vertexLabelOrNone(label));
     }
 
     @Override
@@ -302,23 +293,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public EdgeLabel edgeLabel(String label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.edgeLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.edgeLabel(label));
     }
 
     @Override
     public EdgeLabel edgeLabel(Id label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.edgeLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.edgeLabel(label));
     }
 
     @Override
     public EdgeLabel edgeLabelOrNone(Id label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.edgeLabelOrNone(label);
-        });
+        return verifySchemaPermission(HugePermission.READ,
+            () -> this.hugegraph.edgeLabelOrNone(label));
     }
 
     @Override
@@ -362,16 +348,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public IndexLabel indexLabel(String label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.indexLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.indexLabel(label));
     }
 
     @Override
     public IndexLabel indexLabel(Id label) {
-        return verifySchemaPermission(HugePermission.READ, () -> {
-            return this.hugegraph.indexLabel(label);
-        });
+        return verifySchemaPermission(HugePermission.READ, () -> this.hugegraph.indexLabel(label));
     }
 
     @Override
@@ -382,9 +364,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public Vertex addVertex(Object... keyValues) {
-        return verifyElemPermission(HugePermission.WRITE, () -> {
-            return (HugeVertex) this.hugegraph.addVertex(keyValues);
-        });
+        return verifyElemPermission(HugePermission.WRITE,
+            () -> (HugeVertex) this.hugegraph.addVertex(keyValues));
     }
 
     @Override
@@ -412,9 +393,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public Edge addEdge(Edge edge) {
-        return verifyElemPermission(HugePermission.WRITE, () -> {
-            return (HugeEdge) this.hugegraph.addEdge(edge);
-        });
+        return verifyElemPermission(HugePermission.WRITE,
+            () -> (HugeEdge) this.hugegraph.addEdge(edge));
     }
 
     @Override
@@ -959,9 +939,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         // Log user action, limit rate for each user
         Id usrId = context.user().userId();
-        RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId, id -> {
-            return RateLimiter.create(this.auditLogMaxRate);
-        });
+        RateLimiter auditLimiter = this.auditLimiters.getOrFetch(usrId,
+            id -> RateLimiter.create(this.auditLogMaxRate));
 
         if (!(actionPerm == HugePermission.READ && ro.type().isSchema()) &&
             auditLimiter.tryAcquire()) {
@@ -1094,9 +1073,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         private <V> Iterator<HugeTask<V>> verifyTaskPermission(
                                           HugePermission actionPerm,
                                           Iterator<HugeTask<V>> tasks) {
-            return new FilterIterator<>(tasks, task -> {
-                return verifyTaskPermission(actionPerm, false, task) != null;
-            });
+            return new FilterIterator<>(tasks,
+                task -> verifyTaskPermission(actionPerm, false, task) != null);
         }
 
         private <V> HugeTask<V> verifyTaskPermission(HugePermission actionPerm,
@@ -1107,9 +1085,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 String name = task.id().toString();
                 Nameable elem = HugeResource.NameObject.of(name);
                 return ResourceObject.of(graph, ResourceType.TASK, elem);
-            }, () -> {
-                return hasTaskPermission(task);
-            });
+            }, () -> hasTaskPermission(task));
             return r == null ? null : task;
         }
 
@@ -1490,9 +1466,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             try {
                 Id userKey = IdGenerator.of(username + password);
-                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey, id -> {
-                    return this.authManager.validateUser(username, password);
-                });
+                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey,
+                    id -> this.authManager.validateUser(username, password));
             } catch (Exception e) {
                 LOG.error("Failed to validate user {} with error: ",
                           username, e);
@@ -1509,9 +1484,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
             try {
                 Id userKey = IdGenerator.of(token);
-                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey, id -> {
-                    return this.authManager.validateUser(token);
-                });
+                return HugeGraphAuthProxy.this.usersRoleCache.getOrFetch(userKey,
+                    id -> this.authManager.validateUser(token));
             } catch (Exception e) {
                 LOG.error("Failed to validate token {} with error: ", token, e);
                 throw e;
@@ -1644,7 +1618,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return this.strategies.addStrategies(strategies);
         }
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({ "unchecked" })
         @Override
         public TraversalStrategies removeStrategies(
                Class<? extends TraversalStrategy>... strategyClasses) {
@@ -1674,20 +1648,20 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
-    private static final ThreadLocal<Context> contexts =
+    private static final ThreadLocal<Context> CONTEXTS =
                                               new InheritableThreadLocal<>();
 
-    protected static final Context setContext(Context context) {
-        Context old = contexts.get();
-        contexts.set(context);
+    protected static Context setContext(Context context) {
+        Context old = CONTEXTS.get();
+        CONTEXTS.set(context);
         return old;
     }
 
-    protected static final void resetContext() {
-        contexts.remove();
+    protected static void resetContext() {
+        CONTEXTS.remove();
     }
 
-    protected static final Context getContext() {
+    protected static Context getContext() {
         // Return task context first
         String taskContext = TaskManager.getContext();
         User user = User.fromJson(taskContext);
@@ -1695,10 +1669,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return new Context(user);
         }
 
-        return contexts.get();
+        return CONTEXTS.get();
     }
 
-    protected static final String getContextString() {
+    protected static String getContextString() {
         Context context = getContext();
         if (context == null) {
             return null;
@@ -1706,7 +1680,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return context.user().toJson();
     }
 
-    protected static final void logUser(User user, String path) {
+    protected static void logUser(User user, String path) {
         LOG.info("User '{}' login from client [{}] with path '{}'",
                  user.username(), user.client(), path);
     }
@@ -1757,7 +1731,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
                                          ThreadFactory threadFactory) {
             super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<Runnable>(), threadFactory);
+                    new LinkedBlockingQueue<>(), threadFactory);
         }
 
         @Override

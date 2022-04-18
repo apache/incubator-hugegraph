@@ -146,11 +146,9 @@ public class ProfileAPI {
 
         public void put(APICategory category, APIProfile profile) {
             Map<String, List<APIProfile>> categories;
-            categories = this.apis.computeIfAbsent(category.dir,
-                                                   k -> new TreeMap<>());
+            categories = this.apis.computeIfAbsent(category.dir, k -> new TreeMap<>());
             List<APIProfile> profiles = categories.computeIfAbsent(
-                                                   category.category,
-                                                   k -> new ArrayList<>());
+                    category.category, k -> new ArrayList<>());
             profiles.add(profile);
         }
     }

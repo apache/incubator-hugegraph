@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.baidu.hugegraph.util.Log;
 import org.apache.commons.configuration.Configuration;
 
 import com.baidu.hugegraph.HugeException;
@@ -60,17 +61,20 @@ import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import com.baidu.hugegraph.variables.HugeVariables;
 import com.google.common.collect.ImmutableSet;
 
+import org.slf4j.Logger;
 import sun.reflect.Reflection;
 
 public final class HugeFactoryAuthProxy {
 
+    private static final Logger LOG = Log.logger(HugeFactoryAuthProxy.class);
+
     public static final String GRAPH_FACTORY =
-           "gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy";
+            "gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy";
 
     private static final Set<String> PROTECT_METHODS = ImmutableSet.of(
-                                                       "instance");
+            "instance");
 
-    private static final Map<HugeGraph, HugeGraph> graphs = new HashMap<>();
+    private static final Map<HugeGraph, HugeGraph> GRAPHS = new HashMap<>();
 
     static {
         HugeGraphAuthProxy.setContext(HugeGraphAuthProxy.Context.admin());
@@ -83,10 +87,10 @@ public final class HugeFactoryAuthProxy {
          * TODO: Add verify to StandardHugeGraph() to prevent dynamic creation
          */
         HugeGraph graph = HugeFactory.open(config);
-        HugeGraph proxy = graphs.get(graph);
+        HugeGraph proxy = GRAPHS.get(graph);
         if (proxy == null) {
             proxy = new HugeGraphAuthProxy(graph);
-            graphs.put(graph, proxy);
+            GRAPHS.put(graph, proxy);
         }
         return proxy;
     }
@@ -122,16 +126,16 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.auth.HugeGraphAuthProxy.ContextTask.class, "runner", "context");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.StandardHugeGraph.class, "LOG", "started", "closed", "mode", "variables", "name", "params", "configuration", "schemaEventHub", "graphEventHub", "indexEventHub", "writeRateLimiter", "readRateLimiter", "taskManager", "authManager", "features", "storeProvider", "tx", "ramtable", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.StandardHugeGraph.class, "lambda$0", "access$3", "access$4", "access$2", "access$5", "access$6", "access$7", "waitUntilAllTasksCompleted", "access$8", "loadStoreProvider", "graphTransaction", "schemaTransaction", "openSchemaTransaction", "checkGraphNotClosed", "openSystemTransaction", "openGraphTransaction", "systemTransaction", "access$9", "access$10", "access$11", "access$12", "access$13", "access$14", "access$15", "access$16", "access$17", "access$18", "serializer", "loadSchemaStore", "loadSystemStore", "loadGraphStore", "closeTx", "analyzer", "serverInfoManager", "reloadRamtable", "reloadRamtable", "access$19", "access$20", "access$21");
-        Reflection.registerFieldsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "graph", "this$0");
-        Reflection.registerMethodsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "access$1", "graph");
-        Reflection.registerFieldsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$TinkerPopTransaction"), "refs", "opened", "transactions", "this$0", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$TinkerPopTransaction"), "lambda$0", "access$3", "access$2", "lambda$1", "graphTransaction", "schemaTransaction", "systemTransaction", "access$1", "setOpened", "doCommit", "verifyOpened", "doRollback", "doClose", "destroyTransaction", "doOpen", "setClosed", "getOrNewTransaction", "access$0", "resetState");
+        Reflection.registerFieldsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "graph", "this$0");
+        Reflection.registerMethodsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$StandardHugeGraphParams"), "access$1", "graph");
+        Reflection.registerFieldsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$TinkerPopTransaction"), "refs", "opened", "transactions", "this$0", "$assertionsDisabled");
+        Reflection.registerMethodsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$TinkerPopTransaction"), "lambda$0", "access$3", "access$2", "lambda$1", "graphTransaction", "schemaTransaction", "systemTransaction", "access$1", "setOpened", "doCommit", "verifyOpened", "doRollback", "doClose", "destroyTransaction", "doOpen", "setClosed", "getOrNewTransaction", "access$0", "resetState");
         Reflection.registerFieldsToFilter(org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransaction.class, "readWriteConsumerInternal", "closeConsumerInternal", "transactionListeners");
         Reflection.registerMethodsToFilter(org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransaction.class, "doClose", "fireOnCommit", "fireOnRollback", "doReadWrite", "lambda$fireOnRollback$1", "lambda$fireOnCommit$0");
         Reflection.registerFieldsToFilter(org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction.class, "g");
         Reflection.registerMethodsToFilter(org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction.class, "doCommit", "doRollback", "doClose", "doOpen", "fireOnCommit", "fireOnRollback", "doReadWrite");
-        Reflection.registerFieldsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$Txs"), "schemaTx", "systemTx", "graphTx", "openedTime", "$assertionsDisabled");
-        Reflection.registerMethodsToFilter(c("com.baidu.hugegraph.StandardHugeGraph$Txs"), "access$2", "access$1", "access$0");
+        Reflection.registerFieldsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$Txs"), "schemaTx", "systemTx", "graphTx", "openedTime", "$assertionsDisabled");
+        Reflection.registerMethodsToFilter(loadClass("com.baidu.hugegraph.StandardHugeGraph$Txs"), "access$2", "access$1", "access$0");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.backend.tx.GraphTransaction.class, "indexTx", "addedVertices", "removedVertices", "addedEdges", "removedEdges", "addedProps", "removedProps", "updatedVertices", "updatedEdges", "updatedOldestProps", "locksTable", "checkCustomVertexExist", "checkAdjacentVertexExist", "lazyLoadAdjacentVertex", "ignoreInvalidEntry", "commitPartOfAdjacentEdges", "batchSize", "pageSize", "verticesCapacity", "edgesCapacity", "$assertionsDisabled", "$SWITCH_TABLE$com$baidu$hugegraph$type$define$IdStrategy");
         Reflection.registerMethodsToFilter(com.baidu.hugegraph.backend.tx.GraphTransaction.class, "lambda$0", "lambda$1", "lambda$2", "lambda$3", "lambda$4", "lambda$5", "lambda$6", "lambda$7", "lambda$8", "lambda$9", "lambda$10", "lambda$11", "lambda$12", "lambda$13", "lambda$14", "lambda$15", "lambda$16", "lambda$17", "lambda$18", "lambda$19", "access$1", "$SWITCH_TABLE$com$baidu$hugegraph$type$define$IdStrategy", "indexTransaction", "indexTransaction", "beforeWrite", "prepareCommit", "verticesInTxSize", "edgesInTxSize", "checkTxVerticesCapacity", "checkTxEdgesCapacity", "verticesInTxUpdated", "verticesInTxRemoved", "removingEdgeOwner", "prepareDeletions", "prepareDeletions", "prepareUpdates", "prepareAdditions", "checkVertexExistIfCustomizedId", "checkAggregateProperty", "checkAggregateProperty", "checkNonnullProperty", "queryEdgesFromBackend", "commitPartOfEdgeDeletions", "optimizeQueries", "checkVertexLabel", "checkId", "queryVerticesFromBackend", "joinTxVertices", "joinTxEdges", "lockForUpdateProperty", "optimizeQuery", "verifyVerticesConditionQuery", "verifyEdgesConditionQuery", "indexQuery", "joinTxRecords", "propertyUpdated", "parseEntry", "traverseByLabel", "reset", "queryVerticesByIds", "filterUnmatchedRecords", "skipOffsetOrStopLimit", "filterExpiredResultFromFromBackend", "queryEdgesByIds", "matchEdgeSortKeys", "rightResultFromIndexQuery");
         Reflection.registerFieldsToFilter(com.baidu.hugegraph.backend.tx.IndexableTransaction.class, "$assertionsDisabled");
@@ -280,7 +284,7 @@ public final class HugeFactoryAuthProxy {
             List<String> methods = new ArrayList<>();
             for (Method method : clazz.getDeclaredMethods()) {
                 if (!Modifier.isPublic(method.getModifiers()) ||
-                    PROTECT_METHODS.contains(method.getName())) {
+                        PROTECT_METHODS.contains(method.getName())) {
                     methods.add(method.getName());
                 }
             }
@@ -293,7 +297,7 @@ public final class HugeFactoryAuthProxy {
                                          List<String> fields,
                                          List<String> methods) {
         if (clazz.getName().startsWith("java") ||
-            fields.isEmpty() && methods.isEmpty()) {
+                fields.isEmpty() && methods.isEmpty()) {
             return false;
         }
         final String[] array = new String[fields.size()];
@@ -309,21 +313,21 @@ public final class HugeFactoryAuthProxy {
 
         String code;
         code = String.format("Reflection.registerFieldsToFilter(%s.class, \"%s\");",
-                             clazz.getCanonicalName(), String.join("\", \"", fields));
+                clazz.getCanonicalName(), String.join("\", \"", fields));
         if (!fields.isEmpty()) {
-            System.out.println(code);
+            LOG.info(code);
         }
 
         code = String.format("Reflection.registerMethodsToFilter(%s.class, \"%s\");",
-                             clazz.getCanonicalName(), String.join("\", \"", methods));
+                clazz.getCanonicalName(), String.join("\", \"", methods));
         if (!methods.isEmpty()) {
-            System.out.println(code);
+            LOG.info(code);
         }
 
         return true;
     }
 
-    private static Class<?> c(String clazz) {
+    private static Class<?> loadClass(String clazz) {
         try {
             return Class.forName(clazz);
         } catch (ClassNotFoundException e) {
