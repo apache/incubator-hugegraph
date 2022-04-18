@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -87,7 +86,7 @@ public interface BackendEntry extends Idfiable {
     public Collection<BackendColumn> columns();
 
     public void columns(Collection<BackendColumn> columns);
-    public void columns(BackendColumn... columns);
+    public void columns(BackendColumn column);
 
     public void merge(BackendEntry other);
     public boolean mergeable(BackendEntry other);
@@ -104,6 +103,7 @@ public interface BackendEntry extends Idfiable {
 
     public interface BackendIterator<T> extends Iterator<T>, AutoCloseable {
 
+        @Override
         public void close();
 
         public byte[] position();
@@ -116,7 +116,18 @@ public interface BackendEntry extends Idfiable {
             return EMPTY;
         }
 
-        public final BackendColumnIterator EMPTY = new BackendColumnIterator() {
+        public static BackendColumnIterator iterator(BackendColumn element) {
+            return new OneColumnIterator(element);
+        }
+
+        public static BackendColumnIterator wrap(Iterator<BackendColumn> iter) {
+            return new BackendColumnIteratorWrapper(iter);
+        }
+
+        public static final BackendColumnIterator EMPTY = new EmptyIterator();
+
+        public static final class EmptyIterator
+                            implements BackendColumnIterator {
 
             @Override
             public boolean hasNext() {
@@ -137,41 +148,74 @@ public interface BackendEntry extends Idfiable {
             public byte[] position() {
                 return null;
             }
-        };
-    }
-
-    public static class BackendColumnIteratorWrapper
-                  implements BackendColumnIterator {
-
-        private final Iterator<BackendColumn> iter;
-
-        public BackendColumnIteratorWrapper(BackendColumn... cols) {
-            this.iter = Arrays.asList(cols).iterator();
         }
 
-        public BackendColumnIteratorWrapper(Iterator<BackendColumn> cols) {
-            E.checkNotNull(cols, "cols");
-            this.iter = cols;
+        public static final class OneColumnIterator
+                            implements BackendColumnIterator {
+
+            private BackendColumn element;
+
+            public OneColumnIterator(BackendColumn element) {
+                assert element != null;
+                this.element = element;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return this.element != null;
+            }
+
+            @Override
+            public BackendColumn next() {
+                if (this.element == null) {
+                    throw new NoSuchElementException();
+                }
+                BackendColumn result = this.element;
+                this.element = null;
+                return result;
+            }
+
+            @Override
+            public void close() {
+                // pass
+            }
+
+            @Override
+            public byte[] position() {
+                return null;
+            }
         }
 
-        @Override
-        public boolean hasNext() {
-            return iter.hasNext();
-        }
+        public static final class BackendColumnIteratorWrapper
+                            implements BackendColumnIterator {
 
-        @Override
-        public BackendColumn next() {
-            return iter.next();
-        }
+            private final Iterator<BackendColumn> iter;
 
-        @Override
-        public void close() {
-            WrappedIterator.close(this.iter);
-        }
+            public BackendColumnIteratorWrapper(Iterator<BackendColumn> iter) {
+                E.checkNotNull(iter, "iter");
+                this.iter = iter;
+            }
 
-        @Override
-        public byte[] position() {
-            return null;
+            @Override
+            public boolean hasNext() {
+                return this.iter.hasNext();
+            }
+
+            @Override
+            public BackendColumn next() {
+                return this.iter.next();
+            }
+
+            @Override
+            public void close() {
+                WrappedIterator.close(this.iter);
+            }
+
+            @Override
+            public byte[] position() {
+                // No paging position for discrete iterators like queryByIds()
+                return null;
+            }
         }
     }
 }

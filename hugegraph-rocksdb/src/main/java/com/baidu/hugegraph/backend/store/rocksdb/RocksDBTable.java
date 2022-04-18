@@ -44,7 +44,6 @@ import com.baidu.hugegraph.backend.serializer.BinaryEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.BackendTable;
 import com.baidu.hugegraph.backend.store.Shard;
@@ -199,7 +198,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         }
 
         // NOTE: this will lead to lazy create rocksdb iterator
-        return new BackendColumnIteratorWrapper(new FlatMapperIterator<>(
+        return BackendColumnIterator.wrap(new FlatMapperIterator<>(
                ids.iterator(), id -> this.queryById(session, id)
         ));
     }
@@ -210,7 +209,7 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
             return BackendColumnIterator.empty();
         }
         BackendColumn col = BackendColumn.of(id.asBytes(), value);
-        return new BackendEntry.BackendColumnIteratorWrapper(col);
+        return BackendColumnIterator.iterator(col);
     }
 
     protected BackendColumnIterator getByIds(Session session, Set<Id> ids) {
