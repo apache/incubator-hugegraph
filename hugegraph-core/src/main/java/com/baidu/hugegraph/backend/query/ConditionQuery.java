@@ -208,7 +208,7 @@ public class ConditionQuery extends IdQuery {
         return relations;
     }
 
-    public Relation relation(Id key){
+    public Relation relation(Id key) {
         for (Relation r : this.relations()) {
             if (r.key().equals(key)) {
                 return r;
@@ -804,7 +804,7 @@ public class ConditionQuery extends IdQuery {
             return hasRightValue;
         }
 
-        private static boolean removeValue(Set<Object> values, Object value){
+        private static boolean removeValue(Set<Object> values, Object value) {
             for (Object compareValue : values) {
                 if (numberEquals(compareValue, value)) {
                     values.remove(compareValue);

@@ -112,26 +112,26 @@ import com.google.common.util.concurrent.RateLimiter;
 public class StandardHugeGraph implements HugeGraph {
 
     public static final Class<?>[] PROTECT_CLASSES = {
-           StandardHugeGraph.class,
-           StandardHugeGraph.StandardHugeGraphParams.class,
-           TinkerPopTransaction.class,
-           StandardHugeGraph.Txs.class,
-           StandardHugeGraph.SysTransaction.class
+        StandardHugeGraph.class,
+        StandardHugeGraph.StandardHugeGraphParams.class,
+        TinkerPopTransaction.class,
+        StandardHugeGraph.Txs.class,
+        StandardHugeGraph.SysTransaction.class
     };
 
     public static final Set<TypedOption<?, ?>> ALLOWED_CONFIGS = ImmutableSet.of(
-           CoreOptions.TASK_WAIT_TIMEOUT,
-           CoreOptions.TASK_SYNC_DELETION,
-           CoreOptions.TASK_TTL_DELETE_BATCH,
-           CoreOptions.TASK_INPUT_SIZE_LIMIT,
-           CoreOptions.TASK_RESULT_SIZE_LIMIT,
-           CoreOptions.OLTP_CONCURRENT_THREADS,
-           CoreOptions.OLTP_CONCURRENT_DEPTH,
-           CoreOptions.OLTP_COLLECTION_TYPE,
-           CoreOptions.VERTEX_DEFAULT_LABEL,
-           CoreOptions.VERTEX_ENCODE_PK_NUMBER,
-           CoreOptions.STORE_GRAPH,
-           CoreOptions.STORE
+        CoreOptions.TASK_WAIT_TIMEOUT,
+        CoreOptions.TASK_SYNC_DELETION,
+        CoreOptions.TASK_TTL_DELETE_BATCH,
+        CoreOptions.TASK_INPUT_SIZE_LIMIT,
+        CoreOptions.TASK_RESULT_SIZE_LIMIT,
+        CoreOptions.OLTP_CONCURRENT_THREADS,
+        CoreOptions.OLTP_CONCURRENT_DEPTH,
+        CoreOptions.OLTP_COLLECTION_TYPE,
+        CoreOptions.VERTEX_DEFAULT_LABEL,
+        CoreOptions.VERTEX_ENCODE_PK_NUMBER,
+        CoreOptions.STORE_GRAPH,
+        CoreOptions.STORE
     );
 
     private static final Logger LOG = Log.logger(HugeGraph.class);

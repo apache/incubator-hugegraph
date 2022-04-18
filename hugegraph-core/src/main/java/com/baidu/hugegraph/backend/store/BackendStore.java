@@ -32,50 +32,57 @@ import com.baidu.hugegraph.util.E;
 public interface BackendStore {
 
     // Store name
-    public String store();
+    String store();
 
     // Database name
-    public String database();
+    String database();
 
     // Get the parent provider
-    public BackendStoreProvider provider();
+    BackendStoreProvider provider();
 
     // Whether it is the storage of schema
-    public boolean isSchemaStore();
+    boolean isSchemaStore();
 
     // Open/close database
-    public void open(HugeConfig config);
-    public void close();
-    public boolean opened();
+    void open(HugeConfig config);
+
+    void close();
+
+    boolean opened();
 
     // Initialize/clear database
-    public void init();
-    public void clear(boolean clearSpace);
-    public boolean initialized();
+    void init();
+
+    void clear(boolean clearSpace);
+
+    boolean initialized();
 
     // Delete all data of database (keep table structure)
-    public void truncate();
+    void truncate();
 
     // Add/delete data
-    public void mutate(BackendMutation mutation);
+    void mutate(BackendMutation mutation);
 
     // Query data
-    public Iterator<BackendEntry> query(Query query);
-    public Number queryNumber(Query query);
+    Iterator<BackendEntry> query(Query query);
+
+    Number queryNumber(Query query);
 
     // Transaction
-    public void beginTx();
-    public void commitTx();
-    public void rollbackTx();
+    void beginTx();
+
+    void commitTx();
+
+    void rollbackTx();
 
     // Get metadata by key
-    public <R> R metadata(HugeType type, String meta, Object[] args);
+    <R> R metadata(HugeType type, String meta, Object[] args);
 
     // Backend features
-    public BackendFeatures features();
+    BackendFeatures features();
 
     // Generate an id for a specific type
-    public default Id nextId(HugeType type) {
+    default Id nextId(HugeType type) {
         final int MAX_TIMES = 1000;
         // Do get-increase-get-compare operation
         long counter = 0L;
@@ -102,7 +109,7 @@ public interface BackendStore {
     }
 
     // Set next id >= lowest for a specific type
-    public default void setCounterLowest(HugeType type, long lowest) {
+    default void setCounterLowest(HugeType type, long lowest) {
         long current = this.getCounter(type);
         if (current >= lowest) {
             return;
@@ -111,7 +118,7 @@ public interface BackendStore {
         this.increaseCounter(type, increment);
     }
 
-    public default String olapTableName(HugeType type) {
+    default String olapTableName(HugeType type) {
         StringBuilder sb = new StringBuilder(7);
         sb.append(this.store())
           .append("_")
@@ -121,52 +128,52 @@ public interface BackendStore {
         return sb.toString().toLowerCase();
     }
 
-    public default String olapTableName(Id id) {
+    default String olapTableName(Id id) {
         StringBuilder sb = new StringBuilder(5 + 4);
         sb.append(this.store())
-          .append("_")
-          .append(HugeType.OLAP.string())
-          .append("_")
-          .append(id.asLong());
+            .append("_")
+            .append(HugeType.OLAP.string())
+            .append("_")
+            .append(id.asLong());
         return sb.toString().toLowerCase();
     }
 
     // Increase next id for specific type
-    public void increaseCounter(HugeType type, long increment);
+    void increaseCounter(HugeType type, long increment);
 
     // Get current counter for a specific type
-    public long getCounter(HugeType type);
+    long getCounter(HugeType type);
 
-    public default void createOlapTable(Id pkId) {
+    default void createOlapTable(Id pkId) {
         throw new UnsupportedOperationException(
                   "BackendStore.createOlapTable()");
     }
 
-    public default void checkAndRegisterOlapTable(Id pkId) {
+    default void checkAndRegisterOlapTable(Id pkId) {
         throw new UnsupportedOperationException(
                   "BackendStore.checkAndRegisterOlapTable()");
     }
 
-    public default void clearOlapTable(Id pkId) {
+    default void clearOlapTable(Id pkId) {
         throw new UnsupportedOperationException(
                   "BackendStore.clearOlapTable()");
     }
 
-    public default void removeOlapTable(Id pkId) {
+    default void removeOlapTable(Id pkId) {
         throw new UnsupportedOperationException(
                   "BackendStore.removeOlapTable()");
     }
 
-    public default Map<String, String> createSnapshot(String snapshotDir) {
+    default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");
     }
 
-    public default void resumeSnapshot(String snapshotDir,
+    default void resumeSnapshot(String snapshotDir,
                                        boolean deleteSnapshot) {
         throw new UnsupportedOperationException("resumeSnapshot");
     }
 
-    static enum TxState {
+    enum TxState {
         BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN
     }
 }

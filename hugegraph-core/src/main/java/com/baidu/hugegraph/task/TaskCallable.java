@@ -174,7 +174,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
         };
     }
 
-    public static abstract class SysTaskCallable<V> extends TaskCallable<V> {
+    public abstract static class SysTaskCallable<V> extends TaskCallable<V> {
 
         private HugeGraphParams params = null;
 

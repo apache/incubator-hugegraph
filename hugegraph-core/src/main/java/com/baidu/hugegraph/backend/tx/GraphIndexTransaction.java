@@ -211,7 +211,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
-                             this.graph().propertyKey(fieldId) , element);
+                             this.graph().propertyKey(fieldId), element);
                 if (firstNullField == fieldsNum) {
                     firstNullField = allPropValues.size();
                 }
@@ -424,7 +424,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         ConditionQuery indexQuery;
-        indexQuery = new ConditionQuery(indexType , query);
+        indexQuery = new ConditionQuery(indexType, query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
         /*
@@ -826,8 +826,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
 
-    private ConditionQuery constructSearchQuery(ConditionQuery query,
-                                                MatchedIndex index) {
+    private ConditionQuery constructSearchQuery(ConditionQuery query,MatchedIndex index) {
+
         ConditionQuery originQuery = query;
         Set<Id> indexFields = new HashSet<>();
         // Convert has(key, text) to has(key, textContainsAny(word1, word2))
@@ -1660,7 +1660,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         public Query asJointQuery() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            Collection<Query> queries = (Collection) this.values();;
+            Collection<Query> queries = (Collection) this.values();
             return new JointQuery(this.rootQuery().resultType(), queries);
         }
 
@@ -1797,11 +1797,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                  leftIndex) {
             Set<MatchedIndex> matchedIndexes = this.tx.collectMatchedIndexes(query);
             for (MatchedIndex index : matchedIndexes) {
-               for (IndexLabel label : index.indexLabels()){
-                   if (label.indexField().equals(leftIndex.indexField())){
-                       return label;
-                   }
-               }
+                for (IndexLabel label : index.indexLabels()) {
+                    if (label.indexField().equals(leftIndex.indexField())) {
+                        return label;
+                    }
+                }
             }
             return null;
         }

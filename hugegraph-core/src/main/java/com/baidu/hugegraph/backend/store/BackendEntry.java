@@ -84,12 +84,15 @@ public interface BackendEntry extends Idfiable {
     public long ttl();
 
     public int columnsSize();
+
     public Collection<BackendColumn> columns();
 
     public void columns(Collection<BackendColumn> columns);
+
     public void columns(BackendColumn... columns);
 
     public void merge(BackendEntry other);
+
     public boolean mergeable(BackendEntry other);
 
     public void clear();

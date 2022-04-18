@@ -28,15 +28,19 @@ import com.baidu.hugegraph.schema.VertexLabel;
 
 public interface SchemaSerializer {
 
-    public BackendEntry writeVertexLabel(VertexLabel vertexLabel);
-    public VertexLabel readVertexLabel(HugeGraph graph, BackendEntry entry);
+    BackendEntry writeVertexLabel(VertexLabel vertexLabel);
 
-    public BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
-    public EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry entry);
+    VertexLabel readVertexLabel(HugeGraph graph, BackendEntry entry);
 
-    public BackendEntry writePropertyKey(PropertyKey propertyKey);
-    public PropertyKey readPropertyKey(HugeGraph graph, BackendEntry entry);
+    BackendEntry writeEdgeLabel(EdgeLabel edgeLabel);
 
-    public BackendEntry writeIndexLabel(IndexLabel indexLabel);
-    public IndexLabel readIndexLabel(HugeGraph graph, BackendEntry entry);
+    EdgeLabel readEdgeLabel(HugeGraph graph, BackendEntry entry);
+
+    BackendEntry writePropertyKey(PropertyKey propertyKey);
+
+    PropertyKey readPropertyKey(HugeGraph graph, BackendEntry entry);
+
+    BackendEntry writeIndexLabel(IndexLabel indexLabel);
+
+    IndexLabel readIndexLabel(HugeGraph graph, BackendEntry entry);
 }

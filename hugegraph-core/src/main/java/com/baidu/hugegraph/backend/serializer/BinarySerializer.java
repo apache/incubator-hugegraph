@@ -19,11 +19,15 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.EdgeId;
