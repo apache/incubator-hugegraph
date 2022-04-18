@@ -38,6 +38,54 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     private static final int TIMES = 10000 * 1000;
 
     @Test
+    public void testSeekExistKey() throws RocksDBException {
+        put("exist", "value");
+
+        Session session = this.rocks.session();
+        for (int i = 0; i < TIMES; i++) {
+            Iterator<BackendColumn> iter = session.scan(TABLE, b("exist"));
+            while (iter.hasNext()) {
+                iter.next();
+            }
+        }
+    }
+
+    @Test
+    public void testSeekNonExistKey() throws RocksDBException {
+        put("exist", "value");
+
+        Session session = this.rocks.session();
+        for (int i = 0; i < TIMES; i++) {
+            Iterator<BackendColumn> iter = session.scan(TABLE, b("non-exist"));
+            while (iter.hasNext()) {
+                iter.next();
+            }
+        }
+    }
+
+    @Test
+    public void testGetExistKey() throws RocksDBException {
+        put("exist", "value");
+
+        Session session = this.rocks.session();
+        for (int i = 0; i < TIMES; i++) {
+            byte[] value = session.get(TABLE, b("exist"));
+            assert value.length == "value".length();
+        }
+    }
+
+    @Test
+    public void testGetNonExistKey() throws RocksDBException {
+        put("exist", "value");
+
+        Session session = this.rocks.session();
+        for (int i = 0; i < TIMES; i++) {
+            byte[] value = session.get(TABLE, b("non-exist"));
+            assert value == null;
+        }
+    }
+
+    @Test
     public void testPut() throws RocksDBException {
         for (int i = 0; i < TIMES; i++) {
             put("person-" + i, "value-" + i);
