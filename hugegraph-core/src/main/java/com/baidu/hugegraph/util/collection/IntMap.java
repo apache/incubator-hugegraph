@@ -35,18 +35,23 @@ import sun.misc.Unsafe;
 
 public interface IntMap {
 
-    public boolean put(int key, int value);
-    public int get(int key);
-    public boolean remove(int key);
-    public boolean containsKey(int key);
+    boolean put(int key, int value);
 
-    public IntIterator keys();
-    public IntIterator values();
+    int get(int key);
 
-    public void clear();
-    public int size();
+    boolean remove(int key);
 
-    public boolean concurrent();
+    boolean containsKey(int key);
+
+    IntIterator keys();
+
+    IntIterator values();
+
+    void clear();
+
+    int size();
+
+    boolean concurrent();
 
     /**
      * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:

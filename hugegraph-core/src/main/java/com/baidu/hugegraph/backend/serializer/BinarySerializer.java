@@ -43,6 +43,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -74,8 +75,6 @@ import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinarySerializer extends AbstractSerializer {
-
-    public static final byte[] EMPTY_BYTES = new byte[0];
 
     /*
      * Id is stored in column name if keyWithIdPrefix=true like RocksDB,
@@ -419,7 +418,8 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         // Fill column
-        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        byte[] name = this.keyWithIdPrefix ?
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
 
         return entry;
@@ -431,16 +431,19 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
         Collection<HugeProperty<?>> properties = vertex.getProperties();
-        E.checkArgument(properties.size() == 1,
-                        "Expect only 1 property for olap vertex, but got %s",
-                        properties.size());
+        if (properties.size() != 1) {
+            E.checkArgument(false,
+                            "Expect 1 property for olap vertex, but got %s",
+                            properties.size());
+        }
         HugeProperty<?> property = properties.iterator().next();
         PropertyKey propertyKey = property.propertyKey();
         buffer.writeVInt(SchemaElement.schemaId(propertyKey.id()));
         buffer.writeProperty(propertyKey, property.value());
 
         // Fill column
-        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        byte[] name = this.keyWithIdPrefix ?
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
         entry.subId(propertyKey.id());
         entry.olap(true);
@@ -497,8 +500,7 @@ public class BinarySerializer extends AbstractSerializer {
     public BackendEntry writeEdge(HugeEdge edge) {
         BinaryBackendEntry entry = newBackendEntry(edge);
         byte[] name = this.keyWithIdPrefix ?
-                      entry.id().asBytes() : EMPTY_BYTES;
-
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         byte[] value = this.formatEdgeValue(edge);
         entry.column(name, value);
 
@@ -519,8 +521,11 @@ public class BinarySerializer extends AbstractSerializer {
     public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
         HugeVertex vertex = this.readVertex(graph, bytesEntry);
         Collection<HugeEdge> edges = vertex.getEdges();
-        E.checkState(edges.size() == 1,
-                     "Expect one edge in vertex, but got %s", edges.size());
+        if (edges.size() != 1) {
+            E.checkState(false,
+                         "Expect 1 edge in vertex, but got %s",
+                         edges.size());
+        }
         return edges.iterator().next();
     }
 
