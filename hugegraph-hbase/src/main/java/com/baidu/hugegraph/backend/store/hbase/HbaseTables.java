@@ -208,10 +208,10 @@ public class HbaseTables {
             long ttl = entry.ttl();
             if (ttl == 0L) {
                 session.put(this.table(), CF, col.name,
-                            BinarySerializer.EMPTY_BYTES, col.value);
+                            BytesBuffer.BYTES_EMPTY, col.value);
             } else {
                 session.put(this.table(), CF, col.name,
-                            BinarySerializer.EMPTY_BYTES, col.value, ttl);
+                            BytesBuffer.BYTES_EMPTY, col.value, ttl);
             }
         }
 
