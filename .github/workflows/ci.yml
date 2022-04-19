@@ -91,6 +91,6 @@ jobs:
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3.0.0
         with:
           file: ${{ env.REPORT_DIR }}/*.xml
