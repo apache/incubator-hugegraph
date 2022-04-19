@@ -35,8 +35,6 @@ import com.baidu.hugegraph.util.E;
 
 public class BinaryBackendEntry implements BackendEntry {
 
-    private static final byte[] EMPTY_BYTES = new byte[]{};
-
     private final HugeType type;
     private final BinaryId id;
     private Id subId;
@@ -123,7 +121,7 @@ public class BinaryBackendEntry implements BackendEntry {
 
     public void column(byte[] name, byte[] value) {
         E.checkNotNull(name, "name");
-        value = value != null ? value : EMPTY_BYTES;
+        value = value != null ? value : BytesBuffer.BYTES_EMPTY;
         this.columns.add(BackendColumn.of(name, value));
     }
 
@@ -143,11 +141,12 @@ public class BinaryBackendEntry implements BackendEntry {
     }
 
     @Override
-    public void columns(BackendColumn... bytesColumns) {
-        this.columns.addAll(Arrays.asList(bytesColumns));
+    public void columns(BackendColumn bytesColumn) {
+        this.columns.add(bytesColumn);
         long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
-        E.checkState(this.columns.size() <= maxSize,
-                     "Too many columns in one entry: %s", maxSize);
+        if (this.columns.size() > maxSize) {
+            E.checkState(false, "Too many columns in one entry: %s", maxSize);
+        }
     }
 
     public BackendColumn removeColumn(int index) {
