@@ -15,5 +15,5 @@ sed -i "s/jdbc.reconnect_interval=.*/jdbc.reconnect_interval=5/" $CONF
 
 
 # Keep for upgrade in future
-#docker pull mysql:5.7
-#docker run -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD="******" -d mysql:5.7
+docker pull mysql:5.7
+docker run -p 3306:3306 --name mysql -e MYSQL_ROOT_PASSWORD="******" -d mysql:5.7
