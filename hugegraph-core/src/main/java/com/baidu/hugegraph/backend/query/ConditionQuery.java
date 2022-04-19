@@ -47,7 +47,6 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.LongEncoding;
 import com.baidu.hugegraph.util.NumericUtil;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -79,7 +78,7 @@ public class ConditionQuery extends IdQuery {
     private List<Condition> conditions = EMPTY_CONDITIONS;
 
     private OptimizedType optimizedType = OptimizedType.NONE;
-    private Function<HugeElement, Boolean> resultsFilter = null;
+    private ResultsFilter resultsFilter = null;
     private Element2IndexValueMap element2IndexValueMap = null;
 
     public ConditionQuery(HugeType resultType) {
@@ -173,20 +172,11 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void recordIndexValue(Id propertyId, Id id, Object indexValue) {
-        this.ensureElement2IndexValueMap();
-        this.element2IndexValueMap.addIndexValue(propertyId, id, indexValue);
+        this.element2IndexValueMap().addIndexValue(propertyId, id, indexValue);
     }
 
     public void selectedIndexField(Id indexField) {
-        this.ensureElement2IndexValueMap();
-        this.element2IndexValueMap.selectedIndexField(indexField);
-    }
-
-    public Set<LeftIndex> getElementLeftIndex(Id elementId) {
-        if (this.element2IndexValueMap == null) {
-            return null;
-        }
-        return this.element2IndexValueMap.getLeftIndex(elementId);
+        this.element2IndexValueMap().selectedIndexField(indexField);
     }
 
     public void removeElementLeftIndex(Id elementId) {
@@ -197,7 +187,21 @@ public class ConditionQuery extends IdQuery {
     }
 
     public boolean existLeftIndex(Id elementId) {
-        return this.getElementLeftIndex(elementId) != null;
+        return this.getLeftIndexOfElement(elementId) != null;
+    }
+
+    public Set<LeftIndex> getLeftIndexOfElement(Id elementId) {
+        if (this.element2IndexValueMap == null) {
+            return null;
+        }
+        return this.element2IndexValueMap.getLeftIndex(elementId);
+    }
+
+    private Element2IndexValueMap element2IndexValueMap() {
+        if (this.element2IndexValueMap == null) {
+            this.element2IndexValueMap = new Element2IndexValueMap();
+        }
+        return this.element2IndexValueMap;
     }
 
     public List<Condition.Relation> relations() {
@@ -548,14 +552,26 @@ public class ConditionQuery extends IdQuery {
             return false;
         }
 
-        if (this.resultsFilter != null) {
-            return this.resultsFilter.apply(element);
+        /*
+         * Currently results-filter is used to filter unmatched results returned
+         * by search index, and there may be multiple results-filter for every
+         * sub-query like within() + Text.contains().
+         * We can't use sub-query results-filter here for fresh element which is
+         * not committed to backend store, because it's not from a sub-query.
+         */
+        if (this.resultsFilter != null && !element.fresh()) {
+            return this.resultsFilter.test(element);
         }
+
+        /*
+         * NOTE: seems need to keep call checkRangeIndex() for each condition,
+         * so don't break early even if test() return false.
+         */
         boolean valid = true;
         for (Condition cond : this.conditions) {
             valid &= cond.test(element);
-            valid &= (this.element2IndexValueMap == null ||
-                      this.element2IndexValueMap.validRangeIndex(element,  cond));
+            valid &= this.element2IndexValueMap == null ||
+                     this.element2IndexValueMap.checkRangeIndex(element, cond);
         }
         return valid;
     }
@@ -615,14 +631,29 @@ public class ConditionQuery extends IdQuery {
         return this.optimizedType;
     }
 
-    public void registerResultsFilter(Function<HugeElement, Boolean> filter) {
+    public void registerResultsFilter(ResultsFilter filter) {
         assert this.resultsFilter == null;
         this.resultsFilter = filter;
+    }
 
+    public void updateResultsFilter() {
         Query originQuery = this.originQuery();
         if (originQuery instanceof ConditionQuery) {
-            ConditionQuery cq = ((ConditionQuery) originQuery);
-            cq.registerResultsFilter(filter);
+            ConditionQuery originCQ = ((ConditionQuery) originQuery);
+            if (this.resultsFilter != null) {
+                originCQ.updateResultsFilter(this.resultsFilter);
+            } else {
+                originCQ.updateResultsFilter();
+            }
+        }
+    }
+
+    protected void updateResultsFilter(ResultsFilter filter) {
+        this.resultsFilter = filter;
+        Query originQuery = this.originQuery();
+        if (originQuery instanceof ConditionQuery) {
+            ConditionQuery originCQ = ((ConditionQuery) originQuery);
+            originCQ.updateResultsFilter(filter);
         }
     }
 
@@ -636,12 +667,6 @@ public class ConditionQuery extends IdQuery {
             originQuery = originQuery.originQuery();
         }
         return (ConditionQuery) originQuery;
-    }
-
-    private void ensureElement2IndexValueMap() {
-        if (this.element2IndexValueMap == null) {
-            this.element2IndexValueMap = new Element2IndexValueMap();
-        }
     }
 
     public static String concatValues(List<?> values) {
@@ -717,7 +742,7 @@ public class ConditionQuery extends IdQuery {
         public void addIndexValue(Id indexField, Id elementId,
                                   Object indexValue) {
             if (!this.filed2IndexValues.containsKey(indexField)) {
-                this.filed2IndexValues.put(indexField, new HashMap<>());
+                this.filed2IndexValues.putIfAbsent(indexField, new HashMap<>());
             }
             Map<Id, Set<Object>> element2IndexValueMap =
                                  this.filed2IndexValues.get(indexField);
@@ -733,15 +758,15 @@ public class ConditionQuery extends IdQuery {
             this.selectedIndexField = indexField;
         }
 
-        public Set<Object> removeIndexValues(Id indexField, Id elementId) {
+        public Set<Object> toRemoveIndexValues(Id indexField, Id elementId) {
             if (!this.filed2IndexValues.containsKey(indexField)) {
                 return null;
             }
             return this.filed2IndexValues.get(indexField).get(elementId);
         }
 
-        public void addLeftIndex(Id indexField, Set<Object> indexValues,
-                                 Id elementId) {
+        public void addLeftIndex(Id elementId, Id indexField,
+                                 Set<Object> indexValues) {
             LeftIndex leftIndex = new LeftIndex(indexValues, indexField);
             if (this.leftIndexMap.containsKey(elementId)) {
                 this.leftIndexMap.get(elementId).add(leftIndex);
@@ -758,7 +783,7 @@ public class ConditionQuery extends IdQuery {
             this.leftIndexMap.remove(elementId);
         }
 
-        public boolean validRangeIndex(HugeElement element, Condition cond) {
+        public boolean checkRangeIndex(HugeElement element, Condition cond) {
             // Not UserpropRelation
             if (!(cond instanceof Condition.UserpropRelation)) {
                 return true;
@@ -767,35 +792,36 @@ public class ConditionQuery extends IdQuery {
             Condition.UserpropRelation propRelation =
                                        (Condition.UserpropRelation) cond;
             Id propId = propRelation.key();
-            Set<Object> fieldValues = this.removeIndexValues(propId,
-                                                             element.id());
+            Set<Object> fieldValues = this.toRemoveIndexValues(propId,
+                                                               element.id());
             if (fieldValues == null) {
                 // Not range index
                 return true;
             }
 
-            HugeProperty<Object> hugeProperty = element.getProperty(propId);
-            if (hugeProperty == null) {
-                // Property value has been deleted
-                this.addLeftIndex(propId, fieldValues, element.id());
+            HugeProperty<Object> property = element.getProperty(propId);
+            if (property == null) {
+                // Property value has been deleted, so it's not matched
+                this.addLeftIndex(element.id(), propId, fieldValues);
                 return false;
             }
 
             /*
-             * NOTE: If success remove means has correct index,
-             * we should add left index values to left index map
-             * waiting to be removed
+             * NOTE: If removing successfully means there is correct index,
+             * else we should add left-index values to left index map to
+             * wait the left-index to be removed.
              */
-            boolean hasRightValue = removeValue(fieldValues, hugeProperty.value());
+            boolean hasRightValue = removeFieldValue(fieldValues,
+                                                     property.value());
             if (fieldValues.size() > 0) {
-                this.addLeftIndex(propId, fieldValues, element.id());
+                this.addLeftIndex(element.id(), propId, fieldValues);
             }
 
             /*
              * NOTE: When query by more than one range index field,
              * if current field is not the selected one, it can only be used to
              * determine whether the index values matched, can't determine
-             * the element is valid or not
+             * the element is valid or not.
              */
             if (this.selectedIndexField != null) {
                 return !propId.equals(this.selectedIndexField) || hasRightValue;
@@ -804,10 +830,11 @@ public class ConditionQuery extends IdQuery {
             return hasRightValue;
         }
 
-        private static boolean removeValue(Set<Object> values, Object value){
-            for (Object compareValue : values) {
-                if (numberEquals(compareValue, value)) {
-                    values.remove(compareValue);
+        private static boolean removeFieldValue(Set<Object> values,
+                                                Object value){
+            for (Object elem : values) {
+                if (numberEquals(elem, value)) {
+                    values.remove(elem);
                     return true;
                 }
             }
@@ -846,5 +873,10 @@ public class ConditionQuery extends IdQuery {
         public Id indexField() {
             return this.indexField;
         }
+    }
+
+    public static interface ResultsFilter {
+
+        public boolean test(HugeElement element);
     }
 }
