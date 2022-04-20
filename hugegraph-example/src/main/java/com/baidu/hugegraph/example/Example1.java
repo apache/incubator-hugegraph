@@ -270,7 +270,7 @@ public class Example1 {
         GraphTraversal<Vertex, Vertex> vertices = graph.traversal().V();
         int size = vertices.toList().size();
         assert size == 12;
-        LOG.info(">>>> query all vertices: size=" + size);
+        LOG.info(">>>> query all vertices: size=", size);
 
         // query by label
         vertices = graph.traversal().V().hasLabel("person");
