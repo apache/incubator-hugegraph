@@ -25,6 +25,7 @@ github:
     projects: true
   description: A graph database that supports more than 100+ billion data, high performance and scalability (Include OLTP Engine & REST-API & Backends)
   homepage: https://apache.github.io/incubator-hugegraph-doc/
+  del_branch_on_merge: true
   #labels:
 
   enabled_merge_buttons:
@@ -42,7 +43,9 @@ github:
           - hugegraph-ci/build
       required_pull_request_reviews:
         dismiss_stale_reviews: true
+        require_code_owner_reviews: false
         required_approving_review_count: 2
+
 notifications:
   issues: dev@hugegraph.apache.org
   pullrequests: commits@hugegraph.apache.org
