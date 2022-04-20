@@ -276,7 +276,7 @@ public class Example1 {
         vertices = graph.traversal().V().hasLabel("person");
         size = vertices.toList().size();
         assert size == 5;
-        LOG.info(">>>> query all persons: size=" + size);
+        LOG.info(">>>> query all persons: size {}" + size);
 
         // query vertex by primary-values
         vertices = graph.traversal().V().hasLabel("author").has("id", 1);
