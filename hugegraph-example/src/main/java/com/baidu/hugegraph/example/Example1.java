@@ -414,8 +414,7 @@ public class Example1 {
                         .has("lived", Text.contains(addr));
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        LOG.info(String.format(">>>> query all authors lived {}: {}",
-                           addr, vertexList));
+        LOG.info(String.format(">>>> query all authors lived {}: {}", addr, vertexList));
     }
 
     public static void testRemove(final HugeGraph graph) {
