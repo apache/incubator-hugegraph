@@ -86,8 +86,9 @@ public class IndexLabelBuilder extends AbstractBuilder
         super(transaction, graph);
         E.checkNotNull(copy, "copy");
         // Get base element from self graph
-        SchemaLabel schemaLabel = IndexLabel.getElement(graph, copy.baseType(),
-                                                        copy.baseValue());
+        SchemaLabel schemaLabel = IndexLabel.getBaseLabel(graph,
+                                                          copy.baseType(),
+                                                          copy.baseValue());
         this.id = null;
         this.name = copy.name();
         this.baseType = copy.baseType();
@@ -110,7 +111,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkFields4Range();
         IndexLabel indexLabel = new IndexLabel(graph, id, this.name);
         indexLabel.baseType(this.baseType);
-        SchemaLabel schemaLabel = this.loadElement();
+        SchemaLabel schemaLabel = this.loadBaseLabel();
         indexLabel.baseValue(schemaLabel.id());
         indexLabel.indexType(this.indexType);
         for (String field : this.indexFields) {
@@ -137,7 +138,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             return false;
         }
 
-        SchemaLabel schemaLabel = this.loadElement();
+        SchemaLabel schemaLabel = this.loadBaseLabel();
         if (!schemaLabel.id().equals(existedIndexLabel.baseValue())) {
             return false;
         }
@@ -200,7 +201,7 @@ public class IndexLabelBuilder extends AbstractBuilder
                                                         IdGenerator.ZERO);
             }
 
-            SchemaLabel schemaLabel = this.loadElement();
+            SchemaLabel schemaLabel = this.loadBaseLabel();
 
             /*
              * If new index label is prefix of existed index label, or has
@@ -286,7 +287,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.checkStableVars();
         Userdata.check(this.userdata, Action.APPEND);
         indexLabel.userdata(this.userdata);
-        SchemaLabel schemaLabel = indexLabel.baseElement();
+        SchemaLabel schemaLabel = indexLabel.baseLabel();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }
@@ -302,7 +303,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         indexLabel.removeUserdata(this.userdata);
-        SchemaLabel schemaLabel = indexLabel.baseElement();
+        SchemaLabel schemaLabel = indexLabel.baseLabel();
         this.graph().addIndexLabel(schemaLabel, indexLabel);
         return indexLabel;
     }
@@ -454,9 +455,9 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
     }
 
-    private SchemaLabel loadElement() {
-        return IndexLabel.getElement(this.graph(),
-                                     this.baseType, this.baseValue);
+    private SchemaLabel loadBaseLabel() {
+        return IndexLabel.getBaseLabel(this.graph(),
+                                       this.baseType, this.baseValue);
     }
 
     private void checkFields(Set<Id> propertyIds) {
@@ -619,7 +620,6 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
         Set<Id> tasks = InsertionOrderUtil.newSet();
         for (Id id : overrideIndexLabelIds) {
-            schemaLabel.removeIndexLabel(id);
             Id task = this.graph().removeIndexLabel(id);
             E.checkNotNull(task, "remove sub index label task");
             tasks.add(task);
