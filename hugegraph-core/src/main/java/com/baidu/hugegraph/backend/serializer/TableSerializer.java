@@ -496,7 +496,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         vertexLabel.properties(this.toIdArray(properties));
         vertexLabel.primaryKeys(this.toIdArray(primaryKeys));
         vertexLabel.nullableKeys(this.toIdArray(nullableKeys));
-        vertexLabel.indexLabels(this.toIdArray(indexLabels));
+        vertexLabel.addIndexLabels(this.toIdArray(indexLabels));
         vertexLabel.status(status);
         vertexLabel.ttl(ttl.longValue());
         vertexLabel.ttlStartTime(this.toId(ttlStartTime));
@@ -535,7 +535,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         edgeLabel.properties(this.toIdArray(properties));
         edgeLabel.sortKeys(this.toIdArray(sortKeys));
         edgeLabel.nullableKeys(this.toIdArray(nullableKeys));
-        edgeLabel.indexLabels(this.toIdArray(indexLabels));
+        edgeLabel.addIndexLabels(this.toIdArray(indexLabels));
         edgeLabel.status(status);
         edgeLabel.ttl(ttl.longValue());
         edgeLabel.ttlStartTime(this.toId(ttlStartTime));

@@ -1051,7 +1051,7 @@ public class BinarySerializer extends AbstractSerializer {
             vertexLabel.properties(readIds(HugeKeys.PROPERTIES));
             vertexLabel.primaryKeys(readIds(HugeKeys.PRIMARY_KEYS));
             vertexLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
-            vertexLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            vertexLabel.addIndexLabels(readIds(HugeKeys.INDEX_LABELS));
             vertexLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             vertexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             vertexLabel.ttl(readLong(HugeKeys.TTL));
@@ -1092,7 +1092,7 @@ public class BinarySerializer extends AbstractSerializer {
             edgeLabel.properties(readIds(HugeKeys.PROPERTIES));
             edgeLabel.sortKeys(readIds(HugeKeys.SORT_KEYS));
             edgeLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
-            edgeLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            edgeLabel.addIndexLabels(readIds(HugeKeys.INDEX_LABELS));
             edgeLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             edgeLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             edgeLabel.ttl(readLong(HugeKeys.TTL));
