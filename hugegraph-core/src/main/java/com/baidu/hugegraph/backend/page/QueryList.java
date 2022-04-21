@@ -219,6 +219,7 @@ public final class QueryList<R> {
         private QueryResults<R> each(IdHolder holder) {
             assert !holder.paging();
             Query bindQuery = holder.query();
+            this.updateResultsFilter(bindQuery);
             this.updateOffsetIfNeeded(bindQuery);
 
             // Iterate by all
@@ -267,6 +268,8 @@ public final class QueryList<R> {
             E.checkArgument(0 <= index && index <= this.holders.size(),
                             "Invalid page index %s", index);
             IdHolder holder = this.holders.get(index);
+            Query bindQuery = holder.query();
+            this.updateResultsFilter(bindQuery);
             PageIds pageIds = holder.fetchNext(page, pageSize);
             if (pageIds.empty()) {
                 return PageResults.emptyIterator();
@@ -296,6 +299,16 @@ public final class QueryList<R> {
             }
             // Others sub-query may update parent offset, so copy to this query
             query.copyOffset(parent);
+        }
+
+        private void updateResultsFilter(Query query) {
+            while (query != null) {
+                if (query instanceof ConditionQuery) {
+                    ((ConditionQuery) query).updateResultsFilter();
+                    return;
+                }
+                query = query.originQuery();
+            }
         }
 
         private QueryResults<R> queryByIndexIds(Set<Id> ids) {
