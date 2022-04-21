@@ -26,6 +26,12 @@ HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipe
 
 The project [homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to **documentation**, getting-started guides and release downloads.
 
+And here are links of other repositories:
+1. [hugegraph-toolchain](https://github.com/apache/incubator-hugegraph-toolchain) (include loader/dashboard/tool/client)
+2. [hugegraph-computer](https://github.com/apache/incubator-hugegraph-computer) (graph computing system)
+3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (include common & rpc module)
+4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (include doc & website code)
+
 ## Contributing
 
 Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
