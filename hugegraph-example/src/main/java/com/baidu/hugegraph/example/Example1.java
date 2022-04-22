@@ -282,8 +282,7 @@ public class Example1 {
         vertices = graph.traversal().V().hasLabel("author").has("id", 1);
         List<Vertex> vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        LOG.info(">>>> query vertices by primary-values: {}",
-                           vertexList);
+        LOG.info(">>>> query vertices by primary-values: {}",vertexList);
 
         VertexLabel author = graph.schema().getVertexLabel("author");
         String authorId = String.format("%s:%s", author.id().asString(), "11");
@@ -305,8 +304,7 @@ public class Example1 {
         edgesOfVertex = vertices.outE("write").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
-        LOG.info(">>>> query edges of vertex by sort-values: " +
-                           edgeList);
+        LOG.info(">>>> query edges of vertex by sort-values: {}",edgeList);
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
@@ -357,11 +355,9 @@ public class Example1 {
 
         Iterator<Edge> edges2 = graph.edges(q);
         assert edges2.hasNext();
-        LOG.info(">>>> queryEdges(id-condition): {}",
-                           edges2.hasNext());
+        LOG.info(">>>> queryEdges(id-condition): {}",edges2.hasNext());
         while (edges2.hasNext()) {
-            LOG.info(">>>> queryEdges(id-condition): {}",
-                               edges2.next());
+            LOG.info(">>>> queryEdges(id-condition): {}",edges2.next());
         }
 
         // NOTE: query edge by has-key just supported by Cassandra
@@ -370,11 +366,9 @@ public class Example1 {
             q.key(HugeKeys.PROPERTIES, contribution.id());
             Iterator<Edge> edges3 = graph.edges(q);
             assert edges3.hasNext();
-            LOG.info(">>>> queryEdges(contribution): {}",
-                               edges3.hasNext());
+            LOG.info(">>>> queryEdges(contribution): {}",edges3.hasNext());
             while (edges3.hasNext()) {
-                LOG.info(">>>> queryEdges(contribution): {}",
-                                   edges3.next());
+                LOG.info(">>>> queryEdges(contribution): {}",edges3.next());
             }
         }
 
@@ -414,7 +408,7 @@ public class Example1 {
                         .has("lived", Text.contains(addr));
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        LOG.info(String.format(">>>> query all authors lived {}: {}", addr, vertexList));
+        LOG.info(">>>> query all authors lived {}: {}", addr, vertexList);
     }
 
     public static void testRemove(final HugeGraph graph) {
