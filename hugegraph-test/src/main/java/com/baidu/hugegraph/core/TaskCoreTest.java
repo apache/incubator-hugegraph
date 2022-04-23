@@ -67,7 +67,6 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-
         TaskCallable<Object> callable = new SleepCallable<>();
 
         Id id = IdGenerator.of(88888);
@@ -82,9 +81,9 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             scheduler.delete(id);
         }, e -> {
-            Assert.assertContains("Can't delete incomplete task '88888'",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Can't delete incomplete task '88888'",
+                                      e.getMessage());
+            });
 
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(id, task.id());
@@ -129,6 +128,7 @@ public class TaskCoreTest extends BaseCoreTest {
                 sleepAWhile();
                 return 125;
             }
+
             @Override
             protected void done() {
                 scheduler.save(this.task());
@@ -138,16 +138,16 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             new HugeTask<>(null, null, callable);
         }, e -> {
-            Assert.assertContains("Task id can't be null", e.getMessage());
-        });
+                Assert.assertContains("Task id can't be null", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id id = IdGenerator.of("88888");
             new HugeTask<>(id, null, callable);
         }, e -> {
-            Assert.assertContains("Invalid task id type, it must be number",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Invalid task id type, it must be number",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(NullPointerException.class, () -> {
             Id id = IdGenerator.of(88888);
@@ -160,8 +160,8 @@ public class TaskCoreTest extends BaseCoreTest {
             task2.name("test-task");
             scheduler.schedule(task2);
         }, e -> {
-            Assert.assertContains("Task type can't be null", e.getMessage());
-        });
+                Assert.assertContains("Task type can't be null", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
@@ -169,8 +169,8 @@ public class TaskCoreTest extends BaseCoreTest {
             task2.type("test");
             scheduler.schedule(task2);
         }, e -> {
-            Assert.assertContains("Task name can't be null", e.getMessage());
-        });
+                Assert.assertContains("Task name can't be null", e.getMessage());
+            });
     }
 
     @Test
@@ -181,15 +181,16 @@ public class TaskCoreTest extends BaseCoreTest {
         EphemeralJobBuilder<Object> builder = EphemeralJobBuilder.of(graph);
         builder.name("test-job-ephemeral")
                .job(new EphemeralJob<Object>() {
-                    @Override
-                    public String type() {
-                        return "test";
-                    }
-                    @Override
-                    public Object execute() throws Exception {
-                        sleepAWhile();
-                        return ImmutableMap.of("k1", 13579, "k2", "24680");
-                    }
+                   @Override
+                   public String type() {
+                       return "test";
+                   }
+
+                   @Override
+                   public Object execute() throws Exception {
+                       sleepAWhile();
+                       return ImmutableMap.of("k1", 13579, "k2", "24680");
+                   }
                });
 
         HugeTask<Object> task = builder.schedule();
@@ -249,20 +250,21 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String script = "schema=graph.schema();"
-                + "schema.propertyKey('name').asText().ifNotExist().create();"
-                + "schema.propertyKey('age').asInt().ifNotExist().create();"
-                + "schema.propertyKey('lang').asText().ifNotExist().create();"
-                + "schema.propertyKey('date').asDate().ifNotExist().create();"
-                + "schema.propertyKey('price').asInt().ifNotExist().create();"
-                + "schema.vertexLabel('person1').properties('name','age').ifNotExist().create();"
-                + "schema.vertexLabel('person2').properties('name','age').ifNotExist().create();"
-                + "schema.edgeLabel('knows').sourceLabel('person1').targetLabel('person2').properties('date').ifNotExist().create();"
-                + "for(int i = 0; i < 1000; i++) {"
-                + "  p1=graph.addVertex(T.label,'person1','name','p1-'+i,'age',29);"
-                + "  p2=graph.addVertex(T.label,'person2','name','p2-'+i,'age',27);"
-                + "  p1.addEdge('knows',p2,'date','2016-01-10');"
-                + "}";
+        String script = "schema=graph.schema();" +
+                "schema.propertyKey('name').asText().ifNotExist().create();" +
+                "schema.propertyKey('age').asInt().ifNotExist().create();" +
+                "schema.propertyKey('lang').asText().ifNotExist().create();" +
+                "schema.propertyKey('date').asDate().ifNotExist().create();" +
+                "schema.propertyKey('price').asInt().ifNotExist().create();" +
+                "schema.vertexLabel('person1').properties('name','age').ifNotExist().create();" +
+                "schema.vertexLabel('person2').properties('name','age').ifNotExist().create();" +
+                "schema.edgeLabel('knows').sourceLabel('person1').targetLabel('person2')." +
+                "properties('date').ifNotExist().create();" +
+                "for(int i = 0; i < 1000; i++) {" +
+                "  p1=graph.addVertex(T.label,'person1','name','p1-'+i,'age',29);" +
+                "  p2=graph.addVertex(T.label,'person2','name','p2-'+i,'age',27);" +
+                "  p1.addEdge('knows',p2,'date','2016-01-10');" +
+                "}";
 
         HugeTask<Object> task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
@@ -307,26 +309,28 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String script = "schema=graph.schema();"
-                + "schema.propertyKey('name').asText().ifNotExist().create();"
-                + "schema.vertexLabel('char').useCustomizeNumberId().properties('name').ifNotExist().create();"
-                + "schema.edgeLabel('next').sourceLabel('char').targetLabel('char').properties('name').ifNotExist().create();"
-                + "g.addV('char').property(id,1).property('name','A').as('a')"
-                + " .addV('char').property(id,2).property('name','B').as('b')"
-                + " .addV('char').property(id,3).property('name','C').as('c')"
-                + " .addV('char').property(id,4).property('name','D').as('d')"
-                + " .addV('char').property(id,5).property('name','E').as('e')"
-                + " .addV('char').property(id,6).property('name','F').as('f')"
-                + " .addE('next').from('a').to('b').property('name','ab')"
-                + " .addE('next').from('b').to('c').property('name','bc')"
-                + " .addE('next').from('b').to('d').property('name','bd')"
-                + " .addE('next').from('c').to('d').property('name','cd')"
-                + " .addE('next').from('c').to('e').property('name','ce')"
-                + " .addE('next').from('d').to('e').property('name','de')"
-                + " .addE('next').from('e').to('f').property('name','ef')"
-                + " .addE('next').from('f').to('d').property('name','fd')"
-                + " .iterate();"
-                + "g.tx().commit(); g.E().count();";
+        String script = "schema=graph.schema();" +
+                "schema.propertyKey('name').asText().ifNotExist().create();" +
+                "schema.vertexLabel('char').useCustomizeNumberId()" +
+                "      .properties('name').ifNotExist().create();" +
+                "schema.edgeLabel('next').sourceLabel('char').targetLabel('char')" +
+                "      .properties('name').ifNotExist().create();" +
+                "g.addV('char').property(id,1).property('name','A').as('a')" +
+                " .addV('char').property(id,2).property('name','B').as('b')" +
+                " .addV('char').property(id,3).property('name','C').as('c')" +
+                " .addV('char').property(id,4).property('name','D').as('d')" +
+                " .addV('char').property(id,5).property('name','E').as('e')" +
+                " .addV('char').property(id,6).property('name','F').as('f')" +
+                " .addE('next').from('a').to('b').property('name','ab')" +
+                " .addE('next').from('b').to('c').property('name','bc')" +
+                " .addE('next').from('b').to('d').property('name','bd')" +
+                " .addE('next').from('c').to('d').property('name','cd')" +
+                " .addE('next').from('c').to('e').property('name','ce')" +
+                " .addE('next').from('d').to('e').property('name','de')" +
+                " .addE('next').from('e').to('f').property('name','ef')" +
+                " .addE('next').from('f').to('d').property('name','fd')" +
+                " .iterate();" +
+                "g.tx().commit(); g.E().count();";
 
         HugeTask<Object> task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
@@ -341,35 +345,49 @@ public class TaskCoreTest extends BaseCoreTest {
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        String expected = String.format("[{\"labels\":[[],[],[]],\"objects\":["
-                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
-                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}}"
-                + "]}]", edgeLabelId);
+        String expected = String.format("[{\"labels\":[[],[],[]],\"objects\":[" +
+                "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"A\"}}," +
+                "{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1," +
+                "\"outVLabel\":\"char\",\"inV\":2,\"" +
+                "inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}}," +
+                "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"B\"}}" +
+                "]}]", edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).out().out().path()";
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        expected = "[{\"labels\":[[],[],[]],\"objects\":["
-                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
-                + "{\"id\":3,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"C\"}}]},"
-                + "{\"labels\":[[],[],[]],\"objects\":["
-                + "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
-                + "{\"id\":4,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"D\"}}]}]";
+        expected = "[{\"labels\":[[],[],[]],\"objects\":[" +
+                "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"A\"}}," +
+                "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"B\"}}," +
+                "{\"id\":3,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"C\"}}]}," +
+                "{\"labels\":[[],[],[]],\"objects\":[" +
+                "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"A\"}}," +
+                "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"B\"}}," +
+                "{\"id\":4,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"D\"}}]}]";
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).outE().inV().tree()";
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        expected = String.format("[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "\"value\":["
-                + "{\"key\":{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1,\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}},"
-                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]",
+        expected = String.format("[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"A\"}}," +
+                "\"value\":[" +
+                "{\"key\":{\"id\":\"L1>%s>>L2\",\"label\":\"next\",\"type\":\"edge\",\"outV\":1," +
+                "\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\"," +
+                "\"properties\":{\"name\":\"ab\"}}," +
+                "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]",
                 edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
@@ -377,11 +395,15 @@ public class TaskCoreTest extends BaseCoreTest {
         task = runGremlinJob(script);
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
-        expected = "[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"A\"}},"
-                + "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"B\"}},"
-                + "\"value\":["
-                + "{\"key\":{\"id\":3,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"C\"}},\"value\":[]},"
-                + "{\"key\":{\"id\":4,\"label\":\"char\",\"type\":\"vertex\",\"properties\":{\"name\":\"D\"}},\"value\":[]}]}]}]]";
+        expected = "[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"A\"}}," +
+                "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
+                "\"properties\":{\"name\":\"B\"}}," +
+                "\"value\":[" +
+                "{\"key\":{\"id\":3,\"label\":\"char\",\"type\":\"vertex\",\"properties\":" +
+                "{\"name\":\"C\"}},\"value\":[]}," +
+                "{\"key\":{\"id\":4,\"label\":\"char\",\"type\":\"vertex\",\"properties\":" +
+                "{\"name\":\"D\"}},\"value\":[]}]}]}]]";
         Assert.assertEquals(expected, task.result());
     }
 
@@ -492,16 +514,16 @@ public class TaskCoreTest extends BaseCoreTest {
                       .job(new GremlinJob())
                       .schedule();
         }, e -> {
-            Assert.assertContains("Job name can't be null", e.getMessage());
-        });
+                Assert.assertContains("Job name can't be null", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             JobBuilder.of(graph)
                       .name("test-job-gremlin")
                       .schedule();
         }, e -> {
-            Assert.assertContains("Job callable can't be null", e.getMessage());
-        });
+                Assert.assertContains("Job callable can't be null", e.getMessage());
+            });
 
         // Test failure task with big input
         int length = 8 * 1024 * 1024;
@@ -514,10 +536,10 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(HugeException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-            Assert.assertContains("Task input size", e.getMessage());
-            Assert.assertContains("exceeded limit 16777216 bytes",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Task input size", e.getMessage());
+                Assert.assertContains("exceeded limit 16777216 bytes",
+                                      e.getMessage());
+            });
     }
 
     @Test
@@ -591,11 +613,11 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String gremlin = "System.out.println('task start');" +
+        String gremlin = "println('task start');" +
                          "for(int i=gremlinJob.progress(); i<=10; i++) {" +
                          "  gremlinJob.updateProgress(i);" +
                          "  Thread.sleep(200); " +
-                         "  System.out.println('sleep=>'+i);" +
+                         "  println('sleep=>'+i);" +
                          "}; 100;";
         HugeTask<Object> task = runGremlinJob(gremlin);
 
@@ -618,17 +640,17 @@ public class TaskCoreTest extends BaseCoreTest {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler,
                             finalTask);
         }, e -> {
-            Assert.assertContains("No need to restore completed task",
-                                  e.getMessage());
-        });
+                Assert.assertContains("No need to restore completed task",
+                                      e.getMessage());
+            });
 
         HugeTask<Object> task2 = scheduler.task(task.id());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
-            Assert.assertContains("No need to restore completed task",
-                                  e.getMessage());
-        });
+                Assert.assertContains("No need to restore completed task",
+                                      e.getMessage());
+            });
 
         Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
         Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
@@ -636,8 +658,8 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
-            Assert.assertContains("is already in the queue", e.getMessage());
-        });
+                Assert.assertContains("is already in the queue", e.getMessage());
+            });
 
         scheduler.waitUntilTaskCompleted(task2.id(), 10);
         sleepAWhile(500);

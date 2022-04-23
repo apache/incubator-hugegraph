@@ -34,14 +34,14 @@ import com.google.common.collect.ImmutableMap;
 
 public class UserApiTest extends BaseApiTest {
 
-    private static final String path = "graphs/hugegraph/auth/users";
+    private static final String PATH = "graphs/hugegraph/auth/users";
     private static final int NO_LIMIT = -1;
 
     @Override
     @After
     public void teardown() throws Exception {
         super.teardown();
-        Response r = this.client().get(path,
+        Response r = this.client().get(PATH,
                                        ImmutableMap.of("limit", NO_LIMIT));
         String result = r.readEntity(String.class);
         Map<String, List<Map<String, Object>>> resultMap =
@@ -53,7 +53,7 @@ public class UserApiTest extends BaseApiTest {
             if (user.get("user_name").equals("admin")) {
                 continue;
             }
-            this.client().delete(path, (String) user.get("id"));
+            this.client().delete(PATH, (String) user.get("id"));
         }
     }
 
@@ -68,9 +68,9 @@ public class UserApiTest extends BaseApiTest {
                        "\"user_phone\":\"1357924680\"," +
                        "\"user_avatar\":\"image2.jpg\"}";
 
-        Response r = client().post(path, user1);
+        Response r = client().post(PATH, user1);
         String result = assertResponseStatus(201, r);
-        Response r2 = client().post(path, user2);
+        Response r2 = client().post(PATH, user2);
         String result2 = assertResponseStatus(201, r2);
 
         assertJsonContains(result, "user_name");
@@ -85,14 +85,14 @@ public class UserApiTest extends BaseApiTest {
         assertJsonContains(result2, "user_phone");
         assertJsonContains(result2, "user_avatar");
 
-        Response r3 = client().post(path, "{}");
+        Response r3 = client().post(PATH, "{}");
         assertResponseStatus(400, r3);
 
         String user3 = "{\"user_name\":\"user1\",\"user_password\":\"p1\"," +
                        "\"user_email\":\"user1@baidu.com\"," +
                        "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                        ".jpg\"}";
-        Response r4 = client().post(path, user3);
+        Response r4 = client().post(PATH, user3);
         String result4 = assertResponseStatus(400, r4);
         String message = assertJsonContains(result4, "message");
         Assert.assertThat(message,
@@ -114,7 +114,7 @@ public class UserApiTest extends BaseApiTest {
         createUser("test2");
         List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
-            Response r = client().get(path, (String) user.get("id"));
+            Response r = client().get(PATH, (String) user.get("id"));
             String result = assertResponseStatus(200, r);
             assertJsonContains(result, "user_name");
         }
@@ -134,7 +134,7 @@ public class UserApiTest extends BaseApiTest {
                            "\"user_phone\":\"111111\"," +
                            "\"user_avatar\":\"image1" +
                            ".jpg\"}";
-            Response r = client().put(path, (String) user.get("id"), user1,
+            Response r = client().put(PATH, (String) user.get("id"), user1,
                                       ImmutableMap.of());
             assertResponseStatus(200, r);
         }
@@ -151,10 +151,10 @@ public class UserApiTest extends BaseApiTest {
             if (user.get("user_name").equals("admin")) {
                 continue;
             }
-            Response r = client().delete(path, (String) user.get("id"));
+            Response r = client().delete(PATH, (String) user.get("id"));
             assertResponseStatus(204, r);
         }
-        Response r = client().delete(path, "test1");
+        Response r = client().delete(PATH, "test1");
         String result = assertResponseStatus(400, r);
         String message = assertJsonContains(result, "message");
         Assert.assertThat(message,
@@ -166,12 +166,12 @@ public class UserApiTest extends BaseApiTest {
                       "\", \"user_email\":\"user1@baidu.com\"," +
                       "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                       ".jpg\"}";
-        Response r = this.client().post(path, user);
+        Response r = this.client().post(PATH, user);
         assertResponseStatus(201, r);
     }
 
     protected List<Map<String, Object>> listUsers() {
-        Response r = this.client().get(path, ImmutableMap.of("limit",
+        Response r = this.client().get(PATH, ImmutableMap.of("limit",
                                                              NO_LIMIT));
         String result = assertResponseStatus(200, r);
 

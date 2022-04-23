@@ -256,10 +256,10 @@ public class RamTableTest {
         Assert.assertThrows(HugeException.class, () -> {
             table.addEdge(true, edge1);
         }, e -> {
-            Assert.assertContains("Only edge label without sortkey is " +
-                                  "supported by ramtable, but got 'el3(id=3)'",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Only edge label without sortkey is " +
+                                      "supported by ramtable, but got 'el3(id=3)'",
+                                      e.getMessage());
+            });
 
         HugeVertex v1 = new HugeVertex(graph, IdGenerator.of("s1"), vl2);
         HugeEdge edge2 = HugeEdge.constructEdge(v1, true, el2, "marko",
@@ -267,9 +267,9 @@ public class RamTableTest {
         Assert.assertThrows(HugeException.class, () -> {
             table.addEdge(true, edge2);
         }, e -> {
-            Assert.assertContains("Only number id is supported by ramtable, " +
-                                  "but got string id 's1'", e.getMessage());
-        });
+                Assert.assertContains("Only number id is supported by ramtable, " +
+                                      "but got string id 's1'", e.getMessage());
+            });
 
         HugeVertex v2 = new HugeVertex(graph, IdGenerator.of(2), vl2);
         HugeEdge edge3 = HugeEdge.constructEdge(v2, true, el2, "marko",
@@ -277,8 +277,8 @@ public class RamTableTest {
         Assert.assertThrows(HugeException.class, () -> {
             table.addEdge(true, edge3);
         }, e -> {
-            Assert.assertContains("Only number id is supported by ramtable, " +
-                                  "but got string id 's2'", e.getMessage());
-        });
+                Assert.assertContains("Only number id is supported by ramtable, " +
+                                      "but got string id 's2'", e.getMessage());
+            });
     }
 }

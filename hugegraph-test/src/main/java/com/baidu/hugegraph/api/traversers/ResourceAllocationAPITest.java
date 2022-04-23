@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class ResourceAllocationAPITest extends BaseApiTest {
 
-    private final static String PATH = TRAVERSERS_API + "/resourceallocation";
+    private static final String PATH = TRAVERSERS_API + "/resourceallocation";
 
     @Before
     public void prepareSchema() {

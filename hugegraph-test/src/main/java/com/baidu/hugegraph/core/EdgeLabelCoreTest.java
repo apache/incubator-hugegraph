@@ -994,10 +994,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
@@ -1023,10 +1023,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
@@ -1140,7 +1140,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals("one-to-many",
                             write.userdata().get("multiplicity"));
         Assert.assertEquals("picture2", write.userdata().get("icon"));
-
 
         write = schema.edgeLabel("write")
                       .userdata("icon", "")

@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SameNeighborsApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/sameneighbors";
+    static final String PATH = TRAVERSERS_API + "/sameneighbors";
 
     @Before
     public void prepareSchema() {
@@ -49,7 +49,7 @@ public class SameNeighborsApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
         String peterId = name2Ids.get("peter");
-        Response r = client().get(path, ImmutableMap.of("vertex",
+        Response r = client().get(PATH, ImmutableMap.of("vertex",
                                                         id2Json(markoId),
                                                         "other",
                                                         id2Json(joshId)));

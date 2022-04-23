@@ -110,9 +110,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.createUser(makeUser("tom", "pass1"));
         }, e -> {
-            Assert.assertContains("Can't save user", e.getMessage());
-            Assert.assertContains("that already exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save user", e.getMessage());
+                Assert.assertContains("that already exists", e.getMessage());
+            });
     }
 
     @Test
@@ -270,9 +270,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.updateUser(makeUser("tom2", "pass1"));
         }, e -> {
-            Assert.assertContains("Can't save user", e.getMessage());
-            Assert.assertContains("that not exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save user", e.getMessage());
+                Assert.assertContains("that not exists", e.getMessage());
+            });
     }
 
     @Test
@@ -694,9 +694,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.createBelong(makeBelong(user, group1));
         }, e -> {
-            Assert.assertContains("Can't save belong", e.getMessage());
-            Assert.assertContains("that already exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save belong", e.getMessage());
+                Assert.assertContains("that already exists", e.getMessage());
+            });
     }
 
     @Test
@@ -836,9 +836,9 @@ public class AuthTest extends BaseCoreTest {
             HugeBelong belong3 = makeBelong(user, group2);
             authManager.updateBelong(belong3);
         }, e -> {
-            Assert.assertContains("Can't save belong", e.getMessage());
-            Assert.assertContains("that not exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save belong", e.getMessage());
+                Assert.assertContains("that not exists", e.getMessage());
+            });
     }
 
     @Test
@@ -998,9 +998,9 @@ public class AuthTest extends BaseCoreTest {
             authManager.createAccess(makeAccess(group1, target1,
                                                 HugePermission.READ));
         }, e -> {
-            Assert.assertContains("Can't save access", e.getMessage());
-            Assert.assertContains("that already exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save access", e.getMessage());
+                Assert.assertContains("that already exists", e.getMessage());
+            });
     }
 
     @Test
@@ -1142,9 +1142,9 @@ public class AuthTest extends BaseCoreTest {
             access.permission(HugePermission.WRITE);
             authManager.updateAccess(access);
         }, e -> {
-            Assert.assertContains("Can't save access", e.getMessage());
-            Assert.assertContains("that not exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save access", e.getMessage());
+                Assert.assertContains("that not exists", e.getMessage());
+            });
 
         access.permission(HugePermission.READ);
         access.description("description updated");
@@ -1163,9 +1163,9 @@ public class AuthTest extends BaseCoreTest {
                                             HugePermission.DELETE);
             authManager.updateAccess(access4);
         }, e -> {
-            Assert.assertContains("Can't save access", e.getMessage());
-            Assert.assertContains("that not exists", e.getMessage());
-        });
+                Assert.assertContains("Can't save access", e.getMessage());
+                Assert.assertContains("that not exists", e.getMessage());
+            });
     }
 
     @Test
@@ -1227,14 +1227,11 @@ public class AuthTest extends BaseCoreTest {
             " {\"type\": \"EDGE_LABEL\"}, {\"type\": \"INDEX_LABEL\"}]");
         List<HugeResource> rg = HugeResource.parseResources(
             "[{\"type\": \"GREMLIN\"}]");
-        Id graph1v = authManager.createTarget(makeTarget("hugegraph-v",
-                                                         "hugegraph",
+        Id graph1v = authManager.createTarget(makeTarget("hugegraph-v", "hugegraph",
                                                          "url1", rv));
-        Id graph1e = authManager.createTarget(makeTarget("hugegraph-e",
-                                                         "hugegraph",
+        Id graph1e = authManager.createTarget(makeTarget("hugegraph-e", "hugegraph",
                                                          "url1", re));
-        Id graph1gremlin = authManager.createTarget(makeTarget("hugegraph-g",
-                                                               "hugegraph",
+        Id graph1gremlin = authManager.createTarget(makeTarget("hugegraph-g", "hugegraph",
                                                                "url1", rg));
 
         Id belong1 = authManager.createBelong(makeBelong(user0, group1));
@@ -1260,7 +1257,23 @@ public class AuthTest extends BaseCoreTest {
 
         RolePermission role;
         role = authManager.rolePermission(authManager.getUser(user0));
-        String expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]},\"hugegraph1\":{\"READ\":[]}}}";
+        String expected = "{\"roles\":" +
+                "{\"hugegraph\":{\"READ\":[" +
+                "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
+                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":" +
+                "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":" +
+                "[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
+                "\"hugegraph1\":{\"READ\":[]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getBelong(belong1));
@@ -1270,11 +1283,16 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getAccess(access1v));
-        expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+        expected = "{\"roles\":" +
+                "{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\"," +
+                "\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getAccess(access1g));
-        expected = "{\"roles\":{\"hugegraph\":{\"EXECUTE\":[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
+        expected = "{\"roles\":{\"hugegraph\":{\"EXECUTE\":[" +
+                "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getUser(user1));
@@ -1286,7 +1304,12 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getTarget(graph1v));
-        expected = "{\"roles\":{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}},{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null},{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+        expected = "{\"roles\":" +
+                "{\"hugegraph\":" +
+                "{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
     }
 
@@ -1304,8 +1327,8 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(AuthenticationException.class, () -> {
             authManager.loginUser("huge", "graph");
         }, e -> {
-            Assert.assertContains("Incorrect username or password", e.getMessage());
-        });
+                Assert.assertContains("Incorrect username or password", e.getMessage());
+            });
     }
 
     @Test

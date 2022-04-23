@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class WeightedShortestPathApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/weightedshortestpath";
+    static final String PATH = TRAVERSERS_API + "/weightedshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -51,7 +51,7 @@ public class WeightedShortestPathApiTest extends BaseApiTest {
         String joshId = name2Ids.get("josh");
         String peterId = name2Ids.get("peter");
         String rippleId = name2Ids.get("ripple");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "target",
                                                         id2Json(joshId),

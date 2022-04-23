@@ -197,7 +197,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
                             Whitebox.invoke(cache, "edgesCache", "size"));
 
         cache.addVertexProperty(new HugeVertexProperty<>(v3,
-                                                         cache.graph().schema().getPropertyKey("name"),
+                                                         cache.graph().schema()
+                                                              .getPropertyKey("name"),
                                                          "test-name"));
         cache.commit();
         Assert.assertEquals(0L,
@@ -209,7 +210,8 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
                             Whitebox.invoke(cache, "edgesCache", "size"));
 
         cache.addVertexProperty(new HugeVertexProperty<>(v1,
-                                                         cache.graph().schema().getPropertyKey("name"),
+                                                         cache.graph().schema()
+                                                              .getPropertyKey("name"),
                                                          "test-name"));
         cache.commit();
 

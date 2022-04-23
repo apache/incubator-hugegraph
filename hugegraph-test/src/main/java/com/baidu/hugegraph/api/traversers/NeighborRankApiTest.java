@@ -31,7 +31,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class NeighborRankApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/neighborrank";
+    static final String PATH = TRAVERSERS_API + "/neighborrank";
 
     @Before
     public void prepareSchema() {
@@ -51,7 +51,7 @@ public class NeighborRankApiTest extends BaseApiTest {
                                        "\"steps\": [{" +
                                        " \"direction\": \"BOTH\"}]," +
                                        "\"alpha\":%s}", markoId, 1);
-        Response r = client().post(path, reqBody);
+        Response r = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, r);
         List<Double> ranks = assertJsonContains(content, "ranks");
         Assert.assertEquals(2, ranks.size());

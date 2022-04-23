@@ -48,24 +48,24 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     static final int THREADS_NUM = 4;
-    static final int batchCount = 2000;
-    static final int eachCount = 10000;
+    static final int BATCH_COUNT = 2000;
+    static final int EACH_COUNT = 10000;
 
     @Test
     public void testIntFixedMap() {
-        IntMap map = fixed(eachCount);
+        IntMap map = fixed(EACH_COUNT);
         testIntMap(map);
     }
 
     @Test
     public void testIntFixedMapBySegments() {
-        IntMap map = fixedBySegments(eachCount, 4);
+        IntMap map = fixedBySegments(EACH_COUNT, 4);
         testIntMap(map);
 
-        IntMap map2 = fixedBySegments(eachCount, 400);
+        IntMap map2 = fixedBySegments(EACH_COUNT, 400);
         testIntMap(map2);
 
-        IntMap map3 = fixedBySegments(eachCount, 4000);
+        IntMap map3 = fixedBySegments(EACH_COUNT, 4000);
         testIntMap(map3);
     }
 
@@ -78,16 +78,16 @@ public class IntMapTest extends BaseUnitTest {
 
         int modUpdate = 1 + new Random().nextInt(100);
         Random random = new Random();
-        for (int k = 0; k < eachCount; k++) {
-            if(k % modUpdate == 0) {
-                int v = random.nextInt(eachCount);
+        for (int k = 0; k < EACH_COUNT; k++) {
+            if (k % modUpdate == 0) {
+                int v = random.nextInt(EACH_COUNT);
                 map.put(k, v);
                 jucMap.put(k, v);
             }
         }
 
         Assert.assertEquals(jucMap.size(), map.size());
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             if (jucMap.containsKey(k)) {
                 Assert.assertTrue("expect " + k, map.containsKey(k));
                 Assert.assertEquals((int) jucMap.get(k), map.get(k));
@@ -96,28 +96,28 @@ public class IntMapTest extends BaseUnitTest {
             }
         }
 
-        for (int k = 0; k < eachCount; k++) {
-            int v = random.nextInt(eachCount);
+        for (int k = 0; k < EACH_COUNT; k++) {
+            int v = random.nextInt(EACH_COUNT);
             map.put(k, v);
             jucMap.put(k, v);
         }
 
-        Assert.assertEquals(eachCount, map.size());
-        for (int k = 0; k < eachCount; k++) {
+        Assert.assertEquals(EACH_COUNT, map.size());
+        for (int k = 0; k < EACH_COUNT; k++) {
             Assert.assertTrue("expect " + k, map.containsKey(k));
             Assert.assertEquals((int) jucMap.get(k), map.get(k));
         }
 
         int modRemove = 1 + new Random().nextInt(100);
-        for (int k = 0; k < eachCount; k++) {
-            if(k % modRemove == 0) {
+        for (int k = 0; k < EACH_COUNT; k++) {
+            if (k % modRemove == 0) {
                 map.remove(k);
                 jucMap.remove(k);
             }
         }
 
         Assert.assertEquals(jucMap.size(), map.size());
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             if (jucMap.containsKey(k)) {
                 Assert.assertTrue("expect " + k, map.containsKey(k));
                 Assert.assertEquals((int) jucMap.get(k), map.get(k));
@@ -126,36 +126,36 @@ public class IntMapTest extends BaseUnitTest {
             }
         }
 
-        int outOfBoundKey = eachCount;
+        int outOfBoundKey = EACH_COUNT;
 
         Assert.assertFalse(map.containsKey(outOfBoundKey));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             map.put(outOfBoundKey, 0);
         }, e -> {
-            Assert.assertContains("out of bound", e.getMessage());
-        });
+                Assert.assertContains("out of bound", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             map.remove(outOfBoundKey);
         }, e -> {
-            Assert.assertContains("out of bound", e.getMessage());
-        });
+                Assert.assertContains("out of bound", e.getMessage());
+            });
 
         map.clear();
         Assert.assertEquals(0, map.size());
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             Assert.assertFalse("unexpect " + k, map.containsKey(k));
         }
     }
 
     @Test
     public void testIntFixedMapConcurrent() {
-        IntMap map = fixed(eachCount);
+        IntMap map = fixed(EACH_COUNT);
 
         runWithThreads(THREADS_NUM, () -> {
-            for (int i = 0; i < batchCount; i++) {
-                for (int k = 0; k < eachCount; k++) {
+            for (int i = 0; i < BATCH_COUNT; i++) {
+                for (int k = 0; k < EACH_COUNT; k++) {
                     map.containsKey(k);
                     map.put(k, k);
                 }
@@ -163,19 +163,19 @@ public class IntMapTest extends BaseUnitTest {
             }
         });
 
-        Assert.assertEquals(eachCount, map.size());
-        for (int k = 0; k < eachCount; k++) {
+        Assert.assertEquals(EACH_COUNT, map.size());
+        for (int k = 0; k < EACH_COUNT; k++) {
             Assert.assertTrue("expect " + k, map.containsKey(k));
         }
     }
 
     @Test
     public void testIntFixedMapBySegmentsConcurrent() {
-        IntMap map = fixedBySegments(eachCount, 4);
+        IntMap map = fixedBySegments(EACH_COUNT, 4);
 
         runWithThreads(THREADS_NUM, () -> {
-            for (int i = 0; i < batchCount; i++) {
-                for (int k = 0; k < eachCount; k++) {
+            for (int i = 0; i < BATCH_COUNT; i++) {
+                for (int k = 0; k < EACH_COUNT; k++) {
                     map.containsKey(k);
                     map.put(k, k);
                 }
@@ -183,8 +183,8 @@ public class IntMapTest extends BaseUnitTest {
             }
         });
 
-        Assert.assertEquals(eachCount, map.size());
-        for (int k = 0; k < eachCount; k++) {
+        Assert.assertEquals(EACH_COUNT, map.size());
+        for (int k = 0; k < EACH_COUNT; k++) {
             Assert.assertTrue("expect " + k, map.containsKey(k));
         }
     }
@@ -230,14 +230,14 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 map.put(capacity, 1);
             }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+                    Assert.assertContains("out of bound", e.getMessage());
+                });
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 map.put(capacity + 1, 1);
             }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+                    Assert.assertContains("out of bound", e.getMessage());
+                });
 
             return map.size() / 2;
         };
@@ -266,20 +266,20 @@ public class IntMapTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(10, testMap.apply(10, 0));
         }, e -> {
-            Assert.assertContains("Invalid segments", e.getMessage());
-        });
+                Assert.assertContains("Invalid segments", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(10, testMap.apply(10, 11));
         }, e -> {
-            Assert.assertContains("Invalid capacity", e.getMessage());
-        });
+                Assert.assertContains("Invalid capacity", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(2000, testMap.apply(2000, 2001));
         }, e -> {
-            Assert.assertContains("Invalid capacity", e.getMessage());
-        });
+                Assert.assertContains("Invalid capacity", e.getMessage());
+            });
     }
 
     @Test
@@ -330,8 +330,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                Assert.assertNull(e.getMessage());
-            });
+                    Assert.assertNull(e.getMessage());
+                });
         }
     }
 
@@ -359,8 +359,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                Assert.assertNull(e.getMessage());
-            });
+                    Assert.assertNull(e.getMessage());
+                });
         }
     }
 
@@ -380,8 +380,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                Assert.assertNull(e.getMessage());
-            });
+                    Assert.assertNull(e.getMessage());
+                });
         }
     }
 
@@ -409,8 +409,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                Assert.assertNull(e.getMessage());
-            });
+                    Assert.assertNull(e.getMessage());
+                });
         }
     }
 

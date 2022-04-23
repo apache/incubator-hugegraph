@@ -43,7 +43,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            Iterator<BackendColumn> iter = session.scan(TABLE, b("exist"));
+            Iterator<BackendColumn> iter = session.scan(TABLE, getBytes("exist"));
             while (iter.hasNext()) {
                 iter.next();
             }
@@ -56,7 +56,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            Iterator<BackendColumn> iter = session.scan(TABLE, b("non-exist"));
+            Iterator<BackendColumn> iter = session.scan(TABLE, getBytes("non-exist"));
             while (iter.hasNext()) {
                 iter.next();
             }
@@ -69,7 +69,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            byte[] value = session.get(TABLE, b("exist"));
+            byte[] value = session.get(TABLE, getBytes("exist"));
             assert value.length == "value".length();
         }
     }
@@ -80,7 +80,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            byte[] value = session.get(TABLE, b("non-exist"));
+            byte[] value = session.get(TABLE, getBytes("non-exist"));
             assert value == null;
         }
     }
@@ -105,9 +105,9 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            session.get(TABLE, b("person:1gname"));
-            session.get(TABLE, b("person:1gage"));
-            session.get(TABLE, b("person:1gcity"));
+            session.get(TABLE, getBytes("person:1gname"));
+            session.get(TABLE, getBytes("person:1gage"));
+            session.get(TABLE, getBytes("person:1gcity"));
         }
     }
 
@@ -125,9 +125,9 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
         Session session = this.rocks.session();
         BackendColumnIterator iter;
         for (int i = 0; i < TIMES; i++) {
-            List<byte[]> keys = Arrays.asList(b("person:1gname"),
-                                              b("person:1gage"),
-                                              b("person:1gcity"));
+            List<byte[]> keys = Arrays.asList(getBytes("person:1gname"),
+                                              getBytes("person:1gage"),
+                                              getBytes("person:1gcity"));
             iter = session.get(TABLE, keys);
             iter.next();
             iter.next();
@@ -150,7 +150,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            session.get(TABLE, b("person:2all"));
+            session.get(TABLE, getBytes("person:2all"));
         }
     }
 
@@ -167,7 +167,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
         Session session = this.rocks.session();
         for (int i = 0; i < TIMES; i++) {
-            Iterator<BackendColumn> iter = session.scan(TABLE, b("person:1"));
+            Iterator<BackendColumn> iter = session.scan(TABLE, getBytes("person:1"));
             while (iter.hasNext()) {
                 iter.next();
             }
@@ -211,7 +211,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
             int value = i;
             comms.put(i, value);
             String key = String.format("index:%3d:%d", i, value);
-            session.put(TABLE, b(key), empty);
+            session.put(TABLE, getBytes(key), empty);
         }
         session.commit();
 
@@ -220,13 +220,13 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
             for (int i = 0; i < n; i++) {
                 int value =  comms.get(i);
                 String old = String.format("index:%3d:%d", i, value);
-                session.delete(TABLE, b(old));
+                session.delete(TABLE, getBytes(old));
 
                 value = r.nextInt(n); // TODO: aggregate
                 value =  i + 1;
                 comms.put(i, value);
                 String key = String.format("index:%3d:%d", i, value);
-                session.put(TABLE, b(key), empty);
+                session.put(TABLE, getBytes(key), empty);
             }
             session.commit();
         }
@@ -243,7 +243,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
         for (int j = 0; j < queryTimes; j++) {
             for (int i = 0; i < n; i++) {
                 String key = String.format("index:%3d", i);
-                Iterator<BackendColumn> iter = session.scan(TABLE, b(key));
+                Iterator<BackendColumn> iter = session.scan(TABLE, getBytes(key));
                 while (iter.hasNext()) {
                     iter.next();
                 }

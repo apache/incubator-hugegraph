@@ -95,41 +95,41 @@ public class CacheManagerTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.cache("c2");
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("OffheapCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("OffheapCache", e.getMessage());
+            });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.cache("c3");
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("LevelCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("LevelCache", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.offheapCache(null, "c1", 1, 11);
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("RamCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("RamCache", e.getMessage());
+            });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.offheapCache(null, "c3", 1, 11);
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("LevelCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("LevelCache", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.levelCache(null, "c1", 1, 1, 11);
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("RamCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("RamCache", e.getMessage());
+            });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             manager.levelCache(null, "c2", 1, 1, 11);
         }, e -> {
-            Assert.assertContains("Invalid cache implement:", e.getMessage());
-            Assert.assertContains("OffheapCache", e.getMessage());
-        });
+                Assert.assertContains("Invalid cache implement:", e.getMessage());
+                Assert.assertContains("OffheapCache", e.getMessage());
+            });
 
         this.originCaches.remove("c1");
         this.originCaches.remove("c2");
@@ -306,9 +306,9 @@ public class CacheManagerTest extends BaseUnitTest {
     private static Cache<Id, Object> newCacheProxy(Cache<Id, Object> cache) {
         Object p = Proxy.newProxyInstance(Cache.class.getClassLoader(),
                                           new Class[]{Cache.class},
-                                          (proxy, method, args) -> {
-                                              return method.invoke(cache, args);
-                                          });
+            (proxy, method, args) -> {
+                return method.invoke(cache, args);
+            });
         return (Cache<Id, Object>) p;
     }
 }

@@ -378,51 +378,51 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("authorByName").onV("author")
                   .by("name").range().create();
         }, e -> {
-            Assert.assertContains("Range index can only build on numeric",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Range index can only build on numeric",
+                                      e.getMessage());
+            });
 
         // Collection index not support union index
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("softByNameAndTags").onV("soft")
                   .by("name", "tags").secondary().create();
         }, e -> {
-            Assert.assertContains("Not allowed to build union index",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Not allowed to build union index",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("softByScore").onV("soft")
                   .by("score").range().create();
         }, e -> {
-            Assert.assertContains("Not allowed to build range index",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Not allowed to build range index",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authoredByAgeAndWeight").onE("authored")
                   .by("age", "weight").range().create();
         }, e -> {
-            Assert.assertContains("Range index can only build on one field",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Range index can only build on one field",
+                                      e.getMessage());
+            });
 
         // Invalid search-index
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authorByAge").onV("author")
                   .by("age").search().create();
         }, e -> {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Search index can only build on text"));
-        });
+                Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                                  "Search index can only build on text"));
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authorByNameAndAge").onV("author")
                   .by("name", "age").search().create();
         }, e -> {
-            Assert.assertContains("Search index can only build on one field",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Search index can only build on one field",
+                                      e.getMessage());
+            });
     }
 
     @Test
@@ -440,27 +440,27 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .onV("author").by("sumProp").secondary()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertContains("The aggregate type SUM is not indexable",
-                                  e.getMessage());
-        });
+                Assert.assertContains("The aggregate type SUM is not indexable",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authorBySumProp")
                   .onV("author").by("sumProp").range()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertContains("The aggregate type SUM is not indexable",
-                                  e.getMessage());
-        });
+                Assert.assertContains("The aggregate type SUM is not indexable",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("authorBySumProp")
                   .onV("author").by("sumProp").shard()
                   .ifNotExist().create();
         }, e -> {
-            Assert.assertContains("The aggregate type SUM is not indexable",
-                                  e.getMessage());
-        });
+                Assert.assertContains("The aggregate type SUM is not indexable",
+                                      e.getMessage());
+            });
     }
 
     @Test
@@ -1207,34 +1207,34 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             schema.indexLabel("personByPagerankAndWcc").onV("person")
                   .secondary().by("pagerank", "wcc").ifNotExist().create();
         }, e -> {
-            Assert.assertContains("Can't build index on multiple olap " +
-                                  "properties,", e.getMessage());
-        });
+                Assert.assertContains("Can't build index on multiple olap " +
+                                      "properties,", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByPagerankAndCity").onV("person")
                   .secondary().by("pagerank", "city").ifNotExist().create();
         }, e -> {
-            Assert.assertContains("Can't build index on olap properties and " +
-                                  "oltp properties in one index label,",
-                                  e.getMessage());
-        });
+                Assert.assertContains("Can't build index on olap properties and " +
+                                      "oltp properties in one index label,",
+                                      e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByWcc").onV("person")
                   .search().by("wcc").ifNotExist().create();
         }, e -> {
-            Assert.assertContains("Only secondary and range index can be " +
-                                  "built on olap property,", e.getMessage());
-        });
+                Assert.assertContains("Only secondary and range index can be " +
+                                      "built on olap property,", e.getMessage());
+            });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("personByPagerank").onV("person")
                   .shard().by("pagerank").ifNotExist().create();
         }, e -> {
-            Assert.assertContains("Only secondary and range index can be " +
-                                  "built on olap property,", e.getMessage());
-        });
+                Assert.assertContains("Only secondary and range index can be " +
+                                      "built on olap property,", e.getMessage());
+            });
     }
 
     @Test
@@ -1523,10 +1523,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
@@ -1551,10 +1551,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Edge> edges = graph().traversal().E()
@@ -1580,10 +1580,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
@@ -1608,10 +1608,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
-            Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
-        });
+                Assert.assertTrue(
+                       e.getMessage().startsWith("Don't accept query by label") &&
+                       e.getMessage().endsWith("label index is disabled"));
+            });
 
         // Query by property index is ok
         List<Edge> edges = graph().traversal().E()

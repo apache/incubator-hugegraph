@@ -68,12 +68,12 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
     }
 
     protected void put(String key, String value) {
-        this.rocks.session().put(TABLE, b(key), b(value));
+        this.rocks.session().put(TABLE, getBytes(key), getBytes(value));
         this.commit();
     }
 
     protected String get(String key) throws RocksDBException {
-        return s(this.rocks.session().get(TABLE, b(key)));
+        return getString(this.rocks.session().get(TABLE, getBytes(key)));
     }
 
     protected void clearData() throws RocksDBException {
@@ -92,21 +92,21 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         }
     }
 
-    protected static byte[] b(String str) {
+    protected static byte[] getBytes(String str) {
         return str.getBytes();
     }
 
-    protected static String s(byte[] bytes) {
+    protected static String getString(byte[] bytes) {
         return bytes == null ? null : new String(bytes);
     }
 
-    protected static byte[] b(long val) {
+    protected static byte[] getBytes(long val) {
         ByteBuffer buf = ByteBuffer.allocate(8).order(ByteOrder.nativeOrder());
         buf.putLong(val);
         return buf.array();
     }
 
-    protected static long l(byte[] bytes) {
+    protected static long getLong(byte[] bytes) {
         ByteBuffer buf = ByteBuffer.wrap(bytes).order(ByteOrder.nativeOrder());
         return buf.getLong();
     }
