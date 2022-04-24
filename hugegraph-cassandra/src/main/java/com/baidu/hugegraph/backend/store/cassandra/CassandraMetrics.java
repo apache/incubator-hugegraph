@@ -143,6 +143,7 @@ public class CassandraMetrics implements BackendMetrics {
              * probe.takeSnapshot(snapshotName, table, options, keyspaces)
              */
         } catch (Throwable e) {
+            LOG.warn("Unable to get metrics from host '{}':", host, e);
             metrics.put(EXCEPTION, e.toString());
         }
         return metrics;
