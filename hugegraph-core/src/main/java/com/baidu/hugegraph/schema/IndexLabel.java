@@ -118,8 +118,8 @@ public class IndexLabel extends SchemaElement {
         return this.indexFields.get(0);
     }
 
-    public SchemaLabel baseElement() {
-        return getElement(this.graph, this.baseType, this.baseValue);
+    public SchemaLabel baseLabel() {
+        return getBaseLabel(this.graph, this.baseType, this.baseValue);
     }
 
     public boolean hasSameContent(IndexLabel other) {
@@ -210,8 +210,9 @@ public class IndexLabel extends SchemaElement {
         return graph.indexLabel(id);
     }
 
-    public static SchemaLabel getElement(HugeGraph graph,
-                                         HugeType baseType, Object baseValue) {
+    public static SchemaLabel getBaseLabel(HugeGraph graph,
+                                           HugeType baseType,
+                                           Object baseValue) {
         E.checkNotNull(baseType, "base type", "index label");
         E.checkNotNull(baseValue, "base value", "index label");
         E.checkArgument(baseValue instanceof String || baseValue instanceof Id,

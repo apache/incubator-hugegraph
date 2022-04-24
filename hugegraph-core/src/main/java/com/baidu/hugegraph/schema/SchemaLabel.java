@@ -93,11 +93,11 @@ public abstract class SchemaLabel extends SchemaElement
         return Collections.unmodifiableSet(this.indexLabels);
     }
 
-    public void indexLabel(Id id) {
+    public void addIndexLabel(Id id) {
         this.indexLabels.add(id);
     }
 
-    public void indexLabels(Id... ids) {
+    public void addIndexLabels(Id... ids) {
         this.indexLabels.addAll(Arrays.asList(ids));
     }
 

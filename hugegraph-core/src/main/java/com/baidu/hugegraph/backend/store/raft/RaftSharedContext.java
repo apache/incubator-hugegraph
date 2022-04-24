@@ -136,7 +136,7 @@ public final class RaftSharedContext {
 
     public void initRaftNode() {
         this.raftNode = new RaftNode(this);
-        this.rpcForwarder = new RpcForwarder(this.raftNode);
+        this.rpcForwarder = new RpcForwarder(this.raftNode.node());
         this.raftGroupManager = new RaftGroupManagerImpl(this);
     }
 
@@ -337,7 +337,7 @@ public final class RaftSharedContext {
         return endpoint;
     }
 
-    public boolean isSafeRead() {
+    public boolean safeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
     }
 
