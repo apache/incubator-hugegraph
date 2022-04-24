@@ -21,8 +21,8 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +63,12 @@ public class CassandraMetrics implements BackendMetrics {
 
     private final String keyspace;
     private final List<String> tables;
+
+    static {
+        // Update NodeProbe.fmtUrl from `[%s]:%d` to `%s:%d` to fix issue #1843
+        String fmtUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
+        setFinalInternalState(NodeProbe.class, "fmtUrl", fmtUrl);
+    }
 
     public CassandraMetrics(HugeConfig conf,
                             CassandraSessionPool sessions,
@@ -299,15 +305,7 @@ public class CassandraMetrics implements BackendMetrics {
         Map<String, Object> hostsResults = InsertionOrderUtil.newMap();
         for (Host host : hosts) {
             InetAddress address = host.getAddress();
-            String hostAddress;
-            if (address instanceof Inet4Address) {
-                hostAddress = host.getAddress().getHostAddress();
-                // Translate IPv4 to IPv6 to fix issue #1843
-                hostAddress = "::" + hostAddress;
-            } else {
-                assert address instanceof Inet6Address;
-                hostAddress = host.getAddress().getHostAddress();
-            }
+            String hostAddress = address.getHostAddress();
             hostsResults.put(hostAddress, func.apply(hostAddress));
         }
         results.put(SERVERS, hostsResults);
@@ -320,5 +318,26 @@ public class CassandraMetrics implements BackendMetrics {
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);
+    }
+
+    // TODO: move to common module Whitebox
+    public static void setFinalInternalState(Object target,
+                                             String fieldName, String value) {
+        Class<?> c = target instanceof Class<?> ?
+                     (Class<?>) target : target.getClass();
+        try {
+            Field field = c.getDeclaredField(fieldName);
+
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException(String.format(
+                      "Can't set value of '%s' against object '%s'",
+                      fieldName, target), e);
+        }
     }
 }
