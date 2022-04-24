@@ -32,6 +32,7 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry.JmxTimerMBean;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.cassandra.tools.nodetool.Compact;
 import org.apache.tinkerpop.gremlin.util.NumberHelper;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.backend.store.BackendTable;
@@ -42,12 +43,15 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.UnitUtil;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.google.common.collect.ImmutableList;
 
 public class CassandraMetrics implements BackendMetrics {
+
+    private static final Logger LOG = Log.logger(CassandraMetrics.class);
 
     private final Cluster cluster;
     private final int port;
@@ -299,6 +303,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
+        LOG.info("Probe to cassandra node: '{}:{}'", host,  this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);
