@@ -236,7 +236,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 }
             }
             return values;
-        } catch(RocksDBException | UnsupportedOperationException e) {
+        } catch (RocksDBException | UnsupportedOperationException e) {
             throw new BackendException(e);
         }
     }
@@ -728,7 +728,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public Pair<byte[], byte[]> keyRange(String table) {
-            byte[] startKey, endKey;
+            byte[] startKey;
+            byte[] endKey;
             try (CFHandle cf = cf(table);
                  RocksIterator iter = rocksdb().newIterator(cf.get())) {
                 iter.seekToFirst();
@@ -1058,14 +1059,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @SuppressWarnings("unused")
         private void dump() {
             this.seek();
-            System.out.println(">>>> scan from " + this.table + ": "  +
-                               (this.keyBegin == null ? "*" :
-                                StringEncoding.format(this.keyBegin)) +
-                               (this.iter.isValid() ? "" : " - No data"));
+            LOG.info(">>>> scan from " + this.table + ": "  +
+                    (this.keyBegin == null ? "*" :
+                            StringEncoding.format(this.keyBegin)) +
+                    (this.iter.isValid() ? "" : " - No data"));
             for (; this.iter.isValid(); this.iter.next()) {
-                System.out.println(String.format("%s=%s",
-                                   StringEncoding.format(this.iter.key()),
-                                   StringEncoding.format(this.iter.value())));
+                LOG.info(String.format("%s=%s",
+                        StringEncoding.format(this.iter.key()),
+                        StringEncoding.format(this.iter.value())));
             }
         }
 

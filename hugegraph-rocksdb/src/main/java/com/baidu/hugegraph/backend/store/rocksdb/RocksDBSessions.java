@@ -39,10 +39,13 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     public abstract Set<String> openedTables();
 
     public abstract void createTable(String... tables) throws RocksDBException;
+
     public abstract void dropTable(String... tables) throws RocksDBException;
+
     public abstract boolean existsTable(String table);
 
     public abstract List<String> property(String property);
+
     public abstract void compactRange();
 
     public abstract RocksDBSessions copy(HugeConfig config,
@@ -67,7 +70,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     /**
      * Session for RocksDB
      */
-    public static abstract class Session extends AbstractBackendSession {
+    public abstract static class Session extends AbstractBackendSession {
 
         public static final int SCAN_ANY = 0x80;
         public static final int SCAN_PREFIX_BEGIN = 0x01;
@@ -78,29 +81,40 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_LTE_END = 0x30;
 
         public abstract String dataPath();
+
         public abstract String walPath();
 
         public abstract String property(String table, String property);
+
         public abstract Pair<byte[], byte[]> keyRange(String table);
+
         public abstract void compactRange(String table);
 
         public abstract void put(String table, byte[] key, byte[] value);
+
         public abstract void merge(String table, byte[] key, byte[] value);
+
         public abstract void increase(String table, byte[] key, byte[] value);
 
         public abstract void delete(String table, byte[] key);
+
         public abstract void deleteSingle(String table, byte[] key);
+
         public abstract void deletePrefix(String table, byte[] key);
+
         public abstract void deleteRange(String table,
                                          byte[] keyFrom, byte[] keyTo);
 
         public abstract byte[] get(String table, byte[] key);
+
         public abstract BackendColumnIterator get(String table,
                                                   List<byte[]> keys);
 
         public abstract BackendColumnIterator scan(String table);
+
         public abstract BackendColumnIterator scan(String table,
                                                    byte[] prefix);
+
         public abstract BackendColumnIterator scan(String table,
                                                    byte[] keyFrom,
                                                    byte[] keyTo,
