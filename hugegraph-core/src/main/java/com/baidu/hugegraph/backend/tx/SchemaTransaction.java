@@ -242,8 +242,40 @@ public class SchemaTransaction extends IndexableTransaction {
         if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
-        schemaLabel.indexLabel(indexLabel.id());
-        this.updateSchema(schemaLabel);
+
+        // FIXME: move schemaLabel update into updateSchema() lock block instead
+        synchronized (schemaLabel) {
+            schemaLabel.addIndexLabel(indexLabel.id());
+            this.updateSchema(schemaLabel);
+        }
+    }
+
+    @Watched(prefix = "schema")
+    public void removeIndexLabelFromBaseLabel(IndexLabel indexLabel) {
+        HugeType baseType = indexLabel.baseType();
+        Id baseValue = indexLabel.baseValue();
+        SchemaLabel schemaLabel;
+        if (baseType == HugeType.VERTEX_LABEL) {
+            schemaLabel = this.getVertexLabel(baseValue);
+        } else {
+            assert baseType == HugeType.EDGE_LABEL;
+            schemaLabel = this.getEdgeLabel(baseValue);
+        }
+
+        if (schemaLabel == null) {
+            LOG.info("The base label '{}' of index label '{}' " +
+                     "may be deleted before", baseValue, indexLabel);
+            return;
+        }
+        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
+            return;
+        }
+
+        // FIXME: move schemaLabel update into updateSchema() lock block instead
+        synchronized (schemaLabel) {
+            schemaLabel.removeIndexLabel(indexLabel.id());
+            this.updateSchema(schemaLabel);
+        }
     }
 
     @Watched(prefix = "schema")

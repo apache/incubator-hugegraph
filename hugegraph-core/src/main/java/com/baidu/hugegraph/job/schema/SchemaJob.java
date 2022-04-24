@@ -9,10 +9,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.tx.SchemaTransaction;
 import com.baidu.hugegraph.job.SysJob;
-import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.SchemaElement;
-import com.baidu.hugegraph.schema.SchemaLabel;
-import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -63,25 +60,6 @@ public abstract class SchemaJob extends SysJob<Object> {
         E.checkNotNull(id, "schema id");
         E.checkNotNull(name, "schema name");
         return String.join(SPLITOR, type.toString(), id.asString(), name);
-    }
-
-    protected static void removeIndexLabelFromBaseLabel(SchemaTransaction tx,
-                                                        IndexLabel label) {
-        HugeType baseType = label.baseType();
-        Id baseValue = label.baseValue();
-        SchemaLabel schemaLabel;
-        if (baseType == HugeType.VERTEX_LABEL) {
-            if (VertexLabel.OLAP_VL.id().equals(baseValue)) {
-                return;
-            }
-            schemaLabel = tx.getVertexLabel(baseValue);
-        } else {
-            assert baseType == HugeType.EDGE_LABEL;
-            schemaLabel = tx.getEdgeLabel(baseValue);
-        }
-        assert schemaLabel != null;
-        schemaLabel.removeIndexLabel(label.id());
-        updateSchema(tx, schemaLabel);
     }
 
     /**
