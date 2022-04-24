@@ -21,6 +21,8 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
@@ -297,7 +299,15 @@ public class CassandraMetrics implements BackendMetrics {
         Map<String, Object> hostsResults = InsertionOrderUtil.newMap();
         for (Host host : hosts) {
             InetAddress address = host.getAddress();
-            String hostAddress = address.getHostAddress();
+            String hostAddress;
+            if (address instanceof Inet4Address) {
+                hostAddress = host.getAddress().getHostAddress();
+                // Translate IPv4 to IPv6 to fix issue #1843
+                hostAddress = "::FFFF:" + hostAddress;
+            } else {
+                assert address instanceof Inet6Address;
+                hostAddress = host.getAddress().getHostAddress();
+            }
             hostsResults.put(hostAddress, func.apply(hostAddress));
         }
         results.put(SERVERS, hostsResults);
