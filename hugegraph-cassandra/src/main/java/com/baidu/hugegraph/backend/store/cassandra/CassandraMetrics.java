@@ -306,7 +306,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
-        LOG.debug("Probe to cassandra node: '{}:{}'", host,  this.port);
+        LOG.info("Probe to cassandra node: '{}:{}'", host,  this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);
