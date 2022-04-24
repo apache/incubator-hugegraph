@@ -68,6 +68,8 @@ public class CassandraMetrics implements BackendMetrics {
         // Update NodeProbe.fmtUrl from `[%s]:%d` to `%s:%d` to fix issue #1843
         String fmtUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
         setFinalInternalState(NodeProbe.class, "fmtUrl", fmtUrl);
+        LOG.info("Patch NodeProbe.fmtUrl='{}'",
+                 Whitebox.<String>getInternalState(NodeProbe.class, "fmtUrl"));
     }
 
     public CassandraMetrics(HugeConfig conf,
@@ -320,7 +322,9 @@ public class CassandraMetrics implements BackendMetrics {
                new NodeProbe(host, this.port, this.username, this.password);
     }
 
-    // TODO: move to common module Whitebox
+    /**
+     * TODO: move to common-module Whitebox
+     */
     public static void setFinalInternalState(Object target,
                                              String fieldName, String value) {
         Class<?> c = target instanceof Class<?> ?
