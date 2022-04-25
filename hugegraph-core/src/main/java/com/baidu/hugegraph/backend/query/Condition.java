@@ -74,6 +74,7 @@ public abstract class Condition {
                                                   ((Id) v1).asBytes());
         }),
         TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
+            // TODO: support collection-property textcontains
             return v1 != null && ((String) v1).contains((String) v2);
         }),
         TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,

@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.core;
 
+import java.util.Random;
+
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.After;
@@ -100,6 +102,17 @@ public class BaseCoreTest {
         schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
+    }
+
+    protected void mayCommitTx() {
+        // Commit tx probabilistically for test
+        if (new Random().nextBoolean()) {
+            graph().tx().commit();
+        }
+    }
+
+    protected void commitTx() {
+        graph().tx().commit();
     }
 
     protected BackendFeatures storeFeatures() {
