@@ -26,9 +26,10 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.CoreOptions;
@@ -72,11 +73,14 @@ public class HugeFactory {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             // Not allowed to read file via Gremlin when SecurityManager enabled
-            String configFile = config.getFileName();
+            String configFileName;
+            File configFile = config.file();
             if (configFile == null) {
-                configFile = config.toString();
+                configFileName = config.toString();
+            } else {
+                configFileName = configFile.getName();
             }
-            sm.checkRead(configFile);
+            sm.checkRead(configFileName);
         }
 
         String name = config.get(CoreOptions.STORE);
@@ -123,7 +127,7 @@ public class HugeFactory {
                         "Please specify a proper config file rather than: %s",
                         file.toString());
         try {
-            return new PropertiesConfiguration(file);
+            return new Configurations().properties(file);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load config file: %s", e, path);
         }
@@ -131,7 +135,7 @@ public class HugeFactory {
 
     public static PropertiesConfiguration getRemoteConfig(URL url) {
         try {
-            return new PropertiesConfiguration(url);
+            return new Configurations().properties(url);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load remote config file: %s",
                                     e, url);

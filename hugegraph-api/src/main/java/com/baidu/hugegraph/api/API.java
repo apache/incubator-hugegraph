@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.NotSupportedException;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 

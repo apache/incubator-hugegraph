@@ -24,11 +24,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.zip.GZIPInputStream;
 
-import javax.inject.Singleton;
-import javax.ws.rs.NameBinding;
-import javax.ws.rs.ext.Provider;
-import javax.ws.rs.ext.ReaderInterceptor;
-import javax.ws.rs.ext.ReaderInterceptorContext;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.NameBinding;
+import jakarta.ws.rs.ext.Provider;
+import jakarta.ws.rs.ext.ReaderInterceptor;
+import jakarta.ws.rs.ext.ReaderInterceptorContext;
 
 @Provider
 @Singleton

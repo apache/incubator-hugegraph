@@ -19,8 +19,7 @@
 
 package com.baidu.hugegraph.api;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;

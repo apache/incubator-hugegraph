@@ -3,7 +3,7 @@
 #port: 8182
 
 # timeout in ms of gremlin query
-scriptEvaluationTimeout: 30000
+evaluationTimeout: 30000
 
 channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 # don't set graph at here, this happens after support for dynamically adding graph

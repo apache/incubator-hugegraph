@@ -22,14 +22,14 @@ package com.baidu.hugegraph.api.filter;
 import java.util.List;
 import java.util.Set;
 
-import javax.inject.Singleton;
-import javax.ws.rs.ServiceUnavailableException;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.PreMatching;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.ext.Provider;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.ext.Provider;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -56,9 +56,9 @@ public class LoadDetectFilter implements ContainerRequestFilter {
                          RateLimiter.create(1.0 / 30);
 
     @Context
-    private javax.inject.Provider<HugeConfig> configProvider;
+    private jakarta.inject.Provider<HugeConfig> configProvider;
     @Context
-    private javax.inject.Provider<WorkLoad> loadProvider;
+    private jakarta.inject.Provider<WorkLoad> loadProvider;
 
     @Override
     public void filter(ContainerRequestContext context) {

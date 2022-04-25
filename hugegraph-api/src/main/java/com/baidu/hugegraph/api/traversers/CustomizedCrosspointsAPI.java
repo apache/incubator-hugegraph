@@ -30,13 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.inject.Singleton;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;

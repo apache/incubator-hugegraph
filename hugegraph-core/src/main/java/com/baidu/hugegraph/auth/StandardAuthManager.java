@@ -28,7 +28,8 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 import javax.security.sasl.AuthenticationException;
-import javax.ws.rs.ForbiddenException;
+
+import jakarta.ws.rs.ForbiddenException;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
