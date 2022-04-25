@@ -41,8 +41,8 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.google.common.collect.ImmutableMap;
 
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class MysqlTables {
 

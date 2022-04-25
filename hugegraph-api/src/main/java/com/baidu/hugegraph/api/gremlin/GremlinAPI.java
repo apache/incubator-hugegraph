@@ -22,18 +22,17 @@ package com.baidu.hugegraph.api.gremlin;
 import java.util.Map;
 import java.util.Set;
 
-import javax.inject.Singleton;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -45,6 +44,8 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import jakarta.inject.Provider;
+import jakarta.inject.Singleton;
 
 @Path("gremlin")
 @Singleton
@@ -57,7 +58,7 @@ public class GremlinAPI extends API {
 
     private static final Set<String> FORBIDDEN_REQUEST_EXCEPTIONS =
             ImmutableSet.of("java.lang.SecurityException",
-                            "javax.ws.rs.ForbiddenException");
+                            "jakarta.ws.rs.ForbiddenException");
     private static final Set<String> BAD_REQUEST_EXCEPTIONS = ImmutableSet.of(
             "java.lang.IllegalArgumentException",
             "java.util.concurrent.TimeoutException",
@@ -67,7 +68,7 @@ public class GremlinAPI extends API {
     );
 
     @Context
-    private javax.inject.Provider<HugeConfig> configProvider;
+    private Provider<HugeConfig> configProvider;
 
     private GremlinClient client;
 

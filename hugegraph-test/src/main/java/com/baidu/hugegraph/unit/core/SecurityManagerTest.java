@@ -263,15 +263,6 @@ public class SecurityManagerTest {
     }
 
     @Test
-    public void testSystemClipboardAccess() {
-        sm.checkSystemClipboardAccess();
-        String result = runGremlinJob("System.getSecurityManager()" +
-                                      ".checkSystemClipboardAccess()");
-        assertError(result,
-                    "Not allowed to access system clipboard via Gremlin");
-    }
-
-    @Test
     public void testPackageDefinition() {
         sm.checkPackageDefinition("com.baidu.hugegraph.util");
     }
@@ -279,21 +270,6 @@ public class SecurityManagerTest {
     @Test
     public void testSecurityAccess() {
         sm.checkSecurityAccess("link");
-    }
-
-    @Test
-    public void testMemberAccess() {
-        sm.checkMemberAccess(HugeSecurityManager.class, 0);
-    }
-
-    @Test
-    public void testTopLevelWindow() {
-        sm.checkTopLevelWindow(new Object());
-    }
-
-    @Test
-    public void testAwtEventQueueAccess() {
-        sm.checkAwtEventQueueAccess();
     }
 
     private static void assertError(String result, String message) {

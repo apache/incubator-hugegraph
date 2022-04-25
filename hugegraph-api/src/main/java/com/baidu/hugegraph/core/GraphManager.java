@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
@@ -334,6 +334,8 @@ public final class GraphManager {
     private void loadGraph(String name, String path) {
         final Graph graph = GraphFactory.open(path);
         this.graphs.put(name, graph);
+        HugeConfig config = (HugeConfig) graph.configuration();
+        config.file(path);
         LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
 
         if (this.requireAuthentication() &&

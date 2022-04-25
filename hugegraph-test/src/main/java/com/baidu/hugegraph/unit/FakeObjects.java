@@ -22,8 +22,8 @@ package com.baidu.hugegraph.unit;
 import java.util.Collections;
 import java.util.Date;
 
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.mockito.Mockito;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -61,8 +61,7 @@ public final class FakeObjects {
     }
 
     public static HugeConfig newConfig() {
-        Configuration conf = Mockito.mock(PropertiesConfiguration.class);
-        Mockito.when(conf.getKeys()).thenReturn(Collections.emptyIterator());
+        Configuration conf = new PropertiesConfiguration();
         return new HugeConfig(conf);
     }
 

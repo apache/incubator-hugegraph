@@ -22,12 +22,11 @@ package com.baidu.hugegraph.api;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import javax.ws.rs.core.GenericType;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
