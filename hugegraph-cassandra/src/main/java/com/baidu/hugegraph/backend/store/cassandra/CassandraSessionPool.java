@@ -68,6 +68,7 @@ public class CassandraSessionPool extends BackendSessionPool {
         assert this.cluster == null || this.cluster.isClosed();
         Builder builder = Cluster.builder()
                                  .addContactPoints(hosts.split(","))
+                                 .withoutMetrics()
                                  .withPort(port);
 
         // Timeout options
