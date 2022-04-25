@@ -19,9 +19,8 @@
 
 package com.baidu.hugegraph.tinkerpop;
 
-import org.apache.commons.configuration.Configuration;
-
 import com.baidu.hugegraph.HugeFactory;
+import org.apache.commons.configuration2.Configuration;
 
 public class TestGraphFactory {
 

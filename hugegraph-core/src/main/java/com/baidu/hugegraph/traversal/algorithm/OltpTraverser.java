@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+import com.google.common.base.Objects;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -37,7 +38,6 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.util.Consumers;
 
-import jersey.repackaged.com.google.common.base.Objects;
 
 public abstract class OltpTraverser extends HugeTraverser
                                     implements AutoCloseable {

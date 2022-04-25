@@ -35,7 +35,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.BOOLEAN;
 import static com.baidu.hugegraph.backend.store.mysql.MysqlTables.HUGE_TEXT;
