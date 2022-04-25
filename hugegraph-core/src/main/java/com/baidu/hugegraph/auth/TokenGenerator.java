@@ -24,7 +24,7 @@ import java.util.Date;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.NotAuthorizedException;
 
 import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
