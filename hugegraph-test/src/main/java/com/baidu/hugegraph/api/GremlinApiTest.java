@@ -22,7 +22,7 @@ package com.baidu.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import org.junit.Assume;
 import org.junit.Test;

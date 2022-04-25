@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.io.OutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -122,7 +123,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer forReadWritten() {
-        this.buffer.flip();
+        ((Buffer) this.buffer).flip();
         return this;
     }
 
@@ -172,7 +173,7 @@ public final class BytesBuffer extends OutputStream {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         ByteBuffer newBuffer = ByteBuffer.allocate(newcapacity);
-        this.buffer.flip();
+        ((Buffer) this.buffer).flip();
         newBuffer.put(this.buffer);
         this.buffer = newBuffer;
     }

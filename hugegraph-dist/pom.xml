@@ -23,16 +23,34 @@
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>metrics-core</artifactId>
+                    <groupId>io.dropwizard.metrics</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-api</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>metrics-core</artifactId>
+                    <groupId>com.codahale.metrics</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>
             <artifactId>hugegraph-cassandra</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>metrics-core</artifactId>
+                    <groupId>io.dropwizard.metrics</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.baidu.hugegraph</groupId>

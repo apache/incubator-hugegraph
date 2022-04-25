@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.server;
 
-import javax.ws.rs.ApplicationPath;
+import jakarta.ws.rs.ApplicationPath;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
@@ -40,7 +40,7 @@ import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
+import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
 
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {

@@ -25,12 +25,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 

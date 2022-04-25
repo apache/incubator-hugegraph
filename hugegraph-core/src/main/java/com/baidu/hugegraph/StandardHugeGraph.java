@@ -912,7 +912,9 @@ public class StandardHugeGraph implements HugeGraph {
         this.serverStarted(server, role);
 
         // Write config to disk file
-        ConfigUtil.writeToFile(configPath, this.name(), this.configuration());
+        String confPath = ConfigUtil.writeToFile(configPath, this.name(),
+                                                 this.configuration());
+        this.configuration.file(confPath);
     }
 
     @Override
@@ -921,7 +923,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         HugeConfig config = this.configuration();
         this.storeProvider.onDeleteConfig(config);
-        ConfigUtil.deleteFile(config.getFile());
+        ConfigUtil.deleteFile(config.file());
 
         try {
             /*
@@ -940,7 +942,6 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public HugeConfig cloneConfig(String newGraph) {
         HugeConfig config = (HugeConfig) this.configuration().clone();
-        config.setDelimiterParsingDisabled(true);
         this.storeProvider.onCloneConfig(config, newGraph);
         return config;
     }
