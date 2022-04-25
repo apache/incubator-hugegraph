@@ -68,6 +68,11 @@ public class CassandraSessionPool extends BackendSessionPool {
         assert this.cluster == null || this.cluster.isClosed();
         Builder builder = Cluster.builder()
                                  .addContactPoints(hosts.split(","))
+                                /*
+                                 * Here is incompatible, java11 glassfish
+                                 * metrics use version 4,but cassandra metrics
+                                 * use version 3.
+                                 */
                                  .withoutMetrics()
                                  .withPort(port);
 
