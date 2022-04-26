@@ -1064,9 +1064,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
                             StringEncoding.format(this.keyBegin)) +
                     (this.iter.isValid() ? "" : " - No data"));
             for (; this.iter.isValid(); this.iter.next()) {
-                LOG.info(String.format("%s=%s",
-                        StringEncoding.format(this.iter.key()),
-                        StringEncoding.format(this.iter.value())));
+                LOG.info(StringEncoding.format(this.iter.key()) +
+                        "=" +
+                        StringEncoding.format(this.iter.value()));
             }
         }
 
