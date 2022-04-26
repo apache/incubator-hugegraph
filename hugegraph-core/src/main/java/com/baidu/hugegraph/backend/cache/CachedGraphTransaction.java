@@ -55,11 +55,11 @@ import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
 
-    private final static int MAX_CACHE_PROPS_PER_VERTEX = 10000;
-    private final static int MAX_CACHE_EDGES_PER_QUERY = 100;
-    private final static float DEFAULT_LEVEL_RATIO = 0.001f;
-    private final static long AVG_VERTEX_ENTRY_SIZE = 40L;
-    private final static long AVG_EDGE_ENTRY_SIZE = 100L;
+    private static final int MAX_CACHE_PROPS_PER_VERTEX = 10000;
+    private static final int MAX_CACHE_EDGES_PER_QUERY = 100;
+    private static final float DEFAULT_LEVEL_RATIO = 0.001f;
+    private static final long AVG_VERTEX_ENTRY_SIZE = 40L;
+    private static final long AVG_EDGE_ENTRY_SIZE = 100L;
 
     private final Cache<Id, Object> verticesCache;
     private final Cache<Id, Object> edgesCache;
