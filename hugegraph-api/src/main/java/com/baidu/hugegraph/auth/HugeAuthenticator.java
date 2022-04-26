@@ -68,6 +68,7 @@ public interface HugeAuthenticator extends Authenticator {
 
     public UserWithRole authenticate(String username, String password,
                                      String token);
+
     public AuthManager authManager();
 
     @Override

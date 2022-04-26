@@ -176,6 +176,7 @@ public class ProjectAPI extends API {
             throw new IllegalArgumentException("Invalid project id: " + id);
         }
     }
+
     public static boolean isAddGraph(String action) {
         return ACTION_ADD_GRAPH.equals(action);
     }
@@ -267,6 +268,6 @@ public class ProjectAPI extends API {
                             this.description != null,
                             "Must specify 'graphs' or 'description' " +
                             "field that need to be updated");
-            }
         }
+    }
 }

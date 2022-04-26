@@ -73,7 +73,7 @@ public class EntityManager<T extends Entity> {
     }
 
     private String unhideLabel() {
-        return Hidden.unHide(this.label) ;
+        return Hidden.unHide(this.label);
     }
 
     public Id add(T entity) {

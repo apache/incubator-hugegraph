@@ -44,7 +44,6 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.groovy.json.internal.MapItemValue;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
@@ -1749,17 +1748,17 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
-    private static final ThreadLocal<Context> contexts =
+    private static final ThreadLocal<Context> CONTEXTS =
                                               new InheritableThreadLocal<>();
 
     protected static final Context setContext(Context context) {
-        Context old = contexts.get();
-        contexts.set(context);
+        Context old = CONTEXTS.get();
+        CONTEXTS.set(context);
         return old;
     }
 
     protected static final void resetContext() {
-        contexts.remove();
+        CONTEXTS.remove();
     }
 
     protected static final Context getContext() {
@@ -1770,7 +1769,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return new Context(user);
         }
 
-        return contexts.get();
+        return CONTEXTS.get();
     }
 
     protected static final String getContextString() {
