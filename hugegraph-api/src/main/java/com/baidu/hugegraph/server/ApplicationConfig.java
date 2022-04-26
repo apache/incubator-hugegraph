@@ -101,16 +101,16 @@ public class ApplicationConfig extends ResourceConfig {
 
         public GraphManagerFactory(HugeConfig conf, EventHub hub) {
             register(new ApplicationEventListener() {
-                private final ApplicationEvent.Type EVENT_INITED =
+                private final ApplicationEvent.Type eventInited =
                               ApplicationEvent.Type.INITIALIZATION_FINISHED;
-                private final ApplicationEvent.Type EVENT_DESTROYED =
+                private final ApplicationEvent.Type eventDestroyed =
                               ApplicationEvent.Type.DESTROY_FINISHED;
 
                 @Override
                 public void onEvent(ApplicationEvent event) {
-                    if (event.getType() == this.EVENT_INITED) {
+                    if (event.getType() == this.eventInited) {
                         GraphManagerFactory.this.manager = new GraphManager(conf, hub);
-                    } else if (event.getType() == this.EVENT_DESTROYED) {
+                    } else if (event.getType() == this.eventDestroyed) {
                         if (GraphManagerFactory.this.manager != null) {
                             GraphManagerFactory.this.manager.close();
                         }

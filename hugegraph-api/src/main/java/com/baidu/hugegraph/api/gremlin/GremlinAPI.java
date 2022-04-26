@@ -51,9 +51,9 @@ import jakarta.inject.Singleton;
 @Singleton
 public class GremlinAPI extends API {
 
-    private static final Histogram gremlinInputHistogram =
+    private static final Histogram GREMLIN_INPUT_HISTOGRAM =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
-    private static final Histogram gremlinOutputHistogram =
+    private static final Histogram GREMLIN_OUTPUT_HISTOGRAM =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
 
     private static final Set<String> FORBIDDEN_REQUEST_EXCEPTIONS =
@@ -100,14 +100,14 @@ public class GremlinAPI extends API {
         // .build();
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         Response response = this.client().doPostRequest(auth, request);
-        gremlinInputHistogram.update(request.length());
-        gremlinOutputHistogram.update(response.getLength());
+        GREMLIN_INPUT_HISTOGRAM.update(request.length());
+        GREMLIN_OUTPUT_HISTOGRAM.update(response.getLength());
         return transformResponseIfNeeded(response);
     }
 
     @GET
     @Timed
-    @Compress(buffer=(1024 * 40))
+    @Compress(buffer = (1024 * 40))
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Response get(@Context HugeConfig conf,
                         @Context HttpHeaders headers,
@@ -116,8 +116,8 @@ public class GremlinAPI extends API {
         String query = uriInfo.getRequestUri().getRawQuery();
         MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
         Response response = this.client().doGetRequest(auth, params);
-        gremlinInputHistogram.update(query.length());
-        gremlinOutputHistogram.update(response.getLength());
+        GREMLIN_INPUT_HISTOGRAM.update(query.length());
+        GREMLIN_OUTPUT_HISTOGRAM.update(response.getLength());
         return transformResponseIfNeeded(response);
     }
 

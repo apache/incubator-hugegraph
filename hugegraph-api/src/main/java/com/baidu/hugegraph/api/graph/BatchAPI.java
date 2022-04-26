@@ -47,11 +47,11 @@ public class BatchAPI extends API {
     private static final Logger LOG = Log.logger(BatchAPI.class);
 
     // NOTE: VertexAPI and EdgeAPI should share a counter
-    private static final AtomicInteger batchWriteThreads = new AtomicInteger(0);
+    private static final AtomicInteger BATCH_WRITE_THREADS = new AtomicInteger(0);
 
     static {
         MetricsUtil.registerGauge(RestServer.class, "batch-write-threads",
-                                  () -> batchWriteThreads.intValue());
+                                  () -> BATCH_WRITE_THREADS.intValue());
     }
 
     private final Meter batchMeter;
@@ -64,24 +64,24 @@ public class BatchAPI extends API {
     public <R> R commit(HugeConfig config, HugeGraph g, int size,
                         Callable<R> callable) {
         int maxWriteThreads = config.get(ServerOptions.MAX_WRITE_THREADS);
-        int writingThreads = batchWriteThreads.incrementAndGet();
+        int writingThreads = BATCH_WRITE_THREADS.incrementAndGet();
         if (writingThreads > maxWriteThreads) {
-            batchWriteThreads.decrementAndGet();
+            BATCH_WRITE_THREADS.decrementAndGet();
             throw new HugeException("The rest server is too busy to write");
         }
 
-        LOG.debug("The batch writing threads is {}", batchWriteThreads);
+        LOG.debug("The batch writing threads is {}", BATCH_WRITE_THREADS);
         try {
             R result = commit(g, callable);
             this.batchMeter.mark(size);
             return result;
         } finally {
-            batchWriteThreads.decrementAndGet();
+            BATCH_WRITE_THREADS.decrementAndGet();
         }
     }
 
     @JsonIgnoreProperties(value = {"type"})
-    protected static abstract class JsonElement implements Checkable {
+    protected abstract static class JsonElement implements Checkable {
 
         @JsonProperty("id")
         public Object id;
