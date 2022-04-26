@@ -87,7 +87,7 @@ public interface BackendStore {
         // Do get-increase-get-compare operation
         long counter = 0L;
         long expect = -1L;
-        synchronized(this) {
+        synchronized (this) {
             for (int i = 0; i < MAX_TIMES; i++) {
                 counter = this.getCounter(type);
 
