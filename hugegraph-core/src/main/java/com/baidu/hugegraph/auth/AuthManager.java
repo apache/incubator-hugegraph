@@ -29,63 +29,101 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface AuthManager {
 
-    public boolean close();
+    boolean close();
 
-    public Id createUser(HugeUser user);
-    public Id updateUser(HugeUser user);
-    public HugeUser deleteUser(Id id);
-    public HugeUser findUser(String name);
-    public HugeUser getUser(Id id);
-    public List<HugeUser> listUsers(List<Id> ids);
-    public List<HugeUser> listAllUsers(long limit);
+    Id createUser(HugeUser user);
 
-    public Id createGroup(HugeGroup group);
-    public Id updateGroup(HugeGroup group);
-    public HugeGroup deleteGroup(Id id);
-    public HugeGroup getGroup(Id id);
-    public List<HugeGroup> listGroups(List<Id> ids);
-    public List<HugeGroup> listAllGroups(long limit);
+    Id updateUser(HugeUser user);
 
-    public Id createTarget(HugeTarget target);
-    public Id updateTarget(HugeTarget target);
-    public HugeTarget deleteTarget(Id id);
-    public HugeTarget getTarget(Id id);
-    public List<HugeTarget> listTargets(List<Id> ids);
-    public List<HugeTarget> listAllTargets(long limit);
+    HugeUser deleteUser(Id id);
 
-    public Id createBelong(HugeBelong belong);
-    public Id updateBelong(HugeBelong belong);
-    public HugeBelong deleteBelong(Id id);
-    public HugeBelong getBelong(Id id);
-    public List<HugeBelong> listBelong(List<Id> ids);
-    public List<HugeBelong> listAllBelong(long limit);
-    public List<HugeBelong> listBelongByUser(Id user, long limit);
-    public List<HugeBelong> listBelongByGroup(Id group, long limit);
+    HugeUser findUser(String name);
 
-    public Id createAccess(HugeAccess access);
-    public Id updateAccess(HugeAccess access);
-    public HugeAccess deleteAccess(Id id);
-    public HugeAccess getAccess(Id id);
-    public List<HugeAccess> listAccess(List<Id> ids);
-    public List<HugeAccess> listAllAccess(long limit);
-    public List<HugeAccess> listAccessByGroup(Id group, long limit);
-    public List<HugeAccess> listAccessByTarget(Id target, long limit);
+    HugeUser getUser(Id id);
 
-    public Id createProject(HugeProject project);
-    public HugeProject deleteProject(Id id);
-    public Id updateProject(HugeProject project);
-    public Id projectAddGraphs(Id id, Set<String> graphs);
-    public Id projectRemoveGraphs(Id id, Set<String> graphs);
-    public HugeProject getProject(Id id);
-    public List<HugeProject> listAllProject(long limit);
+    List<HugeUser> listUsers(List<Id> ids);
 
-    public HugeUser matchUser(String name, String password);
-    public RolePermission rolePermission(AuthElement element);
+    List<HugeUser> listAllUsers(long limit);
 
-    public String loginUser(String username, String password)
-                            throws AuthenticationException;
-    public void logoutUser(String token);
+    Id createGroup(HugeGroup group);
 
-    public UserWithRole validateUser(String username, String password);
-    public UserWithRole validateUser(String token);
+    Id updateGroup(HugeGroup group);
+
+    HugeGroup deleteGroup(Id id);
+
+    HugeGroup getGroup(Id id);
+
+    List<HugeGroup> listGroups(List<Id> ids);
+
+    List<HugeGroup> listAllGroups(long limit);
+
+    Id createTarget(HugeTarget target);
+
+    Id updateTarget(HugeTarget target);
+
+    HugeTarget deleteTarget(Id id);
+
+    HugeTarget getTarget(Id id);
+
+    List<HugeTarget> listTargets(List<Id> ids);
+
+    List<HugeTarget> listAllTargets(long limit);
+
+    Id createBelong(HugeBelong belong);
+
+    Id updateBelong(HugeBelong belong);
+
+    HugeBelong deleteBelong(Id id);
+
+    HugeBelong getBelong(Id id);
+
+    List<HugeBelong> listBelong(List<Id> ids);
+
+    List<HugeBelong> listAllBelong(long limit);
+
+    List<HugeBelong> listBelongByUser(Id user, long limit);
+
+    List<HugeBelong> listBelongByGroup(Id group, long limit);
+
+    Id createAccess(HugeAccess access);
+
+    Id updateAccess(HugeAccess access);
+
+    HugeAccess deleteAccess(Id id);
+
+    HugeAccess getAccess(Id id);
+
+    List<HugeAccess> listAccess(List<Id> ids);
+
+    List<HugeAccess> listAllAccess(long limit);
+
+    List<HugeAccess> listAccessByGroup(Id group, long limit);
+
+    List<HugeAccess> listAccessByTarget(Id target, long limit);
+
+    Id createProject(HugeProject project);
+
+    HugeProject deleteProject(Id id);
+
+    Id updateProject(HugeProject project);
+
+    Id projectAddGraphs(Id id, Set<String> graphs);
+
+    Id projectRemoveGraphs(Id id, Set<String> graphs);
+
+    HugeProject getProject(Id id);
+
+    List<HugeProject> listAllProject(long limit);
+
+    HugeUser matchUser(String name, String password);
+
+    RolePermission rolePermission(AuthElement element);
+
+    String loginUser(String username, String password) throws AuthenticationException;
+
+    void logoutUser(String token);
+
+    UserWithRole validateUser(String username, String password);
+
+    UserWithRole validateUser(String token);
 }
