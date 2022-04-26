@@ -301,7 +301,6 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
-
     protected void parseVertex(byte[] value, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(value);
 
@@ -871,9 +870,9 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         buffer.write(parsedEntry.id().asBytes());
         buffer.write(bytes);
-        parsedEntry = new BinaryBackendEntry(originEntry.type(),
-                                             new BinaryId(buffer.bytes(),
-                                                          BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+        parsedEntry = new BinaryBackendEntry(originEntry.type(), new BinaryId(buffer.bytes(),
+                                                BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+
         for (BackendEntry.BackendColumn col : originEntry.columns()) {
             parsedEntry.column(buffer.bytes(), col.value);
         }

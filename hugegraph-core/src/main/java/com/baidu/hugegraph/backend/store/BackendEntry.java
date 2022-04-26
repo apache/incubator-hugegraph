@@ -33,7 +33,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public interface BackendEntry extends Idfiable {
 
-    public static class BackendColumn implements Comparable<BackendColumn> {
+    class BackendColumn implements Comparable<BackendColumn> {
 
         public byte[] name;
         public byte[] value;
@@ -71,63 +71,64 @@ public interface BackendEntry extends Idfiable {
         }
     }
 
-    public HugeType type();
+    HugeType type();
 
     @Override
-    public Id id();
+    Id id();
 
-    public Id originId();
+    Id originId();
 
-    public Id subId();
+    Id subId();
 
-    public long ttl();
+    long ttl();
 
-    public int columnsSize();
-    public Collection<BackendColumn> columns();
+    int columnsSize();
 
-    public void columns(Collection<BackendColumn> columns);
-    public void columns(BackendColumn column);
+    Collection<BackendColumn> columns();
 
-    public void merge(BackendEntry other);
-    public boolean mergeable(BackendEntry other);
+    void columns(Collection<BackendColumn> columns);
 
-    public void clear();
+    void columns(BackendColumn column);
 
-    public default boolean belongToMe(BackendColumn column) {
+    void merge(BackendEntry other);
+
+    boolean mergeable(BackendEntry other);
+
+    void clear();
+
+    default boolean belongToMe(BackendColumn column) {
         return Bytes.prefixWith(column.name, id().asBytes());
     }
 
-    public default boolean olap() {
+    default boolean olap() {
         return false;
     }
 
-    public interface BackendIterator<T> extends Iterator<T>, AutoCloseable {
+    interface BackendIterator<T> extends Iterator<T>, AutoCloseable {
 
         @Override
-        public void close();
+        void close();
 
-        public byte[] position();
+        byte[] position();
     }
 
-    public interface BackendColumnIterator
-           extends BackendIterator<BackendColumn> {
+    interface BackendColumnIterator extends BackendIterator<BackendColumn> {
 
-        public static BackendColumnIterator empty() {
+        static BackendColumnIterator empty() {
             return EMPTY;
         }
 
-        public static BackendColumnIterator iterator(BackendColumn element) {
+        static BackendColumnIterator iterator(BackendColumn element) {
             return new OneColumnIterator(element);
         }
 
-        public static BackendColumnIterator wrap(Iterator<BackendColumn> iter) {
+        static BackendColumnIterator wrap(Iterator<BackendColumn> iter) {
             return new BackendColumnIteratorWrapper(iter);
         }
 
-        public static final BackendColumnIterator EMPTY = new EmptyIterator();
+        BackendColumnIterator EMPTY = new EmptyIterator();
 
-        public static final class EmptyIterator
-                            implements BackendColumnIterator {
+        final class EmptyIterator implements BackendColumnIterator {
 
             @Override
             public boolean hasNext() {
@@ -150,8 +151,7 @@ public interface BackendEntry extends Idfiable {
             }
         }
 
-        public static final class OneColumnIterator
-                            implements BackendColumnIterator {
+        final class OneColumnIterator implements BackendColumnIterator {
 
             private BackendColumn element;
 
@@ -186,8 +186,7 @@ public interface BackendEntry extends Idfiable {
             }
         }
 
-        public static final class BackendColumnIteratorWrapper
-                            implements BackendColumnIterator {
+        final class BackendColumnIteratorWrapper implements BackendColumnIterator {
 
             private final Iterator<BackendColumn> iter;
 

@@ -54,7 +54,7 @@ public abstract class Condition {
 
     public enum RelationType implements BiPredicate<Object, Object> {
 
-        EQ("==", (v1, v2) -> {return equals(v1, v2); }),
+        EQ("==", (v1, v2) -> { return equals(v1, v2); }),
         GT(">", (v1, v2) -> { return compare(v1, v2) > 0; }),
         GTE(">=", (v1, v2) -> { return compare(v1, v2) >= 0; }),
         LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
@@ -390,7 +390,7 @@ public abstract class Condition {
     /**
      * Condition defines
      */
-    public static abstract class BinCondition extends Condition {
+    public abstract static class BinCondition extends Condition {
 
         private Condition left;
         private Condition right;

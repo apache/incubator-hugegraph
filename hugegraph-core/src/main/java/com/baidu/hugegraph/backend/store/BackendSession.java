@@ -26,34 +26,39 @@ import com.baidu.hugegraph.backend.store.BackendStore.TxState;
  */
 public interface BackendSession {
 
-    public void open();
-    public void close();
+    void open();
 
-    public boolean opened();
-    public boolean closed();
+    void close();
 
-    public Object commit();
+    boolean opened();
 
-    public void rollback();
+    boolean closed();
 
-    public boolean hasChanges();
+    Object commit();
 
-    public int attach();
-    public int detach();
+    void rollback();
 
-    public long created();
-    public long updated();
-    public void update();
+    boolean hasChanges();
 
-    public default void reconnectIfNeeded() {
+    int attach();
+
+    int detach();
+
+    long created();
+
+    long updated();
+
+    void update();
+
+    default void reconnectIfNeeded() {
         // pass
     }
 
-    public default void reset() {
+    default void reset() {
         // pass
     }
 
-    public abstract class AbstractBackendSession implements BackendSession {
+    abstract class AbstractBackendSession implements BackendSession {
 
         protected boolean opened;
         private int refs;
