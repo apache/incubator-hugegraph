@@ -36,7 +36,7 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 
-import jersey.repackaged.com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList;
 
 public class HugeTarget extends Entity {
 

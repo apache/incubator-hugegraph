@@ -22,6 +22,7 @@ package com.baidu.hugegraph.auth;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -36,17 +37,22 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import javax.security.sasl.AuthenticationException;
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotAuthorizedException;
 
-import org.apache.tinkerpop.gremlin.groovy.jsr223.GroovyTranslator;
+import com.baidu.hugegraph.iterator.MapperIterator;
+import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotAuthorizedException;
+
+import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
-import org.apache.tinkerpop.gremlin.process.traversal.Traversal.Admin;
+import org.apache.tinkerpop.gremlin.process.traversal.Script;
+import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.translator.GroovyTranslator;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -91,7 +97,6 @@ import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
-import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -550,7 +555,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public HugeConfig configuration() {
-        throw new NotSupportException("Graph.configuration()");
+        this.verifyAdminPermission();
+        return (HugeConfig) this.hugegraph.configuration();
     }
 
     @Override
@@ -1611,31 +1617,16 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public void applyStrategies(Admin<?, ?> traversal) {
-            String script;
-            if (traversal instanceof HugeScriptTraversal) {
-                script = ((HugeScriptTraversal<?, ?>) traversal).script();
-            } else {
-                GroovyTranslator translator = GroovyTranslator.of("g");
-                script = translator.translate(traversal.getBytecode());
-            }
+        public Iterator<TraversalStrategy<?>> iterator() {
+            if (this.strategies == null) {
+                return Collections.emptyIterator();
 
-            /*
-             * Verify gremlin-execute permission for user gremlin(in gremlin-
-             * server-exec worker) and gremlin job(in task worker).
-             * But don't check permission in rest worker, because the following
-             * places need to call traversal():
-             *  1.vertices/edges rest api
-             *  2.oltp rest api (like crosspointpath/neighborrank)
-             *  3.olap rest api (like centrality/lpa/louvain/subgraph)
-             */
-            String caller = Thread.currentThread().getName();
-            if (!caller.contains(REST_WORKER)) {
-                verifyNamePermission(HugePermission.EXECUTE,
-                                     ResourceType.GREMLIN, script);
             }
-
-            this.strategies.applyStrategies(traversal);
+            return new MapperIterator<TraversalStrategy<?>,
+                                      TraversalStrategy<?>>(
+                       this.strategies.iterator(), (strategy) -> {
+                           return new TraversalStrategyProxy(strategy);
+                       });
         }
 
         @Override
@@ -1674,17 +1665,100 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
-    private static final ThreadLocal<Context> contexts =
+    private final class TraversalStrategyProxy<T extends TraversalStrategy>
+                  implements TraversalStrategy<T> {
+        private final TraversalStrategy<T> origin;
+
+        public TraversalStrategyProxy(TraversalStrategy<T> origin) {
+            this.origin = origin;
+        }
+
+        @Override
+        public void apply(Traversal.Admin traversal) {
+            String script;
+            if (traversal instanceof HugeScriptTraversal) {
+                script = ((HugeScriptTraversal<?, ?>) traversal).script();
+            } else {
+                GroovyTranslator translator = GroovyTranslator.of("g");
+                Script script1 = translator.translate(traversal.getBytecode());
+                if (script1 != null) {
+                    script = script1.getScript();
+                } else {
+                    script = "";
+                }
+            }
+
+            /*
+             * Verify gremlin-execute permission for user gremlin(in gremlin-
+             * server-exec worker) and gremlin job(in task worker).
+             * But don't check permission in rest worker, because the following
+             * places need to call traversal():
+             *  1.vertices/edges rest api
+             *  2.oltp rest api (like crosspointpath/neighborrank)
+             *  3.olap rest api (like centrality/lpa/louvain/subgraph)
+             */
+            String caller = Thread.currentThread().getName();
+            if (!caller.contains(TraversalStrategiesProxy.REST_WORKER)) {
+                verifyNamePermission(HugePermission.EXECUTE,
+                                     ResourceType.GREMLIN, script);
+            }
+
+            this.origin.apply(traversal);
+        }
+
+        @Override
+        public Set<Class<? extends T>> applyPrior() {
+            return this.origin.applyPrior();
+        }
+
+        @Override
+        public Set<Class<? extends T>> applyPost() {
+            return this.origin.applyPost();
+        }
+
+        @Override
+        public Class<T> getTraversalCategory() {
+            return this.origin.getTraversalCategory();
+        }
+
+        @Override
+        public Configuration getConfiguration() {
+            return this.origin.getConfiguration();
+        }
+
+        @Override
+        public int compareTo(Class<? extends TraversalStrategy>
+                                             otherTraversalCategory) {
+            return this.origin.compareTo(otherTraversalCategory);
+        }
+
+        @Override
+        public int hashCode() {
+            return this.origin.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return this.origin.equals(obj);
+        }
+
+        @Override
+        public String toString() {
+            return this.origin.toString();
+        }
+    }
+
+    private static final ThreadLocal<Context> CONTEXTS =
                                               new InheritableThreadLocal<>();
 
     protected static final Context setContext(Context context) {
-        Context old = contexts.get();
-        contexts.set(context);
+        Context old = CONTEXTS.get();
+        CONTEXTS.set(context);
         return old;
     }
 
     protected static final void resetContext() {
-        contexts.remove();
+        CONTEXTS.remove();
     }
 
     protected static final Context getContext() {
@@ -1695,7 +1769,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return new Context(user);
         }
 
-        return contexts.get();
+        return CONTEXTS.get();
     }
 
     protected static final String getContextString() {

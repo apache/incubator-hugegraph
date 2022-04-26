@@ -19,8 +19,7 @@
 
 package com.baidu.hugegraph.api.traversers;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 

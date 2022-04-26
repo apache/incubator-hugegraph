@@ -55,7 +55,7 @@ public class LicenseVerifier {
 
     public static LicenseVerifier instance() {
         if (INSTANCE == null) {
-            synchronized(LicenseVerifier.class) {
+            synchronized (LicenseVerifier.class) {
                 if (INSTANCE == null) {
                     INSTANCE = new LicenseVerifier();
                 }

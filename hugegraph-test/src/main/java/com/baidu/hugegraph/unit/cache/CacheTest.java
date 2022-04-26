@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +45,6 @@ import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 
-import jersey.repackaged.com.google.common.collect.ImmutableList;
 
 public abstract class CacheTest extends BaseUnitTest {
 

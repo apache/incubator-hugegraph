@@ -41,7 +41,7 @@ public abstract class IdHolder {
     protected boolean exhausted;
 
     public IdHolder(Query query) {
-        E.checkNotNull(query, "query");;
+        E.checkNotNull(query, "query");
         this.query = query;
         this.exhausted = false;
     }

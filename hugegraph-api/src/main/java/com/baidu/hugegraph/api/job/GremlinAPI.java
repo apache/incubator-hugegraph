@@ -27,14 +27,14 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.security.RolesAllowed;
-import javax.inject.Singleton;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 
 import org.slf4j.Logger;
 
@@ -65,7 +65,7 @@ public class GremlinAPI extends API {
 
     private static final int MAX_NAME_LENGTH = 256;
 
-    private static final Histogram gremlinJobInputHistogram =
+    private static final Histogram GREMLIN_JOB_INPUT_HISTOGRAM =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
 
     @POST
@@ -79,7 +79,7 @@ public class GremlinAPI extends API {
                                 GremlinRequest request) {
         LOG.debug("Graph [{}] schedule gremlin job: {}", graph, request);
         checkCreatingBody(request);
-        gremlinJobInputHistogram.update(request.gremlin.length());
+        GREMLIN_JOB_INPUT_HISTOGRAM.update(request.gremlin.length());
 
         HugeGraph g = graph(manager, graph);
         request.aliase(graph, "graph");

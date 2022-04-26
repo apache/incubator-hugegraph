@@ -20,11 +20,15 @@
 package com.baidu.hugegraph.dist;
 
 import java.io.InputStream;
+import java.net.URL;
 import java.util.List;
 import java.util.ServiceLoader;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.kerby.config.Conf;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
@@ -50,15 +54,13 @@ public class RegisterUtil {
 
     public static void registerBackends() {
         String confFile = "/backend.properties";
-        InputStream input = RegisterUtil.class.getClass()
-                                        .getResourceAsStream(confFile);
+        URL input = RegisterUtil.class.getResource(confFile);
         E.checkState(input != null,
                      "Can't read file '%s' as stream", confFile);
 
-        PropertiesConfiguration props = new PropertiesConfiguration();
-        props.setDelimiterParsingDisabled(true);
+        PropertiesConfiguration props = null;
         try {
-            props.load(input);
+            props = new Configurations().properties(input);
         } catch (ConfigurationException e) {
             throw new HugeException("Can't load config file: %s", e, confFile);
         }
