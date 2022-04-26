@@ -281,13 +281,17 @@ public class RocksDBTables {
                         prefix = (Id) r.value();
                         break;
                     case GTE:
-                    case GT:
                         minEq = true;
                         min = (Id) r.value();
                         break;
+                    case GT:
+                        min = (Id) r.value();
+                        break;
                     case LTE:
-                    case LT:
                         maxEq = true;
+                        max = (Id) r.value();
+                        break;
+                    case LT:
                         max = (Id) r.value();
                         break;
                     default:
