@@ -101,11 +101,9 @@ public interface BackendStore {
             }
         }
 
-        E.checkState(counter != 0L, "Please check whether '%s' is OK",
-                     this.provider().type());
+        E.checkState(counter != 0L, "Please check whether '%s' is OK", this.provider().type());
 
-        E.checkState(counter == expect, "'%s' is busy please try again",
-                     this.provider().type());
+        E.checkState(counter == expect, "'%s' is busy please try again", this.provider().type());
 
         return IdGenerator.of(expect);
     }
@@ -147,31 +145,26 @@ public interface BackendStore {
     long getCounter(HugeType type);
 
     default void createOlapTable(Id pkId) {
-        throw new UnsupportedOperationException(
-                  "BackendStore.createOlapTable()");
+        throw new UnsupportedOperationException("BackendStore.createOlapTable()");
     }
 
     default void checkAndRegisterOlapTable(Id pkId) {
-        throw new UnsupportedOperationException(
-                  "BackendStore.checkAndRegisterOlapTable()");
+        throw new UnsupportedOperationException("BackendStore.checkAndRegisterOlapTable()");
     }
 
     default void clearOlapTable(Id pkId) {
-        throw new UnsupportedOperationException(
-                  "BackendStore.clearOlapTable()");
+        throw new UnsupportedOperationException("BackendStore.clearOlapTable()");
     }
 
     default void removeOlapTable(Id pkId) {
-        throw new UnsupportedOperationException(
-                  "BackendStore.removeOlapTable()");
+        throw new UnsupportedOperationException("BackendStore.removeOlapTable()");
     }
 
     default Map<String, String> createSnapshot(String snapshotDir) {
         throw new UnsupportedOperationException("createSnapshot");
     }
 
-    default void resumeSnapshot(String snapshotDir,
-                                       boolean deleteSnapshot) {
+    default void resumeSnapshot(String snapshotDir, boolean deleteSnapshot) {
         throw new UnsupportedOperationException("resumeSnapshot");
     }
 
