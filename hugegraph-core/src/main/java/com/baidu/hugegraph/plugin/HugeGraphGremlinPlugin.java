@@ -38,11 +38,11 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
     private static final String PACKAGE = "com.baidu.hugegraph.type.define";
     private static final String NAME = "HugeGraph";
 
-    private static final HugeGraphGremlinPlugin instance;
-    private static final ImportCustomizer imports;
+    private static final HugeGraphGremlinPlugin INSTANCE;
+    private static final ImportCustomizer IMPORTS;
 
     static {
-        instance = new HugeGraphGremlinPlugin();
+        INSTANCE = new HugeGraphGremlinPlugin();
 
         Iterator<ClassPath.ClassInfo> classInfos;
         try {
@@ -58,16 +58,16 @@ public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {
         // Add entrance class: graph = HugeFactory.open("hugegraph.properties")
         classes.add(HugeFactory.class);
 
-        imports = DefaultImportCustomizer.build()
+        IMPORTS = DefaultImportCustomizer.build()
                                          .addClassImports(classes)
                                          .create();
     }
 
     public HugeGraphGremlinPlugin() {
-        super(NAME, imports);
+        super(NAME, IMPORTS);
     }
 
     public static HugeGraphGremlinPlugin instance() {
-        return instance;
+        return INSTANCE;
     }
 }

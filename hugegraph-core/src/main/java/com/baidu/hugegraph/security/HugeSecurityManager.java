@@ -47,10 +47,10 @@ public class HugeSecurityManager extends SecurityManager {
             "org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine"
     );
 
-    private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of(
-            "setSecurityManager"
-            //"suppressAccessChecks"
-    );
+    //"suppressAccessChecks"
+    private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of("setSecurityManager");
+
+
 
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
             "groovy.lang.GroovyClassLoader",
@@ -129,7 +129,7 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("newSecurityException")
     );
 
-    private static final Set<String> ignoreCheckedClasses = new CopyOnWriteArraySet<>();
+    private static final Set<String> IGNORE_CHECKED_CLASSES = new CopyOnWriteArraySet<>();
 
     public static void ignoreCheckedClass(String clazz) {
         if (callFromGremlin()) {
@@ -137,7 +137,7 @@ public class HugeSecurityManager extends SecurityManager {
                   "Not allowed to add ignore check via Gremlin");
         }
 
-        ignoreCheckedClasses.add(clazz);
+        IGNORE_CHECKED_CLASSES.add(clazz);
     }
 
     @Override
@@ -463,7 +463,7 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromIgnoreCheckedClass() {
-        return callFromWorkerWithClass(ignoreCheckedClasses);
+        return callFromWorkerWithClass(IGNORE_CHECKED_CLASSES);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {

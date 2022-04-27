@@ -322,18 +322,18 @@ public final class TaskManager {
         }
     }
 
-    private static final ThreadLocal<String> contexts = new ThreadLocal<>();
+    private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
     protected static final void setContext(String context) {
-        contexts.set(context);
+        CONTEXTS.set(context);
     }
 
     protected static final void resetContext() {
-        contexts.remove();
+        CONTEXTS.remove();
     }
 
     public static final String getContext() {
-        return contexts.get();
+        return CONTEXTS.get();
     }
 
     public static class ContextCallable<V> implements Callable<V> {
