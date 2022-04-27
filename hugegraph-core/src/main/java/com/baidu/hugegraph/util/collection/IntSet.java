@@ -32,21 +32,24 @@ import io.netty.util.internal.shaded.org.jctools.util.UnsafeAccess;
 
 public interface IntSet {
 
-    public boolean add(int key);
-    public boolean remove(int key);
-    public boolean contains(int key);
+    boolean add(int key);
 
-    public void clear();
-    public int size();
+    boolean remove(int key);
 
-    public boolean concurrent();
+    boolean contains(int key);
+
+    void clear();
+
+    int size();
+
+    boolean concurrent();
 
     /**
      * NOTE: IntSetBySegments(backend by IntSetByFixedAddr) is:
      * - slower 2.5x than IntSetByFixedAddr for single thread;
      * - slower 2.0x than IntSetByFixedAddr for 4 threads;
      */
-    public static final class IntSetBySegments implements IntSet {
+    final class IntSetBySegments implements IntSet {
 
         private final IntSet[] sets;
         private final long capacity;
@@ -58,7 +61,7 @@ public interface IntSet {
 
         private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntSet> DEFAULT_CREATOR =
-                             size -> new IntSetByFixedAddr4Unsigned(size);
+            size -> new IntSetByFixedAddr4Unsigned(size);
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
@@ -208,7 +211,7 @@ public interface IntSet {
         public IntSetByFixedAddr(int numBits) {
             this.numBitsUnsigned = numBits;
             this.numBits = numBits * 2L;
-            this.bits = new long[IntSet.bits2words(this.numBits)];;
+            this.bits = new long[IntSet.bits2words(this.numBits)];
             this.size = new AtomicInteger();
         }
 
@@ -305,7 +308,7 @@ public interface IntSet {
 
         public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;
-            this.bits = new long[IntSet.bits2words(numBits)];;
+            this.bits = new long[IntSet.bits2words(numBits)];
             this.size = new AtomicInteger();
         }
 

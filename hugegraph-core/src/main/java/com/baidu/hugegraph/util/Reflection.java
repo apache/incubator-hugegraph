@@ -31,9 +31,9 @@ public class Reflection {
 
     private static final Logger LOG = Log.logger(Reflection.class);
 
-    private static final Class<?> reflectionClazz;
-    private static final Method registerFieldsToFilterMethod;
-    private static final Method registerMethodsToFilterMethod;
+    private static final Class<?> REFLECTION_CLAZZ;
+    private static final Method REGISTER_FILEDS_TO_FILTER_METHOD;
+    private static final Method REGISTER_METHODS_TO_FILTER_MOTHOD;
 
     public static final String JDK_INTERNAL_REFLECT_REFLECTION =
                                "jdk.internal.reflect.Reflection";
@@ -55,12 +55,12 @@ public class Reflection {
             }
         }
 
-        reflectionClazz = reflectionClazzTemp;
+        REFLECTION_CLAZZ = reflectionClazzTemp;
 
-        if (reflectionClazz != null) {
+        if (REFLECTION_CLAZZ != null) {
             try {
                 registerFieldsToFilterMethodTemp =
-                reflectionClazz.getMethod("registerFieldsToFilter",
+                        REFLECTION_CLAZZ.getMethod("registerFieldsToFilter",
                                           Class.class, String[].class);
             } catch (Throwable e) {
                 LOG.error("Can't find registerFieldsToFilter method", e);
@@ -68,26 +68,26 @@ public class Reflection {
 
             try {
                 registerMethodsToFilterMethodTemp =
-                reflectionClazz.getMethod("registerMethodsToFilter",
+                        REFLECTION_CLAZZ.getMethod("registerMethodsToFilter",
                                           Class.class, String[].class);
             } catch (NoSuchMethodException e) {
                 LOG.error("Can't find registerMethodsToFilter method", e);
             }
         }
-        registerFieldsToFilterMethod = registerFieldsToFilterMethodTemp;
-        registerMethodsToFilterMethod = registerMethodsToFilterMethodTemp;
+        REGISTER_FILEDS_TO_FILTER_METHOD = registerFieldsToFilterMethodTemp;
+        REGISTER_METHODS_TO_FILTER_MOTHOD = registerMethodsToFilterMethodTemp;
     }
 
     public static void registerFieldsToFilter(Class<?> containingClass,
                                               String... fieldNames) {
-        if (registerFieldsToFilterMethod == null) {
+        if (REGISTER_FILEDS_TO_FILTER_METHOD == null) {
             throw new NotSupportException(
                       "Reflection.registerFieldsToFilter()");
         }
 
         try {
-            registerFieldsToFilterMethod.setAccessible(true);
-            registerFieldsToFilterMethod.invoke(reflectionClazz,
+            REGISTER_FILEDS_TO_FILTER_METHOD.setAccessible(true);
+            REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ,
                                                 containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
@@ -98,14 +98,14 @@ public class Reflection {
 
     public static void registerMethodsToFilter(Class<?> containingClass,
                                                String... methodNames) {
-        if (registerMethodsToFilterMethod == null) {
+        if (REGISTER_METHODS_TO_FILTER_MOTHOD == null) {
             throw new NotSupportException(
                       "Reflection.registerMethodsToFilterMethod()");
         }
 
         try {
-            registerMethodsToFilterMethod.setAccessible(true);
-            registerMethodsToFilterMethod.invoke(reflectionClazz,
+            REGISTER_METHODS_TO_FILTER_MOTHOD.setAccessible(true);
+            REGISTER_METHODS_TO_FILTER_MOTHOD.invoke(REFLECTION_CLAZZ,
                                                  containingClass, methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(

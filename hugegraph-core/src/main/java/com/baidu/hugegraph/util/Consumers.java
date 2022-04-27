@@ -147,7 +147,7 @@ public final class Consumers<V> {
             if (this.exception == null) {
                 this.exception = e;
             } else {
-                LOG.warn("Error while calling done()", e);;
+                LOG.warn("Error while calling done()", e);
             }
         }
     }
@@ -170,7 +170,7 @@ public final class Consumers<V> {
             try {
                 this.queue.put(v);
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted while enqueue", e);;
+                LOG.warn("Interrupted while enqueue", e);
             }
         }
     }
@@ -262,7 +262,7 @@ public final class Consumers<V> {
 
     public static class ExecutorPool {
 
-        private final static int POOL_CAPACITY = 2 * CoreOptions.CPUS;
+        private static final int POOL_CAPACITY = 2 * CoreOptions.CPUS;
 
         private final String threadNamePrefix;
         private final int executorWorkers;

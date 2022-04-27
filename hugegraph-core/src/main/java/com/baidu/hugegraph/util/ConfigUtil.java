@@ -58,10 +58,9 @@ public final class ConfigUtil {
         try {
 
             FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-            new FileBasedConfigurationBuilder(YAMLConfiguration.class)
-                .configure(params.fileBased().setFileName(conf));
-            YAMLConfiguration config = (YAMLConfiguration) builder
-                                                           .getConfiguration();
+               new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+               .configure(params.fileBased().setFileName(conf));
+            YAMLConfiguration config = (YAMLConfiguration) builder.getConfiguration();
 
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
                                            config.childConfigurationsAt(
@@ -78,9 +77,9 @@ public final class ConfigUtil {
             for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
                 NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
                 E.checkArgument(nodeModel != null &&
-                  (nodeHandler = nodeModel.getNodeHandler()) != null &&
-                  (root = nodeHandler.getRootNode()) != null,
-                  "Node '%s' must contain root", node);
+                    (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                    (root = nodeHandler.getRootNode()) != null,
+                    "Node '%s' must contain root", node);
             }
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file '%s'",
