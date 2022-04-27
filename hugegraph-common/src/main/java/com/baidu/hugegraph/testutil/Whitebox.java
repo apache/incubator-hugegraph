@@ -32,13 +32,18 @@ public class Whitebox {
 
     public static final char SEPARATOR = '.';
 
-    public static void setInternalState(Object target, String fieldName,
-                                        Object value) {
+    public static void setInternalState(Object target,
+                                        String fieldName, Object value) {
         assert target != null;
         assert fieldName != null;
         int sep = fieldName.lastIndexOf(SEPARATOR);
         if (sep > 0) {
-            target = getInternalState(target, fieldName.substring(0, sep));
+            String prefix = fieldName.substring(0, sep);
+            Object result = getInternalState(target, prefix);
+            E.checkArgument(result != null,
+                            "Can't set value on null field: `%s.%s`",
+                            target, prefix);
+            target = result;
             fieldName = fieldName.substring(sep + 1);
         }
 
