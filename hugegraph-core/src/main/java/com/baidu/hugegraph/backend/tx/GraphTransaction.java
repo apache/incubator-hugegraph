@@ -610,7 +610,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.beforeWrite();
             this.addedVertices.put(vertex.id(), vertex);
             this.afterWrite();
-        } catch (Throwable e){
+        } catch (Throwable e) {
             this.locksTable.unlock();
             throw e;
         }
