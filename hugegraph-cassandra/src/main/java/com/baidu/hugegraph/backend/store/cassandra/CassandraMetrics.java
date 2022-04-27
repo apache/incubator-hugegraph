@@ -146,7 +146,7 @@ public class CassandraMetrics implements BackendMetrics {
              * probe.takeSnapshot(snapshotName, table, options, keyspaces)
              */
         } catch (Throwable e) {
-            LOG.warn("Unable to get metrics from host '{}':", host, e);
+            LOG.debug("Unable to get metrics from host '{}':", host, e);
             metrics.put(EXCEPTION, e.toString());
         }
         return metrics;
@@ -302,7 +302,10 @@ public class CassandraMetrics implements BackendMetrics {
             String hostAddress;
             if (address instanceof Inet4Address) {
                 hostAddress = host.getAddress().getHostAddress();
-                // Translate IPv4 to IPv6 to fix issue #1843
+                /*
+                 * Translate IPv4 to IPv6 to fix issue #1843
+                 * TODO: delete this workaround code after fixed CASSANDRA-17581
+                 */
                 hostAddress = "::FFFF:" + hostAddress;
             } else {
                 assert address instanceof Inet6Address;
@@ -316,7 +319,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
-        LOG.info("Probe to cassandra node: '{}:{}'", host,  this.port);
+        LOG.debug("Probe to cassandra node: '{}:{}'", host,  this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);

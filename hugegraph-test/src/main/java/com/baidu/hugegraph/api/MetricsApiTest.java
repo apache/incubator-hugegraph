@@ -162,7 +162,7 @@ public class MetricsApiTest extends BaseApiTest {
 
                 servers = (Map<?, ?>) graph.get("servers");
                 Assert.assertGte(1, servers.size());
-                // TODO: Uncomment after fixed #1843
+
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
