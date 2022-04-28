@@ -1059,13 +1059,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @SuppressWarnings("unused")
         private void dump() {
             this.seek();
-            LOG.info(">>>> scan from " + this.table + ": "  +
+            LOG.info(">>>> scan from {}: {}{}", this.table,
                     (this.keyBegin == null ? "*" :
-                            StringEncoding.format(this.keyBegin)) +
+                            StringEncoding.format(this.keyBegin)),
                     (this.iter.isValid() ? "" : " - No data"));
             for (; this.iter.isValid(); this.iter.next()) {
-                LOG.info(StringEncoding.format(this.iter.key()) +
-                        "=" +
+                LOG.info("{}={}",StringEncoding.format(this.iter.key()),
                         StringEncoding.format(this.iter.value()));
             }
         }
