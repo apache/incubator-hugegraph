@@ -101,9 +101,11 @@ public interface BackendStore {
             }
         }
 
-        E.checkState(counter != 0L, "Please check whether '%s' is OK", this.provider().type());
+        E.checkState(counter != 0L, "Please check whether '%s' is OK",
+                      this.provider().type());
 
-        E.checkState(counter == expect, "'%s' is busy please try again", this.provider().type());
+        E.checkState(counter == expect, "'%s' is busy please try again",
+                     this.provider().type());
 
         return IdGenerator.of(expect);
     }
