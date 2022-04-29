@@ -1059,10 +1059,6 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @SuppressWarnings("unused")
         private void dump() {
             this.seek();
-            LOG.info(">>>> scan from {}: {}{}", this.table,
-                    (this.keyBegin == null ? "*" :
-                            StringEncoding.format(this.keyBegin)),
-                    (this.iter.isValid() ? "" : " - No data"));
             LOG.info(">>>> scan from {}: {}{}", 
                     this.table,
                     this.keyBegin == null ? "*" : StringEncoding.format(this.keyBegin),
