@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.baidu.hugegraph</groupId>
+    <groupId>org.apache.hugegraph</groupId>
     <artifactId>hugegraph-commons</artifactId>
-    <version>2.1.2</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
 
-    <name>hugegraph-commons</name>
-    <url>https://github.com/hugegraph/hugegraph-commons</url>
+    <name>${project.artifactId}</name>
+    <url>https://github.com/apache/incubator-hugegraph-commons</url>
     <description>
         hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their peripheral components.
         It includes rpc frame, locks, configurations, events, iterators, rest and some
@@ -37,22 +37,8 @@
         <developerConnection>https://github.com/hugegraph/hugegraph-commons</developerConnection>
     </scm>
 
-    <developers>
-        <developer>
-            <name>lizhangmei</name>
-            <email>javaloveme@gmail.com</email>
-        </developer>
-        <developer>
-            <name>zhoney</name>
-            <email>zhangyi89817@126.com</email>
-        </developer>
-        <developer>
-            <name>liningrui</name>
-            <email>liningrui@vip.qq.com</email>
-        </developer>
-    </developers>
-
     <properties>
+        <revision>2.1.2</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>

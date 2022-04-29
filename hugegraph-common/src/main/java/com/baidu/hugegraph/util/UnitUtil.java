@@ -62,7 +62,7 @@ public final class UnitUtil {
                         "expect format like '10 MB'", valueWithUnit);
         String unit = valueWithUnit.substring(spacePos + 1);
 
-        long factor = 0L;
+        long factor;
         switch (unit.trim().toUpperCase()) {
             case "B":
             case "BYTE":

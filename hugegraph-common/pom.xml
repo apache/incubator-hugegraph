@@ -4,15 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.baidu.hugegraph</groupId>
+        <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-commons</artifactId>
-        <version>2.1.2</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>hugegraph-common</artifactId>
-    <name>hugegraph-common</name>
-    <url>https://github.com/hugegraph/hugegraph-common</url>
+    <name>${artifactId}</name>
+    <url>https://github.com/apache/incubator-hugegraph-commons/tree/master/hugegraph-common</url>
     <description>
         hugegraph-common is a common module for HugeGraph and its peripheral components.
         hugegraph-common encapsulates locks, configurations, events, iterators, rest and some
@@ -212,7 +212,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
+                    <configLocation>../checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
