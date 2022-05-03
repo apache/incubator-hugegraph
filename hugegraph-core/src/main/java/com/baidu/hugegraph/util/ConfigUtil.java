@@ -58,8 +58,8 @@ public final class ConfigUtil {
         try {
 
             FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-               new FileBasedConfigurationBuilder(YAMLConfiguration.class)
-               .configure(params.fileBased().setFileName(conf));
+                new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+                .configure(params.fileBased().setFileName(conf));
             YAMLConfiguration config = (YAMLConfiguration) builder.getConfiguration();
 
             List<HierarchicalConfiguration<ImmutableNode>> nodes =

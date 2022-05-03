@@ -374,7 +374,6 @@ public final class TraversalUtil {
                convCompare2UserpropRelation(graph, type, has);
     }
 
-
     private static Relation convCompare2SyspropRelation(HugeGraph graph,
                                                         HugeType type,
                                                         HasContainer has) {
@@ -398,9 +397,9 @@ public final class TraversalUtil {
                 return Condition.lte(key, value);
             case neq:
                 return Condition.neq(key, value);
+            default:
+                throw newUnsupportedPredicate(has.getPredicate());
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     private static Relation convCompare2UserpropRelation(HugeGraph graph,
@@ -427,9 +426,9 @@ public final class TraversalUtil {
                 return Condition.lte(pkeyId, value);
             case neq:
                 return Condition.neq(pkeyId, value);
+            default:
+                throw newUnsupportedPredicate(has.getPredicate());
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     private static Condition convRelationType2Relation(HugeGraph graph,
@@ -470,6 +469,8 @@ public final class TraversalUtil {
                     return Condition.in(hugeKey, valueList);
                 case without:
                     return Condition.nin(hugeKey, valueList);
+                default:
+                    throw newUnsupportedPredicate(has.getPredicate());
             }
         } else {
             valueList = new ArrayList<>(values);
@@ -481,10 +482,10 @@ public final class TraversalUtil {
                     return Condition.in(pkey.id(), valueList);
                 case without:
                     return Condition.nin(pkey.id(), valueList);
+                default:
+                    throw newUnsupportedPredicate(has.getPredicate());
             }
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     public static Condition convContains2Relation(HugeGraph graph,
@@ -903,7 +904,10 @@ public final class TraversalUtil {
                         value = JsonUtil.fromJson(value, String.class);
                     }
                     return DateUtil.parse(value).getTime();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    // @todo
+                    // ignored
+                }
             }
 
             throw new HugeException(

@@ -115,7 +115,9 @@ public final class Consumers<V> {
             this.consume();
         }
         assert this.ending;
-        while (this.consume());
+        while (this.consume()){
+            // ignore
+        }
 
         LOG.debug("Worker finished");
     }
