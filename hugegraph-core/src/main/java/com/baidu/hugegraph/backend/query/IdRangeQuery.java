@@ -102,12 +102,12 @@ public final class IdRangeQuery extends Query {
         assert sb.length() > 0;
         sb.deleteCharAt(sb.length() - 1); // Remove the last "`"
         sb.append(" id in range ")
-          .append(this.inclusiveStart ? "[" : "(")
-          .append(this.start)
-          .append(", ")
-          .append(this.end)
-          .append(this.inclusiveEnd ? "]" : ")")
-          .append("`");
+            .append(this.inclusiveStart ? "[" : "(")
+            .append(this.start)
+            .append(", ")
+            .append(this.end)
+            .append(this.inclusiveEnd ? "]" : ")")
+            .append("`");
         return sb.toString();
     }
 }
