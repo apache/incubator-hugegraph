@@ -71,8 +71,7 @@ public interface BackendEntry extends Idfiable {
         }
 
         public int hashCode() {
-            return super.hashCode() ^
-                   this.name.hashCode() ^
+            return this.name.hashCode() ^
                    this.value.hashCode();
         }
 
