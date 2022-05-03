@@ -69,6 +69,13 @@ public interface BackendEntry extends Idfiable {
             return Bytes.equals(this.name, other.name) &&
                    Bytes.equals(this.value, other.value);
         }
+
+        public int hashCode() {
+            return super.hashCode() ^
+                   this.name.hashCode() ^
+                   this.value.hashCode();
+        }
+
     }
 
     HugeType type();
