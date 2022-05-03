@@ -47,7 +47,7 @@ public class HugeSecurityManager extends SecurityManager {
             "org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine"
     );
 
-    //"suppressAccessChecks"
+    // TODO: add "suppressAccessChecks"
     private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of("setSecurityManager");
 
 
