@@ -252,6 +252,11 @@ public class RamCache extends AbstractCache<Id, Object> {
             LinkNode<K, V> other = (LinkNode<K, V>) obj;
             return this.key().equals(other.key());
         }
+
+        public int hashCode() {
+            return this.key().hashCode();
+        }
+
     }
 
     private static final class LinkedQueueNonBigLock<K, V> {

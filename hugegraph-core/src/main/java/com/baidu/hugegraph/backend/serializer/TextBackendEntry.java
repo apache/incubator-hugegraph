@@ -358,6 +358,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         if (this.columns().size() != other.columns().size()) {
             return false;
         }
+
         for (Map.Entry<String, String> e : this.columns.entrySet()) {
             String key = e.getKey();
             String value = e.getValue();
@@ -370,5 +371,14 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
             }
         }
         return true;
+    }
+
+    // ConcurrentSkipListMap override equals();
+    // ConcurrentSkipListMap extend AbstractMap and AbstractMap implement
+    // hashCode()
+    public int hashCode() {
+        return this.id().hashCode() ^
+               this.columns().hashCode();
+
     }
 }
