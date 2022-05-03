@@ -43,7 +43,8 @@ import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.WriteType;
 import com.baidu.hugegraph.util.E;
 
-public class PropertyKeyBuilder extends AbstractBuilder implements PropertyKey.Builder {
+public class PropertyKeyBuilder extends AbstractBuilder
+        implements PropertyKey.Builder {
 
     private Id id;
     private String name;
@@ -68,7 +69,8 @@ public class PropertyKeyBuilder extends AbstractBuilder implements PropertyKey.B
         this.checkExist = true;
     }
 
-    public PropertyKeyBuilder(SchemaTransaction transaction, HugeGraph graph, PropertyKey copy) {
+    public PropertyKeyBuilder(SchemaTransaction transaction, HugeGraph graph,
+                              PropertyKey copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");
         this.id = null;
