@@ -421,10 +421,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        "label index is disabled", schemaLabel);
         }
 
-        ConditionQuery indexQuery;
-        indexQuery = new ConditionQuery(indexType, query);
+        ConditionQuery indexQuery = new ConditionQuery(indexType, query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
+
         /*
          * We can avoid redundant element ids if set limit, but if there are
          * label index overridden by other vertices with different label,
