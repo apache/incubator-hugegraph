@@ -111,7 +111,6 @@ public class BackendMutation {
                                   " transaction between %s and %s",
                                   entry, originItem.entry()));
                     }
-                    break;
                 case ELIMINATE:
                     if (originAction == Action.INSERT ||
                         originAction == Action.DELETE) {
