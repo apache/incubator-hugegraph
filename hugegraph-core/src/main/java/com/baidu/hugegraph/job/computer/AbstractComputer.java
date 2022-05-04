@@ -115,8 +115,8 @@ public abstract class AbstractComputer implements Computer {
 
             StringBuilder output = new StringBuilder();
             try (LineNumberReader reader = new LineNumberReader(
-                                          new InputStreamReader(
-                                          process.getInputStream()))) {
+                                           new InputStreamReader(
+                                           process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");
