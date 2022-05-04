@@ -256,7 +256,6 @@ public class RamCache extends AbstractCache<Id, Object> {
         public int hashCode() {
             return this.key().hashCode();
         }
-
     }
 
     private static final class LinkedQueueNonBigLock<K, V> {
