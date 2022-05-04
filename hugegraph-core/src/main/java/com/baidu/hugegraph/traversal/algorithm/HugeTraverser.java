@@ -361,7 +361,7 @@ public class HugeTraverser {
     public static void checkSkipDegree(long skipDegree, long degree,
                                        long capacity) {
         E.checkArgument(skipDegree >= 0L &&
-                        skipDegree <= Query.DEFAULT_CAPACITY ,
+                        skipDegree <= Query.DEFAULT_CAPACITY,
                         "The skipped degree must be in [0, %s], but got '%s'",
                         Query.DEFAULT_CAPACITY, skipDegree);
         if (capacity != NO_LIMIT) {

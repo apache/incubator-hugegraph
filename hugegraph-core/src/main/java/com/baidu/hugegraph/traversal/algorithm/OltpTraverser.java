@@ -38,7 +38,6 @@ import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.iterator.FilterIterator;
 import com.baidu.hugegraph.util.Consumers;
 
-
 public abstract class OltpTraverser extends HugeTraverser
                                     implements AutoCloseable {
 
