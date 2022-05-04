@@ -360,9 +360,10 @@ public class HugeTraverser {
 
     public static void checkSkipDegree(long skipDegree, long degree,
                                        long capacity) {
-        E.checkArgument(skipDegree >= 0L && skipDegree <= Query.DEFAULT_CAPACITY,
-            "The skipped degree must be in [0, %s], but got '%s'",
-                Query.DEFAULT_CAPACITY, skipDegree);
+        E.checkArgument(skipDegree >= 0L &&
+                        skipDegree <= Query.DEFAULT_CAPACITY ,
+                        "The skipped degree must be in [0, %s], but got '%s'",
+                        Query.DEFAULT_CAPACITY, skipDegree);
         if (capacity != NO_LIMIT) {
             E.checkArgument(degree != NO_LIMIT && degree < capacity,
                             "The max degree must be < capacity");
@@ -377,9 +378,10 @@ public class HugeTraverser {
         }
     }
 
-    public static <K, V extends Comparable<? super V>> Map<K, V> topN(Map<K,
-        V> map, boolean sorted, long limit) {
-
+    public static <K, V extends Comparable<? super V>> Map<K, V> topN(
+                                                                 Map<K, V> map,
+                                                                 boolean sorted,
+                                                                 long limit) {
         if (sorted) {
             map = CollectionUtil.sortByValue(map, false);
         }

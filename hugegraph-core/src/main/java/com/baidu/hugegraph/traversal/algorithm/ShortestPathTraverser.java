@@ -177,7 +177,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                     Id target = edge.id().otherVertexId();
 
                     PathSet paths = this.record.findPath(target,
-                        t -> !this.superNode(t, this.direction), all, false);
+                                    t -> !this.superNode(t, this.direction),
+                                    all, false);
 
                     if (paths.isEmpty()) {
                         continue;
@@ -216,7 +217,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                     Id target = edge.id().otherVertexId();
 
                     PathSet paths = this.record.findPath(target,
-                        t -> !this.superNode(t, opposite), all,false);
+                                    t -> !this.superNode(t, opposite),
+                                    all, false);
 
                     if (paths.isEmpty()) {
                         continue;

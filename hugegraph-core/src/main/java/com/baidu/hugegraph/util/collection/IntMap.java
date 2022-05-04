@@ -72,7 +72,7 @@ public interface IntMap {
 
         private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
-            size -> new IntMapByFixedAddr(size);
+                             size -> new IntMapByFixedAddr(size);
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;

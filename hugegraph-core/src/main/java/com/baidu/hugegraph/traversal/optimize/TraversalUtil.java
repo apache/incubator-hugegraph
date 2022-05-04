@@ -905,8 +905,7 @@ public final class TraversalUtil {
                     }
                     return DateUtil.parse(value).getTime();
                 } catch (Exception ignored) {
-                    // @todo
-                    // ignored
+                    // TODO: improve to throw a exception here
                 }
             }
 
