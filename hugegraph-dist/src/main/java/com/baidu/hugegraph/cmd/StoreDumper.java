@@ -55,7 +55,7 @@ public class StoreDumper {
             rs.next();
         }
 
-        LOG.info("Dump table %s (offset {} limit {}):", table, offset, limit);
+        LOG.info("Dump table {} (offset {} limit {}):", table, offset, limit);
 
         for (long i = 0; i < limit && rs.hasNext(); i++) {
             BackendEntry entry = rs.next();
