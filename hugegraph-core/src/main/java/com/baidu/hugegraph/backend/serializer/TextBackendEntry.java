@@ -373,12 +373,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         return true;
     }
 
-    // ConcurrentSkipListMap override equals();
-    // ConcurrentSkipListMap extend AbstractMap and AbstractMap implement
-    // hashCode()
     public int hashCode() {
-        return this.id().hashCode() ^
-               this.columns().hashCode();
-
+        return this.id().hashCode() ^ this.columns().hashCode();
     }
 }
