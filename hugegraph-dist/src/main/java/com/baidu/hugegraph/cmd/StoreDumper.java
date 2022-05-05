@@ -40,7 +40,7 @@ public class StoreDumper {
 
     private final HugeGraph graph;
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(StoreDumper.class);
 
     public StoreDumper(String conf) {
         this.graph = HugeFactory.open(conf);

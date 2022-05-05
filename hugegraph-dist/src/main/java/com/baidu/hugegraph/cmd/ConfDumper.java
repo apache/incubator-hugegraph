@@ -39,7 +39,7 @@ public class ConfDumper {
 
     public static final String EOL = System.getProperty("line.separator");
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(ConfDumper.class);
 
     public static void main(String[] args)
                        throws ConfigurationException, IOException {
