@@ -47,15 +47,15 @@ public class InitStore {
     // Less than 5000 may cause mismatch exception with Cassandra backend
     private static final long RETRY_INTERVAL = 5000;
 
-    private static final MultiValueMap EXCEPTION = new MultiValueMap();
+    private static final MultiValueMap EXCEPTIONS = new MultiValueMap();
 
     static {
-        EXCEPTION.put("OperationTimedOutException",
+        EXCEPTIONS.put("OperationTimedOutException",
                        "Timed out waiting for server response");
-        EXCEPTION.put("NoHostAvailableException",
+        EXCEPTIONS.put("NoHostAvailableException",
                        "All host(s) tried for query failed");
-        EXCEPTION.put("InvalidQueryException", "does not exist");
-        EXCEPTION.put("InvalidQueryException", "unconfigured table");
+        EXCEPTIONS.put("InvalidQueryException", "does not exist");
+        EXCEPTIONS.put("InvalidQueryException", "unconfigured table");
     }
 
     public static void main(String[] args) throws Exception {
@@ -114,9 +114,9 @@ public class InitStore {
             } catch (Exception e) {
                 String clz = e.getClass().getSimpleName();
                 String message = e.getMessage();
-                if (EXCEPTION.containsKey(clz) && retries > 0) {
+                if (EXCEPTIONS.containsKey(clz) && retries > 0) {
                     @SuppressWarnings("unchecked")
-                    Collection<String> keywords = EXCEPTION.getCollection(clz);
+                    Collection<String> keywords = EXCEPTIONS.getCollection(clz);
                     for (String keyword : keywords) {
                         if (message.contains(keyword)) {
                             LOG.info("Init failed with exception '{} : {}', " +

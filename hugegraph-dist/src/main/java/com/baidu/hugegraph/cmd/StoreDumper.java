@@ -54,12 +54,12 @@ public class StoreDumper {
         for (long i = 0; i < offset && rs.hasNext(); i++) {
             rs.next();
         }
-        String title = String.format("Dump table %s (offset %d limit %d):",
-                                     table, offset, limit);
-        LOG.info("title : {}",title);
+
+        LOG.info("Dump table %s (offset {} limit {}):", table, offset, limit);
+
         for (long i = 0; i < limit && rs.hasNext(); i++) {
             BackendEntry entry = rs.next();
-            LOG.info("entry : {}",entry);
+            LOG.info("{}",entry);
         }
 
         CloseableIterator.closeIterator(rs);
