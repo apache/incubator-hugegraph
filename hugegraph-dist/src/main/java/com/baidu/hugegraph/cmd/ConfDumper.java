@@ -25,16 +25,21 @@ import java.util.TreeSet;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class ConfDumper {
 
     public static final String EOL = System.getProperty("line.separator");
+
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     public static void main(String[] args)
                        throws ConfigurationException, IOException {
@@ -43,8 +48,9 @@ public class ConfDumper {
 
         String input = args[0];
         File output = new File(input + ".default");
-        System.out.println("Input config: " + input);
-        System.out.println("Output config: " + output.getPath());
+
+        LOG.info("Input config: {}", input);
+        LOG.info("Output config: {}", output.getPath());
 
         RegisterUtil.registerBackends();
         RegisterUtil.registerServer();

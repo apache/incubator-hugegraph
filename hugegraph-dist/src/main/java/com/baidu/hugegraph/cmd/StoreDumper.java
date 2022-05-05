@@ -22,6 +22,7 @@ package com.baidu.hugegraph.cmd;
 import java.util.Iterator;
 
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
@@ -29,13 +30,17 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.dist.RegisterUtil;
+import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.Log;
 
 public class StoreDumper {
 
     private final HugeGraph graph;
+
+    private static final Logger LOG = Log.logger(RestServer.class);
 
     public StoreDumper(String conf) {
         this.graph = HugeFactory.open(conf);
@@ -51,10 +56,10 @@ public class StoreDumper {
         }
         String title = String.format("Dump table %s (offset %d limit %d):",
                                      table, offset, limit);
-        System.out.println(title);
+        LOG.info("title : {}",title);
         for (long i = 0; i < limit && rs.hasNext(); i++) {
             BackendEntry entry = rs.next();
-            System.out.println(entry);
+            LOG.info("entry : {}",entry);
         }
 
         CloseableIterator.closeIterator(rs);
