@@ -112,11 +112,11 @@ import com.google.common.util.concurrent.RateLimiter;
 public class StandardHugeGraph implements HugeGraph {
 
     public static final Class<?>[] PROTECT_CLASSES = {
-           StandardHugeGraph.class,
-           StandardHugeGraph.StandardHugeGraphParams.class,
-           TinkerPopTransaction.class,
-           StandardHugeGraph.Txs.class,
-           StandardHugeGraph.SysTransaction.class
+        StandardHugeGraph.class,
+        StandardHugeGraph.StandardHugeGraphParams.class,
+        TinkerPopTransaction.class,
+        StandardHugeGraph.Txs.class,
+        StandardHugeGraph.SysTransaction.class
     };
 
     public static final Set<TypedOption<?, ?>> ALLOWED_CONFIGS = ImmutableSet.of(

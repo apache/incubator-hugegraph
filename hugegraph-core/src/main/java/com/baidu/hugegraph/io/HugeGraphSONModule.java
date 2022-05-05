@@ -84,7 +84,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     @SuppressWarnings("rawtypes")
     private static final Map<Class, String> TYPE_DEFINITIONS;
 
-    private static final GraphSONSchemaSerializer schemaSerializer =
+    private static final GraphSONSchemaSerializer SCHEMA_SERIALIZER =
                          new GraphSONSchemaSerializer();
 
     // NOTE: jackson will synchronize DateFormat
@@ -305,7 +305,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               JsonGenerator jsonGenerator,
                               SerializerProvider provider)
                               throws IOException {
-            writeEntry(jsonGenerator, schemaSerializer.writePropertyKey(pk));
+            writeEntry(jsonGenerator, SCHEMA_SERIALIZER.writePropertyKey(pk));
         }
     }
 
@@ -321,7 +321,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               JsonGenerator jsonGenerator,
                               SerializerProvider provider)
                               throws IOException {
-            writeEntry(jsonGenerator, schemaSerializer.writeVertexLabel(vl));
+            writeEntry(jsonGenerator, SCHEMA_SERIALIZER.writeVertexLabel(vl));
         }
     }
 
@@ -336,7 +336,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               JsonGenerator jsonGenerator,
                               SerializerProvider provider)
                               throws IOException {
-            writeEntry(jsonGenerator, schemaSerializer.writeEdgeLabel(el));
+            writeEntry(jsonGenerator, SCHEMA_SERIALIZER.writeEdgeLabel(el));
         }
     }
 
@@ -352,7 +352,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               JsonGenerator jsonGenerator,
                               SerializerProvider provider)
                               throws IOException {
-            writeEntry(jsonGenerator, schemaSerializer.writeIndexLabel(il));
+            writeEntry(jsonGenerator, SCHEMA_SERIALIZER.writeIndexLabel(il));
         }
     }
 
@@ -367,7 +367,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
         jsonGenerator.writeEndObject();
     }
 
-    protected static abstract class HugeElementSerializer<T extends HugeElement>
+    protected abstract static class HugeElementSerializer<T extends HugeElement>
                               extends StdSerializer<T> {
 
         public HugeElementSerializer(Class<T> clazz) {
@@ -410,7 +410,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                               "Failed to serialize property(%s: %s) " +
                               "for vertex '%s'", key, val, property.element());
                 }
-            };
+            }
             // End write properties
             generator.writeEndObject();
         }

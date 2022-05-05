@@ -637,7 +637,7 @@ public class HugeTask<V> extends FutureTask<V> {
 
     private void checkPropertySize(String property, String propertyName) {
         byte[] bytes = StringEncoding.compress(property);
-        checkPropertySize(bytes.length, propertyName) ;
+        checkPropertySize(bytes.length, propertyName);
     }
 
     private void checkPropertySize(int propertyLength, String propertyName) {
