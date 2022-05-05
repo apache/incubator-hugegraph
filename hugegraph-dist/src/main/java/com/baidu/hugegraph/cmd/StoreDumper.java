@@ -59,7 +59,7 @@ public class StoreDumper {
 
         for (long i = 0; i < limit && rs.hasNext(); i++) {
             BackendEntry entry = rs.next();
-            LOG.info("{}",entry);
+            LOG.info("{}", entry);
         }
 
         CloseableIterator.closeIterator(rs);
