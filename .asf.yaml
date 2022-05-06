@@ -24,10 +24,9 @@ github:
     # Enable projects for project management boards
     projects: true
   description: A graph database that supports more than 100+ billion data, high performance and scalability (Include OLTP Engine & REST-API & Backends)
-  homepage: https://apache.github.io/incubator-hugegraph-doc/
+  homepage: https://hugegraph.apache.org
   del_branch_on_merge: true
   #labels:
-
   enabled_merge_buttons:
     merge:  true
     squash: true
