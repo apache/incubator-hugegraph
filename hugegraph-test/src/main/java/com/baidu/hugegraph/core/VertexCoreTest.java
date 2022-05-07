@@ -2223,9 +2223,9 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "a").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -5988,11 +5988,11 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph.traversal().V().hasLabel("node").has("name", "tom").next();
         }, (e) -> {
-                Assert.assertEquals("Don't accept query based on properties " +
-                                    "[name] that are not indexed in label 'node'," +
-                                    " may not match secondary condition",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[name] that are not indexed in label 'node'," +
+                                " may not match secondary condition",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -6915,7 +6915,7 @@ public class VertexCoreTest extends BaseCoreTest {
                   .onV("student").by("rank").secondary().ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                             "The aggregate type SET is not indexable"));
+                              "The aggregate type SET is not indexable"));
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("studentByReword")
@@ -6923,7 +6923,7 @@ public class VertexCoreTest extends BaseCoreTest {
                   .create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                             "The aggregate type LIST is not indexable"));
+                              "The aggregate type LIST is not indexable"));
         });
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,

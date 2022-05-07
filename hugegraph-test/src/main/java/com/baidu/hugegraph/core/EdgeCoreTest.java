@@ -476,7 +476,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.tx().commit();
         }, e -> {
             Assert.assertContains("The max length of edge id is 32768",
-                                       e.getMessage());
+                                  e.getMessage());
         });
     }
 
@@ -495,7 +495,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.tx().commit();
         }, e -> {
             Assert.assertContains("Illegal leading char '\\u0' in index",
-                                       e.getMessage());
+                                  e.getMessage());
         });
 
         String backend = graph.backend();
@@ -507,8 +507,8 @@ public class EdgeCoreTest extends BaseCoreTest {
                 // pgsql need to clear and reset state (like auto-commit)
                 graph.tx().rollback();
                 Assert.assertContains("invalid byte sequence for encoding " +
-                                           "\"UTF8\": 0x00",
-                                           e.getCause().getMessage());
+                                      "\"UTF8\": 0x00",
+                                      e.getCause().getMessage());
             });
 
             Assert.assertThrows(BackendException.class, () -> {
@@ -517,7 +517,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                      .toList();
             }, e -> {
                 Assert.assertContains("Zero bytes may not occur in string " +
-                                           "parameters", e.getCause().getMessage());
+                                      "parameters", e.getCause().getMessage());
             });
         } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -525,7 +525,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 graph.tx().commit();
             }, e -> {
                 Assert.assertContains("Can't contains byte '0x00' in string",
-                                           e.getMessage());
+                                      e.getMessage());
             });
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -534,7 +534,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                      .toList();
             }, e -> {
                 Assert.assertContains("Can't contains byte '0x00' in string",
-                                           e.getMessage());
+                                      e.getMessage());
             });
         } else {
             james.addEdge("write", book, "time", "2017-5-27\u0000");
@@ -2755,14 +2755,14 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.traversal().E().hasLabel("know").has("ID", id).toList();
         }, e -> {
             Assert.assertContains("Undefined property key: 'ID'",
-                                       e.getMessage());
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
         }, e -> {
             Assert.assertContains("Undefined property key: 'NAME'",
-                                       e.getMessage());
+                                  e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
@@ -2772,7 +2772,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying by id and conditions",
-                                       e.getMessage());
+                                  e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
@@ -2782,7 +2782,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying edges by",
-                                       e.getMessage());
+                                  e.getMessage());
             Assert.assertContains("NAME == n1", e.getMessage());
         });
 
@@ -2794,7 +2794,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Can't do index query with [",
-                                       e.getMessage());
+                                  e.getMessage());
             Assert.assertContains("LABEL == ", e.getMessage());
             Assert.assertContains("NAME == n2", e.getMessage());
         });
@@ -6115,11 +6115,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().E().hasLabel("like").has("weight", 0.5).next();
         }, e -> {
-                Assert.assertEquals("Don't accept query based on properties " +
-                                    "[weight] that are not indexed in label " +
-                                    "'like', may not match secondary condition",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[weight] that are not indexed in label " +
+                                "'like', may not match secondary condition",
+                                e.getMessage());
+        });
     }
 
     @Test

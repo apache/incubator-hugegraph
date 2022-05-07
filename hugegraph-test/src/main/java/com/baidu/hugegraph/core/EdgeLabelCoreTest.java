@@ -995,7 +995,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().startsWith("Don't accept query by label") &&
                    e.getMessage().endsWith("label index is disabled"));
         });
 
@@ -1024,7 +1024,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().startsWith("Don't accept query by label") &&
                    e.getMessage().endsWith("label index is disabled"));
         });
 

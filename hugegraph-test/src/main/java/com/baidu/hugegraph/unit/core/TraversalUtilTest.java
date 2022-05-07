@@ -223,7 +223,7 @@ public class TraversalUtilTest {
             TraversalUtil.parsePredicate("P.neq(18m)");
         }, e -> {
             Assert.assertEquals("Invalid value '18m', expect a number",
-                                e.getMessage());
+                               e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
