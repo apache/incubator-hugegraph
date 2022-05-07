@@ -68,7 +68,7 @@ public class GraphOfTheMoviesExample {
                                          .hasLabel("person")
                                          .has("name", "Tom Hanks")
                                          .outE("ACTED_IN").toList();
-        LOG.info{(">>>> Tom Hanks ACTED_IN: {}", tomhanksMovies);
+        LOG.info(">>>> Tom Hanks ACTED_IN: {}", tomhanksMovies);
     }
 
     public static void load(final HugeGraph graph) {
