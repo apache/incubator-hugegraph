@@ -57,7 +57,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
     private static final String HTTP_AUTH = "http-authentication";
 
     public WsAndHttpBasicAuthHandler(Authenticator authenticator,
-                                     Settings.AuthenticationSettings settings) {
+                                     Settings settings) {
         super(authenticator, settings);
     }
 
@@ -70,8 +70,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
             if (authHandler != null) {
                 authHandler = pipeline.remove(HTTP_AUTH);
             } else {
-                authHandler = new HttpBasicAuthHandler(
-                              this.authenticator,  this.authenticationSettings);
+                authHandler = new HttpBasicAuthHandler(this.authenticator);
             }
             pipeline.addAfter(AUTHENTICATOR, HTTP_AUTH, authHandler);
             ctx.fireChannelRead(obj);
@@ -93,8 +92,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
 
         private final Base64.Decoder decoder = Base64.getUrlDecoder();
 
-        public HttpBasicAuthHandler(Authenticator authenticator,
-                                    Settings.AuthenticationSettings settings) {
+        public HttpBasicAuthHandler(Authenticator authenticator) {
             super(authenticator);
         }
 

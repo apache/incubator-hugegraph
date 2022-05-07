@@ -93,27 +93,27 @@
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>2.4.4</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>2.4.4</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-server</artifactId>
-            <version>2.4.4</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>2.4.4</version>
+            <version>3.0.1</version>
         </dependency>
 
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jersey2</artifactId>
+            <artifactId>metrics-jersey3</artifactId>
         </dependency>
     </dependencies>
 

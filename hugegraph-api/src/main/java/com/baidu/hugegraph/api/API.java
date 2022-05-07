@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.NotSupportedException;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 
@@ -59,13 +59,13 @@ public class API {
     public static final String ACTION_ELIMINATE = "eliminate";
     public static final String ACTION_CLEAR = "clear";
 
-    private static final Meter succeedMeter =
+    private static final Meter SUCCEED_METER =
                          MetricsUtil.registerMeter(API.class, "commit-succeed");
-    private static final Meter illegalArgErrorMeter =
+    private static final Meter ILLEGAL_ARG_ERROR_METER =
                          MetricsUtil.registerMeter(API.class, "illegal-arg");
-    private static final Meter expectedErrorMeter =
+    private static final Meter EXPECTED_ERROR_METER =
                          MetricsUtil.registerMeter(API.class, "expected-error");
-    private static final Meter unknownErrorMeter =
+    private static final Meter UNKNOWN_ERROR_METER =
                          MetricsUtil.registerMeter(API.class, "unknown-error");
 
     public static HugeGraph graph(GraphManager manager, String graph) {
@@ -96,19 +96,19 @@ public class API {
         try {
             R result = callable.call();
             g.tx().commit();
-            succeedMeter.mark();
+            SUCCEED_METER.mark();
             return result;
         } catch (IllegalArgumentException | NotFoundException |
                  ForbiddenException e) {
-            illegalArgErrorMeter.mark();
+            ILLEGAL_ARG_ERROR_METER.mark();
             rollback.accept(null);
             throw e;
         } catch (RuntimeException e) {
-            expectedErrorMeter.mark();
+            EXPECTED_ERROR_METER.mark();
             rollback.accept(e);
             throw e;
         } catch (Throwable e) {
-            unknownErrorMeter.mark();
+            UNKNOWN_ERROR_METER.mark();
             rollback.accept(e);
             // TODO: throw the origin exception 'e'
             throw new HugeException("Failed to commit", e);
@@ -171,7 +171,9 @@ public class API {
         Map<String, Object> props = null;
         try {
             props = JsonUtil.fromJson(properties, Map.class);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            // ignore
+        }
 
         // If properties is the string "null", props will be null
         E.checkArgument(props != null,

@@ -77,7 +77,7 @@ public class RelationshipManager<T extends Relationship> {
     }
 
     private String unhideLabel() {
-        return Hidden.unHide(this.label) ;
+        return Hidden.unHide(this.label);
     }
 
     public Id add(T relationship) {

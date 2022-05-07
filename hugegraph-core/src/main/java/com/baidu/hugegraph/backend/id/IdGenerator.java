@@ -36,19 +36,19 @@ public abstract class IdGenerator {
 
     public abstract Id generate(HugeVertex vertex);
 
-    public final static Id of(String id) {
+    public static final Id of(String id) {
         return new StringId(id);
     }
 
-    public final static Id of(UUID id) {
+    public static final Id of(UUID id) {
         return new UuidId(id);
     }
 
-    public final static Id of(String id, boolean uuid) {
+    public static final Id of(String id, boolean uuid) {
         return uuid ? new UuidId(id) : new StringId(id);
     }
 
-    public final static Id of(long id) {
+    public static final Id of(long id) {
         return new LongId(id);
     }
 
@@ -65,7 +65,7 @@ public abstract class IdGenerator {
         return new ObjectId(id);
     }
 
-    public final static Id of(byte[] bytes, IdType type) {
+    public static final Id of(byte[] bytes, IdType type) {
         switch (type) {
             case LONG:
                 return new LongId(bytes);
@@ -78,7 +78,7 @@ public abstract class IdGenerator {
         }
     }
 
-    public final static Id ofStoredString(String id, IdType type) {
+    public static final Id ofStoredString(String id, IdType type) {
         switch (type) {
             case LONG:
                 return of(LongEncoding.decodeSignedB64(id));
@@ -92,7 +92,7 @@ public abstract class IdGenerator {
         }
     }
 
-    public final static String asStoredString(Id id) {
+    public static final String asStoredString(Id id) {
         switch (id.type()) {
             case LONG:
                 return LongEncoding.encodeSignedB64(id.asLong());
@@ -105,7 +105,7 @@ public abstract class IdGenerator {
         }
     }
 
-    public final static IdType idType(Id id) {
+    public static final IdType idType(Id id) {
         if (id instanceof LongId) {
             return IdType.LONG;
         }
@@ -121,7 +121,7 @@ public abstract class IdGenerator {
         return IdType.UNKNOWN;
     }
 
-    private final static int compareType(Id id1, Id id2) {
+    private static final int compareType(Id id1, Id id2) {
         return idType(id1).ordinal() - idType(id2).ordinal();
     }
 

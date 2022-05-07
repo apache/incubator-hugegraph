@@ -56,7 +56,7 @@ public abstract class SchemaDefine {
     public abstract void initSchemaIfNeeded();
 
     protected SchemaManager schema() {
-         return this.graph.graph().schema();
+        return this.graph.graph().schema();
     }
 
     protected boolean existVertexLabel(String label) {
@@ -116,7 +116,7 @@ public abstract class SchemaDefine {
         return Hidden.unHide(label) + "_" + key;
     }
 
-    public static abstract class AuthElement implements Serializable {
+    public abstract static class AuthElement implements Serializable {
 
         private static final long serialVersionUID = 8746691160192814973L;
 
@@ -241,7 +241,7 @@ public abstract class SchemaDefine {
     }
 
     // NOTE: travis-ci fails if class Entity implements Nameable
-    public static abstract class Entity extends AuthElement
+    public abstract static class Entity extends AuthElement
                            implements com.baidu.hugegraph.type.Nameable {
 
         private static final long serialVersionUID = 4113319546914811762L;
@@ -270,14 +270,16 @@ public abstract class SchemaDefine {
         }
     }
 
-    public static abstract class Relationship extends AuthElement {
+    public abstract static class Relationship extends AuthElement {
 
         private static final long serialVersionUID = -1406157381685832493L;
 
         public abstract String sourceLabel();
+
         public abstract String targetLabel();
 
         public abstract Id source();
+
         public abstract Id target();
 
         public static <T extends Relationship> T fromEdge(Edge edge,

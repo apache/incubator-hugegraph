@@ -39,7 +39,7 @@ public class CoreVersion {
 
     public static void check() {
         // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "2.0.0", "2.1",
+        VersionUtil.check(CommonVersion.VERSION, "2.1.0", "2.2.0",
                           CommonVersion.NAME);
     }
 }

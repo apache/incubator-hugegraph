@@ -26,9 +26,10 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.config.CoreOptions;
@@ -44,7 +45,7 @@ public class HugeFactory {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private static final Thread shutdownHook = new Thread(() -> {
+    private static final Thread SHUT_DOWN_HOOK = new Thread(() -> {
         LOG.info("HugeGraph is shutting down");
         HugeFactory.shutdown(30L);
     }, "hugegraph-shutdown");
@@ -53,14 +54,14 @@ public class HugeFactory {
         SerialEnum.registerInternalEnums();
         HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
 
-        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        Runtime.getRuntime().addShutdownHook(SHUT_DOWN_HOOK);
     }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
 
-    private static final Map<String, HugeGraph> graphs = new HashMap<>();
+    private static final Map<String, HugeGraph> GRAPHS = new HashMap<>();
 
-    private static final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private static final AtomicBoolean SHUT_DOWN = new AtomicBoolean(false);
 
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = config instanceof HugeConfig ?
@@ -72,20 +73,23 @@ public class HugeFactory {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             // Not allowed to read file via Gremlin when SecurityManager enabled
-            String configFile = config.getFileName();
+            String configFileName;
+            File configFile = config.file();
             if (configFile == null) {
-                configFile = config.toString();
+                configFileName = config.toString();
+            } else {
+                configFileName = configFile.getName();
             }
-            sm.checkRead(configFile);
+            sm.checkRead(configFileName);
         }
 
         String name = config.get(CoreOptions.STORE);
         checkGraphName(name, "graph config(like hugegraph.properties)");
         name = name.toLowerCase();
-        HugeGraph graph = graphs.get(name);
+        HugeGraph graph = GRAPHS.get(name);
         if (graph == null || graph.closed()) {
             graph = new StandardHugeGraph(config);
-            graphs.put(name, graph);
+            GRAPHS.put(name, graph);
         } else {
             String backend = config.get(CoreOptions.BACKEND);
             E.checkState(backend.equalsIgnoreCase(graph.backend()),
@@ -105,7 +109,7 @@ public class HugeFactory {
 
     public static void remove(HugeGraph graph) {
         String name = graph.option(CoreOptions.STORE);
-        graphs.remove(name);
+        GRAPHS.remove(name);
     }
 
     public static void checkGraphName(String name, String configFile) {
@@ -123,7 +127,7 @@ public class HugeFactory {
                         "Please specify a proper config file rather than: %s",
                         file.toString());
         try {
-            return new PropertiesConfiguration(file);
+            return new Configurations().properties(file);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load config file: %s", e, path);
         }
@@ -131,7 +135,7 @@ public class HugeFactory {
 
     public static PropertiesConfiguration getRemoteConfig(URL url) {
         try {
-            return new PropertiesConfiguration(url);
+            return new Configurations().properties(url);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load remote config file: %s",
                                     e, url);
@@ -143,7 +147,7 @@ public class HugeFactory {
      * @param timeout seconds
      */
     public static void shutdown(long timeout) {
-        if (!shutdown.compareAndSet(false, true)) {
+        if (!SHUT_DOWN.compareAndSet(false, true)) {
             return;
         }
         try {
@@ -154,7 +158,7 @@ public class HugeFactory {
             OltpTraverser.destroy();
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
-            shutdown.compareAndSet(true, false);
+            SHUT_DOWN.compareAndSet(true, false);
             throw new HugeException("Failed to shutdown", e);
         }
 
@@ -162,6 +166,6 @@ public class HugeFactory {
     }
 
     public static void removeShutdownHook() {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        Runtime.getRuntime().removeShutdownHook(SHUT_DOWN_HOOK);
     }
 }

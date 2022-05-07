@@ -51,7 +51,7 @@ import com.baidu.hugegraph.util.InsertionOrderUtil;
 
 public class OffheapCache extends AbstractCache<Id, Object> {
 
-    private final static long VALUE_SIZE_TO_SKIP = 100 * Bytes.KB;
+    private static final long VALUE_SIZE_TO_SKIP = 100 * Bytes.KB;
 
     private final OHCache<Id, Value> cache;
     private final HugeGraph graph;
@@ -128,7 +128,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         long expireTime = this.expire();
         boolean success;
         if (expireTime <= 0L) {
-             success = this.cache.put(id, serializedValue);
+            success = this.cache.put(id, serializedValue);
         } else {
             expireTime += now() + timeOffset;
             /*

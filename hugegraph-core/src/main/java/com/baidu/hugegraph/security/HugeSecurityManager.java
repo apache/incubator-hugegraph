@@ -47,17 +47,19 @@ public class HugeSecurityManager extends SecurityManager {
             "org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine"
     );
 
-    private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of(
-            "setSecurityManager"
-            //"suppressAccessChecks"
-    );
+    // TODO: add "suppressAccessChecks"
+    private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of("setSecurityManager");
+
+
 
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
             "groovy.lang.GroovyClassLoader",
             "sun.reflect.DelegatingClassLoader",
+            "jdk.internal.reflect.DelegatingClassLoader",
             "org.codehaus.groovy.reflection.SunClassLoader",
             "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader",
-            "org.apache.hadoop.hbase.util.DynamicClassLoader"
+            "org.apache.hadoop.hbase.util.DynamicClassLoader",
+            "org.apache.tinkerpop.gremlin.groovy.loaders.GremlinLoader"
     );
 
     private static final Set<String> CAFFEINE_CLASSES = ImmutableSet.of(
@@ -127,7 +129,7 @@ public class HugeSecurityManager extends SecurityManager {
             ImmutableSet.of("newSecurityException")
     );
 
-    private static final Set<String> ignoreCheckedClasses = new CopyOnWriteArraySet<>();
+    private static final Set<String> IGNORE_CHECKED_CLASSES = new CopyOnWriteArraySet<>();
 
     public static void ignoreCheckedClass(String clazz) {
         if (callFromGremlin()) {
@@ -135,7 +137,7 @@ public class HugeSecurityManager extends SecurityManager {
                   "Not allowed to add ignore check via Gremlin");
         }
 
-        ignoreCheckedClasses.add(clazz);
+        IGNORE_CHECKED_CLASSES.add(clazz);
     }
 
     @Override
@@ -368,16 +370,6 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public void checkSystemClipboardAccess() {
-        if (callFromGremlin()) {
-            throw newSecurityException(
-                  "Not allowed to access system clipboard via Gremlin");
-        }
-        super.checkSystemClipboardAccess();
-    }
-
-    @Override
     public void checkPackageAccess(String pkg) {
         super.checkPackageAccess(pkg);
     }
@@ -390,24 +382,6 @@ public class HugeSecurityManager extends SecurityManager {
     @Override
     public void checkSecurityAccess(String target) {
         super.checkSecurityAccess(target);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public void checkMemberAccess(Class<?> clazz, int which) {
-        super.checkMemberAccess(clazz, which);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public boolean checkTopLevelWindow(Object window) {
-        return super.checkTopLevelWindow(window);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public void checkAwtEventQueueAccess() {
-        super.checkAwtEventQueueAccess();
     }
 
     private static SecurityException newSecurityException(String message,
@@ -489,7 +463,7 @@ public class HugeSecurityManager extends SecurityManager {
     }
 
     private static boolean callFromIgnoreCheckedClass() {
-        return callFromWorkerWithClass(ignoreCheckedClasses);
+        return callFromWorkerWithClass(IGNORE_CHECKED_CLASSES);
     }
 
     private static boolean callFromWorkerWithClass(Set<String> classes) {
