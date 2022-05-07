@@ -74,7 +74,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         this.namespace = namespace;
         this.store = store;
         this.sessions = null;
-        this.FEATURES = new HbaseFeatures(enablePartition);
+        this.features = new HbaseFeatures(enablePartition);
 
         this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
@@ -138,7 +138,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
 
     @Override
     public BackendFeatures features() {
-        return FEATURES;
+        return features;
     }
 
     @Override
