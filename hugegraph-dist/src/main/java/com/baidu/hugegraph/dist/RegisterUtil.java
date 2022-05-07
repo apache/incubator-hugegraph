@@ -19,16 +19,13 @@
 
 package com.baidu.hugegraph.dist;
 
-import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.ServiceLoader;
 
-import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.kerby.config.Conf;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
