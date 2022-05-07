@@ -86,8 +86,9 @@ import com.baidu.hugegraph.util.VersionUtil;
 import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
-    private static final Logger LOG = Log.logger(HbaseSessions.class);
 
+    private static final Logger LOG = Log.logger(HbaseSessions.class);
+    
     private static final String COPROCESSOR_AGGR =
             "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
     private static final long SCANNER_CACHING = 1000L;
@@ -238,8 +239,8 @@ public class HbaseSessions extends BackendSessionPool {
             builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
                     .build());
         }
-        byte[][] splits = new byte[numOfPartitions - 1][org.apache.hadoop
-                                                            .hbase.util.Bytes.SIZEOF_SHORT];
+        byte[][] splits = new byte[numOfPartitions - 1]
+                                  [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
         for (short split = 1; split < numOfPartitions; split++) {
             splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
         }
@@ -798,8 +799,7 @@ public class HbaseSessions extends BackendSessionPool {
          */
         @SuppressWarnings("unused")
         private void dump(String table, Scan scan) throws IOException {
-            LOG.info(String.format(">>>> scan table %s with %s",
-                                             table, scan));
+            LOG.info(String.format(">>>> scan table {} with {}", table, scan));
             RowIterator iterator = this.scan(table, scan);
             while (iterator.hasNext()) {
                 Result row = iterator.next();
@@ -809,7 +809,7 @@ public class HbaseSessions extends BackendSessionPool {
                     Cell cell = cellScanner.current();
                     byte[] key = CellUtil.cloneQualifier(cell);
                     byte[] val = CellUtil.cloneValue(cell);
-                    LOG.info(String.format("  %s=%s",
+                    LOG.info(String.format("  {}={}",
                                        StringEncoding.format(key),
                                        StringEncoding.format(val)));
                 }

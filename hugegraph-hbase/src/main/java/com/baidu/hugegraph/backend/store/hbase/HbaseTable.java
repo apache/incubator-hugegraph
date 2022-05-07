@@ -284,7 +284,7 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected void parseRowColumns(Result row, BackendEntry entry, Query query,
-                                    boolean enablePartition)
+                                   boolean enablePartition)
                                    throws IOException {
         CellScanner cellScanner = row.cellScanner();
         while (cellScanner.advance()) {
