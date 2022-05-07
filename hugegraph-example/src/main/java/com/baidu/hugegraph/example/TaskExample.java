@@ -100,7 +100,7 @@ public class TaskExample {
         public Integer call() throws Exception {
             LOG.info(">>>> running task with parameter: {}", this.task().input());
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
-                LOG.info(">>>> progress " + i);
+                LOG.info(">>>> progress {}", i);
                 this.task().progress(i);
                 this.graph().taskScheduler().save(this.task());
                 Thread.sleep(UNIT);
