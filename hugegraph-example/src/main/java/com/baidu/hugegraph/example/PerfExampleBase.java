@@ -115,8 +115,8 @@ public abstract class PerfExampleBase {
             this.testInsert(graph, times, multiple);
         }, threadCount);
 
-        LOG.info("Insert rate with threads: {} vertices/s & {} edges/s, 
-                  insert total {} vertices & {} edges, cost time: {}ms",
+        LOG.info("Insert rate with threads: {} vertices/s & {} edges/s, " +
+                 "insert total {} vertices & {} edges, cost time: {}ms",
                  vertices * 1000 / cost, edges * 1000 / cost,
                  vertices, edges, cost);
 
@@ -133,8 +133,8 @@ public abstract class PerfExampleBase {
         }, threadCount);
 
         final long size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
-        LOG.info("Query rate with threads: {} vertices/s,
-                 query total vertices {}, cost time: {}ms",
+        LOG.info("Query rate with threads: {} vertices/s, " +
+                 "query total vertices {}, cost time: {}ms",
                  size * 1000 / cost, size, cost);
     }
 
