@@ -181,16 +181,16 @@ public class TaskCoreTest extends BaseCoreTest {
         EphemeralJobBuilder<Object> builder = EphemeralJobBuilder.of(graph);
         builder.name("test-job-ephemeral")
                .job(new EphemeralJob<Object>() {
-                    @Override
-                    public String type() {
-                        return "test";
-                    }
+                   @Override
+                   public String type() {
+                       return "test";
+                   }
 
-                    @Override
-                    public Object execute() throws Exception {
-                        sleepAWhile();
-                        return ImmutableMap.of("k1", 13579, "k2", "24680");
-                    }
+                   @Override
+                   public Object execute() throws Exception {
+                       sleepAWhile();
+                       return ImmutableMap.of("k1", 13579, "k2", "24680");
+                   }
                });
 
         HugeTask<Object> task = builder.schedule();
