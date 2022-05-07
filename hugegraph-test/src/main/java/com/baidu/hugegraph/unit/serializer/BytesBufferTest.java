@@ -114,15 +114,15 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(129)));
         }, e -> {
-                Assert.assertContains("Id max length is 128, but got 129",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Id max length is 128, but got 129",
+                                  e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(130)));
         }, e -> {
-                Assert.assertContains("Id max length is 128, but got 130",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Id max length is 128, but got 130",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -155,9 +155,9 @@ public class BytesBufferTest extends BaseUnitTest {
             BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32769)),
                                             true);
         }, e -> {
-                Assert.assertContains("Big id max length is 32768, but got 32769",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Big id max length is 32768, but got 32769",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -1029,9 +1029,9 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             BytesBuffer.allocate(0).writeStringWithEnding("ab\u0000");
         }, e -> {
-                Assert.assertContains("Can't contains byte '0x00' in string",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Can't contains byte '0x00' in string",
+                                  e.getMessage());
+        });
 
         buf = BytesBuffer.allocate(0);
         buf.writeStringWithEnding("ab\uffff");

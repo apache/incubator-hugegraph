@@ -251,16 +251,16 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("bool", (byte) 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_bool'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_bool'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("bool", (byte) 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_bool'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_bool'", e.getMessage());
+        });
     }
 
     @Test
@@ -289,49 +289,49 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("byte", 1.0);
         }, e -> {
-                Assert.assertContains("Invalid property value '1.0' " +
-                                      "for key 'byte'", e.getMessage());
-                Assert.assertContains("Can't read '1.0' as byte: ", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1.0' " +
+                                  "for key 'byte'", e.getMessage());
+            Assert.assertContains("Can't read '1.0' as byte: ", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("byte", 128);
         }, e -> {
-                Assert.assertContains("Invalid property value '128' " +
-                                      "for key 'byte'", e.getMessage());
-                Assert.assertContains("Can't read '128' as byte: " +
-                                      "Value out of range", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '128' " +
+                                  "for key 'byte'", e.getMessage());
+            Assert.assertContains("Can't read '128' as byte: " +
+                                  "Value out of range", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("byte", "1");
         }, e -> {
-                Assert.assertContains("Invalid property value '1' " +
-                                      "for key 'byte'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1' " +
+                                  "for key 'byte'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("byte", (byte) 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_byte'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_byte'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("byte", (byte) 1, 128);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, 128]' " +
-                                      "for key 'list_byte'", e.getMessage());
-                Assert.assertContains("Can't read '128' as byte: " +
-                                      "Value out of range", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, 128]' " +
+                                  "for key 'list_byte'", e.getMessage());
+            Assert.assertContains("Can't read '128' as byte: " +
+                                  "Value out of range", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("byte", (byte) 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_byte'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_byte'", e.getMessage());
+        });
     }
 
     @Test
@@ -356,46 +356,46 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("int", 1.0);
         }, e -> {
-                Assert.assertContains("Invalid property value '1.0' " +
-                                      "for key 'int'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1.0' " +
+                                  "for key 'int'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("int", Integer.MAX_VALUE + 1L);
         }, e -> {
-                Assert.assertContains("Invalid property value '2147483648' " +
-                                      "for key 'int'", e.getMessage());
-                Assert.assertContains("Can't read '2147483648' as int: ",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '2147483648' " +
+                                  "for key 'int'", e.getMessage());
+            Assert.assertContains("Can't read '2147483648' as int: ",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("int", "1");
         }, e -> {
-                Assert.assertContains("Invalid property value '1' " +
-                                      "for key 'int'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1' " +
+                                  "for key 'int'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("int", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_int'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_int'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("int", 1, Integer.MAX_VALUE + 1L);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, 2147483648]' " +
-                                      "for key 'list_int'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, 2147483648]' " +
+                                  "for key 'list_int'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("int", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_int'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_int'", e.getMessage());
+        });
     }
 
     @Test
@@ -418,30 +418,30 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("long", 1.0);
         }, e -> {
-                Assert.assertContains("Invalid property value '1.0' " +
-                                      "for key 'long'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1.0' " +
+                                  "for key 'long'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("long", "1");
         }, e -> {
-                Assert.assertContains("Invalid property value '1' " +
-                                      "for key 'long'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1' " +
+                                  "for key 'long'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("long", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_long'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_long'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("long", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_long'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_long'", e.getMessage());
+        });
     }
 
     @Test
@@ -482,34 +482,34 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("float", 'a');
         }, e -> {
-                Assert.assertContains("Invalid property value " +
-                                      "'a' for key 'float'",
-                                      e.getMessage());
-                Assert.assertContains("expect a value of type Float, " +
-                                      "actual type Character",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value " +
+                                  "'a' for key 'float'",
+                                  e.getMessage());
+            Assert.assertContains("expect a value of type Float, " +
+                                  "actual type Character",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("float", "1");
         }, e -> {
-                Assert.assertContains("Invalid property value '1' " +
-                                      "for key 'float'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1' " +
+                                  "for key 'float'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("float", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_float'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_float'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("float", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_float'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_float'", e.getMessage());
+        });
     }
 
     @Test
@@ -556,23 +556,23 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("double", "1");
         }, e -> {
-                Assert.assertContains("Invalid property value '1' " +
-                                      "for key 'double'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '1' " +
+                                  "for key 'double'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("double", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'list_double'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'list_double'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("double", 1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[1, true]' " +
-                                      "for key 'set_double'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[1, true]' " +
+                                  "for key 'set_double'", e.getMessage());
+        });
     }
 
     @Test
@@ -590,25 +590,25 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("string", 123);
         }, e -> {
-                Assert.assertContains("Invalid property value '123' " +
-                                      "for key 'string'", e.getMessage());
-                Assert.assertContains(" expect a value of type String, " +
-                                      "actual type Integer", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '123' " +
+                                  "for key 'string'", e.getMessage());
+            Assert.assertContains(" expect a value of type String, " +
+                                  "actual type Integer", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("string", "abc", true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[abc, true]' " +
-                                      "for key 'list_string'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[abc, true]' " +
+                                  "for key 'list_string'", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("string", "abc", true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[abc, true]' " +
-                                      "for key 'set_string'", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[abc, true]' " +
+                                  "for key 'set_string'", e.getMessage());
+        });
     }
 
     @Test
@@ -643,29 +643,29 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("time", 123f);
         }, e -> {
-                Assert.assertContains("Invalid property value '123.0' " +
-                                      "for key 'time'", e.getMessage());
-                Assert.assertContains(" expect a value of type Date, " +
-                                      "actual type Float", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '123.0' " +
+                                  "for key 'time'", e.getMessage());
+            Assert.assertContains(" expect a value of type Date, " +
+                                  "actual type Float", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("time", date1, true);
         }, e -> {
-                Assert.assertContains(", true]' for key 'list_time'",
-                                      e.getMessage());
-                Assert.assertContains("expect a value of type List<Date>",
-                                      e.getMessage());
-            });
+            Assert.assertContains(", true]' for key 'list_time'",
+                                  e.getMessage());
+            Assert.assertContains("expect a value of type List<Date>",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("time", date1, true);
         }, e -> {
-                Assert.assertContains(", true]' for key 'set_time'",
-                                      e.getMessage());
-                Assert.assertContains("expect a value of type Set<Date>",
-                                      e.getMessage());
-            });
+            Assert.assertContains(", true]' for key 'set_time'",
+                                  e.getMessage());
+            Assert.assertContains("expect a value of type Set<Date>",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -688,29 +688,29 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("uuid", 123f);
         }, e -> {
-                Assert.assertContains("Invalid property value '123.0' " +
-                                      "for key 'uuid'", e.getMessage());
-                Assert.assertContains(" expect a value of type UUID, " +
-                                      "actual type Float", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '123.0' " +
+                                  "for key 'uuid'", e.getMessage());
+            Assert.assertContains(" expect a value of type UUID, " +
+                                  "actual type Float", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("uuid", uid1, true);
         }, e -> {
-                Assert.assertContains(", true]' for key 'list_uuid'",
-                                      e.getMessage());
-                Assert.assertContains("expect a value of type List<UUID>",
-                                      e.getMessage());
-            });
+            Assert.assertContains(", true]' for key 'list_uuid'",
+                                  e.getMessage());
+            Assert.assertContains("expect a value of type List<UUID>",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("uuid", uid1, true);
         }, e -> {
-                Assert.assertContains(", true]' for key 'set_uuid'",
-                                      e.getMessage());
-                Assert.assertContains("expect a value of type Set<UUID>",
-                                      e.getMessage());
-            });
+            Assert.assertContains(", true]' for key 'set_uuid'",
+                                  e.getMessage());
+            Assert.assertContains("expect a value of type Set<UUID>",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -753,52 +753,52 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             // Invalid base64
             property("blob", "#");
         }, e -> {
-                Assert.assertContains("Invalid property value '#' for key 'blob'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '#' for key 'blob'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Invalid hex
             property("blob", "0xh");
         }, e -> {
-                Assert.assertContains("Invalid property value '0xh' for key 'blob'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '0xh' for key 'blob'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("blob", 123f);
         }, e -> {
-                Assert.assertContains("Invalid property value '123.0' " +
-                                      "for key 'blob'", e.getMessage());
-                Assert.assertContains("expect a value of type Blob, " +
-                                      "actual type Float", e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '123.0' " +
+                                  "for key 'blob'", e.getMessage());
+            Assert.assertContains("expect a value of type Blob, " +
+                                  "actual type Float", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             property("blob", ImmutableList.of((byte) 97, 49, 50f));
         }, e -> {
-                Assert.assertContains("Invalid property value '[97, 49, 50.0]' " +
-                                      "for key 'blob'", e.getMessage());
-                Assert.assertContains("expect byte or int value, but got '50.0'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[97, 49, 50.0]' " +
+                                  "for key 'blob'", e.getMessage());
+            Assert.assertContains("expect byte or int value, but got '50.0'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertyList("blob", img1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[Blob{01020832}, " +
-                                      "true]' for key 'list_blob'", e.getMessage());
-                Assert.assertContains("expect a value of type List<Blob>",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[Blob{01020832}, " +
+                                  "true]' for key 'list_blob'", e.getMessage());
+            Assert.assertContains("expect a value of type List<Blob>",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             propertySet("blob", img1, true);
         }, e -> {
-                Assert.assertContains("Invalid property value '[Blob{01020832}, " +
-                                      "true]' for key 'set_blob'", e.getMessage());
-                Assert.assertContains("expect a value of type Set<Blob>",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid property value '[Blob{01020832}, " +
+                                  "true]' for key 'set_blob'", e.getMessage());
+            Assert.assertContains("expect a value of type Set<Blob>",
+                                  e.getMessage());
+        });
     }
 }

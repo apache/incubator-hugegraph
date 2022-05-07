@@ -76,9 +76,9 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(HugeKeys.ID, null).test("any");
         }, e -> {
-                Assert.assertEquals("Can't test null value for `==`",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test null value for `==`",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -120,9 +120,9 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.eq(IdGenerator.of("1"), null).test("any");
         }, e -> {
-                Assert.assertEquals("Can't test null value for `==`",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test null value for `==`",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -175,16 +175,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.gt(HugeKeys.ID, "123").test(123);
         }, e -> {
-                String err = "Can't compare between 123(Integer) and 123(String)";
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = "Can't compare between 123(Integer) and 123(String)";
+            Assert.assertEquals(err, e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.gt(HugeKeys.ID, "123").test(new Date(0L));
         }, e -> {
-                String err = String.format("Can't compare between %s(Date) " +
-                                           "and 123(String)", new Date(0L));
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = String.format("Can't compare between %s(Date) " +
+                                       "and 123(String)", new Date(0L));
+            Assert.assertEquals(err, e.getMessage());
+        });
     }
 
     @Test
@@ -211,16 +211,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.gte(HugeKeys.ID, "123").test(123);
         }, e -> {
-                String err = "Can't compare between 123(Integer) and 123(String)";
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = "Can't compare between 123(Integer) and 123(String)";
+            Assert.assertEquals(err, e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.gte(HugeKeys.ID, "123").test(new Date(0L));
         }, e -> {
-                String err = String.format("Can't compare between %s(Date) " +
-                                           "and 123(String)", new Date(0L));
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = String.format("Can't compare between %s(Date) " +
+                                       "and 123(String)", new Date(0L));
+            Assert.assertEquals(err, e.getMessage());
+        });
     }
 
     @Test
@@ -249,16 +249,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.lt(HugeKeys.ID, "123").test(123);
         }, e -> {
-                String err = "Can't compare between 123(Integer) and 123(String)";
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = "Can't compare between 123(Integer) and 123(String)";
+            Assert.assertEquals(err, e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.lt(HugeKeys.ID, "123").test(new Date(0L));
         }, e -> {
-                String err = String.format("Can't compare between %s(Date) " +
-                                           "and 123(String)", new Date(0L));
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = String.format("Can't compare between %s(Date) " +
+                                       "and 123(String)", new Date(0L));
+            Assert.assertEquals(err, e.getMessage());
+        });
     }
 
     @Test
@@ -283,16 +283,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.lte(HugeKeys.ID, "123").test(123);
         }, e -> {
-                String err = "Can't compare between 123(Integer) and 123(String)";
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = "Can't compare between 123(Integer) and 123(String)";
+            Assert.assertEquals(err, e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.lte(HugeKeys.ID, "123").test(new Date(0L));
         }, e -> {
-                String err = String.format("Can't compare between %s(Date) " +
-                                           "and 123(String)", new Date(0L));
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = String.format("Can't compare between %s(Date) " +
+                                       "and 123(String)", new Date(0L));
+            Assert.assertEquals(err, e.getMessage());
+        });
     }
 
     @Test
@@ -315,16 +315,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.neq(HugeKeys.ID, "123").test(123);
         }, e -> {
-                String err = "Can't compare between 123(Integer) and 123(String)";
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = "Can't compare between 123(Integer) and 123(String)";
+            Assert.assertEquals(err, e.getMessage());
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.neq(HugeKeys.ID, "123").test(new Date(0L));
         }, e -> {
-                String err = String.format("Can't compare between %s(Date) " +
-                                           "and 123(String)", new Date(0L));
-                Assert.assertEquals(err, e.getMessage());
-            });
+            String err = String.format("Can't compare between %s(Date) " +
+                                       "and 123(String)", new Date(0L));
+            Assert.assertEquals(err, e.getMessage());
+        });
     }
 
     @Test
@@ -351,18 +351,18 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.in(HugeKeys.ID, null).test("1");
         }, e -> {
-                Assert.assertEquals("Can't test null value for `in`",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test null value for `in`",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.IN,
                                                "single-value");
             c2.test("singlevalue");
         }, e -> {
-                Assert.assertEquals("Can't test 'single-value'(String) for `in`, " +
-                                    "expect Collection", e.getMessage());
-            });
+            Assert.assertEquals("Can't test 'single-value'(String) for `in`, " +
+                                "expect Collection", e.getMessage());
+        });
     }
 
     @Test
@@ -389,19 +389,19 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition.nin(HugeKeys.ID, null).test("1");
         }, e -> {
-                Assert.assertEquals("Can't test null value for `notin`",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test null value for `notin`",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.NOT_IN,
                                                "single-value");
             c2.test("singlevalue");
         }, e -> {
-                Assert.assertEquals("Can't test 'single-value'(String) " +
-                                    "for `notin`, expect Collection",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test 'single-value'(String) " +
+                                "for `notin`, expect Collection",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -417,25 +417,25 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `prefix` on type null, " +
-                                    "expect Id", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `prefix` on type null, " +
+                                "expect Id", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123);
         }, e -> {
-                Assert.assertEquals("Can't execute `prefix` on type Integer, " +
-                                    "expect Id", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `prefix` on type Integer, " +
+                                "expect Id", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition c2 = new SyspropRelation(HugeKeys.ID, RelationType.PREFIX,
                                                "abc");
             c2.test(IdGenerator.of("ab"));
         }, e -> {
-                Assert.assertEquals("Can't test 'abc'(String) for `prefix`, " +
-                                    "expect Id", e.getMessage());
-            });
+            Assert.assertEquals("Can't test 'abc'(String) for `prefix`, " +
+                                "expect Id", e.getMessage());
+        });
     }
 
     @Test
@@ -454,23 +454,23 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `contains` on type null, " +
-                                    "expect Collection", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `contains` on type null, " +
+                                "expect Collection", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test("v1");
         }, e -> {
-                Assert.assertEquals("Can't execute `contains` on type String, " +
-                                    "expect Collection", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `contains` on type String, " +
+                                "expect Collection", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123);
         }, e -> {
-                Assert.assertEquals("Can't execute `contains` on type Integer, " +
-                                    "expect Collection", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `contains` on type Integer, " +
+                                "expect Collection", e.getMessage());
+        });
     }
 
     @Test
@@ -483,23 +483,23 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `containsk` on type null, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsk` on type null, " +
+                                "expect Map", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test("v1");
         }, e -> {
-                Assert.assertEquals("Can't execute `containsk` on type String, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsk` on type String, " +
+                                "expect Map", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123f);
         }, e -> {
-                Assert.assertEquals("Can't execute `containsk` on type Float, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsk` on type Float, " +
+                                "expect Map", e.getMessage());
+        });
     }
 
     @Test
@@ -512,23 +512,23 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `containsv` on type null, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsv` on type null, " +
+                                "expect Map", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test("v1");
         }, e -> {
-                Assert.assertEquals("Can't execute `containsv` on type String, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsv` on type String, " +
+                                "expect Map", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123d);
         }, e -> {
-                Assert.assertEquals("Can't execute `containsv` on type Double, " +
-                                    "expect Map", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `containsv` on type Double, " +
+                                "expect Map", e.getMessage());
+        });
     }
 
     @Test
@@ -557,16 +557,16 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `textcontains` on type null, " +
-                                    "expect String", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `textcontains` on type null, " +
+                                "expect String", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123L);
         }, e -> {
-                Assert.assertEquals("Can't execute `textcontains` on type Long, " +
-                                    "expect String", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `textcontains` on type Long, " +
+                                "expect String", e.getMessage());
+        });
     }
 
     @Test
@@ -583,24 +583,24 @@ public class ConditionTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test((Object) null);
         }, e -> {
-                Assert.assertEquals("Can't execute `textcontainsany` " +
-                                    "on type null, expect String", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type null, expect String", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(123L);
         }, e -> {
-                Assert.assertEquals("Can't execute `textcontainsany` " +
-                                    "on type Long, expect String", e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type Long, expect String", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             c1.test(ImmutableList.of("1"));
         }, e -> {
-                Assert.assertEquals("Can't execute `textcontainsany` " +
-                                    "on type SingletonImmutableList, expect String",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't execute `textcontainsany` " +
+                                "on type SingletonImmutableList, expect String",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Condition c2 = new SyspropRelation(HugeKeys.ID,
@@ -608,10 +608,10 @@ public class ConditionTest extends BaseUnitTest {
                                                "abc");
             c2.test("abc");
         }, e -> {
-                Assert.assertEquals("Can't test 'abc'(String) for " +
-                                    "`textcontainsany`, expect Collection",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Can't test 'abc'(String) for " +
+                                "`textcontainsany`, expect Collection",
+                                e.getMessage());
+        });
     }
 
     @Test

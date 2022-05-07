@@ -60,8 +60,8 @@ public class DataTypeTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DataType.INT.valueToNumber(1.0F);
         }, e -> {
-                Assert.assertContains("Can't read '1.0' as int", e.getMessage());
-            });
+            Assert.assertContains("Can't read '1.0' as int", e.getMessage());
+        });
     }
 
     @Test

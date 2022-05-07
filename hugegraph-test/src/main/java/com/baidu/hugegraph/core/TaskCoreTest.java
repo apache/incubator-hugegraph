@@ -81,9 +81,9 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             scheduler.delete(id);
         }, e -> {
-                Assert.assertContains("Can't delete incomplete task '88888'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Can't delete incomplete task '88888'",
+                                  e.getMessage());
+        });
 
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(id, task.id());
@@ -138,16 +138,16 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             new HugeTask<>(null, null, callable);
         }, e -> {
-                Assert.assertContains("Task id can't be null", e.getMessage());
-            });
+            Assert.assertContains("Task id can't be null", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id id = IdGenerator.of("88888");
             new HugeTask<>(id, null, callable);
         }, e -> {
-                Assert.assertContains("Invalid task id type, it must be number",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid task id type, it must be number",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(NullPointerException.class, () -> {
             Id id = IdGenerator.of(88888);
@@ -160,8 +160,8 @@ public class TaskCoreTest extends BaseCoreTest {
             task2.name("test-task");
             scheduler.schedule(task2);
         }, e -> {
-                Assert.assertContains("Task type can't be null", e.getMessage());
-            });
+            Assert.assertContains("Task type can't be null", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalStateException.class, () -> {
             Id id = IdGenerator.of(88888);
@@ -169,8 +169,8 @@ public class TaskCoreTest extends BaseCoreTest {
             task2.type("test");
             scheduler.schedule(task2);
         }, e -> {
-                Assert.assertContains("Task name can't be null", e.getMessage());
-            });
+            Assert.assertContains("Task name can't be null", e.getMessage());
+        });
     }
 
     @Test
@@ -514,16 +514,16 @@ public class TaskCoreTest extends BaseCoreTest {
                       .job(new GremlinJob())
                       .schedule();
         }, e -> {
-                Assert.assertContains("Job name can't be null", e.getMessage());
-            });
+            Assert.assertContains("Job name can't be null", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             JobBuilder.of(graph)
                       .name("test-job-gremlin")
                       .schedule();
         }, e -> {
-                Assert.assertContains("Job callable can't be null", e.getMessage());
-            });
+            Assert.assertContains("Job callable can't be null", e.getMessage());
+        });
 
         // Test failure task with big input
         int length = 8 * 1024 * 1024;
@@ -536,10 +536,10 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(HugeException.class, () -> {
             runGremlinJob(bigInput);
         }, e -> {
-                Assert.assertContains("Task input size", e.getMessage());
-                Assert.assertContains("exceeded limit 16777216 bytes",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Task input size", e.getMessage());
+            Assert.assertContains("exceeded limit 16777216 bytes",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -640,17 +640,17 @@ public class TaskCoreTest extends BaseCoreTest {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler,
                             finalTask);
         }, e -> {
-                Assert.assertContains("No need to restore completed task",
-                                      e.getMessage());
-            });
+            Assert.assertContains("No need to restore completed task",
+                                  e.getMessage());
+        });
 
         HugeTask<Object> task2 = scheduler.task(task.id());
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
-                Assert.assertContains("No need to restore completed task",
-                                      e.getMessage());
-            });
+            Assert.assertContains("No need to restore completed task",
+                                  e.getMessage());
+        });
 
         Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
         Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
@@ -658,8 +658,8 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
         }, e -> {
-                Assert.assertContains("is already in the queue", e.getMessage());
-            });
+            Assert.assertContains("is already in the queue", e.getMessage());
+        });
 
         scheduler.waitUntilTaskCompleted(task2.id(), 10);
         sleepAWhile(500);

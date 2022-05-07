@@ -333,27 +333,27 @@ public class RolePermissionTest {
             new HugeResource(ResourceType.VERTEX, "person",
                              ImmutableMap.of("city", "P.(1)"));
         }, e -> {
-                Assert.assertContains("Invalid predicate: P.(1)",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid predicate: P.(1)",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             String resource = "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
                     "{\"city\":\"P.(1)\"}}";
             HugeResource.parseResource(resource);
         }, e -> {
-                Assert.assertContains("Invalid predicate: P.(1)",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid predicate: P.(1)",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             String resources = "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
                     "{\"city\":\"P.(1)\"}}]";
             HugeResource.parseResources(resources);
         }, e -> {
-                Assert.assertContains("Invalid predicate: P.(1)",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid predicate: P.(1)",
+                                  e.getMessage());
+        });
     }
 
     @Test

@@ -45,8 +45,8 @@ public class PageStateTest {
         Assert.assertThrows(BackendException.class, () -> {
             PageState.toBytes(pageWithSpace);
         }, e -> {
-                Assert.assertContains("Invalid page:", e.toString());
-            });
+            Assert.assertContains("Invalid page:", e.toString());
+        });
     }
 
     @Test
@@ -68,15 +68,15 @@ public class PageStateTest {
         Assert.assertThrows(BackendException.class, () -> {
             PageState.fromString(invalidPageWithBase64Chars);
         }, e -> {
-                Assert.assertContains("Invalid page: '0x", e.toString());
-            });
+            Assert.assertContains("Invalid page: '0x", e.toString());
+        });
 
         final String invalidBase64Chars = "!abc~";
         Assert.assertThrows(BackendException.class, () -> {
             PageState.fromString(invalidBase64Chars);
         }, e -> {
-                Assert.assertContains("Invalid page:", e.toString());
-            });
+            Assert.assertContains("Invalid page:", e.toString());
+        });
     }
 
     @Test

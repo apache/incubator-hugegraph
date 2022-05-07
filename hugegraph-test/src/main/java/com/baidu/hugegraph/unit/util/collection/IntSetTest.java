@@ -64,8 +64,8 @@ public class IntSetTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             fixedBySegments(EACH_COUNT, EACH_COUNT + 1);
         }, e -> {
-                Assert.assertContains("Invalid capacity", e.getMessage());
-            });
+            Assert.assertContains("Invalid capacity", e.getMessage());
+        });
     }
 
     @Test
@@ -140,14 +140,14 @@ public class IntSetTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             set.add(outOfBoundKey);
         }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+            Assert.assertContains("out of bound", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             set.remove(outOfBoundKey);
         }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+            Assert.assertContains("out of bound", e.getMessage());
+        });
 
         set.clear();
         Assert.assertEquals(0, set.size());

@@ -48,8 +48,8 @@ public class BackendStoreSystemInfoTest {
         Assert.assertThrows(HugeException.class, () -> {
             Whitebox.invoke(BackendStoreSystemInfo.class, "info", info);
         }, e -> {
-                Assert.assertContains("There exists multiple backend info",
-                                      e.getMessage());
-            });
+            Assert.assertContains("There exists multiple backend info",
+                                  e.getMessage());
+        });
     }
 }

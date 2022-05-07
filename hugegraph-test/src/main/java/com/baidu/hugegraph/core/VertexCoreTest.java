@@ -2137,25 +2137,25 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "a").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "c").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "f").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         graph.readMode(GraphReadMode.ALL);
         Assert.assertThrows(NoIndexException.class, () -> {
@@ -2231,17 +2231,17 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "c").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, "f").hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         graph.readMode(GraphReadMode.ALL);
         List<Vertex> vertices = graph.traversal().V()
@@ -2310,25 +2310,25 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.1D).hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.3D).hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
             graph.traversal().V().has(olapPropName, 0.6D).hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         graph.traversal().V(id1).next();
 
@@ -2451,9 +2451,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "a")
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2462,9 +2462,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "b")
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2473,9 +2473,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("wcc", "f")
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         graph.readMode(GraphReadMode.ALL);
 
@@ -2598,9 +2598,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("lived", "Canadian")
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2609,9 +2609,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("age", 62)
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         Assert.assertEquals(GraphReadMode.OLTP_ONLY, graph.readMode());
         Assert.assertThrows(NotAllowException.class, () -> {
@@ -2620,9 +2620,9 @@ public class VertexCoreTest extends BaseCoreTest {
                  .has("age", 62)
                  .hasNext();
         }, e -> {
-                Assert.assertContains("Not allowed to query by olap property key",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not allowed to query by olap property key",
+                                  e.getMessage());
+        });
 
         graph.readMode(GraphReadMode.ALL);
 
@@ -3101,16 +3101,16 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("author").has("ID", 1).toList();
         }, e -> {
-                Assert.assertContains("Undefined property key: 'ID'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Undefined property key: 'ID'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().V().hasLabel("author").has("NAME", "n1").toList();
         }, e -> {
-                Assert.assertContains("Undefined property key: 'NAME'",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -3118,9 +3118,9 @@ public class VertexCoreTest extends BaseCoreTest {
             query.query((Id) vertex.id());
             graph.vertices(query).hasNext();
         }, e -> {
-                Assert.assertContains("Not supported querying by id and conditions",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not supported querying by id and conditions",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -3128,10 +3128,10 @@ public class VertexCoreTest extends BaseCoreTest {
             query.eq(HugeKeys.NAME, "n1");
             graph.vertices(query).hasNext();
         }, e -> {
-                Assert.assertContains("Not supported querying vertices by",
-                                      e.getMessage());
-                Assert.assertContains("NAME == n1", e.getMessage());
-            });
+            Assert.assertContains("Not supported querying vertices by",
+                                  e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
@@ -3140,11 +3140,11 @@ public class VertexCoreTest extends BaseCoreTest {
             query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
             graph.vertices(query).hasNext();
         }, e -> {
-                Assert.assertContains("Can't do index query with [",
-                                      e.getMessage());
-                Assert.assertContains("LABEL == ", e.getMessage());
-                Assert.assertContains("NAME == n2", e.getMessage());
-            });
+            Assert.assertContains("Can't do index query with [",
+                                  e.getMessage());
+            Assert.assertContains("LABEL == ", e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
+        });
     }
 
     @Test
@@ -3888,9 +3888,9 @@ public class VertexCoreTest extends BaseCoreTest {
             graph.traversal().V().hasLabel("person")
                  .has("age", (Object) null).toList();
         }, e -> {
-                Assert.assertContains("Invalid data type of query value",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Invalid data type of query value",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -4536,9 +4536,9 @@ public class VertexCoreTest extends BaseCoreTest {
                                  .has("lived", "Bay Area")
                                  .toList();
         }, e -> {
-                Assert.assertContains("may not match secondary condition",
-                                      e.getMessage());
-            });
+            Assert.assertContains("may not match secondary condition",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -4727,22 +4727,22 @@ public class VertexCoreTest extends BaseCoreTest {
                                  .has("lived",P.neq("Beijing"))
                                  .toList();
         }, e -> {
-                Assert.assertEquals("Don't accept query based on properties " +
-                                    "[lived] that are not indexed in label " +
-                                    "'author', may not match secondary" +
-                                    "/not-equal condition", e.getMessage());
-            });
+            Assert.assertEquals("Don't accept query based on properties " +
+                                "[lived] that are not indexed in label " +
+                                "'author', may not match secondary" +
+                                "/not-equal condition", e.getMessage());
+        });
 
         Assert.assertThrows(NoIndexException.class, () -> {
             graph.traversal().V().has("lived",P.neq("Beijing"))
                                  .toList();
         }, e -> {
-                Assert.assertContains("Don't accept query based on properties " +
-                                      "[lived] that are not indexed in any label",
-                                      e.getMessage());
-                Assert.assertContains("may not match not-equal condition",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Don't accept query based on properties " +
+                                  "[lived] that are not indexed in any label",
+                                  e.getMessage());
+            Assert.assertContains("may not match not-equal condition",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -5947,11 +5947,11 @@ public class VertexCoreTest extends BaseCoreTest {
             graph().addVertex(T.label, "user", "age", 18);
             this.commitTx();
         }, e -> {
-                String message = e.getMessage();
-                Assert.assertTrue(message.contains("Unique constraint " +
-                                                   "userByNameCityAge"));
-                Assert.assertTrue(message.contains("conflict is found"));
-            });
+            String message = e.getMessage();
+            Assert.assertTrue(message.contains("Unique constraint " +
+                                               "userByNameCityAge"));
+            Assert.assertTrue(message.contains("conflict is found"));
+        });
         graph().addVertex(T.label, "user", "city", "");
         this.commitTx();
 
@@ -6246,12 +6246,12 @@ public class VertexCoreTest extends BaseCoreTest {
                                 "city", "a\u0000", "age", 0);
                 this.commitTx();
             }, e -> {
-                    if (e instanceof BackendException) {
-                        Assert.assertContains("0x00", e.getCause().getMessage());
-                    } else {
-                        Assert.assertContains("0x00", e.getMessage());
-                    }
-                });
+                if (e instanceof BackendException) {
+                    Assert.assertContains("0x00", e.getCause().getMessage());
+                } else {
+                    Assert.assertContains("0x00", e.getMessage());
+                }
+            });
         } else {
             graph.addVertex(T.label, "person", "name", "0",
                             "city", "a\u0000", "age", 0);
@@ -6273,36 +6273,36 @@ public class VertexCoreTest extends BaseCoreTest {
                             "city", "\u0000", "age", 3);
             this.commitTx();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u0' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0001", "age", 3);
             this.commitTx();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u1' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0002", "age", 3);
             this.commitTx();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u2' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name", "Baby",
                             "city", "\u0003", "age", 3);
             this.commitTx();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u3' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -6905,26 +6905,26 @@ public class VertexCoreTest extends BaseCoreTest {
             schema.indexLabel("studentByTestNum")
                   .onV("student").by("testNum").range().ifNotExist().create();
         }, e -> {
-                Assert.assertContains("The aggregate type SUM is not indexable",
-                                      e.getMessage());
-            });
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("studentByRank")
                   .onV("student").by("rank").secondary().ifNotExist().create();
         }, e -> {
-                Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                                  "The aggregate type SET is not indexable"));
-            });
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                             "The aggregate type SET is not indexable"));
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("studentByReword")
                   .onV("student").by("reword").secondary().ifNotExist()
                   .create();
         }, e -> {
-                Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                                  "The aggregate type LIST is not indexable"));
-            });
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                             "The aggregate type LIST is not indexable"));
+        });
 
         graph.addVertex(T.label, "student", "name", "Tom", "worstScore", 55,
                         "bestScore", 96, "testNum", 1, "no", "001");
@@ -7168,9 +7168,9 @@ public class VertexCoreTest extends BaseCoreTest {
             schema.indexLabel("studentByTestNum")
                   .onV("student").by("testNum").range().ifNotExist().create();
         }, e -> {
-                Assert.assertContains("The aggregate type SUM is not indexable",
-                                      e.getMessage());
-            });
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
         schema.indexLabel("studentByNo")
               .onV("student").by("no").secondary().ifNotExist().create();
 
@@ -8801,37 +8801,37 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             g.V().hasLabel("user3").toList();
         }, e -> {
-                Assert.assertEquals("Undefined vertex label: 'user3'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             g.V().hasLabel("user1", "user3").toList();
         }, e -> {
-                Assert.assertEquals("Undefined vertex label: 'user3'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             g.V().hasLabel("user3", "user1").toList();
         }, e -> {
-                Assert.assertEquals("Undefined vertex label: 'user3'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             g.V().hasLabel("user3", "user4").toList();
         }, e -> {
-                Assert.assertEquals("Undefined vertex label: 'user3'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Undefined vertex label: 'user3'",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             g.V().hasLabel("user4", "user3").toList();
         }, e -> {
-                Assert.assertEquals("Undefined vertex label: 'user4'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Undefined vertex label: 'user4'",
+                                e.getMessage());
+        });
     }
 
     @Test
@@ -8946,40 +8946,40 @@ public class VertexCoreTest extends BaseCoreTest {
                             "\u0000", "city", "Hongkong",
                             "age", 15);
         }, e -> {
-                graph.tx().rollback();
-                Assert.assertContains("Illegal leading char '\\u0' in index",
-                                      e.getMessage());
-            });
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name",
                             "\u0001", "city", "Hongkong",
                             "age", 15);
         }, e -> {
-                graph.tx().rollback();
-                Assert.assertContains("Illegal leading char '\\u1' in index",
-                                      e.getMessage());
-            });
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name",
                             "\u0002", "city", "Hongkong",
                             "age", 15);
         }, e -> {
-                graph.tx().rollback();
-                Assert.assertContains("Illegal leading char '\\u2' in index",
-                                      e.getMessage());
-            });
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name",
                             "\u0003", "city", "Hongkong",
                             "age", 15);
         }, e -> {
-                graph.tx().rollback();
-                Assert.assertContains("Illegal leading char '\\u3' in index",
-                                      e.getMessage());
-            });
+            graph.tx().rollback();
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -9062,9 +9062,9 @@ public class VertexCoreTest extends BaseCoreTest {
                                 "city", "xyz\u0000efg", "age", 0);
                 graph.tx().commit();
             }, e -> {
-                    Assert.assertContains("can't contains byte '0x00'",
-                                          e.getMessage());
-                });
+                Assert.assertContains("can't contains byte '0x00'",
+                                      e.getMessage());
+            });
         } else if (backend.equals("postgresql")) {
             Assert.assertThrows(BackendException.class, () -> {
                 graph.addVertex(T.label, "person", "name", "7",
@@ -9072,11 +9072,11 @@ public class VertexCoreTest extends BaseCoreTest {
                                 "age", 15);
                 graph.tx().commit();
             }, e -> {
-                    graph.tx().rollback();
-                    Assert.assertContains("invalid byte sequence for encoding " +
-                                          "\"UTF8\": 0x00",
-                                          e.getCause().getMessage());
-                });
+                graph.tx().rollback();
+                Assert.assertContains("invalid byte sequence for encoding " +
+                                      "\"UTF8\": 0x00",
+                                      e.getCause().getMessage());
+            });
         } else {
             graph.addVertex(T.label, "person", "name", "8",
                             "city", "xyz\u0000efg",

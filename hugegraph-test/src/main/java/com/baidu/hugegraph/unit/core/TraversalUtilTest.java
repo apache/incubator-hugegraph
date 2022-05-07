@@ -149,30 +149,30 @@ public class TraversalUtilTest {
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq(2018-9-90)");
         }, e -> {
-                Assert.assertEquals("Invalid value '2018-9-90', " +
-                                    "expect a number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '2018-9-90', " +
+                                "expect a number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq(2018-9-9 10)");
         }, e -> {
-                Assert.assertEquals("Invalid value '2018-9-9 10', " +
-                                    "expect a number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '2018-9-9 10', " +
+                                "expect a number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq(2018-9-9 10:123:59)");
         }, e -> {
-                Assert.assertEquals("Invalid value '2018-9-9 10:123:59', " +
-                                    "expect a number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '2018-9-9 10:123:59', " +
+                                "expect a number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq(2018/9/9)");
         }, e -> {
-                Assert.assertEquals("Invalid value '2018/9/9', " +
-                                    "expect a number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '2018/9/9', " +
+                                "expect a number", e.getMessage());
+        });
     }
 
     @Test
@@ -180,162 +180,162 @@ public class TraversalUtilTest {
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("what(123)");
         }, e -> {
-                Assert.assertEquals("Invalid predicate: what(123)",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid predicate: what(123)",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.what(123)");
         }, e -> {
-                Assert.assertEquals("Not support predicate 'what'",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Not support predicate 'what'",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P .eq(123)");
         }, e -> {
-                Assert.assertEquals("Invalid predicate: P .eq(123)",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid predicate: P .eq(123)",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P. eq(123)");
         }, e -> {
-                Assert.assertEquals("Invalid predicate: P. eq(123)",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid predicate: P. eq(123)",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq (123)");
         }, e -> {
-                Assert.assertEquals("Invalid predicate: P.eq (123)",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid predicate: P.eq (123)",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.eq(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.neq(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                   e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.lt(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.lte(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.gt(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.gte(18m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m', expect a number",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m', expect a number",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(18m, 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m, 20', " +
-                                    "expect a list", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m, 20', " +
+                                "expect a list", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(18, 20m)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18, 20m', " +
-                                    "expect a list", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18, 20m', " +
+                                "expect a list", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(18)");
         }, e -> {
-                Assert.assertEquals("Invalid numbers size 1, expect 2",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(18, 20, 30)");
         }, e -> {
-                Assert.assertEquals("Invalid numbers size 3, expect 2",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid numbers size 3, expect 2",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.between(\"18m\", 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '\"18m\", 20', " +
-                                    "expect a list of number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '\"18m\", 20', " +
+                                "expect a list of number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.inside(18m, 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m, 20', " +
-                                    "expect a list", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m, 20', " +
+                                "expect a list", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.inside(\"18m\", 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '\"18m\", 20', " +
-                                    "expect a list of number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '\"18m\", 20', " +
+                                "expect a list of number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.inside(18)");
         }, e -> {
-                Assert.assertEquals("Invalid numbers size 1, expect 2",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.outside(18m, 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m, 20', " +
-                                    "expect a list", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m, 20', " +
+                                "expect a list", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.outside(\"18m\", 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '\"18m\", 20', " +
-                                    "expect a list of number", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '\"18m\", 20', " +
+                                "expect a list of number", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.outside(18)");
         }, e -> {
-                Assert.assertEquals("Invalid numbers size 1, expect 2",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("Invalid numbers size 1, expect 2",
+                                e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             TraversalUtil.parsePredicate("P.within(18m, 20)");
         }, e -> {
-                Assert.assertEquals("Invalid value '18m, 20', " +
-                                    "expect a list", e.getMessage());
-            });
+            Assert.assertEquals("Invalid value '18m, 20', " +
+                                "expect a list", e.getMessage());
+        });
     }
 }

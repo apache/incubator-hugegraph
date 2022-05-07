@@ -949,10 +949,10 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
-                Assert.assertTrue(
-                       e.getMessage().startsWith("Don't accept query by label") &&
-                       e.getMessage().endsWith("label index is disabled"));
-            });
+            Assert.assertTrue(
+                e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()
@@ -977,10 +977,10 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertThrows(NoIndexException.class, () -> {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
-                Assert.assertTrue(
-                       e.getMessage().startsWith("Don't accept query by label") &&
-                       e.getMessage().endsWith("label index is disabled"));
-            });
+            Assert.assertTrue(
+                e.getMessage().startsWith("Don't accept query by label") &&
+                   e.getMessage().endsWith("label index is disabled"));
+        });
 
         // Query by property index is ok
         List<Vertex> vertices = graph().traversal().V()

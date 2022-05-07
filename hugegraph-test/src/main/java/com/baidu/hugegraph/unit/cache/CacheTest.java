@@ -116,8 +116,8 @@ public abstract class CacheTest extends BaseUnitTest {
                 Whitebox.invoke(queue.getClass(), new Class[]{Object.class},
                                 "checkNotInQueue", queue, id);
             }, e -> {
-                    Assert.assertContains("should be not in", e.getMessage());
-                });
+                Assert.assertContains("should be not in", e.getMessage());
+            });
 
             @SuppressWarnings("unchecked")
             Map<Id, ?> map = (Map<Id, ?>) Whitebox.getInternalState(cache,

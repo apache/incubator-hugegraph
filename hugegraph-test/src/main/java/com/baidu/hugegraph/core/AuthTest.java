@@ -110,9 +110,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.createUser(makeUser("tom", "pass1"));
         }, e -> {
-                Assert.assertContains("Can't save user", e.getMessage());
-                Assert.assertContains("that already exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save user", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -270,9 +270,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.updateUser(makeUser("tom2", "pass1"));
         }, e -> {
-                Assert.assertContains("Can't save user", e.getMessage());
-                Assert.assertContains("that not exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save user", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
@@ -694,9 +694,9 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             authManager.createBelong(makeBelong(user, group1));
         }, e -> {
-                Assert.assertContains("Can't save belong", e.getMessage());
-                Assert.assertContains("that already exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save belong", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -836,9 +836,9 @@ public class AuthTest extends BaseCoreTest {
             HugeBelong belong3 = makeBelong(user, group2);
             authManager.updateBelong(belong3);
         }, e -> {
-                Assert.assertContains("Can't save belong", e.getMessage());
-                Assert.assertContains("that not exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save belong", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
@@ -998,9 +998,9 @@ public class AuthTest extends BaseCoreTest {
             authManager.createAccess(makeAccess(group1, target1,
                                                 HugePermission.READ));
         }, e -> {
-                Assert.assertContains("Can't save access", e.getMessage());
-                Assert.assertContains("that already exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that already exists", e.getMessage());
+        });
     }
 
     @Test
@@ -1142,9 +1142,9 @@ public class AuthTest extends BaseCoreTest {
             access.permission(HugePermission.WRITE);
             authManager.updateAccess(access);
         }, e -> {
-                Assert.assertContains("Can't save access", e.getMessage());
-                Assert.assertContains("that not exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
 
         access.permission(HugePermission.READ);
         access.description("description updated");
@@ -1163,9 +1163,9 @@ public class AuthTest extends BaseCoreTest {
                                             HugePermission.DELETE);
             authManager.updateAccess(access4);
         }, e -> {
-                Assert.assertContains("Can't save access", e.getMessage());
-                Assert.assertContains("that not exists", e.getMessage());
-            });
+            Assert.assertContains("Can't save access", e.getMessage());
+            Assert.assertContains("that not exists", e.getMessage());
+        });
     }
 
     @Test
@@ -1327,8 +1327,8 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(AuthenticationException.class, () -> {
             authManager.loginUser("huge", "graph");
         }, e -> {
-                Assert.assertContains("Incorrect username or password", e.getMessage());
-            });
+            Assert.assertContains("Incorrect username or password", e.getMessage());
+        });
     }
 
     @Test

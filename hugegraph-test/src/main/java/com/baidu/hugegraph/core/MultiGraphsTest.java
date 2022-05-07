@@ -203,9 +203,9 @@ public class MultiGraphsTest {
         Assert.assertThrows(ExistedException.class, () -> {
             g2.schema().copyFrom(g1.schema());
         }, e -> {
-                Assert.assertEquals("The property key 'id' has existed",
-                                    e.getMessage());
-            });
+            Assert.assertEquals("The property key 'id' has existed",
+                                e.getMessage());
+        });
 
         for (HugeGraph graph : graphs) {
             graph.clearBackend();
@@ -246,9 +246,9 @@ public class MultiGraphsTest {
         g3.initBackend();
 
         Assert.assertThrows(IllegalArgumentException.class,
-            () -> g2.vertexLabel("node"));
+                            () -> g2.vertexLabel("node"));
         Assert.assertThrows(IllegalArgumentException.class,
-            () -> g3.vertexLabel("node"));
+                            () -> g3.vertexLabel("node"));
         g1.schema().vertexLabel("node").useCustomizeNumberId()
                    .ifNotExist().create();
         g2.vertexLabel("node");
@@ -281,8 +281,8 @@ public class MultiGraphsTest {
         HugeGraph g1 = openGraphWithBackend("graph", "memory", "text");
         g1.initBackend();
         Assert.assertThrows(RuntimeException.class,
-            () -> openGraphWithBackend("graph", "rocksdb",
-                                       "binary"));
+                            () -> openGraphWithBackend("graph", "rocksdb",
+                                                       "binary"));
         g1.clearBackend();
         g1.close();
     }
@@ -321,13 +321,13 @@ public class MultiGraphsTest {
                                          "[g/range_int_index:rocksdb-index1]");
             g2[0].initBackend();
         }, e -> {
-                Throwable root = HugeException.rootCause(e);
-                Assert.assertInstanceOf(RocksDBException.class, root);
-                Assert.assertContains("lock hold by current process",
-                                      root.getMessage());
-                Assert.assertContains("No locks available",
-                                      root.getMessage());
-            });
+            Throwable root = HugeException.rootCause(e);
+            Assert.assertInstanceOf(RocksDBException.class, root);
+            Assert.assertContains("lock hold by current process",
+                                  root.getMessage());
+            Assert.assertContains("No locks available",
+                                  root.getMessage());
+        });
 
         final HugeGraph[] g3 = new HugeGraph[1];
         Assert.assertThrows(BackendException.class, () -> {
@@ -336,11 +336,11 @@ public class MultiGraphsTest {
                                          "[g/secondary_index:/]");
             g3[0].initBackend();
         }, e -> {
-                Throwable root = HugeException.rootCause(e);
-                Assert.assertInstanceOf(RocksDBException.class, root);
-                Assert.assertContains("While mkdir if missing",
-                                      root.getMessage());
-            });
+            Throwable root = HugeException.rootCause(e);
+            Assert.assertInstanceOf(RocksDBException.class, root);
+            Assert.assertContains("While mkdir if missing",
+                                  root.getMessage());
+        });
 
         destroyGraphs(ImmutableList.of(g1));
     }

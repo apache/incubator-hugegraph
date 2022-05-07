@@ -133,14 +133,14 @@ public class IntMapTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             map.put(outOfBoundKey, 0);
         }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+            Assert.assertContains("out of bound", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             map.remove(outOfBoundKey);
         }, e -> {
-                Assert.assertContains("out of bound", e.getMessage());
-            });
+            Assert.assertContains("out of bound", e.getMessage());
+        });
 
         map.clear();
         Assert.assertEquals(0, map.size());
@@ -230,14 +230,14 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 map.put(capacity, 1);
             }, e -> {
-                    Assert.assertContains("out of bound", e.getMessage());
-                });
+                Assert.assertContains("out of bound", e.getMessage());
+            });
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 map.put(capacity + 1, 1);
             }, e -> {
-                    Assert.assertContains("out of bound", e.getMessage());
-                });
+                Assert.assertContains("out of bound", e.getMessage());
+            });
 
             return map.size() / 2;
         };
@@ -266,20 +266,20 @@ public class IntMapTest extends BaseUnitTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(10, testMap.apply(10, 0));
         }, e -> {
-                Assert.assertContains("Invalid segments", e.getMessage());
-            });
+            Assert.assertContains("Invalid segments", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(10, testMap.apply(10, 11));
         }, e -> {
-                Assert.assertContains("Invalid capacity", e.getMessage());
-            });
+            Assert.assertContains("Invalid capacity", e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Assert.assertEquals(2000, testMap.apply(2000, 2001));
         }, e -> {
-                Assert.assertContains("Invalid capacity", e.getMessage());
-            });
+            Assert.assertContains("Invalid capacity", e.getMessage());
+        });
     }
 
     @Test
@@ -330,8 +330,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                    Assert.assertNull(e.getMessage());
-                });
+                Assert.assertNull(e.getMessage());
+            });
         }
     }
 
@@ -359,8 +359,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                    Assert.assertNull(e.getMessage());
-                });
+                Assert.assertNull(e.getMessage());
+            });
         }
     }
 
@@ -380,8 +380,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                    Assert.assertNull(e.getMessage());
-                });
+                Assert.assertNull(e.getMessage());
+            });
         }
     }
 
@@ -409,8 +409,8 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertThrows(NoSuchElementException.class, () -> {
                 iter.next();
             }, e -> {
-                    Assert.assertNull(e.getMessage());
-                });
+                Assert.assertNull(e.getMessage());
+            });
         }
     }
 

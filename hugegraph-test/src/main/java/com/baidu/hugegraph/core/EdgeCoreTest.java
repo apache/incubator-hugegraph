@@ -67,7 +67,7 @@ import com.baidu.hugegraph.schema.Userdata;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.testutil.FakeObjects;
+import com.baidu.hugegraph.testutil.FakeObjects.FakeEdge;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.traversal.optimize.ConditionP;
@@ -475,9 +475,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("The max length of edge id is 32768",
-                        e.getMessage());
-            });
+            Assert.assertContains("The max length of edge id is 32768",
+                                       e.getMessage());
+        });
     }
 
     @Test
@@ -494,9 +494,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             james.addEdge("write", book, "time", "\u00002017-5-27");
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u0' in index",
-                                    e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                       e.getMessage());
+        });
 
         String backend = graph.backend();
         if (backend.equals("postgresql")) {
@@ -504,38 +504,38 @@ public class EdgeCoreTest extends BaseCoreTest {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
             }, e -> {
-                    // pgsql need to clear and reset state (like auto-commit)
-                    graph.tx().rollback();
-                    Assert.assertContains("invalid byte sequence for encoding " +
-                                        "\"UTF8\": 0x00",
-                                        e.getCause().getMessage());
-                });
+                // pgsql need to clear and reset state (like auto-commit)
+                graph.tx().rollback();
+                Assert.assertContains("invalid byte sequence for encoding " +
+                                           "\"UTF8\": 0x00",
+                                           e.getCause().getMessage());
+            });
 
             Assert.assertThrows(BackendException.class, () -> {
                 graph.traversal().V(james.id())
                      .outE("write").has("time", "2017-5-27\u0000")
                      .toList();
             }, e -> {
-                    Assert.assertContains("Zero bytes may not occur in string " +
-                                        "parameters", e.getCause().getMessage());
-                });
+                Assert.assertContains("Zero bytes may not occur in string " +
+                                           "parameters", e.getCause().getMessage());
+            });
         } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
             }, e -> {
-                    Assert.assertContains("Can't contains byte '0x00' in string",
-                                        e.getMessage());
-                });
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                                           e.getMessage());
+            });
 
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 graph.traversal().V(james.id())
                      .outE("write").has("time", "2017-5-27\u0000")
                      .toList();
             }, e -> {
-                    Assert.assertContains("Can't contains byte '0x00' in string",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Can't contains byte '0x00' in string",
+                                           e.getMessage());
+            });
         } else {
             james.addEdge("write", book, "time", "2017-5-27\u0000");
             graph.tx().commit();
@@ -2754,16 +2754,16 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().E().hasLabel("know").has("ID", id).toList();
         }, e -> {
-                Assert.assertContains("Undefined property key: 'ID'",
-                                     e.getMessage());
-            });
+            Assert.assertContains("Undefined property key: 'ID'",
+                                       e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
         }, e -> {
-                Assert.assertContains("Undefined property key: 'NAME'",
-                                    e.getMessage());
-            });
+            Assert.assertContains("Undefined property key: 'NAME'",
+                                       e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
@@ -2771,9 +2771,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.query(id);
             graph.edges(query).hasNext();
         }, e -> {
-                Assert.assertContains("Not supported querying by id and conditions",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Not supported querying by id and conditions",
+                                       e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
@@ -2781,10 +2781,10 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.eq(HugeKeys.NAME, "n1");
             graph.edges(query).hasNext();
         }, e -> {
-                Assert.assertContains("Not supported querying edges by",
-                                      e.getMessage());
-                Assert.assertContains("NAME == n1", e.getMessage());
-            });
+            Assert.assertContains("Not supported querying edges by",
+                                       e.getMessage());
+            Assert.assertContains("NAME == n1", e.getMessage());
+        });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
@@ -2793,11 +2793,11 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
             graph.edges(query).hasNext();
         }, e -> {
-                Assert.assertContains("Can't do index query with [",
-                                      e.getMessage());
-                Assert.assertContains("LABEL == ", e.getMessage());
-                Assert.assertContains("NAME == n2", e.getMessage());
-            });
+            Assert.assertContains("Can't do index query with [",
+                                       e.getMessage());
+            Assert.assertContains("LABEL == ", e.getMessage());
+            Assert.assertContains("NAME == n2", e.getMessage());
+        });
     }
 
     @Test
@@ -3255,9 +3255,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                 graph.traversal().V(james.id()).outE().has("score", 3)
                                  .otherV().values().toList();
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
         } finally {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
@@ -3272,44 +3272,44 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(HugeException.class, () -> {
                 graph.traversal().V(james.id()).out().values().toList();
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 graph.traversal().V(james.id()).outE().otherV()
                                  .values().toList();
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
                 v.properties(); // throw
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
                 v.values(); // throw
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
                 ((HugeVertex) v).forceLoad(); // throw
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
         } finally {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "checkAdjacentVertexExist", false);
@@ -3355,12 +3355,12 @@ public class EdgeCoreTest extends BaseCoreTest {
                             "name", "marko", "age", 20, "city", "Beijing");
             graph.tx().commit();
         }, e -> {
-                String error = "The newly added vertex with id:'456' label:" +
-                               "'programmer' is not allowed to insert, " +
-                               "because already exist a vertex with same id and " +
-                               "different label:'designer'";
-                Assert.assertContains(error, e.getMessage());
-            });
+            String error = "The newly added vertex with id:'456' label:" +
+                           "'programmer' is not allowed to insert, " +
+                           "because already exist a vertex with same id and " +
+                           "different label:'designer'";
+            Assert.assertContains(error, e.getMessage());
+        });
 
         Whitebox.setInternalState(params().graphTransaction(),
                                   "checkCustomVertexExist", false);
@@ -3459,34 +3459,34 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(HugeException.class, () -> {
                 graph.traversal().V(james.id()).out().toList();
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 graph.traversal().V(james.id()).outE().otherV().toList();
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
                 v.properties(); // throw
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
 
             Assert.assertThrows(HugeException.class, () -> {
                 Vertex v = graph.traversal().V(james.id()).outE()
                                 .has("score", 3).otherV().next();
                 v.values(); // throw
             }, e -> {
-                    Assert.assertContains("Vertex 'java' does not exist",
-                                          e.getMessage());
-                });
+                Assert.assertContains("Vertex 'java' does not exist",
+                                      e.getMessage());
+            });
         } finally {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "lazyLoadAdjacentVertex", true);
@@ -4482,9 +4482,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                             .has("~page", page).limit(1);
             });
         }, e -> {
-                Assert.assertContains("Can't query by paging and filtering",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Can't query by paging and filtering",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -5381,7 +5381,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(3, edges.size());
         Assert.assertFalse(Utils.contains(edges,
-                           new FakeObjects.FakeEdge("authored", james, java1)));
+                           new FakeEdge("authored", james, java1)));
     }
 
     @Test
@@ -5600,10 +5600,10 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(LimitExceedException.class, () -> {
                 graph.tx().commit();
             }, e -> {
-                    Assert.assertContains("Edges size has reached tx capacity",
-                                          e.getMessage());
-                    graph.tx().rollback();
-                });
+                Assert.assertContains("Edges size has reached tx capacity",
+                                      e.getMessage());
+                graph.tx().rollback();
+            });
         } finally {
             Whitebox.setInternalState(params().graphTransaction(),
                                       "commitPartOfAdjacentEdges", old);
@@ -5777,12 +5777,12 @@ public class EdgeCoreTest extends BaseCoreTest {
                                "arrested", false);
                 graph.tx().commit();
             }, e -> {
-                    if (e instanceof BackendException) {
-                        Assert.assertContains("0x00", e.getCause().getMessage());
-                    } else {
-                        Assert.assertContains("0x00", e.getMessage());
-                    }
-                });
+                if (e instanceof BackendException) {
+                    Assert.assertContains("0x00", e.getCause().getMessage());
+                } else {
+                    Assert.assertContains("0x00", e.getMessage());
+                }
+            });
         } else {
             louise.addEdge("strike", sean, "id", 0,
                            "timestamp", current, "place", "park",
@@ -5815,10 +5815,10 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u0' " +
-                                      "in index property:",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u0' " +
+                                  "in index property:",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5827,9 +5827,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u1' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5838,9 +5838,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u2' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5849,9 +5849,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u3' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5860,9 +5860,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u0' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u0' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5871,9 +5871,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u1' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u1' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5882,9 +5882,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u2' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u2' in index",
+                                  e.getMessage());
+        });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             louise.addEdge("strike", sean, "id", 4,
@@ -5893,9 +5893,9 @@ public class EdgeCoreTest extends BaseCoreTest {
                            "arrested", false);
             graph.tx().commit();
         }, e -> {
-                Assert.assertContains("Illegal leading char '\\u3' in index",
-                                      e.getMessage());
-            });
+            Assert.assertContains("Illegal leading char '\\u3' in index",
+                                  e.getMessage());
+        });
     }
 
     @Test
@@ -6442,25 +6442,25 @@ public class EdgeCoreTest extends BaseCoreTest {
             schema.indexLabel("attackByTimes")
                   .onE("attack").by("times").range().ifNotExist().create();
         }, e -> {
-                Assert.assertContains("The aggregate type SUM is not indexable",
-                                      e.getMessage());
-            });
+            Assert.assertContains("The aggregate type SUM is not indexable",
+                                  e.getMessage());
+        });
         schema.indexLabel("attackByFirstTime")
               .onE("attack").by("firstTime").range().ifNotExist().create();
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("attackByPort")
                   .onE("attack").by("port").secondary().ifNotExist().create();
         }, e -> {
-                Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                                  "The aggregate type SET is not indexable"));
-            });
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type SET is not indexable"));
+        });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("attackByType")
                   .onE("attack").by("type").secondary().ifNotExist().create();
         }, e -> {
-                Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                                  "The aggregate type LIST is not indexable"));
-            });
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(
+                              "The aggregate type LIST is not indexable"));
+        });
 
         Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
         Vertex ip2 = graph.addVertex(T.label, "ip", T.id, "10.0.0.2");
@@ -7462,7 +7462,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Vertex inVertex,
             Object... kvs) {
         Assert.assertTrue(Utils.contains(edges,
-                          new FakeObjects.FakeEdge(label, outVertex, inVertex, kvs)));
+                          new FakeEdge(label, outVertex, inVertex, kvs)));
     }
 
     private int traverseInPage(Function<String, GraphTraversal<?, ?>> fetcher) {
