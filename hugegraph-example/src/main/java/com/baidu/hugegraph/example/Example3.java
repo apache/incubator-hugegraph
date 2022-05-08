@@ -119,7 +119,7 @@ public class Example3 {
         f.addEdge("directedBy", b);
         f.addEdge("directedBy", l);
 
-        G.addEdge("directedBy", m);
+        g.addEdge("directedBy", m);
 
         graph.tx().commit();
     }
