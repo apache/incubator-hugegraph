@@ -100,26 +100,26 @@ public class Example3 {
         Vertex l = graph.addVertex(T.label, "person", T.id, "L", "name", "L");
         Vertex m = graph.addVertex(T.label, "person", T.id, "M", "name", "M");
 
-        O.addEdge("follow", A);
-        O.addEdge("follow", B);
-        O.addEdge("follow", C);
-        D.addEdge("follow", O);
+        o.addEdge("follow", a);
+        o.addEdge("follow", b);
+        o.addEdge("follow", c);
+        d.addEdge("follow", o);
 
-        A.addEdge("follow", B);
-        A.addEdge("like", E);
-        A.addEdge("like", F);
+        a.addEdge("follow", b);
+        a.addEdge("like", e);
+        a.addEdge("like", f);
 
-        B.addEdge("like", G);
-        B.addEdge("like", H);
+        b.addEdge("like", g);
+        b.addEdge("like", h);
 
-        C.addEdge("like", I);
-        C.addEdge("like", J);
+        c.addEdge("like", i);
+        c.addEdge("like", j);
 
-        E.addEdge("directedBy", K);
-        F.addEdge("directedBy", B);
-        F.addEdge("directedBy", L);
+        e.addEdge("directedBy", k);
+        f.addEdge("directedBy", b);
+        f.addEdge("directedBy", l);
 
-        G.addEdge("directedBy", M);
+        G.addEdge("directedBy", m);
 
         graph.tx().commit();
     }
