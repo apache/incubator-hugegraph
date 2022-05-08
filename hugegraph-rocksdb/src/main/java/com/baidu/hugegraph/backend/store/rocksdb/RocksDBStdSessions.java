@@ -1060,13 +1060,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private void dump() {
             this.seek();
             LOG.info(">>>> scan from {}: {}{}", 
-                    this.table,
-                    this.keyBegin == null ? "*" : StringEncoding.format(this.keyBegin),
-                    this.iter.isValid() ? "" : " - No data"));
+                      this.table,
+                      this.keyBegin == null ? "*" : StringEncoding.format(this.keyBegin),
+                      this.iter.isValid() ? "" : " - No data");
             for (; this.iter.isValid(); this.iter.next()) {
                 LOG.info("{}={}",
-                        StringEncoding.format(this.iter.key()),
-                        StringEncoding.format(this.iter.value()));
+                          StringEncoding.format(this.iter.key()),
+                          StringEncoding.format(this.iter.value()));
             }
         }
 
