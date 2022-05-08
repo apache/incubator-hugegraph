@@ -6,7 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class ResultSetWrapper implements AutoCloseable{
+public class ResultSetWrapper implements AutoCloseable {
 
     private final ResultSet resultSet;
     private final Statement statement;

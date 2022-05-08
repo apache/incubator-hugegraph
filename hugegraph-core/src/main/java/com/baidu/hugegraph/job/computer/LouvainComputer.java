@@ -32,13 +32,13 @@ public class LouvainComputer extends AbstractComputer {
 
     public static final String KEY_STABLE_TIMES = "stable_times";
     public static final String KEY_PRECISION = "precision";
-    public static final String KEY_SHOW_MOD= "show_modularity";
+    public static final String KEY_SHOW_MOD = "show_modularity";
     public static final String KEY_SHOW_COMM = "show_community";
     public static final String KEY_EXPORT_COMM = "export_community";
     public static final String KEY_SKIP_ISOLATED = "skip_isolated";
     public static final String KEY_CLEAR = "clear";
 
-    public static final long DEFAULT_STABLE_TIMES= 3L;
+    public static final long DEFAULT_STABLE_TIMES = 3L;
     private static final int MAX_TIMES = 2048;
 
     @Override

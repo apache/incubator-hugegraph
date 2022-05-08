@@ -197,7 +197,7 @@ public class PaloSessions extends MysqlSessions {
         @SuppressWarnings("unused")
         private PaloLoadInfo getLoadInfoByLabel(String label) {
             String sql = String.format("SHOW LOAD WHERE LABEL = '%s'", label);
-            try (ResultSetWrapper results = this.select(sql)){
+            try (ResultSetWrapper results = this.select(sql)) {
                 ResultSet rs = results.resultSet();
                 if (rs.next()) {
                     return new PaloLoadInfo(rs);
@@ -213,7 +213,7 @@ public class PaloSessions extends MysqlSessions {
     public final class PaloLoadTask extends TimerTask {
 
         private static final String DF = "yyyy-MM-dd-HH-mm-ss";
-        private final SafeDateFormat DATE_FORMAT = new SafeDateFormat(DF);
+        private final SafeDateFormat dateFormat = new SafeDateFormat(DF);
 
         /**
          * There exist two running palo load task corresponds to two stores,
@@ -313,7 +313,7 @@ public class PaloSessions extends MysqlSessions {
         }
 
         private String formatLabel(String table) {
-            return table + "-" + this.DATE_FORMAT.format(new Date());
+            return table + "-" + this.dateFormat.format(new Date());
         }
     }
 }
