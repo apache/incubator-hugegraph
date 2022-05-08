@@ -212,7 +212,7 @@ public class ScyllaDBTablesWithMV {
                          "  SELECT * FROM %s " +
                          "  WHERE %s IS NOT NULL " +
                          "  PRIMARY KEY(%s, %s)",
-                    mvLabel2Vertex, this.table(), LABEL, LABEL, ID);
+                         mvLabel2Vertex, this.table(), LABEL, LABEL, ID);
             session.execute(cql);
         }
 
@@ -263,7 +263,7 @@ public class ScyllaDBTablesWithMV {
                          "  SELECT * FROM %s " +
                          "  WHERE %s IS NOT NULL AND %s IS NOT NULL " +
                          "  PRIMARY KEY(%s, %s)",
-                    mvLabel2Edge, this.table(),
+                         mvLabel2Edge, this.table(),
                          this.LABEL, this.prkeysNn,
                          this.LABEL, this.prKeys);
             session.execute(cql);
