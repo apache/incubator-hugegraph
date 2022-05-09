@@ -808,9 +808,8 @@ public class HbaseSessions extends BackendSessionPool {
                     Cell cell = cellScanner.current();
                     byte[] key = CellUtil.cloneQualifier(cell);
                     byte[] val = CellUtil.cloneValue(cell);
-                    LOG.info(String.format("  {}={}",
-                                       StringEncoding.format(key),
-                                       StringEncoding.format(val)));
+                    LOG.info("  {}={}", StringEncoding.format(key),
+                                        StringEncoding.format(val));
                 }
             }
         }
