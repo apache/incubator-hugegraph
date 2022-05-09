@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.api;
 
+import static com.baidu.hugegraph.testutil.Assert.assertContains;
+
 import java.util.Map;
 
 import org.junit.Before;
@@ -31,27 +33,54 @@ import jakarta.ws.rs.core.Response;
 
 public class CypherApiTest extends BaseApiTest {
 
-    private static final String path = "/graphs/hugegraph/cypher";
+    private static final String path = URL_PREFIX + "/cypher";
+    private static final String query = "MATCH (n:person) where n.city ='Beijing' return n";
+    private static final String queryResult = "Beijing";
 
     @Before
     public void prepareSchema() {
         BaseApiTest.initPropertyKey();
         BaseApiTest.initVertexLabel();
+        BaseApiTest.initEdgeLabel();
         BaseApiTest.initIndexLabel();
         BaseApiTest.initVertex();
-    }
-
-    @Test
-    public void testPost() {
-        String body = "MATCH (n:person) where n.city ='Beijing' return n";
-        assertResponseStatus(200, client().post(path, body));
+        BaseApiTest.initEdge();
     }
 
     @Test
     public void testGet() {
-        Map<String, Object> params = ImmutableMap.of("cypher",
-                                                     "MATCH (n:person) where n.city ='Beijing' return n");
-        Response r = client().get(path, params);
-        Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
+        Map<String, Object> params = ImmutableMap.of("cypher", query);
+        Response r =  client().get(path, params);
+
+        this.validStatusAndTextContains(queryResult, r);
+    }
+
+    @Test
+    public void testPost() {
+        this.testCypherQueryAndContains(query, "Beijing");
+    }
+
+    @Test
+    public void testCreate() {
+        this.testCypherQueryAndContains("CREATE (n:person { name : 'test', age: 20, city: 'Hefei' }) return n",
+                                        "Hefei");
+    }
+
+    @Test
+    public void testRelationQuery() {
+        String cypher = "MATCH (n:person)-[r:knows]->(friend:person)\n" +
+                        "WHERE n.name = 'marko'\n" +
+                        "RETURN n, friend.name AS friend";
+        this.testCypherQueryAndContains(cypher, "friend");
+    }
+
+    private void testCypherQueryAndContains(String cypher, String containsText) {
+        Response r = client().post(path, cypher);
+        this.validStatusAndTextContains(containsText, r);
+    }
+
+    private void validStatusAndTextContains(String value, Response r) {
+        String content = assertResponseStatus(200, r);
+        assertContains(value, content);
     }
 }

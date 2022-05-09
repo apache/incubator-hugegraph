@@ -62,7 +62,7 @@ public class CypherAPI extends GremlinQueryAPI {
                         "The cypher parameter can't be null or empty");
 
         String gremlin = this.translateCpyher2Gremlin(graph, cypher);
-        LOG.debug("translated gremlin is {}", gremlin);
+        LOG.info("translated gremlin is {}", gremlin);
 
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         MultivaluedMap<String, String> params = new MultivaluedHashMap<>();
@@ -79,9 +79,13 @@ public class CypherAPI extends GremlinQueryAPI {
     }
 
     private String buildQueryableGremlin(String graph, String gremlin) {
+        // init g by graph name
         gremlin = "g = " + graph + ".traversal()\n" + gremlin;
 
-        // hg not support single
+        // CREATE (a:person { name : "test", age: 20, city: "Hefei" }) return a
+        // translate to :
+        // g.addV('person').as('a').property(single, 'name', 'test') ...
+        // NOTE: ".property(single" will raise error
         gremlin = gremlin.replace(".property(single,", ".property(");
 
         return gremlin;

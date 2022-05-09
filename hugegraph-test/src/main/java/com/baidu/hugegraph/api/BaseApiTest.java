@@ -61,7 +61,7 @@ public class BaseApiTest {
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "pa";
 
-    private static final String URL_PREFIX = "graphs/" + GRAPH;
+    protected static final String URL_PREFIX = "graphs/" + GRAPH;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
     private static final String SCHEMA_ELS = "/schema/edgelabels";
