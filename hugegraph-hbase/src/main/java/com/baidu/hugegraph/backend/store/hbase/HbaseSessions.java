@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Future;
+import com.baidu.hugegraph.util.Log;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -69,6 +70,7 @@ import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.util.VersionInfo;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
@@ -84,6 +86,8 @@ import com.baidu.hugegraph.util.VersionUtil;
 import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
+
+    private static final Logger LOG = Log.logger(HbaseSessions.class);
 
     private static final String COPROCESSOR_AGGR =
             "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
@@ -222,19 +226,20 @@ public class HbaseSessions extends BackendSessionPool {
                                                              .build());
         }
         tdb.setCoprocessor(COPROCESSOR_AGGR);
-        try(Admin admin = this.hbase.getAdmin()) {
+        try (Admin admin = this.hbase.getAdmin()) {
             admin.createTable(tdb.build());
         }
     }
 
-    public void createPreSplitTable(String table, List<byte[]> cfs, short numOfPartitions) throws IOException {
+    public void createPreSplitTable(String table, List<byte[]> cfs, 
+                                    short numOfPartitions) throws IOException {
         TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
                 TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
-            builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
-                    .build());
+            builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf).build());
         }
-        byte[][] splits = new byte[numOfPartitions - 1][org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
+        byte[][] splits = new byte[numOfPartitions - 1]
+                                  [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
         for (short split = 1; split < numOfPartitions; split++) {
             splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
         }
@@ -793,20 +798,18 @@ public class HbaseSessions extends BackendSessionPool {
          */
         @SuppressWarnings("unused")
         private void dump(String table, Scan scan) throws IOException {
-            System.out.println(String.format(">>>> scan table %s with %s",
-                                             table, scan));
+            LOG.info(String.format(">>>> scan table {} with {}", table, scan));
             RowIterator iterator = this.scan(table, scan);
             while (iterator.hasNext()) {
                 Result row = iterator.next();
-                System.out.println(StringEncoding.format(row.getRow()));
+                LOG.info(StringEncoding.format(row.getRow()));
                 CellScanner cellScanner = row.cellScanner();
                 while (cellScanner.advance()) {
                     Cell cell = cellScanner.current();
                     byte[] key = CellUtil.cloneQualifier(cell);
                     byte[] val = CellUtil.cloneValue(cell);
-                    System.out.println(String.format("  %s=%s",
-                                       StringEncoding.format(key),
-                                       StringEncoding.format(val)));
+                    LOG.info("  {}={}", StringEncoding.format(key),
+                                        StringEncoding.format(val));
                 }
             }
         }
