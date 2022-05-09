@@ -61,7 +61,7 @@ public class Reflection {
             try {
                 registerFieldsToFilterMethodTemp =
                         REFLECTION_CLAZZ.getMethod("registerFieldsToFilter",
-                                          Class.class, String[].class);
+                                                   Class.class, String[].class);
             } catch (Throwable e) {
                 LOG.error("Can't find registerFieldsToFilter method", e);
             }
