@@ -88,7 +88,7 @@ import com.google.common.util.concurrent.Futures;
 public class HbaseSessions extends BackendSessionPool {
 
     private static final Logger LOG = Log.logger(HbaseSessions.class);
-    
+
     private static final String COPROCESSOR_AGGR =
             "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
     private static final long SCANNER_CACHING = 1000L;
@@ -236,8 +236,7 @@ public class HbaseSessions extends BackendSessionPool {
         TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
                 TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
-            builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
-                    .build());
+            builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf).build());
         }
         byte[][] splits = new byte[numOfPartitions - 1]
                                   [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
