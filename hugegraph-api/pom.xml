@@ -115,6 +115,12 @@
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jersey3</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.opencypher.gremlin</groupId>
+            <artifactId>translation</artifactId>
+            <version>1.0.4</version>
+        </dependency>
     </dependencies>
 
     <build>
