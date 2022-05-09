@@ -82,44 +82,44 @@ public class Example3 {
 
         graph.tx().open();
 
-        Vertex O = graph.addVertex(T.label, "person", T.id, "O", "name", "O");
+        Vertex o = graph.addVertex(T.label, "person", T.id, "O", "name", "O");
 
-        Vertex A = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
-        Vertex B = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
-        Vertex C = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
-        Vertex D = graph.addVertex(T.label, "person", T.id, "D", "name", "D");
+        Vertex a = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
+        Vertex b = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
+        Vertex c = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
+        Vertex d = graph.addVertex(T.label, "person", T.id, "D", "name", "D");
 
-        Vertex E = graph.addVertex(T.label, "movie", T.id, "E", "name", "E");
-        Vertex F = graph.addVertex(T.label, "movie", T.id, "F", "name", "F");
-        Vertex G = graph.addVertex(T.label, "movie", T.id, "G", "name", "G");
-        Vertex H = graph.addVertex(T.label, "movie", T.id, "H", "name", "H");
-        Vertex I = graph.addVertex(T.label, "movie", T.id, "I", "name", "I");
-        Vertex J = graph.addVertex(T.label, "movie", T.id, "J", "name", "J");
+        Vertex e = graph.addVertex(T.label, "movie", T.id, "E", "name", "E");
+        Vertex f = graph.addVertex(T.label, "movie", T.id, "F", "name", "F");
+        Vertex g = graph.addVertex(T.label, "movie", T.id, "G", "name", "G");
+        Vertex h = graph.addVertex(T.label, "movie", T.id, "H", "name", "H");
+        Vertex i = graph.addVertex(T.label, "movie", T.id, "I", "name", "I");
+        Vertex j = graph.addVertex(T.label, "movie", T.id, "J", "name", "J");
 
-        Vertex K = graph.addVertex(T.label, "person", T.id, "K", "name", "K");
-        Vertex L = graph.addVertex(T.label, "person", T.id, "L", "name", "L");
-        Vertex M = graph.addVertex(T.label, "person", T.id, "M", "name", "M");
+        Vertex k = graph.addVertex(T.label, "person", T.id, "K", "name", "K");
+        Vertex l = graph.addVertex(T.label, "person", T.id, "L", "name", "L");
+        Vertex m = graph.addVertex(T.label, "person", T.id, "M", "name", "M");
 
-        O.addEdge("follow", A);
-        O.addEdge("follow", B);
-        O.addEdge("follow", C);
-        D.addEdge("follow", O);
+        o.addEdge("follow", a);
+        o.addEdge("follow", b);
+        o.addEdge("follow", c);
+        d.addEdge("follow", o);
 
-        A.addEdge("follow", B);
-        A.addEdge("like", E);
-        A.addEdge("like", F);
+        a.addEdge("follow", b);
+        a.addEdge("like", e);
+        a.addEdge("like", f);
 
-        B.addEdge("like", G);
-        B.addEdge("like", H);
+        b.addEdge("like", g);
+        b.addEdge("like", h);
 
-        C.addEdge("like", I);
-        C.addEdge("like", J);
+        c.addEdge("like", i);
+        c.addEdge("like", j);
 
-        E.addEdge("directedBy", K);
-        F.addEdge("directedBy", B);
-        F.addEdge("directedBy", L);
+        e.addEdge("directedBy", k);
+        f.addEdge("directedBy", b);
+        f.addEdge("directedBy", l);
 
-        G.addEdge("directedBy", M);
+        g.addEdge("directedBy", m);
 
         graph.tx().commit();
     }
@@ -149,25 +149,25 @@ public class Example3 {
 
         graph.tx().open();
 
-        Vertex A = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
-        Vertex B = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
-        Vertex C = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
+        Vertex aPerson = graph.addVertex(T.label, "person", T.id, "A", "name", "A");
+        Vertex bPerson = graph.addVertex(T.label, "person", T.id, "B", "name", "B");
+        Vertex cPerson = graph.addVertex(T.label, "person", T.id, "C", "name", "C");
 
         Vertex a = graph.addVertex(T.label, "movie", T.id, "a", "name", "a");
         Vertex b = graph.addVertex(T.label, "movie", T.id, "b", "name", "b");
         Vertex c = graph.addVertex(T.label, "movie", T.id, "c", "name", "c");
         Vertex d = graph.addVertex(T.label, "movie", T.id, "d", "name", "d");
 
-        A.addEdge("like", a);
-        A.addEdge("like", c);
+        aPerson.addEdge("like", a);
+        aPerson.addEdge("like", c);
 
-        B.addEdge("like", a);
-        B.addEdge("like", b);
-        B.addEdge("like", c);
-        B.addEdge("like", d);
+        bPerson.addEdge("like", a);
+        bPerson.addEdge("like", b);
+        bPerson.addEdge("like", c);
+        bPerson.addEdge("like", d);
 
-        C.addEdge("like", c);
-        C.addEdge("like", d);
+        cPerson.addEdge("like", c);
+        cPerson.addEdge("like", d);
 
         graph.tx().commit();
     }

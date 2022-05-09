@@ -44,31 +44,31 @@ public class GraphOfTheMoviesExample {
         long startTime = System.currentTimeMillis();
         GraphOfTheMoviesExample.load(graph);
         long endTime = System.currentTimeMillis();
-        System.out.println(">>>> adding all vertices cost time(s): " +
+        LOG.info(">>>> adding all vertices cost time(s): {}",
                            (endTime - startTime) / 1000.0);
 
         GraphOfTheMoviesExample.query(graph);
 
-        System.out.println(">>>> perf: " + PerfUtil.instance().toECharts());
+        LOG.info(">>>> perf: {}", PerfUtil.instance().toECharts());
         System.exit(0);
     }
 
     public static void query(HugeGraph graph) {
         // query all vertices
-        System.out.println(">>>> query all vertices");
+        LOG.info(">>>> query all vertices");
         GraphTraversal<Vertex, Vertex> vertex = graph.traversal().V();
-        System.out.println(">>>> query all vertices: size=" + vertex.toList().size());
+        LOG.info(">>>> query all vertices: size= {}", vertex.toList().size());
 
         // query all edges
         GraphTraversal<Edge, Edge> edges = graph.traversal().E();
-        System.out.println(">>>> query all edges: size=" + edges.toList().size());
+        LOG.info(">>>> query all edges: size= {}", edges.toList().size());
 
         // query edges by condition
         List<Edge> tomhanksMovies = graph.traversal().V()
                                          .hasLabel("person")
                                          .has("name", "Tom Hanks")
                                          .outE("ACTED_IN").toList();
-        System.out.println(">>>> Tom Hanks ACTED_IN: " + tomhanksMovies);
+        LOG.info(">>>> Tom Hanks ACTED_IN: {}", tomhanksMovies);
     }
 
     public static void load(final HugeGraph graph) {
@@ -112,10 +112,13 @@ public class GraphOfTheMoviesExample {
 
         graph.tx().open();
 
-        Vertex theMatrix = graph.addVertex(T.label, "movie", "title", "The Matrix", "released", 1999);
+        Vertex theMatrix = graph.addVertex(T.label, "movie", "title",
+            "The Matrix", "released", 1999);
         Vertex keanu = graph.addVertex(T.label, "person", "name", "keanu Reeves", "born", 1964);
-        Vertex carrie = graph.addVertex(T.label, "person", "name", "carrie-anne Moss", "born", 1967);
-        Vertex laurence = graph.addVertex(T.label, "person", "name", "laurence Fishburne", "born", 1961);
+        Vertex carrie = graph.addVertex(T.label, "person", "name", 
+            "carrie-anne Moss", "born", 1967);
+        Vertex laurence = graph.addVertex(T.label, "person", "name", 
+            "laurence Fishburne", "born", 1961);
         Vertex hugo = graph.addVertex(T.label, "person", "name", "hugo Weaving", "born", 1960);
         Vertex lillyW = graph.addVertex(T.label, "person", "name", "Lilly Wachowski", "born", 1967);
         Vertex lanaW = graph.addVertex(T.label, "person", "name", "Lana Wachowski", "born", 1965);
@@ -132,7 +135,8 @@ public class GraphOfTheMoviesExample {
         Vertex emil = graph.addVertex(T.label, "person", "name", "emil Eifrem", "born", 1978);
         emil.addEdge("ACTED_IN", theMatrix, "roles", "emil");
 
-        Vertex theMatrixReloaded = graph.addVertex(T.label, "movie", "title", "The Matrix Reloaded", "released", 2003);
+        Vertex theMatrixReloaded = graph.addVertex(T.label, "movie", "title",
+            "The Matrix Reloaded", "released", 2003);
 
         keanu.addEdge("ACTED_IN", theMatrixReloaded, "roles", "Neo");
         carrie.addEdge("ACTED_IN", theMatrixReloaded, "roles", "Trinity");
@@ -142,7 +146,8 @@ public class GraphOfTheMoviesExample {
         lanaW.addEdge("DIRECTED", theMatrix, "score", 10);
         joelS.addEdge("PRODUCED", theMatrixReloaded, "score", 10);
 
-        Vertex theMatrixRevolutions = graph.addVertex(T.label, "movie", "title", "The Matrix Revolutions", "released", 2003);
+        Vertex theMatrixRevolutions = graph.addVertex(T.label, "movie", "title",
+            "The Matrix Revolutions", "released", 2003);
 
         keanu.addEdge("ACTED_IN", theMatrixRevolutions, "roles", "Neo");
         carrie.addEdge("ACTED_IN", theMatrixRevolutions, "roles", "Trinity");
@@ -152,9 +157,11 @@ public class GraphOfTheMoviesExample {
         lanaW.addEdge("DIRECTED", theMatrixRevolutions, "score", 10);
         joelS.addEdge("PRODUCED", theMatrixRevolutions, "score", 10);
 
-        Vertex theDevilsadvocate = graph.addVertex(T.label, "movie", "title", "The Devil's advocate", "released", 1997);
+        Vertex theDevilsadvocate = graph.addVertex(T.label, "movie", "title",
+            "The Devil's advocate", "released", 1997);
 
-        Vertex charlize = graph.addVertex(T.label, "person", "name", "charlize Theron", "born", 1975);
+        Vertex charlize = graph.addVertex(T.label, "person", "name",
+            "charlize Theron", "born", 1975);
         Vertex al = graph.addVertex(T.label, "person", "name", "al Pacino", "born", 1940);
         Vertex taylor = graph.addVertex(T.label, "person", "name", "taylor Hackford", "born", 1944);
 
@@ -163,19 +170,22 @@ public class GraphOfTheMoviesExample {
         al.addEdge("ACTED_IN", theDevilsadvocate, "roles", "John Milton");
         taylor.addEdge("DIRECTED", theDevilsadvocate, "score", 10);
 
-        Vertex aFewGoodMen = graph.addVertex(T.label, "movie", "title", "a Few Good Men", "released", 1992);
+        Vertex aFewGoodMen = graph.addVertex(T.label, "movie", "title",
+             "a Few Good Men", "released", 1992);
 
         Vertex tomC = graph.addVertex(T.label, "person", "name", "Tom Cruise", "born", 1962);
         Vertex jackN = graph.addVertex(T.label, "person", "name", "Jack Nicholson", "born", 1937);
         Vertex demiM = graph.addVertex(T.label, "person", "name", "Demi Moore", "born", 1962);
         Vertex kevinB = graph.addVertex(T.label, "person", "name", "Kevin Bacon", "born", 1958);
-        Vertex kieferS = graph.addVertex(T.label, "person", "name", "Kiefer Sutherland", "born", 1966);
+        Vertex kieferS = graph.addVertex(T.label, "person", "name",
+            "Kiefer Sutherland", "born", 1966);
         Vertex noahW = graph.addVertex(T.label, "person", "name", "Noah Wyle", "born", 1971);
         Vertex cubaG = graph.addVertex(T.label, "person", "name", "Cuba Gooding Jr.", "born", 1968);
         Vertex kevinP = graph.addVertex(T.label, "person", "name", "Kevin Pollak", "born", 1957);
         Vertex jtw = graph.addVertex(T.label, "person", "name", "J.T. Walsh", "born", 1943);
         Vertex jamesM = graph.addVertex(T.label, "person", "name", "James Marshall", "born", 1967);
-        Vertex christopherG = graph.addVertex(T.label, "person", "name", "Christopher Guest", "born", 1948);
+        Vertex christopherG = graph.addVertex(T.label, "person", "name",
+             "Christopher Guest", "born", 1948);
         Vertex robR = graph.addVertex(T.label, "person", "name", "Rob Reiner", "born", 1947);
         Vertex aaronS = graph.addVertex(T.label, "person", "name", "aaron Sorkin", "born", 1961);
 
@@ -198,7 +208,8 @@ public class GraphOfTheMoviesExample {
 
         Vertex kellyM = graph.addVertex(T.label, "person", "name", "Kelly McGillis", "born", 1957);
         Vertex valK = graph.addVertex(T.label, "person", "name", "Val Kilmer", "born", 1959);
-        Vertex anthonyE = graph.addVertex(T.label, "person", "name", "anthony Edwards", "born", 1962);
+        Vertex anthonyE = graph.addVertex(T.label, "person", "name",
+            "anthony Edwards", "born", 1962);
         Vertex tomS = graph.addVertex(T.label, "person", "name", "Tom Skerritt", "born", 1933);
         Vertex megR = graph.addVertex(T.label, "person", "name", "Meg Ryan", "born", 1961);
         Vertex tonyS = graph.addVertex(T.label, "person", "name", "Tony Scott", "born", 1944);
@@ -213,7 +224,8 @@ public class GraphOfTheMoviesExample {
         tonyS.addEdge("DIRECTED", topGun, "score", 10);
         jimC.addEdge("WROTE", topGun, "score", 10);
 
-        Vertex jerryMaguire = graph.addVertex(T.label, "movie", "title", "Jerry Maguire", "released", 2000);
+        Vertex jerryMaguire = graph.addVertex(T.label, "movie", "title",
+            "Jerry Maguire", "released", 2000);
 
         Vertex reneeZ = graph.addVertex(T.label, "person", "name", "Renee Zellweger", "born", 1969);
         Vertex kellyP = graph.addVertex(T.label, "person", "name", "Kelly Preston", "born", 1962);
@@ -221,7 +233,8 @@ public class GraphOfTheMoviesExample {
         Vertex jayM = graph.addVertex(T.label, "person", "name", "Jay Mohr", "born", 1970);
         Vertex bonnieH = graph.addVertex(T.label, "person", "name", "Bonnie Hunt", "born", 1970);
         Vertex reginaK = graph.addVertex(T.label, "person", "name", "Regina King", "born", 1961);
-        Vertex jonathanL = graph.addVertex(T.label, "person", "name", "Jonathan Lipnicki", "born", 1996);
+        Vertex jonathanL = graph.addVertex(T.label, "person", "name",
+            "Jonathan Lipnicki", "born", 1996);
         Vertex cameronC = graph.addVertex(T.label, "person", "name", "Cameron Crowe", "born", 1957);
 
         tomC.addEdge("ACTED_IN", jerryMaguire, "roles", "Jerry Maguire");
@@ -237,13 +250,15 @@ public class GraphOfTheMoviesExample {
         cameronC.addEdge("PRODUCED", jerryMaguire, "score", 10);
         cameronC.addEdge("WROTE", jerryMaguire, "score", 10);
 
-        Vertex standByMe = graph.addVertex(T.label, "movie", "title", "Stand By Me", "released", 1986);
+        Vertex standByMe = graph.addVertex(T.label, "movie", "title",
+            "Stand By Me", "released", 1986);
 
         Vertex riverP = graph.addVertex(T.label, "person", "name", "River Phoenix", "born", 1970);
         Vertex coreyF = graph.addVertex(T.label, "person", "name", "Corey Feldman", "born", 1971);
         Vertex wilW = graph.addVertex(T.label, "person", "name", "Wil Wheaton", "born", 1972);
         Vertex johnC = graph.addVertex(T.label, "person", "name", "John Cusack", "born", 1966);
-        Vertex marshallB = graph.addVertex(T.label, "person", "name", "Marshall Bell", "born", 1942);
+        Vertex marshallB = graph.addVertex(T.label, "person", "name",
+             "Marshall Bell", "born", 1942);
 
         wilW.addEdge("ACTED_IN", standByMe, "roles", "Gordie Lachance");
         riverP.addEdge("ACTED_IN", standByMe, "roles", "Chris Chambers");
@@ -254,7 +269,8 @@ public class GraphOfTheMoviesExample {
         marshallB.addEdge("ACTED_IN", standByMe, "roles", "Mr. Lachance");
         robR.addEdge("DIRECTED", standByMe, "score", 10);
 
-        Vertex asGoodasItGets = graph.addVertex(T.label, "movie", "title", "as Good as It Gets", "released", 1997);
+        Vertex asGoodasItGets = graph.addVertex(T.label, "movie", "title",
+             "as Good as It Gets", "released", 1997);
 
         Vertex helenH = graph.addVertex(T.label, "person", "name", "Helen Hunt", "born", 1963);
         Vertex gregK = graph.addVertex(T.label, "person", "name", "Greg Kinnear", "born", 1963);
@@ -266,9 +282,11 @@ public class GraphOfTheMoviesExample {
         cubaG.addEdge("ACTED_IN", asGoodasItGets, "roles", "Frank Sachs");
         jamesB.addEdge("DIRECTED", asGoodasItGets, "score", 10);
 
-        Vertex whatDreamsMayCome = graph.addVertex(T.label, "movie", "title", "What Dreams May Come", "released", 1998);
+        Vertex whatDreamsMayCome = graph.addVertex(T.label, "movie", "title",
+             "What Dreams May Come", "released", 1998);
 
-        Vertex annabellaS = graph.addVertex(T.label, "person", "name", "annabella Sciorra", "born", 1960);
+        Vertex annabellaS = graph.addVertex(T.label, "person", "name",
+             "annabella Sciorra", "born", 1960);
         Vertex maxS = graph.addVertex(T.label, "person", "name", "Max von Sydow", "born", 1929);
         Vertex wernerH = graph.addVertex(T.label, "person", "name", "Werner Herzog", "born", 1942);
         Vertex robin = graph.addVertex(T.label, "person", "name", "robin Williams", "born", 1951);
@@ -281,7 +299,8 @@ public class GraphOfTheMoviesExample {
         wernerH.addEdge("ACTED_IN", whatDreamsMayCome, "roles", "The Face");
         vincentW.addEdge("DIRECTED", whatDreamsMayCome, "score", 10);
 
-        Vertex snowFallingonCedars = graph.addVertex(T.label, "movie", "title", "Snow Falling on Cedars", "released", 1999);
+        Vertex snowFallingonCedars = graph.addVertex(T.label, "movie", "title",
+             "Snow Falling on Cedars", "released", 1999);
 
         Vertex ethanH = graph.addVertex(T.label, "person", "name", "Ethan Hawke", "born", 1970);
         Vertex rickY = graph.addVertex(T.label, "person", "name", "Rick Yune", "born", 1971);
@@ -294,7 +313,8 @@ public class GraphOfTheMoviesExample {
         jamesC.addEdge("ACTED_IN", snowFallingonCedars, "roles", "Judge Fielding");
         scottH.addEdge("DIRECTED", snowFallingonCedars, "score", 10);
 
-        Vertex youveGotMail = graph.addVertex(T.label, "movie", "title", "You've Got Mail", "released", 1998);
+        Vertex youveGotMail = graph.addVertex(T.label, "movie", "title",
+             "You've Got Mail", "released", 1998);
 
         Vertex parkerP = graph.addVertex(T.label, "person", "name", "Parker Posey", "born", 1968);
         Vertex daveC = graph.addVertex(T.label, "person", "name", "Dave Chappelle", "born", 1973);
@@ -310,7 +330,8 @@ public class GraphOfTheMoviesExample {
         steveZ.addEdge("ACTED_IN", youveGotMail, "roles", "George Pappas");
         noraE.addEdge("DIRECTED", youveGotMail, "score", 10);
 
-        Vertex sleeplessInSeattle = graph.addVertex(T.label, "movie", "title", "Sleepless in Seattle", "released", 1993);
+        Vertex sleeplessInSeattle = graph.addVertex(T.label, "movie", "title",
+             "Sleepless in Seattle", "released", 1993);
 
         Vertex ritaW = graph.addVertex(T.label, "person", "name", "Rita Wilson", "born", 1956);
         Vertex billPull = graph.addVertex(T.label, "person", "name", "Bill Pullman", "born", 1953);
@@ -325,17 +346,21 @@ public class GraphOfTheMoviesExample {
         rosieO.addEdge("ACTED_IN", sleeplessInSeattle, "roles", "Becky");
         noraE.addEdge("DIRECTED", sleeplessInSeattle, "score", 10);
 
-        Vertex joeVersustheVolcano = graph.addVertex(T.label, "movie", "title", "Joe Versus the Volcano", "released", 1990);
+        Vertex joeVersustheVolcano = graph.addVertex(T.label, "movie", "title",
+             "Joe Versus the Volcano", "released", 1990);
 
-        Vertex johnS = graph.addVertex(T.label, "person", "name", "John Patrick Stanley", "born", 1950);
+        Vertex johnS = graph.addVertex(T.label, "person", "name",
+             "John Patrick Stanley", "born", 1950);
         Vertex nathan = graph.addVertex(T.label, "person", "name", "nathan Lane", "born", 1956);
 
         tomH.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "Joe Banks");
-        megR.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "DeDe, angelica Graynamore, Patricia Graynamore");
+        megR.addEdge("ACTED_IN", joeVersustheVolcano, "roles", 
+            "DeDe, angelica Graynamore, Patricia Graynamore");
         nathan.addEdge("ACTED_IN", joeVersustheVolcano, "roles", "Baw");
         johnS.addEdge("DIRECTED", joeVersustheVolcano, "score", 10);
 
-        Vertex whenHarryMetSally = graph.addVertex(T.label, "movie", "title", "When Harry Met Sally", "released", 1998);
+        Vertex whenHarryMetSally = graph.addVertex(T.label, "movie", "title",
+             "When Harry Met Sally", "released", 1998);
 
         Vertex billyC = graph.addVertex(T.label, "person", "name", "Billy Crystal", "born", 1948);
         Vertex carrieF = graph.addVertex(T.label, "person", "name", "carrie Fisher", "born", 1956);
@@ -350,7 +375,8 @@ public class GraphOfTheMoviesExample {
         noraE.addEdge("PRODUCED", whenHarryMetSally, "score", 10);
         noraE.addEdge("WROTE", whenHarryMetSally, "score", 10);
 
-        Vertex thatThingYouDo = graph.addVertex(T.label, "movie", "title", "That Thing You Do", "released", 1996);
+        Vertex thatThingYouDo = graph.addVertex(T.label, "movie", "title",
+             "That Thing You Do", "released", 1996);
 
         Vertex livT = graph.addVertex(T.label, "person", "name", "Liv Tyler", "born", 1977);
 
@@ -359,7 +385,8 @@ public class GraphOfTheMoviesExample {
         charlize.addEdge("ACTED_IN", thatThingYouDo, "roles", "Tina");
         tomH.addEdge("DIRECTED", thatThingYouDo, "score", 10);
 
-        Vertex theReplacements = graph.addVertex(T.label, "movie", "title", "The Replacements", "released", 2000);
+        Vertex theReplacements = graph.addVertex(T.label, "movie", "title",
+             "The Replacements", "released", 2000);
 
         Vertex brooke = graph.addVertex(T.label, "person", "name", "brooke Langton", "born", 1970);
         Vertex gene = graph.addVertex(T.label, "person", "name", "gene Hackman", "born", 1930);
@@ -372,9 +399,11 @@ public class GraphOfTheMoviesExample {
         orlando.addEdge("ACTED_IN", theReplacements, "roles", "Clifford Franklin");
         howard.addEdge("DIRECTED", theReplacements, "score", 10);
 
-        Vertex rescueDawn = graph.addVertex(T.label, "movie", "title", "rescueDawn", "released", 2006);
+        Vertex rescueDawn = graph.addVertex(T.label, "movie", "title",
+             "rescueDawn", "released", 2006);
 
-        Vertex christianB = graph.addVertex(T.label, "person", "name", "Christian Bale", "born", 1974);
+        Vertex christianB = graph.addVertex(T.label, "person", "name",
+             "Christian Bale", "born", 1974);
         Vertex zachG = graph.addVertex(T.label, "person", "name", "Zach Grenier", "born", 1954);
 
         marshallB.addEdge("ACTED_IN", rescueDawn, "roles", "admiral");
@@ -383,7 +412,8 @@ public class GraphOfTheMoviesExample {
         steveZ.addEdge("ACTED_IN", rescueDawn, "roles", "Duane");
         wernerH.addEdge("DIRECTED", rescueDawn, "score", 10);
 
-        Vertex theBirdcage = graph.addVertex(T.label, "movie", "title", "The Birdcage", "released", 1996);
+        Vertex theBirdcage = graph.addVertex(T.label, "movie", "title",
+             "The Birdcage", "released", 1996);
 
         Vertex mikeN = graph.addVertex(T.label, "person", "name", "Mike Nichols", "born", 1931);
 
@@ -392,9 +422,11 @@ public class GraphOfTheMoviesExample {
         gene.addEdge("ACTED_IN", theBirdcage, "roles", "Sen. Kevin Keeley");
         mikeN.addEdge("DIRECTED", theBirdcage, "score", 10);
 
-        Vertex unforgiven = graph.addVertex(T.label, "movie", "title", "unforgiven", "released", 1992);
+        Vertex unforgiven = graph.addVertex(T.label, "movie", "title",
+             "unforgiven", "released", 1992);
 
-        Vertex richardH = graph.addVertex(T.label, "person", "name", "Richard Harris", "born", 1930);
+        Vertex richardH = graph.addVertex(T.label, "person", "name",
+             "Richard Harris", "born", 1930);
         Vertex clintE = graph.addVertex(T.label, "person", "name", "Richard Harris", "born", 1930);
 
         richardH.addEdge("ACTED_IN", unforgiven, "roles", "English Bob");
@@ -402,7 +434,8 @@ public class GraphOfTheMoviesExample {
         gene.addEdge("ACTED_IN", unforgiven, "roles", "Little Bill Daggett");
         clintE.addEdge("DIRECTED", unforgiven, "score", 10);
 
-        Vertex johnnyMnemonic = graph.addVertex(T.label, "movie", "title", "Johnny Mnemonic", "released", 1995);
+        Vertex johnnyMnemonic = graph.addVertex(T.label, "movie", "title",
+             "Johnny Mnemonic", "released", 1995);
 
         Vertex takeshi = graph.addVertex(T.label, "person", "name", "takeshi Kitano", "born", 1947);
         Vertex dina = graph.addVertex(T.label, "person", "name", "dina Meyer", "born", 1968);
@@ -415,26 +448,33 @@ public class GraphOfTheMoviesExample {
         iceT.addEdge("ACTED_IN", johnnyMnemonic, "roles", "J-Bone");
         robertL.addEdge("DIRECTED", johnnyMnemonic, "score", 10);
 
-        Vertex cloudatlas = graph.addVertex(T.label, "movie", "title", "Cloud atlas", "released", 2012);
+        Vertex cloudatlas = graph.addVertex(T.label, "movie", "title",
+             "Cloud atlas", "released", 2012);
 
         Vertex halleB = graph.addVertex(T.label, "person", "name", "Halle Berry", "born", 1966);
         Vertex jimB = graph.addVertex(T.label, "person", "name", "Jim Broadbent", "born", 1949);
         Vertex tomT = graph.addVertex(T.label, "person", "name", "Tom Tykwer", "born", 1965);
-        Vertex davidMitchell = graph.addVertex(T.label, "person", "name", "David Mitchell", "born", 1969);
-        Vertex stefanarndt = graph.addVertex(T.label, "person", "name", "Stefan arndt", "born", 1961);
+        Vertex davidMitchell = graph.addVertex(T.label, "person", "name",
+             "David Mitchell", "born", 1969);
+        Vertex stefanarndt = graph.addVertex(T.label, "person", "name",
+             "Stefan arndt", "born", 1961);
 
-        tomH.addEdge("ACTED_IN", cloudatlas, "roles", "Zachry, Dr. Henry Goose, Isaac Sachs, Dermot Hoggins");
-        hugo.addEdge("ACTED_IN", cloudatlas, "roles", "Bill Smoke, Haskell Moore, Tadeusz Kesselring, Nurse Noakes,"
-                     + " Boardman Mephi, Old Georgie");
+        tomH.addEdge("ACTED_IN", cloudatlas, "roles",
+             "Zachry, Dr. Henry Goose, Isaac Sachs, Dermot Hoggins");
+        hugo.addEdge("ACTED_IN", cloudatlas, "roles",
+             "Bill Smoke, Haskell Moore, Tadeusz Kesselring, Nurse Noakes," +
+                      " Boardman Mephi, Old Georgie");
         halleB.addEdge("ACTED_IN", cloudatlas, "roles", "Luisa Rey, Jocasta ayrs, Ovid, Meronym");
-        jimB.addEdge("ACTED_IN", cloudatlas, "roles", "Vyvyan ayrs, Captain Molyneux, Timothy Cavendish");
+        jimB.addEdge("ACTED_IN", cloudatlas, "roles",
+             "Vyvyan ayrs, Captain Molyneux, Timothy Cavendish");
         tomT.addEdge("DIRECTED", cloudatlas, "score", 10);
         lillyW.addEdge("DIRECTED", cloudatlas, "score", 10);
         lanaW.addEdge("DIRECTED", cloudatlas, "score", 10);
         davidMitchell.addEdge("WROTE", cloudatlas, "score", 10);
         stefanarndt.addEdge("PRODUCED", cloudatlas, "score", 10);
 
-        Vertex theDaVinciCode = graph.addVertex(T.label, "movie", "title", "The Da Vinci Code", "released", 2006);
+        Vertex theDaVinciCode = graph.addVertex(T.label, "movie", "title",
+             "The Da Vinci Code", "released", 2006);
 
         Vertex ianM = graph.addVertex(T.label, "person", "name", "Ian McKellen", "born", 1939);
         Vertex audreyT = graph.addVertex(T.label, "person", "name", "audrey Tautou", "born", 1976);
@@ -447,9 +487,11 @@ public class GraphOfTheMoviesExample {
         paulB.addEdge("ACTED_IN", theDaVinciCode, "roles", "Silas");
         ronH.addEdge("DIRECTED", theDaVinciCode, "score", 10);
 
-        Vertex vforVendetta = graph.addVertex(T.label, "movie", "title", "The Da Vinci Code", "released", 2006);
+        Vertex vforVendetta = graph.addVertex(T.label, "movie", "title",
+             "The Da Vinci Code", "released", 2006);
 
-        Vertex natalieP = graph.addVertex(T.label, "person", "name", "Natalie Portman", "born", 1981);
+        Vertex natalieP = graph.addVertex(T.label, "person", "name",
+             "Natalie Portman", "born", 1981);
         Vertex stephenR = graph.addVertex(T.label, "person", "name", "Stephen Rea", "born", 1946);
         Vertex johnH = graph.addVertex(T.label, "person", "name", "John Hurt", "born", 1940);
         Vertex benM = graph.addVertex(T.label, "person", "name", "Ben Miles", "born", 1967);
@@ -466,13 +508,15 @@ public class GraphOfTheMoviesExample {
         lillyW.addEdge("WROTE", vforVendetta, "score", 10);
         lanaW.addEdge("WROTE", vforVendetta, "score", 10);
 
-        Vertex speedRacer = graph.addVertex(T.label, "movie", "title", "Speed Racer", "released", 2008);
+        Vertex speedRacer = graph.addVertex(T.label, "movie", "title",
+             "Speed Racer", "released", 2008);
 
         Vertex matthewF = graph.addVertex(T.label, "person", "name", "Matthew Fox", "born", 1966);
         Vertex emileH = graph.addVertex(T.label, "person", "name", "Emile Hirsch", "born", 1985);
         Vertex johnG = graph.addVertex(T.label, "person", "name", "John Goodman", "born", 1940);
         Vertex susanS = graph.addVertex(T.label, "person", "name", "Susan Sarandon", "born", 1966);
-        Vertex christinaR = graph.addVertex(T.label, "person", "name", "Christina Ricci", "born", 1980);
+        Vertex christinaR = graph.addVertex(T.label, "person", "name",
+             "Christina Ricci", "born", 1980);
         Vertex rain = graph.addVertex(T.label, "person", "name", "Rain", "born", 1982);
 
         emileH.addEdge("ACTED_IN", speedRacer, "roles", "Speed Racer");
@@ -488,7 +532,8 @@ public class GraphOfTheMoviesExample {
         lanaW.addEdge("WROTE", speedRacer, "score", 10);
         joelS.addEdge("PRODUCED", speedRacer, "score", 10);
 
-        Vertex ninjaassassin = graph.addVertex(T.label, "movie", "title", "Speed Racer", "released", 2009);
+        Vertex ninjaassassin = graph.addVertex(T.label, "movie", "title",
+             "Speed Racer", "released", 2009);
 
         Vertex naomieH = graph.addVertex(T.label, "person", "name", "Naomie Harris", "born", 1982);
 
@@ -501,13 +546,16 @@ public class GraphOfTheMoviesExample {
         lanaW.addEdge("PRODUCED", ninjaassassin, "score", 10);
         joelS.addEdge("PRODUCED", ninjaassassin, "score", 10);
 
-        Vertex theGreenMile = graph.addVertex(T.label, "movie", "title", "The Green Mile", "released", 1999);
+        Vertex theGreenMile = graph.addVertex(T.label, "movie", "title",
+             "The Green Mile", "released", 1999);
 
-        Vertex michaelD = graph.addVertex(T.label, "person", "name", "Michael Clarke Duncan", "born", 1957);
+        Vertex michaelD = graph.addVertex(T.label, "person", "name",
+             "Michael Clarke Duncan", "born", 1957);
         Vertex davidM = graph.addVertex(T.label, "person", "name", "David Morse", "born", 1953);
         Vertex samR = graph.addVertex(T.label, "person", "name", "Sam Rockwell", "born", 1968);
         Vertex garyS = graph.addVertex(T.label, "person", "name", "Gary Sinise", "born", 1955);
-        Vertex patriciaC = graph.addVertex(T.label, "person", "name", "Patricia Clarkson", "born", 1959);
+        Vertex patriciaC = graph.addVertex(T.label, "person", "name",
+             "Patricia Clarkson", "born", 1959);
         Vertex frankD = graph.addVertex(T.label, "person", "name", "Frank Darabont", "born", 1959);
 
         tomH.addEdge("ACTED_IN", theGreenMile, "roles", "Paul Edgecomb");
@@ -520,7 +568,8 @@ public class GraphOfTheMoviesExample {
         patriciaC.addEdge("ACTED_IN", theGreenMile, "roles", "Melinda Moores");
         frankD.addEdge("DIRECTED", theGreenMile, "score", 10);
 
-        Vertex frostNixon = graph.addVertex(T.label, "movie", "title", "Frost/Nixon", "released", 2008);
+        Vertex frostNixon = graph.addVertex(T.label, "movie", "title",
+             "Frost/Nixon", "released", 2008);
 
         Vertex frankL = graph.addVertex(T.label, "person", "name", "Frank Langella", "born", 1938);
         Vertex michaelS = graph.addVertex(T.label, "person", "name", "Michael Sheen", "born", 1969);
@@ -558,7 +607,8 @@ public class GraphOfTheMoviesExample {
 
         Vertex twister = graph.addVertex(T.label, "movie", "title", "twister", "released", 1996);
 
-        Vertex philipH = graph.addVertex(T.label, "person", "name", "Philip Seymour Hoffman", "born", 1967);
+        Vertex philipH = graph.addVertex(T.label, "person", "name",
+             "Philip Seymour Hoffman", "born", 1967);
         Vertex janB = graph.addVertex(T.label, "person", "name", "Jan de Bont", "born", 1943);
 
         billPax.addEdge("ACTED_IN", twister, "roles", "Bill Harding");
@@ -569,13 +619,15 @@ public class GraphOfTheMoviesExample {
 
         Vertex castaway = graph.addVertex(T.label, "movie", "title", "Cast away", "released", 2000);
 
-        Vertex robertZ = graph.addVertex(T.label, "person", "name", "Robert Zemeckis", "born", 1951);
+        Vertex robertZ = graph.addVertex(T.label, "person", "name",
+             "Robert Zemeckis", "born", 1951);
 
         tomH.addEdge("ACTED_IN", castaway, "roles", "Chuck Noland");
         helenH.addEdge("ACTED_IN", castaway, "roles", "Kelly Frears");
         robertZ.addEdge("DIRECTED", castaway, "score", 10);
 
-        Vertex oneFlewOvertheCuckoosNest = graph.addVertex(T.label, "movie", "title", "One Flew Over the Cuckoo's Nest", "released", 1975);
+        Vertex oneFlewOvertheCuckoosNest = graph.addVertex(T.label, "movie", "title",
+             "One Flew Over the Cuckoo's Nest", "released", 1975);
 
         Vertex milosF = graph.addVertex(T.label, "person", "name", "Milos Forman", "born", 1932);
 
@@ -583,7 +635,8 @@ public class GraphOfTheMoviesExample {
         dannyD.addEdge("ACTED_IN", oneFlewOvertheCuckoosNest, "roles", "Martini");
         milosF.addEdge("DIRECTED", oneFlewOvertheCuckoosNest, "score", 10);
 
-        Vertex somethingsGottaGive = graph.addVertex(T.label, "movie", "title", "Something's Gotta Give", "released", 2003);
+        Vertex somethingsGottaGive = graph.addVertex(T.label, "movie", "title",
+             "Something's Gotta Give", "released", 2003);
 
         Vertex dianeK = graph.addVertex(T.label, "person", "name", "Diane Keaton", "born", 1946);
         Vertex nancyM = graph.addVertex(T.label, "person", "name", "Nancy Meyers", "born", 1949);
@@ -595,7 +648,8 @@ public class GraphOfTheMoviesExample {
         nancyM.addEdge("PRODUCED", somethingsGottaGive, "score", 10);
         nancyM.addEdge("WROTE", somethingsGottaGive, "score", 10);
 
-        Vertex bicentennialMan = graph.addVertex(T.label, "movie", "title", "Bicentennial Man", "released", 2000);
+        Vertex bicentennialMan = graph.addVertex(T.label, "movie", "title",
+             "Bicentennial Man", "released", 2000);
 
         Vertex chrisC = graph.addVertex(T.label, "person", "name", "Chris Columbus", "born", 1958);
 
@@ -603,7 +657,8 @@ public class GraphOfTheMoviesExample {
         oliverP.addEdge("ACTED_IN", bicentennialMan, "roles", "Rupert Burns");
         chrisC.addEdge("DIRECTED", bicentennialMan, "score", 10);
 
-        Vertex charlieWilsonsWar = graph.addVertex(T.label, "movie", "title", "Charlie Wilson's War", "released", 2007);
+        Vertex charlieWilsonsWar = graph.addVertex(T.label, "movie", "title",
+             "Charlie Wilson's War", "released", 2007);
 
         Vertex juliaR = graph.addVertex(T.label, "person", "name", "Julia Roberts", "born", 1967);
 
@@ -612,13 +667,15 @@ public class GraphOfTheMoviesExample {
         philipH.addEdge("ACTED_IN", charlieWilsonsWar, "roles", "Gust avrakotos");
         mikeN.addEdge("DIRECTED", charlieWilsonsWar, "score", 10);
 
-        Vertex thePolarExpress = graph.addVertex(T.label, "movie", "title", "The Polar Express", "released", 2004);
+        Vertex thePolarExpress = graph.addVertex(T.label, "movie", "title",
+             "The Polar Express", "released", 2004);
 
         tomH.addEdge("ACTED_IN", thePolarExpress, "roles", "Hero Boy");
 
         robertZ.addEdge("DIRECTED", thePolarExpress, "score", 10);
 
-        Vertex aLeagueofTheirOwn = graph.addVertex(T.label, "movie", "title", "a League of Their Own", "released", 1992);
+        Vertex aLeagueofTheirOwn = graph.addVertex(T.label, "movie", "title",
+             "a League of Their Own", "released", 1992);
 
         Vertex madonna = graph.addVertex(T.label, "person", "name", "madonna", "born", 1954);
         Vertex geenaD = graph.addVertex(T.label, "person", "name", "Geena Davis", "born", 1956);

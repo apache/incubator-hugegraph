@@ -22,6 +22,7 @@ package com.baidu.hugegraph.example;
 import java.io.File;
 import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
@@ -32,8 +33,10 @@ import com.baidu.hugegraph.perf.PerfUtil;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.type.define.NodeRole;
+import com.baidu.hugegraph.util.Log;
 
 public class ExampleUtil {
+    private static final Logger LOG = Log.logger(ExampleUtil.class);
 
     private static boolean registered = false;
 
@@ -71,6 +74,7 @@ public class ExampleUtil {
                 conf = path;
             }
         } catch (Exception ignored) {
+            LOG.warn("loadGraph warn {} ",ignored);
         }
 
         HugeGraph graph = HugeFactory.open(conf);

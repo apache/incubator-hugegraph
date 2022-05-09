@@ -135,6 +135,10 @@ public class RolePermission {
         return Objects.equals(this.roles, other.roles);
     }
 
+    public int hashCode() {
+        return Objects.hash(this.roles);
+    }
+
     @Override
     public String toString() {
         return this.roles.toString();

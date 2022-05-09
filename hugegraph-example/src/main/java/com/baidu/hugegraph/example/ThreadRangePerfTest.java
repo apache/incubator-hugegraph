@@ -30,8 +30,8 @@ public class ThreadRangePerfTest {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 6) {
-            System.out.println("Usage: minThread maxThread threadStep " +
-                               "times multiple profile");
+            LOG.info("Usage: minThread maxThread threadStep " +
+                     "times multiple profile");
             return;
         }
 

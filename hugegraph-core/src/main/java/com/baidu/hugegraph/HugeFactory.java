@@ -45,7 +45,7 @@ public class HugeFactory {
 
     private static final Logger LOG = Log.logger(HugeGraph.class);
 
-    private static final Thread shutdownHook = new Thread(() -> {
+    private static final Thread SHUT_DOWN_HOOK = new Thread(() -> {
         LOG.info("HugeGraph is shutting down");
         HugeFactory.shutdown(30L);
     }, "hugegraph-shutdown");
@@ -54,14 +54,14 @@ public class HugeFactory {
         SerialEnum.registerInternalEnums();
         HugeGraph.registerTraversalStrategies(StandardHugeGraph.class);
 
-        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        Runtime.getRuntime().addShutdownHook(SHUT_DOWN_HOOK);
     }
 
     private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
 
-    private static final Map<String, HugeGraph> graphs = new HashMap<>();
+    private static final Map<String, HugeGraph> GRAPHS = new HashMap<>();
 
-    private static final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private static final AtomicBoolean SHUT_DOWN = new AtomicBoolean(false);
 
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = config instanceof HugeConfig ?
@@ -86,10 +86,10 @@ public class HugeFactory {
         String name = config.get(CoreOptions.STORE);
         checkGraphName(name, "graph config(like hugegraph.properties)");
         name = name.toLowerCase();
-        HugeGraph graph = graphs.get(name);
+        HugeGraph graph = GRAPHS.get(name);
         if (graph == null || graph.closed()) {
             graph = new StandardHugeGraph(config);
-            graphs.put(name, graph);
+            GRAPHS.put(name, graph);
         } else {
             String backend = config.get(CoreOptions.BACKEND);
             E.checkState(backend.equalsIgnoreCase(graph.backend()),
@@ -109,7 +109,7 @@ public class HugeFactory {
 
     public static void remove(HugeGraph graph) {
         String name = graph.option(CoreOptions.STORE);
-        graphs.remove(name);
+        GRAPHS.remove(name);
     }
 
     public static void checkGraphName(String name, String configFile) {
@@ -147,7 +147,7 @@ public class HugeFactory {
      * @param timeout seconds
      */
     public static void shutdown(long timeout) {
-        if (!shutdown.compareAndSet(false, true)) {
+        if (!SHUT_DOWN.compareAndSet(false, true)) {
             return;
         }
         try {
@@ -158,7 +158,7 @@ public class HugeFactory {
             OltpTraverser.destroy();
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
-            shutdown.compareAndSet(true, false);
+            SHUT_DOWN.compareAndSet(true, false);
             throw new HugeException("Failed to shutdown", e);
         }
 
@@ -166,6 +166,6 @@ public class HugeFactory {
     }
 
     public static void removeShutdownHook() {
-        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+        Runtime.getRuntime().removeShutdownHook(SHUT_DOWN_HOOK);
     }
 }

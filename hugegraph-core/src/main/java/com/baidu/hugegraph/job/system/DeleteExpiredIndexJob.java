@@ -74,7 +74,7 @@ public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
      */
     private void deleteExpiredIndex(HugeGraphParams graph, HugeIndex index) {
         GraphTransaction tx = graph.graphTransaction();
-        HugeType type = index.indexLabel().queryType().isVertex()?
+        HugeType type = index.indexLabel().queryType().isVertex() ?
                         HugeType.VERTEX : HugeType.EDGE;
         IdQuery query = new IdQuery(type);
         query.query(index.elementId());

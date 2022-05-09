@@ -62,7 +62,7 @@ public class TaskExample {
         scheduler.save(task);
         Iterator<HugeTask<Object>> iter;
         iter = scheduler.tasks(TaskStatus.RUNNING, -1, null);
-        System.out.println(">>>> running task: " + IteratorUtils.toList(iter));
+        LOG.info(">>>> running task: {}", IteratorUtils.toList(iter));
 
         Thread.sleep(TestTask.UNIT * 33);
         task.cancel(true);
@@ -74,10 +74,10 @@ public class TaskExample {
         assert iter.hasNext();
         task = iter.next();
 
-        System.out.println(">>>> task may be interrupted");
+        LOG.info(">>>> task may be interrupted");
 
         Thread.sleep(TestTask.UNIT * 10);
-        System.out.println(">>>> restore task...");
+        LOG.info(">>>> restore task...");
         Whitebox.setInternalState(task, "status", TaskStatus.RUNNING);
         scheduler.restoreTasks();
         Thread.sleep(TestTask.UNIT * 80);
@@ -98,10 +98,9 @@ public class TaskExample {
 
         @Override
         public Integer call() throws Exception {
-            System.out.println(">>>> running task with parameter: " +
-                               this.task().input());
+            LOG.info(">>>> running task with parameter: {}", this.task().input());
             for (int i = this.task().progress(); i <= 100 && this.run; i++) {
-                System.out.println(">>>> progress " + i);
+                LOG.info(">>>> progress {}", i);
                 this.task().progress(i);
                 this.graph().taskScheduler().save(this.task());
                 Thread.sleep(UNIT);
