@@ -69,7 +69,7 @@ public class Reflection {
             try {
                 registerMethodsToFilterMethodTemp =
                         REFLECTION_CLAZZ.getMethod("registerMethodsToFilter",
-                                          Class.class, String[].class);
+                                                   Class.class, String[].class);
             } catch (NoSuchMethodException e) {
                 LOG.error("Can't find registerMethodsToFilter method", e);
             }
@@ -88,7 +88,7 @@ public class Reflection {
         try {
             REGISTER_FILEDS_TO_FILTER_METHOD.setAccessible(true);
             REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ,
-                                                containingClass, fieldNames);
+                                                    containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
                       "Failed to register class '%s' fields to filter: %s",
@@ -106,7 +106,7 @@ public class Reflection {
         try {
             REGISTER_METHODS_TO_FILTER_MOTHOD.setAccessible(true);
             REGISTER_METHODS_TO_FILTER_MOTHOD.invoke(REFLECTION_CLAZZ,
-                                                 containingClass, methodNames);
+                                                     containingClass, methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
                       "Failed to register class '%s' methods to filter: %s",
