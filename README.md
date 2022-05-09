@@ -12,7 +12,7 @@
 [![Codecov](https://codecov.io/gh/hugegraph/hugegraph/branch/master/graph/badge.svg)](https://codecov.io/gh/hugegraph/hugegraph)
 [![GitHub Releases Downloads](https://img.shields.io/github/downloads/hugegraph/hugegraph/total.svg)](https://github.com/hugegraph/hugegraph/releases)
 
-HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
+[HugeGraph](https://hugegraph.apache.org/) is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
 
 ## Features
 
@@ -24,7 +24,7 @@ HugeGraph is a fast-speed and highly-scalable [graph database](https://en.wikipe
 
 ## Getting Started
 
-The project [homepage](https://hugegraph.github.io/hugegraph-doc/) contains more information on HugeGraph and provides links to **documentation**, getting-started guides and release downloads.
+The project [homepage](https://hugegraph.apache.org/docs/) contains more information on HugeGraph and provides links to **documentation**, getting-started guides and release downloads.
 
 And here are links of other repositories:
 1. [hugegraph-toolchain](https://github.com/apache/incubator-hugegraph-toolchain) (include loader/dashboard/tool/client)
