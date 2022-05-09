@@ -119,8 +119,8 @@ public class SecurityManagerTest {
     @Test
     public void testFile() {
         // read file
-        try {
-            FileInputStream fis = new FileInputStream(new File(""));
+        try (FileInputStream fis = new FileInputStream(new File(""))) {
+            // pass
         } catch (IOException ignored) {
             // ignored exception
         }
@@ -129,8 +129,8 @@ public class SecurityManagerTest {
 
         // read file
         String pom = System.getProperty("user.dir") + "/a.groovy";
-        try {
-            FileInputStream fis = new FileInputStream(new File(pom));
+        try (FileInputStream fis = new FileInputStream(new File(pom))) {
+            // pass
         } catch (IOException ignored) {
             // ignored exception
         }
@@ -150,8 +150,8 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to read file via Gremlin");
 
         // write file
-        try {
-            FileOutputStream fos = new FileOutputStream(new File(""));
+        try (FileOutputStream fos = new FileOutputStream(new File(""))) {
+            // pass
         } catch (IOException ignored) {
             // ignored IOException
         }
@@ -182,8 +182,8 @@ public class SecurityManagerTest {
          * NOTE: if remove this, gremlin job will call System.loadLibrary("net")
          * then throw exception because checkLink failed
          */
-        try {
-            ServerSocket serverSocket = new ServerSocket(8200);
+        try (ServerSocket serverSocket = new ServerSocket(8200)) {
+            // pass
         } catch (IOException ignored) {
             // ignored UnsatisfiedLinkError
         }
