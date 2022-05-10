@@ -107,12 +107,12 @@ public abstract class CassandraTable
             statement.setReadTimeoutMillis(timeout * 1000);
             return session.query(statement);
         }, (q, rs) -> {
-            Row row = rs.one();
-            if (row == null) {
-                return IteratorUtils.of(aggregate.defaultValue());
-            }
-            return IteratorUtils.of(row.getLong(0));
-        });
+                Row row = rs.one();
+                if (row == null) {
+                    return IteratorUtils.of(aggregate.defaultValue());
+                }
+                return IteratorUtils.of(row.getLong(0));
+            });
         return aggregate.reduce(results);
     }
 
