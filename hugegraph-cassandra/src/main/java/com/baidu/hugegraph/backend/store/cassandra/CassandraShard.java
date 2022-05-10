@@ -208,8 +208,8 @@ public class CassandraShard {
     private Map<TokenRange, Set<Host>> getRangeMap() {
         Metadata metadata = this.session.metadata();
         return metadata.getTokenRanges().stream().collect(Collectors.toMap(
-                p -> p,
-                p -> metadata.getReplicas('"' + this.keyspace + '"', p)));
+            p -> p,
+            p -> metadata.getReplicas('"' + this.keyspace + '"', p)));
     }
 
     private static Map<TokenRange, Long> describeSplits(

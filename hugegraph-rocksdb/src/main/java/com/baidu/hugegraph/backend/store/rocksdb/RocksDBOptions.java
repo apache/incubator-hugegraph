@@ -168,7 +168,8 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_BG_JOBS =
             new ConfigOption<>(
                     "rocksdb.max_background_jobs",
-                    "Maximum number of concurrent background jobs, including flushes and compactions.",
+                    "Maximum number of concurrent background jobs, " +
+                    "including flushes and compactions.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8
             );
