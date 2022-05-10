@@ -57,7 +57,7 @@ public class CypherApiTest extends BaseApiTest {
 
     @Test
     public void testPost() {
-        this.testCypherQueryAndContains(query, "Beijing");
+        this.testCypherQueryAndContains(query, queryResult);
     }
 
     @Test

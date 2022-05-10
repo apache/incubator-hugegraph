@@ -1,7 +1,5 @@
 package com.baidu.hugegraph.api.gremlin;
 
-import java.util.Collections;
-
 import org.opencypher.gremlin.translation.TranslationFacade;
 import org.slf4j.Logger;
 
@@ -20,8 +18,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 @Path("graphs/{graph}/cypher")
@@ -62,12 +58,16 @@ public class CypherAPI extends GremlinQueryAPI {
                         "The cypher parameter can't be null or empty");
 
         String gremlin = this.translateCpyher2Gremlin(graph, cypher);
-        LOG.info("translated gremlin is {}", gremlin);
+        LOG.debug("translated gremlin is {}", gremlin);
 
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-        MultivaluedMap<String, String> params = new MultivaluedHashMap<>();
-        params.put("gremlin", Collections.singletonList(gremlin));
-        Response response = this.client().doGetRequest(auth, params);
+        String request = "{"
+                         + "\"gremlin\":\"" + gremlin + "\","
+                         + "\"bindings\":{},"
+                         + "\"language\":\"gremlin-groovy\","
+                         + "\"aliases\":{\"g\":\"__g_" + graph + "\"}}";
+
+        Response response = this.client().doPostRequest(auth, request);
         return transformResponseIfNeeded(response);
     }
 
@@ -79,13 +79,13 @@ public class CypherAPI extends GremlinQueryAPI {
     }
 
     private String buildQueryableGremlin(String graph, String gremlin) {
-        // init g by graph name
-        gremlin = "g = " + graph + ".traversal()\n" + gremlin;
-
-        // CREATE (a:person { name : "test", age: 20, city: "Hefei" }) return a
-        // translate to :
-        // g.addV('person').as('a').property(single, 'name', 'test') ...
-        // NOTE: ".property(single" will raise error
+        /*
+         * `CREATE (a:person { name : 'test', age: 20) return a`
+         * would be translated to :
+         * `g.addV('person').as('a').property(single, 'name', 'test') ...`,
+         * but hugegraph don't support `.property(single, k, v)`,
+         * so we replace it to .property(k, v) here
+         */
         gremlin = gremlin.replace(".property(single,", ".property(");
 
         return gremlin;
