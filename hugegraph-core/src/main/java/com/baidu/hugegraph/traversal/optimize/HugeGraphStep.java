@@ -198,6 +198,21 @@ public final class HugeGraphStep<S, E extends Element>
         return this.lastTimeResults;
     }
 
+    public boolean equals(Object obj) {
+        if (!(obj instanceof HugeGraphStep)) {
+            return false;
+        }
+
+        if (!super.equals(obj)) {
+            return false;
+        }
+
+        HugeGraphStep other = (HugeGraphStep) obj;
+        return this.hasContainers.equals(other.hasContainers) &&
+               this.queryInfo.equals(other.queryInfo) &&
+               this.lastTimeResults.equals(other.lastTimeResults);
+    }
+
     @Override
     public int hashCode() {
         return super.hashCode() ^

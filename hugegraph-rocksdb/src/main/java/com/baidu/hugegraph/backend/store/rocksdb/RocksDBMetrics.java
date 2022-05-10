@@ -198,7 +198,7 @@ public class RocksDBMetrics implements BackendMetrics {
         double total = 0;
         for (RocksDBSessions db : this.dbs) {
             List<String> cfValues = db.property(property);
-            for(String value : cfValues) {
+            for (String value : cfValues) {
                 total += Double.parseDouble(value);
             }
             for (String table : db.openedTables()) {
@@ -212,7 +212,7 @@ public class RocksDBMetrics implements BackendMetrics {
         double total = 0;
         for (RocksDBSessions db : this.dbs) {
             List<String> cfValues = db.property(property);
-            for(String value : cfValues) {
+            for (String value : cfValues) {
                 total += Double.parseDouble(value);
             }
         }

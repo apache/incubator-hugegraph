@@ -63,126 +63,184 @@ import com.baidu.hugegraph.type.define.NodeRole;
  */
 public interface HugeGraph extends Graph {
 
-    public HugeGraph hugegraph();
+    HugeGraph hugegraph();
 
-    public SchemaManager schema();
+    SchemaManager schema();
 
-    public Id getNextId(HugeType type);
+    Id getNextId(HugeType type);
 
-    public Id addPropertyKey(PropertyKey key);
-    public Id removePropertyKey(Id key);
-    public Id clearPropertyKey(PropertyKey propertyKey);
-    public Collection<PropertyKey> propertyKeys();
-    public PropertyKey propertyKey(String key);
-    public PropertyKey propertyKey(Id key);
-    public boolean existsPropertyKey(String key);
+    Id addPropertyKey(PropertyKey key);
 
-    public void addVertexLabel(VertexLabel vertexLabel);
-    public Id removeVertexLabel(Id label);
-    public Collection<VertexLabel> vertexLabels();
-    public VertexLabel vertexLabel(String label);
-    public VertexLabel vertexLabel(Id label);
-    public VertexLabel vertexLabelOrNone(Id id);
-    public boolean existsVertexLabel(String label);
-    public boolean existsLinkLabel(Id vertexLabel);
+    Id removePropertyKey(Id key);
 
-    public void addEdgeLabel(EdgeLabel edgeLabel);
-    public Id removeEdgeLabel(Id label);
-    public Collection<EdgeLabel> edgeLabels();
-    public EdgeLabel edgeLabel(String label);
-    public EdgeLabel edgeLabel(Id label);
-    public EdgeLabel edgeLabelOrNone(Id label);
-    public boolean existsEdgeLabel(String label);
+    Id clearPropertyKey(PropertyKey propertyKey);
 
-    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel);
-    public Id removeIndexLabel(Id label);
-    public Id rebuildIndex(SchemaElement schema);
-    public Collection<IndexLabel> indexLabels();
-    public IndexLabel indexLabel(String label);
-    public IndexLabel indexLabel(Id id);
-    public boolean existsIndexLabel(String label);
+    Collection<PropertyKey> propertyKeys();
 
-    @Override
-    public Vertex addVertex(Object... keyValues);
-    public void removeVertex(Vertex vertex);
-    public void removeVertex(String label, Object id);
-    public <V> void addVertexProperty(VertexProperty<V> property);
-    public <V> void removeVertexProperty(VertexProperty<V> property);
+    PropertyKey propertyKey(String key);
 
-    public Edge addEdge(Edge edge);
-    public void canAddEdge(Edge edge);
-    public void removeEdge(Edge edge);
-    public void removeEdge(String label, Object id);
-    public <V> void addEdgeProperty(Property<V> property);
-    public <V> void removeEdgeProperty(Property<V> property);
+    PropertyKey propertyKey(Id key);
 
-    public Vertex vertex(Object object);
-    @Override
-    public Iterator<Vertex> vertices(Object... objects);
-    public Iterator<Vertex> vertices(Query query);
-    public Iterator<Vertex> adjacentVertex(Object id);
-    public boolean checkAdjacentVertexExist();
+    boolean existsPropertyKey(String key);
 
-    public Edge edge(Object object);
-    @Override
-    public Iterator<Edge> edges(Object... objects);
-    public Iterator<Edge> edges(Query query);
-    public Iterator<Vertex> adjacentVertices(Iterator<Edge> edges) ;
-    public Iterator<Edge> adjacentEdges(Id vertexId);
+    void addVertexLabel(VertexLabel vertexLabel);
 
-    public Number queryNumber(Query query);
+    Id removeVertexLabel(Id label);
 
-    public String name();
-    public String backend();
-    public String backendVersion();
-    public BackendStoreSystemInfo backendStoreSystemInfo();
-    public BackendFeatures backendStoreFeatures();
+    Collection<VertexLabel> vertexLabels();
 
-    public GraphMode mode();
-    public void mode(GraphMode mode);
+    VertexLabel vertexLabel(String label);
 
-    public GraphReadMode readMode();
-    public void readMode(GraphReadMode readMode);
+    VertexLabel vertexLabel(Id label);
 
-    public void waitStarted();
-    public void serverStarted(Id serverId, NodeRole serverRole);
-    public boolean started();
-    public boolean closed();
+    VertexLabel vertexLabelOrNone(Id id);
 
-    public <T> T metadata(HugeType type, String meta, Object... args);
+    boolean existsVertexLabel(String label);
 
-    public void initBackend();
-    public void clearBackend();
-    public void truncateBackend();
+    boolean existsLinkLabel(Id vertexLabel);
 
-    public void createSnapshot();
-    public void resumeSnapshot();
+    void addEdgeLabel(EdgeLabel edgeLabel);
 
-    public void create(String configPath, Id server, NodeRole role);
-    public void drop();
+    Id removeEdgeLabel(Id label);
 
-    public HugeConfig cloneConfig(String newGraph);
+    Collection<EdgeLabel> edgeLabels();
+
+    EdgeLabel edgeLabel(String label);
+
+    EdgeLabel edgeLabel(Id label);
+
+    EdgeLabel edgeLabelOrNone(Id label);
+
+    boolean existsEdgeLabel(String label);
+
+    void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel);
+
+    Id removeIndexLabel(Id label);
+
+    Id rebuildIndex(SchemaElement schema);
+
+    Collection<IndexLabel> indexLabels();
+
+    IndexLabel indexLabel(String label);
+
+    IndexLabel indexLabel(Id id);
+
+    boolean existsIndexLabel(String label);
 
     @Override
-    public HugeFeatures features();
+    Vertex addVertex(Object... keyValues);
 
-    public AuthManager authManager();
-    public void switchAuthManager(AuthManager authManager);
-    public TaskScheduler taskScheduler();
-    public RaftGroupManager raftGroupManager(String group);
+    void removeVertex(Vertex vertex);
 
-    public void proxy(HugeGraph graph);
+    void removeVertex(String label, Object id);
 
-    public boolean sameAs(HugeGraph graph);
+    <V> void addVertexProperty(VertexProperty<V> property);
 
-    public long now();
+    <V> void removeVertexProperty(VertexProperty<V> property);
 
-    public <K, V> V option(TypedOption<K, V> option);
+    Edge addEdge(Edge edge);
 
-    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
+    void canAddEdge(Edge edge);
+
+    void removeEdge(Edge edge);
+
+    void removeEdge(String label, Object id);
+
+    <V> void addEdgeProperty(Property<V> property);
+
+    <V> void removeEdgeProperty(Property<V> property);
+
+    Vertex vertex(Object object);
+
+    @Override
+    Iterator<Vertex> vertices(Object... objects);
+
+    Iterator<Vertex> vertices(Query query);
+
+    Iterator<Vertex> adjacentVertex(Object id);
+
+    boolean checkAdjacentVertexExist();
+
+    Edge edge(Object object);
+
+    @Override
+    Iterator<Edge> edges(Object... objects);
+
+    Iterator<Edge> edges(Query query);
+
+    Iterator<Vertex> adjacentVertices(Iterator<Edge> edges);
+
+    Iterator<Edge> adjacentEdges(Id vertexId);
+
+    Number queryNumber(Query query);
+
+    String name();
+
+    String backend();
+
+    String backendVersion();
+
+    BackendStoreSystemInfo backendStoreSystemInfo();
+
+    BackendFeatures backendStoreFeatures();
+
+    GraphMode mode();
+
+    void mode(GraphMode mode);
+
+    GraphReadMode readMode();
+
+    void readMode(GraphReadMode readMode);
+
+    void waitStarted();
+
+    void serverStarted(Id serverId, NodeRole serverRole);
+
+    boolean started();
+
+    boolean closed();
+
+    <T> T metadata(HugeType type, String meta, Object... args);
+
+    void initBackend();
+
+    void clearBackend();
+
+    void truncateBackend();
+
+    void createSnapshot();
+
+    void resumeSnapshot();
+
+    void create(String configPath, Id server, NodeRole role);
+
+    void drop();
+
+    HugeConfig cloneConfig(String newGraph);
+
+    @Override
+    HugeFeatures features();
+
+    AuthManager authManager();
+
+    void switchAuthManager(AuthManager authManager);
+
+    TaskScheduler taskScheduler();
+
+    RaftGroupManager raftGroupManager(String group);
+
+    void proxy(HugeGraph graph);
+
+    boolean sameAs(HugeGraph graph);
+
+    long now();
+
+    <K, V> V option(TypedOption<K, V> option);
+
+    void registerRpcServices(RpcServiceConfig4Server serverConfig,
                                     RpcServiceConfig4Client clientConfig);
 
-    public default List<String> mapPkId2Name(Collection<Id> ids) {
+    default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {
             SchemaElement schema = this.propertyKey(id);
@@ -191,7 +249,7 @@ public interface HugeGraph extends Graph {
         return names;
     }
 
-    public default List<String> mapVlId2Name(Collection<Id> ids) {
+    default List<String> mapVlId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {
             SchemaElement schema = this.vertexLabel(id);
@@ -200,7 +258,7 @@ public interface HugeGraph extends Graph {
         return names;
     }
 
-    public default List<String> mapElId2Name(Collection<Id> ids) {
+    default List<String> mapElId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {
             SchemaElement schema = this.edgeLabel(id);
@@ -209,7 +267,7 @@ public interface HugeGraph extends Graph {
         return names;
     }
 
-    public default List<String> mapIlId2Name(Collection<Id> ids) {
+    default List<String> mapIlId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {
             SchemaElement schema = this.indexLabel(id);
@@ -218,7 +276,7 @@ public interface HugeGraph extends Graph {
         return names;
     }
 
-    public default List<Id> mapPkName2Id(Collection<String> pkeys) {
+    default List<Id> mapPkName2Id(Collection<String> pkeys) {
         List<Id> ids = new ArrayList<>(pkeys.size());
         for (String pkey : pkeys) {
             PropertyKey propertyKey = this.propertyKey(pkey);
@@ -227,7 +285,7 @@ public interface HugeGraph extends Graph {
         return ids;
     }
 
-    public default Id[] mapElName2Id(String[] edgeLabels) {
+    default Id[] mapElName2Id(String[] edgeLabels) {
         Id[] ids = new Id[edgeLabels.length];
         for (int i = 0; i < edgeLabels.length; i++) {
             EdgeLabel edgeLabel = this.edgeLabel(edgeLabels[i]);
@@ -236,7 +294,7 @@ public interface HugeGraph extends Graph {
         return ids;
     }
 
-    public default Id[] mapVlName2Id(String[] vertexLabels) {
+    default Id[] mapVlName2Id(String[] vertexLabels) {
         Id[] ids = new Id[vertexLabels.length];
         for (int i = 0; i < vertexLabels.length; i++) {
             VertexLabel vertexLabel = this.vertexLabel(vertexLabels[i]);
@@ -245,7 +303,7 @@ public interface HugeGraph extends Graph {
         return ids;
     }
 
-    public static void registerTraversalStrategies(Class<?> clazz) {
+    static void registerTraversalStrategies(Class<?> clazz) {
         TraversalStrategies strategies = null;
         strategies = TraversalStrategies.GlobalCache
                                         .getStrategies(Graph.class)

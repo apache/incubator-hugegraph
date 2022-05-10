@@ -213,7 +213,9 @@ public class CassandraSessionPool extends BackendSessionPool {
             assert this.session == null;
             try {
                 this.open();
-            } catch (InvalidQueryException ignored) {}
+            } catch (InvalidQueryException ignored) {
+                // ignore
+            }
         }
 
         @Override
