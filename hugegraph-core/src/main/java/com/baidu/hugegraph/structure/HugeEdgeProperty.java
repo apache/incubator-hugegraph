@@ -63,6 +63,10 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
         return ElementHelper.areEqual(this, obj);
     }
 
+    public int hashCode() {
+        return ElementHelper.hashCode(this);
+    }
+
     public HugeEdgeProperty<V> switchEdgeOwner() {
         assert this.owner instanceof HugeEdge;
         return new HugeEdgeProperty<V>(((HugeEdge) this.owner).switchOwner(),

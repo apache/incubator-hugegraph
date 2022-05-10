@@ -46,6 +46,20 @@ public final class HugeCountStep<S extends Element>
         this.originGraphStep = originGraphStep;
     }
 
+    public boolean equals(Object obj) {
+        if (!(obj instanceof HugeCountStep)) {
+            return false;
+        }
+
+        if (!super.equals(obj)) {
+            return false;
+        }
+
+        HugeCountStep other = (HugeCountStep) obj;
+        return Objects.equals(this.originGraphStep,
+                              other.originGraphStep) && this.done == other.done;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), this.originGraphStep, this.done);

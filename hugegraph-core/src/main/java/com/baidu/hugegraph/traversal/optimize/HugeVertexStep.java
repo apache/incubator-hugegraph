@@ -231,6 +231,21 @@ public class HugeVertexStep<E extends Element>
         return this.iterator;
     }
 
+    public boolean equals(Object obj) {
+        if (!(obj instanceof HugeVertexStep)) {
+            return false;
+        }
+
+        if (!super.equals(obj)) {
+            return false;
+        }
+
+        HugeVertexStep other = (HugeVertexStep) obj;
+        return this.hasContainers.equals(other.hasContainers) &&
+               this.queryInfo.equals(other.queryInfo) &&
+               this.iterator.equals(other.iterator);
+    }
+
     @Override
     public int hashCode() {
         return super.hashCode() ^

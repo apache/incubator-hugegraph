@@ -25,12 +25,9 @@ import java.io.LineNumberReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.configuration.tree.ConfigurationNode;
-import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.HierarchicalConfiguration;
 import org.apache.commons.configuration2.YAMLConfiguration;
 import org.apache.commons.configuration2.io.FileHandler;
@@ -117,9 +114,9 @@ public abstract class AbstractComputer implements Computer {
             Process process = builder.start();
 
             StringBuilder output = new StringBuilder();
-            try(LineNumberReader reader = new LineNumberReader(
-                                          new InputStreamReader(
-                                          process.getInputStream()))) {
+            try (LineNumberReader reader = new LineNumberReader(
+                                           new InputStreamReader(
+                                           process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");

@@ -38,38 +38,55 @@ import com.google.common.util.concurrent.RateLimiter;
  */
 public interface HugeGraphParams {
 
-    public HugeGraph graph();
-    public String name();
-    public GraphMode mode();
-    public GraphReadMode readMode();
+    HugeGraph graph();
 
-    public SchemaTransaction schemaTransaction();
-    public GraphTransaction systemTransaction();
-    public GraphTransaction graphTransaction();
+    String name();
 
-    public GraphTransaction openTransaction();
-    public void closeTx();
+    GraphMode mode();
 
-    public boolean started();
-    public boolean closed();
-    public boolean initialized();
-    public BackendFeatures backendStoreFeatures();
+    GraphReadMode readMode();
 
-    public BackendStore loadSchemaStore();
-    public BackendStore loadGraphStore();
-    public BackendStore loadSystemStore();
+    SchemaTransaction schemaTransaction();
 
-    public EventHub schemaEventHub();
-    public EventHub graphEventHub();
-    public EventHub indexEventHub();
+    GraphTransaction systemTransaction();
 
-    public HugeConfig configuration();
+    GraphTransaction graphTransaction();
 
-    public ServerInfoManager serverManager();
+    GraphTransaction openTransaction();
 
-    public AbstractSerializer serializer();
-    public Analyzer analyzer();
-    public RateLimiter writeRateLimiter();
-    public RateLimiter readRateLimiter();
-    public RamTable ramtable();
+    void closeTx();
+
+    boolean started();
+
+    boolean closed();
+
+    boolean initialized();
+
+    BackendFeatures backendStoreFeatures();
+
+    BackendStore loadSchemaStore();
+
+    BackendStore loadGraphStore();
+
+    BackendStore loadSystemStore();
+
+    EventHub schemaEventHub();
+
+    EventHub graphEventHub();
+
+    EventHub indexEventHub();
+
+    HugeConfig configuration();
+
+    ServerInfoManager serverManager();
+
+    AbstractSerializer serializer();
+
+    Analyzer analyzer();
+
+    RateLimiter writeRateLimiter();
+
+    RateLimiter readRateLimiter();
+
+    RamTable ramtable();
 }
