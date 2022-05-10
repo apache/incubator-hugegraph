@@ -81,10 +81,10 @@ public class CypherAPI extends GremlinQueryAPI {
     private String buildQueryableGremlin(String graph, String gremlin) {
         /*
          * `CREATE (a:person { name : 'test', age: 20) return a`
-         * would be translated to :
+         * would be translated to:
          * `g.addV('person').as('a').property(single, 'name', 'test') ...`,
          * but hugegraph don't support `.property(single, k, v)`,
-         * so we replace it to .property(k, v) here
+         * so we replace it to `.property(k, v)` here
          */
         gremlin = gremlin.replace(".property(single,", ".property(");
 
