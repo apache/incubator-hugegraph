@@ -871,7 +871,7 @@ public class BinarySerializer extends AbstractSerializer {
         buffer.write(parsedEntry.id().asBytes());
         buffer.write(bytes);
         parsedEntry = new BinaryBackendEntry(originEntry.type(), new BinaryId(buffer.bytes(),
-                                                BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+                                             BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
 
         for (BackendEntry.BackendColumn col : originEntry.columns()) {
             parsedEntry.column(buffer.bytes(), col.value);
