@@ -41,7 +41,7 @@ public class CassandraTest {
     @Before
     public void setup() {
         OptionSpace.register("cassandra",
-            "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
+                             "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
     }
 
     @After
