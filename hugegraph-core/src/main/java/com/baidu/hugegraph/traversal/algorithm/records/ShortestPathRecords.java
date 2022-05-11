@@ -107,7 +107,7 @@ public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
         List<Id> ids = new ArrayList<>(size);
         ids.add(this.id(node));
         int value = node;
-        for (int i = size - 1; i > 0 ; i--) {
+        for (int i = size - 1; i > 0; i--) {
             IntMap layer = ((Int2IntRecord) all.elementAt(i)).layer();
             value = layer.get(value);
             ids.add(this.id(value));

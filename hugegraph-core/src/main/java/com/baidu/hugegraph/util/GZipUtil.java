@@ -35,7 +35,7 @@ public final class GZipUtil {
 
     private static final int BUF_SIZE = (int) (4 * Bytes.KB);
 
-    public static String md5(String input){
+    public static String md5(String input) {
         return DigestUtils.md5Hex(input);
     }
 

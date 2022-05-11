@@ -35,18 +35,23 @@ import sun.misc.Unsafe;
 
 public interface IntMap {
 
-    public boolean put(int key, int value);
-    public int get(int key);
-    public boolean remove(int key);
-    public boolean containsKey(int key);
+    boolean put(int key, int value);
 
-    public IntIterator keys();
-    public IntIterator values();
+    int get(int key);
 
-    public void clear();
-    public int size();
+    boolean remove(int key);
 
-    public boolean concurrent();
+    boolean containsKey(int key);
+
+    IntIterator keys();
+
+    IntIterator values();
+
+    void clear();
+
+    int size();
+
+    boolean concurrent();
 
     /**
      * NOTE: IntMapBySegments(backend by IntMapByFixedAddr) is:
@@ -55,7 +60,7 @@ public interface IntMap {
      * - faster 10x than ec IntIntHashMap-segment-lock for 4 threads;
      * - faster 20x than ec IntIntHashMap-global-lock for 4 threads;
      */
-    public static final class IntMapBySegments implements IntMap {
+    final class IntMapBySegments implements IntMap {
 
         private final IntMap[] maps;
         private final long capacity;

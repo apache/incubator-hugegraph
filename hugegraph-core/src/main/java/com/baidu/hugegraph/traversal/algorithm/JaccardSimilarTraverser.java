@@ -41,7 +41,6 @@ public class JaccardSimilarTraverser extends OltpTraverser {
         super(graph);
     }
 
-
     public double jaccardSimilarity(Id vertex, Id other, Directions dir,
                                     String label, long degree) {
         E.checkNotNull(vertex, "vertex id");
