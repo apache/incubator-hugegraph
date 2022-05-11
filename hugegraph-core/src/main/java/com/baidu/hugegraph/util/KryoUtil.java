@@ -32,17 +32,17 @@ import com.baidu.hugegraph.backend.BackendException;
 
 public final class KryoUtil {
 
-    private static final ThreadLocal<Kryo> kryos = new ThreadLocal<>();
+    private static final ThreadLocal<Kryo> KRYOS = new ThreadLocal<>();
 
     public static Kryo kryo() {
-        Kryo kryo = kryos.get();
+        Kryo kryo = KRYOS.get();
         if (kryo != null) {
             return kryo;
         }
 
         kryo = new Kryo();
         registerSerializers(kryo);
-        kryos.set(kryo);
+        KRYOS.set(kryo);
         return kryo;
     }
 
@@ -70,9 +70,9 @@ public final class KryoUtil {
             kryo().writeClassAndObject(output, value);
             output.flush();
             return bos.toByteArray();
-       } catch (IOException e) {
-           throw new BackendException("Failed to serialize: %s", e, value);
-       }
+        } catch (IOException e) {
+            throw new BackendException("Failed to serialize: %s", e, value);
+        }
     }
 
     @SuppressWarnings("unchecked")
