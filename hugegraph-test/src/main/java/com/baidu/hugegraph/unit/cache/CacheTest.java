@@ -45,7 +45,6 @@ import com.baidu.hugegraph.unit.BaseUnitTest;
 import com.baidu.hugegraph.util.Blob;
 import com.baidu.hugegraph.util.Bytes;
 
-
 public abstract class CacheTest extends BaseUnitTest {
 
     @Before
@@ -64,7 +63,9 @@ public abstract class CacheTest extends BaseUnitTest {
 
     protected abstract void checkSize(Cache<Id, Object> cache, long size,
                                       Map<Id, Object> kvs);
+
     protected abstract void checkNotInCache(Cache<Id, Object> cache, Id id);
+
     protected abstract void checkInCache(Cache<Id, Object> cache, Id id);
 
     public static class LimitMap extends LinkedHashMap<Id, Object> {
@@ -99,7 +100,7 @@ public abstract class CacheTest extends BaseUnitTest {
         protected void checkSize(Cache<Id, Object> cache, long size,
                                  Map<Id, Object> kvs) {
             Assert.assertEquals(size, cache.size());
-            if (kvs !=null) {
+            if (kvs != null) {
                 for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
                     Assert.assertEquals(kv.getValue(), cache.get(kv.getKey()));
                 }
@@ -158,7 +159,7 @@ public abstract class CacheTest extends BaseUnitTest {
             // NOTE: offheap cache is calculated based on bytes, not accurate
             long apprSize = (long) (size * 1.2);
             Assert.assertLte(apprSize, cache.size());
-            if (kvs !=null) {
+            if (kvs != null) {
                 long matched = 0L;
                 for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
                     Object value = cache.get(kv.getKey());

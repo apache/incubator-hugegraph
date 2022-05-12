@@ -50,7 +50,6 @@ import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.define.NodeRole;
 
-
 public class MultiGraphsTest {
 
     private static final String NAME48 =

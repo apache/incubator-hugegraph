@@ -147,11 +147,11 @@ public class TaskApiTest extends BaseApiTest {
     }
 
     private int gremlinJob() {
-        String body = "{"
-                + "\"gremlin\":\"Thread.sleep(1000L)\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{}}";
+        String body = "{" +
+                "\"gremlin\":\"Thread.sleep(1000L)\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{}}";
         String path = "/graphs/hugegraph/jobs/gremlin";
         String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");

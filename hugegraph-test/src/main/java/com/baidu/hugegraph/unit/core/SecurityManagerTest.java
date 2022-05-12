@@ -120,14 +120,20 @@ public class SecurityManagerTest {
     public void testFile() {
         // read file
         try (FileInputStream fis = new FileInputStream(new File(""))) {
-        } catch (IOException ignored) {}
+            // pass
+        } catch (IOException ignored) {
+            // ignored exception
+        }
         String result = runGremlinJob("new FileInputStream(new File(\"\"))");
         assertError(result, "Not allowed to read file via Gremlin");
 
         // read file
         String pom = System.getProperty("user.dir") + "/a.groovy";
         try (FileInputStream fis = new FileInputStream(new File(pom))) {
-        } catch (IOException ignored) {}
+            // pass
+        } catch (IOException ignored) {
+            // ignored exception
+        }
         result = runGremlinJob(String.format(
                  "new FileInputStream(new File(\"%s\"))", pom));
         assertError(result, "(No such file or directory)");
@@ -145,7 +151,10 @@ public class SecurityManagerTest {
 
         // write file
         try (FileOutputStream fos = new FileOutputStream(new File(""))) {
-        } catch (IOException ignored) {}
+            // pass
+        } catch (IOException ignored) {
+            // ignored IOException
+        }
         result = runGremlinJob("new FileOutputStream(new File(\"\"))");
         assertError(result, "Not allowed to write file via Gremlin");
 
@@ -173,7 +182,11 @@ public class SecurityManagerTest {
          * NOTE: if remove this, gremlin job will call System.loadLibrary("net")
          * then throw exception because checkLink failed
          */
-        try (ServerSocket serverSocket = new ServerSocket(8200)) {}
+        try (ServerSocket serverSocket = new ServerSocket(8200)) {
+            // pass
+        } catch (IOException ignored) {
+            // ignored UnsatisfiedLinkError
+        }
         String result = runGremlinJob("new ServerSocket(8200)");
         assertError(result, "Not allowed to listen socket via Gremlin");
 
@@ -189,7 +202,9 @@ public class SecurityManagerTest {
         try (Socket socket = new Socket()) {
             SocketAddress address = new InetSocketAddress("localhost", 8200);
             socket.connect(address);
-        } catch (ConnectException ignored) {}
+        } catch (ConnectException ignored) {
+            // ignored ConnectException
+        }
         result = runGremlinJob("new Socket().connect(" +
                                "new InetSocketAddress(\"localhost\", 8200))");
         assertError(result, "Not allowed to connect socket via Gremlin");
@@ -233,7 +248,9 @@ public class SecurityManagerTest {
     public void testLink() {
         try {
             System.loadLibrary("hugegraph.jar");
-        } catch (UnsatisfiedLinkError ignored) {}
+        } catch (UnsatisfiedLinkError ignored) {
+            // ignored UnsatisfiedLinkError
+        }
 
         String result = runGremlinJob("Runtime.getRuntime().loadLibrary" +
                                       "(\"test.jar\")");

@@ -103,7 +103,6 @@ public class IdSetTest {
         }
     }
 
-
     @Test
     public void testIdSetWithOnlyStringId() {
         Set<String> strings = new HashSet<>();

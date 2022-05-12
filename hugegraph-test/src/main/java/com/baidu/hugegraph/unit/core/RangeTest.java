@@ -34,8 +34,8 @@ public class RangeTest {
 
     private static final byte[] START = new byte[]{0x0};
     private static final byte[] END = new byte[]{
-            -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1
+        -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1
     };
 
     @Before

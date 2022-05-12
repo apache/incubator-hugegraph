@@ -74,7 +74,7 @@ public abstract class RateLimiterTest {
 
         @Override
         public RateLimiter newRateLimiter(int rate) {
-            return new FixedTimerWindowRateLimiter(rate) ;
+            return new FixedTimerWindowRateLimiter(rate);
         }
 
         @Test
@@ -145,7 +145,6 @@ public abstract class RateLimiterTest {
             LongAdder count = Whitebox.getInternalState(limiter, "count");
             Assert.assertEquals(1, count.intValue());
         }
-
 
         @Test
         public void testStopWatchRateLimiterWithIdle() throws Exception {

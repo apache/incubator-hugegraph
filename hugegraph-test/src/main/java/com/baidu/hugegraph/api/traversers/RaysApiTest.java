@@ -32,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class RaysApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/rays";
+    static final String PATH = TRAVERSERS_API + "/rays";
 
     @Before
     public void prepareSchema() {
@@ -48,7 +48,7 @@ public class RaysApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String vadasId = name2Ids.get("vadas");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 10));
         String content = assertResponseStatus(200, r);

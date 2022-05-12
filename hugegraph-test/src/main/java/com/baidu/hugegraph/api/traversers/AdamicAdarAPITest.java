@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AdamicAdarAPITest extends BaseApiTest {
 
-    private final static String PATH = TRAVERSERS_API + "/adamicadar";
+    private static final String PATH = TRAVERSERS_API + "/adamicadar";
 
     @Before
     public void prepareSchema() {

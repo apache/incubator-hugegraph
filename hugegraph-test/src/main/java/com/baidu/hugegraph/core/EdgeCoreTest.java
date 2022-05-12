@@ -4865,9 +4865,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4917,9 +4917,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4970,9 +4970,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01",
-                "2013-01-01 00:00:00",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01",
+            "2013-01-01 00:00:00",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -5020,9 +5020,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -7306,7 +7306,6 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.traversal().E().has("related", "tags",
                                       "gremlin").toList();
         });
-
 
         List<Edge> edges =  graph.traversal().E()
                                  .has("related", "tags",

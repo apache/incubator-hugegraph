@@ -19,7 +19,6 @@
 
 package com.baidu.hugegraph.unit;
 
-import java.util.Collections;
 import java.util.Date;
 
 import org.apache.commons.configuration2.Configuration;
