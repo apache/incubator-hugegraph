@@ -30,7 +30,6 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.dist.RegisterUtil;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
