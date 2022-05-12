@@ -189,10 +189,9 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public long getCounter(HugeType type) {
-         Object counter = this.queryByRaft(type, true,
-                                           o -> this.store.getCounter(type));
-         assert counter instanceof Long;
-         return (Long) counter;
+        Object counter = this.queryByRaft(type, true, o -> this.store.getCounter(type));
+        assert counter instanceof Long;
+        return (Long) counter;
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {

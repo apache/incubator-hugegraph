@@ -51,7 +51,7 @@ public class Query implements Cloneable {
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
-    private static final ThreadLocal<Long> capacityContext = new ThreadLocal<>();
+    private static final ThreadLocal<Long> CAPACITY_CONTEXT = new ThreadLocal<>();
 
     protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
@@ -558,17 +558,17 @@ public class Query implements Cloneable {
     }
 
     public static long defaultCapacity(long capacity) {
-        Long old = capacityContext.get();
-        capacityContext.set(capacity);
+        Long old = CAPACITY_CONTEXT.get();
+        CAPACITY_CONTEXT.set(capacity);
         return old != null ? old : DEFAULT_CAPACITY;
     }
 
     public static long defaultCapacity() {
-        Long capacity = capacityContext.get();
+        Long capacity = CAPACITY_CONTEXT.get();
         return capacity != null ? capacity : DEFAULT_CAPACITY;
     }
 
-    public final static void checkForceCapacity(long count)
+    public static final void checkForceCapacity(long count)
                                                 throws LimitExceedException {
         if (count > Query.DEFAULT_CAPACITY) {
             throw new LimitExceedException(

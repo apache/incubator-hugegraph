@@ -38,11 +38,11 @@ import com.baidu.hugegraph.util.StringEncoding;
 public class EdgeId implements Id {
 
     public static final HugeKeys[] KEYS = new HugeKeys[] {
-            HugeKeys.OWNER_VERTEX,
-            HugeKeys.DIRECTION,
-            HugeKeys.LABEL,
-            HugeKeys.SORT_VALUES,
-            HugeKeys.OTHER_VERTEX
+        HugeKeys.OWNER_VERTEX,
+        HugeKeys.DIRECTION,
+        HugeKeys.LABEL,
+        HugeKeys.SORT_VALUES,
+        HugeKeys.OTHER_VERTEX
     };
 
     private final Id ownerVertexId;

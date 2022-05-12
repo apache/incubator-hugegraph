@@ -186,7 +186,8 @@ public final class ConditionQueryFlatten {
         assert relation.relation() == Condition.RelationType.TEXT_CONTAINS_ANY;
         @SuppressWarnings("unchecked")
         Collection<String> words = (Collection<String>) relation.value();
-        Condition cond, conds = null;
+        Condition cond = null;
+        Condition conds = null;
         for (String word : words) {
             assert relation.key() instanceof Id;
             cond = Condition.textContains((Id) relation.key(), word);

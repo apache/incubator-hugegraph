@@ -111,6 +111,19 @@ public class BackendMutation {
                                   " transaction between %s and %s",
                                   entry, originItem.entry()));
                     }
+
+                    if (originAction == Action.INSERT ||
+                        originAction == Action.DELETE) {
+                        throw incompatibleActionException(action, originAction);
+                    } else {
+                        Id subId = entry.subId();
+                        Id originSubId = originItem.entry().subId();
+                        assert subId != null;
+                        if (subId == originSubId || subId.equals(originSubId)) {
+                            iter.remove();
+                        }
+                    }
+                    break;
                 case ELIMINATE:
                     if (originAction == Action.INSERT ||
                         originAction == Action.DELETE) {

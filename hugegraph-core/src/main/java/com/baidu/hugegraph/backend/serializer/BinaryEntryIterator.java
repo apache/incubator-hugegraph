@@ -129,7 +129,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         ((BinaryBackendEntry) this.current).removeColumn(lastOne);
     }
 
-    public final static long sizeOfEntry(BackendEntry entry) {
+    public static final long sizeOfEntry(BackendEntry entry) {
         /*
          * 3 cases:
          *  1) one vertex per entry
