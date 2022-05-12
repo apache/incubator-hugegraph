@@ -118,10 +118,11 @@ public final class ApiVersion {
      * [0.66] Issue-1567: Support get schema RESTful API
      * [0.67] Issue-1065: Support dynamically add/remove graph
      * [0.68] Issue-1763: Support adamic-adar & resource-allocation API
+     * [0.69] Issue-1748: Support Cypher query RESTful API
      */
 
     // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.68");
+    public static final Version VERSION = Version.of(ApiVersion.class, "0.69");
 
     public static void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
