@@ -34,7 +34,7 @@ public class CypherApiTest extends BaseApiTest {
 
     private static final String PATH = URL_PREFIX + "/cypher";
     private static final String QUERY = "MATCH (n:person) where n.city ='Beijing' return n";
-    private static final String QUERYRESULT = "Beijing";
+    private static final String QUERY_RESULT = "Beijing";
 
     @Before
     public void prepareSchema() {
@@ -51,12 +51,12 @@ public class CypherApiTest extends BaseApiTest {
         Map<String, Object> params = ImmutableMap.of("cypher", QUERY);
         Response r =  client().get(PATH, params);
 
-        this.validStatusAndTextContains(QUERYRESULT, r);
+        this.validStatusAndTextContains(QUERY_RESULT, r);
     }
 
     @Test
     public void testPost() {
-        this.testCypherQueryAndContains(QUERY, QUERYRESULT);
+        this.testCypherQueryAndContains(QUERY, QUERY_RESULT);
     }
 
     @Test
