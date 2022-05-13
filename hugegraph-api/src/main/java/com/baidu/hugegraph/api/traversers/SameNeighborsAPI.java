@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_
 
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -49,6 +50,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/sameneighbors")
 @Singleton
+@Tag(name = "SameNeighborsAPI")
 public class SameNeighborsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

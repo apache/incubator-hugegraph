@@ -27,6 +27,7 @@ import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -84,6 +85,7 @@ public class ExceptionFilter {
 
     @Path("exception/trace")
     @Singleton
+    @Tag(name = "TracedExceptionAPI")
     public static class TracedExceptionAPI extends API {
 
         @GET

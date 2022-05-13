@@ -27,6 +27,7 @@ import java.nio.charset.CodingErrorAction;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -59,6 +60,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/jobs/gremlin")
 @Singleton
+@Tag(name = "GremlinAPI")
 public class GremlinAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

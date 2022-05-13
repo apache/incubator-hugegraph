@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.auth;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import javax.security.sasl.AuthenticationException;
 import jakarta.ws.rs.BadRequestException;
@@ -55,6 +56,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/auth")
 @Singleton
+@Tag(name = "LoginAPI")
 public class LoginAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

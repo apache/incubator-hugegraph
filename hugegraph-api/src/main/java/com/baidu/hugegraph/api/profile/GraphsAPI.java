@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -60,6 +62,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
 @Singleton
+@Tag(name = "GraphsAPI")
 public class GraphsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

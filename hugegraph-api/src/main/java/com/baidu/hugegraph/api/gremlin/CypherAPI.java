@@ -8,6 +8,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -22,6 +23,7 @@ import jakarta.ws.rs.core.Response;
 
 @Path("graphs/{graph}/cypher")
 @Singleton
+@Tag(name = "CypherAPI")
 public class CypherAPI extends GremlinQueryAPI {
 
     private static final Logger LOG = Log.logger(CypherAPI.class);

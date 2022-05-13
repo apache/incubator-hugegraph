@@ -25,6 +25,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATH
 
 import java.util.Iterator;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -53,6 +54,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/singlesourceshortestpath")
 @Singleton
+@Tag(name = "SingleSourceShortestPathAPI")
 public class SingleSourceShortestPathAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

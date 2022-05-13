@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.raft;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -48,6 +49,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/raft")
 @Singleton
+@Tag(name = "RaftAPI")
 public class RaftAPI extends API {
 
     private static final Logger LOG = Log.logger(RaftAPI.class);

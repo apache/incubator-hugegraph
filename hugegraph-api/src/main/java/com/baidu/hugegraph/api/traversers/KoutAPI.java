@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -64,6 +65,7 @@ import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/kout")
 @Singleton
+@Tag(name = "KoutAPI")
 public class KoutAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);

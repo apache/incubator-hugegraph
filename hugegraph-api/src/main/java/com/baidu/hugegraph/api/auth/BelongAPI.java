@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -53,6 +54,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/auth/belongs")
 @Singleton
+@Tag(name = "BelongAPI")
 public class BelongAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
