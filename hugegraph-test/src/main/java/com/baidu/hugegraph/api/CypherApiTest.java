@@ -26,16 +26,15 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.core.Response;
 
 public class CypherApiTest extends BaseApiTest {
 
-    private static final String path = URL_PREFIX + "/cypher";
-    private static final String query = "MATCH (n:person) where n.city ='Beijing' return n";
-    private static final String queryResult = "Beijing";
+    private static final String PATH = URL_PREFIX + "/cypher";
+    private static final String QUERY = "MATCH (n:person) where n.city ='Beijing' return n";
+    private static final String QUERY_RESULT = "Beijing";
 
     @Before
     public void prepareSchema() {
@@ -49,20 +48,21 @@ public class CypherApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        Map<String, Object> params = ImmutableMap.of("cypher", query);
-        Response r =  client().get(path, params);
+        Map<String, Object> params = ImmutableMap.of("cypher", QUERY);
+        Response r =  client().get(PATH, params);
 
-        this.validStatusAndTextContains(queryResult, r);
+        this.validStatusAndTextContains(QUERY_RESULT, r);
     }
 
     @Test
     public void testPost() {
-        this.testCypherQueryAndContains(query, queryResult);
+        this.testCypherQueryAndContains(QUERY, QUERY_RESULT);
     }
 
     @Test
     public void testCreate() {
-        this.testCypherQueryAndContains("CREATE (n:person { name : 'test', age: 20, city: 'Hefei' }) return n",
+        this.testCypherQueryAndContains("CREATE (n:person { name : 'test', " +
+                                        "age: 20, city: 'Hefei' }) return n",
                                         "Hefei");
     }
 
@@ -75,7 +75,7 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     private void testCypherQueryAndContains(String cypher, String containsText) {
-        Response r = client().post(path, cypher);
+        Response r = client().post(PATH, cypher);
         this.validStatusAndTextContains(containsText, r);
     }
 
