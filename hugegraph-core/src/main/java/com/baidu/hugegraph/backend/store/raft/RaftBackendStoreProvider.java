@@ -202,7 +202,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
         info.init();
 
-        this.init();
+        this.notifyAndWaitEvent(Events.STORE_INITED);
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
         /*
          * Take the initiative to generate a snapshot, it can avoid this
