@@ -25,9 +25,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.rpc.RpcServer;
-import com.alipay.sofa.jraft.entity.PeerId;
-import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
-import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
@@ -36,7 +33,6 @@ import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -64,25 +60,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     public void initRaftContext(HugeGraphParams params, RpcServer rpcServer) {
-        // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
-        HugeConfig config = params.configuration();
-        Integer lowWaterMark = config.get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
-        System.setProperty("bolt.channel_write_buf_low_water_mark",
-                           String.valueOf(lowWaterMark));
-        Integer highWaterMark = config.get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
-        System.setProperty("bolt.channel_write_buf_high_water_mark",
-                           String.valueOf(highWaterMark));
-
-        // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
-        com.alipay.sofa.jraft.rpc.RpcServer raftRpcServer =
-                                            new BoltRpcServer(rpcServer);
-        RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
-        raftRpcServer.init(null);
-
-        PeerId endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
-        this.context = new RaftContext(params, raftRpcServer, endpoint);
+        this.context = new RaftContext(params, rpcServer);
+        // NOTE: loadSystemStore() did not addStore()
         this.context.addStore(StoreType.SYSTEM, this.systemStore);
     }
 

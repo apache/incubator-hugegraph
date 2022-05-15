@@ -42,6 +42,7 @@ import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
@@ -89,7 +90,7 @@ public final class RaftContext {
     public static final long KEEP_ALIVE_SECOND = 300L;
 
     private final HugeGraphParams params;
-    private final RpcServer rpcServer;
+    private final RpcServer raftRpcServer;
     private final PeerId endpoint;
 
     private final String schemaStoreName;
@@ -105,11 +106,11 @@ public final class RaftContext {
     private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
 
-    public RaftContext(HugeGraphParams params, RpcServer rpcServer,
-                       PeerId endpoint) {
+    public RaftContext(HugeGraphParams params,
+                       com.alipay.remoting.rpc.RpcServer rpcServer) {
         this.params = params;
-        this.rpcServer = rpcServer;
-        this.endpoint = endpoint;
+        this.raftRpcServer = this.wrapRpcServer(rpcServer);
+        this.endpoint = new PeerId(rpcServer.ip(), rpcServer.port());;
 
         HugeConfig config = params.configuration();
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
@@ -176,7 +177,7 @@ public final class RaftContext {
     }
 
     public RpcServer rpcServer() {
-        return this.rpcServer;
+        return this.raftRpcServer;
     }
 
     public RpcForwarder rpcForwarder() {
@@ -380,16 +381,35 @@ public final class RaftContext {
         return rpcServer;
     }
 
+    private RpcServer wrapRpcServer(com.alipay.remoting.rpc.RpcServer rpcServer) {
+        // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
+        Integer lowWaterMark = this.config().get(
+                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_low_water_mark",
+                           String.valueOf(lowWaterMark));
+        Integer highWaterMark = this.config().get(
+                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_high_water_mark",
+                           String.valueOf(highWaterMark));
+
+        // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
+        RpcServer raftRpcServer = new BoltRpcServer(rpcServer);
+        RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
+        raftRpcServer.init(null);
+
+        return raftRpcServer;
+    }
+
     private void shutdownRpcServer() {
-        this.rpcServer.shutdown();
+        this.raftRpcServer.shutdown();
         PeerId endpoint = this.endpoint();
         NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
     }
 
     private void registerRpcRequestProcessors() {
-        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
-        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
-        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
+        this.raftRpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.raftRpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.raftRpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {
