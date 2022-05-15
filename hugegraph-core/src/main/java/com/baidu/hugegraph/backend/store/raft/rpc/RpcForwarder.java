@@ -37,9 +37,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.RaftClosure;
 import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Descriptors.FieldDescriptor;
@@ -68,16 +65,18 @@ public class RpcForwarder {
         LOG.debug("The node {} forward request to leader {}",
                   this.nodeId, leaderId);
 
-        StoreCommandRequest.Builder builder = StoreCommandRequest.newBuilder();
+        RaftRequests.StoreCommandRequest.Builder builder =
+                RaftRequests.StoreCommandRequest.newBuilder();
+
         builder.setType(command.type());
         builder.setAction(command.action());
         builder.setData(ZeroByteStringHelper.wrap(command.data()));
-        StoreCommandRequest request = builder.build();
+        RaftRequests.StoreCommandRequest request = builder.build();
 
-        RpcResponseClosure<StoreCommandResponse> responseClosure;
-        responseClosure = new RpcResponseClosure<StoreCommandResponse>() {
+        RpcResponseClosure<RaftRequests.StoreCommandResponse> responseClosure;
+        responseClosure = new RpcResponseClosure<RaftRequests.StoreCommandResponse>() {
             @Override
-            public void setResponse(StoreCommandResponse response) {
+            public void setResponse(RaftRequests.StoreCommandResponse response) {
                 if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
                     future.complete(Status.OK(), () -> null);
@@ -118,11 +117,11 @@ public class RpcForwarder {
                 FieldDescriptor fd = response.getDescriptorForType()
                                              .findFieldByName("common");
                 Object object = response.getField(fd);
-                E.checkState(object instanceof CommonResponse,
+                E.checkState(object instanceof RaftRequests.CommonResponse,
                              "The common field must be instance of " +
                              "CommonResponse, actual is '%s'",
                              object != null ? object.getClass() : null);
-                CommonResponse commonResponse = (CommonResponse) object;
+                RaftRequests.CommonResponse commonResponse = (RaftRequests.CommonResponse) object;
                 if (commonResponse.getStatus()) {
                     future.complete(Status.OK(), () -> response);
                 } else {

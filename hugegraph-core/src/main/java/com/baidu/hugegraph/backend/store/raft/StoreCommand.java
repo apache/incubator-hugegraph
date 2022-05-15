@@ -20,23 +20,22 @@
 package com.baidu.hugegraph.backend.store.raft;
 
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
 
 public final class StoreCommand {
 
     public static final int HEADER_SIZE = 2;
 
-    private final StoreType type;
-    private final StoreAction action;
+    private final RaftRequests.StoreType type;
+    private final RaftRequests.StoreAction action;
     private final byte[] data;
     private final boolean forwarded;
 
-    public StoreCommand(StoreType type, StoreAction action, byte[] data) {
+    public StoreCommand(RaftRequests.StoreType type, RaftRequests.StoreAction action, byte[] data) {
         this(type, action, data, false);
     }
 
-    public StoreCommand(StoreType type, StoreAction action,
+    public StoreCommand(RaftRequests.StoreType type, RaftRequests.StoreAction action,
                         byte[] data, boolean forwarded) {
         this.type = type;
         this.action = action;
@@ -51,11 +50,11 @@ public final class StoreCommand {
         this.forwarded = forwarded;
     }
 
-    public StoreType type() {
+    public RaftRequests.StoreType type() {
         return this.type;
     }
 
-    public StoreAction action() {
+    public RaftRequests.StoreAction action() {
         return this.action;
     }
 
@@ -79,8 +78,8 @@ public final class StoreCommand {
     }
 
     public static StoreCommand fromBytes(byte[] bytes) {
-        StoreType type = StoreType.valueOf(bytes[0]);
-        StoreAction action = StoreAction.valueOf(bytes[1]);
+        RaftRequests.StoreType type = RaftRequests.StoreType.valueOf(bytes[0]);
+        RaftRequests.StoreAction action = RaftRequests.StoreAction.valueOf(bytes[1]);
         return new StoreCommand(type, action, bytes);
     }
 

@@ -42,8 +42,7 @@ import com.baidu.hugegraph.backend.serializer.BytesBuffer;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.LZ4Util;
 import com.baidu.hugegraph.util.Log;
@@ -60,7 +59,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
         this.snapshotFile = new StoreSnapshotFile(context.stores());
     }
 
-    private BackendStore store(StoreType type) {
+    private BackendStore store(RaftRequests.StoreType type) {
         return this.context.originStore(type);
     }
 
@@ -105,8 +104,8 @@ public final class StoreStateMachine extends StateMachineAdapter {
         StoreCommand command = closure.command();
         BytesBuffer buffer = BytesBuffer.wrap(command.data());
         // The first two bytes are StoreType and StoreAction
-        StoreType type = StoreType.valueOf(buffer.read());
-        StoreAction action = StoreAction.valueOf(buffer.read());
+        RaftRequests.StoreType type = RaftRequests.StoreType.valueOf(buffer.read());
+        RaftRequests.StoreAction action = RaftRequests.StoreAction.valueOf(buffer.read());
         boolean forwarded = command.forwarded();
         // Let the producer thread to handle it, and wait for it
         CompletableFuture<Object> future = new CompletableFuture<>();
@@ -132,8 +131,8 @@ public final class StoreStateMachine extends StateMachineAdapter {
             BytesBuffer buffer = LZ4Util.decompress(bytes,
                                  RaftSharedContext.BLOCK_SIZE);
             buffer.forReadWritten();
-            StoreType type = StoreType.valueOf(buffer.read());
-            StoreAction action = StoreAction.valueOf(buffer.read());
+            RaftRequests.StoreType type = RaftRequests.StoreType.valueOf(buffer.read());
+            RaftRequests.StoreAction action = RaftRequests.StoreAction.valueOf(buffer.read());
             try {
                 return this.applyCommand(type, action, buffer, false);
             } catch (Throwable e) {
@@ -144,9 +143,9 @@ public final class StoreStateMachine extends StateMachineAdapter {
         });
     }
 
-    private Object applyCommand(StoreType type, StoreAction action,
+    private Object applyCommand(RaftRequests.StoreType type, RaftRequests.StoreAction action,
                                 BytesBuffer buffer, boolean forwarded) {
-        E.checkState(type != StoreType.ALL,
+        E.checkState(type != RaftRequests.StoreType.ALL,
                      "Can't apply command for all store at one time");
         BackendStore store = this.store(type);
         switch (action) {

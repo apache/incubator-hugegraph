@@ -27,15 +27,11 @@ import com.baidu.hugegraph.backend.store.raft.RaftNode;
 import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
 import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
 public class StoreCommandProcessor
-       extends RpcRequestProcessor<StoreCommandRequest> {
+        extends RpcRequestProcessor<RaftRequests.StoreCommandRequest> {
 
     private static final Logger LOG = Log.logger(
                                       StoreCommandProcessor.class);
@@ -48,7 +44,7 @@ public class StoreCommandProcessor
     }
 
     @Override
-    public Message processRequest(StoreCommandRequest request,
+    public Message processRequest(RaftRequests.StoreCommandRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing StoreCommandRequest: {}", request.getAction());
         RaftNode node = this.context.node();
@@ -57,11 +53,11 @@ public class StoreCommandProcessor
             RaftStoreClosure closure = new RaftStoreClosure(command);
             node.submitAndWait(command, closure);
             // TODO: return the submitAndWait() result to rpc client
-            return StoreCommandResponse.newBuilder().setStatus(true).build();
+            return RaftRequests.StoreCommandResponse.newBuilder().setStatus(true).build();
         } catch (Throwable e) {
             LOG.warn("Failed to process StoreCommandRequest: {}",
                      request.getAction(), e);
-            StoreCommandResponse.Builder builder = StoreCommandResponse
+            RaftRequests.StoreCommandResponse.Builder builder = RaftRequests.StoreCommandResponse
                                                    .newBuilder()
                                                    .setStatus(false);
             if (e.getMessage() != null) {
@@ -73,12 +69,13 @@ public class StoreCommandProcessor
 
     @Override
     public String interest() {
-        return StoreCommandRequest.class.getName();
+        return RaftRequests.StoreCommandRequest.class.getName();
     }
 
-    private StoreCommand parseStoreCommand(StoreCommandRequest request) {
-        StoreType type = request.getType();
-        StoreAction action = request.getAction();
+    private StoreCommand parseStoreCommand(
+            RaftRequests.StoreCommandRequest request) {
+        RaftRequests.StoreType type = request.getType();
+        RaftRequests.StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
         return new StoreCommand(type, action, data, true);
     }

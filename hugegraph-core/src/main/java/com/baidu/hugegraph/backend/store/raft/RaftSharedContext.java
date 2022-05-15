@@ -53,7 +53,7 @@ import com.baidu.hugegraph.backend.store.BackendAction;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
 import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
 import com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
@@ -111,7 +111,7 @@ public final class RaftSharedContext {
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
+        this.stores = new RaftBackendStore[RaftRequests.StoreType.ALL.getNumber()];
         this.rpcServer = this.initAndStartRpcServer();
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -178,18 +178,18 @@ public final class RaftSharedContext {
         return DEFAULT_GROUP;
     }
 
-    public void addStore(StoreType type, RaftBackendStore store) {
+    public void addStore(RaftRequests.StoreType type, RaftBackendStore store) {
         this.stores[type.getNumber()] = store;
     }
 
-    public StoreType storeType(String store) {
+    public RaftRequests.StoreType storeType(String store) {
         if (this.schemaStoreName.equals(store)) {
-            return StoreType.SCHEMA;
+            return RaftRequests.StoreType.SCHEMA;
         } else if (this.graphStoreName.equals(store)) {
-            return StoreType.GRAPH;
+            return RaftRequests.StoreType.GRAPH;
         } else {
             assert this.systemStoreName.equals(store);
-            return StoreType.SYSTEM;
+            return RaftRequests.StoreType.SYSTEM;
         }
     }
 
@@ -197,7 +197,7 @@ public final class RaftSharedContext {
         return this.stores;
     }
 
-    public BackendStore originStore(StoreType storeType) {
+    public BackendStore originStore(RaftRequests.StoreType storeType) {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,
                      "The raft store of type %s shouldn't be null", storeType);

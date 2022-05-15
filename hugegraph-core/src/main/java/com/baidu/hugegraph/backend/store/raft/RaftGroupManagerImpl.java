@@ -26,10 +26,7 @@ import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.baidu.hugegraph.backend.BackendException;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
 import com.baidu.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import com.baidu.hugegraph.util.E;
 import com.google.protobuf.Message;
@@ -59,11 +56,11 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
                           .collect(Collectors.toList());
         }
         // If current node is not leader, forward request to leader
-        ListPeersRequest request = ListPeersRequest.getDefaultInstance();
+        RaftRequests.ListPeersRequest request = RaftRequests.ListPeersRequest.getDefaultInstance();
         try {
-            RaftClosure<ListPeersResponse> future;
+            RaftClosure<RaftRequests.ListPeersResponse> future;
             future = this.forwardToLeader(request);
-            ListPeersResponse response = future.waitFinished();
+            RaftRequests.ListPeersResponse response = future.waitFinished();
             return response.getEndpointsList();
         } catch (Throwable e) {
             throw new BackendException("Failed to list peers", e);
@@ -103,11 +100,12 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
             this.transferLeaderTo(endpoint);
         } else {
             // If current node is not leader, forward request to leader
-            SetLeaderRequest request = SetLeaderRequest.newBuilder()
-                                                       .setEndpoint(endpoint)
-                                                       .build();
+            RaftRequests.SetLeaderRequest
+                    request = RaftRequests.SetLeaderRequest.newBuilder()
+                                                           .setEndpoint(endpoint)
+                                                           .build();
             try {
-                RaftClosure<SetLeaderResponse> future;
+                RaftClosure<RaftRequests.SetLeaderResponse> future;
                 future = this.forwardToLeader(request);
                 future.waitFinished();
             } catch (Throwable e) {

@@ -36,8 +36,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;
@@ -114,7 +113,7 @@ public class RaftBackendStore implements BackendStore {
     public void clear(boolean clearSpace) {
         byte value = clearSpace ? (byte) 1 : (byte) 0;
         byte[] bytes = StoreCommand.wrap(value);
-        this.submitAndWait(StoreAction.CLEAR, bytes);
+        this.submitAndWait(RaftRequests.StoreAction.CLEAR, bytes);
     }
 
     @Override
@@ -124,7 +123,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void truncate() {
-        this.submitAndWait(StoreAction.TRUNCATE, null);
+        this.submitAndWait(RaftRequests.StoreAction.TRUNCATE, null);
     }
 
     @Override
@@ -159,7 +158,7 @@ public class RaftBackendStore implements BackendStore {
         MutationBatch batch = this.getOrNewBatch();
         try {
             byte[] bytes = StoreSerializer.writeMutations(batch.mutations);
-            this.submitAndWait(StoreAction.COMMIT_TX, bytes);
+            this.submitAndWait(RaftRequests.StoreAction.COMMIT_TX, bytes);
         } finally {
             batch.clear();
         }
@@ -167,7 +166,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void rollbackTx() {
-        this.submitAndWait(StoreAction.ROLLBACK_TX, null);
+        this.submitAndWait(RaftRequests.StoreAction.ROLLBACK_TX, null);
     }
 
     @Override
@@ -184,7 +183,7 @@ public class RaftBackendStore implements BackendStore {
     public void increaseCounter(HugeType type, long increment) {
         IncrCounter incrCounter = new IncrCounter(type, increment);
         byte[] bytes = StoreSerializer.writeIncrCounter(incrCounter);
-        this.submitAndWait(StoreAction.INCR_COUNTER, bytes);
+        this.submitAndWait(RaftRequests.StoreAction.INCR_COUNTER, bytes);
     }
 
     @Override
@@ -194,8 +193,8 @@ public class RaftBackendStore implements BackendStore {
         return (Long) counter;
     }
 
-    private Object submitAndWait(StoreAction action, byte[] data) {
-        StoreType type = this.context.storeType(this.store());
+    private Object submitAndWait(RaftRequests.StoreAction action, byte[] data) {
+        RaftRequests.StoreType type = this.context.storeType(this.store());
         return this.submitAndWait(new StoreCommand(type, action, data));
     }
 
