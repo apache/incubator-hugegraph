@@ -248,7 +248,7 @@ public class CoreOptions extends OptionHolder {
                     "The install snapshot rpc timeout in seconds for jraft rpc.",
                     positiveInt(),
                     // jraft default value is 5 minutes
-                    24 * 60 * 60
+                    10 * 60 * 60
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =
