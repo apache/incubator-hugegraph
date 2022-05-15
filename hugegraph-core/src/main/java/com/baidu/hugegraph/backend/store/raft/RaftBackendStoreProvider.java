@@ -66,7 +66,14 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     public RaftGroupManager raftNodeManager() {
-        return this.context.raftNodeManager();
+        return this.context().raftNodeManager();
+    }
+
+    private RaftContext context() {
+        if (this.context == null) {
+            E.checkState(false, "Please ensure init raft context");
+        }
+        return this.context;
     }
 
     private Set<RaftBackendStore> stores() {
@@ -109,8 +116,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend schema store");
             BackendStore store = this.provider.loadSchemaStore(config, name);
             this.checkNonSharedStore(store);
-            this.schemaStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.SCHEMA, this.schemaStore);
+            this.schemaStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.SCHEMA, this.schemaStore);
         }
         return this.schemaStore;
     }
@@ -121,8 +128,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend graph store");
             BackendStore store = this.provider.loadGraphStore(config, name);
             this.checkNonSharedStore(store);
-            this.graphStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.GRAPH, this.graphStore);
+            this.graphStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.GRAPH, this.graphStore);
         }
         return this.graphStore;
     }
@@ -133,7 +140,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             LOG.info("Init raft backend system store");
             BackendStore store = this.provider.loadSystemStore(config, name);
             this.checkNonSharedStore(store);
-            this.systemStore = new RaftBackendStore(store, this.context);
+            this.systemStore = new RaftBackendStore(store, this.context());
         }
         return this.systemStore;
     }
@@ -145,17 +152,19 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void waitStoreStarted() {
-        this.context.initRaftNode();
+        this.context().initRaftNode();
         LOG.info("The raft node is initialized");
 
-        this.context.waitRaftNodeStarted();
+        this.context().waitRaftNodeStarted();
         LOG.info("The raft store is started");
     }
 
     @Override
     public void close() {
         this.provider.close();
-        this.context.close();
+        if (this.context != null) {
+            this.context.close();
+        }
     }
 
     @Override
@@ -224,8 +233,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         StoreCommand command = new StoreCommand(StoreType.GRAPH,
                                                 StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
-        RaftClosure<?> future = this.context.node().submitAndWait(command,
-                                                                  closure);
+        RaftClosure<?> future = this.context().node().submitAndWait(command,
+                                                                    closure);
         E.checkState(future != null, "The snapshot future can't be null");
         try {
             future.waitFinished();
