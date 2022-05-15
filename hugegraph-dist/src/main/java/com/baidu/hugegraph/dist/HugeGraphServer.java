@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.dist;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
@@ -30,8 +32,6 @@ import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
-
-import java.util.concurrent.CompletableFuture;
 
 public class HugeGraphServer {
 
@@ -48,14 +48,6 @@ public class HugeGraphServer {
 
     public HugeGraphServer(String gremlinServerConf, String restServerConf)
                            throws Exception {
-        try {
-            // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf);
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer start error: ", e);
-            throw e;
-        }
-
         // Only switch on security manager after HugeGremlinServer started
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(null);
@@ -64,6 +56,15 @@ public class HugeGraphServer {
         HugeConfig restServerConfig = new HugeConfig(restServerConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         EventHub hub = new EventHub("gremlin=>hub<=rest");
+
+        try {
+            // Start HugeRestServer
+            this.restServer = HugeRestServer.start(restServerConf, hub);
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer start error: ", e);
+            throw e;
+        }
+
         try {
             // Start GremlinServer
             this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
@@ -79,20 +80,6 @@ public class HugeGraphServer {
             throw e;
         } finally {
             System.setSecurityManager(securityManager);
-        }
-
-        try {
-            // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer start error: ", e);
-            try {
-                this.gremlinServer.stop().get();
-            } catch (Throwable t) {
-                LOG.error("GremlinServer stop error: ", t);
-            }
-            HugeFactory.shutdown(30L);
-            throw e;
         }
     }
 
