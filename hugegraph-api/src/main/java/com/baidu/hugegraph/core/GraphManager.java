@@ -98,33 +98,33 @@ public final class GraphManager {
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
         this.conf = conf;
+
         this.listenChanges();
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
         // this.installLicense(conf, "");
-        // Raft will load snapshot firstly then launch election and replay log
+
+        // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
         this.startRpcServer();
 
-        this.initAllSystemSchema();
-
+        // Raft will load snapshot firstly then launch election and replay log
         this.waitGraphsReady();
 
         this.checkBackendVersionOrExit(conf);
-
         this.serverStarted(conf);
+
         this.addMetrics(conf);
     }
 
-    public void loadGraphs(HugeConfig serverConfig) {
-        Map<String, String> graphConfs = serverConfig.getMap(
-                                         ServerOptions.GRAPHS);
+    public void loadGraphs(Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
-            String path = conf.getValue();
+            String graphConfPath = conf.getValue();
             HugeFactory.checkGraphName(name, "rest-server.properties");
             try {
-                this.loadGraph(serverConfig, name, path);
+                this.loadGraph(name, graphConfPath);
             } catch (RuntimeException e) {
-                LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
+                LOG.error("Graph '{}' can't be loaded: '{}'",
+                          name, graphConfPath, e);
             }
         }
     }
@@ -259,13 +259,6 @@ public final class GraphManager {
         this.unlistenChanges();
     }
 
-    private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
-        ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
-                                                              "serverConfig");
-        return Whitebox.getInternalState(serverConfig.getServer(),
-                                         "remotingServer");
-    }
-
     private void startRpcServer() {
         if (!this.rpcServer.enabled()) {
             LOG.info("RpcServer is not enabled, skip starting rpc service");
@@ -296,6 +289,13 @@ public final class GraphManager {
             this.rpcServer.destroy();
             throw e;
         }
+    }
+
+    private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
+        ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
+                                                              "serverConfig");
+        return Whitebox.getInternalState(serverConfig.getServer(),
+                                         "remotingServer");
     }
 
     private void destroyRpcServer() {
@@ -340,21 +340,26 @@ public final class GraphManager {
         });
     }
 
-    private void loadGraph(HugeConfig serverConfig, String name, String path) {
-        HugeConfig config = new HugeConfig(path);
-        String raftGroupPeers = serverConfig.get(ServerOptions.RAFT_GROUP_PEERS);
-        config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(), raftGroupPeers);
+    private void loadGraph(String name, String graphConfPath) {
+        HugeConfig config = new HugeConfig(graphConfPath);
 
-        final Graph graph = GraphFactory.open(config);
+        String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
+        config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
+                           raftGroupPeers);
+
+        Graph graph = GraphFactory.open(config);
         this.graphs.put(name, graph);
-        HugeConfig config = (HugeConfig) graph.configuration();
-        config.file(path);
-        LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
+
+        HugeConfig graphConfig = (HugeConfig) graph.configuration();
+        assert graphConfPath.equals(graphConfig.file().getPath());
+
+        LOG.info("Graph '{}' was successfully configured via '{}'",
+                 name, graphConfPath);
 
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",
-                     path, HugeFactoryAuthProxy.GRAPH_FACTORY);
+                     graphConfPath, HugeFactoryAuthProxy.GRAPH_FACTORY);
         }
     }
 
