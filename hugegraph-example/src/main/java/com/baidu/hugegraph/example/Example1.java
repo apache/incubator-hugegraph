@@ -165,8 +165,10 @@ public class Example1 {
         // schemaManager.getVertexLabel("author").index("byName").secondary().by("name").add();
         // schemaManager.getVertexLabel("recipe").index("byRecipe").materialized().by("name").add();
         // schemaManager.getVertexLabel("meal").index("byMeal").materialized().by("name").add();
-        // schemaManager.getVertexLabel("ingredient").index("byIngredient").materialized().by("name").add();
-        // schemaManager.getVertexLabel("reviewer").index("byReviewer").materialized().by("name").add();
+        // schemaManager.getVertexLabel("ingredient").index("byIngredient").materialized()
+        // .by("name").add();
+        // schemaManager.getVertexLabel("reviewer").index("byReviewer").materialized()
+        // .by("name").add();
 
         LOG.info("===============  edgeLabel  ================");
 
@@ -268,20 +270,19 @@ public class Example1 {
         GraphTraversal<Vertex, Vertex> vertices = graph.traversal().V();
         int size = vertices.toList().size();
         assert size == 12;
-        System.out.println(">>>> query all vertices: size=" + size);
+        LOG.info(">>>> query all vertices: size {}", size);
 
         // query by label
         vertices = graph.traversal().V().hasLabel("person");
         size = vertices.toList().size();
         assert size == 5;
-        System.out.println(">>>> query all persons: size=" + size);
+        LOG.info(">>>> query all persons: size {}", size);
 
         // query vertex by primary-values
         vertices = graph.traversal().V().hasLabel("author").has("id", 1);
         List<Vertex> vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        System.out.println(">>>> query vertices by primary-values: " +
-                           vertexList);
+        LOG.info(">>>> query vertices by primary-values: {}", vertexList);
 
         VertexLabel author = graph.schema().getVertexLabel("author");
         String authorId = String.format("%s:%s", author.id().asString(), "11");
@@ -291,20 +292,19 @@ public class Example1 {
         GraphTraversal<Vertex, Edge> edgesOfVertex = vertices.outE("created");
         List<Edge> edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 1;
-        System.out.println(">>>> query edges of vertex: " + edgeList);
+        LOG.info(">>>> query edges of vertex: {}", edgeList);
 
         vertices = graph.traversal().V(authorId);
         vertexList = vertices.out("created").toList();
         assert vertexList.size() == 1;
-        System.out.println(">>>> query vertices of vertex: " + vertexList);
+        LOG.info(">>>> query vertices of vertex: {}", vertexList);
 
         // query edge by sort-values
         vertices = graph.traversal().V(authorId);
         edgesOfVertex = vertices.outE("write").has("time", "2017-4-28");
         edgeList = edgesOfVertex.toList();
         assert edgeList.size() == 2;
-        System.out.println(">>>> query edges of vertex by sort-values: " +
-                           edgeList);
+        LOG.info(">>>> query edges of vertex by sort-values: {}", edgeList);
 
         // query vertex by condition (filter by property name)
         ConditionQuery q = new ConditionQuery(HugeType.VERTEX);
@@ -314,9 +314,9 @@ public class Example1 {
                  .supportsQueryWithContainsKey()) {
             Iterator<Vertex> iter = graph.vertices(q);
             assert iter.hasNext();
-            System.out.println(">>>> queryVertices(age): " + iter.hasNext());
+            LOG.info(">>>> queryVertices(age): {}", iter.hasNext());
             while (iter.hasNext()) {
-                System.out.println(">>>> queryVertices(age): " + iter.next());
+                LOG.info(">>>> queryVertices(age): {}", iter.next());
             }
         }
 
@@ -324,7 +324,7 @@ public class Example1 {
         GraphTraversal<Edge, Edge> edges = graph.traversal().E().limit(2);
         size = edges.toList().size();
         assert size == 2;
-        System.out.println(">>>> query all edges with limit 2: size=" + size);
+        LOG.info(">>>> query all edges with limit 2: size {}", size);
 
         // query edge by id
         EdgeLabel authored = graph.edgeLabel("authored");
@@ -337,13 +337,13 @@ public class Example1 {
         edges = graph.traversal().E(edgeId);
         edgeList = edges.toList();
         assert edgeList.size() == 1;
-        System.out.println(">>>> query edge by id: " + edgeList);
+        LOG.info(">>>> query edge by id: {}", edgeList);
 
         Edge edge = edgeList.get(0);
         edges = graph.traversal().E(edge.id());
         edgeList = edges.toList();
         assert edgeList.size() == 1;
-        System.out.println(">>>> query edge by id: " + edgeList);
+        LOG.info(">>>> query edge by id: {}", edgeList);
 
         // query edge by condition
         q = new ConditionQuery(HugeType.EDGE);
@@ -355,11 +355,9 @@ public class Example1 {
 
         Iterator<Edge> edges2 = graph.edges(q);
         assert edges2.hasNext();
-        System.out.println(">>>> queryEdges(id-condition): " +
-                           edges2.hasNext());
+        LOG.info(">>>> queryEdges(id-condition): {}", edges2.hasNext());
         while (edges2.hasNext()) {
-            System.out.println(">>>> queryEdges(id-condition): " +
-                               edges2.next());
+            LOG.info(">>>> queryEdges(id-condition): {}", edges2.next());
         }
 
         // NOTE: query edge by has-key just supported by Cassandra
@@ -368,11 +366,9 @@ public class Example1 {
             q.key(HugeKeys.PROPERTIES, contribution.id());
             Iterator<Edge> edges3 = graph.edges(q);
             assert edges3.hasNext();
-            System.out.println(">>>> queryEdges(contribution): " +
-                               edges3.hasNext());
+            LOG.info(">>>> queryEdges(contribution): {}", edges3.hasNext());
             while (edges3.hasNext()) {
-                System.out.println(">>>> queryEdges(contribution): " +
-                                   edges3.next());
+                LOG.info(">>>> queryEdges(contribution): {}", edges3.next());
             }
         }
 
@@ -380,40 +376,39 @@ public class Example1 {
         vertices = graph.traversal().V().hasLabel("book");
         size = vertices.toList().size();
         assert size == 5;
-        System.out.println(">>>> query all books: size=" + size);
+        LOG.info(">>>> query all books: size {}", size);
 
         // query by vertex label and key-name
         vertices = graph.traversal().V().hasLabel("person").has("age");
         size = vertices.toList().size();
         assert size == 5;
-        System.out.println(">>>> query all persons with age: size=" + size);
+        LOG.info(">>>> query all persons with age: size {}", size);
 
         // query by vertex props
         vertices = graph.traversal().V().hasLabel("person")
                         .has("city", "Taipei");
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        System.out.println(">>>> query all persons in Taipei: " + vertexList);
+        LOG.info(">>>> query all persons in Taipei: {}", vertexList);
 
         vertices = graph.traversal().V().hasLabel("person").has("age", 19);
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        System.out.println(">>>> query all persons age==19: " + vertexList);
+        LOG.info(">>>> query all persons age==19: {}", vertexList);
 
         vertices = graph.traversal().V().hasLabel("person")
                         .has("age", P.lt(19));
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
         assert vertexList.get(0).property("age").value().equals(3);
-        System.out.println(">>>> query all persons age<19: " + vertexList);
+        LOG.info(">>>> query all persons age<19: {}", vertexList);
 
         String addr = "Bay Area";
         vertices = graph.traversal().V().hasLabel("author")
                         .has("lived", Text.contains(addr));
         vertexList = vertices.toList();
         assert vertexList.size() == 1;
-        System.out.println(String.format(">>>> query all authors lived %s: %s",
-                           addr, vertexList));
+        LOG.info(">>>> query all authors lived {}: {}", addr, vertexList);
     }
 
     public static void testRemove(final HugeGraph graph) {
@@ -427,7 +422,7 @@ public class Example1 {
         james.addEdge("look", book6, "timestamp", "2017-5-3 12:00:08.0");
         graph.tx().commit();
         assert graph.traversal().V(book6.id()).bothE().hasNext();
-        System.out.println(">>>> removing vertex: " + james);
+        LOG.info(">>>> removing vertex: {}", james);
         james.remove();
         graph.tx().commit();
         assert !graph.traversal().V(james.id()).hasNext();
@@ -443,10 +438,10 @@ public class Example1 {
         String edgeId = String.format("S%s>%s>%s>S%s",
                                       authorId, authored.id(), "", book2Id);
 
-        List <Edge> edges = graph.traversal().E(edgeId).toList();
+        List<Edge> edges = graph.traversal().E(edgeId).toList();
         assert edges.size() == 1;
         Edge edge = edges.get(0);
-        System.out.println(">>>> removing edge: " + edge);
+        LOG.info(">>>> removing edge: {}", edge);
         edge.remove();
         graph.tx().commit();
         assert !graph.traversal().E(edgeId).hasNext();

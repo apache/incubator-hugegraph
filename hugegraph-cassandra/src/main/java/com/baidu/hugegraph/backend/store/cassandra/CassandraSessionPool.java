@@ -66,8 +66,15 @@ public class CassandraSessionPool extends BackendSessionPool {
         int port = config.get(CassandraOptions.CASSANDRA_PORT);
 
         assert this.cluster == null || this.cluster.isClosed();
+        /*
+         * We disable cassandra metrics through withoutMetrics(), due to
+         * metrics versions are incompatible, java11 glassfish use metrics 4,
+         * but cassandra use metrics 3.
+         * TODO: fix it after after cassandra upgrade metrics version
+         */
         Builder builder = Cluster.builder()
                                  .addContactPoints(hosts.split(","))
+                                 .withoutMetrics()
                                  .withPort(port);
 
         // Timeout options
@@ -206,7 +213,9 @@ public class CassandraSessionPool extends BackendSessionPool {
             assert this.session == null;
             try {
                 this.open();
-            } catch (InvalidQueryException ignored) {}
+            } catch (InvalidQueryException ignored) {
+                // ignore
+            }
         }
 
         @Override

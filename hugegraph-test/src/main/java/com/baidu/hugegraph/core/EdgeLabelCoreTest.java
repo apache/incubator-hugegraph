@@ -1141,7 +1141,6 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
                             write.userdata().get("multiplicity"));
         Assert.assertEquals("picture2", write.userdata().get("icon"));
 
-
         write = schema.edgeLabel("write")
                       .userdata("icon", "")
                       .eliminate();

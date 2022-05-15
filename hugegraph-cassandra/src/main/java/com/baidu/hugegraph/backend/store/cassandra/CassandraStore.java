@@ -475,12 +475,12 @@ public abstract class CassandraStore
     }
 
     protected boolean existsTable(String table) {
-         KeyspaceMetadata keyspace = this.cluster().getMetadata()
+        KeyspaceMetadata keyspace = this.cluster().getMetadata()
                                          .getKeyspace(this.keyspace);
-         if (keyspace != null && keyspace.getTable(table) != null) {
-             return true;
-         }
-         return false;
+        if (keyspace != null && keyspace.getTable(table) != null) {
+            return true;
+        }
+        return false;
     }
 
     protected void initKeyspace() {

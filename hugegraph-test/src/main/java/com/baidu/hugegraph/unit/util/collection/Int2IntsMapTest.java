@@ -82,6 +82,8 @@ public class Int2IntsMapTest {
                         map.add(5, m++);
                     }
                     break;
+                default:
+                    break;
             }
         }
 

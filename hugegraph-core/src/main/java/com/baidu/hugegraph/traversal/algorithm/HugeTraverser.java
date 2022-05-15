@@ -28,8 +28,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -361,7 +361,7 @@ public class HugeTraverser {
     public static void checkSkipDegree(long skipDegree, long degree,
                                        long capacity) {
         E.checkArgument(skipDegree >= 0L &&
-                        skipDegree <= Query.DEFAULT_CAPACITY ,
+                        skipDegree <= Query.DEFAULT_CAPACITY,
                         "The skipped degree must be in [0, %s], but got '%s'",
                         Query.DEFAULT_CAPACITY, skipDegree);
         if (capacity != NO_LIMIT) {
@@ -636,7 +636,7 @@ public class HugeTraverser {
 
     public static class PathSet implements Set<Path> {
 
-        public final static PathSet EMPTY = new PathSet(ImmutableSet.of());
+        public static final PathSet EMPTY = new PathSet(ImmutableSet.of());
 
         private final Set<Path> paths;
 

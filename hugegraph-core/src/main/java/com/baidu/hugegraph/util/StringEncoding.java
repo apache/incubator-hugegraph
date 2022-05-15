@@ -52,6 +52,7 @@ public final class StringEncoding {
 
     private static final MessageDigest DIGEST;
     private static final byte[] BYTES_EMPTY = new byte[0];
+    private static final String STRING_EMPTY = "";
     private static final int BLOCK_SIZE = 4096;
 
     static {
@@ -117,6 +118,9 @@ public final class StringEncoding {
     }
 
     public static String decode(byte[] bytes) {
+        if (bytes.length == 0) {
+            return STRING_EMPTY;
+        }
         try {
             return new String(bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -125,6 +129,9 @@ public final class StringEncoding {
     }
 
     public static String decode(byte[] bytes, int offset, int length) {
+        if (length == 0) {
+            return STRING_EMPTY;
+        }
         try {
             return new String(bytes, offset, length, "UTF-8");
         } catch (UnsupportedEncodingException e) {

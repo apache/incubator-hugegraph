@@ -62,7 +62,7 @@ public abstract class PerfExampleBase {
 
     public int test(String[] args) throws Exception {
         if (args.length != 4) {
-            System.out.println("Usage: threadCount times multiple profile");
+            LOG.info("Usage: threadCount times multiple profile");
             return -1;
         }
 

@@ -20,6 +20,7 @@
 package com.baidu.hugegraph.backend.serializer;
 
 import java.io.OutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,6 +79,8 @@ public final class BytesBuffer extends OutputStream {
     public static final int BUF_EDGE_ID = 128;
     public static final int BUF_PROPERTY = 64;
 
+    public static final byte[] BYTES_EMPTY = new byte[0];
+
     private ByteBuffer buffer;
     private final boolean resize;
 
@@ -120,7 +123,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer forReadWritten() {
-        this.buffer.flip();
+        ((Buffer) this.buffer).flip();
         return this;
     }
 
@@ -170,7 +173,7 @@ public final class BytesBuffer extends OutputStream {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         ByteBuffer newBuffer = ByteBuffer.allocate(newcapacity);
-        this.buffer.flip();
+        ((Buffer) this.buffer).flip();
         newBuffer.put(this.buffer);
         this.buffer = newBuffer;
     }
@@ -908,7 +911,8 @@ public final class BytesBuffer extends OutputStream {
     private byte[] readBytesWithEnding() {
         int start = this.buffer.position();
         boolean foundEnding = false;
-        while (this.remaining() > 0) {
+        int remaining = this.remaining();
+        for (int i = 0; i < remaining; i++) {
             byte current = this.read();
             if (current == STRING_ENDING_BYTE) {
                 foundEnding = true;
@@ -919,6 +923,9 @@ public final class BytesBuffer extends OutputStream {
                         Bytes.toHex(STRING_ENDING_BYTE));
         int end = this.buffer.position() - 1;
         int len = end - start;
+        if (len <= 0) {
+            return BYTES_EMPTY;
+        }
         byte[] bytes = new byte[len];
         System.arraycopy(this.array(), start, bytes, 0, len);
         return bytes;

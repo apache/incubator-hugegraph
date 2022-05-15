@@ -22,12 +22,11 @@ package com.baidu.hugegraph.api;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import javax.ws.rs.core.GenericType;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
@@ -88,7 +87,10 @@ public class LoginApiTest extends BaseApiTest {
         r = client().delete(path, headers);
         assertResponseStatus(204, r);
 
-        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
+        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hb" +
+                              "WUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0I" +
+                              "iwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbE" +
+                              "MzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().delete(path, headers);
@@ -121,7 +123,10 @@ public class LoginApiTest extends BaseApiTest {
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
 
-        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
+        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hb" +
+                              "WUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0I" +
+                              "iwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbE" +
+                              "MzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().get(path, headers);

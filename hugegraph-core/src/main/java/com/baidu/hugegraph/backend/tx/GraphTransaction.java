@@ -32,8 +32,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.ws.rs.ForbiddenException;
-
+import jakarta.ws.rs.ForbiddenException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -611,7 +610,7 @@ public class GraphTransaction extends IndexableTransaction {
             this.beforeWrite();
             this.addedVertices.put(vertex.id(), vertex);
             this.afterWrite();
-        } catch (Throwable e){
+        } catch (Throwable e) {
             this.locksTable.unlock();
             throw e;
         }
@@ -777,9 +776,15 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryVertices(Query query) {
-        E.checkArgument(this.removedVertices.isEmpty() || query.noLimit(),
-                        "It's not allowed to query with limit when " +
-                        "there are uncommitted delete records.");
+        if (this.hasUpdate()) {
+            E.checkArgument(query.noLimitAndOffset(),
+                            "It's not allowed to query with offser/limit " +
+                            "when there are uncommitted records.");
+            // TODO: also add check: no SCAN, no OLAP
+            E.checkArgument(!query.paging(),
+                            "It's not allowed to query by paging when " +
+                            "there are uncommitted records.");
+        }
 
         query.resetActualOffset();
 
@@ -935,9 +940,15 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Watched
     public Iterator<Edge> queryEdges(Query query) {
-        E.checkArgument(this.removedEdges.isEmpty() || query.noLimit(),
-                        "It's not allowed to query with limit when " +
-                        "there are uncommitted delete records.");
+        if (this.hasUpdate()) {
+            E.checkArgument(query.noLimitAndOffset(),
+                            "It's not allowed to query with offser/limit " +
+                            "when there are uncommitted records.");
+            // TODO: also add check: no SCAN, no OLAP
+            E.checkArgument(!query.paging(),
+                            "It's not allowed to query by paging when " +
+                            "there are uncommitted records.");
+        }
 
         query.resetActualOffset();
 

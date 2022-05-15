@@ -22,9 +22,8 @@ package com.baidu.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
@@ -36,12 +35,12 @@ import com.google.common.collect.ImmutableMap;
 
 public class ProjectApiTest extends BaseApiTest {
 
-    private final static String path = "graphs/hugegraph/auth/projects";
+    private static final String PATH = "graphs/hugegraph/auth/projects";
 
     @Override
     @After
     public void teardown() throws Exception {
-        Response resp = client().get(path);
+        Response resp = client().get(PATH);
         String respBody = assertResponseStatus(200, resp);
         List<?> projects = readList(respBody, "projects", Map.class);
         for (Object project : projects) {
@@ -54,7 +53,7 @@ public class ProjectApiTest extends BaseApiTest {
                 Map<String, Object> graphs = ImmutableMap.of("project_graphs",
                                                              projectGraphs);
                 resp = client().target()
-                               .path(path)
+                               .path(PATH)
                                .path(projectId)
                                .queryParam("action", "remove_graph")
                                .request()
@@ -63,7 +62,7 @@ public class ProjectApiTest extends BaseApiTest {
             }
             // delete project
             resp = client().target()
-                           .path(path)
+                           .path(PATH)
                            .path(projectId)
                            .request()
                            .delete();
@@ -76,7 +75,7 @@ public class ProjectApiTest extends BaseApiTest {
         String project = String.format("{\"project_name\": \"test_project\"," +
                                        "\"project_description\": " +
                                        "\"this is a good project\"}");
-        Response resp = client().post(path, project);
+        Response resp = client().post(PATH, project);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
         Assert.assertEquals("test_project", projectName);
@@ -99,7 +98,7 @@ public class ProjectApiTest extends BaseApiTest {
                                             "this is a good project");
         String projectId = assertJsonContains(project, "id");
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path(projectId)
                                 .request()
                                 .delete();
@@ -119,7 +118,7 @@ public class ProjectApiTest extends BaseApiTest {
     public void testList() {
         createProject("test_project", null);
         createProject("test_project2", null);
-        Response resp = client().get(path);
+        Response resp = client().get(PATH);
         String respBody = assertResponseStatus(200, resp);
         List<?> projects = readList(respBody, "projects", Map.class);
         Assert.assertNotNull(projects);
@@ -130,7 +129,7 @@ public class ProjectApiTest extends BaseApiTest {
     public void testUpdate() {
         String project = "{\"project_description\": \"update desc\"}";
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path("no_exist_id")
                                 .request()
                                 .put(Entity.json(project));
@@ -140,7 +139,7 @@ public class ProjectApiTest extends BaseApiTest {
                                                             "desc"),
                                               "id");
         resp = client().target()
-                       .path(path)
+                       .path(PATH)
                        .path(projectId)
                        .request()
                        .put(Entity.json(project));
@@ -157,7 +156,7 @@ public class ProjectApiTest extends BaseApiTest {
         String graphs = "{\"project_graphs\":[\"graph_test\", " +
                         "\"graph_test2\"]}";
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path(projectId)
                                 .queryParam("action", "add_graph")
                                 .request()
@@ -177,7 +176,7 @@ public class ProjectApiTest extends BaseApiTest {
                                                          "graph_test");
         String graphs = "{\"project_graphs\":[\"graph_test\"]}";
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path(projectId)
                                 .queryParam("action", "remove_graph")
                                 .request()
@@ -191,7 +190,7 @@ public class ProjectApiTest extends BaseApiTest {
 
         graphs = "{\"project_graphs\":[\"graph_test1\"]}";
         resp = client().target()
-                       .path(path)
+                       .path(PATH)
                        .path(projectId)
                        .queryParam("action", "remove_graph")
                        .request()
@@ -208,7 +207,7 @@ public class ProjectApiTest extends BaseApiTest {
         String project = String.format("{\"project_name\": \"%s\"," +
                                        "\"project_description\": " +
                                        "\"%s\"}", name, desc);
-        Response resp = client().post(path, project);
+        Response resp = client().post(PATH, project);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
         Assert.assertEquals(name, projectName);
@@ -245,7 +244,7 @@ public class ProjectApiTest extends BaseApiTest {
         String graphs = String.format("{\"project_graphs\":[%s]}",
                                       graphNamesBuilder);
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path(projectId)
                                 .queryParam("action", "add_graph")
                                 .request()
@@ -255,7 +254,7 @@ public class ProjectApiTest extends BaseApiTest {
 
     private String getProject(String projectId) {
         Response resp = client().target()
-                                .path(path)
+                                .path(PATH)
                                 .path(projectId)
                                 .request()
                                 .get();

@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.server;
 
-import javax.ws.rs.ApplicationPath;
+import jakarta.ws.rs.ApplicationPath;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
@@ -40,7 +40,7 @@ import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.jersey2.InstrumentedResourceMethodApplicationListener;
+import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
 
 @ApplicationPath("/")
 public class ApplicationConfig extends ResourceConfig {
@@ -101,16 +101,16 @@ public class ApplicationConfig extends ResourceConfig {
 
         public GraphManagerFactory(HugeConfig conf, EventHub hub) {
             register(new ApplicationEventListener() {
-                private final ApplicationEvent.Type EVENT_INITED =
+                private final ApplicationEvent.Type eventInited =
                               ApplicationEvent.Type.INITIALIZATION_FINISHED;
-                private final ApplicationEvent.Type EVENT_DESTROYED =
+                private final ApplicationEvent.Type eventDestroyed =
                               ApplicationEvent.Type.DESTROY_FINISHED;
 
                 @Override
                 public void onEvent(ApplicationEvent event) {
-                    if (event.getType() == this.EVENT_INITED) {
+                    if (event.getType() == this.eventInited) {
                         GraphManagerFactory.this.manager = new GraphManager(conf, hub);
-                    } else if (event.getType() == this.EVENT_DESTROYED) {
+                    } else if (event.getType() == this.eventDestroyed) {
                         if (GraphManagerFactory.this.manager != null) {
                             GraphManagerFactory.this.manager.close();
                         }

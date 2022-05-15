@@ -431,7 +431,6 @@ public class PropertyKeyBuilder extends AbstractBuilder
                       this.aggregateType, this.name, this.dataType);
         }
 
-
         if (this.aggregateType.isNumber() &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(

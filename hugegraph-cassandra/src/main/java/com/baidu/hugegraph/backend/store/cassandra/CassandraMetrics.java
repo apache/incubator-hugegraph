@@ -21,6 +21,9 @@ package com.baidu.hugegraph.backend.store.cassandra;
 
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +35,7 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry.JmxTimerMBean;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.cassandra.tools.nodetool.Compact;
 import org.apache.tinkerpop.gremlin.util.NumberHelper;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.store.BackendMetrics;
 import com.baidu.hugegraph.backend.store.BackendTable;
@@ -42,12 +46,15 @@ import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
+import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.UnitUtil;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.google.common.collect.ImmutableList;
 
 public class CassandraMetrics implements BackendMetrics {
+
+    private static final Logger LOG = Log.logger(CassandraMetrics.class);
 
     private final Cluster cluster;
     private final int port;
@@ -139,6 +146,7 @@ public class CassandraMetrics implements BackendMetrics {
              * probe.takeSnapshot(snapshotName, table, options, keyspaces)
              */
         } catch (Throwable e) {
+            LOG.debug("Unable to get metrics from host '{}':", host, e);
             metrics.put(EXCEPTION, e.toString());
         }
         return metrics;
@@ -290,8 +298,20 @@ public class CassandraMetrics implements BackendMetrics {
 
         Map<String, Object> hostsResults = InsertionOrderUtil.newMap();
         for (Host host : hosts) {
-            String address = host.getAddress().getHostAddress();
-            hostsResults.put(address, func.apply(address));
+            InetAddress address = host.getAddress();
+            String hostAddress;
+            if (address instanceof Inet4Address) {
+                hostAddress = host.getAddress().getHostAddress();
+                /*
+                 * Translate IPv4 to IPv6 to fix issue #1843
+                 * TODO: delete this workaround code after fixed CASSANDRA-17581
+                 */
+                hostAddress = "::FFFF:" + hostAddress;
+            } else {
+                assert address instanceof Inet6Address;
+                hostAddress = host.getAddress().getHostAddress();
+            }
+            hostsResults.put(hostAddress, func.apply(hostAddress));
         }
         results.put(SERVERS, hostsResults);
 
@@ -299,6 +319,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
+        LOG.debug("Probe to cassandra node: '{}:{}'", host,  this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);

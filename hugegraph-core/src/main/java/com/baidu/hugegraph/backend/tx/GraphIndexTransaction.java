@@ -211,7 +211,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (property == null) {
                 E.checkState(hasNullableProp(element, fieldId),
                              "Non-null property '%s' is null for '%s'",
-                             this.graph().propertyKey(fieldId) , element);
+                             this.graph().propertyKey(fieldId), element);
                 if (firstNullField == fieldsNum) {
                     firstNullField = allPropValues.size();
                 }
@@ -328,8 +328,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return this.mutation().contains(entry, Action.ELIMINATE);
     }
 
-    private boolean existUniqueValueInStore(IndexLabel indexLabel,
-                                            Object value) {
+    private boolean existUniqueValueInStore(IndexLabel indexLabel, Object value) {
         ConditionQuery query = new ConditionQuery(HugeType.UNIQUE_INDEX);
         query.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
         query.eq(HugeKeys.FIELD_VALUES, value);
@@ -349,8 +348,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                           index.elementId());
             }
             while (iterator.hasNext()) {
-                LOG.warn("Unique constraint conflict found by record {}",
-                         iterator.next());
+                LOG.warn("Unique constraint conflict found by record {}", iterator.next());
             }
         } finally {
             CloseableIterator.closeIterator(iterator);
@@ -423,10 +421,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        "label index is disabled", schemaLabel);
         }
 
-        ConditionQuery indexQuery;
-        indexQuery = new ConditionQuery(indexType , query);
+        ConditionQuery indexQuery = new ConditionQuery(indexType, query);
         indexQuery.eq(HugeKeys.INDEX_LABEL_ID, il.id());
         indexQuery.eq(HugeKeys.FIELD_VALUES, label);
+
         /*
          * We can avoid redundant element ids if set limit, but if there are
          * label index overridden by other vertices with different label,
@@ -825,10 +823,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         return null;
     }
 
-
-    private ConditionQuery constructSearchQuery(ConditionQuery query,
-                                                MatchedIndex index) {
-        ConditionQuery originQuery = query;
+    private ConditionQuery constructSearchQuery(ConditionQuery query, MatchedIndex index) {
+        ConditionQuery newQuery = query;
         Set<Id> indexFields = new HashSet<>();
         // Convert has(key, text) to has(key, textContainsAny(word1, word2))
         for (IndexLabel il : index.indexLabels()) {
@@ -836,39 +832,40 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 continue;
             }
             Id indexField = il.indexField();
-            String fieldValue = (String) query.userpropValue(indexField);
+            String fieldValue = (String) newQuery.userpropValue(indexField);
             Set<String> words = this.segmentWords(fieldValue);
             indexFields.add(indexField);
 
-            query = query.copy();
-            query.unsetCondition(indexField);
-            query.query(Condition.textContainsAny(indexField, words));
+            newQuery = newQuery.copy();
+            newQuery.unsetCondition(indexField);
+            newQuery.query(Condition.textContainsAny(indexField, words));
         }
 
         // Register results filter to compare property value and search text
-        query.registerResultsFilter(elem -> {
-            for (Condition cond : originQuery.conditions()) {
-                Object key = cond.isRelation() ? ((Relation) cond).key() : null;
+        newQuery.registerResultsFilter(element -> {
+            assert element != null;
+            for (Condition cond : query.conditions()) {
+                Object key = cond.isRelation() ?
+                             ((Relation) cond).key() : null;
                 if (key instanceof Id && indexFields.contains(key)) {
                     // This is an index field of search index
                     Id field = (Id) key;
-                    assert elem != null;
-                    HugeProperty<?> property = elem.getProperty(field);
+                    HugeProperty<?> property = element.getProperty(field);
                     String propValue = propertyValueToString(property.value());
-                    String fieldValue = (String) originQuery.userpropValue(field);
+                    String fieldValue = (String) query.userpropValue(field);
                     if (this.matchSearchIndexWords(propValue, fieldValue)) {
                         continue;
                     }
                     return false;
                 }
-                if (!cond.test(elem)) {
+                if (!cond.test(element)) {
                     return false;
                 }
             }
             return true;
         });
 
-        return query;
+        return newQuery;
     }
 
     private boolean matchSearchIndexWords(String propValue, String fieldValue) {
@@ -1053,7 +1050,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
                                                          MatchedIndex index) {
-        IndexQueries queries = new IndexQueries();
+        IndexQueries queries = IndexQueries.of(query);
         List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
 
         // Handle range/search indexes
@@ -1174,7 +1171,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private static IndexQueries constructQueries(ConditionQuery query,
                                                  Set<IndexLabel> ils,
                                                  Set<Id> propKeys) {
-        IndexQueries queries = new IndexQueries();
+        IndexQueries queries = IndexQueries.of(query);
 
         for (IndexLabel il : ils) {
             List<Id> fields = il.indexFields();
@@ -1627,12 +1624,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
                    extends HashMap<IndexLabel, ConditionQuery> {
 
         private static final long serialVersionUID = 1400326138090922676L;
+        private static final IndexQueries EMPTY = new IndexQueries(null);
 
-        public static final IndexQueries EMPTY = new IndexQueries();
+        private final ConditionQuery parentQuery;
+
+        public IndexQueries(ConditionQuery parentQuery) {
+            this.parentQuery = parentQuery;
+        }
 
         public static IndexQueries of(IndexLabel il, ConditionQuery query) {
-            IndexQueries indexQueries = new IndexQueries();
+            IndexQueries indexQueries = new IndexQueries(query);
             indexQueries.put(il, query);
+            return indexQueries;
+        }
+
+        public static IndexQueries of(ConditionQuery parentQuery) {
+            IndexQueries indexQueries = new IndexQueries(parentQuery);
             return indexQueries;
         }
 
@@ -1660,26 +1667,36 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         public Query asJointQuery() {
             @SuppressWarnings({ "unchecked", "rawtypes" })
-            Collection<Query> queries = (Collection) this.values();;
-            return new JointQuery(this.rootQuery().resultType(), queries);
+            Collection<Query> queries = (Collection) this.values();
+            return new JointQuery(this.rootQuery().resultType(),
+                                  this.parentQuery, queries);
         }
 
         private static class JointQuery extends Query {
 
             private final Collection<Query> queries;
+            private final ConditionQuery parentQuery;
 
-            public JointQuery(HugeType type, Collection<Query> queries) {
+            public JointQuery(HugeType type, ConditionQuery parentQuery,
+                              Collection<Query> queries) {
                 super(type, parent(queries));
+                this.parentQuery = parentQuery;
                 this.queries = queries;
             }
 
             @Override
             public Query originQuery() {
+                return this.parentQuery;
+            }
+
+            @SuppressWarnings("unused")
+            public Query originJointQuery() {
                 List<Query> origins = new ArrayList<>();
                 for (Query q : this.queries) {
                     origins.add(q.originQuery());
                 }
-                return new JointQuery(this.resultType(), origins);
+                return new JointQuery(this.resultType(),
+                                      this.parentQuery, origins);
             }
 
             @Override
@@ -1712,7 +1729,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.query = query;
             this.element = element;
             this.tx = null;
-            this.leftIndexes = query.getElementLeftIndex(element.id());
+            this.leftIndexes = query.getLeftIndexOfElement(element.id());
         }
 
         @Override
@@ -1797,11 +1814,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                                  leftIndex) {
             Set<MatchedIndex> matchedIndexes = this.tx.collectMatchedIndexes(query);
             for (MatchedIndex index : matchedIndexes) {
-               for (IndexLabel label : index.indexLabels()){
-                   if (label.indexField().equals(leftIndex.indexField())){
-                       return label;
-                   }
-               }
+                for (IndexLabel label : index.indexLabels()) {
+                    if (label.indexField().equals(leftIndex.indexField())) {
+                        return label;
+                    }
+                }
             }
             return null;
         }

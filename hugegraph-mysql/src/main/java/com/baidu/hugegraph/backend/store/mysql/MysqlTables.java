@@ -41,8 +41,7 @@ import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
-
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 
 public class MysqlTables {
 
@@ -108,7 +107,7 @@ public class MysqlTables {
 
             String select = String.format("SELECT ID FROM %s WHERE %s = '%s';",
                                           this.table(), schemaCol, type.name());
-            try (ResultSetWrapper results = session.select(select)){
+            try (ResultSetWrapper results = session.select(select)) {
                 ResultSet rs = results.resultSet();
                 if (rs.next()) {
                     return rs.getLong(idCol);

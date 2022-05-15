@@ -64,6 +64,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -90,9 +91,12 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
+import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
+
+    private static final Logger LOG = Log.logger(HugeGraph.class);
 
     public static final String P_CALL = "P.";
 
@@ -286,9 +290,7 @@ public final class TraversalUtil {
         }
     }
 
-    public static Condition convHas2Condition(HasContainer has,
-                                              HugeType type,
-                                              HugeGraph graph) {
+    public static Condition convHas2Condition(HasContainer has, HugeType type, HugeGraph graph) {
         P<?> p = has.getPredicate();
         E.checkArgument(p != null, "The predicate of has(%s) is null", has);
         BiPredicate<?, ?> bp = p.getBiPredicate();
@@ -372,7 +374,6 @@ public final class TraversalUtil {
                convCompare2UserpropRelation(graph, type, has);
     }
 
-
     private static Relation convCompare2SyspropRelation(HugeGraph graph,
                                                         HugeType type,
                                                         HasContainer has) {
@@ -396,9 +397,9 @@ public final class TraversalUtil {
                 return Condition.lte(key, value);
             case neq:
                 return Condition.neq(key, value);
+            default:
+                throw newUnsupportedPredicate(has.getPredicate());
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     private static Relation convCompare2UserpropRelation(HugeGraph graph,
@@ -425,9 +426,9 @@ public final class TraversalUtil {
                 return Condition.lte(pkeyId, value);
             case neq:
                 return Condition.neq(pkeyId, value);
+            default:
+                throw newUnsupportedPredicate(has.getPredicate());
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     private static Condition convRelationType2Relation(HugeGraph graph,
@@ -468,6 +469,8 @@ public final class TraversalUtil {
                     return Condition.in(hugeKey, valueList);
                 case without:
                     return Condition.nin(hugeKey, valueList);
+                default:
+                    throw newUnsupportedPredicate(has.getPredicate());
             }
         } else {
             valueList = new ArrayList<>(values);
@@ -479,10 +482,10 @@ public final class TraversalUtil {
                     return Condition.in(pkey.id(), valueList);
                 case without:
                     return Condition.nin(pkey.id(), valueList);
+                default:
+                    throw newUnsupportedPredicate(has.getPredicate());
             }
         }
-
-        throw newUnsupportedPredicate(has.getPredicate());
     }
 
     public static Condition convContains2Relation(HugeGraph graph,
@@ -568,6 +571,15 @@ public final class TraversalUtil {
         List<HasStep> steps =
                       TraversalHelper.getStepsOfAssignableClassRecursively(
                       HasStep.class, traversal);
+        /*
+         * The graph may be null.
+         * For example:
+         *   g.V().hasLabel('person').union(__.<Vertex>has("birth", dates[0]))
+         * Here "__.has" will create a new traversal, but the graph is null
+         */
+        if (steps.isEmpty() || !traversal.getGraph().isPresent()) {
+            return;
+        }
         HugeGraph graph = (HugeGraph) traversal.getGraph().get();
         for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);
@@ -892,7 +904,9 @@ public final class TraversalUtil {
                         value = JsonUtil.fromJson(value, String.class);
                     }
                     return DateUtil.parse(value).getTime();
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    // TODO: improve to throw a exception here
+                }
             }
 
             throw new HugeException(

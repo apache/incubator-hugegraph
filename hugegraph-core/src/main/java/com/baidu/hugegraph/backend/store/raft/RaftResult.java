@@ -30,6 +30,10 @@ public final class RaftResult<T> {
     private final Supplier<T> callback;
     private final Throwable exception;
 
+    public RaftResult(Status status) {
+        this(status, () -> null, null);
+    }
+
     public RaftResult(Status status, Supplier<T> callback) {
         this(status, callback, null);
     }

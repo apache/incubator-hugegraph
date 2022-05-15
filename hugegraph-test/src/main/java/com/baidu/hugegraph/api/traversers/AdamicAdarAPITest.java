@@ -21,7 +21,7 @@ package com.baidu.hugegraph.api.traversers;
 
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class AdamicAdarAPITest extends BaseApiTest {
 
-    private final static String PATH = TRAVERSERS_API + "/adamicadar";
+    private static final String PATH = TRAVERSERS_API + "/adamicadar";
 
     @Before
     public void prepareSchema() {
@@ -48,7 +48,6 @@ public class AdamicAdarAPITest extends BaseApiTest {
 
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
-        String peterId = name2Ids.get("peter");
         Response r = client().get(PATH, ImmutableMap.of("vertex",
                                                         id2Json(markoId),
                                                         "other",

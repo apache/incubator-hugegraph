@@ -27,46 +27,45 @@ import com.baidu.hugegraph.event.EventListener;
 public interface BackendStoreProvider {
 
     // Backend store type
-    public String type();
+    String type();
 
     // Backend store version
-    public String version();
+    String version();
 
     // Graph name (that's database name)
-    public String graph();
+    String graph();
 
-    public BackendStore loadSystemStore(HugeConfig config, String name);
+    BackendStore loadSystemStore(HugeConfig config, String name);
 
-    public BackendStore loadSchemaStore(HugeConfig config, String name);
+    BackendStore loadSchemaStore(HugeConfig config, String name);
 
-    public BackendStore loadGraphStore(HugeConfig config, String name);
+    BackendStore loadGraphStore(HugeConfig config, String name);
 
+    void open(String name);
 
-    public void open(String name);
+    void waitStoreStarted();
 
-    public void waitStoreStarted();
+    void close();
 
-    public void close();
+    void init();
 
-    public void init();
+    void clear();
 
-    public void clear();
+    void truncate();
 
-    public void truncate();
+    void initSystemInfo(HugeGraph graph);
 
-    public void initSystemInfo(HugeGraph graph);
+    void createSnapshot();
 
-    public void createSnapshot();
+    void resumeSnapshot();
 
-    public void resumeSnapshot();
+    void listen(EventListener listener);
 
-    public void listen(EventListener listener);
+    void unlisten(EventListener listener);
 
-    public void unlisten(EventListener listener);
+    EventHub storeEventHub();
 
-    public EventHub storeEventHub();
+    void onCloneConfig(HugeConfig config, String newGraph);
 
-    public void onCloneConfig(HugeConfig config, String newGraph);
-
-    public void onDeleteConfig(HugeConfig config);
+    void onDeleteConfig(HugeConfig config);
 }

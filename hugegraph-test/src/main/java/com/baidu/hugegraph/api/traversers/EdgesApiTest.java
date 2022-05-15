@@ -22,8 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,12 +31,11 @@ import com.baidu.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 
-
 public class EdgesApiTest extends BaseApiTest {
 
-    final static String EDGE_PATH = TRAVERSERS_API + "/edges";
-    final static String SHARES_PATH = TRAVERSERS_API + "/edges/shards";
-    final static String SCAN_PATH = TRAVERSERS_API + "/edges/scan";
+    static final String EDGE_PATH = TRAVERSERS_API + "/edges";
+    static final String SHARES_PATH = TRAVERSERS_API + "/edges/shards";
+    static final String SCAN_PATH = TRAVERSERS_API + "/edges/scan";
 
     @Before
     public void prepareSchema() {

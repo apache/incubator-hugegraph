@@ -22,8 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +32,7 @@ import com.google.common.collect.ImmutableList;
 
 public class TemplatePathsApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/templatepaths";
+    static final String PATH = TRAVERSERS_API + "/templatepaths";
 
     @Before
     public void prepareSchema() {
@@ -77,7 +76,7 @@ public class TemplatePathsApiTest extends BaseApiTest {
                           " \"capacity\": 10000," +
                           " \"limit\": 10," +
                           " \"with_vertex\": true}";
-        Response r = client().post(path, template);
+        Response r = client().post(PATH, template);
         String content = assertResponseStatus(200, r);
         List<Map<?, ?>> objects = assertJsonContains(content, "paths");
         Assert.assertEquals(1, objects.size());

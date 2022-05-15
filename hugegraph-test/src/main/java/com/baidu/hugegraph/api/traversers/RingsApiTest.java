@@ -22,8 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class RingsApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/rings";
+    static final String PATH = TRAVERSERS_API + "/rings";
 
     @Before
     public void prepareSchema() {
@@ -51,7 +50,7 @@ public class RingsApiTest extends BaseApiTest {
         Map<String, Object> params = ImmutableMap.of("source",
                                                      id2Json(markoId),
                                                      "max_depth", 10);
-        Response r = client().get(path, params);
+        Response r = client().get(PATH, params);
         String content = assertResponseStatus(200, r);
         List<Map<String, List<String>>> rings = assertJsonContains(content,
                                                                    "rings");

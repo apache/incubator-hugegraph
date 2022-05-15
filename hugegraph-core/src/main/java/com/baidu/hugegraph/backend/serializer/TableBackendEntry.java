@@ -265,7 +265,7 @@ public class TableBackendEntry implements BackendEntry {
     }
 
     @Override
-    public void columns(BackendEntry.BackendColumn... bytesColumns) {
+    public void columns(BackendEntry.BackendColumn bytesColumn) {
         throw new NotImplementedException("Not supported by table backend");
     }
 

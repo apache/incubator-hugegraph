@@ -14,13 +14,13 @@ Before submitting the code, we need to do some preparation:
 
 1. Sign up or login to GitHub:  [https://github.com](https://github.com)
 
-2. Fork HugeGraph repo from GitHub: [https://github.com/hugegraph/hugegraph/fork](https://github.com/hugegraph/hugegraph/fork)
+2. Fork HugeGraph repo from GitHub: [https://github.com/apache/incubator-hugegraph/fork](https://github.com/apache/incubator-hugegraph/fork)
 
-3. Clone code from fork repo to local: [https://github.com/${GITHUB_USER_NAME}/hugegraph](https://github.com/${GITHUB_USER_NAME}/hugegraph)
+3. Clone code from fork repo to local: [https://github.com/${GITHUB_USER_NAME}/incubator-hugegraph](https://github.com/${GITHUB_USER_NAME}/incubator-hugegraph)
 
    ```shell
    # clone code from remote to local repo
-   git clone https://github.com/${GITHUB_USER_NAME}/hugegraph
+   git clone https://github.com/${GITHUB_USER_NAME}/incubator-hugegraph.git hugegraph
    ```
 
 4. Configure local HugeGraph repo
@@ -29,20 +29,18 @@ Before submitting the code, we need to do some preparation:
    cd hugegraph
 
    # add upstream to synchronize the latest code
-   git remote add hugegraph https://github.com/hugegraph/hugegraph
+   git remote add hugegraph https://github.com/apache/incubator-hugegraph
 
    # set name and email to push code to github
    git config user.name "{full-name}" # like "Jermy Li"
    git config user.email "{email-address-of-github}" # like "jermy@apache.org"
    ```
 
-5. Sign the HugeGraph CLA: [https://cla-assistant.io/hugegraph/hugegraph](https://cla-assistant.io/hugegraph/hugegraph)
-
 Optional: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the commit and update process.
 
 ## 2. Create an Issue on GitHub
 
-If you encounter bugs or have any questions, please go to [GitHub Issues](https://github.com/hugegraph/hugegraph/issues) to report them and feel free to [create an issue](https://github.com/hugegraph/hugegraph/issues/new).
+If you encounter bugs or have any questions, please go to [GitHub Issues](https://github.com/apache/incubator-hugegraph/issues) to report them and feel free to [create an issue](https://github.com/apache/incubator-hugegraph/issues/new).
 
 ## 3. Make changes of code locally
 
@@ -103,9 +101,19 @@ Push the local commit to GitHub fork repo:
 git push origin bugfix-branch:bugfix-branch
 ```
 
+Note that since GitHub requires submitting code through `username + token` (instead of using `username + password` directly), you need to create a GitHub token from https://github.com/settings/tokens:
+<img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163524204-7fe0e6bf-9c8b-4b1a-ac65-6a0ac423eb16.png">
+
 ## 4. Create a Pull Request
 
 Go to the web page of GitHub fork repo, there would be a chance to create a Pull Request after pushing to a new branch, just click button "Compare & pull request" to do it. Then edit the description for proposed changes, which can just be copied from the commit message.
+
+Please sign the HugeGraph CLA when contributing code for the first time. You can sign the CLA by just posting a Pull Request Comment same as the below format:
+
+`I have read the CLA Document and I hereby sign the CLA`
+
+Note: please make sure the email address you used to submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
+<img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163522445-2a50a72a-dea2-434f-9868-3a0d40d0d037.png">
 
 ## 5. Code review
 

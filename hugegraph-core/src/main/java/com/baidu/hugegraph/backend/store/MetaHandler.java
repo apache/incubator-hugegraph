@@ -21,5 +21,5 @@ package com.baidu.hugegraph.backend.store;
 
 public interface MetaHandler<Session extends BackendSession> {
 
-    public Object handle(Session session, String meta, Object... args);
+    Object handle(Session session, String meta, Object... args);
 }

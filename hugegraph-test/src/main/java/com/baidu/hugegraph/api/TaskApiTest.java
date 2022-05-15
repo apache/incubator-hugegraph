@@ -22,14 +22,12 @@ package com.baidu.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.ImmutableMap;
+import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
-
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 public class TaskApiTest extends BaseApiTest {
 
@@ -149,11 +147,11 @@ public class TaskApiTest extends BaseApiTest {
     }
 
     private int gremlinJob() {
-        String body = "{"
-                + "\"gremlin\":\"Thread.sleep(1000L)\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{}}";
+        String body = "{" +
+                "\"gremlin\":\"Thread.sleep(1000L)\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{}}";
         String path = "/graphs/hugegraph/jobs/gremlin";
         String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");

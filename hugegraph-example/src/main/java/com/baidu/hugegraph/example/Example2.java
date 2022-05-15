@@ -58,16 +58,14 @@ public class Example2 {
         GraphTraversalSource g = graph.traversal();
 
         GraphTraversal<Vertex, Vertex> vertices = g.V();
-        System.out.println(">>>> query all vertices: size=" +
-                           vertices.toList().size());
+        LOG.info(">>>> query all vertices: size {}", vertices.toList().size());
 
         List<Edge> edges = g.E().toList();
-        System.out.println(">>>> query all edges: size=" +
-                           edges.size());
+        LOG.info(">>>> query all edges: size {}", edges.size());
 
         List<Object> names = g.V().inE("knows").limit(2)
                               .outV().values("name").toList();
-        System.out.println(">>>> query vertex(with props) of edges: " + names);
+        LOG.info(">>>> query vertex(with props) of edges: {}", names);
         assert names.size() == 2 : names.size();
 
         names = g.V().as("a")
@@ -75,11 +73,11 @@ public class Example2 {
                  .and()
                  .out("created").in("created").as("a").values("name")
                  .toList();
-        System.out.println(">>>> query with AND: " + names);
+        LOG.info(">>>> query with AND: {}", names);
         assert names.size() == 1 : names.size();
 
         List<Vertex> vertex = g.V().has("age", 29).toList();
-        System.out.println(">>>> age = 29: " + vertex);
+        LOG.info(">>>> age = 29: {}", vertex);
         assert vertex.size() == 1 &&
                vertex.get(0).value("name").equals("marko");
 
@@ -87,12 +85,12 @@ public class Example2 {
                   .has("age", 29)
                   .has("city", "Beijing")
                   .toList();
-        System.out.println(">>>> age = 29 and city is Beijing: " + vertex);
+        LOG.info(">>>> age = 29 and city is Beijing: {}", vertex);
         assert vertex.size() == 1 &&
                vertex.get(0).value("name").equals("marko");
 
         edges = g.E().has("weight", P.lt(1.0)).toList();
-        System.out.println(">>>> edges with weight < 1.0: " + edges);
+        LOG.info(">>>> edges with weight < 1.0: {}", edges);
         assert edges.size() == 4;
 
         String person = graph.schema().getVertexLabel("person").id().asString();
@@ -107,12 +105,11 @@ public class Example2 {
                   .has("weight", P.lt(1.0))
                   .otherV()
                   .toList();
-        System.out.println(">>>> josh's both edges with weight < 1.0: " +
-                           vertex);
+        LOG.info(">>>> josh's both edges with weight < 1.0: ", vertex);
         assert vertex.size() == 1 && vertex.get(0).value("name").equals("lop");
 
         List<Path> paths = g.V(markoId).out().out().path().by("name").toList();
-        System.out.println(">>>> test out path: " + paths);
+        LOG.info(">>>> test out path: {}", paths);
         assert paths.size() == 2;
         assert paths.get(0).get(0).equals("marko");
         assert paths.get(0).get(1).equals("josh");
@@ -122,17 +119,17 @@ public class Example2 {
         assert paths.get(1).get(2).equals("ripple");
 
         paths = shortestPath(graph, markoId, lopId, 5);
-        System.out.println(">>>> test shortest path: " + paths.get(0));
+        LOG.info(">>>> test shortest path: {}", paths.get(0));
         assert paths.get(0).get(0).equals("marko");
         assert paths.get(0).get(1).equals("lop");
 
-        System.out.println(">>>> query with out() optimize: " +
+        LOG.info(">>>> query with out() optimize: {}",
                 graph.traversal().V(markoId)
                 .out()
                 .out()
                 .values("name").toList());
 
-        System.out.println(">>>> query with out() optimize and path(): " +
+        LOG.info(">>>> query with out() optimize and path(): {}",
                 graph.traversal().V()
                 .out("knows")
                 .out("created")

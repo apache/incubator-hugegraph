@@ -1828,12 +1828,13 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testQueryAllWithLimitAfterDelete() {
+    public void testQueryAllWithLimitAfterUncommittedDelete() {
         HugeGraph graph = graph();
         init18Edges();
 
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query count with uncommitted records
             graph.traversal().E().count().next();
@@ -1842,6 +1843,11 @@ public class EdgeCoreTest extends BaseCoreTest {
             // Query with limit
             graph.traversal().E().limit(3).toList();
         });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with offset
+            graph.traversal().E().range(1, -1).toList();
+        });
+
         graph.tx().commit();
         Assert.assertEquals(4L, graph.traversal().E().count().next());
         List<Edge> edges = graph.traversal().E().limit(3).toList();
@@ -1852,6 +1858,40 @@ public class EdgeCoreTest extends BaseCoreTest {
         graph.tx().commit();
         edges = graph.traversal().E().limit(3).toList();
         Assert.assertEquals(1, edges.size());
+    }
+
+    @Test
+    public void testQueryAllWithLimitAfterUncommittedInsert() {
+        HugeGraph graph = graph();
+        init18Edges();
+
+        // Query all with limit after insert
+        Vertex james = graph.addVertex(T.label, "author", "id", 3,
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
+
+        Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
+
+        james.addEdge("authored", book,
+                      "comment", "good book!",
+                      "comment", "good book!",
+                      "comment", "good book too!");
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query count with uncommitted records
+            graph.traversal().E().count().next();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with limit
+            graph.traversal().E().limit(3).toList();
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            // Query with offset
+            graph.traversal().E().range(1, -1).toList();
+        });
+
+        graph.tx().commit();
+        Assert.assertEquals(19L, graph.traversal().E().count().next());
     }
 
     @Test
@@ -4825,9 +4865,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4877,9 +4917,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4930,9 +4970,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01",
-                "2013-01-01 00:00:00",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01",
+            "2013-01-01 00:00:00",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4980,9 +5020,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -7266,7 +7306,6 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.traversal().E().has("related", "tags",
                                       "gremlin").toList();
         });
-
 
         List<Edge> edges =  graph.traversal().E()
                                  .has("related", "tags",

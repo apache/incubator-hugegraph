@@ -21,8 +21,7 @@ package com.baidu.hugegraph.api;
 
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,42 +39,42 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        String edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": \"person\","
-                + "\"target_label\": \"software\","
-                + "\"frequency\": \"SINGLE\","
-                + "\"properties\":[\"date\", \"city\"],"
-                + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        String edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": \"person\"," +
+                "\"target_label\": \"software\"," +
+                "\"frequency\": \"SINGLE\"," +
+                "\"properties\":[\"date\", \"city\"]," +
+                "\"nullable_keys\":[\"city\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Response r = client().post(path, edgeLabel);
         assertResponseStatus(201, r);
     }
 
     @Test
     public void testAppend() {
-        String edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": \"person\","
-                + "\"target_label\": \"software\","
-                + "\"frequency\": \"SINGLE\","
-                + "\"properties\":[\"date\", \"city\"],"
-                + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        String edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": \"person\"," +
+                "\"target_label\": \"software\"," +
+                "\"frequency\": \"SINGLE\"," +
+                "\"properties\":[\"date\", \"city\"]," +
+                "\"nullable_keys\":[\"city\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Response r = client().post(path, edgeLabel);
         assertResponseStatus(201, r);
 
-        edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": null,"
-                + "\"target_label\": null,"
-                + "\"frequency\": \"DEFAULT\","
-                + "\"properties\":[\"lang\"],"
-                + "\"nullable_keys\":[\"lang\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": null," +
+                "\"target_label\": null," +
+                "\"frequency\": \"DEFAULT\"," +
+                "\"properties\":[\"lang\"]," +
+                "\"nullable_keys\":[\"lang\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(path, "created", edgeLabel, params);
         assertResponseStatus(200, r);
@@ -83,15 +82,15 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": \"person\","
-                + "\"target_label\": \"software\","
-                + "\"frequency\": \"SINGLE\","
-                + "\"properties\":[\"date\", \"city\"],"
-                + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        String edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": \"person\"," +
+                "\"target_label\": \"software\"," +
+                "\"frequency\": \"SINGLE\"," +
+                "\"properties\":[\"date\", \"city\"]," +
+                "\"nullable_keys\":[\"city\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Response r = client().post(path, edgeLabel);
         assertResponseStatus(201, r);
 
@@ -102,15 +101,15 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
     @Test
     public void testList() {
-        String edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": \"person\","
-                + "\"target_label\": \"software\","
-                + "\"frequency\": \"SINGLE\","
-                + "\"properties\":[\"date\", \"city\"],"
-                + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        String edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": \"person\"," +
+                "\"target_label\": \"software\"," +
+                "\"frequency\": \"SINGLE\"," +
+                "\"properties\":[\"date\", \"city\"]," +
+                "\"nullable_keys\":[\"city\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Response r = client().post(path, edgeLabel);
         assertResponseStatus(201, r);
 
@@ -120,15 +119,15 @@ public class EdgeLabelApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() {
-        String edgeLabel = "{"
-                + "\"name\": \"created\","
-                + "\"source_label\": \"person\","
-                + "\"target_label\": \"software\","
-                + "\"frequency\": \"SINGLE\","
-                + "\"properties\":[\"date\", \"city\"],"
-                + "\"nullable_keys\":[\"city\"],"
-                + "\"sort_keys\":[]"
-                + "}";
+        String edgeLabel = "{" +
+                "\"name\": \"created\"," +
+                "\"source_label\": \"person\"," +
+                "\"target_label\": \"software\"," +
+                "\"frequency\": \"SINGLE\"," +
+                "\"properties\":[\"date\", \"city\"]," +
+                "\"nullable_keys\":[\"city\"]," +
+                "\"sort_keys\":[]" +
+                "}";
         Response r = client().post(path, edgeLabel);
         assertResponseStatus(201, r);
 

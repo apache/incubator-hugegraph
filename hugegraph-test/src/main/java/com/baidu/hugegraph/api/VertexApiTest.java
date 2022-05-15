@@ -21,8 +21,7 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,26 +37,26 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
-                + "}";
+        String vertex = "{" +
+                "\"label\":\"person\"," +
+                "\"properties\":{" +
+                "\"name\":\"James\"," +
+                "\"city\":\"Beijing\"," +
+                "\"age\":19}" +
+                "}";
         Response r = client().post(path, vertex);
         assertResponseStatus(201, r);
     }
 
     @Test
     public void testGet() throws IOException {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
-                + "}";
+        String vertex = "{" +
+                "\"label\":\"person\"," +
+                "\"properties\":{" +
+                "\"name\":\"James\"," +
+                "\"city\":\"Beijing\"," +
+                "\"age\":19}" +
+                "}";
         Response r = client().post(path, vertex);
         String content = assertResponseStatus(201, r);
 
@@ -69,13 +68,13 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testList() {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
-                + "}";
+        String vertex = "{" +
+                "\"label\":\"person\"," +
+                "\"properties\":{" +
+                "\"name\":\"James\"," +
+                "\"city\":\"Beijing\"," +
+                "\"age\":19}" +
+                "}";
         Response r = client().post(path, vertex);
         assertResponseStatus(201, r);
 
@@ -85,13 +84,13 @@ public class VertexApiTest extends BaseApiTest {
 
     @Test
     public void testDelete() throws IOException {
-        String vertex = "{"
-                + "\"label\":\"person\","
-                + "\"properties\":{"
-                + "\"name\":\"James\","
-                + "\"city\":\"Beijing\","
-                + "\"age\":19}"
-                + "}";
+        String vertex = "{" +
+                "\"label\":\"person\"," +
+                "\"properties\":{" +
+                "\"name\":\"James\"," +
+                "\"city\":\"Beijing\"," +
+                "\"age\":19}" +
+                "}";
         Response r = client().post(path, vertex);
         String content = assertResponseStatus(201, r);
 

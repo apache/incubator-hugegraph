@@ -22,8 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +41,7 @@ public class CustomizedCrosspointsApiTest extends BaseApiTest {
         BaseApiTest.initVertex();
         BaseApiTest.initEdge();
     }
+
     @Test
     public void testPost() {
         Map<String, String> name2Ids = listAllVertexName2Ids();

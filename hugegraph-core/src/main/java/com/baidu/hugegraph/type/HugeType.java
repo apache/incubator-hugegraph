@@ -112,7 +112,7 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isGraph() {
-        return this.isVertex() || this.isEdge() ;
+        return this.isVertex() || this.isEdge();
     }
 
     public boolean isVertex() {

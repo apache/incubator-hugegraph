@@ -71,11 +71,11 @@ public final class RaftNode {
         this.busyCounter = new AtomicInteger();
     }
 
-    public RaftContext context() {
+    protected RaftContext context() {
         return this.context;
     }
 
-    public Node node() {
+    protected Node node() {
         assert this.node != null;
         return this.node;
     }
@@ -122,61 +122,20 @@ public final class RaftNode {
         }
     }
 
-    private Node initRaftNode() throws IOException {
-        NodeOptions nodeOptions = this.context.nodeOptions();
-        nodeOptions.setFsm(this.stateMachine);
-        /*
-         * TODO: the groupId is same as graph name now, when support sharding,
-         *       groupId needs to be bound to shard Id
-         */
-        String groupId = this.context.group();
-        PeerId endpoint = this.context.endpoint();
-        /*
-         * Create RaftGroupService with shared rpc-server, then start raft node
-         * TODO: don't create + hold RaftGroupService and just share rpc-server
-         *       and create Node by RaftServiceFactory.createAndInitRaftNode()
-         */
-        RpcServer rpcServer = this.context.rpcServer();
-        LOG.debug("Start raft node with endpoint '{}', initial conf [{}]",
-                  endpoint, nodeOptions.getInitialConf());
-        this.raftGroupService = new RaftGroupService(groupId, endpoint,
-                                                     nodeOptions,
-                                                     rpcServer, true);
-        return this.raftGroupService.start(false);
-    }
-
-    private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
-        // Wait leader elected
-        LeaderInfo leaderInfo = this.waitLeaderElected(
-                                RaftContext.WAIT_LEADER_TIMEOUT);
-        if (!leaderInfo.selfIsLeader) {
-            this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
-                                                        command, closure);
-            return;
-        }
-        // Sleep a while when raft node is busy
-        this.waitIfBusy();
-
-        Task task = new Task();
-        task.setDone(closure);
-        // compress return BytesBuffer
-        ByteBuffer buffer = LZ4Util.compress(command.data(),
-                                             RaftContext.BLOCK_SIZE)
-                                   .forReadWritten()
-                                   .asByteBuffer();
-        LOG.debug("The bytes size of command(compressed) {} is {}",
-                  command.action(), buffer.limit());
-        task.setData(buffer);
-        LOG.debug("submit to raft node {}", this.node);
-        this.node.apply(task);
+    public void readIndex(byte[] reqCtx, ReadIndexClosure done) {
+        this.node.readIndex(reqCtx, done);
     }
 
     public <T> T submitAndWait(StoreCommand command, RaftStoreClosure future) {
+        // Submit command to raft node
         this.submitCommand(command, future);
+
         try {
             /*
-             * Here will wait future complete, actually the follower has waited
-             * in forwardToLeader, written like this to simplify the code
+             * Here wait for the command to complete:
+             * 1.If on the leader, wait for the logs has been committed.
+             * 2.If on the follower, request command will be forwarded to the
+             *   leader, actually it has waited in forwardToLeader().
              */
             @SuppressWarnings("unchecked")
             T result = (T) future.waitFinished();
@@ -185,6 +144,33 @@ public final class RaftNode {
             throw new BackendException("Failed to wait store command %s",
                                        e, command);
         }
+    }
+
+    private void submitCommand(StoreCommand command, RaftStoreClosure future) {
+        // Wait leader elected
+        LeaderInfo leaderInfo = this.waitLeaderElected(
+                                RaftContext.WAIT_LEADER_TIMEOUT);
+        // If myself is not leader, forward to the leader
+        if (!leaderInfo.selfIsLeader) {
+            this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
+                                                        command, future);
+            return;
+        }
+
+        // Sleep a while when raft node is busy
+        this.waitIfBusy();
+
+        Task task = new Task();
+        // Compress data, note compress() will return a BytesBuffer
+        ByteBuffer buffer = LZ4Util.compress(command.data(),
+                                             RaftContext.BLOCK_SIZE)
+                                   .forReadWritten()
+                                   .asByteBuffer();
+        LOG.debug("Submit to raft node '{}', the compressed bytes of command " +
+                  "{} is {}", this.node, command.action(), buffer.limit());
+        task.setData(buffer);
+        task.setDone(future);
+        this.node.apply(task);
     }
 
     protected LeaderInfo waitLeaderElected(int timeout) {
@@ -269,6 +255,30 @@ public final class RaftNode {
                 }
             }
         }
+    }
+
+    private Node initRaftNode() throws IOException {
+        NodeOptions nodeOptions = this.context.nodeOptions();
+        nodeOptions.setFsm(this.stateMachine);
+        /*
+         * TODO: the groupId is same as graph name now, when support sharding,
+         *       groupId needs to be bound to shard Id
+         */
+        String groupId = this.context.group();
+        PeerId endpoint = this.context.endpoint();
+
+        /*
+         * Create RaftGroupService with shared rpc-server, then start raft node
+         * TODO: don't create + hold RaftGroupService and just share rpc-server
+         *       and create Node by RaftServiceFactory.createAndInitRaftNode()
+         */
+        RpcServer rpcServer = this.context.rpcServer();
+        LOG.debug("Start raft node with endpoint '{}', initial conf [{}]",
+                  endpoint, nodeOptions.getInitialConf());
+        this.raftGroupService = new RaftGroupService(groupId, endpoint,
+                                                     nodeOptions,
+                                                     rpcServer, true);
+        return this.raftGroupService.start(false);
     }
 
     @Override

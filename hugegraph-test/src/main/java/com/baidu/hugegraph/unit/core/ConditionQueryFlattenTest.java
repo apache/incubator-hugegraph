@@ -220,7 +220,6 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         Assert.assertEquals(expect, actual);
     }
 
-
     @Test
     public void testFlattenWithIn() {
         Id key = IdGenerator.of("c1");

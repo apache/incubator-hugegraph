@@ -21,8 +21,7 @@ package com.baidu.hugegraph.api;
 
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
@@ -100,6 +99,7 @@ public class MetricsApiTest extends BaseApiTest {
 
                 servers = (Map<?, ?>) graph.get("servers");
                 Assert.assertGte(1, servers.size());
+                // TODO: Uncomment after fixed #1843
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
@@ -162,6 +162,7 @@ public class MetricsApiTest extends BaseApiTest {
 
                 servers = (Map<?, ?>) graph.get("servers");
                 Assert.assertGte(1, servers.size());
+
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();

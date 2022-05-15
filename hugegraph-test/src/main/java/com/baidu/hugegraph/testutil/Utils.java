@@ -23,8 +23,9 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
@@ -50,6 +51,7 @@ public class Utils {
             confPath = Utils.class.getClassLoader()
                             .getResource(confPath).getPath();
         } catch (Exception ignored) {
+            // ignored Exception
         }
         return HugeFactory.open(confPath);
     }
@@ -96,7 +98,7 @@ public class Utils {
 
         PropertiesConfiguration config;
         try {
-            config = new PropertiesConfiguration(file);
+            config = new Configurations().properties(file);
         } catch (ConfigurationException e) {
             throw new HugeException("Unable to load config file: %s",
                                     e, confFile);

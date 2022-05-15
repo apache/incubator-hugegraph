@@ -22,8 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +33,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class KneighborApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/kneighbor";
+    static final String PATH = TRAVERSERS_API + "/kneighbor";
 
     @Before
     public void prepareSchema() {
@@ -52,7 +51,7 @@ public class KneighborApiTest extends BaseApiTest {
         String rippleId = name2Ids.get("ripple");
         String peterId = name2Ids.get("peter");
         String joshId = name2Ids.get("josh");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 2));
         String content = assertResponseStatus(200, r);
@@ -79,7 +78,7 @@ public class KneighborApiTest extends BaseApiTest {
                                        "\"limit\": 10000, " +
                                        "\"with_vertex\": true, " +
                                        "\"with_path\": true}", markoId);
-        Response r = client().post(path, reqBody);
+        Response r = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "kneighbor");
         assertJsonContains(content, "paths");

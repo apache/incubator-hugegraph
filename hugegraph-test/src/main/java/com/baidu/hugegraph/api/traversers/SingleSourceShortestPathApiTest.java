@@ -21,8 +21,7 @@ package com.baidu.hugegraph.api.traversers;
 
 import java.util.Map;
 
-import javax.ws.rs.core.Response;
-
+import jakarta.ws.rs.core.Response;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SingleSourceShortestPathApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/singlesourceshortestpath";
+    static final String PATH = TRAVERSERS_API + "/singlesourceshortestpath";
 
     @Before
     public void prepareSchema() {
@@ -47,7 +46,7 @@ public class SingleSourceShortestPathApiTest extends BaseApiTest {
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "with_vertex",
                                                         true));

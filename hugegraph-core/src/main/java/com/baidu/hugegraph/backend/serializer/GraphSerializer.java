@@ -33,19 +33,25 @@ import com.baidu.hugegraph.type.HugeType;
 
 public interface GraphSerializer {
 
-    public BackendEntry writeVertex(HugeVertex vertex);
-    public BackendEntry writeOlapVertex(HugeVertex vertex);
-    public BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
-    public HugeVertex readVertex(HugeGraph graph, BackendEntry entry);
+    BackendEntry writeVertex(HugeVertex vertex);
 
-    public BackendEntry writeEdge(HugeEdge edge);
-    public BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop);
-    public HugeEdge readEdge(HugeGraph graph, BackendEntry entry);
+    BackendEntry writeOlapVertex(HugeVertex vertex);
 
-    public BackendEntry writeIndex(HugeIndex index);
-    public HugeIndex readIndex(HugeGraph graph, ConditionQuery query,
-                               BackendEntry entry);
+    BackendEntry writeVertexProperty(HugeVertexProperty<?> prop);
 
-    public BackendEntry writeId(HugeType type, Id id);
-    public Query writeQuery(Query query);
+    HugeVertex readVertex(HugeGraph graph, BackendEntry entry);
+
+    BackendEntry writeEdge(HugeEdge edge);
+
+    BackendEntry writeEdgeProperty(HugeEdgeProperty<?> prop);
+
+    HugeEdge readEdge(HugeGraph graph, BackendEntry entry);
+
+    BackendEntry writeIndex(HugeIndex index);
+
+    HugeIndex readIndex(HugeGraph graph, ConditionQuery query, BackendEntry entry);
+
+    BackendEntry writeId(HugeType type, Id id);
+
+    Query writeQuery(Query query);
 }

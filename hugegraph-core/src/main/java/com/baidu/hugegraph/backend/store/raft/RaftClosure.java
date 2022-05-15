@@ -68,6 +68,10 @@ public class RaftClosure<T> implements Closure {
         }
     }
 
+    public void complete(Status status) {
+        this.future.complete(new RaftResult<>(status));
+    }
+
     public void complete(Status status, Supplier<T> callback) {
         // This callback is called by consumer thread(like grizzly)
         this.future.complete(new RaftResult<>(status, callback));
@@ -80,7 +84,7 @@ public class RaftClosure<T> implements Closure {
     @Override
     public void run(Status status) {
         if (status.isOk()) {
-            this.complete(status, () -> null);
+            this.complete(status);
         } else {
             LOG.error("Failed to apply command: {}", status);
             String msg = "Failed to apply command in raft node with error: " +

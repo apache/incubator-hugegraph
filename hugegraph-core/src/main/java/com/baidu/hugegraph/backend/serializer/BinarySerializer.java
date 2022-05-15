@@ -19,9 +19,12 @@
 
 package com.baidu.hugegraph.backend.serializer;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -39,6 +42,7 @@ import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendEntry.BackendColumn;
+import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
 import com.baidu.hugegraph.schema.PropertyKey;
@@ -70,8 +74,6 @@ import com.baidu.hugegraph.util.NumericUtil;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class BinarySerializer extends AbstractSerializer {
-
-    public static final byte[] EMPTY_BYTES = new byte[0];
 
     /*
      * Id is stored in column name if keyWithIdPrefix=true like RocksDB,
@@ -299,7 +301,6 @@ public class BinarySerializer extends AbstractSerializer {
         }
     }
 
-
     protected void parseVertex(byte[] value, HugeVertex vertex) {
         BytesBuffer buffer = BytesBuffer.wrap(value);
 
@@ -415,7 +416,8 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         // Fill column
-        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        byte[] name = this.keyWithIdPrefix ?
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
 
         return entry;
@@ -427,16 +429,19 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
         Collection<HugeProperty<?>> properties = vertex.getProperties();
-        E.checkArgument(properties.size() == 1,
-                        "Expect only 1 property for olap vertex, but got %s",
-                        properties.size());
+        if (properties.size() != 1) {
+            E.checkArgument(false,
+                            "Expect 1 property for olap vertex, but got %s",
+                            properties.size());
+        }
         HugeProperty<?> property = properties.iterator().next();
         PropertyKey propertyKey = property.propertyKey();
         buffer.writeVInt(SchemaElement.schemaId(propertyKey.id()));
         buffer.writeProperty(propertyKey, property.value());
 
         // Fill column
-        byte[] name = this.keyWithIdPrefix ? entry.id().asBytes() : EMPTY_BYTES;
+        byte[] name = this.keyWithIdPrefix ?
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
         entry.subId(propertyKey.id());
         entry.olap(true);
@@ -493,8 +498,7 @@ public class BinarySerializer extends AbstractSerializer {
     public BackendEntry writeEdge(HugeEdge edge) {
         BinaryBackendEntry entry = newBackendEntry(edge);
         byte[] name = this.keyWithIdPrefix ?
-                      entry.id().asBytes() : EMPTY_BYTES;
-
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         byte[] value = this.formatEdgeValue(edge);
         entry.column(name, value);
 
@@ -515,8 +519,11 @@ public class BinarySerializer extends AbstractSerializer {
     public HugeEdge readEdge(HugeGraph graph, BackendEntry bytesEntry) {
         HugeVertex vertex = this.readVertex(graph, bytesEntry);
         Collection<HugeEdge> edges = vertex.getEdges();
-        E.checkState(edges.size() == 1,
-                     "Expect one edge in vertex, but got %s", edges.size());
+        if (edges.size() != 1) {
+            E.checkState(false,
+                         "Expect 1 edge in vertex, but got %s",
+                         edges.size());
+        }
         return edges.iterator().next();
     }
 
@@ -863,9 +870,9 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         buffer.write(parsedEntry.id().asBytes());
         buffer.write(bytes);
-        parsedEntry = new BinaryBackendEntry(originEntry.type(),
-                                             new BinaryId(buffer.bytes(),
-                                                          BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+        parsedEntry = new BinaryBackendEntry(originEntry.type(), new BinaryId(buffer.bytes(),
+                                             BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+
         for (BackendEntry.BackendColumn col : originEntry.columns()) {
             parsedEntry.column(buffer.bytes(), col.value);
         }
@@ -1043,7 +1050,7 @@ public class BinarySerializer extends AbstractSerializer {
             vertexLabel.properties(readIds(HugeKeys.PROPERTIES));
             vertexLabel.primaryKeys(readIds(HugeKeys.PRIMARY_KEYS));
             vertexLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
-            vertexLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            vertexLabel.addIndexLabels(readIds(HugeKeys.INDEX_LABELS));
             vertexLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             vertexLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             vertexLabel.ttl(readLong(HugeKeys.TTL));
@@ -1084,7 +1091,7 @@ public class BinarySerializer extends AbstractSerializer {
             edgeLabel.properties(readIds(HugeKeys.PROPERTIES));
             edgeLabel.sortKeys(readIds(HugeKeys.SORT_KEYS));
             edgeLabel.nullableKeys(readIds(HugeKeys.NULLABLE_KEYS));
-            edgeLabel.indexLabels(readIds(HugeKeys.INDEX_LABELS));
+            edgeLabel.addIndexLabels(readIds(HugeKeys.INDEX_LABELS));
             edgeLabel.enableLabelIndex(readBool(HugeKeys.ENABLE_LABEL_INDEX));
             edgeLabel.status(readEnum(HugeKeys.STATUS, SchemaStatus.class));
             edgeLabel.ttl(readLong(HugeKeys.TTL));

@@ -56,7 +56,7 @@ public class RaftBackendStore implements BackendStore {
         this.store = store;
         this.context = context;
         this.mutationBatch = new ThreadLocal<>();
-        this.isSafeRead = this.context.isSafeRead();
+        this.isSafeRead = this.context.safeRead();
     }
 
     public BackendStore originStore() {
@@ -189,10 +189,9 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public long getCounter(HugeType type) {
-         Object counter = this.queryByRaft(type, true,
-                                           o -> this.store.getCounter(type));
-         assert counter instanceof Long;
-         return (Long) counter;
+        Object counter = this.queryByRaft(type, true, o -> this.store.getCounter(type));
+        assert counter instanceof Long;
+        return (Long) counter;
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {
@@ -228,7 +227,7 @@ public class RaftBackendStore implements BackendStore {
                 }
             }
         };
-        this.node().node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
+        this.node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
         try {
             return future.waitFinished();
         } catch (Throwable e) {

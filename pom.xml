@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.baidu.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.12.0</version>
+    <version>0.13.0</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
@@ -98,14 +98,15 @@
         <log4j.version>1.2.17</log4j.version>
         <log4j2.version>2.17.1</log4j2.version>
         <junit.version>4.12</junit.version>
-        <tinkerpop.version>3.4.3</tinkerpop.version>
+        <tinkerpop.version>3.5.1</tinkerpop.version>
         <commons.io.version>2.7</commons.io.version>
         <guava.version>25.1-jre</guava.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <jersey.version>2.25.1</jersey.version>
-        <metrics.version>3.1.0</metrics.version>
+        <jersey.version>3.0.3</jersey.version>
+        <metrics.version>4.2.4</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
+        <checkstyle.version>3.1.2</checkstyle.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -260,7 +261,7 @@
             </dependency>
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-jersey2</artifactId>
+                <artifactId>metrics-jersey3</artifactId>
                 <version>${metrics.version}</version>
             </dependency>
 
@@ -344,6 +345,39 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>8.45</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>style/checkstyle.xml</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
+                    <linkXRef>false</linkXRef>
+                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+
     </build>
 
     <profiles>

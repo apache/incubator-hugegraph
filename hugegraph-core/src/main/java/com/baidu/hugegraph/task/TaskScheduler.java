@@ -29,35 +29,37 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface TaskScheduler {
 
-    public HugeGraph graph();
+    HugeGraph graph();
 
-    public int pendingTasks();
+    int pendingTasks();
 
-    public <V> void restoreTasks();
+    <V> void restoreTasks();
 
-    public <V> Future<?> schedule(HugeTask<V> task);
+    <V> Future<?> schedule(HugeTask<V> task);
 
-    public <V> void cancel(HugeTask<V> task);
+    <V> void cancel(HugeTask<V> task);
 
-    public <V> void save(HugeTask<V> task);
+    <V> void save(HugeTask<V> task);
 
-    public <V> HugeTask<V> delete(Id id);
+    <V> HugeTask<V> delete(Id id);
 
-    public <V> HugeTask<V> task(Id id);
-    public <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
-    public <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
-                                           long limit, String page);
+    <V> HugeTask<V> task(Id id);
 
-    public boolean close();
+    <V> Iterator<HugeTask<V>> tasks(List<Id> ids);
 
-    public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-                                                  throws TimeoutException;
+    <V> Iterator<HugeTask<V>> tasks(TaskStatus status,
+                                    long limit, String page);
 
-    public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-                                                  throws TimeoutException;
+    boolean close();
 
-    public void waitUntilAllTasksCompleted(long seconds)
+    <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
                                            throws TimeoutException;
 
-    public void checkRequirement(String op);
+    <V> HugeTask<V> waitUntilTaskCompleted(Id id)
+                                           throws TimeoutException;
+
+    void waitUntilAllTasksCompleted(long seconds)
+                                    throws TimeoutException;
+
+    void checkRequirement(String op);
 }
