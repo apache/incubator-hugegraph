@@ -118,12 +118,15 @@ public final class RaftContext {
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
-//        // TODO: 依赖了ServerOptions的配置项名，需要打通ServerConfig和CoreConfig
-//        this.endpoint = new PeerId();
-//        String endpointStr = config.getString("raft.endpoint");
-//        if (!this.endpoint.parse(endpointStr)) {
-//            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-//        }
+        /*
+         * TODO Depending on the name of the config item for server options,
+         * need to get through ServerConfig and CoreConfig
+         */
+        // this.endpoint = new PeerId();
+        // String endpointStr = config.getString("raft.endpoint");
+        // if (!this.endpoint.parse(endpointStr)) {
+        //     throw new HugeException("Failed to parse endpoint %s", endpointStr);
+        // }
         this.groupPeers = new Configuration();
         String groupPeersStr = config.getString("raft.group_peers");
         if (!this.groupPeers.parse(groupPeersStr)) {

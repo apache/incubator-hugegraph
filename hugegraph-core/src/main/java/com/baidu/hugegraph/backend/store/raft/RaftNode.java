@@ -149,7 +149,7 @@ public final class RaftNode {
     private void submitCommand(StoreCommand command, RaftStoreClosure closure) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                RaftContext.WAIT_LEADER_TIMEOUT);
+                                RaftContext.WAIT_LEADER_TIMEOUT);
         if (!leaderInfo.selfIsLeader) {
             this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
                                                         command, closure);

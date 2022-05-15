@@ -28,7 +28,6 @@ import com.alipay.remoting.rpc.RpcServer;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.BackendException;
@@ -75,6 +74,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
+        // TODO: pass ServerOptions object to core context
 //        PeerId endpoint = new PeerId();
 //        String endpointStr = config.get(ServerOptions.RAFT_ENDPOINT);
 //        if (!endpoint.parse(endpointStr)) {
@@ -89,8 +89,6 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
         PeerId endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
         this.context = new RaftContext(params, raftRpcServer, endpoint);
-
-        //
         this.context.addStore(StoreType.SYSTEM, this.systemStore);
     }
 
@@ -236,9 +234,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
         info.init();
 
-        // 创建系统schema，保存到pool里面
-        init();
-//        this.notifyAndWaitEvent(Events.STORE_INITED);
+        this.init();
         LOG.debug("Graph '{}' system info has been initialized", this.graph());
         /*
          * Take the initiative to generate a snapshot, it can avoid this

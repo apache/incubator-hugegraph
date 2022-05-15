@@ -108,30 +108,16 @@ public final class GraphManager {
         // Raft will load snapshot firstly then launch election and replay log
         this.startRpcServer();
 
-        initAllSystemSchema();
+        this.initAllSystemSchema();
 
-        ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
-                                                              "serverConfig");
         com.alipay.remoting.rpc.RpcServer remotingRpcServer;
-        remotingRpcServer = Whitebox.getInternalState(serverConfig.getServer(),
-                                                      "remotingServer");
+        remotingRpcServer = this.remotingRpcServer();
         this.waitGraphsReady(remotingRpcServer);
 
         this.checkBackendVersionOrExit(conf);
 
         this.serverStarted(conf);
         this.addMetrics(conf);
-    }
-
-    public {
-        //
-        register(-1, ~task, xx, xx, xx,);
-
-
-
-
-
-
     }
 
     public void loadGraphs(HugeConfig serverConfig) {
@@ -302,28 +288,12 @@ public final class GraphManager {
         }
     }
 
-//    private com.alipay.sofa.jraft.rpc.RpcServer startRaftRpcServer(HugeConfig
-//                                                                   config) {
-//        Integer lowWaterMark = config.get(
-//                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
-//        System.setProperty("bolt.channel_write_buf_low_water_mark",
-//                           String.valueOf(lowWaterMark));
-//        Integer highWaterMark = config.get(
-//                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
-//        System.setProperty("bolt.channel_write_buf_high_water_mark",
-//                           String.valueOf(highWaterMark));
-//
-//        PeerId endpoint = new PeerId();
-//        String endpointStr = config.get(ServerOptions.RAFT_ENDPOINT);
-//        if (!endpoint.parse(endpointStr)) {
-//            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-//        }
-//        com.alipay.sofa.jraft.rpc.RpcServer rpcServer;
-//        rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
-//                    endpoint.getEndpoint());
-//        LOG.info("Raft RPC server is started successfully");
-//        return rpcServer;
-//    }
+    private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
+        ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
+                                                              "serverConfig");
+        return Whitebox.getInternalState(serverConfig.getServer(),
+                                         "remotingServer");
+    }
 
     private void startRpcServer() {
         if (!this.rpcServer.enabled()) {
