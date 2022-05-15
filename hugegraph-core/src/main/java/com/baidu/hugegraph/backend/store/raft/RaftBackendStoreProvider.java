@@ -64,6 +64,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     public void initRaftContext(HugeGraphParams params, RpcServer rpcServer) {
+        // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
         HugeConfig config = params.configuration();
         Integer lowWaterMark = config.get(
                                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
@@ -73,13 +74,6 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                                 CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
-
-        // TODO: pass ServerOptions object to core context
-//        PeerId endpoint = new PeerId();
-//        String endpointStr = config.get(ServerOptions.RAFT_ENDPOINT);
-//        if (!endpoint.parse(endpointStr)) {
-//            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-//        }
 
         // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
         com.alipay.sofa.jraft.rpc.RpcServer raftRpcServer =
@@ -213,15 +207,10 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void truncate(HugeGraph graph) {
+    public void truncate() {
         this.checkOpened();
-        HugeConfig config = (HugeConfig) graph.configuration();
-        String systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         for (RaftBackendStore store : this.stores()) {
-            // Don't truncate system store
-            if (!store.store().equals(systemStoreName)) {
-                store.truncate();
-            }
+            store.truncate();
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
@@ -258,13 +247,12 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         RaftStoreClosure closure = new RaftStoreClosure(command);
         RaftClosure<?> future = this.context.node().submitAndWait(command,
                                                                   closure);
-        if (future != null) {
-            try {
-                future.waitFinished();
-                LOG.debug("Graph '{}' has writed snapshot", this.graph());
-            } catch (Throwable e) {
-                throw new BackendException("Failed to create snapshot", e);
-            }
+        E.checkState(future != null, "The snapshot future can't be null");
+        try {
+            future.waitFinished();
+            LOG.debug("Graph '{}' has writed snapshot", this.graph());
+        } catch (Throwable e) {
+            throw new BackendException("Failed to create snapshot", e);
         }
     }
 

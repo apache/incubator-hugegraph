@@ -37,10 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
-import com.alipay.sofa.jraft.entity.PeerId;
-import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.rpc.config.ServerConfig;
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
@@ -55,7 +52,6 @@ import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.RpcOptions;
 import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.event.EventHub;
@@ -110,9 +106,7 @@ public final class GraphManager {
 
         this.initAllSystemSchema();
 
-        com.alipay.remoting.rpc.RpcServer remotingRpcServer;
-        remotingRpcServer = this.remotingRpcServer();
-        this.waitGraphsReady(remotingRpcServer);
+        this.waitGraphsReady();
 
         this.checkBackendVersionOrExit(conf);
 
@@ -133,13 +127,6 @@ public final class GraphManager {
                 LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
             }
         }
-    }
-
-    public void waitGraphsReady(com.alipay.remoting.rpc.RpcServer rpcServer) {
-        this.graphs.keySet().forEach(name -> {
-            HugeGraph graph = this.graph(name);
-            graph.waitReady(rpcServer);
-        });
     }
 
     public HugeGraph cloneGraph(String name, String newName,
@@ -272,22 +259,6 @@ public final class GraphManager {
         this.unlistenChanges();
     }
 
-    private void loadGraph(HugeConfig serverConfig, String name, String path) {
-        HugeConfig config = new HugeConfig(path);
-        String raftGroupPeers = serverConfig.get(ServerOptions.RAFT_GROUP_PEERS);
-        config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(), raftGroupPeers);
-
-        final Graph graph = GraphFactory.open(config);
-        this.graphs.put(name, graph);
-        LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
-
-        if (this.requireAuthentication() &&
-            !(graph instanceof HugeGraphAuthProxy)) {
-            LOG.warn("You may need to support access control for '{}' with {}",
-                     path, HugeFactoryAuthProxy.GRAPH_FACTORY);
-        }
-    }
-
     private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
         ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
                                                               "serverConfig");
@@ -366,6 +337,31 @@ public final class GraphManager {
                     graph.tx().rollback();
                 }
             }
+        });
+    }
+
+    private void loadGraph(HugeConfig serverConfig, String name, String path) {
+        HugeConfig config = new HugeConfig(path);
+        String raftGroupPeers = serverConfig.get(ServerOptions.RAFT_GROUP_PEERS);
+        config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(), raftGroupPeers);
+
+        final Graph graph = GraphFactory.open(config);
+        this.graphs.put(name, graph);
+        LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
+
+        if (this.requireAuthentication() &&
+            !(graph instanceof HugeGraphAuthProxy)) {
+            LOG.warn("You may need to support access control for '{}' with {}",
+                     path, HugeFactoryAuthProxy.GRAPH_FACTORY);
+        }
+    }
+
+    private void waitGraphsReady() {
+        com.alipay.remoting.rpc.RpcServer remotingRpcServer =
+                                          this.remotingRpcServer();
+        this.graphs.keySet().forEach(name -> {
+            HugeGraph graph = this.graph(name);
+            graph.waitReady(remotingRpcServer);
         });
     }
 

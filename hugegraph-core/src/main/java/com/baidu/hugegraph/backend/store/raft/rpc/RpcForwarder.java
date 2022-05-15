@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.backend.store.raft.rpc;
 
-import static com.baidu.hugegraph.backend.store.raft.RaftContext.WAIT_RPC_TIMEOUT;
-
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -34,6 +32,7 @@ import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.RaftClosure;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 import com.baidu.hugegraph.backend.store.raft.RaftNode;
 import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
@@ -151,7 +150,8 @@ public class RpcForwarder {
         E.checkNotNull(endpoint, "leader endpoint");
         try {
             this.rpcClient.invokeWithDone(endpoint, request, done,
-                                          WAIT_RPC_TIMEOUT).get();
+                                          RaftContext.WAIT_RPC_TIMEOUT)
+                          .get();
         } catch (InterruptedException e) {
             throw new BackendException("Invoke rpc request was interrupted, " +
                                        "please try again later", e);

@@ -155,6 +155,14 @@ public class CoreOptions extends OptionHolder {
                     3600
             );
 
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_THREADS =
+            new ConfigOption<>(
+                    "raft.snapshot_threads",
+                    "The thread number used to do snapshot.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
+            );
+
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
             new ConfigOption<>(
                     "raft.backend_threads",
@@ -228,19 +236,19 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
             new ConfigOption<>(
                     "raft.rpc_timeout",
-                    "The general rpc timeout for jraft rpc.",
+                    "The general rpc timeout in seconds for jraft rpc.",
                     positiveInt(),
-                    // jraft default value is 5000(ms)
-                    60 * 1000
+                    // jraft default value is 5s
+                    60
             );
 
     public static final ConfigOption<Integer> RAFT_INSTALL_SNAPSHOT_TIMEOUT =
             new ConfigOption<>(
                     "raft.install_snapshot_rpc_timeout",
-                    "The install snapshot rpc timeout for jraft rpc.",
+                    "The install snapshot rpc timeout in seconds for jraft rpc.",
                     positiveInt(),
-                    // jraft default value is 5 * 60 * 1000
-                    24 * 60 * 60 * 1000
+                    // jraft default value is 5 minutes
+                    24 * 60 * 60
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =

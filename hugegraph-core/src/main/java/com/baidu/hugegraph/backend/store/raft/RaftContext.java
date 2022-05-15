@@ -97,7 +97,6 @@ public final class RaftContext {
     private final String systemStoreName;
     private final RaftBackendStore[] stores;
     private final Configuration groupPeers;
-    @SuppressWarnings("unused")
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
     private final ExecutorService backendExecutor;
@@ -119,19 +118,14 @@ public final class RaftContext {
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
         /*
-         * TODO Depending on the name of the config item for server options,
-         * need to get through ServerConfig and CoreConfig
+         * NOTE: `raft.group_peers` option is transfered from ServerConfig
+         * to CoreConfig, since it's shared by all graphs.
          */
-        // this.endpoint = new PeerId();
-        // String endpointStr = config.getString("raft.endpoint");
-        // if (!this.endpoint.parse(endpointStr)) {
-        //     throw new HugeException("Failed to parse endpoint %s", endpointStr);
-        // }
         this.groupPeers = new Configuration();
-        String groupPeersStr = config.getString("raft.group_peers");
-        if (!this.groupPeers.parse(groupPeersStr)) {
-            throw new HugeException("Failed to parse group peers %s",
-                                    groupPeersStr);
+        String groupPeersString = config.getString("raft.group_peers");
+        if (!this.groupPeers.parse(groupPeersString)) {
+            throw new HugeException("Failed to parse raft.group_peers: '%s'",
+                                    groupPeersString);
         }
 
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
@@ -140,9 +134,12 @@ public final class RaftContext {
         } else {
             this.readIndexExecutor = null;
         }
-        this.snapshotExecutor = this.createSnapshotExecutor(4);
-        int backendThreads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
-        this.backendExecutor = this.createBackendExecutor(backendThreads);
+
+        int threads = config.get(CoreOptions.RAFT_SNAPSHOT_THREADS);
+        this.snapshotExecutor = this.createSnapshotExecutor(threads);
+
+        threads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
+        this.backendExecutor = this.createBackendExecutor(threads);
 
         this.raftNode = null;
         this.raftGroupManager = null;
@@ -231,9 +228,9 @@ public final class RaftContext {
         nodeOptions.setRpcConnectTimeoutMs(
                     config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
-                    config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+                    1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
         nodeOptions.setRpcInstallSnapshotTimeout(
-                    config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
+                    1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
 
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
@@ -363,6 +360,8 @@ public final class RaftContext {
     private HugeConfig config() {
         return this.params.configuration();
     }
+
+    @SuppressWarnings("unused")
     private RpcServer initAndStartRpcServer() {
         Integer lowWaterMark = this.config().get(
                                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
@@ -377,7 +376,7 @@ public final class RaftContext {
         NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
                                                    endpoint.getEndpoint());
-        LOG.info("RPC server is started successfully");
+        LOG.info("Raft-RPC server is started successfully");
         return rpcServer;
     }
 
@@ -392,6 +391,7 @@ public final class RaftContext {
         this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
         this.rpcServer.registerProcessor(new ListPeersProcessor(this));
     }
+
     private ExecutorService createReadIndexExecutor(int coreThreads) {
         int maxThreads = coreThreads << 2;
         String name = "store-read-index-callback";

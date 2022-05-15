@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
-import com.alipay.sofa.jraft.RaftServiceFactory;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.core.Replicator.ReplicatorStateListener;
@@ -49,7 +48,7 @@ public final class RaftNode {
     private static final Logger LOG = Log.logger(RaftNode.class);
 
     private final RaftContext context;
-    private final RaftGroupService raftGroupService;
+    private RaftGroupService raftGroupService;
     private final Node node;
     private final StoreStateMachine stateMachine;
     private final AtomicReference<LeaderInfo> leaderInfo;
@@ -60,9 +59,8 @@ public final class RaftNode {
         this.context = context;
         this.stateMachine = new StoreStateMachine(context);
         try {
-            this.raftGroupService = this.initRaftNode();
-            // Start node
-            this.node = this.raftGroupService.start(false);
+            // Start raft node
+            this.node = this.initRaftNode();
             LOG.info("Start raft node: {}", this);
         } catch (IOException e) {
             throw new BackendException("Failed to init raft node", e);
@@ -102,6 +100,16 @@ public final class RaftNode {
     public void shutdown() {
         LOG.info("Shutdown raft node: {}", this);
         this.node.shutdown();
+
+        if (this.raftGroupService != null) {
+            this.raftGroupService.shutdown();
+            try {
+                this.raftGroupService.join();
+            } catch (final InterruptedException e) {
+                throw new RaftException(
+                          "Interrupted while shutdown raftGroupService");
+            }
+        }
     }
 
     public RaftClosure<?> snapshot() {
@@ -114,36 +122,27 @@ public final class RaftNode {
         }
     }
 
-    private RaftGroupService initRaftNode() throws IOException {
+    private Node initRaftNode() throws IOException {
         NodeOptions nodeOptions = this.context.nodeOptions();
         nodeOptions.setFsm(this.stateMachine);
         /*
          * TODO: the groupId is same as graph name now, when support sharding,
-         *  groupId needs to be bound to shard Id
+         *       groupId needs to be bound to shard Id
          */
         String groupId = this.context.group();
         PeerId endpoint = this.context.endpoint();
         /*
-         * Start raft node with shared rpc server:
+         * Create RaftGroupService with shared rpc-server, then start raft node
+         * TODO: don't create + hold RaftGroupService and just share rpc-server
+         *       and create Node by RaftServiceFactory.createAndInitRaftNode()
          */
         RpcServer rpcServer = this.context.rpcServer();
-        LOG.info("The raft endpoint '{}', initial group peers [{}]",
-                 endpoint, nodeOptions.getInitialConf());
-        // Shared rpc server
-        return new RaftGroupService(groupId, endpoint, nodeOptions,
-                                    rpcServer, true);
-    }
-
-    public void close() {
-        if (this.raftGroupService != null) {
-            this.raftGroupService.shutdown();
-            try {
-                this.raftGroupService.join();
-            } catch (final InterruptedException e) {
-                throw new RaftException("Interrupted while shutdown " +
-                                                "raftGroupService");
-            }
-        }
+        LOG.debug("Start raft node with endpoint '{}', initial conf [{}]",
+                  endpoint, nodeOptions.getInitialConf());
+        this.raftGroupService = new RaftGroupService(groupId, endpoint,
+                                                     nodeOptions,
+                                                     rpcServer, true);
+        return this.raftGroupService.start(false);
     }
 
     private void submitCommand(StoreCommand command, RaftStoreClosure closure) {

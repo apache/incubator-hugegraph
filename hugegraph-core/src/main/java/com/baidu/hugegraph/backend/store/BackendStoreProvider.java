@@ -52,7 +52,7 @@ public interface BackendStoreProvider {
 
     public void clear();
 
-    public void truncate(HugeGraph graph);
+    public void truncate();
 
     public void initSystemInfo(HugeGraph graph);
 

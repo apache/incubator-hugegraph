@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
@@ -134,15 +133,10 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void truncate(HugeGraph graph) {
+    public void truncate() {
         this.checkOpened();
-        HugeConfig config = (HugeConfig) graph.configuration();
-        String systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
         for (BackendStore store : this.stores.values()) {
-            // Don't truncate system store
-            if (!store.store().equals(systemStoreName)) {
-                store.truncate();
-            }
+            store.truncate();
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
 
