@@ -29,7 +29,8 @@ import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
-import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
@@ -102,7 +103,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             BackendStore store = this.provider.loadSchemaStore(config, name);
             this.checkNonSharedStore(store);
             this.schemaStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(RaftRequests.StoreType.SCHEMA, this.schemaStore);
+            this.context.addStore(StoreType.SCHEMA, this.schemaStore);
         }
         return this.schemaStore;
     }
@@ -114,7 +115,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             BackendStore store = this.provider.loadGraphStore(config, name);
             this.checkNonSharedStore(store);
             this.graphStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(RaftRequests.StoreType.GRAPH, this.graphStore);
+            this.context.addStore(StoreType.GRAPH, this.graphStore);
         }
         return this.graphStore;
     }
@@ -126,7 +127,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             BackendStore store = this.provider.loadSystemStore(config, name);
             this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(RaftRequests.StoreType.SYSTEM, this.systemStore);
+            this.context.addStore(StoreType.SYSTEM, this.systemStore);
         }
         return this.systemStore;
     }
@@ -214,8 +215,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     @Override
     public void createSnapshot() {
         // TODO: snapshot for StoreType.ALL instead of StoreType.GRAPH
-        StoreCommand command = new StoreCommand(RaftRequests.StoreType.GRAPH,
-                                                RaftRequests.StoreAction.SNAPSHOT, null);
+        StoreCommand command = new StoreCommand(StoreType.GRAPH,
+                                                StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
         this.context.node().submitAndWait(command, closure);
         LOG.debug("Graph '{}' has writed snapshot", this.graph());

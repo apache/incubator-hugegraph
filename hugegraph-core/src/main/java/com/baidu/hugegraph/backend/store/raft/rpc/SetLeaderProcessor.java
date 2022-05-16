@@ -25,11 +25,14 @@ import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
+import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
 import com.baidu.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
 public class SetLeaderProcessor
-       extends RpcRequestProcessor<RaftRequests.SetLeaderRequest> {
+       extends RpcRequestProcessor<SetLeaderRequest> {
 
     private static final Logger LOG = Log.logger(SetLeaderProcessor.class);
 
@@ -41,31 +44,28 @@ public class SetLeaderProcessor
     }
 
     @Override
-    public Message processRequest(RaftRequests.SetLeaderRequest request,
+    public Message processRequest(SetLeaderRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing SetLeaderRequest {}", request.getClass());
         RaftGroupManager nodeManager = this.context.raftNodeManager(
                                        RaftSharedContext.DEFAULT_GROUP);
         try {
             nodeManager.setLeader(request.getEndpoint());
-            RaftRequests.CommonResponse common = RaftRequests.CommonResponse.newBuilder()
-                                                                            .setStatus(true)
-                                                                            .build();
-            return RaftRequests.SetLeaderResponse.newBuilder().setCommon(common).build();
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(true)
+                                                  .build();
+            return SetLeaderResponse.newBuilder().setCommon(common).build();
         } catch (Throwable e) {
-
-            RaftRequests.CommonResponse common =
-                    RaftRequests.CommonResponse.newBuilder()
-                                               .setStatus(false)
-                                               .setMessage(e.toString())
-                                               .build();
-
-            return RaftRequests.SetLeaderResponse.newBuilder().setCommon(common).build();
+            CommonResponse common = CommonResponse.newBuilder()
+                                                  .setStatus(false)
+                                                  .setMessage(e.toString())
+                                                  .build();
+            return SetLeaderResponse.newBuilder().setCommon(common).build();
         }
     }
 
     @Override
     public String interest() {
-        return RaftRequests.SetLeaderRequest.class.getName();
+        return SetLeaderRequest.class.getName();
     }
 }
