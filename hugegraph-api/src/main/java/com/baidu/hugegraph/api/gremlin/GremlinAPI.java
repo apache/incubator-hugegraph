@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.gremlin;
 import java.util.Map;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -49,6 +50,7 @@ import jakarta.inject.Singleton;
 
 @Path("gremlin")
 @Singleton
+@Tag(name = "GremlinAPI")
 public class GremlinAPI extends GremlinQueryAPI {
 
     private static final Histogram GREMLIN_INPUT_HISTOGRAM =

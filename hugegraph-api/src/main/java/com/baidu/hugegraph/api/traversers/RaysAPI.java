@@ -23,6 +23,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPA
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -49,6 +50,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/rays")
 @Singleton
+@Tag(name = "RaysAPI")
 public class RaysAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

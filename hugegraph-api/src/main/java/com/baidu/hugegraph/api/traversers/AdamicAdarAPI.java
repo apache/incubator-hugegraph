@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.traversers;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -51,6 +52,7 @@ import com.google.common.collect.ImmutableMap;
  */
 @Path("graphs/{graph}/traversers/adamicadar")
 @Singleton
+@Tag(name = "AdamicAdarAPI")
 public class AdamicAdarAPI extends API {
 
     @GET

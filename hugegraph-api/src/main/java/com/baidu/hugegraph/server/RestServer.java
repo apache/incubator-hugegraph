@@ -31,6 +31,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.StaticHttpHandler;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -65,6 +66,10 @@ public class RestServer {
 
         this.httpServer = this.configHttpServer(uri, rc);
         try {
+            // Register HttpHandler for swagger-ui
+            this.httpServer.getServerConfiguration()
+                           .addHttpHandler(new StaticHttpHandler("swagger-ui"),
+                                           "/swagger-ui");
             this.httpServer.start();
         } catch (Throwable e) {
             this.httpServer.shutdownNow();

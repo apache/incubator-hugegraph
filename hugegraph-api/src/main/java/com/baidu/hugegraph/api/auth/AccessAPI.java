@@ -21,6 +21,8 @@ package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
+import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
@@ -54,6 +56,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/auth/accesses")
 @Singleton
+@Tag(name = "AccessAPI")
 public class AccessAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

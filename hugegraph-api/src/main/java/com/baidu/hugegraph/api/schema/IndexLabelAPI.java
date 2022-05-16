@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -60,6 +61,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/indexlabels")
 @Singleton
+@Tag(name = "IndexLabelAPI")
 public class IndexLabelAPI extends API {
 
     private static final Logger LOG = Log.logger(IndexLabelAPI.class);

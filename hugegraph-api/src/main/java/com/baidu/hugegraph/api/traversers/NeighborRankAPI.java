@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -53,6 +54,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/neighborrank")
 @Singleton
+@Tag(name = "NeighborRankAPI")
 public class NeighborRankAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

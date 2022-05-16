@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -51,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/allshortestpaths")
 @Singleton
+@Tag(name = "AllShortestPathsAPI")
 public class AllShortestPathsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
