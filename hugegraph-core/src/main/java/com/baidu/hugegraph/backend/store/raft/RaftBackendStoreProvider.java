@@ -46,23 +46,18 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     private static final Logger LOG = Log.logger(RaftBackendStoreProvider.class);
 
     private final BackendStoreProvider provider;
+    private final RaftContext context;
+
     private RaftBackendStore schemaStore;
     private RaftBackendStore graphStore;
     private RaftBackendStore systemStore;
-    private RaftContext context;
-
-    public RaftBackendStoreProvider(BackendStoreProvider provider) {
+    public RaftBackendStoreProvider(HugeGraphParams params,
+                                    BackendStoreProvider provider) {
         this.provider = provider;
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
-        this.context = null;
-    }
-
-    public void initRaftContext(HugeGraphParams params, RpcServer rpcServer) {
-        this.context = new RaftContext(params, rpcServer);
-        // NOTE: loadSystemStore() did not addStore()
-        this.context.addStore(StoreType.SYSTEM, this.systemStore);
+        this.context = new RaftContext(params);
     }
 
     public RaftGroupManager raftNodeManager() {
@@ -141,6 +136,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             BackendStore store = this.provider.loadSystemStore(config, name);
             this.checkNonSharedStore(store);
             this.systemStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.SYSTEM, this.systemStore);
         }
         return this.systemStore;
     }
@@ -151,8 +147,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void waitStoreStarted() {
-        this.context().initRaftNode();
+    public void waitReady(RpcServer rpcServer) {
+        this.context().initRaftNode(rpcServer);
         LOG.info("The raft node is initialized");
 
         this.context().waitRaftNodeStarted();

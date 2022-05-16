@@ -90,44 +90,49 @@ public final class RaftContext {
     public static final long KEEP_ALIVE_SECOND = 300L;
 
     private final HugeGraphParams params;
-    private final RpcServer raftRpcServer;
-    private final PeerId endpoint;
+
+    private final Configuration groupPeers;
 
     private final String schemaStoreName;
     private final String graphStoreName;
     private final String systemStoreName;
+
     private final RaftBackendStore[] stores;
-    private final Configuration groupPeers;
+
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
     private final ExecutorService backendExecutor;
+
+    private RpcServer raftRpcServer;
+    private PeerId endpoint;
 
     private RaftNode raftNode;
     private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
 
-    public RaftContext(HugeGraphParams params,
-                       com.alipay.remoting.rpc.RpcServer rpcServer) {
+    public RaftContext(HugeGraphParams params) {
         this.params = params;
-        this.raftRpcServer = this.wrapRpcServer(rpcServer);
-        this.endpoint = new PeerId(rpcServer.ip(), rpcServer.port());;
 
         HugeConfig config = params.configuration();
-        this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
-        this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
-        this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
-        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
         /*
          * NOTE: `raft.group_peers` option is transfered from ServerConfig
          * to CoreConfig, since it's shared by all graphs.
          */
+        String groupPeersString = this.config().getString("raft.group_peers");
+        E.checkArgument(groupPeersString != null,
+                        "Please ensure config `raft.group_peers` in raft mode");
         this.groupPeers = new Configuration();
-        String groupPeersString = config.getString("raft.group_peers");
         if (!this.groupPeers.parse(groupPeersString)) {
             throw new HugeException("Failed to parse raft.group_peers: '%s'",
                                     groupPeersString);
         }
+
+        this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
+        this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
+        this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
+
+        this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
 
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
@@ -142,14 +147,21 @@ public final class RaftContext {
         threads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
         this.backendExecutor = this.createBackendExecutor(threads);
 
+        this.raftRpcServer = null;
+        this.endpoint = null;
+
         this.raftNode = null;
         this.raftGroupManager = null;
         this.rpcForwarder = null;
-        this.registerRpcRequestProcessors();
-        LOG.info("Start raft server successfully: {}", this.endpoint());
     }
 
-    public void initRaftNode() {
+    public void initRaftNode(com.alipay.remoting.rpc.RpcServer rpcServer) {
+        this.raftRpcServer = this.wrapRpcServer(rpcServer);
+        this.endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
+
+        this.registerRpcRequestProcessors();
+        LOG.info("Start raft server successfully: {}", this.endpoint());
+
         this.raftNode = new RaftNode(this);
         this.rpcForwarder = new RpcForwarder(this.raftNode.node());
         this.raftGroupManager = new RaftGroupManagerImpl(this);
@@ -176,11 +188,11 @@ public final class RaftContext {
         return this.raftNode;
     }
 
-    public RpcServer rpcServer() {
+    protected RpcServer rpcServer() {
         return this.raftRpcServer;
     }
 
-    public RpcForwarder rpcForwarder() {
+    protected RpcForwarder rpcForwarder() {
         return this.rpcForwarder;
     }
 
@@ -395,7 +407,6 @@ public final class RaftContext {
         // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
         RpcServer raftRpcServer = new BoltRpcServer(rpcServer);
         RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
-        raftRpcServer.init(null);
 
         return raftRpcServer;
     }

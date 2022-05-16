@@ -118,6 +118,12 @@ public class StandardAuthenticator implements HugeAuthenticator {
             // Forced set RAFT_MODE to false when initializing backend
             graphConfig.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         }
+
+        // Transfer `raft.group_peers` from server config to graph config
+        String raftGroupPeers = config.get(ServerOptions.RAFT_GROUP_PEERS);
+        graphConfig.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
+                                raftGroupPeers);
+
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);

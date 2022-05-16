@@ -100,7 +100,9 @@ public final class GraphManager {
         this.conf = conf;
 
         this.listenChanges();
+
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+
         // this.installLicense(conf, "");
 
         // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
@@ -343,6 +345,7 @@ public final class GraphManager {
     private void loadGraph(String name, String graphConfPath) {
         HugeConfig config = new HugeConfig(graphConfPath);
 
+        // Transfer `raft.group_peers` from server config to graph config
         String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                            raftGroupPeers);

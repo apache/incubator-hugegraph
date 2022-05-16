@@ -312,14 +312,9 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void waitReady(RpcServer rpcServer) {
-        if (this.storeProvider instanceof RaftBackendStoreProvider) {
-            ((RaftBackendStoreProvider) this.storeProvider).initRaftContext(
-                                                            this.params,
-                                                            rpcServer);
-        }
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
-        this.storeProvider.waitStoreStarted();
+        this.storeProvider.waitReady(rpcServer);
     }
 
     @Override
