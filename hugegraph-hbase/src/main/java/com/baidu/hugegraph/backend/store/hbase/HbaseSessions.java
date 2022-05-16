@@ -128,11 +128,12 @@ public class HbaseSessions extends BackendSessionPool {
         int port = config.get(HbaseOptions.HBASE_PORT);
         String znodeParent = config.get(HbaseOptions.HBASE_ZNODE_PARENT);
         boolean isEnableKerberos = config.get(HbaseOptions.HBASE_KERBEROS_ENABLE);
+        long hbaseOperationTimeout = config.get(HbaseOptions.HBASE_OPERATION_TIMEOUT);
         Configuration hConfig = HBaseConfiguration.create();
         hConfig.set(HConstants.ZOOKEEPER_QUORUM, hosts);
         hConfig.set(HConstants.ZOOKEEPER_CLIENT_PORT, String.valueOf(port));
         hConfig.set(HConstants.ZOOKEEPER_ZNODE_PARENT, znodeParent);
-
+        hConfig.setLong(HConstants.HBASE_CLIENT_OPERATION_TIMEOUT, hbaseOperationTimeout);
         hConfig.setInt("zookeeper.recovery.retry",
                        config.get(HbaseOptions.HBASE_ZK_RETRY));
 

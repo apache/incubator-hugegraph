@@ -83,6 +83,14 @@ public class HbaseOptions extends OptionHolder {
                     64
             );
 
+    public static final ConfigOption<Long> HBASE_OPERATION_TIMEOUT =
+            new ConfigOption<>(
+                    "hbase.client.operation.timeout",
+                    "The timeout in milliseconds of hbase client operation.",
+                    nonNegativeInt(),
+                    1200000L
+            );
+
     public static final ConfigOption<Long> TRUNCATE_TIMEOUT =
             new ConfigOption<>(
                     "hbase.truncate_timeout",
