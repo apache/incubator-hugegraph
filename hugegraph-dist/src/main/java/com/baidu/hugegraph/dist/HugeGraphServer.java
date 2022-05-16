@@ -19,6 +19,8 @@
 
 package com.baidu.hugegraph.dist;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
@@ -31,14 +33,12 @@ import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.Log;
 
-import java.util.concurrent.CompletableFuture;
-
 public class HugeGraphServer {
 
     private static final Logger LOG = Log.logger(HugeGraphServer.class);
 
-    private final GremlinServer gremlinServer;
     private final RestServer restServer;
+    private final GremlinServer gremlinServer;
 
     public static void register() {
         RegisterUtil.registerBackends();
@@ -56,46 +56,46 @@ public class HugeGraphServer {
         HugeConfig restServerConfig = new HugeConfig(restServerConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         EventHub hub = new EventHub("gremlin=>hub<=rest");
-        try {
-            // Start GremlinServer
-            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
-                                                         graphsDir, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeGremlinServer start error: ", e);
-            HugeFactory.shutdown(30L);
-            throw e;
-        } finally {
-            System.setSecurityManager(securityManager);
-        }
 
         try {
             // Start HugeRestServer
             this.restServer = HugeRestServer.start(restServerConf, hub);
         } catch (Throwable e) {
             LOG.error("HugeRestServer start error: ", e);
+            throw e;
+        }
+
+        try {
+            // Start GremlinServer
+            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
+                                                         graphsDir, hub);
+        } catch (Throwable e) {
+            LOG.error("HugeGremlinServer start error: ", e);
             try {
-                this.gremlinServer.stop().get();
+                this.restServer.shutdown().get();
             } catch (Throwable t) {
-                LOG.error("GremlinServer stop error: ", t);
+                LOG.error("HugeRestServer stop error: ", t);
             }
             HugeFactory.shutdown(30L);
             throw e;
+        } finally {
+            System.setSecurityManager(securityManager);
         }
     }
 
     public void stop() {
         try {
-            this.restServer.shutdown().get();
-            LOG.info("HugeRestServer stopped");
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer stop error: ", e);
-        }
-
-        try {
             this.gremlinServer.stop().get();
             LOG.info("HugeGremlinServer stopped");
         } catch (Throwable e) {
             LOG.error("HugeGremlinServer stop error: ", e);
+        }
+
+        try {
+            this.restServer.shutdown().get();
+            LOG.info("HugeRestServer stopped");
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer stop error: ", e);
         }
 
         try {

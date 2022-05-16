@@ -177,6 +177,14 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     0);
 
+    public static final ConfigOption<String> RAFT_GROUP_PEERS =
+            new ConfigOption<>(
+                    "raft.group_peers",
+                    "The rpc address of raft group initial peers.",
+                    disallowEmpty(),
+                    "127.0.0.1:8090"
+            );
+
     public static final ConfigOption<Boolean> ALLOW_TRACE =
             new ConfigOption<>(
                     "exception.allow_trace",

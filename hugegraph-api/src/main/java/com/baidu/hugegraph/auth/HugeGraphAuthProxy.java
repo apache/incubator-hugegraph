@@ -63,6 +63,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
@@ -645,9 +646,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void waitStarted() {
+    public void waitReady(RpcServer rpcServer) {
         this.verifyAnyPermission();
-        this.hugegraph.waitStarted();
+        this.hugegraph.waitReady(rpcServer);
     }
 
     @Override
@@ -694,9 +695,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager(String group) {
+    public RaftGroupManager raftGroupManager() {
         this.verifyAdminPermission();
-        return this.hugegraph.raftGroupManager(group);
+        return this.hugegraph.raftGroupManager();
     }
 
     @Override

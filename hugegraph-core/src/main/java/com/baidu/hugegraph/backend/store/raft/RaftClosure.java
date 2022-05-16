@@ -57,7 +57,7 @@ public class RaftClosure<T> implements Closure {
 
     private RaftResult<T> get() {
         try {
-            return this.future.get(RaftSharedContext.WAIT_RAFTLOG_TIMEOUT,
+            return this.future.get(RaftContext.WAIT_RAFTLOG_TIMEOUT,
                                    TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             throw new BackendException("ExecutionException", e);
@@ -73,6 +73,7 @@ public class RaftClosure<T> implements Closure {
     }
 
     public void complete(Status status, Supplier<T> callback) {
+        // This callback is called by consumer thread(like grizzly)
         this.future.complete(new RaftResult<>(status, callback));
     }
 

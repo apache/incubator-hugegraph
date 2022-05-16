@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
@@ -37,9 +37,9 @@ public class ListPeersProcessor
 
     private static final Logger LOG = Log.logger(ListPeersProcessor.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
 
-    public ListPeersProcessor(RaftSharedContext context) {
+    public ListPeersProcessor(RaftContext context) {
         super(null, null);
         this.context = context;
     }
@@ -48,8 +48,7 @@ public class ListPeersProcessor
     public Message processRequest(ListPeersRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing ListPeersRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager(
-                                       RaftSharedContext.DEFAULT_GROUP);
+        RaftGroupManager nodeManager = this.context.raftNodeManager();
         try {
             CommonResponse common = CommonResponse.newBuilder()
                                                   .setStatus(true)

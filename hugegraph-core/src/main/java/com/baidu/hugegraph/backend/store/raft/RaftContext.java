@@ -42,6 +42,7 @@ import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 import com.baidu.hugegraph.HugeException;
@@ -67,16 +68,17 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Events;
 import com.baidu.hugegraph.util.Log;
 
-public final class RaftSharedContext {
+public final class RaftContext {
 
-    private static final Logger LOG = Log.logger(RaftSharedContext.class);
+    private static final Logger LOG = Log.logger(RaftContext.class);
 
     // unit is ms
     public static final int NO_TIMEOUT = -1;
-    public static final int POLL_INTERVAL = 3000;
+    public static final int POLL_INTERVAL = 5000;
     public static final int WAIT_RAFTLOG_TIMEOUT = 30 * 60 * 1000;
-    public static final int WAIT_LEADER_TIMEOUT = 5 * 60 * 1000;
-    public static final int BUSY_SLEEP_FACTOR = 3 * 1000;
+    public static final int WAIT_LEADER_TIMEOUT = 10 * 60 * 1000;
+    public static final int BUSY_MIN_SLEEP_FACTOR = 3 * 1000;
+    public static final int BUSY_MAX_SLEEP_FACTOR = 5 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     public static final int LOG_WARN_INTERVAL = 60 * 1000;
 
@@ -85,56 +87,81 @@ public final class RaftSharedContext {
 
     // work queue size
     public static final int QUEUE_SIZE = CoreOptions.CPUS;
-    public static final long KEEP_ALIVE_SEC = 300L;
-
-    public static final String DEFAULT_GROUP = "default";
+    public static final long KEEP_ALIVE_SECOND = 300L;
 
     private final HugeGraphParams params;
+
+    private final Configuration groupPeers;
+
     private final String schemaStoreName;
     private final String graphStoreName;
     private final String systemStoreName;
+
     private final RaftBackendStore[] stores;
-    private final RpcServer rpcServer;
-    @SuppressWarnings("unused")
+
     private final ExecutorService readIndexExecutor;
     private final ExecutorService snapshotExecutor;
     private final ExecutorService backendExecutor;
+
+    private RpcServer raftRpcServer;
+    private PeerId endpoint;
 
     private RaftNode raftNode;
     private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
 
-    public RaftSharedContext(HugeGraphParams params) {
+    public RaftContext(HugeGraphParams params) {
         this.params = params;
-        HugeConfig config = this.config();
+
+        HugeConfig config = params.configuration();
+
+        /*
+         * NOTE: `raft.group_peers` option is transfered from ServerConfig
+         * to CoreConfig, since it's shared by all graphs.
+         */
+        String groupPeersString = this.config().getString("raft.group_peers");
+        E.checkArgument(groupPeersString != null,
+                        "Please ensure config `raft.group_peers` in raft mode");
+        this.groupPeers = new Configuration();
+        if (!this.groupPeers.parse(groupPeersString)) {
+            throw new HugeException("Failed to parse raft.group_peers: '%s'",
+                                    groupPeersString);
+        }
 
         this.schemaStoreName = config.get(CoreOptions.STORE_SCHEMA);
         this.graphStoreName = config.get(CoreOptions.STORE_GRAPH);
         this.systemStoreName = config.get(CoreOptions.STORE_SYSTEM);
+
         this.stores = new RaftBackendStore[StoreType.ALL.getNumber()];
-        this.rpcServer = this.initAndStartRpcServer();
+
         if (config.get(CoreOptions.RAFT_SAFE_READ)) {
             int threads = config.get(CoreOptions.RAFT_READ_INDEX_THREADS);
             this.readIndexExecutor = this.createReadIndexExecutor(threads);
         } else {
             this.readIndexExecutor = null;
         }
-        if (config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
-            this.snapshotExecutor = this.createSnapshotExecutor(4);
-        } else {
-            this.snapshotExecutor = null;
-        }
-        int backendThreads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
-        this.backendExecutor = this.createBackendExecutor(backendThreads);
+
+        int threads = config.get(CoreOptions.RAFT_SNAPSHOT_THREADS);
+        this.snapshotExecutor = this.createSnapshotExecutor(threads);
+
+        threads = config.get(CoreOptions.RAFT_BACKEND_THREADS);
+        this.backendExecutor = this.createBackendExecutor(threads);
+
+        this.raftRpcServer = null;
+        this.endpoint = null;
 
         this.raftNode = null;
         this.raftGroupManager = null;
         this.rpcForwarder = null;
-        this.registerRpcRequestProcessors();
-        LOG.info("Start raft server successfully: {}", this.endpoint());
     }
 
-    public void initRaftNode() {
+    public void initRaftNode(com.alipay.remoting.rpc.RpcServer rpcServer) {
+        this.raftRpcServer = this.wrapRpcServer(rpcServer);
+        this.endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
+
+        this.registerRpcRequestProcessors();
+        LOG.info("Start raft server successfully: {}", this.endpoint());
+
         this.raftNode = new RaftNode(this);
         this.rpcForwarder = new RpcForwarder(this.raftNode.node());
         this.raftGroupManager = new RaftGroupManagerImpl(this);
@@ -142,10 +169,8 @@ public final class RaftSharedContext {
 
     public void waitRaftNodeStarted() {
         RaftNode node = this.node();
-        node.waitLeaderElected(RaftSharedContext.WAIT_LEADER_TIMEOUT);
-        if (node.selfIsLeader()) {
-            node.waitStarted(RaftSharedContext.NO_TIMEOUT);
-        }
+        node.waitLeaderElected(RaftContext.WAIT_LEADER_TIMEOUT);
+        node.waitRaftLogSynced(RaftContext.NO_TIMEOUT);
     }
 
     public void close() {
@@ -163,19 +188,21 @@ public final class RaftSharedContext {
         return this.raftNode;
     }
 
-    public RpcForwarder rpcForwarder() {
+    protected RpcServer rpcServer() {
+        return this.raftRpcServer;
+    }
+
+    protected RpcForwarder rpcForwarder() {
         return this.rpcForwarder;
     }
 
-    public RaftGroupManager raftNodeManager(String group) {
-        E.checkArgument(DEFAULT_GROUP.equals(group),
-                        "The group must be '%s' now, actual is '%s'",
-                        DEFAULT_GROUP, group);
+    public RaftGroupManager raftNodeManager() {
         return this.raftGroupManager;
     }
 
     public String group() {
-        return DEFAULT_GROUP;
+        // Use graph name as group name
+        return this.params.name();
     }
 
     public void addStore(StoreType type, RaftBackendStore store) {
@@ -206,8 +233,6 @@ public final class RaftSharedContext {
 
     public NodeOptions nodeOptions() throws IOException {
         HugeConfig config = this.config();
-        PeerId selfId = new PeerId();
-        selfId.parse(config.get(CoreOptions.RAFT_ENDPOINT));
 
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setEnableMetrics(false);
@@ -216,7 +241,9 @@ public final class RaftSharedContext {
         nodeOptions.setRpcConnectTimeoutMs(
                     config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
-                    config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+                    1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+        nodeOptions.setRpcInstallSnapshotTimeout(
+                    1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
 
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
@@ -224,14 +251,7 @@ public final class RaftSharedContext {
 
         int snapshotInterval = config.get(CoreOptions.RAFT_SNAPSHOT_INTERVAL);
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
-
-        Configuration groupPeers = new Configuration();
-        String groupPeersStr = config.get(CoreOptions.RAFT_GROUP_PEERS);
-        if (!groupPeers.parse(groupPeersStr)) {
-            throw new HugeException("Failed to parse group peers %s",
-                                    groupPeersStr);
-        }
-        nodeOptions.setInitialConf(groupPeers);
+        nodeOptions.setInitialConf(this.groupPeers);
 
         String raftPath = config.get(CoreOptions.RAFT_PATH);
         String logUri = Paths.get(raftPath, "log").toString();
@@ -242,11 +262,9 @@ public final class RaftSharedContext {
         FileUtils.forceMkdir(new File(metaUri));
         nodeOptions.setRaftMetaUri(metaUri);
 
-        if (config.get(CoreOptions.RAFT_USE_SNAPSHOT)) {
-            String snapshotUri = Paths.get(raftPath, "snapshot").toString();
-            FileUtils.forceMkdir(new File(snapshotUri));
-            nodeOptions.setSnapshotUri(snapshotUri);
-        }
+        String snapshotUri = Paths.get(raftPath, "snapshot").toString();
+        FileUtils.forceMkdir(new File(snapshotUri));
+        nodeOptions.setSnapshotUri(snapshotUri);
 
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         /*
@@ -329,20 +347,11 @@ public final class RaftSharedContext {
     }
 
     public PeerId endpoint() {
-        PeerId endpoint = new PeerId();
-        String endpointStr = this.config().get(CoreOptions.RAFT_ENDPOINT);
-        if (!endpoint.parse(endpointStr)) {
-            throw new HugeException("Failed to parse endpoint %s", endpointStr);
-        }
-        return endpoint;
+        return this.endpoint;
     }
 
     public boolean safeRead() {
         return this.config().get(CoreOptions.RAFT_SAFE_READ);
-    }
-
-    public boolean useSnapshot() {
-        return this.config().get(CoreOptions.RAFT_USE_SNAPSHOT);
     }
 
     public ExecutorService snapshotExecutor() {
@@ -353,6 +362,10 @@ public final class RaftSharedContext {
         return this.backendExecutor;
     }
 
+    public ExecutorService readIndexExecutor() {
+        return this.readIndexExecutor;
+    }
+
     public GraphMode graphMode() {
         return this.params.mode();
     }
@@ -361,6 +374,7 @@ public final class RaftSharedContext {
         return this.params.configuration();
     }
 
+    @SuppressWarnings("unused")
     private RpcServer initAndStartRpcServer() {
         Integer lowWaterMark = this.config().get(
                                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
@@ -375,19 +389,38 @@ public final class RaftSharedContext {
         NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
                                                    endpoint.getEndpoint());
+        LOG.info("Raft-RPC server is started successfully");
         return rpcServer;
     }
 
+    private RpcServer wrapRpcServer(com.alipay.remoting.rpc.RpcServer rpcServer) {
+        // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
+        Integer lowWaterMark = this.config().get(
+                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_low_water_mark",
+                           String.valueOf(lowWaterMark));
+        Integer highWaterMark = this.config().get(
+                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+        System.setProperty("bolt.channel_write_buf_high_water_mark",
+                           String.valueOf(highWaterMark));
+
+        // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
+        RpcServer raftRpcServer = new BoltRpcServer(rpcServer);
+        RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
+
+        return raftRpcServer;
+    }
+
     private void shutdownRpcServer() {
-        this.rpcServer.shutdown();
+        this.raftRpcServer.shutdown();
         PeerId endpoint = this.endpoint();
         NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
     }
 
     private void registerRpcRequestProcessors() {
-        this.rpcServer.registerProcessor(new StoreCommandProcessor(this));
-        this.rpcServer.registerProcessor(new SetLeaderProcessor(this));
-        this.rpcServer.registerProcessor(new ListPeersProcessor(this));
+        this.raftRpcServer.registerProcessor(new StoreCommandProcessor(this));
+        this.raftRpcServer.registerProcessor(new SetLeaderProcessor(this));
+        this.raftRpcServer.registerProcessor(new ListPeersProcessor(this));
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {
@@ -421,7 +454,7 @@ public final class RaftSharedContext {
                              .enableMetric(false)
                              .coreThreads(coreThreads)
                              .maximumThreads(maxThreads)
-                             .keepAliveSeconds(KEEP_ALIVE_SEC)
+                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
                              .workQueue(queue)
                              .threadFactory(new NamedThreadFactory(name, true))
                              .rejectedHandler(handler)

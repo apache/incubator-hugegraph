@@ -120,30 +120,6 @@ public class CoreOptions extends OptionHolder {
                     false
             );
 
-    public static final ConfigOption<Boolean> RAFT_USE_SNAPSHOT =
-            new ConfigOption<>(
-                    "raft.use_snapshot",
-                    "Whether to use snapshot.",
-                    disallowEmpty(),
-                    true
-            );
-
-    public static final ConfigOption<String> RAFT_ENDPOINT =
-            new ConfigOption<>(
-                    "raft.endpoint",
-                    "The peerid of current raft node.",
-                    disallowEmpty(),
-                    "127.0.0.1:8281"
-            );
-
-    public static final ConfigOption<String> RAFT_GROUP_PEERS =
-            new ConfigOption<>(
-                    "raft.group_peers",
-                    "The peers of current raft group.",
-                    disallowEmpty(),
-                    "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
-            );
-
     public static final ConfigOption<String> RAFT_PATH =
             new ConfigOption<>(
                     "raft.path",
@@ -177,6 +153,14 @@ public class CoreOptions extends OptionHolder {
                     "The interval in seconds to trigger snapshot save.",
                     rangeInt(0, Integer.MAX_VALUE),
                     3600
+            );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_THREADS =
+            new ConfigOption<>(
+                    "raft.snapshot_threads",
+                    "The thread number used to do snapshot.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
             );
 
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
@@ -252,10 +236,19 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<Integer> RAFT_RPC_TIMEOUT =
             new ConfigOption<>(
                     "raft.rpc_timeout",
-                    "The rpc timeout for jraft rpc.",
+                    "The general rpc timeout in seconds for jraft rpc.",
                     positiveInt(),
-                    // jraft default value is 5000(ms)
-                    60000
+                    // jraft default value is 5s
+                    60
+            );
+
+    public static final ConfigOption<Integer> RAFT_INSTALL_SNAPSHOT_TIMEOUT =
+            new ConfigOption<>(
+                    "raft.install_snapshot_rpc_timeout",
+                    "The install snapshot rpc timeout in seconds for jraft rpc.",
+                    positiveInt(),
+                    // jraft default value is 5 minutes
+                    10 * 60 * 60
             );
 
     public static final ConfigOption<Integer> RAFT_RPC_BUF_LOW_WATER_MARK =

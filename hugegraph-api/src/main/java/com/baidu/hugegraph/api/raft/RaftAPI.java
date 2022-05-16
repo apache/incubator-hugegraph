@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.api.raft;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +41,14 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.StatusFilter.Status;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.store.raft.RaftAddPeerJob;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
+import com.baidu.hugegraph.backend.store.raft.RaftRemovePeerJob;
 import com.baidu.hugegraph.core.GraphManager;
+import com.baidu.hugegraph.job.JobBuilder;
+import com.baidu.hugegraph.util.DateUtil;
+import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.Log;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
@@ -144,19 +151,26 @@ public class RaftAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
-    public Map<String, String> addPeer(@Context GraphManager manager,
-                                       @PathParam("graph") String graph,
-                                       @QueryParam("group")
-                                       @DefaultValue("default")
-                                       String group,
-                                       @QueryParam("endpoint")
-                                       String endpoint) {
+    public Map<String, Id> addPeer(@Context GraphManager manager,
+                                   @PathParam("graph") String graph,
+                                   @QueryParam("group") @DefaultValue("default")
+                                   String group,
+                                   @QueryParam("endpoint") String endpoint) {
         LOG.debug("Graph [{}] prepare to add peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
         RaftGroupManager raftManager = raftGroupManager(g, group, "add_peer");
-        String peerId = raftManager.addPeer(endpoint);
-        return ImmutableMap.of(raftManager.group(), peerId);
+
+        JobBuilder<String> builder = JobBuilder.of(g);
+        String name = String.format("raft-group-[%s]-add-peer-[%s]-at-[%s]",
+                                    raftManager.group(), endpoint,
+                                    DateUtil.now());
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("endpoint", endpoint);
+        builder.name(name)
+               .input(JsonUtil.toJson(inputs))
+               .job(new RaftAddPeerJob());
+        return ImmutableMap.of("task_id", builder.schedule().id());
     }
 
     @POST
@@ -166,26 +180,32 @@ public class RaftAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
-    public Map<String, String> removePeer(@Context GraphManager manager,
-                                          @PathParam("graph") String graph,
-                                          @QueryParam("group")
-                                          @DefaultValue("default")
-                                          String group,
-                                          @QueryParam("endpoint")
-                                          String endpoint) {
+    public Map<String, Id> removePeer(@Context GraphManager manager,
+                                      @PathParam("graph") String graph,
+                                      @QueryParam("group")
+                                      @DefaultValue("default") String group,
+                                      @QueryParam("endpoint") String endpoint) {
         LOG.debug("Graph [{}] prepare to remove peer: {}", graph, endpoint);
 
         HugeGraph g = graph(manager, graph);
         RaftGroupManager raftManager = raftGroupManager(g, group,
                                                         "remove_peer");
-        String peerId = raftManager.removePeer(endpoint);
-        return ImmutableMap.of(raftManager.group(), peerId);
+        JobBuilder<String> builder = JobBuilder.of(g);
+        String name = String.format("raft-group-[%s]-remove-peer-[%s]-at-[%s]",
+                                    raftManager.group(), endpoint,
+                                    DateUtil.now());
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("endpoint", endpoint);
+        builder.name(name)
+               .input(JsonUtil.toJson(inputs))
+               .job(new RaftRemovePeerJob());
+        return ImmutableMap.of("task_id", builder.schedule().id());
     }
 
     private static RaftGroupManager raftGroupManager(HugeGraph graph,
                                                      String group,
                                                      String operation) {
-        RaftGroupManager raftManager = graph.raftGroupManager(group);
+        RaftGroupManager raftManager = graph.raftGroupManager();
         if (raftManager == null) {
             throw new HugeException("Allowed %s operation only when " +
                                     "working on raft mode", operation);

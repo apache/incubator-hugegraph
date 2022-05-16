@@ -50,7 +50,8 @@ public class CompressUtilTest {
             prepareFiles(Paths.get(rootDir, sourceDir).toString());
 
             Checksum checksum = new CRC64();
-            CompressUtil.compressZip(rootDir, sourceDir, zipFile, checksum);
+            CompressUtil.compressZip(Paths.get(rootDir, sourceDir).toString(),
+                                     zipFile, checksum);
 
             CompressUtil.decompressZip(zipFile, output, checksum);
             assertDirEquals(rootDir, output);

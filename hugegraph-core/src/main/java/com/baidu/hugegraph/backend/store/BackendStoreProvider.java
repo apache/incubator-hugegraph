@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.backend.store;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
@@ -43,7 +44,7 @@ public interface BackendStoreProvider {
 
     void open(String name);
 
-    void waitStoreStarted();
+    void waitReady(RpcServer rpcServer);
 
     void close();
 

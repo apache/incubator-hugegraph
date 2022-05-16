@@ -37,6 +37,7 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.rpc.config.ServerConfig;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.AuthManager;
@@ -66,6 +67,7 @@ import com.baidu.hugegraph.serializer.JsonSerializer;
 import com.baidu.hugegraph.serializer.Serializer;
 import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.TaskManager;
+import com.baidu.hugegraph.testutil.Whitebox;
 import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
@@ -96,35 +98,37 @@ public final class GraphManager {
         this.rpcClient = new RpcClientProvider(conf);
         this.eventHub = hub;
         this.conf = conf;
+
         this.listenChanges();
+
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+
         // this.installLicense(conf, "");
-        // Raft will load snapshot firstly then launch election and replay log
-        this.waitGraphsStarted();
-        this.checkBackendVersionOrExit(conf);
+
+        // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
         this.startRpcServer();
+
+        // Raft will load snapshot firstly then launch election and replay log
+        this.waitGraphsReady();
+
+        this.checkBackendVersionOrExit(conf);
         this.serverStarted(conf);
+
         this.addMetrics(conf);
     }
 
-    public void loadGraphs(final Map<String, String> graphConfs) {
+    public void loadGraphs(Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
-            String path = conf.getValue();
+            String graphConfPath = conf.getValue();
             HugeFactory.checkGraphName(name, "rest-server.properties");
             try {
-                this.loadGraph(name, path);
+                this.loadGraph(name, graphConfPath);
             } catch (RuntimeException e) {
-                LOG.error("Graph '{}' can't be loaded: '{}'", name, path, e);
+                LOG.error("Graph '{}' can't be loaded: '{}'",
+                          name, graphConfPath, e);
             }
         }
-    }
-
-    public void waitGraphsStarted() {
-        this.graphs.keySet().forEach(name -> {
-            HugeGraph graph = this.graph(name);
-            graph.waitStarted();
-        });
     }
 
     public HugeGraph cloneGraph(String name, String newName,
@@ -289,6 +293,13 @@ public final class GraphManager {
         }
     }
 
+    private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
+        ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
+                                                              "serverConfig");
+        return Whitebox.getInternalState(serverConfig.getServer(),
+                                         "remotingServer");
+    }
+
     private void destroyRpcServer() {
         try {
             this.rpcClient.destroy();
@@ -331,21 +342,41 @@ public final class GraphManager {
         });
     }
 
-    private void loadGraph(String name, String path) {
-        final Graph graph = GraphFactory.open(path);
+    private void loadGraph(String name, String graphConfPath) {
+        HugeConfig config = new HugeConfig(graphConfPath);
+
+        // Transfer `raft.group_peers` from server config to graph config
+        String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
+        config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
+                           raftGroupPeers);
+
+        Graph graph = GraphFactory.open(config);
         this.graphs.put(name, graph);
-        HugeConfig config = (HugeConfig) graph.configuration();
-        config.file(path);
-        LOG.info("Graph '{}' was successfully configured via '{}'", name, path);
+
+        HugeConfig graphConfig = (HugeConfig) graph.configuration();
+        assert graphConfPath.equals(graphConfig.file().getPath());
+
+        LOG.info("Graph '{}' was successfully configured via '{}'",
+                 name, graphConfPath);
 
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",
-                     path, HugeFactoryAuthProxy.GRAPH_FACTORY);
+                     graphConfPath, HugeFactoryAuthProxy.GRAPH_FACTORY);
         }
     }
 
+    private void waitGraphsReady() {
+        com.alipay.remoting.rpc.RpcServer remotingRpcServer =
+                                          this.remotingRpcServer();
+        this.graphs.keySet().forEach(name -> {
+            HugeGraph graph = this.graph(name);
+            graph.waitReady(remotingRpcServer);
+        });
+    }
+
     private void checkBackendVersionOrExit(HugeConfig config) {
+        LOG.info("Check backend version");
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
