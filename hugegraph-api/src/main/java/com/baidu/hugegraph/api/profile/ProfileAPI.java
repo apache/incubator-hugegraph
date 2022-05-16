@@ -59,6 +59,7 @@ public class ProfileAPI {
     private static String API_PROFILES = null;
 
     @GET
+    @Path("profiles")
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
     public String getProfile(@Context Application application) {
