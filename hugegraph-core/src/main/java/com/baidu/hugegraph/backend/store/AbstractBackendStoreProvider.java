@@ -25,6 +25,7 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
@@ -94,8 +95,8 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void waitStoreStarted() {
-        // pass
+    public void waitReady(RpcServer rpcServer) {
+        // passs
     }
 
     @Override

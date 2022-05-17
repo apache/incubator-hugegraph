@@ -69,7 +69,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends IndexableTransaction {
 
-    private SchemaIndexTransaction indexTx;
+    private final SchemaIndexTransaction indexTx;
 
     public SchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);

@@ -31,6 +31,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
@@ -192,7 +193,7 @@ public interface HugeGraph extends Graph {
 
     void readMode(GraphReadMode readMode);
 
-    void waitStarted();
+    void waitReady(RpcServer rpcServer);
 
     void serverStarted(Id serverId, NodeRole serverRole);
 
@@ -227,7 +228,7 @@ public interface HugeGraph extends Graph {
 
     TaskScheduler taskScheduler();
 
-    RaftGroupManager raftGroupManager(String group);
+    RaftGroupManager raftGroupManager();
 
     void proxy(HugeGraph graph);
 

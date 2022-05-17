@@ -48,11 +48,11 @@ public class RaftBackendStore implements BackendStore {
     private static final Logger LOG = Log.logger(RaftBackendStore.class);
 
     private final BackendStore store;
-    private final RaftSharedContext context;
+    private final RaftContext context;
     private final ThreadLocal<MutationBatch> mutationBatch;
     private final boolean isSafeRead;
 
-    public RaftBackendStore(BackendStore store, RaftSharedContext context) {
+    public RaftBackendStore(BackendStore store, RaftContext context) {
         this.store = store;
         this.context = context;
         this.mutationBatch = new ThreadLocal<>();

@@ -25,6 +25,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMI
 
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -57,6 +58,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/jaccardsimilarity")
 @Singleton
+@Tag(name = "JaccardSimilarityAPI")
 public class JaccardSimilarityAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(RestServer.class);

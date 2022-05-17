@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -49,6 +50,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
 @Singleton
+@Tag(name = "ProfileAPI")
 public class ProfileAPI {
 
     private static final String SERVICE = "hugegraph";

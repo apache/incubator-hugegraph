@@ -22,6 +22,7 @@ package com.baidu.hugegraph.api.variables;
 import java.util.Map;
 import java.util.Optional;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -46,6 +47,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/variables")
 @Singleton
+@Tag(name = "VariablesAPI")
 public class VariablesAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

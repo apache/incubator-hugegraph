@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -61,6 +62,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/customizedpaths")
 @Singleton
+@Tag(name = "CustomizedPathsAPI")
 public class CustomizedPathsAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);

@@ -24,6 +24,7 @@ import static com.baidu.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAGE
 import java.util.Iterator;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -52,6 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/edges")
 @Singleton
+@Tag(name = "EdgesAPI")
 public class EdgesAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
