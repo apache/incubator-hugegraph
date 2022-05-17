@@ -49,6 +49,7 @@ public class API {
 
     public static final String CHARSET = "UTF-8";
 
+    public static final String TEXT_PLAIN = MediaType.TEXT_PLAIN;
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;
