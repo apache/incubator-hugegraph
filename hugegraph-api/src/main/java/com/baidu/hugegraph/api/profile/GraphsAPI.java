@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import io.swagger.annotations.Api;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -124,7 +123,7 @@ public class GraphsAPI extends API {
     @POST
     @Timed
     @Path("{name}")
-    @Consumes(APPLICATION_JSON_WITH_CHARSET)
+    @Consumes(TEXT_PLAIN)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
     public Object create(@Context GraphManager manager,
