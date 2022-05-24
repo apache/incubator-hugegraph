@@ -28,9 +28,9 @@ github:
   del_branch_on_merge: true
   #labels:
   enabled_merge_buttons:
-    merge:  true
+    merge:  false
+    rebase: false
     squash: true
-    rebase: true
   protected_branches:
     master:
       required_status_checks:
@@ -38,8 +38,8 @@ github:
         strict: true
         # contexts are the names of checks that must pass
         contexts:
-          - build
-          - Analyze
+         # - build
+          - Analyze (java)
           - CodeQL
         #  - hugegraph-ci/build
       required_pull_request_reviews:
