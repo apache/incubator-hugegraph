@@ -1,4 +1,4 @@
-name: hugegraph ci
+name: hugegraph-ci
 
 on:
   push:
