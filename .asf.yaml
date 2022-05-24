@@ -38,8 +38,8 @@ github:
         strict: true
         # contexts are the names of checks that must pass
         contexts:
-          - build
-          - Analyze
+         # - build
+          - Analyze (java)
           - CodeQL
         #  - hugegraph-ci/build
       required_pull_request_reviews:
