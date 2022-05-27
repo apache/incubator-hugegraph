@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.testutil;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -40,7 +41,8 @@ public class Assert extends org.junit.Assert {
 
     public static void assertThrows(Class<? extends Throwable> throwable,
                                     ThrowableRunnable runnable) {
-        assertThrows(throwable, runnable, e -> {
+        CompletableFuture<?> future = assertThrowsFuture(throwable, runnable);
+        future.thenAccept(e -> {
             System.err.println(e);
         });
     }
@@ -48,23 +50,34 @@ public class Assert extends org.junit.Assert {
     public static void assertThrows(Class<? extends Throwable> throwable,
                                     ThrowableRunnable runnable,
                                     Consumer<Throwable> exceptionConsumer) {
+        CompletableFuture<Throwable> future = assertThrowsFuture(throwable,
+                                                                 runnable);
+        future.thenAccept(exceptionConsumer);
+    }
+
+    public static CompletableFuture<Throwable> assertThrowsFuture(
+                                               Class<? extends Throwable> clazz,
+                                               ThrowableRunnable runnable) {
+        CompletableFuture<Throwable> future = new CompletableFuture<>();
         boolean fail = false;
         try {
             runnable.run();
             fail = true;
         } catch (Throwable e) {
-            if (!throwable.isInstance(e)) {
+            if (!clazz.isInstance(e)) {
                 Assert.fail(String.format(
                             "Bad exception type %s(expected %s)",
-                            e.getClass().getName(), throwable.getName()));
+                            e.getClass().getName(), clazz.getName()));
             }
-            exceptionConsumer.accept(e);
+            future.complete(e);
         }
         if (fail) {
-            Assert.fail(String.format(
-                        "No exception was thrown(expected %s)",
-                        throwable.getName()));
+            String msg = String.format("No exception was thrown(expected %s)",
+                                       clazz.getName());
+            future.completeExceptionally(new AssertionError(msg));
+            Assert.fail(msg);
         }
+        return future;
     }
 
     public static void assertEquals(byte expected, Object actual) {
