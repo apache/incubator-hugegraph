@@ -20,9 +20,11 @@
 package com.baidu.hugegraph.util;
 
 import java.lang.reflect.Array;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 public final class CollectionUtil {
 
@@ -235,5 +238,217 @@ public final class CollectionUtil {
             result.put(entry.getKey(), entry.getValue());
         }
         return result;
+    }
+
+    /**
+     * Cross combine the A(n, n) combinations of each part in parts
+     * @param parts a list of part, like [{a,b}, {1,2}, {x,y}]
+     * @return List<List<Integer>> all combinations like
+     * [{a,b,1,2,x,y}, {a,b,1,2,y,x}, {a,b,2,1,x,y}, {a,b,2,1,y,x}...]
+     */
+    public static <T> List<List<T>> crossCombineParts(List<List<T>> parts) {
+        List<List<T>> results = new ArrayList<>();
+        Deque<List<T>> selected = new ArrayDeque<>();
+        crossCombineParts(parts, 0, selected, results);
+        return results;
+    }
+
+    private static <T> void crossCombineParts(List<List<T>> parts,
+                                              int level,
+                                              Deque<List<T>> selected,
+                                              List<List<T>> results) {
+        assert level < parts.size();
+        List<T> part = parts.get(level);
+        for (List<T> combination : anm(part)) {
+            selected.addLast(combination);
+
+            if (level < parts.size() - 1) {
+                crossCombineParts(parts, level + 1, selected, results);
+            } else if (level == parts.size() - 1) {
+                results.add(flatToList(selected));
+            }
+
+            selected.removeLast();
+        }
+    }
+
+    private static <T> List<T> flatToList(Deque<List<T>> parts) {
+        List<T> list = new ArrayList<>();
+        for (List<T> part : parts) {
+            list.addAll(part);
+        }
+        return list;
+    }
+
+    /**
+     * Traverse C(n, m) combinations of a list
+     * @param all list to contain all items for combination
+     * @param n m of C(n, m)
+     * @param m n of C(n, m)
+     * @return List<List<T>> all combinations
+     */
+    public static <T> List<List<T>> cnm(List<T> all, int n, int m) {
+        List<List<T>> combs = new ArrayList<>();
+        cnm(all, n, m, comb -> {
+            combs.add(comb);
+            return false;
+        });
+        return combs;
+    }
+
+    /**
+     * Traverse C(n, m) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * @param all list to contain all items for combination
+     * @param n m of C(n, m)
+     * @param m n of C(n, m)
+     * @return true if matched any kind of items combination else false, the
+     * callback can always return false if want to traverse all combinations
+     */
+    public static <T> boolean cnm(List<T> all, int n, int m,
+                                  Function<List<T>, Boolean> callback) {
+        return cnm(all, n, m, 0, null, callback);
+    }
+
+    /**
+     * Traverse C(n, m) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * @param all list to contain all items for combination
+     * @param n n of C(n, m)
+     * @param m m of C(n, m)
+     * @param current current position in list
+     * @param selected list to contains selected items
+     * @return true if matched any kind of items combination else false, the
+     * callback can always return false if want to traverse all combinations
+     */
+    private static <T> boolean cnm(List<T> all, int n, int m,
+                                   int current, List<T> selected,
+                                   Function<List<T>, Boolean> callback) {
+        assert n <= all.size();
+        assert m <= n;
+        assert current <= all.size();
+        if (selected == null) {
+            selected = new ArrayList<>(m);
+        }
+
+        if (m == 0) {
+            assert selected.size() > 0 : selected;
+            // All n items are selected
+            List<T> tmpResult = Collections.unmodifiableList(selected);
+            return callback.apply(tmpResult);
+        }
+        if (n == m) {
+            // No choice, select all n items, we don't update the `result` here
+            List<T> tmpResult = new ArrayList<>(selected);
+            tmpResult.addAll(all.subList(current, all.size()));
+            return callback.apply(tmpResult);
+        }
+
+        if (current >= all.size()) {
+            // Reach the end of items
+            return false;
+        }
+
+        // Select current item, continue to select C(m-1, n-1)
+        int index = selected.size();
+        selected.add(all.get(current));
+        ++current;
+        if (cnm(all, n - 1, m - 1, current, selected, callback)) {
+            // NOTE: we can pop the tailing items if want to keep result clear
+            return true;
+        }
+        // Not select current item, pop it and continue to select C(m-1, n)
+        selected.remove(index);
+        assert selected.size() == index : selected;
+        if (cnm(all, n - 1, m, current, selected, callback)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Traverse A(n, m) combinations of a list with n = m = all.size()
+     * @param all list to contain all items for combination
+     * @return List<List<T>> all combinations
+     */
+    public static <T> List<List<T>> anm(List<T> all) {
+        return anm(all, all.size(), all.size());
+    }
+
+    /**
+     * Traverse A(n, m) combinations of a list
+     * @param all list to contain all items for combination
+     * @param n m of A(n, m)
+     * @param m n of A(n, m)
+     * @return List<List<T>> all combinations
+     */
+    public static <T> List<List<T>> anm(List<T> all, int n, int m) {
+        List<List<T>> combs = new ArrayList<>();
+        anm(all, n, m, comb -> {
+            combs.add(comb);
+            return false;
+        });
+        return combs;
+    }
+
+    /**
+     * Traverse A(n, m) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * @param all list to contain all items for combination
+     * @param n m of A(n, m)
+     * @param m n of A(n, m)
+     * @return true if matched any kind of items combination else false, the
+     * callback can always return false if want to traverse all combinations
+     */
+    public static <T> boolean anm(List<T> all, int n, int m,
+                                  Function<List<T>, Boolean> callback) {
+        return anm(all, n, m, null, callback);
+    }
+
+    /**
+     * Traverse A(n, m) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * @param all list to contain all items for combination
+     * @param n m of A(n, m)
+     * @param m n of A(n, m)
+     * @param selected list to contains selected items
+     * @return true if matched any kind of items combination else false, the
+     * callback can always return false if want to traverse all combinations
+     */
+    private static <T> boolean anm(List<T> all, int n, int m,
+                                   List<Integer> selected,
+                                   Function<List<T>, Boolean> callback) {
+        assert n <= all.size();
+        assert m <= n;
+        if (selected == null) {
+            selected = new ArrayList<>(m);
+        }
+
+        if (m == 0) {
+            // All n items are selected
+            List<T> tmpResult = new ArrayList<>();
+            for (int i : selected) {
+                tmpResult.add(all.get(i));
+            }
+            return callback.apply(tmpResult);
+        }
+
+        for (int i = 0; i < all.size(); i++) {
+            if (selected.contains(i)) {
+                continue;
+            }
+            int index = selected.size();
+            selected.add(i);
+
+            // Select current item, continue to select A(m-1, n-1)
+            if (anm(all, n - 1, m - 1, selected, callback)) {
+                return true;
+            }
+
+            selected.remove(index);
+            assert selected.size() == index : selected;
+        }
+        return false;
     }
 }
