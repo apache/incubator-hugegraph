@@ -281,9 +281,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         String path = context.getUriInfo().getPath();
 
-        E.checkArgument(StringUtils.isNotEmpty(path),
-                        "Invalid request uri '%s'", path);
-
         for (String whiteApi : WHITE_API_LIST) {
             if (path.endsWith(whiteApi)) {
                 return true;
