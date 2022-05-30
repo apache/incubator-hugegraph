@@ -102,10 +102,10 @@ public class MysqlTables {
         }
 
         public void writeVersion(Session session, String driverVersion) {
-            String insert = String.format("INSERT INTO %s VALUES ('%s', '%s')",
-                                          this.table(),
-                                          formatKey(HugeKeys.VERSION),
-                                          driverVersion);
+            String versionColumn = formatKey(HugeKeys.VERSION);
+            String insert = String.format("INSERT IGNORE INTO %s VALUES " +
+                                          "('%s', '%s')", this.table(),
+                                          versionColumn, driverVersion);
             try {
                 session.execute(insert);
             } catch (SQLException throwables) {

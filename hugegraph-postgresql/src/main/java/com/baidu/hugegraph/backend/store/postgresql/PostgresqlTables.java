@@ -82,8 +82,16 @@ public class PostgresqlTables {
         }
 
         public void writeVersion(Session session, String version) {
-            MysqlTables.Meta table = (MysqlTables.Meta) this.template;
-            table.writeVersion(session, version);
+            String versionColumn = formatKey(HugeKeys.VERSION);
+            String insert = String.format("INSERT INTO %s VALUES ('%s', '%s') " +
+                                          "ON CONFLICT(name) DO NOTHING;",
+                                          this.table(), versionColumn, version);
+            try {
+                session.execute(insert);
+            } catch (SQLException throwables) {
+                throw new BackendException("Failed to insert driver version " +
+                                           "with '%s'", insert);
+            }
         }
 
         public String readVersion(Session session) {
