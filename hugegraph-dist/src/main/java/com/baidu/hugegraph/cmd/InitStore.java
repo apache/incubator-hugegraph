@@ -82,13 +82,12 @@ public class InitStore {
             for (Map.Entry<String, String> entry : graph2ConfigPath.entrySet()) {
                 graphs.add(initGraph(entry.getValue()));
             }
+            StandardAuthenticator.initAdminUserIfNeeded(restConf);
         } finally {
             for (HugeGraph graph : graphs) {
                 graph.close();
             }
         }
-
-        StandardAuthenticator.initAdminUserIfNeeded(restConf);
 
         HugeFactory.shutdown(30L);
     }
