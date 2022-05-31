@@ -75,11 +75,11 @@ public class InitStore {
 
         HugeConfig restServerConfig = new HugeConfig(restConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
-        Map<String, String> graph2ConfigPath = ConfigUtil.scanGraphsDir(graphsDir);
+        Map<String, String> graph2ConfigPaths = ConfigUtil.scanGraphsDir(graphsDir);
 
-        List<HugeGraph> graphs = new ArrayList<>(graph2ConfigPath.size());
+        List<HugeGraph> graphs = new ArrayList<>(graph2ConfigPaths.size());
         try {
-            for (Map.Entry<String, String> entry : graph2ConfigPath.entrySet()) {
+            for (Map.Entry<String, String> entry : graph2ConfigPaths.entrySet()) {
                 graphs.add(initGraph(entry.getValue()));
             }
             StandardAuthenticator.initAdminUserIfNeeded(restConf);

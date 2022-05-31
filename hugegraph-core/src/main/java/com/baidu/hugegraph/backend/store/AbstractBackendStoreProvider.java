@@ -216,7 +216,7 @@ public abstract class AbstractBackendStoreProvider
     public BackendStore loadSystemStore(HugeConfig config) {
         String name = SYSTEM_STORE;
         LOG.debug("The '{}' StoreProvider load SystemStore '{}'",
-                this.type(), name);
+                  this.type(), name);
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {

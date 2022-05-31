@@ -58,11 +58,11 @@ public interface BackendStoreProvider {
 
     void clear();
 
+    boolean initialized();
+
     void truncate();
 
     void createSnapshot();
-
-    boolean initialized();
 
     void resumeSnapshot();
 

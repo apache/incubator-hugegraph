@@ -25,6 +25,7 @@ import com.baidu.hugegraph.type.HugeType;
 public abstract class AbstractBackendStore<Session extends BackendSession>
                 implements BackendStore {
 
+    // TODO: move SystemSchemaStore into backend like MetaStore
     private final SystemSchemaStore systemSchemaStore;
     private final MetaDispatcher<Session> dispatcher;
 

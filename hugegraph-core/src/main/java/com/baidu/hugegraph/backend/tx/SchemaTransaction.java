@@ -73,6 +73,7 @@ public class SchemaTransaction extends IndexableTransaction {
 
     private final SchemaIndexTransaction indexTx;
     private final SystemSchemaStore systemSchemaStore;
+    // TODO: move LocalCounter counter define into SystemSchemaStore class
     private final LocalCounter counter;
 
     public SchemaTransaction(HugeGraphParams graph, BackendStore store) {

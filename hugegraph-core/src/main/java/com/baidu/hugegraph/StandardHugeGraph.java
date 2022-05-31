@@ -247,6 +247,7 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public BackendStoreInfo backendStoreInfo() {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        // TODO: pass storeProvider.metaStore()
         this.systemTransaction();
         return new BackendStoreInfo(this.configuration, this.storeProvider);
     }

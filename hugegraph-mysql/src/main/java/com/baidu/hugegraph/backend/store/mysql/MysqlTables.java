@@ -108,9 +108,9 @@ public class MysqlTables {
                                           versionColumn, driverVersion);
             try {
                 session.execute(insert);
-            } catch (SQLException throwables) {
+            } catch (SQLException e) {
                 throw new BackendException("Failed to insert driver version " +
-                                           "with '%s'", insert);
+                                           "with '%s'", e, insert);
             }
         }
 
