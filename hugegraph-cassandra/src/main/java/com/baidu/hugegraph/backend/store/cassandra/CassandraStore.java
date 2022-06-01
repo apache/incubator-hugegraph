@@ -782,10 +782,6 @@ public abstract class CassandraStore
             table.dropTable(this.session());
             this.unregisterTableManager(name);
         }
-
-        public CassandraSessionPool.Session getSession() {
-            return super.sessions.session();
-        }
     }
 
     public static class CassandraSystemStore extends CassandraGraphStore {
@@ -803,16 +799,15 @@ public abstract class CassandraStore
         public void init() {
             super.init();
             this.checkOpened();
-            CassandraSessionPool.Session session = this.getSession();
             String driverVersion = this.provider().driverVersion();
-            this.meta.writeVersion(session, driverVersion);
+            this.meta.writeVersion(this.session(), driverVersion);
             LOG.info("Write down the backend version: {}", driverVersion);
         }
 
         @Override
         public String storedVersion() {
             this.checkOpened();
-            CassandraSessionPool.Session session = this.getSession();
+            CassandraSessionPool.Session session = this.session();
             return this.meta.readVersion(session);
         }
 

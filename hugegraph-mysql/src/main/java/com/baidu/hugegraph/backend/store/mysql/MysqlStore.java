@@ -471,10 +471,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             throw new UnsupportedOperationException(
                       "MysqlGraphStore.getCounter()");
         }
-
-        public Session getSession() {
-            return super.sessions.session();
-        }
     }
 
     public static class MysqlSystemStore extends MysqlGraphStore {
@@ -492,7 +488,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         public void init() {
             super.init();
             this.checkOpened();
-            Session session = this.getSession();
+            Session session = super.sessions.session();
             String driverVersion = this.provider().driverVersion();
             this.meta.writeVersion(session, driverVersion);
             LOG.info("Write down the backend version: {}", driverVersion);
@@ -502,7 +498,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         public String storedVersion() {
             super.init();
             this.checkOpened();
-            Session session = this.getSession();
+            Session session = super.sessions.session();
             return this.meta.readVersion(session);
         }
 

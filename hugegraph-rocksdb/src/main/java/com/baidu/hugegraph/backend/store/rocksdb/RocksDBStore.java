@@ -1095,10 +1095,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             this.dropTable(db, table.table());
             this.unregisterTableManager(this.olapTableName(id));
         }
-
-        public Session getSession() {
-            return super.sessions.session();
-        }
     }
 
     public static class RocksDBSystemStore extends RocksDBGraphStore {
@@ -1118,8 +1114,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             Lock writeLock = this.storeLock().writeLock();
             writeLock.lock();
             try {
-                super.checkOpened();
-                Session session = super.getSession();
+                Session session = super.sessions.session();
                 String driverVersion = this.provider().driverVersion();
                 this.meta.writeVersion(session, driverVersion);
                 LOG.info("Write down the backend version: {}", driverVersion);
@@ -1134,7 +1129,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             readLock.lock();
             try {
                 super.checkOpened();
-                Session session = super.getSession();
+                Session session = super.sessions.session();
                 return this.meta.readVersion(session);
             } finally {
                 readLock.unlock();

@@ -550,10 +550,6 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             throw new UnsupportedOperationException(
                       "HbaseGraphStore.getCounter()");
         }
-
-        public Session getSession() {
-            return super.sessions.session();
-        }
     }
 
     public static class HbaseSystemStore extends HbaseGraphStore {
@@ -578,7 +574,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         public void init() {
             super.init();
             super.checkOpened();
-            Session session = super.getSession();
+            Session session = super.sessions.session();
             String driverVersion = this.provider().driverVersion();
             this.meta.writeVersion(session, driverVersion);
             LOG.info("Write down the backend version: {}", driverVersion);
@@ -587,7 +583,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         @Override
         public String storedVersion() {
             super.checkOpened();
-            Session session = super.getSession();
+            Session session = super.sessions.session();
             return this.meta.readVersion(session);
         }
     }

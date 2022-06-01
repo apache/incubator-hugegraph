@@ -189,7 +189,6 @@ public interface HugeGraph extends Graph {
 
     GraphReadMode readMode();
 
-
     void readMode(GraphReadMode readMode);
 
     void waitReady(RpcServer rpcServer);

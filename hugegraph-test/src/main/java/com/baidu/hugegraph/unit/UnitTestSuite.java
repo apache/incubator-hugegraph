@@ -115,7 +115,7 @@ import com.baidu.hugegraph.unit.util.collection.ObjectIntMappingTest;
     PageStateTest.class,
     SystemSchemaStoreTest.class,
 
-        /* serializer */
+    /* serializer */
     BytesBufferTest.class,
     SerializerFactoryTest.class,
     TextBackendEntryTest.class,
