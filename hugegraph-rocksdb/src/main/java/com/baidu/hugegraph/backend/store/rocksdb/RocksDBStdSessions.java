@@ -640,11 +640,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             /*
              * TODO: also set memtable options:
-             * memtable_whole_key_filtering=true
              * memtable_insert_with_hint_prefix_extractor
+             * The reason why use option name `memtable_bloom_size_ratio`:
+             * https://github.com/facebook/rocksdb/pull/9453/files
+             * #diff-cde52d1fcbcce2bc6aae27838f1d3e7e9e469ccad8aaf8f2695f939e279d7501R369
              */
             mcf.setMemtablePrefixBloomSizeRatio(
-                    conf.get(RocksDBOptions.MEMTABLE_PREFIX_BLOOM_SIZE_RATIO));
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_SIZE_RATIO));
+            mcf.setMemtableWholeKeyFiltering(
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_WHOLE_KEY_FILTERING));
             mcf.setMemtableHugePageSize(
                     conf.get(RocksDBOptions.MEMTABL_BLOOM_HUGE_PAGE_SIZE));
 
@@ -1151,7 +1155,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @SuppressWarnings("unused")
         private void dump() {
             this.seek();
-            LOG.info(">>>> scan from {}: {}{}", 
+            LOG.info(">>>> scan from {}: {}{}",
                       this.table,
                       this.keyBegin == null ? "*" : StringEncoding.format(this.keyBegin),
                       this.iter.isValid() ? "" : " - No data");

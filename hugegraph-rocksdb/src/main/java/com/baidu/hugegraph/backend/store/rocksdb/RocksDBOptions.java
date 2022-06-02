@@ -358,15 +358,26 @@ public class RocksDBOptions extends OptionHolder {
                     0
             );
 
-    public static final ConfigOption<Double> MEMTABLE_PREFIX_BLOOM_SIZE_RATIO =
+    public static final ConfigOption<Double> MEMTABLE_BLOOM_SIZE_RATIO =
             new ConfigOption<>(
-                    "rocksdb.memtable_prefix_bloom_size_ratio",
-                    "If prefix-extractor is set and memtable_prefix_bloom_size_ratio " +
-                    "is not 0, create prefix bloom for memtable with the size of " +
-                    "write_buffer_size * memtable_prefix_bloom_size_ratio. " +
+                    "rocksdb.memtable_bloom_size_ratio",
+                    "If prefix-extractor is set and memtable_bloom_size_ratio " +
+                    "is not 0, or if memtable_whole_key_filtering is set true, " +
+                    "create bloom filter for memtable with the size of " +
+                    "write_buffer_size * memtable_bloom_size_ratio. " +
                     "If it is larger than 0.25, it is santinized to 0.25.",
                     rangeDouble(0.0, 1.0),
                     0.0
+            );
+
+    public static final ConfigOption<Boolean> MEMTABLE_BLOOM_WHOLE_KEY_FILTERING =
+            new ConfigOption<>(
+                    "rocksdb.memtable_whole_key_filtering",
+                    "Enable whole key bloom filter in memtable, it can " +
+                    "potentially reduce CPU usage for point-look-ups. Note " +
+                    "this will only take effect if memtable_bloom_size_ratio > 0.",
+                    disallowEmpty(),
+                    false
             );
 
     public static final ConfigOption<Long> MEMTABL_BLOOM_HUGE_PAGE_SIZE =
