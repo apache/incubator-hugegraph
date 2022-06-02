@@ -38,9 +38,42 @@ import com.baidu.hugegraph.backend.store.BackendEntryIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.RowIterator;
 import com.baidu.hugegraph.backend.store.hbase.HbaseSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
+import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.NumericUtil;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class HbaseTables {
+
+    public static class Meta extends HbaseTable {
+
+        private static final String TABLE = HugeType.META.string();
+        private static final byte[] COL = Bytes.toBytes(TABLE);
+
+        public Meta() {
+            super(TABLE);
+        }
+
+        public void writeVersion(Session session, String version) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            byte[] value = StringEncoding.encode(version);
+            session.put(this.table(), CF, key, COL, value);
+            try {
+                session.commit();
+            } catch (Exception e) {
+                session.rollback();
+            }
+        }
+
+        public String readVersion(Session session) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            RowIterator results = session.get(this.table(), CF, key);
+            if (!results.hasNext()) {
+                return null;
+            }
+            Result row = results.next();
+            return StringEncoding.decode(row.getValue(CF, COL));
+        }
+    }
 
     public static class Counters extends HbaseTable {
 

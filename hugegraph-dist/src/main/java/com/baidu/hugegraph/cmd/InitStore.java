@@ -19,7 +19,9 @@
 
 package com.baidu.hugegraph.cmd;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
@@ -29,7 +31,7 @@ import org.slf4j.Logger;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.StandardAuthenticator;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -73,36 +75,39 @@ public class InitStore {
 
         HugeConfig restServerConfig = new HugeConfig(restConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
-        Map<String, String> graphs = ConfigUtil.scanGraphsDir(graphsDir);
+        Map<String, String> graph2ConfigPaths = ConfigUtil.scanGraphsDir(graphsDir);
 
-        for (Map.Entry<String, String> entry : graphs.entrySet()) {
-            initGraph(entry.getValue());
+        List<HugeGraph> graphs = new ArrayList<>(graph2ConfigPaths.size());
+        try {
+            for (Map.Entry<String, String> entry : graph2ConfigPaths.entrySet()) {
+                graphs.add(initGraph(entry.getValue()));
+            }
+            StandardAuthenticator.initAdminUserIfNeeded(restConf);
+        } finally {
+            for (HugeGraph graph : graphs) {
+                graph.close();
+            }
         }
-
-        StandardAuthenticator.initAdminUserIfNeeded(restConf);
 
         HugeFactory.shutdown(30L);
     }
 
-    private static void initGraph(String configPath) throws Exception {
+    private static HugeGraph initGraph(String configPath) throws Exception {
         LOG.info("Init graph with config file: {}", configPath);
         HugeConfig config = new HugeConfig(configPath);
         // Forced set RAFT_MODE to false when initializing backend
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
-        BackendStoreSystemInfo sysInfo = graph.backendStoreSystemInfo();
-        try {
-            if (sysInfo.exists()) {
-                LOG.info("Skip init-store due to the backend store of '{}' " +
-                         "had been initialized", graph.name());
-                sysInfo.checkVersion();
-            } else {
-                initBackend(graph);
-            }
-        } finally {
-            graph.close();
+        BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+        if (backendStoreInfo.exists()) {
+            LOG.info("Skip init-store due to the backend store of '{}' " +
+                     "had been initialized", graph.name());
+            backendStoreInfo.checkVersion();
+        } else {
+            initBackend(graph);
         }
+        return graph;
     }
 
     private static void initBackend(final HugeGraph graph)

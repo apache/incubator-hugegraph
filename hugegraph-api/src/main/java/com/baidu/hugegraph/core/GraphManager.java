@@ -49,7 +49,7 @@ import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.ServerOptions;
@@ -393,7 +393,7 @@ public final class GraphManager {
                     }
                 }
             }
-            BackendStoreSystemInfo info = hugegraph.backendStoreSystemInfo();
+            BackendStoreInfo info = hugegraph.backendStoreInfo();
             if (!info.exists()) {
                 throw new BackendException(
                           "The backend store of '%s' has not been initialized",
