@@ -487,8 +487,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         @Override
         public void init() {
             super.init();
-            this.checkOpened();
-            Session session = super.sessions.session();
+            Session session = super.session(null);
             String driverVersion = this.provider().driverVersion();
             this.meta.writeVersion(session, driverVersion);
             LOG.info("Write down the backend version: {}", driverVersion);
@@ -497,8 +496,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         @Override
         public String storedVersion() {
             super.init();
-            this.checkOpened();
-            Session session = super.sessions.session();
+            Session session = super.session(null);
             return this.meta.readVersion(session);
         }
 

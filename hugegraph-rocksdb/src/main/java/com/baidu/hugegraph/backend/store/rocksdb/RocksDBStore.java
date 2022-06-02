@@ -1114,7 +1114,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             Lock writeLock = this.storeLock().writeLock();
             writeLock.lock();
             try {
-                Session session = super.sessions.session();
+                Session session = super.session(HugeType.META);
                 String driverVersion = this.provider().driverVersion();
                 this.meta.writeVersion(session, driverVersion);
                 LOG.info("Write down the backend version: {}", driverVersion);
@@ -1129,7 +1129,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             readLock.lock();
             try {
                 super.checkOpened();
-                Session session = super.sessions.session();
+                Session session = super.session(null);
                 return this.meta.readVersion(session);
             } finally {
                 readLock.unlock();
