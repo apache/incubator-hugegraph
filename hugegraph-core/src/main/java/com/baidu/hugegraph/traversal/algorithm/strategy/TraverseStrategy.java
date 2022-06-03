@@ -31,22 +31,20 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 
 public interface TraverseStrategy {
 
-    public abstract void traverseOneLayer(
-                         Map<Id, List<HugeTraverser.Node>> vertices,
-                         EdgeStep step, BiConsumer<Id, EdgeStep> consumer);
+    void traverseOneLayer(Map<Id, List<HugeTraverser.Node>> vertices,
+                          EdgeStep step, BiConsumer<Id, EdgeStep> consumer);
 
-    public abstract Map<Id, List<HugeTraverser.Node>> newMultiValueMap();
+    Map<Id, List<HugeTraverser.Node>> newMultiValueMap();
 
-    public abstract Set<HugeTraverser.Path> newPathSet();
+    Set<HugeTraverser.Path> newPathSet();
 
-    public abstract void addNode(Map<Id, List<HugeTraverser.Node>> vertices,
-                                 Id id, HugeTraverser.Node node);
+    void addNode(Map<Id, List<HugeTraverser.Node>> vertices, Id id,
+                 HugeTraverser.Node node);
 
-    public abstract void addNewVerticesToAll(
-                         Map<Id, List<HugeTraverser.Node>> newVertices,
-                         Map<Id, List<HugeTraverser.Node>> targets);
+    void addNewVerticesToAll(Map<Id, List<HugeTraverser.Node>> newVertices,
+                             Map<Id, List<HugeTraverser.Node>> targets);
 
-    public static TraverseStrategy create(boolean concurrent, HugeGraph graph) {
+    static TraverseStrategy create(boolean concurrent, HugeGraph graph) {
         return concurrent ? new ConcurrentTraverseStrategy(graph) :
                             new SingleTraverseStrategy(graph);
     }

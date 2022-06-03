@@ -23,5 +23,5 @@ import java.util.Set;
 
 public interface Analyzer {
 
-    public Set<String> segment(String text);
+    Set<String> segment(String text);
 }

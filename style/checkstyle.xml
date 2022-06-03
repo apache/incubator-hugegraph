@@ -36,6 +36,7 @@
 <!--        </module>-->
         <module name="AvoidStarImport"/>
         <module name="RedundantImport"/>
+        <module name="RedundantModifier"/>
         <module name="UnusedImports"/>
         <module name="EmptyLineSeparator">
             <property name="allowMultipleEmptyLines" value="false"/>

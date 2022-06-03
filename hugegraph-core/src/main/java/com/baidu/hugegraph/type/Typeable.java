@@ -22,5 +22,5 @@ package com.baidu.hugegraph.type;
 public interface Typeable {
 
     // Return schema/data type
-    public HugeType type();
+    HugeType type();
 }

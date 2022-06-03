@@ -25,11 +25,11 @@ import java.io.IOException;
 
 public interface RamMap {
 
-    public void clear();
+    void clear();
 
-    public long size();
+    long size();
 
-    public void writeTo(DataOutputStream buffer) throws IOException;
+    void writeTo(DataOutputStream buffer) throws IOException;
 
-    public void readFrom(DataInputStream buffer) throws IOException;
+    void readFrom(DataInputStream buffer) throws IOException;
 }

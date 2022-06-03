@@ -30,7 +30,7 @@ public enum NodeRole implements SerialEnum {
     private final byte code;
     private final String name;
 
-    private NodeRole(int code, String name) {
+    NodeRole(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;

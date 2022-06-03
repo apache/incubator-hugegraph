@@ -21,9 +21,9 @@ package com.baidu.hugegraph.util.collection;
 
 public interface ObjectIntMapping<V> {
 
-    public int object2Code(Object object);
+    int object2Code(Object object);
 
-    public V code2Object(int code);
+    V code2Object(int code);
 
-    public void clear();
+    void clear();
 }

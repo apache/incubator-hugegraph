@@ -24,15 +24,15 @@ import com.baidu.hugegraph.type.HugeType;
 
 public interface CacheNotifier extends AutoCloseable {
 
-    public void invalid(HugeType type, Id id);
+    void invalid(HugeType type, Id id);
 
-    public void invalid2(HugeType type, Object[] ids);
+    void invalid2(HugeType type, Object[] ids);
 
-    public void clear(HugeType type);
+    void clear(HugeType type);
 
-    public void reload();
+    void reload();
 
-    public interface GraphCacheNotifier extends CacheNotifier {}
+    interface GraphCacheNotifier extends CacheNotifier {}
 
-    public interface SchemaCacheNotifier extends CacheNotifier {}
+    interface SchemaCacheNotifier extends CacheNotifier {}
 }

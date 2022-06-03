@@ -25,11 +25,11 @@ import com.baidu.hugegraph.job.Job;
 
 public interface Computer {
 
-    public String name();
+    String name();
 
-    public String category();
+    String category();
 
-    public Object call(Job<Object> job, Map<String, Object> parameters);
+    Object call(Job<Object> job, Map<String, Object> parameters);
 
-    public void checkParameters(Map<String, Object> parameters);
+    void checkParameters(Map<String, Object> parameters);
 }

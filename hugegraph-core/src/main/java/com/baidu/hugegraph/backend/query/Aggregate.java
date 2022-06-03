@@ -60,7 +60,7 @@ public class Aggregate {
                              this.column == null ? "*" : this.column);
     }
 
-    public static enum AggregateFunc {
+    public enum AggregateFunc {
 
         COUNT("count", 0L, NumberHelper::add),
         MAX("max", -Double.MAX_VALUE, NumberHelper::max),
@@ -72,7 +72,7 @@ public class Aggregate {
         private final Number defaultValue;
         private final BiFunction<Number, Number, Number> merger;
 
-        private AggregateFunc(String name, Number defaultValue,
+        AggregateFunc(String name, Number defaultValue,
                               BiFunction<Number, Number, Number> merger) {
             this.name = name;
             this.defaultValue = defaultValue;

@@ -21,7 +21,7 @@ package com.baidu.hugegraph.job;
 
 public interface Job<V> {
 
-    public String type();
+    String type();
 
-    public V execute() throws Exception;
+    V execute() throws Exception;
 }

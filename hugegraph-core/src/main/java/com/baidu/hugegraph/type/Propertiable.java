@@ -25,5 +25,5 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface Propertiable {
 
-    public Set<Id> properties();
+    Set<Id> properties();
 }

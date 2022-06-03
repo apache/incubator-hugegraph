@@ -346,7 +346,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
     }
 
-    private static enum ValueType {
+    private enum ValueType {
 
         UNKNOWN,
         LIST,
@@ -365,11 +365,11 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private DataType dataType;
 
-        private ValueType() {
+        ValueType() {
             this(DataType.UNKNOWN);
         }
 
-        private ValueType(DataType dataType) {
+        ValueType(DataType dataType) {
             this.dataType = dataType;
         }
 

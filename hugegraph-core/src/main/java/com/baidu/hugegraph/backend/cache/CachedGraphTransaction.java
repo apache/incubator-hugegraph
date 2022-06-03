@@ -230,7 +230,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     @Watched(prefix = "graphcache")
-    protected final Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
+    protected Iterator<HugeVertex> queryVerticesFromBackend(Query query) {
         if (this.enableCacheVertex() &&
             query.idsSize() > 0 && query.conditionsSize() == 0) {
             return this.queryVerticesByIds((IdQuery) query);
@@ -302,7 +302,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     @Watched(prefix = "graphcache")
-    protected final Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
+    protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         RamTable ramtable = this.params().ramtable();
         if (ramtable != null && ramtable.matched(query)) {
             return ramtable.query(query);
@@ -357,7 +357,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     @Override
     @Watched(prefix = "graphcache")
-    protected final void commitMutation2Backend(BackendMutation... mutations) {
+    protected void commitMutation2Backend(BackendMutation... mutations) {
         // Collect changes before commit
         Collection<HugeVertex> updates = this.verticesInTxUpdated();
         Collection<HugeVertex> deletions = this.verticesInTxRemoved();
@@ -409,7 +409,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
     }
 
     @Override
-    public final void removeIndex(IndexLabel indexLabel) {
+    public void removeIndex(IndexLabel indexLabel) {
         try {
             super.removeIndex(indexLabel);
         } finally {

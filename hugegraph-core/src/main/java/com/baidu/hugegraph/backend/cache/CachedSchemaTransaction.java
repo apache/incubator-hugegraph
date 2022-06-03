@@ -136,17 +136,17 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
     }
 
-    private final void notifyChanges(String action, HugeType type, Id id) {
+    private void notifyChanges(String action, HugeType type, Id id) {
         EventHub graphEventHub = this.params().schemaEventHub();
         graphEventHub.notify(Events.CACHE, action, type, id);
     }
 
-    private final void resetCachedAll(HugeType type) {
+    private void resetCachedAll(HugeType type) {
         // Set the cache all flag of the schema type to false
         this.cachedTypes().put(type, false);
     }
 
-    private final void resetCachedAllIfReachedCapacity() {
+    private void resetCachedAllIfReachedCapacity() {
         if (this.idCache.size() >= this.idCache.capacity()) {
             LOG.warn("Schema cache reached capacity({}): {}",
                      this.idCache.capacity(), this.idCache.size());
@@ -154,11 +154,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private final CachedTypes cachedTypes() {
+    private CachedTypes cachedTypes() {
         return this.arrayCaches.cachedTypes();
     }
 
-    private final void clearCache(boolean notify) {
+    private void clearCache(boolean notify) {
         this.idCache.clear();
         this.nameCache.clear();
         this.arrayCaches.clear();
@@ -168,7 +168,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         }
     }
 
-    private final void updateCache(SchemaElement schema) {
+    private void updateCache(SchemaElement schema) {
         this.resetCachedAllIfReachedCapacity();
 
         // update id cache
@@ -183,7 +183,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.arrayCaches.updateIfNeeded(schema);
     }
 
-    private final void invalidateCache(HugeType type, Id id) {
+    private void invalidateCache(HugeType type, Id id) {
         // remove from id cache and name cache
         Id prefixedId = generateId(type, id);
         Object value = this.idCache.get(prefixedId);

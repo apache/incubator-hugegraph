@@ -23,37 +23,37 @@ import com.baidu.hugegraph.util.E;
 
 public interface Id extends Comparable<Id> {
 
-    public static final int UUID_LENGTH = 16;
+    int UUID_LENGTH = 16;
 
-    public Object asObject();
+    Object asObject();
 
-    public String asString();
+    String asString();
 
-    public long asLong();
+    long asLong();
 
-    public byte[] asBytes();
+    byte[] asBytes();
 
-    public int length();
+    int length();
 
-    public IdType type();
+    IdType type();
 
-    public default boolean number() {
+    default boolean number() {
         return this.type() == IdType.LONG;
     }
 
-    public default boolean uuid() {
+    default boolean uuid() {
         return this.type() == IdType.UUID;
     }
 
-    public default boolean string() {
+    default boolean string() {
         return this.type() == IdType.STRING;
     }
 
-    public default boolean edge() {
+    default boolean edge() {
         return this.type() == IdType.EDGE;
     }
 
-    public enum IdType {
+    enum IdType {
 
         UNKNOWN,
         LONG,

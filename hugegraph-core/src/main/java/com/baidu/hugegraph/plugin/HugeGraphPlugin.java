@@ -26,27 +26,27 @@ import com.baidu.hugegraph.config.OptionSpace;
 
 public interface HugeGraphPlugin {
 
-    public String name();
+    String name();
 
-    public void register();
+    void register();
 
-    public String supportsMinVersion();
+    String supportsMinVersion();
 
-    public String supportsMaxVersion();
+    String supportsMaxVersion();
 
-    public static void registerOptions(String name, String classPath) {
+    static void registerOptions(String name, String classPath) {
         OptionSpace.register(name, classPath);
     }
 
-    public static void registerBackend(String name, String classPath) {
+    static void registerBackend(String name, String classPath) {
         BackendProviderFactory.register(name, classPath);
     }
 
-    public static void registerSerializer(String name, String classPath) {
+    static void registerSerializer(String name, String classPath) {
         SerializerFactory.register(name, classPath);
     }
 
-    public static void registerAnalyzer(String name, String classPath) {
+    static void registerAnalyzer(String name, String classPath) {
         AnalyzerFactory.register(name, classPath);
     }
 }

@@ -26,16 +26,16 @@ import com.baidu.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 
 public interface Records {
 
-    public void startOneLayer(boolean forward);
+    void startOneLayer(boolean forward);
 
-    public void finishOneLayer();
+    void finishOneLayer();
 
-    public boolean hasNextKey();
+    boolean hasNextKey();
 
-    public Id nextKey();
+    Id nextKey();
 
-    public PathSet findPath(Id target, Function<Id, Boolean> filter,
+    PathSet findPath(Id target, Function<Id, Boolean> filter,
                             boolean all, boolean ring);
 
-    public long accessed();
+    long accessed();
 }

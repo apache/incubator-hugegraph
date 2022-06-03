@@ -21,57 +21,57 @@ package com.baidu.hugegraph.backend.store;
 
 public interface BackendFeatures {
 
-    public default boolean supportsPersistence() {
+    default boolean supportsPersistence() {
         return true;
     }
 
-    public default boolean supportsSharedStorage() {
+    default boolean supportsSharedStorage() {
         return true;
     }
 
-    public default boolean supportsSnapshot() {
+    default boolean supportsSnapshot() {
         return false;
     }
 
-    public boolean supportsScanToken();
+    boolean supportsScanToken();
 
-    public boolean supportsScanKeyPrefix();
+    boolean supportsScanKeyPrefix();
 
-    public boolean supportsScanKeyRange();
+    boolean supportsScanKeyRange();
 
-    public boolean supportsQuerySchemaByName();
+    boolean supportsQuerySchemaByName();
 
-    public boolean supportsQueryByLabel();
+    boolean supportsQueryByLabel();
 
-    public boolean supportsQueryWithInCondition();
+    boolean supportsQueryWithInCondition();
 
-    public boolean supportsQueryWithRangeCondition();
+    boolean supportsQueryWithRangeCondition();
 
-    public boolean supportsQueryWithContains();
+    boolean supportsQueryWithContains();
 
-    public boolean supportsQueryWithContainsKey();
+    boolean supportsQueryWithContainsKey();
 
-    public boolean supportsQueryWithOrderBy();
+    boolean supportsQueryWithOrderBy();
 
-    public boolean supportsQueryByPage();
+    boolean supportsQueryByPage();
 
-    public boolean supportsQuerySortByInputIds();
+    boolean supportsQuerySortByInputIds();
 
-    public boolean supportsDeleteEdgeByLabel();
+    boolean supportsDeleteEdgeByLabel();
 
-    public boolean supportsUpdateVertexProperty();
+    boolean supportsUpdateVertexProperty();
 
-    public boolean supportsMergeVertexProperty();
+    boolean supportsMergeVertexProperty();
 
-    public boolean supportsUpdateEdgeProperty();
+    boolean supportsUpdateEdgeProperty();
 
-    public boolean supportsTransaction();
+    boolean supportsTransaction();
 
-    public boolean supportsNumberType();
+    boolean supportsNumberType();
 
-    public boolean supportsAggregateProperty();
+    boolean supportsAggregateProperty();
 
-    public boolean supportsTtl();
+    boolean supportsTtl();
 
-    public boolean supportsOlapProperties();
+    boolean supportsOlapProperties();
 }

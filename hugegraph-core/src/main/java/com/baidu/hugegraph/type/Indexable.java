@@ -25,5 +25,5 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface Indexable {
 
-    public Set<Id> indexLabels();
+    Set<Id> indexLabels();
 }

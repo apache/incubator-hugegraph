@@ -331,19 +331,19 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Add a row record to a table
          */
-        public abstract void put(String table, byte[] family, byte[] rowkey,
+        void put(String table, byte[] family, byte[] rowkey,
                                  Collection<BackendColumn> columns);
 
         /**
          * Add a row record to a table(can be used when adding an index)
          */
-        public abstract void put(String table, byte[] family,
+        void put(String table, byte[] family,
                                  byte[] rowkey, byte[] qualifier, byte[] value);
 
         /**
          * Delete a record by rowkey and qualifier from a table
          */
-        public default void remove(String table, byte[] family,
+        default void remove(String table, byte[] family,
                                    byte[] rowkey, byte[] qualifier) {
             this.remove(table, family, rowkey, qualifier, false);
         }
@@ -352,34 +352,34 @@ public class HbaseSessions extends BackendSessionPool {
          * Delete a record by rowkey and qualifier from a table,
          * just delete the latest version of the specified column if need
          */
-        public void remove(String table, byte[] family, byte[] rowkey,
+        void remove(String table, byte[] family, byte[] rowkey,
                            byte[] qualifier, boolean latestVersion);
 
         /**
          * Delete a record by rowkey from a table
          */
-        public void delete(String table, byte[] family, byte[] rowkey);
+        void delete(String table, byte[] family, byte[] rowkey);
 
         /**
          * Get a record by rowkey and qualifier from a table
          */
-        public R get(String table, byte[] family, byte[] rowkey,
+        R get(String table, byte[] family, byte[] rowkey,
                      byte[] qualifier);
 
         /**
          * Get a record by rowkey from a table
          */
-        public R get(String table, byte[] family, byte[] rowkey);
+        R get(String table, byte[] family, byte[] rowkey);
 
         /**
          * Get multi records by rowkeys from a table
          */
-        public R get(String table, byte[] family, Set<byte[]> rowkeys);
+        R get(String table, byte[] family, Set<byte[]> rowkeys);
 
         /**
          * Scan all records from a table
          */
-        public default R scan(String table, long limit) {
+        default R scan(String table, long limit) {
             Scan scan = new Scan();
             if (limit >= 0) {
                 scan.setFilter(new PageFilter(limit));
@@ -390,14 +390,14 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Scan records by rowkey prefix from a table
          */
-        public default R scan(String table, byte[] prefix) {
+        default R scan(String table, byte[] prefix) {
             return this.scan(table, prefix, true, prefix);
         }
 
         /**
          * Scan records by multi rowkey prefixes from a table
          */
-        public default R scan(String table, Set<byte[]> prefixes) {
+        default R scan(String table, Set<byte[]> prefixes) {
             FilterList orFilters = new FilterList(Operator.MUST_PASS_ONE);
             for (byte[] prefix : prefixes) {
                 FilterList andFilters = new FilterList(Operator.MUST_PASS_ALL);
@@ -416,7 +416,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Scan records by rowkey start and prefix from a table
          */
-        public default R scan(String table, byte[] startRow,
+        default R scan(String table, byte[] startRow,
                               boolean inclusiveStart, byte[] prefix) {
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
                                   .setFilter(new PrefixFilter(prefix));
@@ -426,14 +426,14 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Scan records by rowkey range from a table
          */
-        public default R scan(String table, byte[] startRow, byte[] stopRow) {
+        default R scan(String table, byte[] startRow, byte[] stopRow) {
             return this.scan(table, startRow, true, stopRow, false);
         }
 
         /**
          * Scan records by rowkey range from a table
          */
-        public default R scan(String table,
+        default R scan(String table,
                               byte[] startRow, boolean inclusiveStart,
                               byte[] stopRow, boolean inclusiveStop) {
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart);
@@ -446,12 +446,12 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Inner scan: send scan request to HBase and get iterator
          */
-        public R scan(String table, Scan scan);
+        R scan(String table, Scan scan);
 
         /**
          * Increase a counter by rowkey and qualifier to a table
          */
-        public long increase(String table, byte[] family,
+        long increase(String table, byte[] family,
                              byte[] rowkey, byte[] qualifier, long value);
     }
 
