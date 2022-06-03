@@ -599,24 +599,17 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> CACHE_FILTER_AND_INDEX =
             new ConfigOption<>(
                     "rocksdb.cache_index_and_filter_blocks",
-                    "Indicating if we'd put index/filter blocks to the block cache.",
+                    "Set this option true if we'd put index/filter blocks to " +
+                    "the block cache.",
                     disallowEmpty(),
-                    false
+                    true
             );
 
     public static final ConfigOption<Boolean> PIN_L0_INDEX_AND_FILTER =
             new ConfigOption<>(
                     "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
-                    "Indicating if we'd pin L0 index/filter blocks to the block cache.",
-                    disallowEmpty(),
-                    true
-            );
-
-    public static final ConfigOption<Boolean> PIN_TOP_INDEX_AND_FILTER =
-            new ConfigOption<>(
-                    "rocksdb.pin_top_level_index_and_filter",
-                    "Indicating if we'd pin top-level index of partitioned " +
-                    "filter and index blocks to the block cache.",
+                    "Set this option true if we'd pin L0 index/filter blocks to " +
+                    "the block cache.",
                     disallowEmpty(),
                     true
             );
@@ -625,8 +618,9 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.bloom_filter_bits_per_key",
                     "The bits per key in bloom filter, a good value is 10, " +
-                    "which yields a filter with ~ 1% false positive rate, " +
-                    "-1 means no bloom filter.",
+                    "which yields a filter with ~ 1% false positive rate. " +
+                    "Set bloom_filter_bits_per_key > 0 to enable bloom filter, " +
+                    "-1 means no bloom filter (0~0.5 round down to no filter).",
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
@@ -634,7 +628,8 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTER_MODE =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_block_based_mode",
-                    "Use block based filter rather than full filter.",
+                    "If bloom filter is enabled, set this option true to " +
+                    "use block based filter rather than full filter.",
                     disallowEmpty(),
                     false
             );
@@ -642,8 +637,9 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTER_WHOLE_KEY =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_whole_key_filtering",
-                    "True if place whole keys in the bloom filter, " +
-                    "else place the prefix of keys.",
+                    "If bloom filter is enabled, set this option true to " +
+                    "place whole keys in the bloom filter, else place the " +
+                    "prefix of keys when prefix-extractor is set.",
                     disallowEmpty(),
                     true
             );
@@ -651,7 +647,10 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTERS_SKIP_LAST_LEVEL =
             new ConfigOption<>(
                     "rocksdb.optimize_filters_for_hits",
-                    "This flag allows us to not store filters for the last level.",
+                    "If bloom filter is enabled, this flag allows us to not " +
+                    "store filters for the last level. set this option true to " +
+                    "optimize the filters mainly for cases where keys are found " +
+                    "rather than also optimize for keys missed.",
                     disallowEmpty(),
                     true
             );
@@ -659,16 +658,27 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> PARTITION_FILTERS_INDEXES =
             new ConfigOption<>(
                     "rocksdb.partition_filters_and_indexes",
-                    "Use partitioned full filters and indexes for each sst file. " +
+                    "If bloom filter is enabled, set this option true to use " +
+                    "partitioned full filters and indexes for each sst file. " +
                     "This option is incompatible with block-based filters.",
                     disallowEmpty(),
                     false
             );
 
+    public static final ConfigOption<Boolean> PIN_TOP_INDEX_AND_FILTER =
+            new ConfigOption<>(
+                    "rocksdb.pin_top_level_index_and_filter",
+                    "If partition_filters_and_indexes is set true, set this " +
+                    "option true if we'd pin top-level index of partitioned " +
+                    "filter and index blocks to the block cache.",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Integer> PREFIX_EXTRACTOR_CAPPED =
             new ConfigOption<>(
                     "rocksdb.prefix_extractor_n_bytes",
-                    "This prefix-extractor uses the first N bytes of a key as its prefix, " +
+                    "The prefix-extractor uses the first N bytes of a key as its prefix, " +
                     "it will use the full key when a key is shorter than the N. " +
                     "0 means unset prefix-extractor.",
                     rangeInt(0, Integer.MAX_VALUE),

@@ -713,19 +713,16 @@ public class RocksDBStdSessions extends RocksDBSessions {
                     conf.get(RocksDBOptions.CACHE_FILTER_AND_INDEX));
             tableConfig.setPinL0FilterAndIndexBlocksInCache(
                     conf.get(RocksDBOptions.PIN_L0_INDEX_AND_FILTER));
-            tableConfig.setPinTopLevelIndexAndFilter(
-                    conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
 
             // https://github.com/facebook/rocksdb/wiki/Partitioned-Index-Filters
             if (conf.get(RocksDBOptions.PARTITION_FILTERS_INDEXES)) {
                 // Also enable partitioned indexes and partitioned filters
                 tableConfig.setPartitionFilters(true)
                            .setIndexType(IndexType.kTwoLevelIndexSearch)
-                           .setMetadataBlockSize(8L * Bytes.KB)
-                           .setCacheIndexAndFilterBlocks(true)
-                           .setCacheIndexAndFilterBlocksWithHighPriority(true)
-                           .setPinL0FilterAndIndexBlocksInCache(true)
-                           .setPinTopLevelIndexAndFilter(true);
+                           .setMetadataBlockSize(4L * Bytes.KB)
+                           .setCacheIndexAndFilterBlocksWithHighPriority(true);
+                tableConfig.setPinTopLevelIndexAndFilter(
+                            conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
             }
         }
 
