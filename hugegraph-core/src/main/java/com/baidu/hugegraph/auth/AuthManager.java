@@ -29,6 +29,8 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface AuthManager {
 
+    void init();
+
     boolean close();
 
     Id createUser(HugeUser user);

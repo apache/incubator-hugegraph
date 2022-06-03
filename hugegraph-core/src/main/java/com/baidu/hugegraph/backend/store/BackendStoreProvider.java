@@ -20,27 +20,33 @@
 package com.baidu.hugegraph.backend.store;
 
 import com.alipay.remoting.rpc.RpcServer;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
 
+    String SCHEMA_STORE = "m";
+    String GRAPH_STORE = "g";
+    String SYSTEM_STORE = "s";
+
     // Backend store type
     String type();
 
     // Backend store version
-    String version();
+    String storedVersion();
+
+    // Current backend store driver version
+    String driverVersion();
 
     // Graph name (that's database name)
     String graph();
 
-    BackendStore loadSystemStore(HugeConfig config, String name);
+    BackendStore loadSystemStore(HugeConfig config);
 
-    BackendStore loadSchemaStore(HugeConfig config, String name);
+    BackendStore loadSchemaStore(HugeConfig config);
 
-    BackendStore loadGraphStore(HugeConfig config, String name);
+    BackendStore loadGraphStore(HugeConfig config);
 
     void open(String name);
 
@@ -52,9 +58,9 @@ public interface BackendStoreProvider {
 
     void clear();
 
-    void truncate();
+    boolean initialized();
 
-    void initSystemInfo(HugeGraph graph);
+    void truncate();
 
     void createSnapshot();
 
