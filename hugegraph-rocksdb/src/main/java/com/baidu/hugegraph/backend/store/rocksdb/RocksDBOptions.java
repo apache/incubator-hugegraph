@@ -28,6 +28,7 @@ import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
 import org.rocksdb.DataBlockIndexType;
+import org.rocksdb.IndexType;
 
 import com.baidu.hugegraph.config.ConfigConvOption;
 import com.baidu.hugegraph.config.ConfigListConvOption;
@@ -538,16 +539,29 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Integer> TABLE_FORMAT_VERSION =
             new ConfigOption<>(
                     "rocksdb.format_version",
-                    "The format version of BlockBasedTable, allowed values are [0, 5].",
+                    "The format version of BlockBasedTable, allowed values are 0~5.",
                     rangeInt(0, 5),
                     5
             );
 
-    public static final ConfigConvOption<String, DataBlockIndexType> DATA_BLOCK_INDEX_TYPE =
+    public static final ConfigConvOption<String, IndexType> INDEX_TYPE =
+            new ConfigConvOption<>(
+                    "rocksdb.index_type",
+                    "The index type used to lookup between data blocks " +
+                    "with the sst table, allowed values are [kBinarySearch," +
+                    "kHashSearch,kTwoLevelIndexSearch,kBinarySearchWithFirstKey].",
+                    allowValues("kBinarySearch", "kHashSearch",
+                                "kTwoLevelIndexSearch", "kBinarySearchWithFirstKey"),
+                    IndexType::valueOf,
+                    "kBinarySearch"
+            );
+
+    public static final ConfigConvOption<String, DataBlockIndexType> DATA_BLOCK_SEARCH_TYPE =
             new ConfigConvOption<>(
                     "rocksdb.data_block_index_type",
-                    "Sets the data block index type to used with the sst table, " +
-                    "allowed values are kDataBlockBinarySearch/kDataBlockBinaryAndHash.",
+                    "The search type used to point lookup in data block with " +
+                    "the sst table, allowed values are [kDataBlockBinarySearch," +
+                    "kDataBlockBinaryAndHash].",
                     allowValues("kDataBlockBinarySearch", "kDataBlockBinaryAndHash"),
                     DataBlockIndexType::valueOf,
                     "kDataBlockBinarySearch"
@@ -556,8 +570,8 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Double> DATA_BLOCK_HASH_TABLE_RATIO =
             new ConfigOption<>(
                     "rocksdb.data_block_hash_table_util_ratio",
-                    "Set the entries/buckets. It is valid only when " +
-                    "rocksdb.data_block_index_type=kDataBlockBinaryAndHash.",
+                    "The hash table utilization ratio value of entries/buckets. " +
+                    "It is valid only when data_block_index_type=kDataBlockBinaryAndHash.",
                     rangeDouble(0.0, 1.0),
                     0.75
             );

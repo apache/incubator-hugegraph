@@ -677,13 +677,28 @@ public class RocksDBStdSessions extends RocksDBSessions {
         tableConfig.setFormatVersion(
                 conf.get(RocksDBOptions.TABLE_FORMAT_VERSION));
 
+        /*
+         * The index type used to lookup between data blocks:
+         * https://github.com/facebook/rocksdb/wiki/Index-Block-Format
+         *
+         * TODO: support more index options:
+         * tableConfig.setIndexShortening(IndexShorteningMode.kShortenSeparators);
+         * tableConfig.setEnableIndexCompression(true);
+         * tableConfig.setIndexBlockRestartInterval(1);
+         */
+        tableConfig.setIndexType(conf.get(RocksDBOptions.INDEX_TYPE));
+
+        /*
+         * The search type of point lookup can be BinarySearch or HashSearch:
+         * https://github.com/facebook/rocksdb/wiki/Data-Block-Hash-Index
+         */
         tableConfig.setDataBlockIndexType(
-                conf.get(RocksDBOptions.DATA_BLOCK_INDEX_TYPE));
+                conf.get(RocksDBOptions.DATA_BLOCK_SEARCH_TYPE));
         tableConfig.setDataBlockHashTableUtilRatio(
                 conf.get(RocksDBOptions.DATA_BLOCK_HASH_TABLE_RATIO));
 
-        tableConfig.setBlockSize(
-                conf.get(RocksDBOptions.BLOCK_SIZE));
+        long blockSize = conf.get(RocksDBOptions.BLOCK_SIZE);
+        tableConfig.setBlockSize(blockSize);
         tableConfig.setBlockSizeDeviation(
                 conf.get(RocksDBOptions.BLOCK_SIZE_DEVIATION));
         tableConfig.setBlockRestartInterval(
@@ -716,10 +731,10 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             // https://github.com/facebook/rocksdb/wiki/Partitioned-Index-Filters
             if (conf.get(RocksDBOptions.PARTITION_FILTERS_INDEXES)) {
-                // Also enable partitioned indexes and partitioned filters
+                // Enable partitioned indexes and partitioned filters
                 tableConfig.setPartitionFilters(true)
                            .setIndexType(IndexType.kTwoLevelIndexSearch)
-                           .setMetadataBlockSize(4L * Bytes.KB)
+                           .setMetadataBlockSize(blockSize)
                            .setCacheIndexAndFilterBlocksWithHighPriority(true);
                 tableConfig.setPinTopLevelIndexAndFilter(
                             conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
