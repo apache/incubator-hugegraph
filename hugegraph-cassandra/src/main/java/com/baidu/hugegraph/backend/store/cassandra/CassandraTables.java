@@ -72,6 +72,48 @@ public class CassandraTables {
 
     private static final long COMMIT_DELETE_BATCH = Query.COMMIT_BATCH;
 
+    public static class Meta extends CassandraTable {
+
+        public static final String TABLE = HugeType.META.string();
+
+        public Meta() {
+            super(TABLE);
+        }
+
+        @Override
+        public void init(CassandraSessionPool.Session session) {
+            ImmutableMap<HugeKeys, DataType> pkeys = ImmutableMap.of(
+                    HugeKeys.NAME, DataType.text()
+            );
+            ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of();
+            ImmutableMap<HugeKeys, DataType> columns = ImmutableMap.of(
+                    HugeKeys.VALUE, DataType.text()
+            );
+
+            this.createTable(session, pkeys, ckeys, columns);
+        }
+
+        public void writeVersion(CassandraSessionPool.Session session,
+                                 String version) {
+            Insert insert = QueryBuilder.insertInto(TABLE);
+            insert.value(formatKey(HugeKeys.NAME), formatKey(HugeKeys.VERSION));
+            insert.value(formatKey(HugeKeys.VALUE), version);
+            session.execute(insert);
+        }
+
+        public String readVersion(CassandraSessionPool.Session session) {
+            Clause where = formatEQ(HugeKeys.NAME, formatKey(HugeKeys.VERSION));
+            Select select = QueryBuilder.select(formatKey(HugeKeys.VALUE))
+                                        .from(TABLE);
+            select.where(where);
+            Row row = session.execute(select).one();
+            if (row == null) {
+                return null;
+            }
+            return row.getString(formatKey(HugeKeys.VALUE));
+        }
+    }
+
     public static class Counters extends CassandraTable {
 
         public static final String TABLE = HugeType.COUNTER.string();

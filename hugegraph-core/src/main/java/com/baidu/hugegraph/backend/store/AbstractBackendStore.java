@@ -25,9 +25,12 @@ import com.baidu.hugegraph.type.HugeType;
 public abstract class AbstractBackendStore<Session extends BackendSession>
                 implements BackendStore {
 
+    // TODO: move SystemSchemaStore into backend like MetaStore
+    private final SystemSchemaStore systemSchemaStore;
     private final MetaDispatcher<Session> dispatcher;
 
     public AbstractBackendStore() {
+        this.systemSchemaStore = new SystemSchemaStore();
         this.dispatcher = new MetaDispatcher<>();
     }
 
@@ -39,11 +42,22 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
         this.dispatcher.registerMetaHandler(name, handler);
     }
 
+    @Override
+    public String storedVersion() {
+        throw new UnsupportedOperationException(
+                  "AbstractBackendStore.storedVersion()");
+    }
+
+    @Override
+    public SystemSchemaStore systemSchemaStore() {
+        return this.systemSchemaStore;
+    }
+
     // Get metadata by key
     @Override
     public <R> R metadata(HugeType type, String meta, Object[] args) {
         Session session = this.session(type);
-        MetaDispatcher<Session> dispatcher = null;
+        MetaDispatcher<Session> dispatcher;
         if (type == null) {
             dispatcher = this.metaDispatcher();
         } else {

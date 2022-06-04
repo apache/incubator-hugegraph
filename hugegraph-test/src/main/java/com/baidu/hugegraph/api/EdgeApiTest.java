@@ -21,12 +21,13 @@ package com.baidu.hugegraph.api;
 
 import java.io.IOException;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class EdgeApiTest extends BaseApiTest {
 

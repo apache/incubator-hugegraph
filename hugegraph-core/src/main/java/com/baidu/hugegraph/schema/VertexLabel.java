@@ -40,7 +40,7 @@ public class VertexLabel extends SchemaLabel {
     // OLAP_VL_ID means all of vertex label ids
     private static final Id OLAP_VL_ID = IdGenerator.of(SchemaLabel.OLAP_VL_ID);
     // OLAP_VL_NAME means all of vertex label names
-    private static final String OLAP_VL_NAME = "~olap";
+    private static final String OLAP_VL_NAME = "*olap";
     // OLAP_VL means all of vertex labels
     public static final VertexLabel OLAP_VL = new VertexLabel(null, OLAP_VL_ID,
                                                               OLAP_VL_NAME);

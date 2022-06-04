@@ -34,11 +34,17 @@ public interface BackendStore {
     // Store name
     String store();
 
+    // Stored version
+    String storedVersion();
+
     // Database name
     String database();
 
     // Get the parent provider
     BackendStoreProvider provider();
+
+    // Get the system schema store
+    SystemSchemaStore systemSchemaStore();
 
     // Whether it is the storage of schema
     boolean isSchemaStore();

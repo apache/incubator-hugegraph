@@ -22,34 +22,38 @@ package com.baidu.hugegraph.unit.core;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
-import com.baidu.hugegraph.backend.tx.SchemaTransaction;
+import com.baidu.hugegraph.backend.id.Id;
+import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.SystemSchemaStore;
+import com.baidu.hugegraph.schema.SchemaElement;
+import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Whitebox;
 
-public class BackendStoreSystemInfoTest {
-
-    private static final String PK_BACKEND_INFO = "~backend_info";
+public class SystemSchemaStoreTest {
 
     @Test
-    public void testBackendStoreSystemInfoIllegalStateException() {
+    public void testExpandCapacity() {
+        SystemSchemaStore store = new SystemSchemaStore();
+        SchemaElement[] storeByIds = Whitebox.getInternalState(store,
+                                                               "storeByIds");
+        int initCapacity = storeByIds.length;
+
+        int num = initCapacity + 1;
         HugeGraph graph = Mockito.mock(HugeGraph.class);
-        SchemaTransaction stx = Mockito.mock(SchemaTransaction.class);
-        Mockito.when(stx.getPropertyKey(PK_BACKEND_INFO))
-               .thenThrow(new IllegalStateException("Should not exist schema " +
-                          "with same name '~backend_info'"));
-        Mockito.when(stx.graph()).thenReturn(graph);
-        Mockito.when(stx.storeInitialized()).thenReturn(true);
+        for (int i = 1; i <= num; i++) {
+            Id id = IdGenerator.of(-i);
+            String name = "name-" + i;
+            store.add(new VertexLabel(graph, id, name));
+        }
 
-        BackendStoreSystemInfo info = new BackendStoreSystemInfo(stx);
-
-        Assert.assertThrows(HugeException.class, () -> {
-            Whitebox.invoke(BackendStoreSystemInfo.class, "info", info);
-        }, e -> {
-            Assert.assertContains("There exists multiple backend info",
-                                  e.getMessage());
-        });
+        for (int i = 1; i <= num; i++) {
+            Id id = IdGenerator.of(-i);
+            String name = "name-" + i;
+            VertexLabel vlById = store.get(id);
+            VertexLabel vlByName = store.get(name);
+            Assert.assertEquals(vlById, vlByName);
+        }
     }
 }

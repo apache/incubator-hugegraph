@@ -38,6 +38,7 @@ import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
 import com.baidu.hugegraph.exception.ExistedException;
@@ -54,6 +55,23 @@ public class MultiGraphsTest {
 
     private static final String NAME48 =
             "g12345678901234567890123456789012345678901234567";
+
+    @Test
+    public void testWriteAndReadVersion() {
+        List<HugeGraph> graphs = openGraphs("g_1", NAME48);
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+            // Init more than once no side effect
+            graph.initBackend();
+
+            BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+            Assert.assertTrue(backendStoreInfo.exists());
+            Assert.assertTrue(backendStoreInfo.checkVersion());
+
+            graph.clearBackend();
+        }
+        destroyGraphs(graphs);
+    }
 
     @Test
     public void testCreateMultiGraphs() {
@@ -238,9 +256,9 @@ public class MultiGraphsTest {
         HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
-        Assert.assertTrue(g1.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g2.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g3.backendStoreSystemInfo().exists());
+        Assert.assertTrue(g1.backendStoreInfo().exists());
+        Assert.assertTrue(g2.backendStoreInfo().exists());
+        Assert.assertTrue(g3.backendStoreInfo().exists());
 
         g2.initBackend(); // no error
         g3.initBackend();
