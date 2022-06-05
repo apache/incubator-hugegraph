@@ -180,7 +180,7 @@ public interface IntIterator {
 
         public interface IntMapper {
 
-            public int map(int key);
+            int map(int key);
         }
     }
 
@@ -207,7 +207,7 @@ public interface IntIterator {
 
         public interface IntMapper<T> {
 
-            public T map(int key);
+            T map(int key);
         }
     }
 }

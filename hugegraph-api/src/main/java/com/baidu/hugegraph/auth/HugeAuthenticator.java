@@ -43,36 +43,36 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public interface HugeAuthenticator extends Authenticator {
 
-    public static final String KEY_USERNAME =
-                               CredentialGraphTokens.PROPERTY_USERNAME;
-    public static final String KEY_PASSWORD =
-                               CredentialGraphTokens.PROPERTY_PASSWORD;
-    public static final String KEY_TOKEN = "token";
-    public static final String KEY_ROLE = "role";
-    public static final String KEY_ADDRESS = "address";
-    public static final String KEY_PATH = "path";
+    String KEY_USERNAME =
+           CredentialGraphTokens.PROPERTY_USERNAME;
+    String KEY_PASSWORD =
+           CredentialGraphTokens.PROPERTY_PASSWORD;
+    String KEY_TOKEN = "token";
+    String KEY_ROLE = "role";
+    String KEY_ADDRESS = "address";
+    String KEY_PATH = "path";
 
-    public static final String USER_SYSTEM = "system";
-    public static final String USER_ADMIN = "admin";
-    public static final String USER_ANONY = AuthenticatedUser.ANONYMOUS_USERNAME;
+    String USER_SYSTEM = "system";
+    String USER_ADMIN = "admin";
+    String USER_ANONY = AuthenticatedUser.ANONYMOUS_USERNAME;
 
-    public static final RolePermission ROLE_NONE = RolePermission.none();
-    public static final RolePermission ROLE_ADMIN = RolePermission.admin();
+    RolePermission ROLE_NONE = RolePermission.none();
+    RolePermission ROLE_ADMIN = RolePermission.admin();
 
-    public static final String VAR_PREFIX = "$";
-    public static final String KEY_OWNER = VAR_PREFIX + "owner";
-    public static final String KEY_DYNAMIC = VAR_PREFIX + "dynamic";
-    public static final String KEY_ACTION = VAR_PREFIX + "action";
+    String VAR_PREFIX = "$";
+    String KEY_OWNER = VAR_PREFIX + "owner";
+    String KEY_DYNAMIC = VAR_PREFIX + "dynamic";
+    String KEY_ACTION = VAR_PREFIX + "action";
 
-    public void setup(HugeConfig config);
+    void setup(HugeConfig config);
 
-    public UserWithRole authenticate(String username, String password,
+    UserWithRole authenticate(String username, String password,
                                      String token);
 
-    public AuthManager authManager();
+    AuthManager authManager();
 
     @Override
-    public default void setup(final Map<String, Object> config) {
+    default void setup(final Map<String, Object> config) {
         E.checkState(config != null,
                      "Must provide a 'config' in the 'authentication'");
         String path = (String) config.get("tokens");
@@ -83,7 +83,7 @@ public interface HugeAuthenticator extends Authenticator {
     }
 
     @Override
-    public default User authenticate(final Map<String, String> credentials)
+    default User authenticate(final Map<String, String> credentials)
                                      throws AuthenticationException {
         HugeGraphAuthProxy.resetContext();
 
@@ -115,11 +115,11 @@ public interface HugeAuthenticator extends Authenticator {
     }
 
     @Override
-    public default boolean requireAuthentication() {
+    default boolean requireAuthentication() {
         return true;
     }
 
-    public default boolean verifyRole(RolePermission role) {
+    default boolean verifyRole(RolePermission role) {
         if (role == ROLE_NONE || role == null) {
             return false;
         } else {
@@ -127,9 +127,9 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
-    public void initAdminUser(String password) throws Exception;
+    void initAdminUser(String password) throws Exception;
 
-    public static HugeAuthenticator loadAuthenticator(HugeConfig conf) {
+    static HugeAuthenticator loadAuthenticator(HugeConfig conf) {
         String authClass = conf.get(ServerOptions.AUTHENTICATOR);
         if (authClass.isEmpty()) {
             return null;
@@ -150,7 +150,7 @@ public interface HugeAuthenticator extends Authenticator {
         return authenticator;
     }
 
-    public static class User extends AuthenticatedUser {
+    class User extends AuthenticatedUser {
 
         public static final User ADMIN = new User(USER_ADMIN, ROLE_ADMIN);
         public static final User ANONYMOUS = new User(USER_ANONY, ROLE_ADMIN);
@@ -255,7 +255,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
-    public static class RolePerm {
+    class RolePerm {
 
         @JsonProperty("roles") // graph -> action -> resource
         private Map<String, Map<HugePermission, Object>> roles;
@@ -395,7 +395,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
     }
 
-    public static class RequiredPerm {
+    class RequiredPerm {
 
         @JsonProperty("owner")
         private String owner;

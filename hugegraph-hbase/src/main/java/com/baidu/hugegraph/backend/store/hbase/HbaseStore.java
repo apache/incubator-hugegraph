@@ -434,7 +434,7 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
         session.rollback();
     }
 
-    private final void checkConnectionOpened() {
+    private void checkConnectionOpened() {
         E.checkState(this.sessions != null && this.sessions.opened(),
                      "HBase store has not been initialized");
     }

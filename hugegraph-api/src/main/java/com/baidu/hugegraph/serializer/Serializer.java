@@ -42,65 +42,65 @@ import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser
 
 public interface Serializer {
 
-    public String writeMap(Map<?, ?> map);
+    String writeMap(Map<?, ?> map);
 
-    public String writeList(String label, Collection<?> list);
+    String writeList(String label, Collection<?> list);
 
-    public String writePropertyKey(PropertyKey propertyKey);
+    String writePropertyKey(PropertyKey propertyKey);
 
-    public String writePropertyKeys(List<PropertyKey> propertyKeys);
+    String writePropertyKeys(List<PropertyKey> propertyKeys);
 
-    public String writeVertexLabel(VertexLabel vertexLabel);
+    String writeVertexLabel(VertexLabel vertexLabel);
 
-    public String writeVertexLabels(List<VertexLabel> vertexLabels);
+    String writeVertexLabels(List<VertexLabel> vertexLabels);
 
-    public String writeEdgeLabel(EdgeLabel edgeLabel);
+    String writeEdgeLabel(EdgeLabel edgeLabel);
 
-    public String writeEdgeLabels(List<EdgeLabel> edgeLabels);
+    String writeEdgeLabels(List<EdgeLabel> edgeLabels);
 
-    public String writeIndexlabel(IndexLabel indexLabel);
+    String writeIndexlabel(IndexLabel indexLabel);
 
-    public String writeIndexlabels(List<IndexLabel> indexLabels);
+    String writeIndexlabels(List<IndexLabel> indexLabels);
 
-    public String writeTaskWithSchema(SchemaElement.TaskWithSchema tws);
+    String writeTaskWithSchema(SchemaElement.TaskWithSchema tws);
 
-    public String writeVertex(Vertex v);
+    String writeVertex(Vertex v);
 
-    public String writeVertices(Iterator<Vertex> vertices, boolean paging);
+    String writeVertices(Iterator<Vertex> vertices, boolean paging);
 
-    public String writeEdge(Edge e);
+    String writeEdge(Edge e);
 
-    public String writeEdges(Iterator<Edge> edges, boolean paging);
+    String writeEdges(Iterator<Edge> edges, boolean paging);
 
-    public String writeIds(List<Id> ids);
+    String writeIds(List<Id> ids);
 
-    public String writeAuthElement(AuthElement elem);
+    String writeAuthElement(AuthElement elem);
 
-    public <V extends AuthElement> String writeAuthElements(String label,
+    <V extends AuthElement> String writeAuthElements(String label,
                                                             List<V> users);
 
-    public String writePaths(String name, Collection<HugeTraverser.Path> paths,
+    String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint, Iterator<Vertex> vertices);
 
-    public default String writePaths(String name,
+    default String writePaths(String name,
                                      Collection<HugeTraverser.Path> paths,
                                      boolean withCrossPoint) {
         return this.writePaths(name, paths, withCrossPoint, null);
     }
 
-    public String writeCrosspoints(CrosspointsPaths paths,
+    String writeCrosspoints(CrosspointsPaths paths,
                                    Iterator<Vertex> iterator, boolean withPath);
 
-    public String writeSimilars(SimilarsMap similars,
+    String writeSimilars(SimilarsMap similars,
                                 Iterator<Vertex> vertices);
 
-    public String writeWeightedPath(NodeWithWeight path,
+    String writeWeightedPath(NodeWithWeight path,
                                     Iterator<Vertex> vertices);
 
-    public String writeWeightedPaths(WeightedPaths paths,
+    String writeWeightedPaths(WeightedPaths paths,
                                      Iterator<Vertex> vertices);
 
-    public String writeNodesWithPath(String name, List<Id> nodes, long size,
+    String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
                                      Iterator<Vertex> vertices);
 }

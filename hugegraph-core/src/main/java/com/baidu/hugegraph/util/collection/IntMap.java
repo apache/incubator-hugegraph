@@ -397,7 +397,7 @@ public interface IntMap {
             return true;
         }
 
-        private final long offset(int key) {
+        private long offset(int key) {
             if (key >= this.capacity || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.capacity);
@@ -529,7 +529,7 @@ public interface IntMap {
             }
         }
 
-        private final MutableIntIntMap map(int key) {
+        private MutableIntIntMap map(int key) {
             // NOTE '%' is slower 20% ~ 50% than '&': key % this.maps.length;
             int index = key & this.segmentMask;
             return this.maps[index];

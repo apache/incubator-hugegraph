@@ -26,7 +26,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.rpc.RpcServer;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
 import com.baidu.hugegraph.config.CoreOptions;

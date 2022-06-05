@@ -150,10 +150,10 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
             }
         }
 
-        private void sendError(ChannelHandlerContext ctx, Object msg) {
+        private void sendError(ChannelHandlerContext context, Object msg) {
             // Close the connection as soon as the error message is sent.
-            ctx.writeAndFlush(new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED))
-               .addListener(ChannelFutureListener.CLOSE);
+            context.writeAndFlush(new DefaultFullHttpResponse(HTTP_1_1, UNAUTHORIZED))
+                   .addListener(ChannelFutureListener.CLOSE);
             ReferenceCountUtil.release(msg);
         }
     }

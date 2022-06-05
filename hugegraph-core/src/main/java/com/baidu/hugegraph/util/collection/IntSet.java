@@ -151,7 +151,7 @@ public interface IntSet {
             return true;
         }
 
-        private final IntSet segment(int key) {
+        private IntSet segment(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
                 E.checkArgument(false,
@@ -185,7 +185,7 @@ public interface IntSet {
             }
         }
 
-        private final IntSet segmentAt(int index) {
+        private IntSet segmentAt(int index) {
             // volatile get this.sets[index]
             long offset = (index << SHIFT) + BASE_OFFSET;
             IntSet set = (IntSet) UNSAFE.getObjectVolatile(this.sets, offset);
@@ -430,7 +430,7 @@ public interface IntSet {
             return bitOffsetToByteOffset(key);
         }
 
-        private static final long bitOffsetToByteOffset(long key) {
+        private static long bitOffsetToByteOffset(long key) {
             // bits to long offset
             long index = key >> DIV64;
             // long offset to byte offset
@@ -440,7 +440,7 @@ public interface IntSet {
             return offset;
         }
 
-        private static final long bitmaskOfKey(long key) {
+        private static long bitmaskOfKey(long key) {
             long bitIndex = key & MOD64;
             long bitmask = 1L << bitIndex;
             return bitmask;

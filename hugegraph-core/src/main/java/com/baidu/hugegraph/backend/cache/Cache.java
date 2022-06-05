@@ -67,5 +67,5 @@ public interface Cache<K, V> {
 
     <T> T attachment(T object);
 
-    public <T> T attachment();
+    <T> T attachment();
 }

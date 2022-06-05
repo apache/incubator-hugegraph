@@ -28,7 +28,6 @@ public class CypherAPI extends GremlinQueryAPI {
 
     private static final Logger LOG = Log.logger(CypherAPI.class);
 
-
     @GET
     @Timed
     @CompressInterceptor.Compress(buffer = (1024 * 40))
@@ -63,11 +62,11 @@ public class CypherAPI extends GremlinQueryAPI {
         LOG.debug("translated gremlin is {}", gremlin);
 
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
-        String request = "{"
-                         + "\"gremlin\":\"" + gremlin + "\","
-                         + "\"bindings\":{},"
-                         + "\"language\":\"gremlin-groovy\","
-                         + "\"aliases\":{\"g\":\"__g_" + graph + "\"}}";
+        String request = "{" +
+                         "\"gremlin\":\"" + gremlin + "\"," +
+                         "\"bindings\":{}," +
+                         "\"language\":\"gremlin-groovy\"," +
+                         "\"aliases\":{\"g\":\"__g_" + graph + "\"}}";
 
         Response response = this.client().doPostRequest(auth, request);
         return transformResponseIfNeeded(response);

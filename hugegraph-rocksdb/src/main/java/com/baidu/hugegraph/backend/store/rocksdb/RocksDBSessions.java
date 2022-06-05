@@ -133,6 +133,6 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public interface Countable {
 
-        public long count();
+        long count();
     }
 }
