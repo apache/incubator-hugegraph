@@ -74,7 +74,7 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -604,15 +604,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public String backendVersion() {
-        this.verifyAnyPermission();
-        return this.hugegraph.backendVersion();
-    }
-
-    @Override
-    public BackendStoreSystemInfo backendStoreSystemInfo() {
+    public BackendStoreInfo backendStoreInfo() {
         this.verifyAdminPermission();
-        return this.hugegraph.backendStoreSystemInfo();
+        return this.hugegraph.backendStoreInfo();
     }
 
     @Override
@@ -732,6 +726,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 userManager.createUser(admin);
             }
         }
+    }
+
+    @Override
+    public void initSystemInfo() {
+        this.verifyAdminPermission();
+        this.hugegraph.initSystemInfo();
     }
 
     @Override
@@ -999,6 +999,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
+        public void init() {
+            verifyAdminPermission();
+            this.taskScheduler.init();
+        }
+
+        @Override
         public int pendingTasks() {
             verifyTaskPermission(HugePermission.READ);
             return this.taskScheduler.pendingTasks();
@@ -1159,6 +1165,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 return context.user().username();
             }
             return null;
+        }
+
+        @Override
+        public void init() {
+            verifyAdminPermission();
+            this.authManager.init();
         }
 
         @Override

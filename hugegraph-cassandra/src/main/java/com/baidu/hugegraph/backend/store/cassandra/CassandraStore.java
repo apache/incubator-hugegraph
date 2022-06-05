@@ -299,7 +299,7 @@ public abstract class CassandraStore
         String tableName = query.olap() ? this.olapTableName(type) :
                                           type.string();
         CassandraTable table = this.table(tableName);
-        Iterator<BackendEntry> entries = table.query(this.session(), query);
+        Iterator<BackendEntry> entries = table.query(this.session(null), query);
         // Merge olap results as needed
         Set<Id> olapPks = query.olapPks();
         if (this.isGraphStore && !olapPks.isEmpty()) {
@@ -307,7 +307,7 @@ public abstract class CassandraStore
             for (Id pk : olapPks) {
                 Query q = query.copy();
                 table = this.table(this.olapTableName(pk));
-                iterators.add(table.query(this.session(), q));
+                iterators.add(table.query(this.session(null), q));
             }
             entries = new MergeIterator<>(entries, iterators,
                                           BackendEntry::mergeable);
@@ -608,11 +608,6 @@ public abstract class CassandraStore
         return this.sessions.session();
     }
 
-    protected CassandraSessionPool.Session session() {
-        this.checkOpened();
-        return this.sessions.session();
-    }
-
     protected final void checkClusterConnected() {
         E.checkState(this.sessions != null && this.sessions.clusterConnected(),
                      "Cassandra cluster has not been connected");
@@ -758,7 +753,7 @@ public abstract class CassandraStore
         @Override
         public void createOlapTable(Id id) {
             CassandraTable table = new CassandraTables.Olap(this.store(), id);
-            table.init(this.session());
+            table.init(this.session(null));
             registerTableManager(this.olapTableName(id), table);
         }
 
@@ -769,7 +764,7 @@ public abstract class CassandraStore
             if (table == null || !this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);
             }
-            table.truncate(this.session());
+            table.truncate(this.session(null));
         }
 
         @Override
@@ -779,8 +774,42 @@ public abstract class CassandraStore
             if (table == null || !this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);
             }
-            table.dropTable(this.session());
+            table.dropTable(this.session(null));
             this.unregisterTableManager(name);
+        }
+    }
+
+    public static class CassandraSystemStore extends CassandraGraphStore {
+
+        private final CassandraTables.Meta meta;
+
+        public CassandraSystemStore(BackendStoreProvider provider,
+                                    String keyspace, String store) {
+            super(provider, keyspace, store);
+
+            this.meta = new CassandraTables.Meta();
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            this.checkOpened();
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(this.session(null), driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            CassandraSessionPool.Session session = this.session(null);
+            return this.meta.readVersion(session);
+        }
+
+        @Override
+        protected Collection<CassandraTable> tables() {
+            List<CassandraTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.meta);
+            return tables;
         }
     }
 }

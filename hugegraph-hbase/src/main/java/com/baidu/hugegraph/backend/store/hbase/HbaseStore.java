@@ -551,4 +551,38 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
                       "HbaseGraphStore.getCounter()");
         }
     }
+
+    public static class HbaseSystemStore extends HbaseGraphStore {
+
+        private final HbaseTables.Meta meta;
+
+        public HbaseSystemStore(HugeConfig config, BackendStoreProvider provider,
+                                String namespace, String store) {
+            super(config, provider, namespace, store);
+
+            this.meta = new HbaseTables.Meta();
+        }
+
+        @Override
+        protected List<String> tableNames() {
+            List<String> tableNames = super.tableNames();
+            tableNames.add(this.meta.table());
+            return tableNames;
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            Session session = super.session(null);
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            Session session = super.session(null);
+            return this.meta.readVersion(session);
+        }
+    }
 }
