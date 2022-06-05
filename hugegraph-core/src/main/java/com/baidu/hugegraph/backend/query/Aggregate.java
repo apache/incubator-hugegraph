@@ -73,7 +73,7 @@ public class Aggregate {
         private final BiFunction<Number, Number, Number> merger;
 
         AggregateFunc(String name, Number defaultValue,
-                              BiFunction<Number, Number, Number> merger) {
+                      BiFunction<Number, Number, Number> merger) {
             this.name = name;
             this.defaultValue = defaultValue;
             this.merger = merger;

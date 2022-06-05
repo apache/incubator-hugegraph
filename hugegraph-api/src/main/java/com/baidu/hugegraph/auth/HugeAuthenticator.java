@@ -43,10 +43,8 @@ import com.baidu.hugegraph.util.JsonUtil;
 
 public interface HugeAuthenticator extends Authenticator {
 
-    String KEY_USERNAME =
-           CredentialGraphTokens.PROPERTY_USERNAME;
-    String KEY_PASSWORD =
-           CredentialGraphTokens.PROPERTY_PASSWORD;
+    String KEY_USERNAME = CredentialGraphTokens.PROPERTY_USERNAME;
+    String KEY_PASSWORD = CredentialGraphTokens.PROPERTY_PASSWORD;
     String KEY_TOKEN = "token";
     String KEY_ROLE = "role";
     String KEY_ADDRESS = "address";
@@ -66,8 +64,7 @@ public interface HugeAuthenticator extends Authenticator {
 
     void setup(HugeConfig config);
 
-    UserWithRole authenticate(String username, String password,
-                                     String token);
+    UserWithRole authenticate(String username, String password, String token);
 
     AuthManager authManager();
 

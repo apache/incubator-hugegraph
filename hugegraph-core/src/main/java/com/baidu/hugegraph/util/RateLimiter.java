@@ -24,8 +24,6 @@ import org.slf4j.Logger;
 // TODO: Move to common module (concurrent package)
 public interface RateLimiter {
 
-    Logger LOG = Log.logger(RateLimiter.class);
-
     long RESET_PERIOD = 1000L;
 
     /**

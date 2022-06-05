@@ -331,8 +331,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Add a row record to a table
          */
-        void put(String table, byte[] family, byte[] rowkey,
-                                 Collection<BackendColumn> columns);
+        void put(String table, byte[] family, byte[] rowkey, Collection<BackendColumn> columns);
 
         /**
          * Add a row record to a table(can be used when adding an index)

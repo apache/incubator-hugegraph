@@ -76,8 +76,7 @@ public interface Serializer {
 
     String writeAuthElement(AuthElement elem);
 
-    <V extends AuthElement> String writeAuthElements(String label,
-                                                            List<V> users);
+    <V extends AuthElement> String writeAuthElements(String label, List<V> users);
 
     String writePaths(String name, Collection<HugeTraverser.Path> paths,
                              boolean withCrossPoint, Iterator<Vertex> vertices);
@@ -91,14 +90,11 @@ public interface Serializer {
     String writeCrosspoints(CrosspointsPaths paths,
                                    Iterator<Vertex> iterator, boolean withPath);
 
-    String writeSimilars(SimilarsMap similars,
-                                Iterator<Vertex> vertices);
+    String writeSimilars(SimilarsMap similars, Iterator<Vertex> vertices);
 
-    String writeWeightedPath(NodeWithWeight path,
-                                    Iterator<Vertex> vertices);
+    String writeWeightedPath(NodeWithWeight path, Iterator<Vertex> vertices);
 
-    String writeWeightedPaths(WeightedPaths paths,
-                                     Iterator<Vertex> vertices);
+    String writeWeightedPaths(WeightedPaths paths, Iterator<Vertex> vertices);
 
     String writeNodesWithPath(String name, List<Id> nodes, long size,
                                      Collection<HugeTraverser.Path> paths,
