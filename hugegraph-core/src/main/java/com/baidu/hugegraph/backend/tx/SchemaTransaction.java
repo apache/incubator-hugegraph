@@ -415,21 +415,22 @@ public class SchemaTransaction extends IndexableTransaction {
 
     private void saveSchema(SchemaElement schema, boolean update,
                             Consumer<SchemaElement> updateCallback) {
-        // System schema just put into SystemSchemaStore in memory
-        if (schema.longId() < 0L) {
-            this.systemSchemaStore.add(schema);
-            return;
-        }
-
+        // Lock for schema update
         LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
         try {
-            locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
-                             schema.id());
+            locks.lockWrites(LockUtil.hugeType2Group(schema.type()), schema.id());
 
             if (updateCallback != null) {
                 // NOTE: Do schema update in the lock block
                 updateCallback.accept(schema);
             }
+
+            // System schema just put into SystemSchemaStore in memory
+            if (schema.longId() < 0L) {
+                this.systemSchemaStore.add(schema);
+                return;
+            }
+
             BackendEntry entry = this.serialize(schema);
 
             this.beforeWrite();
