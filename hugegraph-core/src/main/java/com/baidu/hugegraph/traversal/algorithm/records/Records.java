@@ -34,8 +34,8 @@ public interface Records {
 
     Id nextKey();
 
-    PathSet findPath(Id target, Function<Id, Boolean> filter,
-                            boolean all, boolean ring);
+    PathSet findPath(Id target, Function<Id, Boolean> filter, boolean all,
+                     boolean ring);
 
     long accessed();
 }

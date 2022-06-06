@@ -821,7 +821,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     }
 
     private void parseTableDiskMapping(Map<String, String> disks,
-                                             String dataPath) {
+                                       String dataPath) {
+
         this.tableDiskMapping.clear();
         for (Map.Entry<String, String> disk : disks.entrySet()) {
             // The format of `disk` like: `graph/vertex: /path/to/disk1`

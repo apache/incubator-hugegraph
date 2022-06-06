@@ -81,7 +81,8 @@ public interface HugeAuthenticator extends Authenticator {
 
     @Override
     default User authenticate(final Map<String, String> credentials)
-                                     throws AuthenticationException {
+            throws AuthenticationException {
+
         HugeGraphAuthProxy.resetContext();
 
         User user = User.ANONYMOUS;
