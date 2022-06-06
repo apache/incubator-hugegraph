@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
@@ -210,8 +211,9 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     @Override
-    protected void updateSchema(SchemaElement schema) {
-        super.updateSchema(schema);
+    protected void updateSchema(SchemaElement schema,
+                                Consumer<SchemaElement> updateCallback) {
+        super.updateSchema(schema, updateCallback);
 
         this.updateCache(schema);
 
