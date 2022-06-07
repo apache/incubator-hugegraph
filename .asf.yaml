@@ -1,0 +1,51 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+github:
+  features:
+    # Enable issue management
+    issues: true
+    # Enable wiki for documentation
+    wiki: false
+    # Enable projects for project management boards
+    projects: false
+  description: HugeGraph Commons - include common library & RPC module
+  homepage: https://hugegraph.apache.org/
+  del_branch_on_merge: true
+  #labels:
+
+  enabled_merge_buttons:
+    merge:  false
+    squash: true
+    rebase: false
+  protected_branches:
+    master:
+      required_status_checks:
+        # strict means "Require branches to be up to date before merging".
+        strict: true
+        # contexts are the names of checks that must pass
+        contexts:
+          - build (8)
+          - build (11)
+      required_pull_request_reviews:
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: false
+        required_approving_review_count: 2
+
+notifications:
+  issues: dev@hugegraph.apache.org
+  pullrequests: commits@hugegraph.apache.org
