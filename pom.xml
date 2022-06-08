@@ -106,7 +106,12 @@
         <metrics.version>4.2.4</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
         <shell-executable>bash</shell-executable>
-        <checkstyle.version>3.1.2</checkstyle.version>
+        <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
+        <checkstyle.version>8.45</checkstyle.version>
+        <hugegraph-rpc.version>2.0.1</hugegraph-rpc.version>
+        <hugegraph-common.version>2.1.2</hugegraph-common.version>
+        <grpc.version>1.6.1</grpc.version>
+        <protobuf.version>3.3.0</protobuf.version>
     </properties>
     <modules>
         <module>hugegraph-core</module>
@@ -125,6 +130,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- hugegraph-commons -->
+            <dependency>
+                <groupId>com.baidu.hugegraph</groupId>
+                <artifactId>hugegraph-rpc</artifactId>
+                <version>${hugegraph-rpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baidu.hugegraph</groupId>
+                <artifactId>hugegraph-common</artifactId>
+                <version>${hugegraph-common.version}</version>
+            </dependency>
+
             <!-- logging -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
@@ -271,6 +288,32 @@
                 <artifactId>javassist</artifactId>
                 <version>${javassist.version}</version>
             </dependency>
+
+            <!-- protobuf -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty</artifactId>
+                <version>${grpc.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${grpc.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${grpc.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -350,12 +393,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${checkstyle.version}</version>
+                <version>${checkstyle.plugin.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>8.45</version>
+                        <version>${checkstyle.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
