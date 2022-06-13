@@ -2,7 +2,7 @@ FROM ubuntu:xenial
 
 LABEL maintainer="HugeGraph Docker Maintainers <hugegraph@googlegroups.com>"
 
-ENV PKG_URL https://github.com/hugegraph
+ENV PKG_URL https://github.com/apache
 
 # 1. Install needed dependencies of GraphServer & RocksDB
 RUN set -x \
@@ -19,10 +19,10 @@ RUN set -x \
 # 2. Init HugeGraph Sever
 # (Optional) You can set the ip of github to speed up the local build
 # && echo "192.30.253.112 github.com\n151.101.44.249 github.global.ssl.fastly.net" >> /etc/hosts \
-ENV SERVER_VERSION 0.10.4
+ENV SERVER_VERSION 0.12.0
 RUN set -e \
     && mkdir -p /root/hugegraph-server \
-    && curl -L -S ${PKG_URL}/hugegraph/releases/download/v${SERVER_VERSION}/hugegraph-${SERVER_VERSION}.tar.gz -o /root/server.tar.gz \
+    && curl -L -S ${PKG_URL}/incubator-hugegraph/releases/download/v${SERVER_VERSION}/hugegraph-${SERVER_VERSION}.tar.gz -o /root/server.tar.gz \
     && tar xzf /root/server.tar.gz --strip-components 1 -C /root/hugegraph-server \
     && rm /root/server.tar.gz \
     && cd /root/hugegraph-server/ \
