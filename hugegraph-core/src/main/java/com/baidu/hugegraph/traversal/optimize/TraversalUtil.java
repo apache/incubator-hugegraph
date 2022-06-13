@@ -60,11 +60,12 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
+import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
@@ -91,17 +92,27 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.DateUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
-import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
 
-    private static final Logger LOG = Log.logger(HugeGraph.class);
-
     public static final String P_CALL = "P.";
 
     public static HugeGraph getGraph(Step<?, ?> step) {
-        return (HugeGraph) step.getTraversal().getGraph().get();
+        HugeGraph graph = tryGetGraph(step);
+        if (graph != null) {
+            return graph;
+        }
+        throw new IllegalArgumentException("There is no graph in step: " + step);
+    }
+
+    public static HugeGraph tryGetGraph(Step<?, ?> step) {
+        Graph graph = step.getTraversal().getGraph().get();
+        if (graph instanceof HugeGraph) {
+            return (HugeGraph) graph;
+        }
+        assert graph == null || graph instanceof EmptyGraph;
+        return null;
     }
 
     public static void extractHasContainer(HugeGraphStep<?, ?> newStep,
@@ -572,10 +583,9 @@ public final class TraversalUtil {
                       TraversalHelper.getStepsOfAssignableClassRecursively(
                       HasStep.class, traversal);
         /*
-         * The graph may be null.
-         * For example:
-         *   g.V().hasLabel('person').union(__.<Vertex>has("birth", dates[0]))
-         * Here "__.has" will create a new traversal, but the graph is null
+         * The graph in traversal may be null, for example:
+         *   `g.V().hasLabel('person').union(__.has('name', 'tom'))`
+         * Here `__.has()` will create a new traversal, but the graph is null
          */
         if (steps.isEmpty() || !traversal.getGraph().isPresent()) {
             return;
