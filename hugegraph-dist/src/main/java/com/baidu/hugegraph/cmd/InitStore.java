@@ -87,9 +87,8 @@ public class InitStore {
             for (HugeGraph graph : graphs) {
                 graph.close();
             }
+            HugeFactory.shutdown(30L);
         }
-
-        HugeFactory.shutdown(30L);
     }
 
     private static HugeGraph initGraph(String configPath) throws Exception {
@@ -99,13 +98,18 @@ public class InitStore {
         config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
-        BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
-        if (backendStoreInfo.exists()) {
-            LOG.info("Skip init-store due to the backend store of '{}' " +
-                     "had been initialized", graph.name());
-            backendStoreInfo.checkVersion();
-        } else {
-            initBackend(graph);
+        try {
+            BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+            if (backendStoreInfo.exists()) {
+                LOG.info("Skip init-store due to the backend store of '{}' " +
+                         "had been initialized", graph.name());
+                backendStoreInfo.checkVersion();
+            } else {
+                initBackend(graph);
+            }
+        } catch (Throwable e) {
+            graph.close();
+            throw e;
         }
         return graph;
     }

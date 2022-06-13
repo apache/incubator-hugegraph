@@ -319,7 +319,13 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo removeSelfServerInfo() {
-        if (this.graph.initialized()) {
+        /*
+         * Check this.selfServerId != null to avoid graph.initialized() call.
+         * NOTE: graph.initialized() may throw exception if we can't connect to
+         * backend store, initServerInfo() is not called in this case, so
+         * this.selfServerId is null at this time.
+         */
+        if (this.selfServerId != null && this.graph.initialized()) {
             return this.removeServerInfo(this.selfServerId);
         }
         return null;
