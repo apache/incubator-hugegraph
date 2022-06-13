@@ -27,6 +27,8 @@ import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
 
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
+import org.rocksdb.DataBlockIndexType;
+import org.rocksdb.IndexType;
 
 import com.baidu.hugegraph.config.ConfigConvOption;
 import com.baidu.hugegraph.config.ConfigListConvOption;
@@ -217,6 +219,15 @@ public class RocksDBOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<Boolean> SKIP_CHECK_SIZE_ON_DB_OPEN =
+            new ConfigOption<>(
+                    "rocksdb.skip_check_sst_size_on_db_open",
+                    "Whether to skip checking sizes of all sst files when " +
+                    "opening the database.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Integer> MAX_FILE_OPENING_THREADS =
             new ConfigOption<>(
                     "rocksdb.max_file_opening_threads",
@@ -235,11 +246,73 @@ public class RocksDBOptions extends OptionHolder {
                     0L
             );
 
+    public static final ConfigOption<Long> BYTES_PER_SYNC =
+            new ConfigOption<>(
+                    "rocksdb.bytes_per_sync",
+                    "Allows OS to incrementally sync SST files to disk while " +
+                    "they are being written, asynchronously in the background. " +
+                    "Issue one request for every bytes_per_sync written. " +
+                    "0 turns it off.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> WAL_BYTES_PER_SYNC =
+            new ConfigOption<>(
+                    "rocksdb.wal_bytes_per_sync",
+                    "Allows OS to incrementally sync WAL files to disk while " +
+                    "they are being written, asynchronously in the background. " +
+                    "Issue one request for every bytes_per_sync written. " +
+                    "0 turns it off.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Boolean> STRICT_BYTES_PER_SYNC =
+            new ConfigOption<>(
+                    "rocksdb.strict_bytes_per_sync",
+                    "When true, guarantees SST/WAL files have at most " +
+                    "bytes_per_sync/wal_bytes_per_sync bytes submitted for " +
+                    "writeback at any given time. This can be used to handle " +
+                    "cases where processing speed exceeds I/O speed.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Long> DB_MEMTABLE_SIZE =
             new ConfigOption<>(
                     "rocksdb.db_write_buffer_size",
                     "Total size of write buffers in bytes across all column families, " +
                     "0 means no limit.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> LOG_READAHEAD_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.log_readahead_size",
+                    "The number of bytes to prefetch when reading the log. " +
+                    "0 means the prefetching is disabled.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> COMPACTION_READAHEAD_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.compaction_readahead_size",
+                    "The number of bytes to perform bigger reads when doing " +
+                    "compaction. If running RocksDB on spinning disks, " +
+                    "you should set this to at least 2MB. " +
+                    "0 means the prefetching is disabled.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Long> ROW_CACHE_CAPACITY =
+            new ConfigOption<>(
+                    "rocksdb.row_cache_capacity",
+                    "The capacity in bytes of global cache for table-level rows. " +
+                    "0 means the row_cache is disabled.",
                     rangeInt(0L, Long.MAX_VALUE),
                     0L
             );
@@ -280,9 +353,50 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_MEMTABLES_TO_MAINTAIN =
             new ConfigOption<>(
                     "rocksdb.max_write_buffer_number_to_maintain",
-                    "The total maximum number of write buffers to maintain in memory.",
+                    "The total maximum number of write buffers to maintain in memory " +
+                    "for conflict checking when transactions are used.",
                     rangeInt(0, Integer.MAX_VALUE),
                     0
+            );
+
+    public static final ConfigOption<Double> MEMTABLE_BLOOM_SIZE_RATIO =
+            new ConfigOption<>(
+                    "rocksdb.memtable_bloom_size_ratio",
+                    "If prefix-extractor is set and memtable_bloom_size_ratio " +
+                    "is not 0, or if memtable_whole_key_filtering is set true, " +
+                    "create bloom filter for memtable with the size of " +
+                    "write_buffer_size * memtable_bloom_size_ratio. " +
+                    "If it is larger than 0.25, it is santinized to 0.25.",
+                    rangeDouble(0.0, 1.0),
+                    0.0
+            );
+
+    public static final ConfigOption<Boolean> MEMTABLE_BLOOM_WHOLE_KEY_FILTERING =
+            new ConfigOption<>(
+                    "rocksdb.memtable_whole_key_filtering",
+                    "Enable whole key bloom filter in memtable, it can " +
+                    "potentially reduce CPU usage for point-look-ups. Note " +
+                    "this will only take effect if memtable_bloom_size_ratio > 0.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Long> MEMTABL_BLOOM_HUGE_PAGE_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.memtable_huge_page_size",
+                    "The page size for huge page TLB for bloom in memtable. " +
+                    "If <= 0, not allocate from huge page TLB but from malloc.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    0L
+            );
+
+    public static final ConfigOption<Boolean> MEMTABLE_INPLACE_UPDATE_SUPPORT =
+            new ConfigOption<>(
+                    "rocksdb.inplace_update_support",
+                    "Allows thread-safe inplace updates if a put key exists " +
+                    "in current memtable and sizeof new value is smaller.",
+                    disallowEmpty(),
+                    false
             );
 
     public static final ConfigOption<Boolean> DYNAMIC_LEVEL_BYTES =
@@ -404,6 +518,89 @@ public class RocksDBOptions extends OptionHolder {
                     false
             );
 
+    public static final ConfigOption<Boolean> USE_FSYNC =
+            new ConfigOption<>(
+                    "rocksdb.use_fsync",
+                    "If true, then every store to stable storage will issue a fsync.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Boolean> ATOMIC_FLUSH =
+            new ConfigOption<>(
+                    "rocksdb.atomic_flush",
+                    "If true, flushing multiple column families and committing " +
+                    "their results atomically to MANIFEST. Note that it's not " +
+                    "necessary to set atomic_flush=true if WAL is always enabled.",
+                    disallowEmpty(),
+                    false
+            );
+
+    public static final ConfigOption<Integer> TABLE_FORMAT_VERSION =
+            new ConfigOption<>(
+                    "rocksdb.format_version",
+                    "The format version of BlockBasedTable, allowed values are 0~5.",
+                    rangeInt(0, 5),
+                    5
+            );
+
+    public static final ConfigConvOption<String, IndexType> INDEX_TYPE =
+            new ConfigConvOption<>(
+                    "rocksdb.index_type",
+                    "The index type used to lookup between data blocks " +
+                    "with the sst table, allowed values are [kBinarySearch," +
+                    "kHashSearch,kTwoLevelIndexSearch,kBinarySearchWithFirstKey].",
+                    allowValues("kBinarySearch", "kHashSearch",
+                                "kTwoLevelIndexSearch", "kBinarySearchWithFirstKey"),
+                    IndexType::valueOf,
+                    "kBinarySearch"
+            );
+
+    public static final ConfigConvOption<String, DataBlockIndexType> DATA_BLOCK_SEARCH_TYPE =
+            new ConfigConvOption<>(
+                    "rocksdb.data_block_index_type",
+                    "The search type used to point lookup in data block with " +
+                    "the sst table, allowed values are [kDataBlockBinarySearch," +
+                    "kDataBlockBinaryAndHash].",
+                    allowValues("kDataBlockBinarySearch", "kDataBlockBinaryAndHash"),
+                    DataBlockIndexType::valueOf,
+                    "kDataBlockBinarySearch"
+            );
+
+    public static final ConfigOption<Double> DATA_BLOCK_HASH_TABLE_RATIO =
+            new ConfigOption<>(
+                    "rocksdb.data_block_hash_table_util_ratio",
+                    "The hash table utilization ratio value of entries/buckets. " +
+                    "It is valid only when data_block_index_type=kDataBlockBinaryAndHash.",
+                    rangeDouble(0.0, 1.0),
+                    0.75
+            );
+
+    public static final ConfigOption<Long> BLOCK_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.block_size",
+                    "Approximate size of user data packed per block, Note that " +
+                    "it corresponds to uncompressed data.",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    4L * Bytes.KB
+            );
+
+    public static final ConfigOption<Integer> BLOCK_SIZE_DEVIATION =
+            new ConfigOption<>(
+                    "rocksdb.block_size_deviation",
+                    "The percentage of free space used to close a block.",
+                    rangeInt(0, 100),
+                    10
+            );
+
+    public static final ConfigOption<Integer> BLOCK_RESTART_INTERVAL =
+            new ConfigOption<>(
+                    "rocksdb.block_restart_interval",
+                    "The block restart interval for delta encoding in blocks.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    16
+            );
+
     public static final ConfigOption<Long> BLOCK_CACHE_CAPACITY =
             new ConfigOption<>(
                     "rocksdb.block_cache_capacity",
@@ -413,28 +610,31 @@ public class RocksDBOptions extends OptionHolder {
                     8L * Bytes.MB
             );
 
-    public static final ConfigOption<Boolean> PIN_L0_FILTER_AND_INDEX_IN_CACHE =
-            new ConfigOption<>(
-                    "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
-                    "Indicating if we'd put index/filter blocks to the block cache.",
-                    disallowEmpty(),
-                    false
-            );
-
-    public static final ConfigOption<Boolean> PUT_FILTER_AND_INDEX_IN_CACHE =
+    public static final ConfigOption<Boolean> CACHE_FILTER_AND_INDEX =
             new ConfigOption<>(
                     "rocksdb.cache_index_and_filter_blocks",
-                    "Indicating if we'd put index/filter blocks to the block cache.",
+                    "Set this option true if we'd put index/filter blocks to " +
+                    "the block cache.",
                     disallowEmpty(),
-                    false
+                    true
+            );
+
+    public static final ConfigOption<Boolean> PIN_L0_INDEX_AND_FILTER =
+            new ConfigOption<>(
+                    "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
+                    "Set this option true if we'd pin L0 index/filter blocks to " +
+                    "the block cache.",
+                    disallowEmpty(),
+                    true
             );
 
     public static final ConfigOption<Integer> BLOOM_FILTER_BITS_PER_KEY =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_bits_per_key",
                     "The bits per key in bloom filter, a good value is 10, " +
-                    "which yields a filter with ~ 1% false positive rate, " +
-                    "-1 means no bloom filter.",
+                    "which yields a filter with ~ 1% false positive rate. " +
+                    "Set bloom_filter_bits_per_key > 0 to enable bloom filter, " +
+                    "-1 means no bloom filter (0~0.5 round down to no filter).",
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
@@ -442,7 +642,8 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTER_MODE =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_block_based_mode",
-                    "Use block based filter rather than full filter.",
+                    "If bloom filter is enabled, set this option true to " +
+                    "use block based filter rather than full filter.",
                     disallowEmpty(),
                     false
             );
@@ -450,8 +651,9 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTER_WHOLE_KEY =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_whole_key_filtering",
-                    "True if place whole keys in the bloom filter, " +
-                    "else place the prefix of keys.",
+                    "If bloom filter is enabled, set this option true to " +
+                    "place whole keys in the bloom filter, else place the " +
+                    "prefix of keys when prefix-extractor is set.",
                     disallowEmpty(),
                     true
             );
@@ -459,8 +661,41 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> BLOOM_FILTERS_SKIP_LAST_LEVEL =
             new ConfigOption<>(
                     "rocksdb.optimize_filters_for_hits",
-                    "This flag allows us to not store filters for the last level.",
+                    "If bloom filter is enabled, this flag allows us to not " +
+                    "store filters for the last level. set this option true to " +
+                    "optimize the filters mainly for cases where keys are found " +
+                    "rather than also optimize for keys missed.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Boolean> PARTITION_FILTERS_INDEXES =
+            new ConfigOption<>(
+                    "rocksdb.partition_filters_and_indexes",
+                    "If bloom filter is enabled, set this option true to use " +
+                    "partitioned full filters and indexes for each sst file. " +
+                    "This option is incompatible with block-based filters.",
                     disallowEmpty(),
                     false
+            );
+
+    public static final ConfigOption<Boolean> PIN_TOP_INDEX_AND_FILTER =
+            new ConfigOption<>(
+                    "rocksdb.pin_top_level_index_and_filter",
+                    "If partition_filters_and_indexes is set true, set this " +
+                    "option true if we'd pin top-level index of partitioned " +
+                    "filter and index blocks to the block cache.",
+                    disallowEmpty(),
+                    true
+            );
+
+    public static final ConfigOption<Integer> PREFIX_EXTRACTOR_CAPPED =
+            new ConfigOption<>(
+                    "rocksdb.prefix_extractor_n_bytes",
+                    "The prefix-extractor uses the first N bytes of a key as its prefix, " +
+                    "it will use the full key when a key is shorter than the N. " +
+                    "0 means unset prefix-extractor.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    0
             );
 }

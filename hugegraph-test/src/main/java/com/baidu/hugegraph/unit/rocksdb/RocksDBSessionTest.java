@@ -519,8 +519,18 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         byte[] value21 = getBytes("value-2-1");
         session.put(TABLE, key21, value21);
 
-        session.deleteRange(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
         this.commit();
+
+        // TODO: enable after fixed rocksdb issue #8239
+        /*
+        session.deleteRange(TABLE, new byte[]{1, -3}, new byte[]{1, 3});
+        Assert.assertThrows(BackendException.class, () -> {
+            this.commit();
+        }, e -> {
+            Assert.assertContains("end key comes before start key",
+                                  e.getCause().getMessage());
+        });
+        */
 
         Assert.assertArrayEquals(value11, session.get(TABLE, key11));
         Assert.assertArrayEquals(value12, session.get(TABLE, key12));
