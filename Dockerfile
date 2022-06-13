@@ -2,7 +2,7 @@ FROM ubuntu:xenial
 
 LABEL maintainer="HugeGraph Docker Maintainers <hugegraph@googlegroups.com>"
 
-ENV PKG_URL https://github.com/apache
+ENV PKG_URL https://github.com/hugegraph
 
 # 1. Install needed dependencies of GraphServer & RocksDB
 RUN set -x \
@@ -22,7 +22,7 @@ RUN set -x \
 ENV SERVER_VERSION 0.12.0
 RUN set -e \
     && mkdir -p /root/hugegraph-server \
-    && curl -L -S ${PKG_URL}/incubator-hugegraph/releases/download/v${SERVER_VERSION}/hugegraph-${SERVER_VERSION}.tar.gz -o /root/server.tar.gz \
+    && curl -L -S ${PKG_URL}/hugegraph/releases/download/v${SERVER_VERSION}/hugegraph-${SERVER_VERSION}.tar.gz -o /root/server.tar.gz \
     && tar xzf /root/server.tar.gz --strip-components 1 -C /root/hugegraph-server \
     && rm /root/server.tar.gz \
     && cd /root/hugegraph-server/ \
