@@ -61,6 +61,8 @@
         <mockito.version>4.1.0</mockito.version>
         <jakarta.xml.version>4.0.0-RC2</jakarta.xml.version>
         <sun.xml.version>3.0.2</sun.xml.version>
+        <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
+        <checkstyle.version>8.45</checkstyle.version>
         <implementation.version>2.1.2.0</implementation.version>
     </properties>
 
@@ -88,9 +90,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>${checkstyle.plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
-                    <configLocation>checkstyle.xml</configLocation>
+                    <configLocation>style/checkstyle.xml</configLocation>
                     <encoding>UTF-8</encoding>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
