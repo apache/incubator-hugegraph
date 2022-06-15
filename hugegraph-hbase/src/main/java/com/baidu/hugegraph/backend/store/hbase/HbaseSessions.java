@@ -220,7 +220,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
         TableDescriptorBuilder tdb = TableDescriptorBuilder.newBuilder(
-                                     TableName.valueOf(this.namespace, table));
+                TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
             tdb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
                                                              .build());
@@ -231,7 +231,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
     }
 
-    public void createPreSplitTable(String table, List<byte[]> cfs, 
+    public void createPreSplitTable(String table, List<byte[]> cfs,
                                     short numOfPartitions) throws IOException {
         TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
                 TableName.valueOf(this.namespace, table));
@@ -239,7 +239,7 @@ public class HbaseSessions extends BackendSessionPool {
             builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf).build());
         }
         byte[][] splits = new byte[numOfPartitions - 1]
-                                  [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
+                [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
         for (short split = 1; split < numOfPartitions; split++) {
             splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
         }
@@ -363,8 +363,7 @@ public class HbaseSessions extends BackendSessionPool {
         /**
          * Get a record by rowkey and qualifier from a table
          */
-        R get(String table, byte[] family, byte[] rowkey,
-                     byte[] qualifier);
+        R get(String table, byte[] family, byte[] rowkey, byte[] qualifier);
 
         /**
          * Get a record by rowkey from a table
@@ -484,7 +483,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         private void checkBatchResults(Object[] results, List<Row> rows)
-                                       throws Throwable {
+                throws Throwable {
             assert rows.size() == results.length;
             for (int i = 0; i < results.length; i++) {
                 Object result = results[i];
@@ -553,7 +552,7 @@ public class HbaseSessions extends BackendSessionPool {
                 } catch (Throwable e) {
                     // TODO: Mark and delete committed records
                     throw new BackendException("Failed to commit, " +
-                              "there may be inconsistent states for HBase", e);
+                                               "there may be inconsistent states for HBase", e);
                 }
             }
 
@@ -808,7 +807,7 @@ public class HbaseSessions extends BackendSessionPool {
                     byte[] key = CellUtil.cloneQualifier(cell);
                     byte[] val = CellUtil.cloneValue(cell);
                     LOG.info("  {}={}", StringEncoding.format(key),
-                                        StringEncoding.format(val));
+                             StringEncoding.format(val));
                 }
             }
         }
