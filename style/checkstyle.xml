@@ -202,7 +202,6 @@
         </module>
         <module name="OneStatementPerLine"/>
         <module name="MultipleVariableDeclarations"/>
-        <module name="MissingSwitchDefault"/>
         <module name="FallThrough"/>
         <module name="OuterTypeFilename">
 <!--            <property name="severity" value="error"/>-->
