@@ -220,7 +220,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
         TableDescriptorBuilder tdb = TableDescriptorBuilder.newBuilder(
-                TableName.valueOf(this.namespace, table));
+                                     TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
             tdb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
                                                              .build());
@@ -239,7 +239,7 @@ public class HbaseSessions extends BackendSessionPool {
             builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf).build());
         }
         byte[][] splits = new byte[numOfPartitions - 1]
-                [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
+                                  [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
         for (short split = 1; split < numOfPartitions; split++) {
             splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
         }
