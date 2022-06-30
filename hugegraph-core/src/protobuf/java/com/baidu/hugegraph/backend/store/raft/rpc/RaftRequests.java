@@ -60,6 +60,8 @@ public final class RaftRequests {
     }
 
     /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -67,6 +69,10 @@ public final class RaftRequests {
       return forNumber(value);
     }
 
+    /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
+     */
     public static StoreType forNumber(int value) {
       switch (value) {
         case 0: return SCHEMA;
@@ -224,6 +230,8 @@ public final class RaftRequests {
     }
 
     /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
      * @deprecated Use {@link #forNumber(int)} instead.
      */
     @java.lang.Deprecated
@@ -231,6 +239,10 @@ public final class RaftRequests {
       return forNumber(value);
     }
 
+    /**
+     * @param value The numeric wire value of the corresponding enum entry.
+     * @return The enum associated with the given numeric wire value.
+     */
     public static StoreAction forNumber(int value) {
       switch (value) {
         case 0: return NONE;
@@ -299,38 +311,45 @@ public final class RaftRequests {
 
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+     * @return Whether the type field is set.
      */
     boolean hasType();
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+     * @return The type.
      */
     com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType();
 
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+     * @return Whether the action field is set.
      */
     boolean hasAction();
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+     * @return The action.
      */
     com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction();
 
     /**
      * <code>required bytes data = 3;</code>
+     * @return Whether the data field is set.
      */
     boolean hasData();
     /**
      * <code>required bytes data = 3;</code>
+     * @return The data.
      */
     com.google.protobuf.ByteString getData();
   }
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest}
    */
-  public  static final class StoreCommandRequest extends
+  public static final class StoreCommandRequest extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandRequest)
       StoreCommandRequestOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use StoreCommandRequest.newBuilder() to construct.
     private StoreCommandRequest(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
@@ -339,6 +358,13 @@ public final class RaftRequests {
       type_ = 0;
       action_ = 0;
       data_ = com.google.protobuf.ByteString.EMPTY;
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new StoreCommandRequest();
     }
 
     @java.lang.Override
@@ -351,6 +377,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -362,15 +391,9 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 8: {
               int rawValue = input.readEnum();
+                @SuppressWarnings("deprecation")
               com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType value = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.valueOf(rawValue);
               if (value == null) {
                 unknownFields.mergeVarintField(1, rawValue);
@@ -382,6 +405,7 @@ public final class RaftRequests {
             }
             case 16: {
               int rawValue = input.readEnum();
+                @SuppressWarnings("deprecation")
               com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction value = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.valueOf(rawValue);
               if (value == null) {
                 unknownFields.mergeVarintField(2, rawValue);
@@ -396,10 +420,19 @@ public final class RaftRequests {
               data_ = input.readBytes();
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -413,6 +446,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable
@@ -425,14 +459,17 @@ public final class RaftRequests {
     private int type_;
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+     * @return Whether the type field is set.
      */
-    public boolean hasType() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+    @java.lang.Override public boolean hasType() {
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+     * @return The type.
      */
-    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType() {
+    @java.lang.Override public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType() {
+      @SuppressWarnings("deprecation")
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType result = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.valueOf(type_);
       return result == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA : result;
     }
@@ -441,14 +478,17 @@ public final class RaftRequests {
     private int action_;
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+     * @return Whether the action field is set.
      */
-    public boolean hasAction() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+    @java.lang.Override public boolean hasAction() {
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+     * @return The action.
      */
-    public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction() {
+    @java.lang.Override public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction() {
+      @SuppressWarnings("deprecation")
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction result = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.valueOf(action_);
       return result == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE : result;
     }
@@ -457,18 +497,23 @@ public final class RaftRequests {
     private com.google.protobuf.ByteString data_;
     /**
      * <code>required bytes data = 3;</code>
+     * @return Whether the data field is set.
      */
+    @java.lang.Override
     public boolean hasData() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <code>required bytes data = 3;</code>
+     * @return The data.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString getData() {
       return data_;
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -490,34 +535,36 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         output.writeEnum(1, type_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         output.writeEnum(2, action_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+      if (((bitField0_ & 0x00000004) != 0)) {
         output.writeBytes(3, data_);
       }
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeEnumSize(1, type_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeEnumSize(2, action_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+      if (((bitField0_ & 0x00000004) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(3, data_);
       }
@@ -526,7 +573,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -537,22 +583,21 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest) obj;
 
-      boolean result = true;
-      result = result && (hasType() == other.hasType());
+      if (hasType() != other.hasType()) return false;
       if (hasType()) {
-        result = result && type_ == other.type_;
+        if (type_ != other.type_) return false;
       }
-      result = result && (hasAction() == other.hasAction());
+      if (hasAction() != other.hasAction()) return false;
       if (hasAction()) {
-        result = result && action_ == other.action_;
+        if (action_ != other.action_) return false;
       }
-      result = result && (hasData() == other.hasData());
+      if (hasData() != other.hasData()) return false;
       if (hasData()) {
-        result = result && getData()
-            .equals(other.getData());
+        if (!getData()
+            .equals(other.getData())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -649,6 +694,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -656,6 +702,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -679,6 +726,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable
@@ -701,6 +749,7 @@ public final class RaftRequests {
                 .alwaysUseFieldBuilders) {
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         type_ = 0;
@@ -712,15 +761,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest result = buildPartial();
         if (!result.isInitialized()) {
@@ -729,19 +781,20 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
           to_bitField0_ |= 0x00000001;
         }
         result.type_ = type_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((from_bitField0_ & 0x00000002) != 0)) {
           to_bitField0_ |= 0x00000002;
         }
         result.action_ = action_;
-        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((from_bitField0_ & 0x00000004) != 0)) {
           to_bitField0_ |= 0x00000004;
         }
         result.data_ = data_;
@@ -750,32 +803,39 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest)other);
@@ -801,6 +861,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasType()) {
           return false;
@@ -814,6 +875,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -836,19 +898,25 @@ public final class RaftRequests {
       private int type_ = 0;
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+       * @return Whether the type field is set.
        */
-      public boolean hasType() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+      @java.lang.Override public boolean hasType() {
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+       * @return The type.
        */
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType getType() {
+        @SuppressWarnings("deprecation")
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType result = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.valueOf(type_);
         return result == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType.SCHEMA : result;
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+       * @param value The type to set.
+       * @return This builder for chaining.
        */
       public Builder setType(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType value) {
         if (value == null) {
@@ -861,6 +929,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreType type = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearType() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -872,19 +941,25 @@ public final class RaftRequests {
       private int action_ = 0;
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+       * @return Whether the action field is set.
        */
-      public boolean hasAction() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+      @java.lang.Override public boolean hasAction() {
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+       * @return The action.
        */
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction getAction() {
+        @SuppressWarnings("deprecation")
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction result = com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.valueOf(action_);
         return result == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction.NONE : result;
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+       * @param value The action to set.
+       * @return This builder for chaining.
        */
       public Builder setAction(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction value) {
         if (value == null) {
@@ -897,6 +972,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.StoreAction action = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearAction() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -908,18 +984,24 @@ public final class RaftRequests {
       private com.google.protobuf.ByteString data_ = com.google.protobuf.ByteString.EMPTY;
       /**
        * <code>required bytes data = 3;</code>
+       * @return Whether the data field is set.
        */
+      @java.lang.Override
       public boolean hasData() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000004) != 0);
       }
       /**
        * <code>required bytes data = 3;</code>
+       * @return The data.
        */
+      @java.lang.Override
       public com.google.protobuf.ByteString getData() {
         return data_;
       }
       /**
        * <code>required bytes data = 3;</code>
+       * @param value The data to set.
+       * @return This builder for chaining.
        */
       public Builder setData(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -932,6 +1014,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required bytes data = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearData() {
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -939,11 +1022,13 @@ public final class RaftRequests {
         onChanged();
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -965,11 +1050,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<StoreCommandRequest>
         PARSER = new com.google.protobuf.AbstractParser<StoreCommandRequest>() {
+      @java.lang.Override
       public StoreCommandRequest parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new StoreCommandRequest(input, extensionRegistry);
+        return new StoreCommandRequest(input, extensionRegistry);
       }
     };
 
@@ -982,6 +1068,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -994,23 +1081,28 @@ public final class RaftRequests {
 
     /**
      * <code>required bool status = 1;</code>
+     * @return Whether the status field is set.
      */
     boolean hasStatus();
     /**
      * <code>required bool status = 1;</code>
+     * @return The status.
      */
     boolean getStatus();
 
     /**
      * <code>optional string message = 2;</code>
+     * @return Whether the message field is set.
      */
     boolean hasMessage();
     /**
      * <code>optional string message = 2;</code>
+     * @return The message.
      */
     java.lang.String getMessage();
     /**
      * <code>optional string message = 2;</code>
+     * @return The bytes for message.
      */
     com.google.protobuf.ByteString
         getMessageBytes();
@@ -1018,17 +1110,24 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse}
    */
-  public  static final class StoreCommandResponse extends
+  public static final class StoreCommandResponse extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.StoreCommandResponse)
       StoreCommandResponseOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use StoreCommandResponse.newBuilder() to construct.
     private StoreCommandResponse(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private StoreCommandResponse() {
-      status_ = false;
       message_ = "";
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new StoreCommandResponse();
     }
 
     @java.lang.Override
@@ -1041,6 +1140,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -1052,13 +1154,6 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 8: {
               bitField0_ |= 0x00000001;
               status_ = input.readBool();
@@ -1070,10 +1165,19 @@ public final class RaftRequests {
               message_ = bs;
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -1087,6 +1191,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable
@@ -1099,13 +1204,17 @@ public final class RaftRequests {
     private boolean status_;
     /**
      * <code>required bool status = 1;</code>
+     * @return Whether the status field is set.
      */
+    @java.lang.Override
     public boolean hasStatus() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required bool status = 1;</code>
+     * @return The status.
      */
+    @java.lang.Override
     public boolean getStatus() {
       return status_;
     }
@@ -1114,13 +1223,17 @@ public final class RaftRequests {
     private volatile java.lang.Object message_;
     /**
      * <code>optional string message = 2;</code>
+     * @return Whether the message field is set.
      */
+    @java.lang.Override
     public boolean hasMessage() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <code>optional string message = 2;</code>
+     * @return The message.
      */
+    @java.lang.Override
     public java.lang.String getMessage() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
@@ -1137,7 +1250,9 @@ public final class RaftRequests {
     }
     /**
      * <code>optional string message = 2;</code>
+     * @return The bytes for message.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getMessageBytes() {
       java.lang.Object ref = message_;
@@ -1153,6 +1268,7 @@ public final class RaftRequests {
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -1166,27 +1282,29 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         output.writeBool(1, status_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 2, message_);
       }
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(1, status_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, message_);
       }
       size += unknownFields.getSerializedSize();
@@ -1194,7 +1312,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -1205,19 +1322,18 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse) obj;
 
-      boolean result = true;
-      result = result && (hasStatus() == other.hasStatus());
+      if (hasStatus() != other.hasStatus()) return false;
       if (hasStatus()) {
-        result = result && (getStatus()
-            == other.getStatus());
+        if (getStatus()
+            != other.getStatus()) return false;
       }
-      result = result && (hasMessage() == other.hasMessage());
+      if (hasMessage() != other.hasMessage()) return false;
       if (hasMessage()) {
-        result = result && getMessage()
-            .equals(other.getMessage());
+        if (!getMessage()
+            .equals(other.getMessage())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -1311,6 +1427,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -1318,6 +1435,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -1341,6 +1459,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_fieldAccessorTable
@@ -1363,6 +1482,7 @@ public final class RaftRequests {
                 .alwaysUseFieldBuilders) {
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         status_ = false;
@@ -1372,15 +1492,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandResponse_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse result = buildPartial();
         if (!result.isInitialized()) {
@@ -1389,15 +1512,16 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.status_ = status_;
           to_bitField0_ |= 0x00000001;
         }
-        result.status_ = status_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((from_bitField0_ & 0x00000002) != 0)) {
           to_bitField0_ |= 0x00000002;
         }
         result.message_ = message_;
@@ -1406,32 +1530,39 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse)other);
@@ -1456,6 +1587,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasStatus()) {
           return false;
@@ -1463,6 +1595,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -1485,18 +1618,24 @@ public final class RaftRequests {
       private boolean status_ ;
       /**
        * <code>required bool status = 1;</code>
+       * @return Whether the status field is set.
        */
+      @java.lang.Override
       public boolean hasStatus() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required bool status = 1;</code>
+       * @return The status.
        */
+      @java.lang.Override
       public boolean getStatus() {
         return status_;
       }
       /**
        * <code>required bool status = 1;</code>
+       * @param value The status to set.
+       * @return This builder for chaining.
        */
       public Builder setStatus(boolean value) {
         bitField0_ |= 0x00000001;
@@ -1506,6 +1645,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required bool status = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearStatus() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -1517,12 +1657,14 @@ public final class RaftRequests {
       private java.lang.Object message_ = "";
       /**
        * <code>optional string message = 2;</code>
+       * @return Whether the message field is set.
        */
       public boolean hasMessage() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return The message.
        */
       public java.lang.String getMessage() {
         java.lang.Object ref = message_;
@@ -1540,6 +1682,7 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return The bytes for message.
        */
       public com.google.protobuf.ByteString
           getMessageBytes() {
@@ -1556,6 +1699,8 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @param value The message to set.
+       * @return This builder for chaining.
        */
       public Builder setMessage(
           java.lang.String value) {
@@ -1569,6 +1714,7 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearMessage() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -1578,6 +1724,8 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @param value The bytes for message to set.
+       * @return This builder for chaining.
        */
       public Builder setMessageBytes(
           com.google.protobuf.ByteString value) {
@@ -1589,11 +1737,13 @@ public final class RaftRequests {
         onChanged();
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -1615,11 +1765,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<StoreCommandResponse>
         PARSER = new com.google.protobuf.AbstractParser<StoreCommandResponse>() {
+      @java.lang.Override
       public StoreCommandResponse parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new StoreCommandResponse(input, extensionRegistry);
+        return new StoreCommandResponse(input, extensionRegistry);
       }
     };
 
@@ -1632,6 +1783,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -1644,23 +1796,28 @@ public final class RaftRequests {
 
     /**
      * <code>required bool status = 1;</code>
+     * @return Whether the status field is set.
      */
     boolean hasStatus();
     /**
      * <code>required bool status = 1;</code>
+     * @return The status.
      */
     boolean getStatus();
 
     /**
      * <code>optional string message = 2;</code>
+     * @return Whether the message field is set.
      */
     boolean hasMessage();
     /**
      * <code>optional string message = 2;</code>
+     * @return The message.
      */
     java.lang.String getMessage();
     /**
      * <code>optional string message = 2;</code>
+     * @return The bytes for message.
      */
     com.google.protobuf.ByteString
         getMessageBytes();
@@ -1668,17 +1825,24 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse}
    */
-  public  static final class CommonResponse extends
+  public static final class CommonResponse extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse)
       CommonResponseOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use CommonResponse.newBuilder() to construct.
     private CommonResponse(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private CommonResponse() {
-      status_ = false;
       message_ = "";
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new CommonResponse();
     }
 
     @java.lang.Override
@@ -1691,6 +1855,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -1702,13 +1869,6 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 8: {
               bitField0_ |= 0x00000001;
               status_ = input.readBool();
@@ -1720,10 +1880,19 @@ public final class RaftRequests {
               message_ = bs;
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -1737,6 +1906,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable
@@ -1749,13 +1919,17 @@ public final class RaftRequests {
     private boolean status_;
     /**
      * <code>required bool status = 1;</code>
+     * @return Whether the status field is set.
      */
+    @java.lang.Override
     public boolean hasStatus() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required bool status = 1;</code>
+     * @return The status.
      */
+    @java.lang.Override
     public boolean getStatus() {
       return status_;
     }
@@ -1764,13 +1938,17 @@ public final class RaftRequests {
     private volatile java.lang.Object message_;
     /**
      * <code>optional string message = 2;</code>
+     * @return Whether the message field is set.
      */
+    @java.lang.Override
     public boolean hasMessage() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
      * <code>optional string message = 2;</code>
+     * @return The message.
      */
+    @java.lang.Override
     public java.lang.String getMessage() {
       java.lang.Object ref = message_;
       if (ref instanceof java.lang.String) {
@@ -1787,7 +1965,9 @@ public final class RaftRequests {
     }
     /**
      * <code>optional string message = 2;</code>
+     * @return The bytes for message.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getMessageBytes() {
       java.lang.Object ref = message_;
@@ -1803,6 +1983,7 @@ public final class RaftRequests {
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -1816,27 +1997,29 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         output.writeBool(1, status_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 2, message_);
       }
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(1, status_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, message_);
       }
       size += unknownFields.getSerializedSize();
@@ -1844,7 +2027,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -1855,19 +2037,18 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse) obj;
 
-      boolean result = true;
-      result = result && (hasStatus() == other.hasStatus());
+      if (hasStatus() != other.hasStatus()) return false;
       if (hasStatus()) {
-        result = result && (getStatus()
-            == other.getStatus());
+        if (getStatus()
+            != other.getStatus()) return false;
       }
-      result = result && (hasMessage() == other.hasMessage());
+      if (hasMessage() != other.hasMessage()) return false;
       if (hasMessage()) {
-        result = result && getMessage()
-            .equals(other.getMessage());
+        if (!getMessage()
+            .equals(other.getMessage())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -1961,6 +2142,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -1968,6 +2150,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -1991,6 +2174,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_fieldAccessorTable
@@ -2013,6 +2197,7 @@ public final class RaftRequests {
                 .alwaysUseFieldBuilders) {
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         status_ = false;
@@ -2022,15 +2207,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_CommonResponse_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse result = buildPartial();
         if (!result.isInitialized()) {
@@ -2039,15 +2227,16 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          result.status_ = status_;
           to_bitField0_ |= 0x00000001;
         }
-        result.status_ = status_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((from_bitField0_ & 0x00000002) != 0)) {
           to_bitField0_ |= 0x00000002;
         }
         result.message_ = message_;
@@ -2056,32 +2245,39 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse)other);
@@ -2106,6 +2302,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasStatus()) {
           return false;
@@ -2113,6 +2310,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -2135,18 +2333,24 @@ public final class RaftRequests {
       private boolean status_ ;
       /**
        * <code>required bool status = 1;</code>
+       * @return Whether the status field is set.
        */
+      @java.lang.Override
       public boolean hasStatus() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required bool status = 1;</code>
+       * @return The status.
        */
+      @java.lang.Override
       public boolean getStatus() {
         return status_;
       }
       /**
        * <code>required bool status = 1;</code>
+       * @param value The status to set.
+       * @return This builder for chaining.
        */
       public Builder setStatus(boolean value) {
         bitField0_ |= 0x00000001;
@@ -2156,6 +2360,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required bool status = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearStatus() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -2167,12 +2372,14 @@ public final class RaftRequests {
       private java.lang.Object message_ = "";
       /**
        * <code>optional string message = 2;</code>
+       * @return Whether the message field is set.
        */
       public boolean hasMessage() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return The message.
        */
       public java.lang.String getMessage() {
         java.lang.Object ref = message_;
@@ -2190,6 +2397,7 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return The bytes for message.
        */
       public com.google.protobuf.ByteString
           getMessageBytes() {
@@ -2206,6 +2414,8 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @param value The message to set.
+       * @return This builder for chaining.
        */
       public Builder setMessage(
           java.lang.String value) {
@@ -2219,6 +2429,7 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearMessage() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -2228,6 +2439,8 @@ public final class RaftRequests {
       }
       /**
        * <code>optional string message = 2;</code>
+       * @param value The bytes for message to set.
+       * @return This builder for chaining.
        */
       public Builder setMessageBytes(
           com.google.protobuf.ByteString value) {
@@ -2239,11 +2452,13 @@ public final class RaftRequests {
         onChanged();
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -2265,11 +2480,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<CommonResponse>
         PARSER = new com.google.protobuf.AbstractParser<CommonResponse>() {
+      @java.lang.Override
       public CommonResponse parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new CommonResponse(input, extensionRegistry);
+        return new CommonResponse(input, extensionRegistry);
       }
     };
 
@@ -2282,6 +2498,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -2295,15 +2512,23 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest}
    */
-  public  static final class ListPeersRequest extends
+  public static final class ListPeersRequest extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersRequest)
       ListPeersRequestOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use ListPeersRequest.newBuilder() to construct.
     private ListPeersRequest(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private ListPeersRequest() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new ListPeersRequest();
     }
 
     @java.lang.Override
@@ -2316,6 +2541,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -2327,8 +2555,8 @@ public final class RaftRequests {
               done = true;
               break;
             default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
                 done = true;
               }
               break;
@@ -2337,6 +2565,8 @@ public final class RaftRequests {
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -2350,6 +2580,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable
@@ -2358,6 +2589,7 @@ public final class RaftRequests {
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -2367,11 +2599,13 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
@@ -2382,7 +2616,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -2393,9 +2626,8 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest) obj;
 
-      boolean result = true;
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -2480,6 +2712,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -2487,6 +2720,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -2510,6 +2744,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_fieldAccessorTable
@@ -2532,20 +2767,24 @@ public final class RaftRequests {
                 .alwaysUseFieldBuilders) {
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersRequest_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest result = buildPartial();
         if (!result.isInitialized()) {
@@ -2554,38 +2793,46 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest(this);
         onBuilt();
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest)other);
@@ -2602,10 +2849,12 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -2623,11 +2872,13 @@ public final class RaftRequests {
         }
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -2649,11 +2900,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<ListPeersRequest>
         PARSER = new com.google.protobuf.AbstractParser<ListPeersRequest>() {
+      @java.lang.Override
       public ListPeersRequest parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new ListPeersRequest(input, extensionRegistry);
+        return new ListPeersRequest(input, extensionRegistry);
       }
     };
 
@@ -2666,6 +2918,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -2678,10 +2931,12 @@ public final class RaftRequests {
 
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return Whether the common field is set.
      */
     boolean hasCommon();
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return The common.
      */
     com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon();
     /**
@@ -2691,19 +2946,25 @@ public final class RaftRequests {
 
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @return A list containing the endpoints.
      */
     java.util.List<java.lang.String>
         getEndpointsList();
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @return The count of endpoints.
      */
     int getEndpointsCount();
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @param index The index of the element to return.
+     * @return The endpoints at the given index.
      */
     java.lang.String getEndpoints(int index);
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the endpoints at the given index.
      */
     com.google.protobuf.ByteString
         getEndpointsBytes(int index);
@@ -2711,16 +2972,24 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse}
    */
-  public  static final class ListPeersResponse extends
+  public static final class ListPeersResponse extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.ListPeersResponse)
       ListPeersResponseOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use ListPeersResponse.newBuilder() to construct.
     private ListPeersResponse(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private ListPeersResponse() {
       endpoints_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new ListPeersResponse();
     }
 
     @java.lang.Override
@@ -2733,6 +3002,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -2744,16 +3016,9 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 10: {
               com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000001) == 0x00000001)) {
+              if (((bitField0_ & 0x00000001) != 0)) {
                 subBuilder = common_.toBuilder();
               }
               common_ = input.readMessage(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.PARSER, extensionRegistry);
@@ -2766,22 +3031,31 @@ public final class RaftRequests {
             }
             case 18: {
               com.google.protobuf.ByteString bs = input.readBytes();
-              if (!((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+              if (!((mutable_bitField0_ & 0x00000002) != 0)) {
                 endpoints_ = new com.google.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000002;
               }
               endpoints_.add(bs);
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((mutable_bitField0_ & 0x00000002) != 0)) {
           endpoints_ = endpoints_.getUnmodifiableView();
         }
         this.unknownFields = unknownFields.build();
@@ -2793,6 +3067,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable
@@ -2805,19 +3080,24 @@ public final class RaftRequests {
     private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return Whether the common field is set.
      */
+    @java.lang.Override
     public boolean hasCommon() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return The common.
      */
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
       return common_ == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance() : common_;
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
       return common_ == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance() : common_;
     }
@@ -2826,6 +3106,7 @@ public final class RaftRequests {
     private com.google.protobuf.LazyStringList endpoints_;
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @return A list containing the endpoints.
      */
     public com.google.protobuf.ProtocolStringList
         getEndpointsList() {
@@ -2833,18 +3114,23 @@ public final class RaftRequests {
     }
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @return The count of endpoints.
      */
     public int getEndpointsCount() {
       return endpoints_.size();
     }
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @param index The index of the element to return.
+     * @return The endpoints at the given index.
      */
     public java.lang.String getEndpoints(int index) {
       return endpoints_.get(index);
     }
     /**
      * <code>repeated string endpoints = 2;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the endpoints at the given index.
      */
     public com.google.protobuf.ByteString
         getEndpointsBytes(int index) {
@@ -2852,6 +3138,7 @@ public final class RaftRequests {
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -2869,9 +3156,10 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         output.writeMessage(1, getCommon());
       }
       for (int i = 0; i < endpoints_.size(); i++) {
@@ -2880,12 +3168,13 @@ public final class RaftRequests {
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getCommon());
       }
@@ -2902,7 +3191,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -2913,16 +3201,15 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse) obj;
 
-      boolean result = true;
-      result = result && (hasCommon() == other.hasCommon());
+      if (hasCommon() != other.hasCommon()) return false;
       if (hasCommon()) {
-        result = result && getCommon()
-            .equals(other.getCommon());
+        if (!getCommon()
+            .equals(other.getCommon())) return false;
       }
-      result = result && getEndpointsList()
-          .equals(other.getEndpointsList());
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!getEndpointsList()
+          .equals(other.getEndpointsList())) return false;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -3015,6 +3302,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -3022,6 +3310,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -3045,6 +3334,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_fieldAccessorTable
@@ -3068,6 +3358,7 @@ public final class RaftRequests {
           getCommonFieldBuilder();
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         if (commonBuilder_ == null) {
@@ -3081,15 +3372,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_ListPeersResponse_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse result = buildPartial();
         if (!result.isInitialized()) {
@@ -3098,19 +3392,20 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          if (commonBuilder_ == null) {
+            result.common_ = common_;
+          } else {
+            result.common_ = commonBuilder_.build();
+          }
           to_bitField0_ |= 0x00000001;
         }
-        if (commonBuilder_ == null) {
-          result.common_ = common_;
-        } else {
-          result.common_ = commonBuilder_.build();
-        }
-        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((bitField0_ & 0x00000002) != 0)) {
           endpoints_ = endpoints_.getUnmodifiableView();
           bitField0_ = (bitField0_ & ~0x00000002);
         }
@@ -3120,32 +3415,39 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse)other);
@@ -3175,6 +3477,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasCommon()) {
           return false;
@@ -3185,6 +3488,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -3204,17 +3508,19 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_ = null;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
       private com.google.protobuf.SingleFieldBuilderV3<
           com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> commonBuilder_;
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+       * @return Whether the common field is set.
        */
       public boolean hasCommon() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+       * @return The common.
        */
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
         if (commonBuilder_ == null) {
@@ -3258,7 +3564,7 @@ public final class RaftRequests {
        */
       public Builder mergeCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) == 0x00000001) &&
+          if (((bitField0_ & 0x00000001) != 0) &&
               common_ != null &&
               common_ != com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance()) {
             common_ =
@@ -3324,13 +3630,14 @@ public final class RaftRequests {
 
       private com.google.protobuf.LazyStringList endpoints_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       private void ensureEndpointsIsMutable() {
-        if (!((bitField0_ & 0x00000002) == 0x00000002)) {
+        if (!((bitField0_ & 0x00000002) != 0)) {
           endpoints_ = new com.google.protobuf.LazyStringArrayList(endpoints_);
           bitField0_ |= 0x00000002;
          }
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @return A list containing the endpoints.
        */
       public com.google.protobuf.ProtocolStringList
           getEndpointsList() {
@@ -3338,18 +3645,23 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @return The count of endpoints.
        */
       public int getEndpointsCount() {
         return endpoints_.size();
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param index The index of the element to return.
+       * @return The endpoints at the given index.
        */
       public java.lang.String getEndpoints(int index) {
         return endpoints_.get(index);
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the endpoints at the given index.
        */
       public com.google.protobuf.ByteString
           getEndpointsBytes(int index) {
@@ -3357,6 +3669,9 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param index The index to set the value at.
+       * @param value The endpoints to set.
+       * @return This builder for chaining.
        */
       public Builder setEndpoints(
           int index, java.lang.String value) {
@@ -3370,6 +3685,8 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param value The endpoints to add.
+       * @return This builder for chaining.
        */
       public Builder addEndpoints(
           java.lang.String value) {
@@ -3383,6 +3700,8 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param values The endpoints to add.
+       * @return This builder for chaining.
        */
       public Builder addAllEndpoints(
           java.lang.Iterable<java.lang.String> values) {
@@ -3394,6 +3713,7 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearEndpoints() {
         endpoints_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -3403,6 +3723,8 @@ public final class RaftRequests {
       }
       /**
        * <code>repeated string endpoints = 2;</code>
+       * @param value The bytes of the endpoints to add.
+       * @return This builder for chaining.
        */
       public Builder addEndpointsBytes(
           com.google.protobuf.ByteString value) {
@@ -3414,11 +3736,13 @@ public final class RaftRequests {
         onChanged();
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -3440,11 +3764,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<ListPeersResponse>
         PARSER = new com.google.protobuf.AbstractParser<ListPeersResponse>() {
+      @java.lang.Override
       public ListPeersResponse parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new ListPeersResponse(input, extensionRegistry);
+        return new ListPeersResponse(input, extensionRegistry);
       }
     };
 
@@ -3457,6 +3782,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -3469,14 +3795,17 @@ public final class RaftRequests {
 
     /**
      * <code>required string endpoint = 1;</code>
+     * @return Whether the endpoint field is set.
      */
     boolean hasEndpoint();
     /**
      * <code>required string endpoint = 1;</code>
+     * @return The endpoint.
      */
     java.lang.String getEndpoint();
     /**
      * <code>required string endpoint = 1;</code>
+     * @return The bytes for endpoint.
      */
     com.google.protobuf.ByteString
         getEndpointBytes();
@@ -3484,16 +3813,24 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest}
    */
-  public  static final class SetLeaderRequest extends
+  public static final class SetLeaderRequest extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderRequest)
       SetLeaderRequestOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use SetLeaderRequest.newBuilder() to construct.
     private SetLeaderRequest(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private SetLeaderRequest() {
       endpoint_ = "";
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new SetLeaderRequest();
     }
 
     @java.lang.Override
@@ -3506,6 +3843,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -3517,23 +3857,25 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 10: {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
               endpoint_ = bs;
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -3547,6 +3889,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable
@@ -3559,13 +3902,17 @@ public final class RaftRequests {
     private volatile java.lang.Object endpoint_;
     /**
      * <code>required string endpoint = 1;</code>
+     * @return Whether the endpoint field is set.
      */
+    @java.lang.Override
     public boolean hasEndpoint() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required string endpoint = 1;</code>
+     * @return The endpoint.
      */
+    @java.lang.Override
     public java.lang.String getEndpoint() {
       java.lang.Object ref = endpoint_;
       if (ref instanceof java.lang.String) {
@@ -3582,7 +3929,9 @@ public final class RaftRequests {
     }
     /**
      * <code>required string endpoint = 1;</code>
+     * @return The bytes for endpoint.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getEndpointBytes() {
       java.lang.Object ref = endpoint_;
@@ -3598,6 +3947,7 @@ public final class RaftRequests {
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -3611,20 +3961,22 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, endpoint_);
       }
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, endpoint_);
       }
       size += unknownFields.getSerializedSize();
@@ -3632,7 +3984,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -3643,14 +3994,13 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest) obj;
 
-      boolean result = true;
-      result = result && (hasEndpoint() == other.hasEndpoint());
+      if (hasEndpoint() != other.hasEndpoint()) return false;
       if (hasEndpoint()) {
-        result = result && getEndpoint()
-            .equals(other.getEndpoint());
+        if (!getEndpoint()
+            .equals(other.getEndpoint())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -3739,6 +4089,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -3746,6 +4097,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -3769,6 +4121,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_fieldAccessorTable
@@ -3791,6 +4144,7 @@ public final class RaftRequests {
                 .alwaysUseFieldBuilders) {
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         endpoint_ = "";
@@ -3798,15 +4152,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderRequest_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest result = buildPartial();
         if (!result.isInitialized()) {
@@ -3815,11 +4172,12 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
           to_bitField0_ |= 0x00000001;
         }
         result.endpoint_ = endpoint_;
@@ -3828,32 +4186,39 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest)other);
@@ -3875,6 +4240,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasEndpoint()) {
           return false;
@@ -3882,6 +4248,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -3904,12 +4271,14 @@ public final class RaftRequests {
       private java.lang.Object endpoint_ = "";
       /**
        * <code>required string endpoint = 1;</code>
+       * @return Whether the endpoint field is set.
        */
       public boolean hasEndpoint() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required string endpoint = 1;</code>
+       * @return The endpoint.
        */
       public java.lang.String getEndpoint() {
         java.lang.Object ref = endpoint_;
@@ -3927,6 +4296,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required string endpoint = 1;</code>
+       * @return The bytes for endpoint.
        */
       public com.google.protobuf.ByteString
           getEndpointBytes() {
@@ -3943,6 +4313,8 @@ public final class RaftRequests {
       }
       /**
        * <code>required string endpoint = 1;</code>
+       * @param value The endpoint to set.
+       * @return This builder for chaining.
        */
       public Builder setEndpoint(
           java.lang.String value) {
@@ -3956,6 +4328,7 @@ public final class RaftRequests {
       }
       /**
        * <code>required string endpoint = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearEndpoint() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -3965,6 +4338,8 @@ public final class RaftRequests {
       }
       /**
        * <code>required string endpoint = 1;</code>
+       * @param value The bytes for endpoint to set.
+       * @return This builder for chaining.
        */
       public Builder setEndpointBytes(
           com.google.protobuf.ByteString value) {
@@ -3976,11 +4351,13 @@ public final class RaftRequests {
         onChanged();
         return this;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -4002,11 +4379,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<SetLeaderRequest>
         PARSER = new com.google.protobuf.AbstractParser<SetLeaderRequest>() {
+      @java.lang.Override
       public SetLeaderRequest parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new SetLeaderRequest(input, extensionRegistry);
+        return new SetLeaderRequest(input, extensionRegistry);
       }
     };
 
@@ -4019,6 +4397,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -4031,10 +4410,12 @@ public final class RaftRequests {
 
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return Whether the common field is set.
      */
     boolean hasCommon();
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return The common.
      */
     com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon();
     /**
@@ -4045,15 +4426,23 @@ public final class RaftRequests {
   /**
    * Protobuf type {@code com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse}
    */
-  public  static final class SetLeaderResponse extends
+  public static final class SetLeaderResponse extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.baidu.hugegraph.backend.store.raft.rpc.SetLeaderResponse)
       SetLeaderResponseOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use SetLeaderResponse.newBuilder() to construct.
     private SetLeaderResponse(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
     }
     private SetLeaderResponse() {
+    }
+
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new SetLeaderResponse();
     }
 
     @java.lang.Override
@@ -4066,6 +4455,9 @@ public final class RaftRequests {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       this();
+      if (extensionRegistry == null) {
+        throw new java.lang.NullPointerException();
+      }
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -4077,16 +4469,9 @@ public final class RaftRequests {
             case 0:
               done = true;
               break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
             case 10: {
               com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000001) == 0x00000001)) {
+              if (((bitField0_ & 0x00000001) != 0)) {
                 subBuilder = common_.toBuilder();
               }
               common_ = input.readMessage(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.PARSER, extensionRegistry);
@@ -4097,10 +4482,19 @@ public final class RaftRequests {
               bitField0_ |= 0x00000001;
               break;
             }
+            default: {
+              if (!parseUnknownField(
+                  input, unknownFields, extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
         throw e.setUnfinishedMessage(this);
+      } catch (com.google.protobuf.UninitializedMessageException e) {
+        throw e.asInvalidProtocolBufferException().setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
@@ -4114,6 +4508,7 @@ public final class RaftRequests {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
     }
 
+    @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable
@@ -4126,24 +4521,30 @@ public final class RaftRequests {
     private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return Whether the common field is set.
      */
+    @java.lang.Override
     public boolean hasCommon() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+     * @return The common.
      */
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
       return common_ == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance() : common_;
     }
     /**
      * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
      */
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder getCommonOrBuilder() {
       return common_ == null ? com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance() : common_;
     }
 
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
@@ -4161,20 +4562,22 @@ public final class RaftRequests {
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         output.writeMessage(1, getCommon());
       }
       unknownFields.writeTo(output);
     }
 
+    @java.lang.Override
     public int getSerializedSize() {
       int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+      if (((bitField0_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(1, getCommon());
       }
@@ -4183,7 +4586,6 @@ public final class RaftRequests {
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
     public boolean equals(final java.lang.Object obj) {
       if (obj == this) {
@@ -4194,14 +4596,13 @@ public final class RaftRequests {
       }
       com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse other = (com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse) obj;
 
-      boolean result = true;
-      result = result && (hasCommon() == other.hasCommon());
+      if (hasCommon() != other.hasCommon()) return false;
       if (hasCommon()) {
-        result = result && getCommon()
-            .equals(other.getCommon());
+        if (!getCommon()
+            .equals(other.getCommon())) return false;
       }
-      result = result && unknownFields.equals(other.unknownFields);
-      return result;
+      if (!unknownFields.equals(other.unknownFields)) return false;
+      return true;
     }
 
     @java.lang.Override
@@ -4290,6 +4691,7 @@ public final class RaftRequests {
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
@@ -4297,6 +4699,7 @@ public final class RaftRequests {
     public static Builder newBuilder(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
+    @java.lang.Override
     public Builder toBuilder() {
       return this == DEFAULT_INSTANCE
           ? new Builder() : new Builder().mergeFrom(this);
@@ -4320,6 +4723,7 @@ public final class RaftRequests {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
       }
 
+      @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_fieldAccessorTable
@@ -4343,6 +4747,7 @@ public final class RaftRequests {
           getCommonFieldBuilder();
         }
       }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         if (commonBuilder_ == null) {
@@ -4354,15 +4759,18 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.internal_static_com_baidu_hugegraph_backend_store_raft_rpc_SetLeaderResponse_descriptor;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse getDefaultInstanceForType() {
         return com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse build() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse result = buildPartial();
         if (!result.isInitialized()) {
@@ -4371,49 +4779,57 @@ public final class RaftRequests {
         return result;
       }
 
+      @java.lang.Override
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse buildPartial() {
         com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse result = new com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
+          if (commonBuilder_ == null) {
+            result.common_ = common_;
+          } else {
+            result.common_ = commonBuilder_.build();
+          }
           to_bitField0_ |= 0x00000001;
-        }
-        if (commonBuilder_ == null) {
-          result.common_ = common_;
-        } else {
-          result.common_ = commonBuilder_.build();
         }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
       }
 
+      @java.lang.Override
       public Builder clone() {
-        return (Builder) super.clone();
+        return super.clone();
       }
+      @java.lang.Override
       public Builder setField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.setField(field, value);
+          java.lang.Object value) {
+        return super.setField(field, value);
       }
+      @java.lang.Override
       public Builder clearField(
           com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return (Builder) super.clearField(field);
+        return super.clearField(field);
       }
+      @java.lang.Override
       public Builder clearOneof(
           com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return (Builder) super.clearOneof(oneof);
+        return super.clearOneof(oneof);
       }
+      @java.lang.Override
       public Builder setRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, Object value) {
-        return (Builder) super.setRepeatedField(field, index, value);
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
       }
+      @java.lang.Override
       public Builder addRepeatedField(
           com.google.protobuf.Descriptors.FieldDescriptor field,
-          Object value) {
-        return (Builder) super.addRepeatedField(field, value);
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
       }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse) {
           return mergeFrom((com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse)other);
@@ -4433,6 +4849,7 @@ public final class RaftRequests {
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
         if (!hasCommon()) {
           return false;
@@ -4443,6 +4860,7 @@ public final class RaftRequests {
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -4462,17 +4880,19 @@ public final class RaftRequests {
       }
       private int bitField0_;
 
-      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_ = null;
+      private com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse common_;
       private com.google.protobuf.SingleFieldBuilderV3<
           com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.Builder, com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponseOrBuilder> commonBuilder_;
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+       * @return Whether the common field is set.
        */
       public boolean hasCommon() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>required .com.baidu.hugegraph.backend.store.raft.rpc.CommonResponse common = 1;</code>
+       * @return The common.
        */
       public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse getCommon() {
         if (commonBuilder_ == null) {
@@ -4516,7 +4936,7 @@ public final class RaftRequests {
        */
       public Builder mergeCommon(com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse value) {
         if (commonBuilder_ == null) {
-          if (((bitField0_ & 0x00000001) == 0x00000001) &&
+          if (((bitField0_ & 0x00000001) != 0) &&
               common_ != null &&
               common_ != com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse.getDefaultInstance()) {
             common_ =
@@ -4579,11 +4999,13 @@ public final class RaftRequests {
         }
         return commonBuilder_;
       }
+      @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.setUnknownFields(unknownFields);
       }
 
+      @java.lang.Override
       public final Builder mergeUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
         return super.mergeUnknownFields(unknownFields);
@@ -4605,11 +5027,12 @@ public final class RaftRequests {
 
     @java.lang.Deprecated public static final com.google.protobuf.Parser<SetLeaderResponse>
         PARSER = new com.google.protobuf.AbstractParser<SetLeaderResponse>() {
+      @java.lang.Override
       public SetLeaderResponse parsePartialFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-          return new SetLeaderResponse(input, extensionRegistry);
+        return new SetLeaderResponse(input, extensionRegistry);
       }
     };
 
@@ -4622,6 +5045,7 @@ public final class RaftRequests {
       return PARSER;
     }
 
+    @java.lang.Override
     public com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
@@ -4681,7 +5105,7 @@ public final class RaftRequests {
       "StoreCommandResponse\022\016\n\006status\030\001 \002(\010\022\017\n\007" +
       "message\030\002 \001(\t\"1\n\016CommonResponse\022\016\n\006statu" +
       "s\030\001 \002(\010\022\017\n\007message\030\002 \001(\t\"\022\n\020ListPeersReq" +
-      "uest\"r\n\021ListPeersResponse\022J\n\006common\030\001 \002(",
+      "uest\"r\n\021ListPeersResponse\022J\n\006common\030\001 \002(" +
       "\0132:.com.baidu.hugegraph.backend.store.ra" +
       "ft.rpc.CommonResponse\022\021\n\tendpoints\030\002 \003(\t" +
       "\"$\n\020SetLeaderRequest\022\020\n\010endpoint\030\001 \002(\t\"_" +
@@ -4691,23 +5115,15 @@ public final class RaftRequests {
       "\022\t\n\005GRAPH\020\001\022\n\n\006SYSTEM\020\002\022\007\n\003ALL\020\003*\237\001\n\013Sto" +
       "reAction\022\010\n\004NONE\020\000\022\010\n\004INIT\020\001\022\t\n\005CLEAR\020\002\022" +
       "\014\n\010TRUNCATE\020\003\022\014\n\010SNAPSHOT\020\004\022\014\n\010BEGIN_TX\020" +
-      "\n\022\r\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014\022\n\n\006MUT",
+      "\n\022\r\n\tCOMMIT_TX\020\013\022\017\n\013ROLLBACK_TX\020\014\022\n\n\006MUT" +
       "ATE\020\024\022\020\n\014INCR_COUNTER\020\025\022\t\n\005QUERY\020\036B:\n*co" +
       "m.baidu.hugegraph.backend.store.raft.rpc" +
       "B\014RaftRequests"
     };
-    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
-          public com.google.protobuf.ExtensionRegistry assignDescriptors(
-              com.google.protobuf.Descriptors.FileDescriptor root) {
-            descriptor = root;
-            return null;
-          }
-        };
-    com.google.protobuf.Descriptors.FileDescriptor
+    descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-        }, assigner);
+        });
     internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_com_baidu_hugegraph_backend_store_raft_rpc_StoreCommandRequest_fieldAccessorTable = new
