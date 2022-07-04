@@ -76,7 +76,6 @@ public class HugeGraphServer {
             } catch (Throwable t) {
                 LOG.error("HugeRestServer stop error: ", t);
             }
-            HugeFactory.shutdown(30L);
             throw e;
         } finally {
             System.setSecurityManager(securityManager);
@@ -118,12 +117,19 @@ public class HugeGraphServer {
 
         HugeGraphServer.register();
 
-        HugeGraphServer server = new HugeGraphServer(args[0], args[1]);
+        HugeGraphServer server;
+        try {
+            server = new HugeGraphServer(args[0], args[1]);
+        } catch (Throwable e) {
+            HugeFactory.shutdown(30L);
+            throw e;
+        }
 
         /*
-         * HugeFactory.shutdown hook may be invoked before server stop,
+         * Remove HugeFactory.shutdown and let HugeGraphServer.stop() do it.
+         * NOTE: HugeFactory.shutdown hook may be invoked before server stop,
          * causes event-hub can't execute notification events for another
-         * shutdown executor such as gremling-stop-shutdown
+         * shutdown executor such as gremlin-stop-shutdown
          */
         HugeFactory.removeShutdownHook();
 
@@ -132,8 +138,10 @@ public class HugeGraphServer {
             LOG.info("HugeGraphServer stopping");
             server.stop();
             LOG.info("HugeGraphServer stopped");
+
             serverStopped.complete(null);
         }, "hugegraph-server-shutdown"));
+        // Wait for server-shutdown and server-stopped
         serverStopped.get();
     }
 }
