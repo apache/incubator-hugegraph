@@ -19,7 +19,7 @@ RUN set -x \
 # 2. Init HugeGraph Sever
 # (Optional) You can set the ip of github to speed up the local build
 # && echo "192.30.253.112 github.com\n151.101.44.249 github.global.ssl.fastly.net" >> /etc/hosts \
-ENV SERVER_VERSION 0.10.4
+ENV SERVER_VERSION 0.12.0
 RUN set -e \
     && mkdir -p /root/hugegraph-server \
     && curl -L -S ${PKG_URL}/hugegraph/releases/download/v${SERVER_VERSION}/hugegraph-${SERVER_VERSION}.tar.gz -o /root/server.tar.gz \
@@ -27,8 +27,8 @@ RUN set -e \
     && rm /root/server.tar.gz \
     && cd /root/hugegraph-server/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
-    && sed -n '63p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 63{s/\&$/#/g} ./bin/start-hugegraph.sh \
-    && sed -n '74p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 74{s/^/#/g} ./bin/start-hugegraph.sh \
+    && sed -n '65p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 65{s/\&$/#/g} ./bin/start-hugegraph.sh \
+    && sed -n '75p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 75{s/^/#/g} ./bin/start-hugegraph.sh \
     && ./bin/init-store.sh
 
 # 3. Prepare for HugeGraph Studio

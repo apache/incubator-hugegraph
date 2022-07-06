@@ -246,18 +246,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }));
             }
         }
-        this.waitOpenFinish(futures, openPool);
+
+        try {
+            this.waitOpenFinished(futures);
+        } finally {
+            this.shutdownOpenPool(openPool);
+        }
     }
 
-    private void waitOpenFinish(List<Future<?>> futures,
-                                ExecutorService openPool) {
+    private void waitOpenFinished(List<Future<?>> futures) {
         for (Future<?> future : futures) {
             try {
                 future.get();
             } catch (Throwable e) {
+                if (e.getCause() instanceof ConnectionException) {
+                    throw new ConnectionException("Failed to open RocksDB store", e);
+                }
                 throw new BackendException("Failed to open RocksDB store", e);
             }
         }
+    }
+
+    private void shutdownOpenPool(ExecutorService openPool) {
         if (openPool.isShutdown()) {
             return;
         }
