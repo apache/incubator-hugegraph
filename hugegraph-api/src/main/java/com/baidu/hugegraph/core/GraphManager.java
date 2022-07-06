@@ -307,6 +307,7 @@ public final class GraphManager {
     private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
         ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
                                                               "serverConfig");
+        serverConfig.buildIfAbsent();
         return Whitebox.getInternalState(serverConfig.getServer(),
                                          "remotingServer");
     }
@@ -378,11 +379,13 @@ public final class GraphManager {
     }
 
     private void waitGraphsReady() {
-        com.alipay.remoting.rpc.RpcServer remotingRpcServer =
-                                          this.remotingRpcServer();
-        for (String graphName : this.graphs.keySet()) {
-            HugeGraph graph = this.graph(graphName);
-            graph.waitReady(remotingRpcServer);
+        if (!this.rpcServer.enabled()) {
+            com.alipay.remoting.rpc.RpcServer remotingRpcServer =
+                                              this.remotingRpcServer();
+            for (String graphName : this.graphs.keySet()) {
+                HugeGraph graph = this.graph(graphName);
+                graph.waitReady(remotingRpcServer);
+            }
         }
     }
 
