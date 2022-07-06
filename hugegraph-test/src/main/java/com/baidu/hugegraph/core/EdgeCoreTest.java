@@ -5355,6 +5355,52 @@ public class EdgeCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryCountOfAdjacentEdges() {
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        init18Edges();
+
+        Vertex james = vertex("author", "id", 1);
+
+        Assert.assertEquals(18L, g.E().count().next());
+
+        Assert.assertEquals(6L, g.V(james).bothE().count().next());
+
+        Assert.assertEquals(4L, g.V(james).outE().count().next());
+        Assert.assertEquals(1L, g.V(james).outE("created").count().next());
+        Assert.assertEquals(3L, g.V(james).outE("authored").count().next());
+        Assert.assertEquals(1L, g.V(james).outE("authored")
+                                 .has("score", 3).count().next());
+
+        Assert.assertEquals(2L, g.V(james).inE().count().next());
+        Assert.assertEquals(1L, g.V(james).inE("know").count().next());
+        Assert.assertEquals(1L, g.V(james).inE("follow").count().next());
+    }
+
+    @Test
+    public void testQueryCountAsCondition() {
+        HugeGraph graph = graph();
+        GraphTraversalSource g = graph.traversal();
+        init18Edges();
+
+        Vertex java1 = vertex("book", "name", "java-1");
+        Vertex java3 = vertex("book", "name", "java-3");
+
+        long paths;
+        paths = g.V(java1)
+                 .repeat(__.inE().outV().simplePath())
+                 .until(__.or(__.inE().count().is(0), __.loops().is(3)))
+                 .path().count().next();
+        Assert.assertEquals(4L, paths);
+
+        paths = g.V(java3)
+                 .repeat(__.inE().outV().simplePath())
+                 .until(__.or(__.inE().count().is(0), __.loops().is(3)))
+                 .path().count().next();
+        Assert.assertEquals(7L, paths);
+    }
+
+    @Test
     public void testRemoveEdge() {
         HugeGraph graph = graph();
 

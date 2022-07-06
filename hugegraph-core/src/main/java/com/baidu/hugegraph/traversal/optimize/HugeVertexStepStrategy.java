@@ -31,6 +31,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.util.EmptyTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
+import com.baidu.hugegraph.HugeGraph;
+
 public final class HugeVertexStepStrategy
              extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
              implements ProviderOptimizationStrategy {
@@ -59,16 +61,25 @@ public final class HugeVertexStepStrategy
         if (!steps.isEmpty()) {
             boolean withPath = HugeVertexStepStrategy.containsPath(traversal);
             boolean withTree = HugeVertexStepStrategy.containsTree(traversal);
-            boolean supportIn = TraversalUtil.getGraph(steps.get(0))
-                                             .backendStoreFeatures()
-                                             .supportsQueryWithInCondition();
+            /*
+             * The graph of traversal may be null when `__` step is followed
+             * by `count().is(0)` step, like the following gremlin:
+             * `g.V(id).repeat(in()).until(or(inE().count().is(0), loops().is(2)))`
+             * TODO: remove this `graph!=null` check after fixed the bug #1699
+             */
+            boolean supportIn = false;
+            HugeGraph graph = TraversalUtil.tryGetGraph(steps.get(0));
+            if (graph != null) {
+                supportIn = graph.backendStoreFeatures()
+                                 .supportsQueryWithInCondition();
+            }
             batchOptimize = !withTree && !withPath && supportIn;
         }
 
         for (VertexStep originStep : steps) {
             HugeVertexStep<?> newStep = batchOptimize ?
-                              new HugeVertexStepByBatch<>(originStep) :
-                              new HugeVertexStep<>(originStep);
+                                        new HugeVertexStepByBatch<>(originStep) :
+                                        new HugeVertexStep<>(originStep);
             TraversalHelper.replaceStep(originStep, newStep, traversal);
 
             TraversalUtil.extractHasContainer(newStep, traversal);
@@ -107,7 +118,7 @@ public final class HugeVertexStepStrategy
      */
     protected static boolean containsTree(Traversal.Admin<?, ?> traversal) {
         boolean hasTree = TraversalHelper.getStepsOfClass(
-                TreeStep.class, traversal).size() > 0;
+                          TreeStep.class, traversal).size() > 0;
         if (hasTree) {
             return true;
         } else if (traversal instanceof EmptyTraversal) {
