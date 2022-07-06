@@ -380,12 +380,14 @@ public final class GraphManager {
 
     private void waitGraphsReady() {
         if (!this.rpcServer.enabled()) {
-            com.alipay.remoting.rpc.RpcServer remotingRpcServer =
-                                              this.remotingRpcServer();
-            for (String graphName : this.graphs.keySet()) {
-                HugeGraph graph = this.graph(graphName);
-                graph.waitReady(remotingRpcServer);
-            }
+            LOG.info("RpcServer is not enabled, skip wait graphs ready");
+            return;
+        }
+        com.alipay.remoting.rpc.RpcServer remotingRpcServer =
+                                          this.remotingRpcServer();
+        for (String graphName : this.graphs.keySet()) {
+            HugeGraph graph = this.graph(graphName);
+            graph.waitReady(remotingRpcServer);
         }
     }
 
