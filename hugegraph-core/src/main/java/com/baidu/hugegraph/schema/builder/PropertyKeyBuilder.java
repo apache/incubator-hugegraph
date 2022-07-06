@@ -194,7 +194,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.APPEND);
 
         propertyKey.userdata(this.userdata);
-        this.graph().addPropertyKey(propertyKey);
+        this.graph().updatePropertyKey(propertyKey);
         return propertyKey;
     }
 
@@ -209,7 +209,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         propertyKey.removeUserdata(this.userdata);
-        this.graph().addPropertyKey(propertyKey);
+        this.graph().updatePropertyKey(propertyKey);
         return propertyKey;
     }
 

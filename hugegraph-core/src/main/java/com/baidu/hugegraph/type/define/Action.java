@@ -27,7 +27,11 @@ public enum Action implements SerialEnum {
 
     ELIMINATE(3, "eliminate"),
 
-    DELETE(4, "delete");
+    DELETE(4, "delete"),
+
+    UPDATE_IF_PRESENT(5, "update_if_present"),
+
+    UPDATE_IF_ABSENT(6, "update_if_absent");
 
     private final byte code;
     private final String name;
@@ -61,6 +65,10 @@ public enum Action implements SerialEnum {
                 return ELIMINATE;
             case 4:
                 return DELETE;
+            case 5:
+                return UPDATE_IF_PRESENT;
+            case 6:
+                return UPDATE_IF_ABSENT;
             default:
                 throw new AssertionError("Unsupported action code: " + code);
         }
