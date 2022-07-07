@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.util.Strings;
@@ -52,6 +53,7 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
+import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -235,18 +237,18 @@ public abstract class MysqlTable
         insert.append(" (");
 
         int i = 0;
-        int n = entry.columns().size();
+        int size = entry.columns().size();
         for (HugeKeys key : entry.columns().keySet()) {
             insert.append(formatKey(key));
-            if (++i != n) {
+            if (++i != size) {
                 insert.append(", ");
             }
         }
         insert.append(") VALUES (");
         // Fill with '?' as a placeholder
-        for (i = 0; i < n; i++) {
+        for (i = 0; i < size; i++) {
             insert.append("?");
-            if (i != n - 1) {
+            if (i != size - 1) {
                 insert.append(", ");
             }
         }
@@ -286,18 +288,18 @@ public abstract class MysqlTable
     }
 
     protected String buildUpdateIfPresentTemplate(MysqlBackendEntry.Row entry) {
-
         StringBuilder update = new StringBuilder();
         update.append("UPDATE ").append(this.table());
         update.append(" SET ");
 
         List<HugeKeys> idNames = this.idColumnName();
+        Set<HugeKeys> columns = entry.columns().keySet();
+        int idColumnsSize = CollectionUtil.intersect(columns, idNames).size();
 
         int i = 0;
-        int size = entry.columns().size();
-        for (HugeKeys key : entry.columns().keySet()) {
+        int size = columns.size() - idColumnsSize;
+        for (HugeKeys key : columns) {
             if (idNames.contains(key)) {
-                size--;
                 continue;
             }
             update.append(formatKey(key));
