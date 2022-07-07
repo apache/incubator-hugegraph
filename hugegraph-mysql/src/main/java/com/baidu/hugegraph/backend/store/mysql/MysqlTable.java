@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.util.Strings;
@@ -53,7 +52,6 @@ import com.baidu.hugegraph.iterator.ExtendableIterator;
 import com.baidu.hugegraph.iterator.WrappedIterator;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
-import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
@@ -293,13 +291,12 @@ public abstract class MysqlTable
         update.append(" SET ");
 
         List<HugeKeys> idNames = this.idColumnName();
-        Set<HugeKeys> columns = entry.columns().keySet();
-        int idColumnsSize = CollectionUtil.intersect(columns, idNames).size();
 
         int i = 0;
-        int size = columns.size() - idColumnsSize;
-        for (HugeKeys key : columns) {
+        int size = entry.columns().size();
+        for (HugeKeys key : entry.columns().keySet()) {
             if (idNames.contains(key)) {
+                size--;
                 continue;
             }
             update.append(formatKey(key));
