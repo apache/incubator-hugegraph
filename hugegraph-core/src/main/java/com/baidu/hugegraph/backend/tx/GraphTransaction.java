@@ -32,8 +32,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.ws.rs.ForbiddenException;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -1908,7 +1906,7 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex vertex = this.serializer.readVertex(graph(), entry);
             assert vertex != null;
             return vertex;
-        } catch (ForbiddenException | SecurityException e) {
+        } catch (SecurityException e) {
             /*
              * Can't ignore permission exception here, otherwise users will
              * be confused to treat as the record does not exist.
