@@ -235,18 +235,18 @@ public abstract class MysqlTable
         insert.append(" (");
 
         int i = 0;
-        int n = entry.columns().size();
+        int size = entry.columns().size();
         for (HugeKeys key : entry.columns().keySet()) {
             insert.append(formatKey(key));
-            if (++i != n) {
+            if (++i != size) {
                 insert.append(", ");
             }
         }
         insert.append(") VALUES (");
         // Fill with '?' as a placeholder
-        for (i = 0; i < n; i++) {
+        for (i = 0; i < size; i++) {
             insert.append("?");
-            if (i != n - 1) {
+            if (i != size - 1) {
                 insert.append(", ");
             }
         }
@@ -286,7 +286,6 @@ public abstract class MysqlTable
     }
 
     protected String buildUpdateIfPresentTemplate(MysqlBackendEntry.Row entry) {
-
         StringBuilder update = new StringBuilder();
         update.append("UPDATE ").append(this.table());
         update.append(" SET ");
@@ -294,17 +293,15 @@ public abstract class MysqlTable
         List<HugeKeys> idNames = this.idColumnName();
 
         int i = 0;
-        int size = entry.columns().size();
         for (HugeKeys key : entry.columns().keySet()) {
             if (idNames.contains(key)) {
-                size--;
                 continue;
+            }
+            if (i++ > 0) {
+                update.append(", ");
             }
             update.append(formatKey(key));
             update.append("=?");
-            if (++i != size) {
-                update.append(", ");
-            }
         }
 
         WhereBuilder where = this.newWhereBuilder();
