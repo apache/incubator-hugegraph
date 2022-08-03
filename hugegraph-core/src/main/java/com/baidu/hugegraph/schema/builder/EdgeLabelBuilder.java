@@ -262,7 +262,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
             edgeLabel.nullableKey(propertyKey.id());
         }
         edgeLabel.userdata(this.userdata);
-        this.graph().addEdgeLabel(edgeLabel);
+        this.graph().updateEdgeLabel(edgeLabel);
         return edgeLabel;
     }
 
@@ -280,7 +280,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         Userdata.check(this.userdata, Action.ELIMINATE);
 
         edgeLabel.removeUserdata(this.userdata);
-        this.graph().addEdgeLabel(edgeLabel);
+        this.graph().updateEdgeLabel(edgeLabel);
         return edgeLabel;
     }
 

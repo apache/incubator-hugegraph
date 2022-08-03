@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.logging.log4j.util.Strings;
 
+import com.baidu.hugegraph.backend.serializer.TableBackendEntry.Row;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
@@ -54,15 +55,31 @@ public abstract class PostgresqlTable extends MysqlTable {
     }
 
     @Override
-    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
-        List<Object> objects = new ArrayList<>();
-        objects.addAll(super.buildInsertObjects(entry));
-        objects.addAll(super.buildInsertObjects(entry));
-        return objects;
+    protected String buildUpdateForcedTemplate(MysqlBackendEntry.Row entry) {
+        return this.buildInsertKeys(entry, false);
     }
 
     @Override
-    protected String buildInsertTemplateForce(MysqlBackendEntry.Row entry) {
+    protected List<?> buildUpdateForcedParams(MysqlBackendEntry.Row entry) {
+        List<Object> params = new ArrayList<>();
+        List<Object> allColumns = this.buildColumnsParams(entry);
+        params.addAll(allColumns);
+        params.addAll(allColumns);
+        return params;
+    }
+
+    @Override
+    protected String buildUpdateIfAbsentTemplate(Row entry) {
+        return this.buildInsertKeys(entry, true);
+    }
+
+    @Override
+    protected List<?> buildUpdateIfAbsentParams(MysqlBackendEntry.Row entry) {
+        return this.buildColumnsParams(entry);
+    }
+
+    protected String buildInsertKeys(MysqlBackendEntry.Row entry,
+                                     boolean ignoreConflicts) {
         StringBuilder insert = new StringBuilder();
         insert.append("INSERT INTO ").append(this.table()).append(" (");
 
@@ -95,13 +112,17 @@ public abstract class PostgresqlTable extends MysqlTable {
         }
         insert.append(")");
 
-        i = 0;
-        size = entry.columns().keySet().size();
-        insert.append(" DO UPDATE SET ");
-        for (HugeKeys key : entry.columns().keySet()) {
-            insert.append(formatKey(key)).append(" = ?");
-            if (++i != size) {
-                insert.append(", ");
+        if (ignoreConflicts) {
+            insert.append(" DO NOTHING");
+        } else {
+            i = 0;
+            size = entry.columns().keySet().size();
+            insert.append(" DO UPDATE SET ");
+            for (HugeKeys key : entry.columns().keySet()) {
+                insert.append(formatKey(key)).append(" = ?");
+                if (++i != size) {
+                    insert.append(", ");
+                }
             }
         }
 

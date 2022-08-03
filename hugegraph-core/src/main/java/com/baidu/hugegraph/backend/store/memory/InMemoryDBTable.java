@@ -50,6 +50,7 @@ import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 import com.baidu.hugegraph.util.Log;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
                                                   TextBackendEntry> {
@@ -131,6 +132,12 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
         if (parent != null) {
             ((TextBackendEntry) parent).eliminate(entry);
         }
+    }
+
+    @Override
+    public boolean queryExist(BackendSession session, TextBackendEntry entry) {
+        List<Id> ids = ImmutableList.of(entry.id());
+        return !this.queryById(ids, this.store).isEmpty();
     }
 
     @Override
