@@ -260,6 +260,12 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             case ELIMINATE:
                 table.eliminate(session, entry.row());
                 break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(session, entry.row());
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(session, entry.row());
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unsupported mutate action: %s", item.action()));

@@ -155,6 +155,12 @@ public abstract class InMemoryDBStore
                 LOG.debug("[store {}] eliminate entry: {}", this.store, entry);
                 table.eliminate(null, entry);
                 break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(null, entry);
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(null, entry);
+                break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
                                            item.action());

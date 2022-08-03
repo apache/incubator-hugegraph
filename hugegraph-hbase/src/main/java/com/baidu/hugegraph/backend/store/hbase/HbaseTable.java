@@ -145,6 +145,14 @@ public class HbaseTable extends BackendTable<Session, BackendEntry> {
     }
 
     @Override
+    public boolean queryExist(Session session, BackendEntry entry) {
+        Id id = entry.id();
+        try (RowIterator iter = this.queryById(session, id)) {
+            return iter.hasNext();
+        }
+    }
+
+    @Override
     public Number queryNumber(Session session, Query query) {
         Aggregate aggregate = query.aggregateNotNull();
         if (aggregate.func() != AggregateFunc.COUNT) {

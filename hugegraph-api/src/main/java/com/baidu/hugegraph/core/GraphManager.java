@@ -307,6 +307,7 @@ public final class GraphManager {
     private com.alipay.remoting.rpc.RpcServer remotingRpcServer() {
         ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
                                                               "serverConfig");
+        serverConfig.buildIfAbsent();
         return Whitebox.getInternalState(serverConfig.getServer(),
                                          "remotingServer");
     }
@@ -378,6 +379,10 @@ public final class GraphManager {
     }
 
     private void waitGraphsReady() {
+        if (!this.rpcServer.enabled()) {
+            LOG.info("RpcServer is not enabled, skip wait graphs ready");
+            return;
+        }
         com.alipay.remoting.rpc.RpcServer remotingRpcServer =
                                           this.remotingRpcServer();
         for (String graphName : this.graphs.keySet()) {

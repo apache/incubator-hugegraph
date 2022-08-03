@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -124,10 +125,15 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id addPropertyKey(PropertyKey propertyKey) {
         this.addSchema(propertyKey);
-        if (propertyKey.olap()) {
-            return this.createOlapPk(propertyKey);
+        if (!propertyKey.olap()) {
+            return IdGenerator.ZERO;
         }
-        return IdGenerator.ZERO;
+        return this.createOlapPk(propertyKey);
+    }
+
+    @Watched(prefix = "schema")
+    public void updatePropertyKey(PropertyKey propertyKey) {
+        this.updateSchema(propertyKey, null);
     }
 
     @Watched(prefix = "schema")
@@ -186,6 +192,11 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
+    public void updateVertexLabel(VertexLabel vertexLabel) {
+        this.updateSchema(vertexLabel, null);
+    }
+
+    @Watched(prefix = "schema")
     public VertexLabel getVertexLabel(Id id) {
         E.checkArgumentNotNull(id, "Vertex label id can't be null");
         if (VertexLabel.OLAP_VL.id().equals(id)) {
@@ -218,6 +229,11 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
+    public void updateEdgeLabel(EdgeLabel edgeLabel) {
+        this.updateSchema(edgeLabel, null);
+    }
+
+    @Watched(prefix = "schema")
     public EdgeLabel getEdgeLabel(Id id) {
         E.checkArgumentNotNull(id, "Edge label id can't be null");
         return this.getSchema(HugeType.EDGE_LABEL, id);
@@ -239,50 +255,53 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Watched(prefix = "schema")
-    public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
-        this.addSchema(indexLabel);
-
+    public void addIndexLabel(SchemaLabel baseLabel, IndexLabel indexLabel) {
         /*
-         * Update index name in base-label(VL/EL)
+         * Create index and update index name in base-label(VL/EL)
          * TODO: should wrap update base-label and create index in one tx.
          */
-        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
+        this.addSchema(indexLabel);
+
+        if (baseLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
 
-        // FIXME: move schemaLabel update into updateSchema() lock block instead
-        synchronized (schemaLabel) {
-            schemaLabel.addIndexLabel(indexLabel.id());
-            this.updateSchema(schemaLabel);
-        }
+        this.updateSchema(baseLabel, schema -> {
+            // NOTE: Do schema update in the lock block
+            baseLabel.addIndexLabel(indexLabel.id());
+        });
+    }
+
+    @Watched(prefix = "schema")
+    public void updateIndexLabel(IndexLabel indexLabel) {
+        this.updateSchema(indexLabel, null);
     }
 
     @Watched(prefix = "schema")
     public void removeIndexLabelFromBaseLabel(IndexLabel indexLabel) {
         HugeType baseType = indexLabel.baseType();
         Id baseValue = indexLabel.baseValue();
-        SchemaLabel schemaLabel;
+        SchemaLabel baseLabel;
         if (baseType == HugeType.VERTEX_LABEL) {
-            schemaLabel = this.getVertexLabel(baseValue);
+            baseLabel = this.getVertexLabel(baseValue);
         } else {
             assert baseType == HugeType.EDGE_LABEL;
-            schemaLabel = this.getEdgeLabel(baseValue);
+            baseLabel = this.getEdgeLabel(baseValue);
         }
 
-        if (schemaLabel == null) {
+        if (baseLabel == null) {
             LOG.info("The base label '{}' of index label '{}' " +
                      "may be deleted before", baseValue, indexLabel);
             return;
         }
-        if (schemaLabel.equals(VertexLabel.OLAP_VL)) {
+        if (baseLabel.equals(VertexLabel.OLAP_VL)) {
             return;
         }
 
-        // FIXME: move schemaLabel update into updateSchema() lock block instead
-        synchronized (schemaLabel) {
-            schemaLabel.removeIndexLabel(indexLabel.id());
-            this.updateSchema(schemaLabel);
-        }
+        this.updateSchema(baseLabel, schema -> {
+            // NOTE: Do schema update in the lock block
+            baseLabel.removeIndexLabel(indexLabel.id());
+        });
     }
 
     @Watched(prefix = "schema")
@@ -368,8 +387,11 @@ public class SchemaTransaction extends IndexableTransaction {
             LOG.warn("Can't update schema '{}', it may be deleted", schema);
             return;
         }
-        schema.status(status);
-        this.updateSchema(schema);
+
+        this.updateSchema(schema, schemaToUpdate -> {
+            // NOTE: Do schema update in the lock block
+            schema.status(status);
+        });
     }
 
     @Watched(prefix = "schema")
@@ -377,28 +399,52 @@ public class SchemaTransaction extends IndexableTransaction {
         return this.getSchema(type, id) != null;
     }
 
-    protected void updateSchema(SchemaElement schema) {
-        this.addSchema(schema);
+    protected void updateSchema(SchemaElement schema,
+                                Consumer<SchemaElement> updateCallback) {
+        LOG.debug("SchemaTransaction update {} with id '{}'",
+                  schema.type(), schema.id());
+        this.saveSchema(schema, true, updateCallback);
     }
 
     protected void addSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction add {} with id '{}'",
                   schema.type(), schema.id());
         setCreateTimeIfNeeded(schema);
+        this.saveSchema(schema, false, null);
+    }
 
-        // System schema just put into SystemSchemaStore in memory
-        if (schema.longId() < 0L) {
-            this.systemSchemaStore.add(schema);
-            return;
-        }
-
+    private void saveSchema(SchemaElement schema, boolean update,
+                            Consumer<SchemaElement> updateCallback) {
+        // Lock for schema update
         LockUtil.Locks locks = new LockUtil.Locks(this.params().name());
         try {
-            locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
-                             schema.id());
+            locks.lockWrites(LockUtil.hugeType2Group(schema.type()), schema.id());
+
+            if (updateCallback != null) {
+                // NOTE: Do schema update in the lock block
+                updateCallback.accept(schema);
+            }
+
+            // System schema just put into SystemSchemaStore in memory
+            if (schema.longId() < 0L) {
+                this.systemSchemaStore.add(schema);
+                return;
+            }
+
+            BackendEntry entry = this.serialize(schema);
+
             this.beforeWrite();
-            this.doInsert(this.serialize(schema));
-            this.indexTx.updateNameIndex(schema, false);
+
+            if (update) {
+                this.doUpdateIfPresent(entry);
+                // TODO: also support updateIfPresent for index-update
+                this.indexTx.updateNameIndex(schema, false);
+            } else {
+                // TODO: support updateIfAbsentProperty (property: label name)
+                this.doUpdateIfAbsent(entry);
+                this.indexTx.updateNameIndex(schema, false);
+            }
+
             this.afterWrite();
         } finally {
             locks.unlock();
@@ -459,6 +505,11 @@ public class SchemaTransaction extends IndexableTransaction {
         List<T> results = new ArrayList<>();
         Query query = new Query(type);
         Iterator<BackendEntry> entries = this.query(query).iterator();
+        /*
+         * Can use MapperIterator instead if don't need to debug:
+         * new MapperIterator<>(entries, entry -> this.deserialize(entry, type))
+         * QueryResults.fillList(iter, results);
+         */
         try {
             while (entries.hasNext()) {
                 BackendEntry entry = entries.next();

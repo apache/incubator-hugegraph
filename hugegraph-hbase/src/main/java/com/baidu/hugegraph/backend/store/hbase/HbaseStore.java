@@ -215,6 +215,12 @@ public abstract class HbaseStore extends AbstractBackendStore<Session> {
             case ELIMINATE:
                 table.eliminate(session, entry);
                 break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(session, entry);
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(session, entry);
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unsupported mutate action: %s", item.action()));

@@ -72,6 +72,8 @@ public interface HugeGraph extends Graph {
 
     Id addPropertyKey(PropertyKey key);
 
+    void updatePropertyKey(PropertyKey key);
+
     Id removePropertyKey(Id key);
 
     Id clearPropertyKey(PropertyKey propertyKey);
@@ -84,7 +86,9 @@ public interface HugeGraph extends Graph {
 
     boolean existsPropertyKey(String key);
 
-    void addVertexLabel(VertexLabel vertexLabel);
+    void addVertexLabel(VertexLabel label);
+
+    void updateVertexLabel(VertexLabel label);
 
     Id removeVertexLabel(Id label);
 
@@ -100,7 +104,9 @@ public interface HugeGraph extends Graph {
 
     boolean existsLinkLabel(Id vertexLabel);
 
-    void addEdgeLabel(EdgeLabel edgeLabel);
+    void addEdgeLabel(EdgeLabel label);
+
+    void updateEdgeLabel(EdgeLabel label);
 
     Id removeEdgeLabel(Id label);
 
@@ -115,6 +121,8 @@ public interface HugeGraph extends Graph {
     boolean existsEdgeLabel(String label);
 
     void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel);
+
+    void updateIndexLabel(IndexLabel label);
 
     Id removeIndexLabel(Id label);
 
