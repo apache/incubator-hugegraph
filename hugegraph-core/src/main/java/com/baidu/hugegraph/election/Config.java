@@ -11,4 +11,6 @@ public interface Config {
     long heartBeatIntervalSecond();
 
     int exceedsWorkerCount();
+
+    long baseTimeoutMillisecond();
 }

@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.election;
 
+import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.concurrent.locks.LockSupport;
 
@@ -50,6 +51,8 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private interface RoleState {
 
+        SecureRandom secureRandom = new SecureRandom();
+
         RoleState transform(StateMachineContext context);
 
         Callback callback(StateMachineCallback callback);
@@ -61,7 +64,9 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         static void randomPark(StateMachineContext context) {
             long randomTimeout = context.config().randomTimeoutMillisecond();
-            LockSupport.parkNanos(randomTimeout * 1_000_000);
+            long baseTime = context.config().baseTimeoutMillisecond();
+            long timeout = (long) (baseTime + (randomTimeout / 10.0 * secureRandom.nextInt(11)));
+            LockSupport.parkNanos(timeout * 1_000_000);
         }
     }
 
@@ -91,6 +96,13 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             }
 
             MetaData metaData = metaDataOpt.get();
+            if (this.epoch != null && metaData.epoch() < this.epoch) {
+                context.reset();
+                this.epoch = this.epoch == null ? 1 : this.epoch + 1;
+                context.epoch(this.epoch);
+                return new CandidateState(this.epoch);
+            }
+
             context.epoch(metaData.epoch());
             if (metaData.isMaster(context.node())) {
                 return new MasterState(metaData);
@@ -142,7 +154,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             }
             context.reset();
             context.epoch(this.metaData.epoch());
-            return new UnKnownState(this.metaData.epoch());
+            return new UnKnownState(this.metaData.epoch()).transform(context);
         }
 
         @Override

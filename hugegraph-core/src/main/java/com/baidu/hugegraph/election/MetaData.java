@@ -9,9 +9,13 @@ public class MetaData {
     int epoch;
 
     public MetaData(String node, int epoch) {
+        this(node, epoch, 1);
+    }
+
+    public MetaData(String node, int epoch, long count) {
         this.node = node;
         this.epoch = epoch;
-        this.count = 1;
+        this.count = count;
     }
 
     public void increaseCount() {
@@ -30,6 +34,14 @@ public class MetaData {
         return this.count;
     }
 
+    public void count(long count) {
+        this.count = count;
+    }
+
+    public String node() {
+        return this.node;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -41,5 +53,14 @@ public class MetaData {
     @Override
     public int hashCode() {
         return Objects.hash(node, count, epoch);
+    }
+
+    @Override
+    public String toString() {
+        return "MetaData{" +
+                "node='" + node + '\'' +
+                ", count=" + count +
+                ", epoch=" + epoch +
+                '}';
     }
 }
