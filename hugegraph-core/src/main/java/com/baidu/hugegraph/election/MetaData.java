@@ -15,7 +15,7 @@ public class MetaData {
     }
 
     public void increaseCount() {
-        this.count ++;
+        this.count++;
     }
 
     public boolean isMaster(String node) {

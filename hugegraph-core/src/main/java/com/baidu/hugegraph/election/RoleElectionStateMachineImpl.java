@@ -5,7 +5,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import com.baidu.hugegraph.util.E;
 
-public class RoleElectionStateMachineImpl implements RoleElectionStateMachine{
+public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private volatile boolean shutdown = false;
     private Config config;
@@ -189,9 +189,10 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine{
                 throw new IllegalStateException("Meta count must increase");
             } else if (state.metaData.epoch() == this.metaData.epoch() &&
                        state.metaData.count() > this.metaData.count()) {
+                this.count = 0;
                 this.metaData = state.metaData;
             } else {
-                this.count ++;
+                this.count++;
             }
         }
     }
