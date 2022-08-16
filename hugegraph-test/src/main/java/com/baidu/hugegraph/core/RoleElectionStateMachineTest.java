@@ -1,5 +1,6 @@
 package com.baidu.hugegraph.core;
 
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 
 import com.baidu.hugegraph.election.Config;
@@ -105,7 +107,8 @@ public class RoleElectionStateMachineTest {
     @Test
     public void testStateMachine() throws InterruptedException {
         final CountDownLatch stop = new CountDownLatch(3);
-        final List<LogEntry> logRecords = Collections.synchronizedList(new ArrayList<>(20));
+        final int MAX_COUNT = 100;
+        final List<LogEntry> logRecords = Collections.synchronizedList(new ArrayList<>(MAX_COUNT));
         final StateMachineCallback callback = new StateMachineCallback() {
 
             @Override
@@ -113,6 +116,9 @@ public class RoleElectionStateMachineTest {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.master));
+                if (logRecords.size() > MAX_COUNT) {
+                    context.stateMachine().shutdown();
+                }
             }
 
             @Override
@@ -120,6 +126,9 @@ public class RoleElectionStateMachineTest {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.worker));
+                if (logRecords.size() > MAX_COUNT) {
+                    context.stateMachine().shutdown();
+                }
             }
 
             @Override
@@ -127,13 +136,19 @@ public class RoleElectionStateMachineTest {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.candidate));
+                if (logRecords.size() > MAX_COUNT) {
+                    context.stateMachine().shutdown();
+                }
             }
 
             @Override
             public void unknown(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
-                logRecords.add(new LogEntry(epochId, node, LogEntry.Role.candidate));
+                logRecords.add(new LogEntry(epochId, node, LogEntry.Role.unknown));
+                if (logRecords.size() > MAX_COUNT) {
+                    context.stateMachine().shutdown();
+                }
             }
 
             @Override
@@ -141,6 +156,9 @@ public class RoleElectionStateMachineTest {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.safe));
+                if (logRecords.size() > MAX_COUNT) {
+                    context.stateMachine().shutdown();
+                }
             }
 
             @Override
@@ -150,12 +168,17 @@ public class RoleElectionStateMachineTest {
         };
         final MetaDataAdapter adapter = new MetaDataAdapter() {
             int epoch = 0;
+            int count = 0;
             Map<Integer, MetaData> data = new ConcurrentHashMap<>();
             @Override
             public boolean postDelyIfPresent(MetaData metaData, long delySecond) {
+                this.count ++;
                 LockSupport.parkNanos(delySecond * 1_000_000_000);
+                if (count > 10) {
+                    throw new RuntimeException("timeout");
+                }
                 MetaData oldData = data.computeIfAbsent(metaData.epoch(), (key) -> {
-                    this.epoch = key;
+                    this.epoch = Math.max(key, epoch);
                     return metaData;
                 });
                 return oldData == metaData;
@@ -200,7 +223,7 @@ public class RoleElectionStateMachineTest {
 
         stop.await();
 
-        Assert.assertTrue(logRecords.size() > 100);
+        Assert.assertTrue(logRecords.size() > MAX_COUNT);
         Map<Integer, String> masters = new HashMap<>();
         for (LogEntry entry: logRecords) {
             if (entry.role == LogEntry.Role.master) {

@@ -28,9 +28,9 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
     @Override
     public void apply(StateMachineCallback stateMachineCallback) {
         int failCount = 0;
+        StateMachineContextImpl context = new StateMachineContextImpl(this);
         while (!this.shutdown) {
             E.checkArgumentNotNull(this.state, "State don't be null");
-            StateMachineContextImpl context = new StateMachineContextImpl(this);
             try {
                 this.state = state.transform(context);
                 Callback runnable = this.state.callback(stateMachineCallback);
@@ -85,7 +85,9 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             Optional<MetaData> metaDataOpt = adapter.query();
             if (!metaDataOpt.isPresent()) {
                 context.reset();
-                return new CandidateState(epoch == null ? 1 : epoch + 1);
+                this.epoch = this.epoch == null ? 1 : this.epoch + 1;
+                context.epoch(this.epoch);
+                return new CandidateState(this.epoch);
             }
 
             MetaData metaData = metaDataOpt.get();
@@ -139,6 +141,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
                 return this;
             }
             context.reset();
+            context.epoch(this.metaData.epoch());
             return new UnKnownState(this.metaData.epoch());
         }
 
