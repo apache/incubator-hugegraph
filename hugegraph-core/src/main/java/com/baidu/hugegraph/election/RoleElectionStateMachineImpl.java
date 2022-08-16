@@ -1,3 +1,22 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.election;
 
 import java.security.SecureRandom;
@@ -9,15 +28,13 @@ import com.baidu.hugegraph.util.E;
 public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private volatile boolean shutdown = false;
-    private Config config;
-
+    private final Config config;
     private volatile RoleState state;
+    private final RoleStataDataAdapter roleStataDataAdapter;
 
-    private final MetaDataAdapter metaDataAdapter;
-
-    public RoleElectionStateMachineImpl(Config config, MetaDataAdapter adapter) {
+    public RoleElectionStateMachineImpl(Config config, RoleStataDataAdapter adapter) {
         this.config = config;
-        this.metaDataAdapter = adapter;
+        this.roleStataDataAdapter = adapter;
         this.state = new UnKnownState(null);
     }
 
@@ -78,7 +95,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class UnKnownState implements RoleState {
 
-        Integer epoch;
+        final Integer epoch;
 
         public UnKnownState(Integer epoch) {
             this.epoch = epoch;
@@ -86,28 +103,28 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            MetaDataAdapter adapter = context.adapter();
-            Optional<MetaData> metaDataOpt = adapter.query();
-            if (!metaDataOpt.isPresent()) {
+            RoleStataDataAdapter adapter = context.adapter();
+            Optional<RoleStateData> stateDataOpt = adapter.query();
+            if (!stateDataOpt.isPresent()) {
                 context.reset();
-                this.epoch = this.epoch == null ? 1 : this.epoch + 1;
-                context.epoch(this.epoch);
-                return new CandidateState(this.epoch);
+                Integer nextEpoch = this.epoch == null ? 1 : this.epoch + 1;
+                context.epoch(nextEpoch);
+                return new CandidateState(nextEpoch);
             }
 
-            MetaData metaData = metaDataOpt.get();
-            if (this.epoch != null && metaData.epoch() < this.epoch) {
+            RoleStateData stateData = stateDataOpt.get();
+            if (this.epoch != null && stateData.epoch() < this.epoch) {
                 context.reset();
-                this.epoch = this.epoch == null ? 1 : this.epoch + 1;
-                context.epoch(this.epoch);
-                return new CandidateState(this.epoch);
+                Integer nextEpoch = this.epoch + 1;
+                context.epoch(nextEpoch);
+                return new CandidateState(nextEpoch);
             }
 
-            context.epoch(metaData.epoch());
-            if (metaData.isMaster(context.node())) {
-                return new MasterState(metaData);
+            context.epoch(stateData.epoch());
+            if (stateData.isMaster(context.node())) {
+                return new MasterState(stateData);
             } else {
-                return new WorkerState(metaData);
+                return new WorkerState(stateData);
             }
         }
 
@@ -119,7 +136,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class SafeState implements RoleState {
 
-        Integer epoch;
+        private final Integer epoch;
 
         public SafeState(Integer epoch) {
             this.epoch = epoch;
@@ -139,22 +156,22 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class MasterState implements RoleState {
 
-        MetaData metaData;
+        private final RoleStateData stateData;
 
-        public MasterState(MetaData metaData) {
-            this.metaData = metaData;
+        public MasterState(RoleStateData stateData) {
+            this.stateData = stateData;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            this.metaData.increaseCount();
+            this.stateData.increaseCount();
             RoleState.heartBeatPark(context);
-            if (context.adapter().postDelyIfPresent(this.metaData, -1)) {
+            if (context.adapter().delayIfNodePresent(this.stateData, -1)) {
                 return this;
             }
             context.reset();
-            context.epoch(this.metaData.epoch());
-            return new UnKnownState(this.metaData.epoch()).transform(context);
+            context.epoch(this.stateData.epoch());
+            return new UnKnownState(this.stateData.epoch()).transform(context);
         }
 
         @Override
@@ -165,21 +182,21 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class WorkerState implements RoleState {
 
-        private MetaData metaData;
+        private RoleStateData stateData;
         private int count = 0;
 
-        public WorkerState(MetaData metaData) {
-            this.metaData = metaData;
+        public WorkerState(RoleStateData stateData) {
+            this.stateData = stateData;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleState.heartBeatPark(context);
-            RoleState nextState = new UnKnownState(this.metaData.epoch()).transform(context);
+            RoleState nextState = new UnKnownState(this.stateData.epoch()).transform(context);
             if (nextState instanceof WorkerState) {
                 this.merge((WorkerState) nextState);
                 if (this.count > context.config().exceedsWorkerCount()) {
-                    return new CandidateState(this.metaData.epoch() + 1);
+                    return new CandidateState(this.stateData.epoch() + 1);
                 } else {
                     return this;
                 }
@@ -194,18 +211,18 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
 
         public void merge(WorkerState state) {
-            if (state.metaData.epoch() > this.metaData.epoch()) {
+            if (state.stateData.epoch() > this.stateData.epoch()) {
                 this.count = 0;
-                this.metaData = state.metaData;
-            } else if (state.metaData.epoch() < this.metaData.epoch()){
+                this.stateData = state.stateData;
+            } else if (state.stateData.epoch() < this.stateData.epoch()){
                 throw new IllegalStateException("Epoch must increase");
-            } else if (state.metaData.epoch() == this.metaData.epoch() &&
-                    state.metaData.count() < this.metaData.count()) {
+            } else if (state.stateData.epoch() == this.stateData.epoch() &&
+                       state.stateData.count() < this.stateData.count()) {
                 throw new IllegalStateException("Meta count must increase");
-            } else if (state.metaData.epoch() == this.metaData.epoch() &&
-                       state.metaData.count() > this.metaData.count()) {
+            } else if (state.stateData.epoch() == this.stateData.epoch() &&
+                       state.stateData.count() > this.stateData.count()) {
                 this.count = 0;
-                this.metaData = state.metaData;
+                this.stateData = state.stateData;
             } else {
                 this.count++;
             }
@@ -214,7 +231,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class CandidateState implements RoleState {
 
-        Integer epoch;
+        private final Integer epoch;
 
         public CandidateState(Integer epoch) {
             this.epoch = epoch;
@@ -224,13 +241,13 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         public RoleState transform(StateMachineContext context) {
             RoleState.randomPark(context);
             int epoch = this.epoch == null ? 1 : this.epoch;
-            MetaData metaData = new MetaData(context.config().node(), epoch);
+            RoleStateData stateData = new RoleStateData(context.config().node(), epoch);
             //failover to master success
-            context.epoch(metaData.epoch());
-            if (context.adapter().postDelyIfPresent(metaData, -1)) {
-                return new MasterState(metaData);
+            context.epoch(stateData.epoch());
+            if (context.adapter().delayIfNodePresent(stateData, -1)) {
+                return new MasterState(stateData);
             } else {
-                return new WorkerState(metaData);
+                return new WorkerState(stateData);
             }
         }
 
@@ -267,7 +284,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
 
         @Override
-        public MetaDataAdapter adapter() {
+        public RoleStataDataAdapter adapter() {
             return this.machine.adapter();
         }
 
@@ -287,7 +304,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
     }
 
-    protected MetaDataAdapter adapter() {
-        return this.metaDataAdapter;
+    protected RoleStataDataAdapter adapter() {
+        return this.roleStataDataAdapter;
     }
 }

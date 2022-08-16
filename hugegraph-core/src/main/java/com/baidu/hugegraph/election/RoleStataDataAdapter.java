@@ -19,9 +19,13 @@
 
 package com.baidu.hugegraph.election;
 
-public interface RoleElectionStateMachine {
+import java.util.Optional;
 
-    void shutdown();
+public interface RoleStataDataAdapter {
 
-    void apply(StateMachineCallback stateMachineCallback);
+    boolean delayIfNodePresent(RoleStateData metaData, long delaySecond);
+
+    Optional<RoleStateData> queryWithDelay(long delaySecond);
+
+    Optional<RoleStateData> query();
 }

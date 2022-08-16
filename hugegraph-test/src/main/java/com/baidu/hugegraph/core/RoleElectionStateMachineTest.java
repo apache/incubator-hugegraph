@@ -1,3 +1,22 @@
+/*
+ * Copyright 2017 HugeGraph Authors
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.core;
 
 import java.util.ArrayList;
@@ -17,8 +36,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.baidu.hugegraph.election.Config;
-import com.baidu.hugegraph.election.MetaData;
-import com.baidu.hugegraph.election.MetaDataAdapter;
+import com.baidu.hugegraph.election.RoleStateData;
+import com.baidu.hugegraph.election.RoleStataDataAdapter;
 import com.baidu.hugegraph.election.RoleElectionStateMachine;
 import com.baidu.hugegraph.election.RoleElectionStateMachineImpl;
 import com.baidu.hugegraph.election.StateMachineCallback;
@@ -29,6 +48,7 @@ public class RoleElectionStateMachineTest {
     public static class LogEntry {
 
         Integer epoch;
+
         String node;
 
         Role role;
@@ -175,28 +195,31 @@ public class RoleElectionStateMachineTest {
             }
         };
 
-        final List<MetaData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
-        final MetaDataAdapter adapter = new MetaDataAdapter() {
-            volatile int epoch = 0;
-            Map<Integer, MetaData> data = new ConcurrentHashMap<>();
+        final List<RoleStateData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
+        final RoleStataDataAdapter adapter = new RoleStataDataAdapter() {
 
-            MetaData copy(MetaData metaData) {
-                if (metaData == null) {
+            volatile int epoch = 0;
+
+            final Map<Integer, RoleStateData> data = new ConcurrentHashMap<>();
+
+            RoleStateData copy(RoleStateData stateData) {
+                if (stateData == null) {
                     return null;
                 }
-                return new MetaData(metaData.node(), metaData.epoch(), metaData.count());
+                return new RoleStateData(stateData.node(), stateData.epoch(), stateData.count());
             }
+
             @Override
-            public boolean postDelyIfPresent(MetaData metaData, long delySecond) {
-                if (delySecond > 0) {
-                    LockSupport.parkNanos(delySecond * 1_000_000_000);
+            public boolean delayIfNodePresent(RoleStateData stateData, long delaySecond) {
+                if (delaySecond > 0) {
+                    LockSupport.parkNanos(delaySecond * 1_000_000_000);
                 }
-                if (metaData.epoch() < this.epoch) {
+                if (stateData.epoch() < this.epoch) {
                     return false;
                 }
 
-                MetaData copy = this.copy(metaData);
-                MetaData newData = data.compute(copy.epoch(), (key, value) -> {
+                RoleStateData copy = this.copy(stateData);
+                RoleStateData newData = data.compute(copy.epoch(), (key, value) -> {
                     if (copy.epoch() > this.epoch) {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
@@ -223,13 +246,13 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public Optional<MetaData> queryDelay(long delySecond) {
-                LockSupport.parkNanos(delySecond * 1_000_000_000);
+            public Optional<RoleStateData> queryWithDelay(long delaySecond) {
+                LockSupport.parkNanos(delaySecond * 1_000_000_000);
                 return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
 
             @Override
-            public Optional<MetaData> query() {
+            public Optional<RoleStateData> query() {
                 return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
         };
