@@ -21,11 +21,9 @@ package com.baidu.hugegraph.election;
 
 import java.util.Optional;
 
-public interface RoleStataDataAdapter {
+public interface RoleTypeDataAdapter {
 
-    boolean delayIfNodePresent(RoleStateData metaData, long delaySecond);
-
-    Optional<RoleStateData> queryWithDelay(long delaySecond);
+    boolean updateIfNodePresent(RoleStateData stateData);
 
     Optional<RoleStateData> query();
 }

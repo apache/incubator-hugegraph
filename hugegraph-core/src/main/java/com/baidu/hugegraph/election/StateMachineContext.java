@@ -31,7 +31,7 @@ public interface StateMachineContext {
 
     Config config();
 
-    RoleStataDataAdapter adapter();
+    RoleTypeDataAdapter adapter();
 
     void reset();
 }

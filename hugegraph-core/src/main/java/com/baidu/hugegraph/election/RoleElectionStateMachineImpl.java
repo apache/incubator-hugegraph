@@ -27,15 +27,16 @@ import com.baidu.hugegraph.util.E;
 
 public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
-    private volatile boolean shutdown = false;
+    private volatile boolean shutdown;
     private final Config config;
     private volatile RoleState state;
-    private final RoleStataDataAdapter roleStataDataAdapter;
+    private final RoleTypeDataAdapter roleTypeDataAdapter;
 
-    public RoleElectionStateMachineImpl(Config config, RoleStataDataAdapter adapter) {
+    public RoleElectionStateMachineImpl(Config config, RoleTypeDataAdapter adapter) {
         this.config = config;
-        this.roleStataDataAdapter = adapter;
+        this.roleTypeDataAdapter = adapter;
         this.state = new UnKnownState(null);
+        this.shutdown = false;
     }
 
     @Override
@@ -58,7 +59,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
                 stateMachineCallback.error(context, e);
                 failCount ++;
                 if (failCount >= this.config.exceedsFailCount()) {
-                    this.state = new SafeState(context.epoch());
+                    this.state = new AbdicationState(context.epoch());
                     Callback runnable = this.state.callback(stateMachineCallback);
                     runnable.call(context);
                 }
@@ -103,7 +104,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            RoleStataDataAdapter adapter = context.adapter();
+            RoleTypeDataAdapter adapter = context.adapter();
             Optional<RoleStateData> stateDataOpt = adapter.query();
             if (!stateDataOpt.isPresent()) {
                 context.reset();
@@ -134,11 +135,11 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
     }
 
-    private static class SafeState implements RoleState {
+    private static class AbdicationState implements RoleState {
 
         private final Integer epoch;
 
-        public SafeState(Integer epoch) {
+        public AbdicationState(Integer epoch) {
             this.epoch = epoch;
         }
 
@@ -150,7 +151,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public Callback callback(StateMachineCallback callback) {
-            return callback::safe;
+            return callback::abdication;
         }
     }
 
@@ -164,9 +165,9 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            this.stateData.increaseCount();
+            this.stateData.increaseClock();
             RoleState.heartBeatPark(context);
-            if (context.adapter().delayIfNodePresent(this.stateData, -1)) {
+            if (context.adapter().updateIfNodePresent(this.stateData)) {
                 return this;
             }
             context.reset();
@@ -183,10 +184,11 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
     private static class WorkerState implements RoleState {
 
         private RoleStateData stateData;
-        private int count = 0;
+        private int count;
 
         public WorkerState(RoleStateData stateData) {
             this.stateData = stateData;
+            this.count = 0;
         }
 
         @Override
@@ -217,10 +219,10 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             } else if (state.stateData.epoch() < this.stateData.epoch()){
                 throw new IllegalStateException("Epoch must increase");
             } else if (state.stateData.epoch() == this.stateData.epoch() &&
-                       state.stateData.count() < this.stateData.count()) {
-                throw new IllegalStateException("Meta count must increase");
+                       state.stateData.clock() < this.stateData.clock()) {
+                throw new IllegalStateException("Clock must increase");
             } else if (state.stateData.epoch() == this.stateData.epoch() &&
-                       state.stateData.count() > this.stateData.count()) {
+                       state.stateData.clock() > this.stateData.clock()) {
                 this.count = 0;
                 this.stateData = state.stateData;
             } else {
@@ -244,10 +246,10 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             RoleStateData stateData = new RoleStateData(context.config().node(), epoch);
             //failover to master success
             context.epoch(stateData.epoch());
-            if (context.adapter().delayIfNodePresent(stateData, -1)) {
+            if (context.adapter().updateIfNodePresent(stateData)) {
                 return new MasterState(stateData);
             } else {
-                return new WorkerState(stateData);
+                return new UnKnownState(epoch).transform(context);
             }
         }
 
@@ -284,7 +286,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
 
         @Override
-        public RoleStataDataAdapter adapter() {
+        public RoleTypeDataAdapter adapter() {
             return this.machine.adapter();
         }
 
@@ -304,7 +306,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
     }
 
-    protected RoleStataDataAdapter adapter() {
-        return this.roleStataDataAdapter;
+    protected RoleTypeDataAdapter adapter() {
+        return this.roleTypeDataAdapter;
     }
 }

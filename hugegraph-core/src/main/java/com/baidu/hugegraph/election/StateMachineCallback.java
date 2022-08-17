@@ -29,7 +29,7 @@ public interface StateMachineCallback {
 
     void unknown(StateMachineContext context);
 
-    void safe(StateMachineContext context);
+    void abdication(StateMachineContext context);
 
     void error(StateMachineContext context, Throwable e);
 }

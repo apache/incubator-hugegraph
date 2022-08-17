@@ -24,21 +24,21 @@ import java.util.Objects;
 public class RoleStateData {
 
     private String node;
-    private long count;
+    private long clock;
     private int epoch;
 
     public RoleStateData(String node, int epoch) {
         this(node, epoch, 1);
     }
 
-    public RoleStateData(String node, int epoch, long count) {
+    public RoleStateData(String node, int epoch, long clock) {
         this.node = node;
         this.epoch = epoch;
-        this.count = count;
+        this.clock = clock;
     }
 
-    public void increaseCount() {
-        this.count++;
+    public void increaseClock() {
+        this.clock++;
     }
 
     public boolean isMaster(String node) {
@@ -49,12 +49,12 @@ public class RoleStateData {
         return this.epoch;
     }
 
-    public long count() {
-        return this.count;
+    public long clock() {
+        return this.clock;
     }
 
-    public void count(long count) {
-        this.count = count;
+    public void clock(long clock) {
+        this.clock = clock;
     }
 
     public String node() {
@@ -62,29 +62,29 @@ public class RoleStateData {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if (!(o instanceof RoleStateData)) {
+        if (!(obj instanceof RoleStateData)) {
             return false;
         }
-        RoleStateData metaData = (RoleStateData) o;
-        return count == metaData.count &&
+        RoleStateData metaData = (RoleStateData) obj;
+        return clock == metaData.clock &&
                epoch == metaData.epoch &&
                Objects.equals(node, metaData.node);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(node, count, epoch);
+        return Objects.hash(node, clock, epoch);
     }
 
     @Override
     public String toString() {
         return "RoleStateData{" +
                 "node='" + node + '\'' +
-                ", count=" + count +
+                ", clock=" + clock +
                 ", epoch=" + epoch +
                 '}';
     }

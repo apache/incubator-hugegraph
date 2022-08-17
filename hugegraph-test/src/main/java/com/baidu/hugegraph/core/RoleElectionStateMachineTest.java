@@ -32,16 +32,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.baidu.hugegraph.election.Config;
 import com.baidu.hugegraph.election.RoleStateData;
-import com.baidu.hugegraph.election.RoleStataDataAdapter;
+import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.RoleElectionStateMachine;
 import com.baidu.hugegraph.election.RoleElectionStateMachineImpl;
 import com.baidu.hugegraph.election.StateMachineCallback;
 import com.baidu.hugegraph.election.StateMachineContext;
+import com.baidu.hugegraph.testutil.Assert;
 
 public class RoleElectionStateMachineTest {
 
@@ -57,7 +57,7 @@ public class RoleElectionStateMachineTest {
             master,
             worker,
             candidate,
-            safe,
+            abdication,
             unknown
         }
 
@@ -68,11 +68,12 @@ public class RoleElectionStateMachineTest {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof LogEntry)) return false;
-            LogEntry logEntry = (LogEntry) o;
-            return Objects.equals(epoch, logEntry.epoch) && Objects.equals(node, logEntry.node) && role == logEntry.role;
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (!(obj instanceof LogEntry)) return false;
+            LogEntry logEntry = (LogEntry) obj;
+            return Objects.equals(epoch, logEntry.epoch) &&
+                   Objects.equals(node, logEntry.node) && role == logEntry.role;
         }
 
         @Override
@@ -180,10 +181,10 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void safe(StateMachineContext context) {
+            public void abdication(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
-                logRecords.add(new LogEntry(epochId, node, LogEntry.Role.safe));
+                logRecords.add(new LogEntry(epochId, node, LogEntry.Role.abdication));
                 if (logRecords.size() > MAX_COUNT) {
                     context.stateMachine().shutdown();
                 }
@@ -196,7 +197,7 @@ public class RoleElectionStateMachineTest {
         };
 
         final List<RoleStateData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
-        final RoleStataDataAdapter adapter = new RoleStataDataAdapter() {
+        final RoleTypeDataAdapter adapter = new RoleTypeDataAdapter() {
 
             volatile int epoch = 0;
 
@@ -206,14 +207,11 @@ public class RoleElectionStateMachineTest {
                 if (stateData == null) {
                     return null;
                 }
-                return new RoleStateData(stateData.node(), stateData.epoch(), stateData.count());
+                return new RoleStateData(stateData.node(), stateData.epoch(), stateData.clock());
             }
 
             @Override
-            public boolean delayIfNodePresent(RoleStateData stateData, long delaySecond) {
-                if (delaySecond > 0) {
-                    LockSupport.parkNanos(delaySecond * 1_000_000_000);
-                }
+            public boolean updateIfNodePresent(RoleStateData stateData) {
                 if (stateData.epoch() < this.epoch) {
                     return false;
                 }
@@ -230,10 +228,10 @@ public class RoleElectionStateMachineTest {
 
                     Assert.assertEquals(value.epoch(), copy.epoch());
                     if (Objects.equals(value.node(), copy.node()) &&
-                        value.count() <= copy.count()) {
+                        value.clock() <= copy.clock()) {
                         System.out.println("----2" + copy);
                         metaDataLogs.add(copy);
-                        if (value.count() == copy.count()) {
+                        if (value.clock() == copy.clock()) {
                             Exception e = new Exception("eq");
                             e.printStackTrace();
                         }
@@ -243,12 +241,6 @@ public class RoleElectionStateMachineTest {
 
                 });
                 return Objects.equals(newData, copy);
-            }
-
-            @Override
-            public Optional<RoleStateData> queryWithDelay(long delaySecond) {
-                LockSupport.parkNanos(delaySecond * 1_000_000_000);
-                return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
 
             @Override
@@ -308,7 +300,7 @@ public class RoleElectionStateMachineTest {
         randomShutdown.start();
         stop.await();
 
-        Assert.assertTrue(logRecords.size() > 0);
+        Assert.assertGt(0, logRecords.size());
         Map<Integer, String> masters = new HashMap<>();
         for (LogEntry entry: logRecords) {
             if (entry.role == LogEntry.Role.master) {
@@ -319,6 +311,6 @@ public class RoleElectionStateMachineTest {
             }
         }
 
-        Assert.assertTrue(masters.size() > 0);
+        Assert.assertGt(0, masters.size());
     }
 }
