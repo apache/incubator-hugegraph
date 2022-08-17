@@ -35,7 +35,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
     public RoleElectionStateMachineImpl(Config config, RoleTypeDataAdapter adapter) {
         this.config = config;
         this.roleTypeDataAdapter = adapter;
-        this.state = new UnKnownState(null);
+        this.state = new UnknownState(null);
         this.shutdown = false;
     }
 
@@ -94,11 +94,11 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         void call(StateMachineContext context);
     }
 
-    private static class UnKnownState implements RoleState {
+    private static class UnknownState implements RoleState {
 
         final Integer epoch;
 
-        public UnKnownState(Integer epoch) {
+        public UnknownState(Integer epoch) {
             this.epoch = epoch;
         }
 
@@ -146,7 +146,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleState.heartBeatPark(context);
-            return new UnKnownState(this.epoch).transform(context);
+            return new UnknownState(this.epoch).transform(context);
         }
 
         @Override
@@ -172,7 +172,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             }
             context.reset();
             context.epoch(this.roleTypeData.epoch());
-            return new UnKnownState(this.roleTypeData.epoch()).transform(context);
+            return new UnknownState(this.roleTypeData.epoch()).transform(context);
         }
 
         @Override
@@ -194,7 +194,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleState.heartBeatPark(context);
-            RoleState nextState = new UnKnownState(this.roleTypeData.epoch()).transform(context);
+            RoleState nextState = new UnknownState(this.roleTypeData.epoch()).transform(context);
             if (nextState instanceof WorkerState) {
                 this.merge((WorkerState) nextState);
                 if (this.clock > context.config().exceedsWorkerCount()) {
@@ -249,7 +249,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             if (context.adapter().updateIfNodePresent(roleTypeData)) {
                 return new MasterState(roleTypeData);
             } else {
-                return new UnKnownState(epoch).transform(context);
+                return new UnknownState(epoch).transform(context);
             }
         }
 
