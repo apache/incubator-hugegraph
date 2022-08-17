@@ -21,17 +21,17 @@ package com.baidu.hugegraph.election;
 
 import java.util.Objects;
 
-public class RoleStateData {
+public class RoleTypeData {
 
     private String node;
     private long clock;
     private int epoch;
 
-    public RoleStateData(String node, int epoch) {
+    public RoleTypeData(String node, int epoch) {
         this(node, epoch, 1);
     }
 
-    public RoleStateData(String node, int epoch, long clock) {
+    public RoleTypeData(String node, int epoch, long clock) {
         this.node = node;
         this.epoch = epoch;
         this.clock = clock;
@@ -66,10 +66,10 @@ public class RoleStateData {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof RoleStateData)) {
+        if (!(obj instanceof RoleTypeData)) {
             return false;
         }
-        RoleStateData metaData = (RoleStateData) obj;
+        RoleTypeData metaData = (RoleTypeData) obj;
         return clock == metaData.clock &&
                epoch == metaData.epoch &&
                Objects.equals(node, metaData.node);

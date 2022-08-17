@@ -35,7 +35,7 @@ import java.util.concurrent.locks.LockSupport;
 import org.junit.Test;
 
 import com.baidu.hugegraph.election.Config;
-import com.baidu.hugegraph.election.RoleStateData;
+import com.baidu.hugegraph.election.RoleTypeData;
 import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.RoleElectionStateMachine;
 import com.baidu.hugegraph.election.RoleElectionStateMachineImpl;
@@ -69,8 +69,12 @@ public class RoleElectionStateMachineTest {
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (!(obj instanceof LogEntry)) return false;
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof LogEntry)) {
+                return false;
+            }
             LogEntry logEntry = (LogEntry) obj;
             return Objects.equals(epoch, logEntry.epoch) &&
                    Objects.equals(node, logEntry.node) && role == logEntry.role;
@@ -196,28 +200,28 @@ public class RoleElectionStateMachineTest {
             }
         };
 
-        final List<RoleStateData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
+        final List<RoleTypeData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
         final RoleTypeDataAdapter adapter = new RoleTypeDataAdapter() {
 
             volatile int epoch = 0;
 
-            final Map<Integer, RoleStateData> data = new ConcurrentHashMap<>();
+            final Map<Integer, RoleTypeData> data = new ConcurrentHashMap<>();
 
-            RoleStateData copy(RoleStateData stateData) {
+            RoleTypeData copy(RoleTypeData stateData) {
                 if (stateData == null) {
                     return null;
                 }
-                return new RoleStateData(stateData.node(), stateData.epoch(), stateData.clock());
+                return new RoleTypeData(stateData.node(), stateData.epoch(), stateData.clock());
             }
 
             @Override
-            public boolean updateIfNodePresent(RoleStateData stateData) {
+            public boolean updateIfNodePresent(RoleTypeData stateData) {
                 if (stateData.epoch() < this.epoch) {
                     return false;
                 }
 
-                RoleStateData copy = this.copy(stateData);
-                RoleStateData newData = data.compute(copy.epoch(), (key, value) -> {
+                RoleTypeData copy = this.copy(stateData);
+                RoleTypeData newData = data.compute(copy.epoch(), (key, value) -> {
                     if (copy.epoch() > this.epoch) {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
@@ -244,7 +248,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public Optional<RoleStateData> query() {
+            public Optional<RoleTypeData> query() {
                 return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
         };

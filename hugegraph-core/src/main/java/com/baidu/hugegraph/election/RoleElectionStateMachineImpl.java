@@ -105,27 +105,27 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleTypeDataAdapter adapter = context.adapter();
-            Optional<RoleStateData> stateDataOpt = adapter.query();
-            if (!stateDataOpt.isPresent()) {
+            Optional<RoleTypeData> roleTypeDataOpt = adapter.query();
+            if (!roleTypeDataOpt.isPresent()) {
                 context.reset();
                 Integer nextEpoch = this.epoch == null ? 1 : this.epoch + 1;
                 context.epoch(nextEpoch);
                 return new CandidateState(nextEpoch);
             }
 
-            RoleStateData stateData = stateDataOpt.get();
-            if (this.epoch != null && stateData.epoch() < this.epoch) {
+            RoleTypeData roleTypeData = roleTypeDataOpt.get();
+            if (this.epoch != null && roleTypeData.epoch() < this.epoch) {
                 context.reset();
                 Integer nextEpoch = this.epoch + 1;
                 context.epoch(nextEpoch);
                 return new CandidateState(nextEpoch);
             }
 
-            context.epoch(stateData.epoch());
-            if (stateData.isMaster(context.node())) {
-                return new MasterState(stateData);
+            context.epoch(roleTypeData.epoch());
+            if (roleTypeData.isMaster(context.node())) {
+                return new MasterState(roleTypeData);
             } else {
-                return new WorkerState(stateData);
+                return new WorkerState(roleTypeData);
             }
         }
 
@@ -157,22 +157,22 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class MasterState implements RoleState {
 
-        private final RoleStateData stateData;
+        private final RoleTypeData roleTypeData;
 
-        public MasterState(RoleStateData stateData) {
-            this.stateData = stateData;
+        public MasterState(RoleTypeData roleTypeData) {
+            this.roleTypeData = roleTypeData;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            this.stateData.increaseClock();
+            this.roleTypeData.increaseClock();
             RoleState.heartBeatPark(context);
-            if (context.adapter().updateIfNodePresent(this.stateData)) {
+            if (context.adapter().updateIfNodePresent(this.roleTypeData)) {
                 return this;
             }
             context.reset();
-            context.epoch(this.stateData.epoch());
-            return new UnKnownState(this.stateData.epoch()).transform(context);
+            context.epoch(this.roleTypeData.epoch());
+            return new UnKnownState(this.roleTypeData.epoch()).transform(context);
         }
 
         @Override
@@ -183,22 +183,22 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private static class WorkerState implements RoleState {
 
-        private RoleStateData stateData;
-        private int count;
+        private RoleTypeData roleTypeData;
+        private int clock;
 
-        public WorkerState(RoleStateData stateData) {
-            this.stateData = stateData;
-            this.count = 0;
+        public WorkerState(RoleTypeData roleTypeData) {
+            this.roleTypeData = roleTypeData;
+            this.clock = 0;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleState.heartBeatPark(context);
-            RoleState nextState = new UnKnownState(this.stateData.epoch()).transform(context);
+            RoleState nextState = new UnKnownState(this.roleTypeData.epoch()).transform(context);
             if (nextState instanceof WorkerState) {
                 this.merge((WorkerState) nextState);
-                if (this.count > context.config().exceedsWorkerCount()) {
-                    return new CandidateState(this.stateData.epoch() + 1);
+                if (this.clock > context.config().exceedsWorkerCount()) {
+                    return new CandidateState(this.roleTypeData.epoch() + 1);
                 } else {
                     return this;
                 }
@@ -213,20 +213,20 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         }
 
         public void merge(WorkerState state) {
-            if (state.stateData.epoch() > this.stateData.epoch()) {
-                this.count = 0;
-                this.stateData = state.stateData;
-            } else if (state.stateData.epoch() < this.stateData.epoch()){
+            if (state.roleTypeData.epoch() > this.roleTypeData.epoch()) {
+                this.clock = 0;
+                this.roleTypeData = state.roleTypeData;
+            } else if (state.roleTypeData.epoch() < this.roleTypeData.epoch()){
                 throw new IllegalStateException("Epoch must increase");
-            } else if (state.stateData.epoch() == this.stateData.epoch() &&
-                       state.stateData.clock() < this.stateData.clock()) {
+            } else if (state.roleTypeData.epoch() == this.roleTypeData.epoch() &&
+                       state.roleTypeData.clock() < this.roleTypeData.clock()) {
                 throw new IllegalStateException("Clock must increase");
-            } else if (state.stateData.epoch() == this.stateData.epoch() &&
-                       state.stateData.clock() > this.stateData.clock()) {
-                this.count = 0;
-                this.stateData = state.stateData;
+            } else if (state.roleTypeData.epoch() == this.roleTypeData.epoch() &&
+                       state.roleTypeData.clock() > this.roleTypeData.clock()) {
+                this.clock = 0;
+                this.roleTypeData = state.roleTypeData;
             } else {
-                this.count++;
+                this.clock++;
             }
         }
     }
@@ -243,11 +243,11 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         public RoleState transform(StateMachineContext context) {
             RoleState.randomPark(context);
             int epoch = this.epoch == null ? 1 : this.epoch;
-            RoleStateData stateData = new RoleStateData(context.config().node(), epoch);
+            RoleTypeData roleTypeData = new RoleTypeData(context.config().node(), epoch);
             //failover to master success
-            context.epoch(stateData.epoch());
-            if (context.adapter().updateIfNodePresent(stateData)) {
-                return new MasterState(stateData);
+            context.epoch(roleTypeData.epoch());
+            if (context.adapter().updateIfNodePresent(roleTypeData)) {
+                return new MasterState(roleTypeData);
             } else {
                 return new UnKnownState(epoch).transform(context);
             }

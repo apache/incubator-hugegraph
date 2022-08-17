@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public interface RoleTypeDataAdapter {
 
-    boolean updateIfNodePresent(RoleStateData stateData);
+    boolean updateIfNodePresent(RoleTypeData stateData);
 
-    Optional<RoleStateData> query();
+    Optional<RoleTypeData> query();
 }
