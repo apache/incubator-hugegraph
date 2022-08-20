@@ -57,7 +57,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "WeightedShortestPathAPI")
 public class WeightedShortestPathAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(WeightedShortestPathAPI.class);
 
     @GET
     @Timed

@@ -59,7 +59,7 @@ import com.google.common.collect.ImmutableList;
 public abstract class MysqlTable
                 extends BackendTable<Session, MysqlBackendEntry.Row> {
 
-    private static final Logger LOG = Log.logger(MysqlStore.class);
+    private static final Logger LOG = Log.logger(MysqlTable.class);
 
     private static final String DECIMAL = "DECIMAL";
 

@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "CrosspointsAPI")
 public class CrosspointsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CrosspointsAPI.class);
 
     @GET
     @Timed

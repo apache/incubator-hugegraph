@@ -64,7 +64,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "GraphsAPI")
 public class GraphsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(GraphsAPI.class);
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";

@@ -47,7 +47,7 @@ import com.baidu.hugegraph.util.ParameterUtil;
 
 public abstract class AbstractComputer implements Computer {
 
-    private static final Logger LOG = Log.logger(Computer.class);
+    private static final Logger LOG = Log.logger(AbstractComputer.class);
 
     private static final String HADOOP_HOME = "HADOOP_HOME";
     private static final String COMMON = "common";

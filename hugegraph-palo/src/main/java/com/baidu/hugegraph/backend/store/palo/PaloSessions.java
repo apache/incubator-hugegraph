@@ -49,7 +49,7 @@ import com.google.common.collect.Multimap;
 
 public class PaloSessions extends MysqlSessions {
 
-    private static final Logger LOG = Log.logger(PaloStore.class);
+    private static final Logger LOG = Log.logger(PaloSessions.class);
 
     private final AtomicInteger counter;
     private final Map<Integer, ReadWriteLock> locks;

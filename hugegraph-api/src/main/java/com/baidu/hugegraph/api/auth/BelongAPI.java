@@ -57,7 +57,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "BelongAPI")
 public class BelongAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(BelongAPI.class);
 
     @POST
     @Timed

@@ -62,7 +62,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "CustomizedCrosspointsAPI")
 public class CustomizedCrosspointsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CustomizedCrosspointsAPI.class);
 
     @POST
     @Timed

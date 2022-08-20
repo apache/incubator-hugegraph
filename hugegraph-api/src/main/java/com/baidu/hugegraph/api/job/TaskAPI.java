@@ -62,7 +62,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "TaskAPI")
 public class TaskAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(TaskAPI.class);
     private static final long NO_LIMIT = -1L;
 
     public static final String ACTION_CANCEL = "cancel";

@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "CountAPI")
 public class CountAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CountAPI.class);
 
     @POST
     @Timed

@@ -59,7 +59,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "AccessAPI")
 public class AccessAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(AccessAPI.class);
 
     @POST
     @Timed

@@ -67,7 +67,7 @@ import com.google.common.collect.ImmutableList;
 @Tag(name = "KneighborAPI")
 public class KneighborAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(KneighborAPI.class);
 
     @GET
     @Timed

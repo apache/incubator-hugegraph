@@ -68,7 +68,7 @@ import com.google.common.collect.ImmutableList;
 @Tag(name = "KoutAPI")
 public class KoutAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(KoutAPI.class);
 
     @GET
     @Timed

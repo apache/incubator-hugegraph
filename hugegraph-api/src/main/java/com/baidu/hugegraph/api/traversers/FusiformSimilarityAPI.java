@@ -57,7 +57,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "FusiformSimilarityAPI")
 public class FusiformSimilarityAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(FusiformSimilarityAPI.class);
 
     @POST
     @Timed

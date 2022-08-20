@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableSet;
 
 public abstract class TaskCallable<V> implements Callable<V> {
 
-    private static final Logger LOG = Log.logger(HugeTask.class);
+    private static final Logger LOG = Log.logger(TaskCallable.class);
 
     private static final String ERROR_COMMIT = "Failed to commit changes: ";
     private static final Set<String> ERROR_MESSAGES = ImmutableSet.of(
