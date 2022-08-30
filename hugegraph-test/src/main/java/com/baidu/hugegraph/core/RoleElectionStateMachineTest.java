@@ -32,16 +32,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
-import org.junit.Test;
-
 import com.baidu.hugegraph.election.Config;
-import com.baidu.hugegraph.election.RoleTypeData;
-import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.RoleElectionStateMachine;
 import com.baidu.hugegraph.election.RoleElectionStateMachineImpl;
+import com.baidu.hugegraph.election.RoleTypeData;
+import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.StateMachineCallback;
 import com.baidu.hugegraph.election.StateMachineContext;
 import com.baidu.hugegraph.testutil.Assert;
+import org.junit.Test;
 
 public class RoleElectionStateMachineTest {
 
@@ -150,7 +149,7 @@ public class RoleElectionStateMachineTest {
                 if (logRecords.size() > MAX_COUNT) {
                     context.stateMachine().shutdown();
                 }
-                System.out.println("----master " + node);
+                System.out.println("master node: " + node);
                 masterNodes.add(node);
             }
 
@@ -196,7 +195,7 @@ public class RoleElectionStateMachineTest {
 
             @Override
             public void error(StateMachineContext context, Throwable e) {
-                System.out.println("----" + context.node() + " " + e.getMessage());
+                System.out.println("state machine error: node " + context.node() + " message " + e.getMessage());
             }
         };
 
@@ -226,18 +225,17 @@ public class RoleElectionStateMachineTest {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
                         metaDataLogs.add(copy);
-                        System.out.println("----1" + copy);
+                        System.out.println("The node " + copy + " become new master:");
                         return copy;
                     }
 
                     Assert.assertEquals(value.epoch(), copy.epoch());
                     if (Objects.equals(value.node(), copy.node()) &&
                         value.clock() <= copy.clock()) {
-                        System.out.println("----2" + copy);
+                        System.out.println("The master node " + copy + " keep heartbeat");
                         metaDataLogs.add(copy);
                         if (value.clock() == copy.clock()) {
-                            Exception e = new Exception("eq");
-                            e.printStackTrace();
+                            Assert.fail("Clock must increase when same epoch and node id");
                         }
                         return copy;
                     }
