@@ -12,7 +12,7 @@
 
     <artifactId>hugegraph-rpc</artifactId>
     <name>${artifactId}</name>
-    <description>HugeGraph Database RPC component</description>
+    <description>HugeGraph RPC component</description>
 
     <properties>
         <!-- Use parent params -->
@@ -21,9 +21,9 @@
     <dependencies>
         <!-- hugegraph-common -->
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
         </dependency>
 
         <!-- sofa rpc -->

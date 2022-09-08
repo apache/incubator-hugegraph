@@ -31,6 +31,7 @@
         </license>
     </licenses>
 
+   <!-- TODO: update url to upload in maven repo  -->
     <scm>
         <url>https://github.com/hugegraph/hugegraph-commons</url>
         <connection>https://github.com/hugegraph/hugegraph-commons</connection>
@@ -38,7 +39,7 @@
     </scm>
 
     <properties>
-        <revision>2.1.2</revision>
+        <revision>1.0.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>
