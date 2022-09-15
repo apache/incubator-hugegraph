@@ -28,8 +28,7 @@ import org.slf4j.Logger;
 
 public class PausableScheduledThreadPool extends ScheduledThreadPoolExecutor {
 
-    private static final Logger LOG = Log.logger(
-                                      PausableScheduledThreadPool.class);
+    private static final Logger LOG = Log.logger(PausableScheduledThreadPool.class);
 
     private volatile boolean paused = false;
 

@@ -24,31 +24,45 @@ import java.util.Map;
 import jakarta.ws.rs.core.MultivaluedMap;
 
 public interface RestClient {
+    /**
+     * Post method
+     */
+    RestResult post(String path, Object object);
 
-    public RestResult post(String path, Object object);
-    public RestResult post(String path, Object object,
-                           MultivaluedMap<String, Object> headers);
-    public RestResult post(String path, Object object,
-                           Map<String, Object> params);
-    public RestResult post(String path, Object object,
-                           MultivaluedMap<String, Object> headers,
-                           Map<String, Object> params);
+    RestResult post(String path, Object object, MultivaluedMap<String, Object> headers);
 
-    public RestResult put(String path, String id, Object object);
-    public RestResult put(String path, String id, Object object,
-                          MultivaluedMap<String, Object> headers);
-    public RestResult put(String path, String id, Object object,
-                          Map<String, Object> params);
-    public RestResult put(String path, String id, Object object,
-                          MultivaluedMap<String, Object> headers,
-                          Map<String, Object> params);
+    RestResult post(String path, Object object, Map<String, Object> params);
 
-    public RestResult get(String path);
-    public RestResult get(String path, Map<String, Object> params);
-    public RestResult get(String path, String id);
+    RestResult post(String path, Object object, MultivaluedMap<String, Object> headers,
+                    Map<String, Object> params);
 
-    public RestResult delete(String path, Map<String, Object> params);
-    public RestResult delete(String path, String id);
+    /**
+     * Put method
+     */
+    RestResult put(String path, String id, Object object);
 
-    public void close();
+    RestResult put(String path, String id, Object object, MultivaluedMap<String, Object> headers);
+
+    RestResult put(String path, String id, Object object, Map<String, Object> params);
+
+    RestResult put(String path, String id, Object object, MultivaluedMap<String, Object> headers,
+                   Map<String, Object> params);
+
+    /**
+     * Get method
+     */
+    RestResult get(String path);
+
+    RestResult get(String path, Map<String, Object> params);
+
+    RestResult get(String path, String id);
+
+    /**
+     * Delete method
+     */
+    RestResult delete(String path, Map<String, Object> params);
+
+    RestResult delete(String path, String id);
+
+    void close();
 }

@@ -47,8 +47,8 @@ public final class CheckSocket {
                                   Integer.parseInt(args[1]));
             s.close();
             System.exit(0);
-        } catch (IOException ignored) {
-            System.err.println(ignored.toString());
+        } catch (IOException e) {
+            System.err.println(e);
             System.exit(E_FAILED);
         }
     }

@@ -435,11 +435,11 @@ public abstract class AbstractRestClient implements RestClient {
                                                       String url,
                                                       ClientConfig conf) {
         String protocol = (String) conf.getProperty("protocol");
-        if (protocol == null || protocol.equals("http")) {
+        if (protocol == null || "http".equals(protocol)) {
             return new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
         }
 
-        assert protocol.equals("https");
+        assert "https".equals(protocol);
         String trustStoreFile = (String) conf.getProperty("trustStoreFile");
         E.checkArgument(trustStoreFile != null && !trustStoreFile.isEmpty(),
                         "The trust store file must be set when use https");

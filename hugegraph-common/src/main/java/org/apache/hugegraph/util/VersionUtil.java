@@ -94,7 +94,7 @@ public final class VersionUtil {
     public static String getImplementationVersion(String manifestPath) {
         manifestPath += "/META-INF/MANIFEST.MF";
 
-        Manifest manifest = null;
+        Manifest manifest;
         try {
             manifest = new Manifest(new URL(manifestPath).openStream());
         } catch (IOException ignored) {

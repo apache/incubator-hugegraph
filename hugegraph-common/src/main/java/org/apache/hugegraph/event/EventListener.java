@@ -25,5 +25,5 @@ public interface EventListener extends java.util.EventListener {
      * @param event object
      * @return event result
      */
-    public Object event(Event event);
+    Object event(Event event);
 }

@@ -21,14 +21,14 @@ package org.apache.hugegraph.license;
 
 public interface LicenseManager {
 
-    public LicenseParams installLicense() throws Exception;
+    LicenseParams installLicense() throws Exception;
 
-    public void uninstallLicense() throws Exception;
+    void uninstallLicense() throws Exception;
 
-    public LicenseParams verifyLicense() throws Exception;
+    LicenseParams verifyLicense() throws Exception;
 
-    public interface VerifyCallback {
+    interface VerifyCallback {
 
-        public void onVerifyLicense(LicenseParams params) throws Exception;
+        void onVerifyLicense(LicenseParams params) throws Exception;
     }
 }

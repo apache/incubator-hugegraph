@@ -682,9 +682,7 @@ public class ServerClientTest extends BaseUnitTest {
         RpcServer rpcServerDisabled = new RpcServer(clientConf);
 
         Assert.assertFalse(rpcServerDisabled.enabled());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            rpcServerDisabled.config();
-        }, e -> {
+        Assert.assertThrows(IllegalArgumentException.class, rpcServerDisabled::config, e -> {
             Assert.assertContains("RpcServer is not enabled", e.getMessage());
         });
 
@@ -697,9 +695,7 @@ public class ServerClientTest extends BaseUnitTest {
         RpcClientProvider rpcClientDisabled = new RpcClientProvider(serverConf);
 
         Assert.assertFalse(rpcClientDisabled.enabled());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            rpcClientDisabled.config();
-        }, e -> {
+        Assert.assertThrows(IllegalArgumentException.class, rpcClientDisabled::config, e -> {
             Assert.assertContains("RpcClient is not enabled", e.getMessage());
         });
 

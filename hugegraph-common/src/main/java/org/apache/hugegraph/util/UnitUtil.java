@@ -156,7 +156,7 @@ public final class UnitUtil {
         } else {
             // Not exists days
             int msPos = formatDuration.indexOf("MS");
-            // If contains ms, rmove the ms part
+            // If contains ms, remove the ms part
             if (msPos >= 0) {
                 int sPos = formatDuration.indexOf("S");
                 if (0 <= sPos && sPos < msPos) {

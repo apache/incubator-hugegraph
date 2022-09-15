@@ -159,8 +159,8 @@ public class EventHub {
                 try {
                     all.next().event(ev);
                     count++;
-                } catch (Throwable ignored) {
-                    LOG.warn("Failed to handle event: {}", ev, ignored);
+                } catch (Throwable e) {
+                    LOG.warn("Failed to handle event: {}", ev, e);
                 }
             }
             return count;

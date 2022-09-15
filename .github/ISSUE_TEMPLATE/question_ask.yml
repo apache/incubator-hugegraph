@@ -25,7 +25,7 @@ body:
       label: Problem Type (问题类型)
       options:
         - struct / logic (架构 / 逻辑设计问题)
-        - performence (性能优化)
+        - performance (性能优化)
         - exception / error (异常报错)
         - others (please edit later)
   

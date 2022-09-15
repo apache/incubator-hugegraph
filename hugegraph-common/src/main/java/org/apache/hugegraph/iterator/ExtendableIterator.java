@@ -82,7 +82,7 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
             return true;
         }
 
-        Iterator<T> first = null;
+        Iterator<T> first;
         while ((first = this.itors.peekFirst()) != null && !first.hasNext()) {
             if (first == this.itors.peekLast() && this.itors.size() == 1) {
                 this.currentIterator = first;

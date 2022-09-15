@@ -28,7 +28,7 @@ body:
       options:
         - exception / error (异常报错)
         - logic (逻辑设计问题)
-        - performence (性能下降)
+        - performance (性能下降)
         - others (please edit later)
   
   - type: checkboxes

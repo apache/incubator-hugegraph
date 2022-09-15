@@ -184,11 +184,9 @@ public final class NormalStopwatch implements Stopwatch {
     @Override
     public void fillChildrenTotal(List<Stopwatch> children) {
         // Fill total wasted cost of children
-        this.totalChildrenWasted = children.stream().mapToLong(
-                                   c -> c.totalWasted()).sum();
+        this.totalChildrenWasted = children.stream().mapToLong(Stopwatch::totalWasted).sum();
         // Fill total times of children
-        this.totalChildrenTimes = children.stream().mapToLong(
-                                  c -> c.totalTimes()).sum();
+        this.totalChildrenTimes = children.stream().mapToLong(Stopwatch::totalTimes).sum();
     }
 
     @Override

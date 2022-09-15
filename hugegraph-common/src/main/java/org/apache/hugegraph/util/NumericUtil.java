@@ -40,7 +40,7 @@ public final class NumericUtil {
      * <code>long</code>. The value is converted by getting their IEEE 754
      * floating-point &quot;double format&quot; bit layout and then some bits
      * are swapped, to be able to compare the result as long. By this the
-     * precision is not reduced, but the value can easily used as a long. The
+     * precision is not reduced, but the value can be easily used as a long. The
      * sort order (including {@link Double#NaN}) is defined by
      * {@link Double#compareTo}; {@code NaN} is greater than positive infinity.
      * @param value input double value
@@ -66,7 +66,7 @@ public final class NumericUtil {
      * <code>int</code>. The value is converted by getting their IEEE 754
      * floating-point &quot;float format&quot; bit layout and then some bits are
      * swapped, to be able to compare the result as int. By this the precision
-     * is not reduced, but the value can easily used as an int. The sort order
+     * is not reduced, but the value can be easily used as an int. The sort order
      * (including {@link Float#NaN}) is defined by {@link Float#compareTo};
      * {@code NaN} is greater than positive infinity.
      * @param value input float value
@@ -100,7 +100,7 @@ public final class NumericUtil {
     /**
      * Converts IEEE 754 representation of a float to sortable order (or back to
      * the original)
-     * @param bits The int format of an float value
+     * @param bits The int format of a float value
      * @return The sortable int value
      */
     public static int sortableFloatBits(int bits) {

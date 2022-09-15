@@ -42,9 +42,7 @@ public class Assert extends org.junit.Assert {
     public static void assertThrows(Class<? extends Throwable> throwable,
                                     ThrowableRunnable runnable) {
         CompletableFuture<?> future = assertThrowsFuture(throwable, runnable);
-        future.thenAccept(e -> {
-            System.err.println(e);
-        });
+        future.thenAccept(System.err::println);
     }
 
     public static void assertThrows(Class<? extends Throwable> throwable,

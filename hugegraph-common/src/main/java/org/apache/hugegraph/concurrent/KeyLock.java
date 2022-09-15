@@ -88,7 +88,7 @@ public class KeyLock {
             Lock lock = this.locks.get(key);
             locks.add(lock);
         }
-        Collections.sort(locks, (a, b) -> {
+        locks.sort((a, b) -> {
             int diff = a.hashCode() - b.hashCode();
             if (diff == 0 && a != b) {
                 diff = this.indexOf(a) - this.indexOf(b);
@@ -96,8 +96,8 @@ public class KeyLock {
             }
             return diff;
         });
-        for (int i = 0; i < locks.size(); i++) {
-            locks.get(i).lock();
+        for (Lock lock : locks) {
+            lock.lock();
         }
         return Collections.unmodifiableList(locks);
     }
@@ -125,8 +125,8 @@ public class KeyLock {
                            ImmutableList.of(lock2, lock1) :
                            ImmutableList.of(lock1, lock2);
 
-        for (int i = 0; i < locks.size(); i++) {
-            locks.get(i).lock();
+        for (Lock lock : locks) {
+            lock.lock();
         }
 
         return locks;

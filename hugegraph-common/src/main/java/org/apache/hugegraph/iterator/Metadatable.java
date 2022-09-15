@@ -21,5 +21,5 @@ package org.apache.hugegraph.iterator;
 
 public interface Metadatable {
 
-    public Object metadata(String meta, Object... args);
+    Object metadata(String meta, Object... args);
 }

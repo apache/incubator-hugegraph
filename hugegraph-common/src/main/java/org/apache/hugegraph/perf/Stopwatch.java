@@ -23,40 +23,40 @@ import java.util.List;
 
 public interface Stopwatch extends Cloneable {
 
-    public Path id();
-    public String name();
-    public Path parent();
+    Path id();
+    String name();
+    Path parent();
 
-    public void startTime(long startTime);
-    public void endTime(long startTime);
+    void startTime(long startTime);
+    void endTime(long startTime);
 
-    public void lastStartTime(long startTime);
+    void lastStartTime(long startTime);
 
-    public long times();
-    public long totalTimes();
-    public long totalChildrenTimes();
+    long times();
+    long totalTimes();
+    long totalChildrenTimes();
 
-    public long totalCost();
-    public void totalCost(long otherCost);
+    long totalCost();
+    void totalCost(long otherCost);
 
-    public long minCost();
-    public long maxCost();
+    long minCost();
+    long maxCost();
 
-    public long totalWasted();
-    public long totalSelfWasted();
-    public long totalChildrenWasted();
+    long totalWasted();
+    long totalSelfWasted();
+    long totalChildrenWasted();
 
-    public void fillChildrenTotal(List<Stopwatch> children);
+    void fillChildrenTotal(List<Stopwatch> children);
 
-    public Stopwatch copy();
+    Stopwatch copy();
 
-    public Stopwatch child(String name);
-    public Stopwatch child(String name, Stopwatch watch);
+    Stopwatch child(String name);
+    Stopwatch child(String name, Stopwatch watch);
 
-    public boolean empty();
-    public void clear();
+    boolean empty();
+    void clear();
 
-    public default String toJson() {
+    default String toJson() {
         int len = 200 + this.name().length() + this.parent().length();
         StringBuilder sb = new StringBuilder(len);
         sb.append("{");
@@ -75,14 +75,14 @@ public interface Stopwatch extends Cloneable {
         return sb.toString();
     }
 
-    public static Path id(Path parent, String name) {
+    static Path id(Path parent, String name) {
         if (parent == Path.EMPTY && name == Path.ROOT_NAME) {
             return Path.EMPTY;
         }
         return new Path(parent, name);
     }
 
-    public static final class Path implements Comparable<Path> {
+    final class Path implements Comparable<Path> {
 
         public static final String ROOT_NAME = "root";
         public static final Path EMPTY = new Path("");

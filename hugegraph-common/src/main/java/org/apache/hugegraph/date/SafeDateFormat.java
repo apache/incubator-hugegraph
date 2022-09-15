@@ -48,7 +48,7 @@ public class SafeDateFormat {
         this.formatter = this.formatter.withZone(zone);
     }
 
-    public TimeZone getTimeZome() {
+    public TimeZone getTimeZone() {
         return this.formatter.getZone().toTimeZone();
     }
 

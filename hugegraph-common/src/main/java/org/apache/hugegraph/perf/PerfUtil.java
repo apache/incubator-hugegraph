@@ -681,8 +681,8 @@ public final class PerfUtil {
 
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
-    public static @interface Watched {
-        public String value() default "";
-        public String prefix() default "";
+    public @interface Watched {
+        String value() default "";
+        String prefix() default "";
     }
 }

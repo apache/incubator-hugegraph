@@ -150,7 +150,7 @@ public final class CollectionUtil {
         E.checkNotNull(first, "first");
         E.checkNotNull(second, "second");
 
-        HashSet<T> results = null;
+        HashSet<T> results;
         if (first instanceof HashSet) {
             @SuppressWarnings("unchecked")
             HashSet<T> clone = (HashSet<T>) ((HashSet<T>) first).clone();
@@ -303,7 +303,7 @@ public final class CollectionUtil {
      * @param n m of C(n, m)
      * @param m n of C(n, m)
      * @return true if matched any kind of items combination else false, the
-     * callback can always return false if want to traverse all combinations
+     * callback can always return false if you want to traverse all combinations
      */
     public static <T> boolean cnm(List<T> all, int n, int m,
                                   Function<List<T>, Boolean> callback) {
@@ -317,9 +317,9 @@ public final class CollectionUtil {
      * @param n n of C(n, m)
      * @param m m of C(n, m)
      * @param current current position in list
-     * @param selected list to contains selected items
+     * @param selected list to contain selected items
      * @return true if matched any kind of items combination else false, the
-     * callback can always return false if want to traverse all combinations
+     * callback can always return false if you want to traverse all combinations
      */
     private static <T> boolean cnm(List<T> all, int n, int m,
                                    int current, List<T> selected,
@@ -360,11 +360,7 @@ public final class CollectionUtil {
         // Not select current item, pop it and continue to select C(m-1, n)
         selected.remove(index);
         assert selected.size() == index : selected;
-        if (cnm(all, n - 1, m, current, selected, callback)) {
-            return true;
-        }
-
-        return false;
+        return cnm(all, n - 1, m, current, selected, callback);
     }
 
     /**
@@ -399,7 +395,7 @@ public final class CollectionUtil {
      * @param n m of A(n, m)
      * @param m n of A(n, m)
      * @return true if matched any kind of items combination else false, the
-     * callback can always return false if want to traverse all combinations
+     * callback can always return false if you want to traverse all combinations
      */
     public static <T> boolean anm(List<T> all, int n, int m,
                                   Function<List<T>, Boolean> callback) {
@@ -412,9 +408,9 @@ public final class CollectionUtil {
      * @param all list to contain all items for combination
      * @param n m of A(n, m)
      * @param m n of A(n, m)
-     * @param selected list to contains selected items
+     * @param selected list to contain selected items
      * @return true if matched any kind of items combination else false, the
-     * callback can always return false if want to traverse all combinations
+     * callback can always return false if you want to traverse all combinations
      */
     private static <T> boolean anm(List<T> all, int n, int m,
                                    List<Integer> selected,

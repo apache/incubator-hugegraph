@@ -135,8 +135,7 @@ public final class LightStopwatch implements Stopwatch {
     @Override
     public void fillChildrenTotal(List<Stopwatch> children) {
         // Fill total times of children
-        this.totalChildrenTimes = children.stream().mapToLong(
-                                  c -> c.totalTimes()).sum();
+        this.totalChildrenTimes = children.stream().mapToLong(Stopwatch::totalTimes).sum();
     }
 
     @Override

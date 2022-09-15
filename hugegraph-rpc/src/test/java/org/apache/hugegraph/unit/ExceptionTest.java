@@ -30,7 +30,7 @@ public class ExceptionTest {
     public void testExceptionWithMessage() {
         RpcException e = new RpcException("test");
         Assert.assertEquals("test", e.getMessage());
-        Assert.assertEquals(null, e.getCause());
+        Assert.assertNull(e.getCause());
     }
 
     @Test
@@ -45,7 +45,7 @@ public class ExceptionTest {
     public void testExceptionWithMessageAndArgs() {
         RpcException e = new RpcException("test %s", 168);
         Assert.assertEquals("test 168", e.getMessage());
-        Assert.assertEquals(null, e.getCause());
+        Assert.assertNull(e.getCause());
     }
 
     @Test

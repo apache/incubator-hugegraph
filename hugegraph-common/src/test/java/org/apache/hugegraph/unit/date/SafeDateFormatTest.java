@@ -109,7 +109,7 @@ public class SafeDateFormatTest {
         SafeDateFormat sdf = new SafeDateFormat("yyyy-MM-dd HH:mm:ss");
         sdf.setTimeZone("GMT+10");
 
-        Assert.assertEquals(df.getTimeZone(), sdf.getTimeZome());
+        Assert.assertEquals(df.getTimeZone(), sdf.getTimeZone());
         Assert.assertEquals(df.parse("2019-08-10 00:00:00"),
                             sdf.parse("2019-08-10 00:00:00"));
         Assert.assertEquals("2019-08-10 00:00:00",
@@ -118,7 +118,7 @@ public class SafeDateFormatTest {
                             sdf.format(sdf.parse("2019-08-10 00:00:00")));
 
         sdf.setTimeZone("GMT+11");
-        Assert.assertNotEquals(df.getTimeZone(), sdf.getTimeZome());
+        Assert.assertNotEquals(df.getTimeZone(), sdf.getTimeZone());
         Assert.assertNotEquals(df.parse("2019-08-10 00:00:00"),
                                sdf.parse("2019-08-10 00:00:00"));
         Assert.assertEquals("2019-08-10 00:00:00",
