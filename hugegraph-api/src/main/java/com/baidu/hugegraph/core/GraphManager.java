@@ -308,6 +308,12 @@ public final class GraphManager {
         ServerConfig serverConfig = Whitebox.getInternalState(this.rpcServer,
                                                               "serverConfig");
         serverConfig.buildIfAbsent();
+
+        // Start remote rpc server if none rpc services registered
+        // Note it goes here only when raft mode enabled
+        if (!serverConfig.getServer().isStarted()) {
+            serverConfig.getServer().start();
+        }
         return Whitebox.getInternalState(serverConfig.getServer(),
                                          "remotingServer");
     }
