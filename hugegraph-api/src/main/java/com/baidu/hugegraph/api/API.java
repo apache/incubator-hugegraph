@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class API {
 
-    protected static final Logger LOG = Log.logger(RestServer.class);
+    protected static final Logger LOG = Log.logger(API.class);
 
     public static final String CHARSET = "UTF-8";
 

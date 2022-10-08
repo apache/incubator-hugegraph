@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableList;
 @Tag(name = "AllShortestPathsAPI")
 public class AllShortestPathsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(AllShortestPathsAPI.class);
 
     @GET
     @Timed

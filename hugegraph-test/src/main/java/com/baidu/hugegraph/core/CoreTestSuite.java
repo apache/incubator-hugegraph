@@ -54,7 +54,7 @@ import com.baidu.hugegraph.util.Log;
 })
 public class CoreTestSuite {
 
-    private static final Logger LOG = Log.logger(BaseCoreTest.class);
+    private static final Logger LOG = Log.logger(CoreTestSuite.class);
 
     private static HugeGraph graph = null;
 

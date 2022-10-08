@@ -50,7 +50,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "VariablesAPI")
 public class VariablesAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(VariablesAPI.class);
 
     @PUT
     @Timed

@@ -76,7 +76,7 @@ import com.baidu.hugegraph.util.Log;
 
 public final class GraphManager {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(GraphManager.class);
 
     private final String graphsDir;
     private final Map<String, Graph> graphs;

@@ -43,7 +43,7 @@ import com.baidu.hugegraph.util.Log;
 
 public class HugeFactory {
 
-    private static final Logger LOG = Log.logger(HugeGraph.class);
+    private static final Logger LOG = Log.logger(HugeFactory.class);
 
     private static final Thread SHUT_DOWN_HOOK = new Thread(() -> {
         LOG.info("HugeGraph is shutting down");

@@ -58,7 +58,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "TargetAPI")
 public class TargetAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(TargetAPI.class);
 
     @POST
     @Timed

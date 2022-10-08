@@ -59,7 +59,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "LoginAPI")
 public class LoginAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(LoginAPI.class);
 
     @POST
     @Timed

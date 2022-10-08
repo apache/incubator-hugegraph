@@ -56,7 +56,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "EdgesAPI")
 public class EdgesAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(EdgesAPI.class);
 
     @GET
     @Timed

@@ -53,7 +53,7 @@ import com.google.common.util.concurrent.RateLimiter;
 
 public abstract class AbstractTransaction implements Transaction {
 
-    protected static final Logger LOG = Log.logger(Transaction.class);
+    protected static final Logger LOG = Log.logger(AbstractTransaction.class);
 
     private final Thread ownerThread = Thread.currentThread();
 

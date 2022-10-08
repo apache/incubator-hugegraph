@@ -44,7 +44,7 @@ import com.baidu.hugegraph.util.Log;
 
 public class MysqlSessions extends BackendSessionPool {
 
-    private static final Logger LOG = Log.logger(MysqlStore.class);
+    private static final Logger LOG = Log.logger(MysqlSessions.class);
 
     private static final String JDBC_PREFIX = "jdbc:";
 

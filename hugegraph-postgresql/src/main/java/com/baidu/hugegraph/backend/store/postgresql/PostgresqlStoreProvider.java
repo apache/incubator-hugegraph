@@ -38,7 +38,7 @@ import com.baidu.hugegraph.util.Log;
 
 public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
-    private static final Logger LOG = Log.logger(PostgresqlStore.class);
+    private static final Logger LOG = Log.logger(PostgresqlStoreProvider.class);
 
     @Override
     protected BackendStore newSchemaStore(HugeConfig config, String store) {

@@ -54,7 +54,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "PersonalRankAPI")
 public class PersonalRankAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(PersonalRankAPI.class);
 
     private static final double DEFAULT_DIFF = 0.0001;
     private static final double DEFAULT_ALPHA = 0.85;
