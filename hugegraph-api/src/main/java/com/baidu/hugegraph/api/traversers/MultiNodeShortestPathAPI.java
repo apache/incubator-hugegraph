@@ -56,7 +56,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "MultiNodeShortestPathAPI")
 public class MultiNodeShortestPathAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(MultiNodeShortestPathAPI.class);
 
     @POST
     @Timed

@@ -136,7 +136,7 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.STORE
     );
 
-    private static final Logger LOG = Log.logger(HugeGraph.class);
+    private static final Logger LOG = Log.logger(StandardHugeGraph.class);
 
     private volatile boolean started;
     private volatile boolean closed;

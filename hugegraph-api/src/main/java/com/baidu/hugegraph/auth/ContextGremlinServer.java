@@ -47,7 +47,7 @@ import com.baidu.hugegraph.util.Log;
  */
 public class ContextGremlinServer extends GremlinServer {
 
-    private static final Logger LOG = Log.logger(GremlinServer.class);
+    private static final Logger LOG = Log.logger(ContextGremlinServer.class);
 
     private static final String G_PREFIX = "__g_";
 

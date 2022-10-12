@@ -79,7 +79,7 @@ public abstract class CassandraTable
                 extends BackendTable<CassandraSessionPool.Session,
                                      CassandraBackendEntry.Row> {
 
-    private static final Logger LOG = Log.logger(CassandraStore.class);
+    private static final Logger LOG = Log.logger(CassandraTable.class);
     private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
 
     public CassandraTable(String table) {

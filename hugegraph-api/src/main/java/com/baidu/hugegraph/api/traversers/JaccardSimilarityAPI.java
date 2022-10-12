@@ -61,7 +61,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "JaccardSimilarityAPI")
 public class JaccardSimilarityAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(JaccardSimilarityAPI.class);
 
     @GET
     @Timed

@@ -63,7 +63,7 @@ import com.google.common.collect.ImmutableMap;
 @Tag(name = "GremlinAPI")
 public class GremlinAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(GremlinAPI.class);
 
     private static final int MAX_NAME_LENGTH = 256;
 

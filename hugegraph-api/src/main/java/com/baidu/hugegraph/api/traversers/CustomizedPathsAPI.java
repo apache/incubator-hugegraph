@@ -65,7 +65,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "CustomizedPathsAPI")
 public class CustomizedPathsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CustomizedPathsAPI.class);
 
     @POST
     @Timed

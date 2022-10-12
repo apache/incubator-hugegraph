@@ -57,7 +57,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "SingleSourceShortestPathAPI")
 public class SingleSourceShortestPathAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(SingleSourceShortestPathAPI.class);
 
     @GET
     @Timed

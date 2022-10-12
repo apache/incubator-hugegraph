@@ -69,7 +69,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class StandardTaskScheduler implements TaskScheduler {
 
-    private static final Logger LOG = Log.logger(TaskScheduler.class);
+    private static final Logger LOG = Log.logger(StandardTaskScheduler.class);
 
     private final HugeGraphParams graph;
     private final ServerInfoManager serverManager;

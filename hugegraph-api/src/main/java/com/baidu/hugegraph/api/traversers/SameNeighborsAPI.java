@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "SameNeighborsAPI")
 public class SameNeighborsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(SameNeighborsAPI.class);
 
     @GET
     @Timed

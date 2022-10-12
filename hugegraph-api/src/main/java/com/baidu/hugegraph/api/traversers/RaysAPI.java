@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "RaysAPI")
 public class RaysAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(RaysAPI.class);
 
     @GET
     @Timed

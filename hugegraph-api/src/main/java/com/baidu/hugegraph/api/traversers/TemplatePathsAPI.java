@@ -58,7 +58,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "TemplatePathsAPI")
 public class TemplatePathsAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(TemplatePathsAPI.class);
 
     @POST
     @Timed

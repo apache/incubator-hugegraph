@@ -39,7 +39,7 @@ import com.baidu.hugegraph.util.Log;
 public abstract class AbstractBackendStoreProvider
                 implements BackendStoreProvider {
 
-    private static final Logger LOG = Log.logger(BackendStoreProvider.class);
+    private static final Logger LOG = Log.logger(AbstractBackendStoreProvider.class);
 
     private String graph = null;
 

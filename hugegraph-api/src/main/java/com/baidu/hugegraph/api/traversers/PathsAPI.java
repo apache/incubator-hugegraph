@@ -66,7 +66,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Tag(name = "PathsAPI")
 public class PathsAPI extends TraverserAPI {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(PathsAPI.class);
 
     @GET
     @Timed

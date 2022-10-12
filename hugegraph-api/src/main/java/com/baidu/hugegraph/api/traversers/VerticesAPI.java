@@ -56,7 +56,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "VerticesAPI")
 public class VerticesAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(VerticesAPI.class);
 
     @GET
     @Timed

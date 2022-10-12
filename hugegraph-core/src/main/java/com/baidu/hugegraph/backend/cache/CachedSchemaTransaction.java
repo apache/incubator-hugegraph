@@ -142,6 +142,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         graphEventHub.notify(Events.CACHE, action, type, id);
     }
 
+    private void notifyChanges(String action, HugeType type) {
+        EventHub graphEventHub = this.params().schemaEventHub();
+        graphEventHub.notify(Events.CACHE, action, type);
+    }
+
     private void resetCachedAll(HugeType type) {
         // Set the cache all flag of the schema type to false
         this.cachedTypes().put(type, false);
@@ -165,7 +170,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.arrayCaches.clear();
 
         if (notify) {
-            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
+            this.notifyChanges(Cache.ACTION_CLEARED, null);
         }
     }
 

@@ -105,12 +105,8 @@ public class GraphOfTheMoviesExample {
               .sourceLabel("person").targetLabel("movie")
               .create();
 
-        schema.indexLabel("personByName").onV("person").by("name")
-              .secondary().create();
         schema.indexLabel("personByBorn").onV("person").by("born")
               .range().create();
-
-        graph.tx().open();
 
         Vertex theMatrix = graph.addVertex(T.label, "movie", "title",
             "The Matrix", "released", 1999);

@@ -38,7 +38,7 @@ import com.baidu.hugegraph.util.Log;
 
 public class PostgresqlSessions extends MysqlSessions {
 
-    private static final Logger LOG = Log.logger(MysqlStore.class);
+    private static final Logger LOG = Log.logger(PostgresqlSessions.class);
 
     private static final String COCKROACH_DB_CREATE =
             "CREATE DATABASE %s ENCODING='UTF-8'";

@@ -59,7 +59,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
-    private static final Logger LOG = Log.logger(RocksDBStore.class);
+    private static final Logger LOG = Log.logger(RocksDBTable.class);
 
     private final RocksDBShardSplitter shardSplitter;
 

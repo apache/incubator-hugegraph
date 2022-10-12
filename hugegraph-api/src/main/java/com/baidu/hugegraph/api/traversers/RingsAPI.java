@@ -53,7 +53,7 @@ import com.codahale.metrics.annotation.Timed;
 @Tag(name = "RingsAPI")
 public class RingsAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(RingsAPI.class);
 
     @GET
     @Timed
