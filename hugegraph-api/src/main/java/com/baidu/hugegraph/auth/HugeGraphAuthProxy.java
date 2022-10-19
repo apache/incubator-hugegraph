@@ -1659,16 +1659,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 return Collections.emptyIterator();
 
             }
-            return new MapperIterator<TraversalStrategy<?>,
-                                      TraversalStrategy<?>>(
+            return new MapperIterator<TraversalStrategy<?>, TraversalStrategy<?>>(
                        this.strategies.iterator(), (strategy) -> {
                            return new TraversalStrategyProxy<>(strategy);
                        });
         }
 
         @Override
-        public TraversalStrategies addStrategies(TraversalStrategy<?>...
-                                                 strategies) {
+        public TraversalStrategies addStrategies(TraversalStrategy<?>... strategies) {
             return this.strategies.addStrategies(strategies);
         }
 
@@ -1709,8 +1707,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         private final TraversalStrategy<T> origin;
 
-        public TraversalStrategyProxy(TraversalStrategy<T> origin) {
-            this.origin = origin;
+        public TraversalStrategyProxy(TraversalStrategy<?> origin) {
+            @SuppressWarnings({ "rawtypes", "unchecked" })
+            TraversalStrategy<T> strategy = (TraversalStrategy) origin;
+            this.origin = strategy;
         }
 
         @Override
@@ -1768,8 +1768,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public int compareTo(@SuppressWarnings("rawtypes")
-                             Class<? extends TraversalStrategy> otherCategory) {
-            return this.origin.compareTo(otherCategory);
+                             Class<? extends TraversalStrategy> other) {
+            return this.origin.compareTo(other);
         }
 
         @Override
@@ -1788,8 +1788,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
-    private static final ThreadLocal<Context> CONTEXTS =
-                                              new InheritableThreadLocal<>();
+    private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
 
     protected static final Context setContext(Context context) {
         Context old = CONTEXTS.get();
