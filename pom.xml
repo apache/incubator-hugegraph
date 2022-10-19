@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
-    <url>https://github.com/apache/incubator-hugegraph-commons</url>
+    <url>https://github.com/apache/hugegraph-commons</url>
     <description>
         hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their peripheral components.
         It includes rpc frame, locks, configurations, events, iterators, rest and some
@@ -18,9 +18,9 @@
     </description>
 
     <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>7</version>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>23</version>
     </parent>
 
     <licenses>
@@ -33,9 +33,9 @@
 
    <!-- TODO: update url to upload in maven repo  -->
     <scm>
-        <url>https://github.com/hugegraph/hugegraph-commons</url>
-        <connection>https://github.com/hugegraph/hugegraph-commons</connection>
-        <developerConnection>https://github.com/hugegraph/hugegraph-commons</developerConnection>
+        <url>https://github.com/apache/hugegraph-commons</url>
+        <connection>https://github.com/apache/hugegraph-commons</connection>
+        <developerConnection>https://github.com/apache/hugegraph-commons</developerConnection>
     </scm>
 
     <properties>
@@ -188,7 +188,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
+                        <version>2.10.1</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -197,6 +197,11 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+                            <additionalOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption>
+                            </additionalOptions>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
