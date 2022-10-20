@@ -39,6 +39,11 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: License check(RAT)
+        run: |
+          mvn apache-rat:check | grep -v "Downloading\|Downloaded\|Progress"
+          find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt && cat merged-rat.txt
+
       - name: Compile
         run: |
           mvn compile -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
