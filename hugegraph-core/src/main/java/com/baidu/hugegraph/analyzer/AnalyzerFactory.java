@@ -27,7 +27,7 @@ import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 
 public class AnalyzerFactory {
 
-    private static Map<String, Class<? extends Analyzer>> analyzers;
+    private static final Map<String, Class<? extends Analyzer>> analyzers;
 
     static {
         analyzers = new ConcurrentHashMap<>();

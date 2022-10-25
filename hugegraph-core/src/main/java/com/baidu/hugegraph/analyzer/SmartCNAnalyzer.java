@@ -21,7 +21,6 @@ package com.baidu.hugegraph.analyzer;
 
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.analysis.TokenStream;
@@ -30,14 +29,11 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
-import com.google.common.collect.ImmutableList;
 
 /**
  * Reference from https://my.oschina.net/apdplat/blog/412921
  */
 public class SmartCNAnalyzer implements Analyzer {
-
-    public static final List<String> SUPPORT_MODES = ImmutableList.of();
 
     private static final SmartChineseAnalyzer ANALYZER =
                                               new SmartChineseAnalyzer();
@@ -52,7 +48,7 @@ public class SmartCNAnalyzer implements Analyzer {
         Reader reader = new StringReader(text);
         try (TokenStream tokenStream = ANALYZER.tokenStream("text", reader)) {
             tokenStream.reset();
-            CharTermAttribute term = null;
+            CharTermAttribute term;
             while (tokenStream.incrementToken()) {
                 term = tokenStream.getAttribute(CharTermAttribute.class);
                 result.add(term.toString());

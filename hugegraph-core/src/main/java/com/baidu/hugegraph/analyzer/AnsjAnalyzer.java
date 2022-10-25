@@ -45,7 +45,7 @@ public class AnsjAnalyzer implements Analyzer {
             "NlpAnalysis"
     );
 
-    private String analysis;
+    private final String analysis;
 
     public AnsjAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {

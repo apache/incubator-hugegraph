@@ -40,7 +40,7 @@ public class JiebaAnalyzer implements Analyzer {
 
     private static final JiebaSegmenter JIEBA_SEGMENTER = new JiebaSegmenter();
 
-    private JiebaSegmenter.SegMode segMode;
+    private final JiebaSegmenter.SegMode segMode;
 
     public JiebaAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
