@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class ShortestPathApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/shortestpath";
+    static final String PATH = TRAVERSERS_API + "/shortestpath";
 
     @Before
     public void prepareSchema() {
@@ -50,7 +50,7 @@ public class ShortestPathApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
         String peterId = name2Ids.get("peter");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "target",
                                                         id2Json(joshId),

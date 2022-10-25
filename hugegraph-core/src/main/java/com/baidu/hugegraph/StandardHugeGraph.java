@@ -39,11 +39,13 @@ import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransactio
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.analyzer.Analyzer;
 import com.baidu.hugegraph.analyzer.AnalyzerFactory;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.auth.StandardAuthManager;
 import com.baidu.hugegraph.backend.BackendException;
+import com.baidu.hugegraph.backend.LocalCounter;
 import com.baidu.hugegraph.backend.cache.Cache;
 import com.baidu.hugegraph.backend.cache.CacheNotifier;
 import com.baidu.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
@@ -59,8 +61,8 @@ import com.baidu.hugegraph.backend.serializer.SerializerFactory;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendProviderFactory;
 import com.baidu.hugegraph.backend.store.BackendStore;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.backend.store.ram.RamTable;
@@ -134,7 +136,7 @@ public class StandardHugeGraph implements HugeGraph {
            CoreOptions.STORE
     );
 
-    private static final Logger LOG = Log.logger(HugeGraph.class);
+    private static final Logger LOG = Log.logger(StandardHugeGraph.class);
 
     private volatile boolean started;
     private volatile boolean closed;
@@ -152,6 +154,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
 
+    private final LocalCounter localCounter;
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
@@ -171,6 +174,8 @@ public class StandardHugeGraph implements HugeGraph {
         this.schemaEventHub = new EventHub("schema");
         this.graphEventHub = new EventHub("graph");
         this.indexEventHub = new EventHub("index");
+
+        this.localCounter = new LocalCounter();
 
         final int writeLimit = config.get(CoreOptions.RATE_LIMIT_WRITE);
         this.writeRateLimiter = writeLimit > 0 ?
@@ -206,7 +211,7 @@ public class StandardHugeGraph implements HugeGraph {
             LockUtil.destroy(this.name);
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
-            throw new HugeException(message);
+            throw new HugeException(message, e);
         }
 
         try {
@@ -240,13 +245,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public String backendVersion() {
-        return this.storeProvider.version();
-    }
-
-    @Override
-    public BackendStoreSystemInfo backendStoreSystemInfo() {
-        return new BackendStoreSystemInfo(this.schemaTransaction());
+    public BackendStoreInfo backendStoreInfo() {
+        // Just for trigger Tx.getOrNewTransaction, then load 3 stores
+        // TODO: pass storeProvider.metaStore()
+        this.systemTransaction();
+        return new BackendStoreInfo(this.configuration, this.storeProvider);
     }
 
     @Override
@@ -256,6 +259,9 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void serverStarted(Id serverId, NodeRole serverRole) {
+        LOG.info("Init system info for graph '{}'", this.name);
+        this.initSystemInfo();
+
         LOG.info("Init server info [{}-{}] for graph '{}'...",
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
@@ -310,10 +316,10 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void waitStarted() {
+    public void waitReady(RpcServer rpcServer) {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
-        this.storeProvider.waitStoreStarted();
+        this.storeProvider.waitReady(rpcServer);
     }
 
     @Override
@@ -325,7 +331,12 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.init();
-            this.storeProvider.initSystemInfo(this);
+            /*
+             * NOTE: The main goal is to write the serverInfo to the central
+             * node, such as etcd, and also create the system schema in memory,
+             * which has no side effects
+             */
+            this.initSystemInfo();
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
             this.loadGraphStore().close();
@@ -364,7 +375,7 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
-            this.storeProvider.initSystemInfo(this);
+            // TOOD: remove this after serverinfo saved in etcd
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
@@ -372,6 +383,18 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         LOG.info("Graph '{}' has been truncated", this.name);
+    }
+
+    @Override
+    public void initSystemInfo() {
+        try {
+            this.taskScheduler().init();
+            this.serverInfoManager().init();
+            this.authManager().init();
+        } finally {
+            this.closeTx();
+        }
+        LOG.debug("Graph '{}' system info has been initialized", this);
     }
 
     @Override
@@ -446,18 +469,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadSchemaStore() {
-        String name = this.configuration.get(CoreOptions.STORE_SCHEMA);
-        return this.storeProvider.loadSchemaStore(this.configuration, name);
+        return this.storeProvider.loadSchemaStore(this.configuration);
     }
 
     private BackendStore loadGraphStore() {
-        String name = this.configuration.get(CoreOptions.STORE_GRAPH);
-        return this.storeProvider.loadGraphStore(this.configuration, name);
+        return this.storeProvider.loadGraphStore(this.configuration);
     }
 
     private BackendStore loadSystemStore() {
-        String name = this.configuration.get(CoreOptions.STORE_SYSTEM);
-        return this.storeProvider.loadSystemStore(this.configuration, name);
+        return this.storeProvider.loadSystemStore(this.configuration);
     }
 
     @Watched
@@ -695,6 +715,12 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public void updatePropertyKey(PropertyKey pkey) {
+        assert this.name.equals(pkey.graph().name());
+        this.schemaTransaction().updatePropertyKey(pkey);
+    }
+
+    @Override
     public Id removePropertyKey(Id pkey) {
         if (this.propertyKey(pkey).olap()) {
             this.clearVertexCache();
@@ -736,9 +762,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addVertexLabel(VertexLabel vertexLabel) {
-        assert this.name.equals(vertexLabel.graph().name());
-        this.schemaTransaction().addVertexLabel(vertexLabel);
+    public void addVertexLabel(VertexLabel label) {
+        assert this.name.equals(label.graph().name());
+        this.schemaTransaction().addVertexLabel(label);
+    }
+
+    @Override
+    public void updateVertexLabel(VertexLabel label) {
+        assert this.name.equals(label.graph().name());
+        this.schemaTransaction().updateVertexLabel(label);
     }
 
     @Override
@@ -792,9 +824,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void addEdgeLabel(EdgeLabel edgeLabel) {
-        assert this.name.equals(edgeLabel.graph().name());
-        this.schemaTransaction().addEdgeLabel(edgeLabel);
+    public void addEdgeLabel(EdgeLabel label) {
+        assert this.name.equals(label.graph().name());
+        this.schemaTransaction().addEdgeLabel(label);
+    }
+
+    @Override
+    public void updateEdgeLabel(EdgeLabel label) {
+        assert this.name.equals(label.graph().name());
+        this.schemaTransaction().updateEdgeLabel(label);
     }
 
     @Override
@@ -841,6 +879,12 @@ public class StandardHugeGraph implements HugeGraph {
                this.name.equals(schemaLabel.graph().name());
         assert this.name.equals(indexLabel.graph().name());
         this.schemaTransaction().addIndexLabel(schemaLabel, indexLabel);
+    }
+
+    @Override
+    public void updateIndexLabel(IndexLabel label) {
+        assert this.name.equals(label.graph().name());
+        this.schemaTransaction().updateIndexLabel(label);
     }
 
     @Override
@@ -1004,13 +1048,13 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager(String group) {
+    public RaftGroupManager raftGroupManager() {
         if (!(this.storeProvider instanceof RaftBackendStoreProvider)) {
             return null;
         }
         RaftBackendStoreProvider provider =
                 ((RaftBackendStoreProvider) this.storeProvider);
-        return provider.raftNodeManager(group);
+        return provider.raftNodeManager();
     }
 
     @Override
@@ -1203,6 +1247,11 @@ public class StandardHugeGraph implements HugeGraph {
         public ServerInfoManager serverManager() {
             // this.serverManager.initSchemaIfNeeded();
             return StandardHugeGraph.this.serverInfoManager();
+        }
+
+        @Override
+        public LocalCounter counter() {
+            return StandardHugeGraph.this.localCounter;
         }
 
         @Override

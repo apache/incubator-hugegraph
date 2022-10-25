@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
-import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
@@ -36,9 +36,9 @@ public class SetLeaderProcessor
 
     private static final Logger LOG = Log.logger(SetLeaderProcessor.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
 
-    public SetLeaderProcessor(RaftSharedContext context) {
+    public SetLeaderProcessor(RaftContext context) {
         super(null, null);
         this.context = context;
     }
@@ -47,8 +47,7 @@ public class SetLeaderProcessor
     public Message processRequest(SetLeaderRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing SetLeaderRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager(
-                                       RaftSharedContext.DEFAULT_GROUP);
+        RaftGroupManager nodeManager = this.context.raftNodeManager();
         try {
             nodeManager.setLeader(request.getEndpoint());
             CommonResponse common = CommonResponse.newBuilder()

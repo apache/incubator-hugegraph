@@ -260,6 +260,12 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             case ELIMINATE:
                 table.eliminate(session, entry.row());
                 break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(session, entry.row());
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(session, entry.row());
+                break;
             default:
                 throw new AssertionError(String.format(
                           "Unsupported mutate action: %s", item.action()));
@@ -470,6 +476,41 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "MysqlGraphStore.getCounter()");
+        }
+    }
+
+    public static class MysqlSystemStore extends MysqlGraphStore {
+
+        private final MysqlTables.Meta meta;
+
+        public MysqlSystemStore(BackendStoreProvider provider,
+                                String database, String store) {
+            super(provider, database, store);
+
+            this.meta = new MysqlTables.Meta();
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            Session session = super.session(null);
+            String driverVersion = this.provider().driverVersion();
+            this.meta.writeVersion(session, driverVersion);
+            LOG.info("Write down the backend version: {}", driverVersion);
+        }
+
+        @Override
+        public String storedVersion() {
+            super.init();
+            Session session = super.session(null);
+            return this.meta.readVersion(session);
+        }
+
+        @Override
+        protected Collection<MysqlTable> tables() {
+            List<MysqlTable> tables = new ArrayList<>(super.tables());
+            tables.add(this.meta);
+            return tables;
         }
     }
 }

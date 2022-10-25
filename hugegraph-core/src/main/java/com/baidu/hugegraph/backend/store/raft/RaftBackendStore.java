@@ -36,6 +36,7 @@ import com.baidu.hugegraph.backend.store.BackendFeatures;
 import com.baidu.hugegraph.backend.store.BackendMutation;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
+import com.baidu.hugegraph.backend.store.SystemSchemaStore;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -48,11 +49,11 @@ public class RaftBackendStore implements BackendStore {
     private static final Logger LOG = Log.logger(RaftBackendStore.class);
 
     private final BackendStore store;
-    private final RaftSharedContext context;
+    private final RaftContext context;
     private final ThreadLocal<MutationBatch> mutationBatch;
     private final boolean isSafeRead;
 
-    public RaftBackendStore(BackendStore store, RaftSharedContext context) {
+    public RaftBackendStore(BackendStore store, RaftContext context) {
         this.store = store;
         this.context = context;
         this.mutationBatch = new ThreadLocal<>();
@@ -75,6 +76,11 @@ public class RaftBackendStore implements BackendStore {
     }
 
     @Override
+    public String storedVersion() {
+        return this.store.storedVersion();
+    }
+
+    @Override
     public String database() {
         return this.store.database();
     }
@@ -82,6 +88,11 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public BackendStoreProvider provider() {
         return this.store.provider();
+    }
+
+    @Override
+    public SystemSchemaStore systemSchemaStore() {
+        return this.store.systemSchemaStore();
     }
 
     @Override
@@ -189,10 +200,9 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public long getCounter(HugeType type) {
-         Object counter = this.queryByRaft(type, true,
-                                           o -> this.store.getCounter(type));
-         assert counter instanceof Long;
-         return (Long) counter;
+        Object counter = this.queryByRaft(type, true, o -> this.store.getCounter(type));
+        assert counter instanceof Long;
+        return (Long) counter;
     }
 
     private Object submitAndWait(StoreAction action, byte[] data) {

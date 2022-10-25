@@ -53,7 +53,7 @@ import com.google.common.util.concurrent.RateLimiter;
 
 public abstract class AbstractTransaction implements Transaction {
 
-    protected static final Logger LOG = Log.logger(Transaction.class);
+    protected static final Logger LOG = Log.logger(AbstractTransaction.class);
 
     private final Thread ownerThread = Thread.currentThread();
 
@@ -412,6 +412,16 @@ public abstract class AbstractTransaction implements Transaction {
     @Watched(prefix = "tx")
     public void doRemove(BackendEntry entry) {
         this.doAction(Action.DELETE, entry);
+    }
+
+    @Watched(prefix = "tx")
+    public void doUpdateIfPresent(BackendEntry entry) {
+        this.doAction(Action.UPDATE_IF_PRESENT, entry);
+    }
+
+    @Watched(prefix = "tx")
+    public void doUpdateIfAbsent(BackendEntry entry) {
+        this.doAction(Action.UPDATE_IF_ABSENT, entry);
     }
 
     protected void doAction(Action action, BackendEntry entry) {

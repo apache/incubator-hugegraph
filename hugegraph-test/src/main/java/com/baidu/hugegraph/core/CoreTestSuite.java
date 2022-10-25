@@ -49,11 +49,12 @@ import com.baidu.hugegraph.util.Log;
     TaskCoreTest.class,
     AuthTest.class,
     MultiGraphsTest.class,
-    RamTableTest.class
+    RamTableTest.class,
+    RoleElectionStateMachineTest.class
 })
 public class CoreTestSuite {
 
-    private static final Logger LOG = Log.logger(BaseCoreTest.class);
+    private static final Logger LOG = Log.logger(CoreTestSuite.class);
 
     private static HugeGraph graph = null;
 

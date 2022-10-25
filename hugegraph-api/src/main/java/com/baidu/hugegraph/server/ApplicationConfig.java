@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.server;
 
-import jakarta.ws.rs.ApplicationPath;
-
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.MultiException;
@@ -39,10 +37,27 @@ import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.define.WorkLoad;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.version.CoreVersion;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
 
+import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import jakarta.ws.rs.ApplicationPath;
+
 @ApplicationPath("/")
+@OpenAPIDefinition(
+        info =
+        @Info(
+                title = "HugeGraph RESTful API",
+                version = CoreVersion.DEFAULT_VERSION,
+                description = "All management API for HugeGraph",
+                contact =
+                @Contact(
+                        url = "https://github.com/apache/hugegraph",
+                        name = "HugeGraph")))
 public class ApplicationConfig extends ResourceConfig {
 
     public ApplicationConfig(HugeConfig conf, EventHub hub) {
@@ -66,6 +81,9 @@ public class ApplicationConfig extends ResourceConfig {
         // Let @Metric annotations work
         MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
         register(new InstrumentedResourceMethodApplicationListener(registry));
+
+        // Register OpenApi file to support display on swagger-ui
+        register(OpenApiResource.class);
     }
 
     private class ConfFactory extends AbstractBinder
@@ -109,7 +127,14 @@ public class ApplicationConfig extends ResourceConfig {
                 @Override
                 public void onEvent(ApplicationEvent event) {
                     if (event.getType() == this.eventInited) {
-                        GraphManagerFactory.this.manager = new GraphManager(conf, hub);
+                        GraphManager manager = new GraphManager(conf, hub);
+                        try {
+                            manager.init();
+                        } catch (Throwable e) {
+                            manager.close();
+                            throw e;
+                        }
+                        GraphManagerFactory.this.manager = manager;
                     } else if (event.getType() == this.eventDestroyed) {
                         if (GraphManagerFactory.this.manager != null) {
                             GraphManagerFactory.this.manager.close();

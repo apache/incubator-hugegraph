@@ -45,10 +45,11 @@ import com.google.common.collect.ImmutableMap;
 
 public class API {
 
-    protected static final Logger LOG = Log.logger(RestServer.class);
+    protected static final Logger LOG = Log.logger(API.class);
 
     public static final String CHARSET = "UTF-8";
 
+    public static final String TEXT_PLAIN = MediaType.TEXT_PLAIN;
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;

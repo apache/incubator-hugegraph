@@ -31,11 +31,12 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.auth.AuthManager;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
@@ -71,6 +72,8 @@ public interface HugeGraph extends Graph {
 
     Id addPropertyKey(PropertyKey key);
 
+    void updatePropertyKey(PropertyKey key);
+
     Id removePropertyKey(Id key);
 
     Id clearPropertyKey(PropertyKey propertyKey);
@@ -83,7 +86,9 @@ public interface HugeGraph extends Graph {
 
     boolean existsPropertyKey(String key);
 
-    void addVertexLabel(VertexLabel vertexLabel);
+    void addVertexLabel(VertexLabel label);
+
+    void updateVertexLabel(VertexLabel label);
 
     Id removeVertexLabel(Id label);
 
@@ -99,7 +104,9 @@ public interface HugeGraph extends Graph {
 
     boolean existsLinkLabel(Id vertexLabel);
 
-    void addEdgeLabel(EdgeLabel edgeLabel);
+    void addEdgeLabel(EdgeLabel label);
+
+    void updateEdgeLabel(EdgeLabel label);
 
     Id removeEdgeLabel(Id label);
 
@@ -114,6 +121,8 @@ public interface HugeGraph extends Graph {
     boolean existsEdgeLabel(String label);
 
     void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel);
+
+    void updateIndexLabel(IndexLabel label);
 
     Id removeIndexLabel(Id label);
 
@@ -178,11 +187,9 @@ public interface HugeGraph extends Graph {
 
     String backend();
 
-    String backendVersion();
-
-    BackendStoreSystemInfo backendStoreSystemInfo();
-
     BackendFeatures backendStoreFeatures();
+
+    BackendStoreInfo backendStoreInfo();
 
     GraphMode mode();
 
@@ -192,7 +199,7 @@ public interface HugeGraph extends Graph {
 
     void readMode(GraphReadMode readMode);
 
-    void waitStarted();
+    void waitReady(RpcServer rpcServer);
 
     void serverStarted(Id serverId, NodeRole serverRole);
 
@@ -207,6 +214,8 @@ public interface HugeGraph extends Graph {
     void clearBackend();
 
     void truncateBackend();
+
+    void initSystemInfo();
 
     void createSnapshot();
 
@@ -227,7 +236,7 @@ public interface HugeGraph extends Graph {
 
     TaskScheduler taskScheduler();
 
-    RaftGroupManager raftGroupManager(String group);
+    RaftGroupManager raftGroupManager();
 
     void proxy(HugeGraph graph);
 

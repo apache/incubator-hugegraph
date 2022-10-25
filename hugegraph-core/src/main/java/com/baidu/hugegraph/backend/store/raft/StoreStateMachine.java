@@ -52,10 +52,10 @@ public final class StoreStateMachine extends StateMachineAdapter {
 
     private static final Logger LOG = Log.logger(StoreStateMachine.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
     private final StoreSnapshotFile snapshotFile;
 
-    public StoreStateMachine(RaftSharedContext context) {
+    public StoreStateMachine(RaftContext context) {
         this.context = context;
         this.snapshotFile = new StoreSnapshotFile(context.stores());
     }
@@ -72,7 +72,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
     public void onApply(Iterator iter) {
         LOG.debug("Node role: {}", this.node().selfIsLeader() ?
                                    "leader" : "follower");
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(64);
         try {
             // Apply all the logs
             while (iter.hasNext()) {
@@ -130,7 +130,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
         // Let the backend thread do it directly
         return this.context.backendExecutor().submit(() -> {
             BytesBuffer buffer = LZ4Util.decompress(bytes,
-                                 RaftSharedContext.BLOCK_SIZE);
+                                                    RaftContext.BLOCK_SIZE);
             buffer.forReadWritten();
             StoreType type = StoreType.valueOf(buffer.read());
             StoreAction action = StoreAction.valueOf(buffer.read());
@@ -161,8 +161,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 break;
             case SNAPSHOT:
                 assert store == null;
-                this.node().snapshot();
-                break;
+                return this.node().snapshot();
             case BEGIN_TX:
                 store.beginTx();
                 break;

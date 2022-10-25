@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -42,6 +43,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/schema")
 @Singleton
+@Tag(name = "SchemaAPI")
 public class SchemaAPI extends API {
 
     private static final Logger LOG = Log.logger(SchemaAPI.class);

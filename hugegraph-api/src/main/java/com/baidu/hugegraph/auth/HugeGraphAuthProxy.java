@@ -38,11 +38,6 @@ import java.util.function.Supplier;
 
 import javax.security.sasl.AuthenticationException;
 
-import com.baidu.hugegraph.iterator.MapperIterator;
-import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.NotAuthorizedException;
-
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
@@ -63,6 +58,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.auth.HugeAuthenticator.RolePerm;
 import com.baidu.hugegraph.auth.HugeAuthenticator.User;
@@ -73,13 +69,14 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.id.IdGenerator;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendFeatures;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.raft.RaftGroupManager;
 import com.baidu.hugegraph.config.AuthOptions;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.TypedOption;
 import com.baidu.hugegraph.exception.NotSupportException;
 import com.baidu.hugegraph.iterator.FilterIterator;
+import com.baidu.hugegraph.iterator.MapperIterator;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Client;
 import com.baidu.hugegraph.rpc.RpcServiceConfig4Server;
 import com.baidu.hugegraph.schema.EdgeLabel;
@@ -97,6 +94,7 @@ import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.task.TaskScheduler;
 import com.baidu.hugegraph.task.TaskStatus;
+import com.baidu.hugegraph.traversal.optimize.HugeScriptTraversal;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.Nameable;
 import com.baidu.hugegraph.type.define.GraphMode;
@@ -105,6 +103,9 @@ import com.baidu.hugegraph.type.define.NodeRole;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.RateLimiter;
+
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotAuthorizedException;
 
 public final class HugeGraphAuthProxy implements HugeGraph {
 
@@ -195,6 +196,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void updatePropertyKey(PropertyKey key) {
+        verifySchemaPermission(HugePermission.WRITE, key);
+        this.hugegraph.updatePropertyKey(key);
+    }
+
+    @Override
     public Id removePropertyKey(Id key) {
         PropertyKey pkey = this.hugegraph.propertyKey(key);
         verifySchemaPermission(HugePermission.DELETE, pkey);
@@ -237,6 +244,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void addVertexLabel(VertexLabel label) {
         verifySchemaPermission(HugePermission.WRITE, label);
         this.hugegraph.addVertexLabel(label);
+    }
+
+    @Override
+    public void updateVertexLabel(VertexLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateVertexLabel(label);
     }
 
     @Override
@@ -293,6 +306,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void updateEdgeLabel(EdgeLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateEdgeLabel(label);
+    }
+
+    @Override
     public Id removeEdgeLabel(Id id) {
         EdgeLabel label = this.hugegraph.edgeLabel(id);
         verifySchemaPermission(HugePermission.DELETE, label);
@@ -336,6 +355,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void addIndexLabel(SchemaLabel schemaLabel, IndexLabel indexLabel) {
         verifySchemaPermission(HugePermission.WRITE, indexLabel);
         this.hugegraph.addIndexLabel(schemaLabel, indexLabel);
+    }
+
+    @Override
+    public void updateIndexLabel(IndexLabel label) {
+        verifySchemaPermission(HugePermission.WRITE, label);
+        this.hugegraph.updateIndexLabel(label);
     }
 
     @Override
@@ -603,15 +628,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public String backendVersion() {
-        this.verifyAnyPermission();
-        return this.hugegraph.backendVersion();
-    }
-
-    @Override
-    public BackendStoreSystemInfo backendStoreSystemInfo() {
+    public BackendStoreInfo backendStoreInfo() {
         this.verifyAdminPermission();
-        return this.hugegraph.backendStoreSystemInfo();
+        return this.hugegraph.backendStoreInfo();
     }
 
     @Override
@@ -645,9 +664,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void waitStarted() {
+    public void waitReady(RpcServer rpcServer) {
         this.verifyAnyPermission();
-        this.hugegraph.waitStarted();
+        this.hugegraph.waitReady(rpcServer);
     }
 
     @Override
@@ -694,9 +713,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public RaftGroupManager raftGroupManager(String group) {
+    public RaftGroupManager raftGroupManager() {
         this.verifyAdminPermission();
-        return this.hugegraph.raftGroupManager(group);
+        return this.hugegraph.raftGroupManager();
     }
 
     @Override
@@ -731,6 +750,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 userManager.createUser(admin);
             }
         }
+    }
+
+    @Override
+    public void initSystemInfo() {
+        this.verifyAdminPermission();
+        this.hugegraph.initSystemInfo();
     }
 
     @Override
@@ -998,6 +1023,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
+        public void init() {
+            verifyAdminPermission();
+            this.taskScheduler.init();
+        }
+
+        @Override
         public int pendingTasks() {
             verifyTaskPermission(HugePermission.READ);
             return this.taskScheduler.pendingTasks();
@@ -1158,6 +1189,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 return context.user().username();
             }
             return null;
+        }
+
+        @Override
+        public void init() {
+            verifyAdminPermission();
+            this.authManager.init();
         }
 
         @Override
@@ -1625,7 +1662,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return new MapperIterator<TraversalStrategy<?>,
                                       TraversalStrategy<?>>(
                        this.strategies.iterator(), (strategy) -> {
-                           return new TraversalStrategyProxy(strategy);
+                           return new TraversalStrategyProxy<>(strategy);
                        });
         }
 
@@ -1665,8 +1702,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
     }
 
-    private final class TraversalStrategyProxy<T extends TraversalStrategy>
+    private final class TraversalStrategyProxy<T extends TraversalStrategy<?>>
                   implements TraversalStrategy<T> {
+
+        private static final long serialVersionUID = 2071829024642435735L;
+
         private final TraversalStrategy<T> origin;
 
         public TraversalStrategyProxy(TraversalStrategy<T> origin) {
@@ -1674,7 +1714,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public void apply(Traversal.Admin traversal) {
+        public void apply(Traversal.Admin<?, ?> traversal) {
             String script;
             if (traversal instanceof HugeScriptTraversal) {
                 script = ((HugeScriptTraversal<?, ?>) traversal).script();
@@ -1727,9 +1767,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public int compareTo(Class<? extends TraversalStrategy>
-                                             otherTraversalCategory) {
-            return this.origin.compareTo(otherTraversalCategory);
+        public int compareTo(@SuppressWarnings("rawtypes")
+                             Class<? extends TraversalStrategy> otherCategory) {
+            return this.origin.compareTo(otherCategory);
         }
 
         @Override

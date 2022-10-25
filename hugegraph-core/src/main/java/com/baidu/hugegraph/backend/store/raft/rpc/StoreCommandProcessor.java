@@ -24,7 +24,7 @@ import org.slf4j.Logger;
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.baidu.hugegraph.backend.store.raft.RaftNode;
-import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 import com.baidu.hugegraph.backend.store.raft.RaftStoreClosure;
 import com.baidu.hugegraph.backend.store.raft.StoreCommand;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
@@ -40,9 +40,9 @@ public class StoreCommandProcessor
     private static final Logger LOG = Log.logger(
                                       StoreCommandProcessor.class);
 
-    private final RaftSharedContext context;
+    private final RaftContext context;
 
-    public StoreCommandProcessor(RaftSharedContext context) {
+    public StoreCommandProcessor(RaftContext context) {
         super(null, null);
         this.context = context;
     }

@@ -51,6 +51,7 @@ public class Utils {
             confPath = Utils.class.getClassLoader()
                             .getResource(confPath).getPath();
         } catch (Exception ignored) {
+            // ignored Exception
         }
         return HugeFactory.open(confPath);
     }

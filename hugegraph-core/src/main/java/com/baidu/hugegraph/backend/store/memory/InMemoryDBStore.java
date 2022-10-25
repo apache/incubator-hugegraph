@@ -155,6 +155,12 @@ public abstract class InMemoryDBStore
                 LOG.debug("[store {}] eliminate entry: {}", this.store, entry);
                 table.eliminate(null, entry);
                 break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(null, entry);
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(null, entry);
+                break;
             default:
                 throw new BackendException("Unsupported mutate type: %s",
                                            item.action());
@@ -350,6 +356,19 @@ public abstract class InMemoryDBStore
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
                       "InMemoryGraphStore.getCounter()");
+        }
+    }
+
+    public static class InMemorySystemStore extends InMemoryGraphStore {
+
+        public InMemorySystemStore(BackendStoreProvider provider,
+                                   String database, String store) {
+            super(provider, database, store);
+        }
+
+        @Override
+        public String storedVersion() {
+            return this.provider().driverVersion();
         }
     }
 

@@ -516,7 +516,7 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
-    public void testLeftUnionIndex(){
+    public void testLeftUnionIndex() {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -2703,13 +2703,14 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.readMode(GraphReadMode.ALL);
 
         // FIXME: expect to throw error here
-//        Assert.assertThrows(IllegalArgumentException.class, () -> {
-//            graph.traversal().V().has("pagerank", 0.1D).toList();
-//        }, e -> {
-//            Assert.assertContains("not allowed to query by olap " +
-//                                 "when there are uncommitted records",
-//                                 e.toString());
-//        });
+
+        //        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        //            graph.traversal().V().has("pagerank", 0.1D).toList();
+        //        }, e -> {
+        //            Assert.assertContains("not allowed to query by olap " +
+        //                                 "when there are uncommitted records",
+        //                                 e.toString());
+        //        });
 
         this.commitTx();
 
@@ -4339,11 +4340,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000",
-                "2015-01-01 00:00:00.000",
-                "2016-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000",
+            "2015-01-01 00:00:00.000",
+            "2016-01-01 00:00:00.000"
         };
 
         vertices = graph.traversal().V().hasLabel("person")
@@ -4377,11 +4378,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         String[] dates = new String[]{
-                "2012-01-01 00:00:00.000",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000",
-                "2015-01-01 00:00:00.000",
-                "2016-01-01 00:00:00.000"
+            "2012-01-01 00:00:00.000",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000",
+            "2015-01-01 00:00:00.000",
+            "2016-01-01 00:00:00.000"
         };
 
         vertices = g.V()
@@ -4415,11 +4416,11 @@ public class VertexCoreTest extends BaseCoreTest {
         List<Vertex> vertices = null;
 
         String[] dates = new String[]{
-                "2012-01-01",
-                "2013-01-01 00:00:00.000",
-                "2014-01-01 00:00:00.000",
-                "2015-01-01 00:00:00",
-                "2016-01-01 00:00:00.000"
+            "2012-01-01",
+            "2013-01-01 00:00:00.000",
+            "2014-01-01 00:00:00.000",
+            "2015-01-01 00:00:00",
+            "2016-01-01 00:00:00.000"
         };
 
         vertices = graph.traversal().V().hasLabel("person")
@@ -4570,7 +4571,6 @@ public class VertexCoreTest extends BaseCoreTest {
         assertContains(vertices,
                        T.label, "author", "id", 1, "name", "James Gosling",
                        "age", 62, "lived", "San Francisco Bay Area");
-
 
         vertices = graph.traversal().V()
                         .hasLabel("author")
@@ -4875,7 +4875,7 @@ public class VertexCoreTest extends BaseCoreTest {
                                              .toList();
                 size.set(vertices.size());
             } finally {
-                 params().closeTx();
+                params().closeTx();
             }
         });
         t.start();
@@ -9014,7 +9014,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         GraphTraversalSource g = graph.traversal();
 
-        String city;;
+        String city;
         city = g.V().hasLabel("person").has("name", "1")
                     .next().value("city");
         Assert.assertEquals(vertex1.value("city"), city);

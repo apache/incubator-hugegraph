@@ -27,7 +27,6 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.baidu.hugegraph.backend.store.cassandra.CassandraOptions;
 import com.baidu.hugegraph.backend.store.cassandra.CassandraStore;
@@ -42,7 +41,7 @@ public class CassandraTest {
     @Before
     public void setup() {
         OptionSpace.register("cassandra",
-        "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
+                             "com.baidu.hugegraph.backend.store.cassandra.CassandraOptions");
     }
 
     @After

@@ -49,7 +49,7 @@ public class PaloStoreProvider extends MysqlStoreProvider {
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -66,8 +66,9 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.8] #295: support ttl for vertex and edge
          * [1.9] #1333: support read frequency for property key
          * [1.10] #1506: rename read frequency to write type
+         * [1.10] #1533: add meta table in system store
          */
-        return "1.9";
+        return "1.10";
     }
 
     public static class PaloSchemaStore extends PaloStore {

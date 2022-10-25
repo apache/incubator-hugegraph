@@ -22,6 +22,8 @@ package com.baidu.hugegraph.unit;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import com.baidu.hugegraph.unit.core.SystemSchemaStoreTest;
+import com.baidu.hugegraph.unit.util.RateLimiterTest;
 import com.baidu.hugegraph.unit.cache.CacheManagerTest;
 import com.baidu.hugegraph.unit.cache.CacheTest;
 import com.baidu.hugegraph.unit.cache.CachedGraphTransactionTest;
@@ -30,7 +32,7 @@ import com.baidu.hugegraph.unit.cache.RamTableTest;
 import com.baidu.hugegraph.unit.cassandra.CassandraTest;
 import com.baidu.hugegraph.unit.core.AnalyzerTest;
 import com.baidu.hugegraph.unit.core.BackendMutationTest;
-import com.baidu.hugegraph.unit.core.BackendStoreSystemInfoTest;
+import com.baidu.hugegraph.unit.core.BackendStoreInfoTest;
 import com.baidu.hugegraph.unit.core.ConditionQueryFlattenTest;
 import com.baidu.hugegraph.unit.core.ConditionTest;
 import com.baidu.hugegraph.unit.core.DataTypeTest;
@@ -108,9 +110,10 @@ import com.baidu.hugegraph.unit.util.collection.ObjectIntMappingTest;
     SecurityManagerTest.class,
     RolePermissionTest.class,
     ExceptionTest.class,
-    BackendStoreSystemInfoTest.class,
+    BackendStoreInfoTest.class,
     TraversalUtilTest.class,
     PageStateTest.class,
+    SystemSchemaStoreTest.class,
 
     /* serializer */
     BytesBufferTest.class,

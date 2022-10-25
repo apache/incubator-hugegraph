@@ -87,18 +87,18 @@ public class ScyllaDBTablesWithMV {
 
     public static class PropertyKey extends CassandraTables.PropertyKey {
 
-        private final String MV_NAME2PK = mvNameTable(this.table());
+        private final String mvName2Pk = mvNameTable(this.table());
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createSchemaIndexTable(session, MV_NAME2PK, this.table());
+            createSchemaIndexTable(session, mvName2Pk, this.table());
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_NAME2PK);
+            dropIndexTable(session, mvName2Pk);
             super.dropTable(session);
         }
 
@@ -106,7 +106,7 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByName(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_NAME2PK, query);
+                return super.query2Select(mvName2Pk, query);
             }
             return super.query2Select(table, query);
         }
@@ -114,18 +114,18 @@ public class ScyllaDBTablesWithMV {
 
     public static class VertexLabel extends CassandraTables.VertexLabel {
 
-        private final String MV_NAME2VL = mvNameTable(this.table());
+        private final String mvName2Vl = mvNameTable(this.table());
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createSchemaIndexTable(session, MV_NAME2VL, this.table());
+            createSchemaIndexTable(session, mvName2Vl, this.table());
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_NAME2VL);
+            dropIndexTable(session, mvName2Vl);
             super.dropTable(session);
         }
 
@@ -133,7 +133,7 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByName(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_NAME2VL, query);
+                return super.query2Select(mvName2Vl, query);
             }
             return super.query2Select(table, query);
         }
@@ -141,18 +141,18 @@ public class ScyllaDBTablesWithMV {
 
     public static class EdgeLabel extends CassandraTables.EdgeLabel {
 
-        private final String MV_NAME2EL = mvNameTable(this.table());
+        private final String mvName2El = mvNameTable(this.table());
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createSchemaIndexTable(session, MV_NAME2EL, this.table());
+            createSchemaIndexTable(session, mvName2El, this.table());
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_NAME2EL);
+            dropIndexTable(session, mvName2El);
             super.dropTable(session);
         }
 
@@ -160,7 +160,7 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByName(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_NAME2EL, query);
+                return super.query2Select(mvName2El, query);
             }
             return super.query2Select(table, query);
         }
@@ -168,18 +168,18 @@ public class ScyllaDBTablesWithMV {
 
     public static class IndexLabel extends CassandraTables.IndexLabel {
 
-        private final String MV_NAME2IL = mvNameTable(this.table());
+        private final String mvName2Il = mvNameTable(this.table());
 
         @Override
         protected void createIndex(CassandraSessionPool.Session session,
                                    String indexLabel,
                                    HugeKeys column) {
-            createSchemaIndexTable(session, MV_NAME2IL, this.table());
+            createSchemaIndexTable(session, mvName2Il, this.table());
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_NAME2IL);
+            dropIndexTable(session, mvName2Il);
             super.dropTable(session);
         }
 
@@ -187,7 +187,7 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByName(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_NAME2IL, query);
+                return super.query2Select(mvName2Il, query);
             }
             return super.query2Select(table, query);
         }
@@ -195,7 +195,7 @@ public class ScyllaDBTablesWithMV {
 
     public static class Vertex extends CassandraTables.Vertex {
 
-        private final String MV_LABEL2VERTEX = mvLabelTable(this.table());
+        private final String mvLabel2Vertex = mvLabelTable(this.table());
 
         public Vertex(String store) {
             super(store);
@@ -212,13 +212,13 @@ public class ScyllaDBTablesWithMV {
                          "  SELECT * FROM %s " +
                          "  WHERE %s IS NOT NULL " +
                          "  PRIMARY KEY(%s, %s)",
-                         MV_LABEL2VERTEX, this.table(), LABEL, LABEL, ID);
+                         mvLabel2Vertex, this.table(), LABEL, LABEL, ID);
             session.execute(cql);
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_LABEL2VERTEX);
+            dropIndexTable(session, mvLabel2Vertex);
             super.dropTable(session);
         }
 
@@ -230,7 +230,7 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByLabel(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_LABEL2VERTEX, query);
+                return super.query2Select(mvLabel2Vertex, query);
             }
             return super.query2Select(table, query);
         }
@@ -238,16 +238,16 @@ public class ScyllaDBTablesWithMV {
 
     public static class Edge extends CassandraTables.Edge {
 
-        private final String MV_LABEL2EDGE = mvLabelTable(this.table());
+        private final String mvLabel2Edge = mvLabelTable(this.table());
 
-        private final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
-        private final List<String> KEYS = this.idColumnName().stream()
+        private static final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
+        private final List<String> keys = this.idColumnName().stream()
                                           .filter(k -> k != HugeKeys.LABEL)
                                           .map(k -> CassandraTable.formatKey(k))
                                           .collect(Collectors.toList());
-        private final String PRKEYS = this.KEYS.stream()
+        private final String prKeys = this.keys.stream()
                                       .collect(Collectors.joining(","));
-        private final String PRKEYS_NN = this.KEYS.stream().collect(
+        private final String prkeysNn = this.keys.stream().collect(
                              Collectors.joining(" IS NOT NULL AND "));
 
         public Edge(String store, Directions direction) {
@@ -263,15 +263,15 @@ public class ScyllaDBTablesWithMV {
                          "  SELECT * FROM %s " +
                          "  WHERE %s IS NOT NULL AND %s IS NOT NULL " +
                          "  PRIMARY KEY(%s, %s)",
-                         MV_LABEL2EDGE, this.table(),
-                         this.LABEL, this.PRKEYS_NN,
-                         this.LABEL, this.PRKEYS);
+                         mvLabel2Edge, this.table(),
+                         this.LABEL, this.prkeysNn,
+                         this.LABEL, this.prKeys);
             session.execute(cql);
         }
 
         @Override
         protected void dropTable(CassandraSessionPool.Session session) {
-            dropIndexTable(session, MV_LABEL2EDGE);
+            dropIndexTable(session, mvLabel2Edge);
             super.dropTable(session);
         }
 
@@ -282,14 +282,14 @@ public class ScyllaDBTablesWithMV {
         protected List<Select> query2Select(String table, Query query) {
             if (isQueryByLabel(query)) {
                 // Query from materialized view
-                return super.query2Select(MV_LABEL2EDGE, query);
+                return super.query2Select(mvLabel2Edge, query);
             }
             return super.query2Select(table, query);
         }
 
         @Override
         protected String labelIndexTable() {
-            return MV_LABEL2EDGE;
+            return mvLabel2Edge;
         }
 
         public static Edge out(String store) {

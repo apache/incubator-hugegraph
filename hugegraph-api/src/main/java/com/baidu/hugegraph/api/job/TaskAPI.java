@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DELETE;
@@ -58,9 +59,10 @@ import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/tasks")
 @Singleton
+@Tag(name = "TaskAPI")
 public class TaskAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(TaskAPI.class);
     private static final long NO_LIMIT = -1L;
 
     public static final String ACTION_CANCEL = "cancel";

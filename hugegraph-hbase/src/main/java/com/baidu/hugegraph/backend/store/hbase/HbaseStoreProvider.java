@@ -23,6 +23,7 @@ import com.baidu.hugegraph.backend.store.AbstractBackendStoreProvider;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseGraphStore;
 import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseSchemaStore;
+import com.baidu.hugegraph.backend.store.hbase.HbaseStore.HbaseSystemStore;
 import com.baidu.hugegraph.config.HugeConfig;
 
 public class HbaseStoreProvider extends AbstractBackendStoreProvider {
@@ -42,12 +43,17 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
+        return new HbaseSystemStore(config, this, this.namespace(), store);
+    }
+
+    @Override
     public String type() {
         return "hbase";
     }
 
     @Override
-    public String version() {
+    public String driverVersion() {
         /*
          * Versions history:
          * [1.0] HugeGraph-1328: supports backend table version checking
@@ -64,7 +70,8 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
          * [1.9] #894: encode label id in string index
          * [1.10] #295: support ttl for vertex and edge
          * [1.11] #1333: support read frequency for property key
+         * [1.12] #1533: add meta table in system store
          */
-        return "1.11";
+        return "1.12";
     }
 }

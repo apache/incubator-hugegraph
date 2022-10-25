@@ -246,18 +246,28 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 }));
             }
         }
-        this.waitOpenFinish(futures, openPool);
+
+        try {
+            this.waitOpenFinished(futures);
+        } finally {
+            this.shutdownOpenPool(openPool);
+        }
     }
 
-    private void waitOpenFinish(List<Future<?>> futures,
-                                ExecutorService openPool) {
+    private void waitOpenFinished(List<Future<?>> futures) {
         for (Future<?> future : futures) {
             try {
                 future.get();
             } catch (Throwable e) {
+                if (e.getCause() instanceof ConnectionException) {
+                    throw new ConnectionException("Failed to open RocksDB store", e);
+                }
                 throw new BackendException("Failed to open RocksDB store", e);
             }
         }
+    }
+
+    private void shutdownOpenPool(ExecutorService openPool) {
         if (openPool.isShutdown()) {
             return;
         }
@@ -301,7 +311,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
     protected RocksDBSessions open(HugeConfig config, String dataPath,
                                    String walPath, List<String> tableNames) {
         LOG.info("Opening RocksDB with data path: {}", dataPath);
-
         RocksDBSessions sessions = null;
         try {
             sessions = this.openSessionPool(config, dataPath,
@@ -403,6 +412,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return tableDBMap;
     }
 
+    protected ReadWriteLock storeLock() {
+        return this.storeLock;
+    }
+
     @Override
     public void close() {
         LOG.debug("Store close: {}", this.store);
@@ -469,6 +482,12 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
                 break;
             case ELIMINATE:
                 table.eliminate(session, entry);
+                break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(session, entry);
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(session, entry);
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -1091,6 +1110,53 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
             }
             this.dropTable(db, table.table());
             this.unregisterTableManager(this.olapTableName(id));
+        }
+    }
+
+    public static class RocksDBSystemStore extends RocksDBGraphStore {
+
+        private final RocksDBTables.Meta meta;
+
+        public RocksDBSystemStore(BackendStoreProvider provider,
+                                  String database, String store) {
+            super(provider, database, store);
+
+            this.meta = new RocksDBTables.Meta(database);
+        }
+
+        @Override
+        public synchronized void init() {
+            super.init();
+            Lock writeLock = this.storeLock().writeLock();
+            writeLock.lock();
+            try {
+                Session session = super.session(HugeType.META);
+                String driverVersion = this.provider().driverVersion();
+                this.meta.writeVersion(session, driverVersion);
+                LOG.info("Write down the backend version: {}", driverVersion);
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
+        @Override
+        public String storedVersion() {
+            Lock readLock = this.storeLock().readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                Session session = super.session(null);
+                return this.meta.readVersion(session);
+            } finally {
+                readLock.unlock();
+            }
+        }
+
+        @Override
+        protected List<String> tableNames() {
+            List<String> tableNames = super.tableNames();
+            tableNames.add(this.meta.table());
+            return tableNames;
         }
     }
 }

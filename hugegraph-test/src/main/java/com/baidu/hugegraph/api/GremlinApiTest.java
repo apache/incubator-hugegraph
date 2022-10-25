@@ -36,11 +36,11 @@ public class GremlinApiTest extends BaseApiTest {
 
     @Test
     public void testPost() {
-        String body = "{"
-                + "\"gremlin\":\"g.V()\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String body = "{" +
+                "\"gremlin\":\"g.V()\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
@@ -54,24 +54,30 @@ public class GremlinApiTest extends BaseApiTest {
 
     @Test
     public void testScript() {
-        String bodyTemplate = "{"
-                + "\"gremlin\":\"%s\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String bodyTemplate = "{" +
+                "\"gremlin\":\"%s\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
 
-        String script = "schema=hugegraph.schema();"
-                + "schema.propertyKey('name').asText().ifNotExist().create();"
-                + "schema.propertyKey('age').asInt().ifNotExist().create();"
-                + "schema.propertyKey('city').asUUID().ifNotExist().create();"
-                + "schema.propertyKey('lang').asText().ifNotExist().create();"
-                + "schema.propertyKey('date').asText().ifNotExist().create();"
-                + "schema.propertyKey('price').asInt().ifNotExist().create();"
-                + "person=schema.vertexLabel('person').properties('name','age','city').useCustomizeUuidId().ifNotExist().create();"
-                + "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person').properties('date').ifNotExist().create();"
-                + "marko=hugegraph.addVertex(T.id,'835e1153928149578691cf79258e90eb',T.label,'person','name','marko','age',29,'city','135e1153928149578691cf79258e90eb');"
-                + "vadas=hugegraph.addVertex(T.id,'935e1153928149578691cf79258e90eb',T.label,'person','name','vadas','age',27,'city','235e1153928149578691cf79258e90eb');"
-                + "marko.addEdge('knows',vadas,'date','20160110');";
+        String script = "schema=hugegraph.schema();" +
+                "schema.propertyKey('name').asText().ifNotExist().create();" +
+                "schema.propertyKey('age').asInt().ifNotExist().create();" +
+                "schema.propertyKey('city').asUUID().ifNotExist().create();" +
+                "schema.propertyKey('lang').asText().ifNotExist().create();" +
+                "schema.propertyKey('date').asText().ifNotExist().create();" +
+                "schema.propertyKey('price').asInt().ifNotExist().create();" +
+                "person=schema.vertexLabel('person').properties('name','age','city')." +
+                "useCustomizeUuidId().ifNotExist().create();" +
+                "knows=schema.edgeLabel('knows').sourceLabel('person').targetLabel('person')." +
+                "properties('date').ifNotExist().create();" +
+                "marko=hugegraph.addVertex(T.id,'835e1153928149578691cf79258e90eb'" +
+                ",T.label,'person','name','marko','age',29," +
+                "'city','135e1153928149578691cf79258e90eb');" +
+                "vadas=hugegraph.addVertex(T.id,'935e1153928149578691cf79258e90eb'" +
+                ",T.label,'person','name','vadas','age',27," +
+                "'city','235e1153928149578691cf79258e90eb');" +
+                "marko.addEdge('knows',vadas,'date','20160110');";
         String body = String.format(bodyTemplate, script);
         assertResponseStatus(200, client().post(path, body));
 
@@ -86,12 +92,12 @@ public class GremlinApiTest extends BaseApiTest {
 
     @Test
     public void testClearAndInit() {
-        String body = "{"
-                + "\"gremlin\":\"hugegraph.backendStoreFeatures()"
-                + "                       .supportsSharedStorage();\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String body = "{" +
+                "\"gremlin\":\"hugegraph.backendStoreFeatures()" +
+                "                       .supportsSharedStorage();\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         String content = assertResponseStatus(200, client().post(path, body));
         Map<?, ?> result = assertJsonContains(content, "result");
         @SuppressWarnings({ "unchecked" })
@@ -100,38 +106,38 @@ public class GremlinApiTest extends BaseApiTest {
         Assume.assumeTrue("Can't clear non-shared-storage backend",
                           supportsSharedStorage);
 
-        body = "{"
-                + "\"gremlin\":\""
-                + "  if (!hugegraph.backendStoreFeatures()"
-                + "                .supportsSharedStorage())"
-                + "    return;"
-                + "  def auth = hugegraph.hugegraph().authManager();"
-                + "  def admin = auth.findUser('admin');"
-                + "  hugegraph.clearBackend();"
-                + "  hugegraph.initBackend();"
-                + "  auth.createUser(admin);\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        body = "{" +
+                "\"gremlin\":\"" +
+                "  if (!hugegraph.backendStoreFeatures()" +
+                "                .supportsSharedStorage())" +
+                "    return;" +
+                "  def auth = hugegraph.hugegraph().authManager();" +
+                "  def admin = auth.findUser('admin');" +
+                "  hugegraph.clearBackend();" +
+                "  hugegraph.initBackend();" +
+                "  auth.createUser(admin);\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
-        body = "{"
-                + "\"gremlin\":\"hugegraph.serverStarted("
-                + "              IdGenerator.of('server1'), NodeRole.MASTER)\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        body = "{" +
+                "\"gremlin\":\"hugegraph.serverStarted(" +
+                "              IdGenerator.of('server1'), NodeRole.MASTER)\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
     public void testTruncate() {
-        String body = "{"
-                + "\"gremlin\":\"try {hugegraph.truncateBackend()} "
-                + "catch (UnsupportedOperationException e) {}\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String body = "{" +
+                "\"gremlin\":\"try {hugegraph.truncateBackend()} " +
+                "catch (UnsupportedOperationException e) {}\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
@@ -139,74 +145,74 @@ public class GremlinApiTest extends BaseApiTest {
     public void testSetVertexProperty() {
         String pkPath = "/graphs/hugegraph/schema/propertykeys/";
         // Cardinality single
-        String foo = "{"
-                + "\"name\": \"foo\","
-                + "\"data_type\": \"TEXT\","
-                + "\"cardinality\": \"SINGLE\","
-                + "\"properties\":[]"
-                + "}";
+        String foo = "{" +
+                "\"name\": \"foo\"," +
+                "\"data_type\": \"TEXT\"," +
+                "\"cardinality\": \"SINGLE\"," +
+                "\"properties\":[]" +
+                "}";
         assertResponseStatus(202, client().post(pkPath, foo));
         // Cardinality list
-        String bar = "{"
-                + "\"name\": \"bar\","
-                + "\"data_type\": \"TEXT\","
-                + "\"cardinality\": \"LIST\","
-                + "\"properties\":[]"
-                + "}";
+        String bar = "{" +
+                "\"name\": \"bar\"," +
+                "\"data_type\": \"TEXT\"," +
+                "\"cardinality\": \"LIST\"," +
+                "\"properties\":[]" +
+                "}";
         assertResponseStatus(202, client().post(pkPath, bar));
 
         String vlPath = "/graphs/hugegraph/schema/vertexlabels/";
-        String vertexLabel = "{"
-                + "\"name\": \"person\","
-                + "\"id_strategy\": \"CUSTOMIZE_STRING\","
-                + "\"properties\": [\"foo\", \"bar\"]"
-                + "}";
+        String vertexLabel = "{" +
+                "\"name\": \"person\"," +
+                "\"id_strategy\": \"CUSTOMIZE_STRING\"," +
+                "\"properties\": [\"foo\", \"bar\"]" +
+                "}";
         assertResponseStatus(201, client().post(vlPath, vertexLabel));
 
         // Not supply cardinality
-        String body = "{"
-                + "\"gremlin\":\"g.addV('person').property(T.id, '1')"
-                + ".property('foo', '123').property('bar', '123')\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String body = "{" +
+                "\"gremlin\":\"g.addV('person').property(T.id, '1')" +
+                ".property('foo', '123').property('bar', '123')\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
         // Supply matched cardinality
-        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
-                + ".property(single, 'foo', '123')"
-                + ".property(list, 'bar', '123')\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')" +
+                ".property(single, 'foo', '123')" +
+                ".property(list, 'bar', '123')\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
         // Supply unmatch cardinality
-        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
-                + ".property(list, 'foo', '123')"
-                + ".property(list, 'bar', '123')\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')" +
+                ".property(list, 'foo', '123')" +
+                ".property(list, 'bar', '123')\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(400, client().post(path, body));
 
         // NOTE: supply unmatch cardinality, but we give up the check
-        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')"
-                + ".property(single, 'foo', '123')"
-                + ".property(single, 'bar', '123')\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        body = "{\"gremlin\":\"g.addV('person').property(T.id, '1')" +
+                ".property(single, 'foo', '123')" +
+                ".property(single, 'bar', '123')\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
     public void testFileSerialize() {
-        String body = "{"
-                + "\"gremlin\":\"File file = new File('test.text')\","
-                + "\"bindings\":{},"
-                + "\"language\":\"gremlin-groovy\","
-                + "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        String body = "{" +
+                "\"gremlin\":\"File file = new File('test.text')\"," +
+                "\"bindings\":{}," +
+                "\"language\":\"gremlin-groovy\"," +
+                "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
         Response r = client().post(path, body);
         String content = r.readEntity(String.class);
         Assert.assertTrue(content, r.getStatus() == 200);

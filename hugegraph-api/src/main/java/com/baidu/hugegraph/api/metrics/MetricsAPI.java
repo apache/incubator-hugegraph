@@ -25,6 +25,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -49,6 +50,7 @@ import com.codahale.metrics.annotation.Timed;
 
 @Singleton
 @Path("metrics")
+@Tag(name = "MetricsAPI")
 public class MetricsAPI extends API {
 
     private static final Logger LOG = Log.logger(MetricsAPI.class);

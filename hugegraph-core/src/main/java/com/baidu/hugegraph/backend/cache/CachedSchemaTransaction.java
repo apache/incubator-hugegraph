@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import com.baidu.hugegraph.HugeGraphParams;
 import com.baidu.hugegraph.backend.id.Id;
@@ -141,6 +142,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         graphEventHub.notify(Events.CACHE, action, type, id);
     }
 
+    private final void notifyChanges(String action, HugeType type) {
+        EventHub graphEventHub = this.params().schemaEventHub();
+        graphEventHub.notify(Events.CACHE, action, type);
+    }
+
     private final void resetCachedAll(HugeType type) {
         // Set the cache all flag of the schema type to false
         this.cachedTypes().put(type, false);
@@ -164,7 +170,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.arrayCaches.clear();
 
         if (notify) {
-            this.notifyChanges(Cache.ACTION_CLEARED, null, null);
+            this.notifyChanges(Cache.ACTION_CLEARED, null);
         }
     }
 
@@ -207,6 +213,16 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     private static Id generateId(HugeType type, String name) {
         return IdGenerator.of(type.string() + "-" + name);
+    }
+
+    @Override
+    protected void updateSchema(SchemaElement schema,
+                                Consumer<SchemaElement> updateCallback) {
+        super.updateSchema(schema, updateCallback);
+
+        this.updateCache(schema);
+
+        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
     }
 
     @Override

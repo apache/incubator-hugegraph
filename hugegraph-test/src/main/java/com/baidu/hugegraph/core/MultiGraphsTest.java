@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
@@ -36,10 +35,11 @@ import org.rocksdb.RocksDBException;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeGraph;
-import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.id.IdGenerator;
+import com.baidu.hugegraph.backend.store.BackendStoreInfo;
 import com.baidu.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import com.baidu.hugegraph.config.CoreOptions;
+import com.baidu.hugegraph.exception.ConnectionException;
 import com.baidu.hugegraph.exception.ExistedException;
 import com.baidu.hugegraph.schema.EdgeLabel;
 import com.baidu.hugegraph.schema.IndexLabel;
@@ -49,12 +49,29 @@ import com.baidu.hugegraph.schema.VertexLabel;
 import com.baidu.hugegraph.testutil.Assert;
 import com.baidu.hugegraph.testutil.Utils;
 import com.baidu.hugegraph.type.define.NodeRole;
-
+import com.google.common.collect.ImmutableList;
 
 public class MultiGraphsTest {
 
     private static final String NAME48 =
             "g12345678901234567890123456789012345678901234567";
+
+    @Test
+    public void testWriteAndReadVersion() {
+        List<HugeGraph> graphs = openGraphs("g_1", NAME48);
+        for (HugeGraph graph : graphs) {
+            graph.initBackend();
+            // Init more than once no side effect
+            graph.initBackend();
+
+            BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+            Assert.assertTrue(backendStoreInfo.exists());
+            Assert.assertTrue(backendStoreInfo.checkVersion());
+
+            graph.clearBackend();
+        }
+        destroyGraphs(graphs);
+    }
 
     @Test
     public void testCreateMultiGraphs() {
@@ -239,9 +256,9 @@ public class MultiGraphsTest {
         HugeGraph g3 = graphs.get(2);
 
         g1.initBackend();
-        Assert.assertTrue(g1.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g2.backendStoreSystemInfo().exists());
-        Assert.assertTrue(g3.backendStoreSystemInfo().exists());
+        Assert.assertTrue(g1.backendStoreInfo().exists());
+        Assert.assertTrue(g2.backendStoreInfo().exists());
+        Assert.assertTrue(g3.backendStoreInfo().exists());
 
         g2.initBackend(); // no error
         g3.initBackend();
@@ -316,7 +333,7 @@ public class MultiGraphsTest {
         g1.clearBackend();
 
         final HugeGraph[] g2 = new HugeGraph[1];
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(ConnectionException.class, () -> {
             g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/range_int_index:rocksdb-index1]");
@@ -331,7 +348,7 @@ public class MultiGraphsTest {
         });
 
         final HugeGraph[] g3 = new HugeGraph[1];
-        Assert.assertThrows(BackendException.class, () -> {
+        Assert.assertThrows(ConnectionException.class, () -> {
             g3[0] = openGraphWithBackend("g3", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/secondary_index:/]");

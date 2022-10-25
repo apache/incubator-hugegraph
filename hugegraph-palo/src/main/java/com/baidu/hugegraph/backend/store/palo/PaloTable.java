@@ -39,7 +39,7 @@ import com.baidu.hugegraph.util.Log;
 
 public abstract class PaloTable extends MysqlTable {
 
-    private static final Logger LOG = Log.logger(MysqlStore.class);
+    private static final Logger LOG = Log.logger(PaloTable.class);
 
     public PaloTable(String table) {
         super(table);

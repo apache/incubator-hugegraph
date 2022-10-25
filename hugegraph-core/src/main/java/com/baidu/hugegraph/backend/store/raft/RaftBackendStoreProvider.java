@@ -24,11 +24,11 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraphParams;
+import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.BackendStore;
 import com.baidu.hugegraph.backend.store.BackendStoreProvider;
-import com.baidu.hugegraph.backend.store.BackendStoreSystemInfo;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import com.baidu.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import com.baidu.hugegraph.config.HugeConfig;
@@ -44,22 +44,29 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     private static final Logger LOG = Log.logger(RaftBackendStoreProvider.class);
 
     private final BackendStoreProvider provider;
-    private final RaftSharedContext context;
+    private final RaftContext context;
+
     private RaftBackendStore schemaStore;
     private RaftBackendStore graphStore;
     private RaftBackendStore systemStore;
-
-    public RaftBackendStoreProvider(BackendStoreProvider provider,
-                                    HugeGraphParams params) {
+    public RaftBackendStoreProvider(HugeGraphParams params,
+                                    BackendStoreProvider provider) {
         this.provider = provider;
-        this.context = new RaftSharedContext(params);
         this.schemaStore = null;
         this.graphStore = null;
         this.systemStore = null;
+        this.context = new RaftContext(params);
     }
 
-    public RaftGroupManager raftNodeManager(String group) {
-        return this.context.raftNodeManager(group);
+    public RaftGroupManager raftNodeManager() {
+        return this.context().raftNodeManager();
+    }
+
+    private RaftContext context() {
+        if (this.context == null) {
+            E.checkState(false, "Please ensure init raft context");
+        }
+        return this.context;
     }
 
     private Set<RaftBackendStore> stores() {
@@ -87,8 +94,13 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public String version() {
-        return this.provider.version();
+    public String driverVersion() {
+        return this.provider.driverVersion();
+    }
+
+    @Override
+    public String storedVersion() {
+        return this.provider.storedVersion();
     }
 
     @Override
@@ -97,37 +109,37 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public synchronized BackendStore loadSchemaStore(HugeConfig config, String name) {
+    public synchronized BackendStore loadSchemaStore(HugeConfig config) {
         if (this.schemaStore == null) {
             LOG.info("Init raft backend schema store");
-            BackendStore store = this.provider.loadSchemaStore(config, name);
+            BackendStore store = this.provider.loadSchemaStore(config);
             this.checkNonSharedStore(store);
-            this.schemaStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.SCHEMA, this.schemaStore);
+            this.schemaStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.SCHEMA, this.schemaStore);
         }
         return this.schemaStore;
     }
 
     @Override
-    public synchronized BackendStore loadGraphStore(HugeConfig config, String name) {
+    public synchronized BackendStore loadGraphStore(HugeConfig config) {
         if (this.graphStore == null) {
             LOG.info("Init raft backend graph store");
-            BackendStore store = this.provider.loadGraphStore(config, name);
+            BackendStore store = this.provider.loadGraphStore(config);
             this.checkNonSharedStore(store);
-            this.graphStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.GRAPH, this.graphStore);
+            this.graphStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.GRAPH, this.graphStore);
         }
         return this.graphStore;
     }
 
     @Override
-    public synchronized BackendStore loadSystemStore(HugeConfig config, String name) {
+    public synchronized BackendStore loadSystemStore(HugeConfig config) {
         if (this.systemStore == null) {
             LOG.info("Init raft backend system store");
-            BackendStore store = this.provider.loadSystemStore(config, name);
+            BackendStore store = this.provider.loadSystemStore(config);
             this.checkNonSharedStore(store);
-            this.systemStore = new RaftBackendStore(store, this.context);
-            this.context.addStore(StoreType.SYSTEM, this.systemStore);
+            this.systemStore = new RaftBackendStore(store, this.context());
+            this.context().addStore(StoreType.SYSTEM, this.systemStore);
         }
         return this.systemStore;
     }
@@ -138,18 +150,20 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     }
 
     @Override
-    public void waitStoreStarted() {
-        this.context.initRaftNode();
+    public void waitReady(RpcServer rpcServer) {
+        this.context().initRaftNode(rpcServer);
         LOG.info("The raft node is initialized");
 
-        this.context.waitRaftNodeStarted();
+        this.context().waitRaftNodeStarted();
         LOG.info("The raft store is started");
     }
 
     @Override
     public void close() {
         this.provider.close();
-        this.context.close();
+        if (this.context != null) {
+            this.context.close();
+        }
     }
 
     @Override
@@ -186,18 +200,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
             store.truncate();
         }
         this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
-
         LOG.debug("Graph '{}' store has been truncated", this.graph());
-    }
-
-    @Override
-    public void initSystemInfo(HugeGraph graph) {
-        this.checkOpened();
-        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
-        info.init();
-
-        this.notifyAndWaitEvent(Events.STORE_INITED);
-        LOG.debug("Graph '{}' system info has been initialized", this.graph());
         /*
          * Take the initiative to generate a snapshot, it can avoid this
          * situation: when the server restart need to read the database
@@ -209,7 +212,11 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
          * will not encounter such an intermediate state.
          */
         this.createSnapshot();
-        LOG.debug("Graph '{}' snapshot has been created", this.graph());
+    }
+
+    @Override
+    public boolean initialized() {
+        return this.provider.initialized() && this.context != null;
     }
 
     @Override
@@ -218,8 +225,15 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         StoreCommand command = new StoreCommand(StoreType.GRAPH,
                                                 StoreAction.SNAPSHOT, null);
         RaftStoreClosure closure = new RaftStoreClosure(command);
-        this.context.node().submitAndWait(command, closure);
-        LOG.debug("Graph '{}' has writed snapshot", this.graph());
+        RaftClosure<?> future = this.context().node().submitAndWait(command,
+                                                                    closure);
+        E.checkState(future != null, "The snapshot future can't be null");
+        try {
+            future.waitFinished();
+            LOG.debug("Graph '{}' has writed snapshot", this.graph());
+        } catch (Throwable e) {
+            throw new BackendException("Failed to create snapshot", e);
+        }
     }
 
     @Override

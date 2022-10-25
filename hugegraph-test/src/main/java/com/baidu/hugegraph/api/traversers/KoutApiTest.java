@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class KoutApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/kout";
+    static final String PATH = TRAVERSERS_API + "/kout";
 
     @Before
     public void prepareSchema() {
@@ -52,7 +52,7 @@ public class KoutApiTest extends BaseApiTest {
         String joshId = name2Ids.get("josh");
         String rippleId = name2Ids.get("ripple");
         // Test for nearest=true
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "max_depth", 2));
         String content = assertResponseStatus(200, r);
@@ -60,7 +60,7 @@ public class KoutApiTest extends BaseApiTest {
         Assert.assertEquals(1, vertices.size());
         Assert.assertTrue(vertices.contains(joshId));
         // Test for nearest=false
-        r = client().get(path, ImmutableMap.of("source", id2Json(markoId),
+        r = client().get(PATH, ImmutableMap.of("source", id2Json(markoId),
                                                "max_depth", 2,
                                                "nearest", "false"));
         content = assertResponseStatus(200, r);
@@ -90,7 +90,7 @@ public class KoutApiTest extends BaseApiTest {
                                        "\"limit\": 10000, " +
                                        "\"with_vertex\": true, " +
                                        "\"with_path\": true}", markoId);
-        Response resp = client().post(path, reqBody);
+        Response resp = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, resp);
         Object size = assertJsonContains(content, "size");
         Assert.assertEquals(2, size);

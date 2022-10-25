@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -58,6 +59,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/schema/edgelabels")
 @Singleton
+@Tag(name = "EdgeLabelAPI")
 public class EdgeLabelAPI extends API {
 
     private static final Logger LOG = Log.logger(EdgeLabelAPI.class);

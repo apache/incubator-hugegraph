@@ -54,37 +54,60 @@ public abstract class Condition {
 
     public enum RelationType implements BiPredicate<Object, Object> {
 
-        EQ("==", (v1, v2) -> {return equals(v1, v2); }),
-        GT(">", (v1, v2) -> { return compare(v1, v2) > 0; }),
-        GTE(">=", (v1, v2) -> { return compare(v1, v2) >= 0; }),
-        LT("<", (v1, v2) -> { return compare(v1, v2) < 0; }),
-        LTE("<=", (v1, v2) -> { return compare(v1, v2) <= 0; }),
-        NEQ("!=", (v1, v2) -> { return compare(v1, v2) != 0; }),
+        EQ("==", (v1, v2) -> {
+            return equals(v1, v2);
+        }),
+
+        GT(">", (v1, v2) -> {
+            return compare(v1, v2) > 0;
+        }),
+
+        GTE(">=", (v1, v2) -> {
+            return compare(v1, v2) >= 0;
+        }),
+
+        LT("<", (v1, v2) -> {
+            return compare(v1, v2) < 0;
+        }),
+
+        LTE("<=", (v1, v2) -> {
+            return compare(v1, v2) <= 0;
+        }),
+
+        NEQ("!=", (v1, v2) -> {
+            return compare(v1, v2) != 0;
+        }),
+
         IN("in", null, Collection.class, (v1, v2) -> {
             assert v2 != null;
             return ((Collection<?>) v2).contains(v1);
         }),
+
         NOT_IN("notin", null, Collection.class, (v1, v2) -> {
             assert v2 != null;
             return !((Collection<?>) v2).contains(v1);
         }),
+
         PREFIX("prefix", Id.class, Id.class, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && Bytes.prefixWith(((Id) v2).asBytes(),
                                                   ((Id) v1).asBytes());
         }),
+
         TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
             // TODO: support collection-property textcontains
             return v1 != null && ((String) v1).contains((String) v2);
         }),
-        TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class,
-                          (v1, v2) -> {
+
+        TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class, (v1, v2) -> {
             assert v2 != null;
             if (v1 == null) {
                 return false;
             }
+
             @SuppressWarnings("unchecked")
             Collection<String> words = (Collection<String>) v2;
+
             for (String word : words) {
                 if (((String) v1).contains(word)) {
                     return true;
@@ -92,18 +115,22 @@ public abstract class Condition {
             }
             return false;
         }),
+
         CONTAINS("contains", Collection.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Collection<?>) v1).contains(v2);
         }),
+
         CONTAINS_VALUE("containsv", Map.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
         }),
+
         CONTAINS_KEY("containsk", Map.class, null, (v1, v2) -> {
             assert v2 != null;
             return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
         }),
+
         SCAN("scan", (v1, v2) -> {
             assert v2 != null;
             /*
@@ -118,12 +145,12 @@ public abstract class Condition {
         private final Class<?> v1Class;
         private final Class<?> v2Class;
 
-        private RelationType(String op,
+        RelationType(String op,
                              BiFunction<Object, Object, Boolean> tester) {
             this(op, null, null, tester);
         }
 
-        private RelationType(String op, Class<?> v1Class, Class<?> v2Class,
+        RelationType(String op, Class<?> v1Class, Class<?> v2Class,
                              BiFunction<Object, Object, Boolean> tester) {
             this.operator = op;
             this.tester = tester;
@@ -390,7 +417,7 @@ public abstract class Condition {
     /**
      * Condition defines
      */
-    public static abstract class BinCondition extends Condition {
+    public abstract static class BinCondition extends Condition {
 
         private Condition left;
         private Condition right;
@@ -741,11 +768,15 @@ public abstract class Condition {
                         break;
                     case GTE:
                         this.keyMinEq = true;
+                        this.keyMin = r.value();
+                        break;
                     case GT:
                         this.keyMin = r.value();
                         break;
                     case LTE:
                         this.keyMaxEq = true;
+                        this.keyMax = r.value();
+                        break;
                     case LT:
                         this.keyMax = r.value();
                         break;

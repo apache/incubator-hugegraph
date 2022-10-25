@@ -25,6 +25,7 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.raft.StoreSnapshotFile;
@@ -39,11 +40,11 @@ import com.baidu.hugegraph.util.Log;
 public abstract class AbstractBackendStoreProvider
                 implements BackendStoreProvider {
 
-    private static final Logger LOG = Log.logger(BackendStoreProvider.class);
+    private static final Logger LOG = Log.logger(AbstractBackendStoreProvider.class);
 
     private String graph = null;
 
-    private EventHub storeEventHub = new EventHub("store");
+    private final EventHub storeEventHub = new EventHub("store");
 
     protected Map<String, BackendStore> stores = null;
 
@@ -65,6 +66,8 @@ public abstract class AbstractBackendStoreProvider
 
     protected abstract BackendStore newGraphStore(HugeConfig config, String store);
 
+    protected abstract BackendStore newSystemStore(HugeConfig config, String store);
+
     @Override
     public void listen(EventListener listener) {
         this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
@@ -73,6 +76,11 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void unlisten(EventListener listener) {
         this.storeEventHub.unlisten(EventHub.ANY_EVENT, listener);
+    }
+
+    @Override
+    public String storedVersion() {
+        return this.loadSystemStore(null).storedVersion();
     }
 
     @Override
@@ -94,8 +102,8 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void waitStoreStarted() {
-        // pass
+    public void waitReady(RpcServer rpcServer) {
+        // passs
     }
 
     @Override
@@ -144,13 +152,14 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public void initSystemInfo(HugeGraph graph) {
+    public boolean initialized() {
         this.checkOpened();
-        BackendStoreSystemInfo info = graph.backendStoreSystemInfo();
-        info.init();
-        this.notifyAndWaitEvent(Events.STORE_INITED);
-
-        LOG.debug("Graph '{}' system info has been initialized", this.graph);
+        for (BackendStore store : this.stores.values()) {
+            if (!store.initialized()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -170,7 +179,8 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadSchemaStore(HugeConfig config, String name) {
+    public BackendStore loadSchemaStore(HugeConfig config) {
+        String name = SCHEMA_STORE;
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
                   this.type(), name);
 
@@ -186,7 +196,8 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadGraphStore(HugeConfig config, String name) {
+    public BackendStore loadGraphStore(HugeConfig config) {
+        String name = GRAPH_STORE;
         LOG.debug("The '{}' StoreProvider load GraphStore '{}'",
                   this.type(), name);
 
@@ -202,8 +213,20 @@ public abstract class AbstractBackendStoreProvider
     }
 
     @Override
-    public BackendStore loadSystemStore(HugeConfig config, String name) {
-        return this.loadGraphStore(config, name);
+    public BackendStore loadSystemStore(HugeConfig config) {
+        String name = SYSTEM_STORE;
+        LOG.debug("The '{}' StoreProvider load SystemStore '{}'",
+                  this.type(), name);
+
+        this.checkOpened();
+        if (!this.stores.containsKey(name)) {
+            BackendStore s = this.newSystemStore(config, name);
+            this.stores.putIfAbsent(name, s);
+        }
+
+        BackendStore store = this.stores.get(name);
+        E.checkNotNull(store, "store");
+        return store;
     }
 
     @Override

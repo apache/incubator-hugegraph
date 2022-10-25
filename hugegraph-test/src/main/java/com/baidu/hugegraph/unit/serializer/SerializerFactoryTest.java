@@ -86,7 +86,7 @@ public class SerializerFactoryTest extends BaseUnitTest {
 
     public static class FakeSerializer extends BinarySerializer {
 
-        public FakeSerializer(HugeConfig config){
+        public FakeSerializer(HugeConfig config) {
             super(config);
         }
 

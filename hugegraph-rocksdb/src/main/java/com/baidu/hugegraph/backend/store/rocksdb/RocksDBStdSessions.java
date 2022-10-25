@@ -44,6 +44,7 @@ import org.rocksdb.CompressionType;
 import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Env;
+import org.rocksdb.IndexType;
 import org.rocksdb.InfoLogLevel;
 import org.rocksdb.LRUCache;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
@@ -53,6 +54,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.SstFileManager;
+import org.rocksdb.TableFormatConfig;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 import org.slf4j.Logger;
@@ -236,7 +238,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 }
             }
             return values;
-        } catch(RocksDBException | UnsupportedOperationException e) {
+        } catch (RocksDBException | UnsupportedOperationException e) {
             throw new BackendException(e);
         }
     }
@@ -475,6 +477,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
              * should we use options.setCreateMissingColumnFamilies()?
              */
             db.setCreateIfMissing(true);
+            db.setWriteDbidToManifest(true);
+            db.setAvoidUnnecessaryBlockingIO(true);
 
             // Optimize RocksDB
             if (optimize) {
@@ -500,16 +504,30 @@ public class RocksDBStdSessions extends RocksDBSessions {
             db.setUseDirectIoForFlushAndCompaction(
                     conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
+            db.setUseFsync(conf.get(RocksDBOptions.USE_FSYNC));
+
+            db.setAtomicFlush(conf.get(RocksDBOptions.ATOMIC_FLUSH));
+
             db.setMaxManifestFileSize(
                     conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
 
             db.setSkipStatsUpdateOnDbOpen(
                     conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
+            db.setSkipCheckingSstFileSizesOnDbOpen(
+                    conf.get(RocksDBOptions.SKIP_CHECK_SIZE_ON_DB_OPEN));
 
             db.setMaxFileOpeningThreads(
                     conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
 
             db.setDbWriteBufferSize(conf.get(RocksDBOptions.DB_MEMTABLE_SIZE));
+
+            db.setLogReadaheadSize(conf.get(RocksDBOptions.LOG_READAHEAD_SIZE));
+
+            // A global cache for table-level rows
+            long cacheCapacity = conf.get(RocksDBOptions.ROW_CACHE_CAPACITY);
+            if (cacheCapacity > 0) {
+                db.setRowCache(new LRUCache(cacheCapacity));
+            }
         }
 
         if (mdb != null) {
@@ -526,6 +544,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mdb.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
 
             mdb.setMaxTotalWalSize(conf.get(RocksDBOptions.MAX_TOTAL_WAL_SIZE));
+
+            mdb.setBytesPerSync(conf.get(RocksDBOptions.BYTES_PER_SYNC));
+            mdb.setWalBytesPerSync(conf.get(RocksDBOptions.WAL_BYTES_PER_SYNC));
+            mdb.setStrictBytesPerSync(
+                    conf.get(RocksDBOptions.STRICT_BYTES_PER_SYNC));
+
+            mdb.setCompactionReadaheadSize(
+                    conf.get(RocksDBOptions.COMPACTION_READAHEAD_SIZE));
 
             mdb.setDeleteObsoleteFilesPeriodMicros(1000000 *
                     conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
@@ -563,36 +589,22 @@ public class RocksDBStdSessions extends RocksDBSessions {
             cf.setMaxWriteBufferNumberToMaintain(
                     conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
+            cf.setInplaceUpdateSupport(
+                    conf.get(RocksDBOptions.MEMTABLE_INPLACE_UPDATE_SUPPORT));
+
             cf.setLevelCompactionDynamicLevelBytes(
                     conf.get(RocksDBOptions.DYNAMIC_LEVEL_BYTES));
 
-            // https://github.com/facebook/rocksdb/wiki/Block-Cache
-            BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
-            long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
-            if (cacheCapacity <= 0L) {
-                // Bypassing bug https://github.com/facebook/rocksdb/pull/5465
-                tableConfig.setNoBlockCache(true);
-            } else {
-                tableConfig.setBlockCache(new LRUCache(cacheCapacity));
-            }
-            tableConfig.setPinL0FilterAndIndexBlocksInCache(
-                    conf.get(RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE));
-            tableConfig.setCacheIndexAndFilterBlocks(
-                    conf.get(RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE));
-
-            // https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter
-            int bitsPerKey = conf.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
-            if (bitsPerKey >= 0) {
-                boolean blockBased = conf.get(RocksDBOptions.BLOOM_FILTER_MODE);
-                tableConfig.setFilterPolicy(new BloomFilter(bitsPerKey,
-                                                            blockBased));
-            }
-            tableConfig.setWholeKeyFiltering(
-                    conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
-            cf.setTableFormatConfig(tableConfig);
-
             cf.setOptimizeFiltersForHits(
                     conf.get(RocksDBOptions.BLOOM_FILTERS_SKIP_LAST_LEVEL));
+
+            cf.setTableFormatConfig(initTableConfig(conf));
+
+            // CappedPrefixExtractor uses the first N bytes
+            int prefixLength = conf.get(RocksDBOptions.PREFIX_EXTRACTOR_CAPPED);
+            if (prefixLength > 0) {
+                cf.useCappedPrefixExtractor(prefixLength);
+            }
 
             // https://github.com/facebook/rocksdb/tree/master/utilities/merge_operators
             cf.setMergeOperatorName("uint64add"); // uint64add/stringappend
@@ -626,6 +638,20 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mcf.setHardPendingCompactionBytesLimit(
                     conf.get(RocksDBOptions.HARD_PENDING_COMPACTION_LIMIT));
 
+            /*
+             * TODO: also set memtable options:
+             * memtable_insert_with_hint_prefix_extractor
+             * The reason why use option name `memtable_bloom_size_ratio`:
+             * https://github.com/facebook/rocksdb/pull/9453/files
+             * #diff-cde52d1fcbcce2bc6aae27838f1d3e7e9e469ccad8aaf8f2695f939e279d7501R369
+             */
+            mcf.setMemtablePrefixBloomSizeRatio(
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_SIZE_RATIO));
+            mcf.setMemtableWholeKeyFiltering(
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_WHOLE_KEY_FILTERING));
+            mcf.setMemtableHugePageSize(
+                    conf.get(RocksDBOptions.MEMTABL_BLOOM_HUGE_PAGE_SIZE));
+
             boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
             if (bulkload) {
                 // Disable automatic compaction
@@ -645,6 +671,79 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
     }
 
+    public static TableFormatConfig initTableConfig(HugeConfig conf) {
+        BlockBasedTableConfig tableConfig = new BlockBasedTableConfig();
+
+        tableConfig.setFormatVersion(
+                conf.get(RocksDBOptions.TABLE_FORMAT_VERSION));
+
+        /*
+         * The index type used to lookup between data blocks:
+         * https://github.com/facebook/rocksdb/wiki/Index-Block-Format
+         *
+         * TODO: support more index options:
+         * tableConfig.setIndexShortening(IndexShorteningMode.kShortenSeparators);
+         * tableConfig.setEnableIndexCompression(true);
+         * tableConfig.setIndexBlockRestartInterval(1);
+         */
+        tableConfig.setIndexType(conf.get(RocksDBOptions.INDEX_TYPE));
+
+        /*
+         * The search type of point lookup can be BinarySearch or HashSearch:
+         * https://github.com/facebook/rocksdb/wiki/Data-Block-Hash-Index
+         */
+        tableConfig.setDataBlockIndexType(
+                conf.get(RocksDBOptions.DATA_BLOCK_SEARCH_TYPE));
+        tableConfig.setDataBlockHashTableUtilRatio(
+                conf.get(RocksDBOptions.DATA_BLOCK_HASH_TABLE_RATIO));
+
+        long blockSize = conf.get(RocksDBOptions.BLOCK_SIZE);
+        tableConfig.setBlockSize(blockSize);
+        tableConfig.setBlockSizeDeviation(
+                conf.get(RocksDBOptions.BLOCK_SIZE_DEVIATION));
+        tableConfig.setBlockRestartInterval(
+                conf.get(RocksDBOptions.BLOCK_RESTART_INTERVAL));
+
+        // https://github.com/facebook/rocksdb/wiki/Block-Cache
+        long cacheCapacity = conf.get(RocksDBOptions.BLOCK_CACHE_CAPACITY);
+        if (cacheCapacity <= 0L) {
+            // Bypassing bug https://github.com/facebook/rocksdb/pull/5465
+            tableConfig.setNoBlockCache(true);
+        } else {
+            tableConfig.setBlockCache(new LRUCache(cacheCapacity));
+        }
+
+        // https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter
+        int bitsPerKey = conf.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
+        if (bitsPerKey >= 0) {
+            // TODO: use space-saving RibbonFilterPolicy
+            boolean blockBased = conf.get(RocksDBOptions.BLOOM_FILTER_MODE);
+            tableConfig.setFilterPolicy(new BloomFilter(bitsPerKey,
+                                                        blockBased));
+
+            tableConfig.setWholeKeyFiltering(
+                    conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
+
+            tableConfig.setCacheIndexAndFilterBlocks(
+                    conf.get(RocksDBOptions.CACHE_FILTER_AND_INDEX));
+            tableConfig.setPinL0FilterAndIndexBlocksInCache(
+                    conf.get(RocksDBOptions.PIN_L0_INDEX_AND_FILTER));
+
+            // https://github.com/facebook/rocksdb/wiki/Partitioned-Index-Filters
+            if (conf.get(RocksDBOptions.PARTITION_FILTERS_INDEXES)) {
+                // Enable partitioned indexes and partitioned filters
+                tableConfig.setPartitionFilters(true)
+                           .setIndexType(IndexType.kTwoLevelIndexSearch)
+                           .setMetadataBlockSize(blockSize)
+                           .setCacheIndexAndFilterBlocksWithHighPriority(true);
+                tableConfig.setPinTopLevelIndexAndFilter(
+                            conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
+            }
+        }
+
+        return tableConfig;
+    }
+
     public static final byte[] encode(String string) {
         return StringEncoding.encode(string);
     }
@@ -662,13 +761,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         private WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
-            boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
             this.batch = new WriteBatch();
             this.writeOptions = new WriteOptions();
             /*
              * When work under raft mode. if store crashed, the state-machine
              * can restore by snapshot + raft log, doesn't need wal and sync
              */
+            boolean raftMode = conf.get(CoreOptions.RAFT_MODE);
             if (raftMode) {
                 this.writeOptions.setDisableWAL(true);
                 this.writeOptions.setSync(false);
@@ -728,7 +827,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
         @Override
         public Pair<byte[], byte[]> keyRange(String table) {
-            byte[] startKey, endKey;
+            byte[] startKey;
+            byte[] endKey;
             try (CFHandle cf = cf(table);
                  RocksIterator iter = rocksdb().newIterator(cf.get())) {
                 iter.seekToFirst();
@@ -937,9 +1037,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
             assert !this.hasChanges();
             /*
              * NOTE: Options.prefix_extractor is a prerequisite for
-             * Options.setPrefixSameAsStart(true):
-             * ReadOptions options = new ReadOptions();
-             * options.setPrefixSameAsStart(true);
+             * optimized prefix seek, if Options.prefix_extractor if enabled,
+             * can setPrefixSameAsStart(true) or setAutoPrefixMode(true):
+             *  ReadOptions options = new ReadOptions();
+             *  options.setPrefixSameAsStart(true);
+             * or
+             *  options.setAutoPrefixMode(true);
+             *  options.setIterateUpperBound(prefix + 1);
              */
             try (CFHandle cf = cf(table)) {
                 ReusedRocksIterator iter = cf.newIterator();
@@ -956,9 +1060,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                           byte[] keyTo, int scanType) {
             assert !this.hasChanges();
             /*
-             * Not sure if setTotalOrderSeek(true) must be set:
-             * ReadOptions options = new ReadOptions();
-             * options.setTotalOrderSeek(true);
+             * NOTE: if Options.prefix_extractor if enabled, need to
+             * setTotalOrderSeek(true) or setAutoPrefixMode(true) to make
+             * page-seek or shard-scan return right results:
+             *  ReadOptions options = new ReadOptions();
+             *  options.setTotalOrderSeek(true);
+             * or
+             *  options.setAutoPrefixMode(true);
+             *  options.setIterateUpperBound(keyTo);
              */
             try (CFHandle cf = cf(table)) {
                 ReusedRocksIterator iter = cf.newIterator();
@@ -1058,14 +1167,14 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @SuppressWarnings("unused")
         private void dump() {
             this.seek();
-            System.out.println(">>>> scan from " + this.table + ": "  +
-                               (this.keyBegin == null ? "*" :
-                                StringEncoding.format(this.keyBegin)) +
-                               (this.iter.isValid() ? "" : " - No data"));
+            LOG.info(">>>> scan from {}: {}{}",
+                      this.table,
+                      this.keyBegin == null ? "*" : StringEncoding.format(this.keyBegin),
+                      this.iter.isValid() ? "" : " - No data");
             for (; this.iter.isValid(); this.iter.next()) {
-                System.out.println(String.format("%s=%s",
-                                   StringEncoding.format(this.iter.key()),
-                                   StringEncoding.format(this.iter.value())));
+                LOG.info("{}={}",
+                          StringEncoding.format(this.iter.key()),
+                          StringEncoding.format(this.iter.value()));
             }
         }
 
@@ -1096,7 +1205,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         }
 
         private void seek() {
-            if (this.keyBegin == null) {
+            if (this.keyBegin == null || this.keyBegin.length <= 0) {
                 // Seek to the first if no `keyBegin`
                 this.iter.seekToFirst();
             } else {

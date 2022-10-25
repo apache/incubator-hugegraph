@@ -46,7 +46,7 @@ public class CompressInterceptor implements WriterInterceptor {
 
     public static final String GZIP = "gzip";
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CompressInterceptor.class);
 
     // Set compress output buffer size to 4KB (about 40~600 vertices)
     public static final int BUFFER_SIZE = 1024 * 4;

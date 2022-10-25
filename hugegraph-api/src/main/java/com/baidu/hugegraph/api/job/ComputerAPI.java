@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.job;
 
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.NotFoundException;
@@ -49,9 +50,10 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/jobs/computer")
 @Singleton
+@Tag(name = "ComputerAPI")
 public class ComputerAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(ComputerAPI.class);
 
     @POST
     @Timed

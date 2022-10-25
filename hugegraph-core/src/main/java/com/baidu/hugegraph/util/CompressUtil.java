@@ -46,7 +46,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 
-import com.baidu.hugegraph.backend.store.raft.RaftSharedContext;
+import com.baidu.hugegraph.backend.store.raft.RaftContext;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
@@ -63,7 +63,7 @@ public final class CompressUtil {
                                    Checksum checksum) throws IOException {
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
-        int blockSize = RaftSharedContext.BLOCK_SIZE;
+        int blockSize = RaftContext.BLOCK_SIZE;
         try (FileOutputStream fos = new FileOutputStream(outputFile);
              CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
              BufferedOutputStream bos = new BufferedOutputStream(cos);
@@ -170,11 +170,18 @@ public final class CompressUtil {
          * else throws exception
          */
         Path normalizePath = targetDirResolved.normalize();
-        if (!normalizePath.startsWith(targetDir)) {
+        if (!normalizePath.startsWith(targetDir.normalize())) {
             throw new IOException(String.format("Bad entry: %s",
                                                 entry.getName()));
         }
         return normalizePath;
+    }
+
+    public static void compressZip(String inputDir, String outputFile,
+                                   Checksum checksum) throws IOException {
+        String rootDir = Paths.get(inputDir).getParent().toString();
+        String sourceDir = Paths.get(inputDir).getFileName().toString();
+        compressZip(rootDir, sourceDir, outputFile, checksum);
     }
 
     public static void compressZip(String rootDir, String sourceDir,

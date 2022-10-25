@@ -35,8 +35,39 @@ import com.baidu.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
+import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTables {
+
+    public static class Meta extends RocksDBTable {
+
+        private static final String TABLE = HugeType.META.string();
+
+        public Meta(String database) {
+            super(database, TABLE);
+        }
+
+        public void writeVersion(Session session, String version) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            byte[] value = StringEncoding.encode(version);
+            session.put(this.table(), key, value);
+            try {
+                session.commit();
+            } catch (Exception e) {
+                session.rollback();
+                throw e;
+            }
+        }
+
+        public String readVersion(Session session) {
+            byte[] key = new byte[]{HugeKeys.VERSION.code()};
+            byte[] value = session.get(this.table(), key);
+            if (value == null) {
+                return null;
+            }
+            return StringEncoding.decode(value);
+        }
+    }
 
     public static class Counters extends RocksDBTable {
 
@@ -50,7 +81,7 @@ public class RocksDBTables {
             byte[] key = new byte[]{type.code()};
             byte[] value = session.get(this.table(), key);
             if (value != null) {
-                return l(value);
+                return toLong(value);
             } else {
                 return 0L;
             }
@@ -59,16 +90,16 @@ public class RocksDBTables {
         public void increaseCounter(Session session, HugeType type,
                                     long increment) {
             byte[] key = new byte[]{type.code()};
-            session.increase(this.table(), key, b(increment));
+            session.increase(this.table(), key, toBytes(increment));
         }
 
-        private static byte[] b(long value) {
+        private static byte[] toBytes(long value) {
             return ByteBuffer.allocate(Long.BYTES)
                              .order(ByteOrder.nativeOrder())
                              .putLong(value).array();
         }
 
-        private static long l(byte[] bytes) {
+        private static long toLong(byte[] bytes) {
             assert bytes.length == Long.BYTES;
             return ByteBuffer.wrap(bytes)
                              .order(ByteOrder.nativeOrder())
@@ -282,11 +313,15 @@ public class RocksDBTables {
                         break;
                     case GTE:
                         minEq = true;
+                        min = (Id) r.value();
+                        break;
                     case GT:
                         min = (Id) r.value();
                         break;
                     case LTE:
                         maxEq = true;
+                        max = (Id) r.value();
+                        break;
                     case LT:
                         max = (Id) r.value();
                         break;
@@ -323,7 +358,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class RangeFloatIndex extends RangeIndex{
+    public static class RangeFloatIndex extends RangeIndex {
 
         public static final String TABLE = HugeType.RANGE_FLOAT_INDEX.string();
 
@@ -341,7 +376,7 @@ public class RocksDBTables {
         }
     }
 
-    public static class RangeDoubleIndex extends RangeIndex{
+    public static class RangeDoubleIndex extends RangeIndex {
 
         public static final String TABLE = HugeType.RANGE_DOUBLE_INDEX.string();
 

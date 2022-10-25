@@ -44,25 +44,25 @@ public class IntSetTest extends BaseUnitTest {
     }
 
     static final int THREADS_NUM = 4;
-    static final int batchCount = 2000;
-    static final int eachCount = 10000;
+    static final int BATCH_COUNT = 2000;
+    static final int EACH_COUNT = 10000;
 
     @Test
     public void testIntFixedSet() {
-        IntSet set = fixed(eachCount);
+        IntSet set = fixed(EACH_COUNT);
         testIntSet(set);
     }
 
     @Test
     public void testIntFixedSetBySegments() {
-        IntSet set = fixedBySegments(eachCount, 4);
+        IntSet set = fixedBySegments(EACH_COUNT, 4);
         testIntSet(set);
 
-        set = fixedBySegments(eachCount, 400);
+        set = fixedBySegments(EACH_COUNT, 400);
         testIntSet(set);
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            fixedBySegments(eachCount, eachCount + 1);
+            fixedBySegments(EACH_COUNT, EACH_COUNT + 1);
         }, e -> {
             Assert.assertContains("Invalid capacity", e.getMessage());
         });
@@ -70,7 +70,7 @@ public class IntSetTest extends BaseUnitTest {
 
     @Test
     public void testIntFixedSetConcurrent() {
-        IntSet set = fixed(eachCount);
+        IntSet set = fixed(EACH_COUNT);
         testIntSetConcurrent(set);
     }
 
@@ -87,10 +87,10 @@ public class IntSetTest extends BaseUnitTest {
         Assert.assertTrue(set.concurrent());
 
         int mod = 1 + new Random().nextInt(100);
-        for (int i = 0; i < batchCount; i++) {
-            for (int k = 0; k < eachCount; k++) {
+        for (int i = 0; i < BATCH_COUNT; i++) {
+            for (int k = 0; k < EACH_COUNT; k++) {
                 set.contains(k);
-                if(k % mod == 0) {
+                if (k % mod == 0) {
                     set.add(k);
                     jucSet.add(k);
                 }
@@ -104,9 +104,9 @@ public class IntSetTest extends BaseUnitTest {
             Assert.assertTrue("expect " + k, exist);
         }
 
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             boolean exist = set.contains(k);
-            if(k % mod == 0) {
+            if (k % mod == 0) {
                 Assert.assertTrue("expect " + k, exist);
             } else {
                 Assert.assertFalse("unexpect " + k, exist);
@@ -114,9 +114,9 @@ public class IntSetTest extends BaseUnitTest {
         }
 
         int count = set.size();
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             boolean exist = set.contains(k);
-            if(k % mod == 0) {
+            if (k % mod == 0) {
                 Assert.assertTrue("expect " + k, exist);
 
                 Assert.assertFalse(set.add(k));
@@ -133,7 +133,7 @@ public class IntSetTest extends BaseUnitTest {
             }
         }
 
-        int outOfBoundKey = eachCount;
+        int outOfBoundKey = EACH_COUNT;
 
         Assert.assertFalse(set.contains(outOfBoundKey));
 
@@ -151,7 +151,7 @@ public class IntSetTest extends BaseUnitTest {
 
         set.clear();
         Assert.assertEquals(0, set.size());
-        for (int k = 0; k < eachCount; k++) {
+        for (int k = 0; k < EACH_COUNT; k++) {
             boolean exist = set.contains(k);
             Assert.assertFalse("unexpect " + k, exist);
         }
@@ -159,8 +159,8 @@ public class IntSetTest extends BaseUnitTest {
 
     private void testIntSetConcurrent(IntSet set) {
         runWithThreads(THREADS_NUM, () -> {
-            for (int i = 0; i < batchCount; i++) {
-                for (int k = 0; k < eachCount; k++) {
+            for (int i = 0; i < BATCH_COUNT; i++) {
+                for (int k = 0; k < EACH_COUNT; k++) {
                     set.contains(k);
                     set.add(k);
                 }
@@ -169,8 +169,8 @@ public class IntSetTest extends BaseUnitTest {
             }
         });
 
-        Assert.assertEquals(eachCount, set.size());
-        for (int k = 0; k < eachCount; k++) {
+        Assert.assertEquals(EACH_COUNT, set.size());
+        for (int k = 0; k < EACH_COUNT; k++) {
             Assert.assertTrue("expect " + k, set.contains(k));
         }
     }

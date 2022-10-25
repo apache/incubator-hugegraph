@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-all</artifactId>
-            <version>3.10</version>
+            <version>3.11.12</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -75,7 +75,7 @@
             <!-- netty-all contain netty-transport-native-epoll, https://github.com/netty/netty/issues/8714 -->
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>4.1.42.Final</version>
+            <version>4.1.44.Final</version>
         </dependency>
     </dependencies>
 

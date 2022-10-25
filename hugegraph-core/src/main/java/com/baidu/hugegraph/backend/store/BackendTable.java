@@ -66,6 +66,32 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         // pass
     }
 
+    public void updateIfPresent(Session session, Entry entry) {
+        // TODO: use fine-grained row lock
+        synchronized (this.table) {
+            assert session == null || !session.hasChanges();
+            if (this.queryExist(session, entry)) {
+                this.insert(session, entry);
+                if (session != null) {
+                    session.commit();
+                }
+            }
+        }
+    }
+
+    public void updateIfAbsent(Session session, Entry entry) {
+        // TODO: use fine-grained row lock
+        synchronized (this.table) {
+            assert session == null || !session.hasChanges();
+            if (!this.queryExist(session, entry)) {
+                this.insert(session, entry);
+                if (session != null) {
+                    session.commit();
+                }
+            }
+        }
+    }
+
     /**
      *  Mapping query-type to table-type
      * @param query origin query
@@ -112,6 +138,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     public abstract Number queryNumber(Session session, Query query);
 
+    public abstract boolean queryExist(Session session, Entry entry);
+
     public abstract void insert(Session session, Entry entry);
 
     public abstract void delete(Session session, Entry entry);
@@ -122,7 +150,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     /****************************** ShardSplitter ******************************/
 
-    public static abstract class ShardSplitter<Session extends BackendSession> {
+    public abstract static class ShardSplitter<Session extends BackendSession> {
 
         // The min shard size should >= 1M to prevent too many number of shards
         protected static final int MIN_SHARD_SIZE = (int) Bytes.MB;
@@ -220,7 +248,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
                                                       endKey(this.endKey), 0));
                 }
 
-                byte[] start, end;
+                byte[] start;
+                byte[] end;
                 boolean startChanged = false;
                 boolean endChanged = false;
                 int length;

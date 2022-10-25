@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class JaccardSimilarityApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/jaccardsimilarity";
+    static final String PATH = TRAVERSERS_API + "/jaccardsimilarity";
 
     @Before
     public void prepareSchema() {
@@ -47,7 +47,7 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String peterId = name2Ids.get("peter");
-        Response r = client().get(path, ImmutableMap.of("vertex",
+        Response r = client().get(PATH, ImmutableMap.of("vertex",
                                                         id2Json(markoId),
                                                         "other",
                                                         id2Json(peterId)));
@@ -72,7 +72,7 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
                                        " \"degree\": 10000, " +
                                        " \"skip_degree\": 100000 }, " +
                                        "\"top\": 3}", markoId);
-        Response r = client().post(path, reqBody);
+        Response r = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, r);
         Double rippleJaccardSimilarity = assertJsonContains(content, rippleId);
         Double peterJaccardSimilarity = assertJsonContains(content, peterId);

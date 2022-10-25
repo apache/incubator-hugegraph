@@ -28,11 +28,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.api.BaseApiTest;
+
 import com.google.common.collect.ImmutableMap;
 
 public class PathsApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/paths";
+    static final String PATH = TRAVERSERS_API + "/paths";
 
     @Before
     public void prepareSchema() {
@@ -48,7 +49,7 @@ public class PathsApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String vadasId = name2Ids.get("vadas");
-        Response r = client().get(path, ImmutableMap.of("source",
+        Response r = client().get(PATH, ImmutableMap.of("source",
                                                         id2Json(markoId),
                                                         "target",
                                                         id2Json(vadasId),
@@ -78,7 +79,7 @@ public class PathsApiTest extends BaseApiTest {
                                        "\"limit\": 10000000, " +
                                        "\"with_vertex\": false}",
                                        markoId, joshId);
-        Response r = client().post(path, reqBody);
+        Response r = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, r);
         List<Map<String, Object>> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(2, paths.size());

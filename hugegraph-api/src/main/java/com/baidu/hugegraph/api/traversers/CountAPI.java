@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -54,9 +55,10 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/count")
 @Singleton
+@Tag(name = "CountAPI")
 public class CountAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(CountAPI.class);
 
     @POST
     @Timed

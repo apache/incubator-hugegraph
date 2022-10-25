@@ -36,7 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LicenseVerifier {
 
-    private static final Logger LOG = Log.logger(HugeGraph.class);
+    private static final Logger LOG = Log.logger(LicenseVerifier.class);
 
     private static final String LICENSE_PARAM_PATH = "/verify-license.json";
 

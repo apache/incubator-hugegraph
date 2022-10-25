@@ -41,6 +41,7 @@ public class CustomizedCrosspointsApiTest extends BaseApiTest {
         BaseApiTest.initVertex();
         BaseApiTest.initEdge();
     }
+
     @Test
     public void testPost() {
         Map<String, String> name2Ids = listAllVertexName2Ids();

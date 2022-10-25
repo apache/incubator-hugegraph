@@ -46,7 +46,9 @@ import com.google.common.collect.ImmutableSet;
 public abstract class PropertyCoreTest extends BaseCoreTest {
 
     protected abstract <V> V property(String key, V value);
+
     protected abstract <V> V propertyList(String key, Object... values);
+
     protected abstract <V> V propertySet(String key, Object... values);
 
     @Before

@@ -87,7 +87,10 @@ public class LoginApiTest extends BaseApiTest {
         r = client().delete(path, headers);
         assertResponseStatus(204, r);
 
-        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
+        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hb" +
+                              "WUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0I" +
+                              "iwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbE" +
+                              "MzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().delete(path, headers);
@@ -120,7 +123,10 @@ public class LoginApiTest extends BaseApiTest {
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
 
-        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hbWUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0IiwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbEMzxrTs84q8YanhTTxtsKPPG25CNxA";
+        String invalidToken = "eyJhbGciOiJIUzI1NiJ9.eyJ1caVyX25hb" +
+                              "WUiOiJ0ZXN0IiwidXNlcl9pZCI6Ii02Mzp0ZXN0I" +
+                              "iwiZXhwIjoxNjI0MzUzMjUyfQ.kYot-3mSGlfSbE" +
+                              "MzxrTs84q8YanhTTxtsKPPG25CNxA";
         headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + invalidToken);
         r = client().get(path, headers);

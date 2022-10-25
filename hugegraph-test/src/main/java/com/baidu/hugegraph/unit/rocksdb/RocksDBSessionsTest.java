@@ -51,14 +51,14 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals(ImmutableSet.of(TABLE, TABLE2),
                             this.rocks.openedTables());
 
-        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
-        this.rocks.session().put(TABLE2, b("person:1gname"), b("James2"));
+        this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
+        this.rocks.session().put(TABLE2, getBytes("person:1gname"), getBytes("James2"));
         this.commit();
 
-        String value = s(this.rocks.session().get(TABLE, b("person:1gname")));
+        String value = getString(this.rocks.session().get(TABLE, getBytes("person:1gname")));
         Assert.assertEquals("James", value);
 
-        String value2 = s(this.rocks.session().get(TABLE2, b("person:1gname")));
+        String value2 = getString(this.rocks.session().get(TABLE2, getBytes("person:1gname")));
         Assert.assertEquals("James2", value2);
 
         this.rocks.dropTable(TABLE2);
@@ -72,8 +72,8 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         final String TABLE2 = "test-table2";
         this.rocks.createTable(TABLE2);
 
-        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
-        this.rocks.session().put(TABLE, b("person:2gname"), b("James2"));
+        this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
+        this.rocks.session().put(TABLE, getBytes("person:2gname"), getBytes("James2"));
         this.commit();
 
         Assert.assertEquals(ImmutableList.of("0"),
@@ -81,9 +81,9 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertEquals(ImmutableList.of("2", "0"),
                             this.rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
 
-        this.rocks.session().put(TABLE2, b("person:1gname"), b("James1"));
-        this.rocks.session().put(TABLE2, b("person:2gname"), b("James2"));
-        this.rocks.session().put(TABLE2, b("person:3gname"), b("James3"));
+        this.rocks.session().put(TABLE2, getBytes("person:1gname"), getBytes("James1"));
+        this.rocks.session().put(TABLE2, getBytes("person:2gname"), getBytes("James2"));
+        this.rocks.session().put(TABLE2, getBytes("person:3gname"), getBytes("James3"));
         this.commit();
 
         Assert.assertEquals(ImmutableList.of("0"),
@@ -94,41 +94,41 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
 
     @Test
     public void testCompactRange() throws RocksDBException {
-        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
-        this.rocks.session().put(TABLE, b("person:2gname"), b("James2"));
+        this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
+        this.rocks.session().put(TABLE, getBytes("person:2gname"), getBytes("James2"));
         this.commit();
 
         this.rocks.compactRange();
 
-        String value = s(this.rocks.session().get(TABLE, b("person:1gname")));
+        String value = getString(this.rocks.session().get(TABLE, getBytes("person:1gname")));
         Assert.assertEquals("James", value);
 
-        value = s(this.rocks.session().get(TABLE, b("person:2gname")));
+        value = getString(this.rocks.session().get(TABLE, getBytes("person:2gname")));
         Assert.assertEquals("James2", value);
     }
 
     @Test
     public void testSnapshot() throws RocksDBException, IOException {
-        this.rocks.session().put(TABLE, b("person:1gname"), b("James"));
+        this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
         this.rocks.session().commit();
 
         String snapshotPath = SNAPSHOT_PATH + "/rocksdb";
         try {
             this.rocks.createSnapshot(snapshotPath);
 
-            byte[] value = this.rocks.session().get(TABLE, b("person:1gname"));
-            Assert.assertEquals("James", s(value));
+            byte[] value = this.rocks.session().get(TABLE, getBytes("person:1gname"));
+            Assert.assertEquals("James", getString(value));
 
-            this.rocks.session().put(TABLE, b("person:1gname"), b("James2"));
+            this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James2"));
             this.rocks.session().commit();
 
-            value = this.rocks.session().get(TABLE, b("person:1gname"));
-            Assert.assertEquals("James2", s(value));
+            value = this.rocks.session().get(TABLE, getBytes("person:1gname"));
+            Assert.assertEquals("James2", getString(value));
 
             this.rocks.resumeSnapshot(snapshotPath);
 
-            value = this.rocks.session().get(TABLE, b("person:1gname"));
-            Assert.assertEquals("James", s(value));
+            value = this.rocks.session().get(TABLE, getBytes("person:1gname"));
+            Assert.assertEquals("James", getString(value));
         } finally {
             File snapshotFile = FileUtils.getFile(SNAPSHOT_PATH);
             if (snapshotFile.exists()) {
@@ -148,10 +148,10 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         final String TABLE2 = "test-table2";
         copy.createTable(TABLE2);
 
-        copy.session().put(TABLE2, b("person:1gname"), b("James"));
+        copy.session().put(TABLE2, getBytes("person:1gname"), getBytes("James"));
         copy.session().commit();
 
-        String value = s(copy.session().get(TABLE2, b("person:1gname")));
+        String value = getString(copy.session().get(TABLE2, getBytes("person:1gname")));
         Assert.assertEquals("James", value);
 
         copy.close();
@@ -179,11 +179,11 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         // Write some data to sst file
         for (int i = 0; i < 1000; i++) {
             String k = String.format("%03d", i);
-            sstSessions.session().put(TABLE1, b("person:" + k), b("James" + i));
+            sstSessions.session().put(TABLE1, getBytes("person:" + k), getBytes("James" + i));
         }
         for (int i = 0; i < 2000; i++) {
             String k = String.format("%04d", i);
-            sstSessions.session().put(TABLE2, b("book:" + k), b("Java" + i));
+            sstSessions.session().put(TABLE2, getBytes("book:" + k), getBytes("Java" + i));
         }
         sstSessions.session().commit();
         sstSessions.close();
@@ -200,24 +200,24 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         rocks.createTable(TABLE1);
         Assert.assertEquals(ImmutableList.of("1000"),
                             rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
-        String value = s(rocks.session().get(TABLE1, b("person:001")));
+        String value = getString(rocks.session().get(TABLE1, getBytes("person:001")));
         Assert.assertEquals("James1", value);
-        value = s(rocks.session().get(TABLE1, b("person:010")));
+        value = getString(rocks.session().get(TABLE1, getBytes("person:010")));
         Assert.assertEquals("James10", value);
-        value = s(rocks.session().get(TABLE1, b("person:999")));
+        value = getString(rocks.session().get(TABLE1, getBytes("person:999")));
         Assert.assertEquals("James999", value);
 
         // Will ingest sst file of TABLE2
         rocks.createTable(TABLE2);
         Assert.assertEquals(ImmutableList.of("1000", "2000"),
                             rocks.property(RocksDBMetrics.KEY_NUM_KEYS));
-        value = s(rocks.session().get(TABLE2, b("book:0001")));
+        value = getString(rocks.session().get(TABLE2, getBytes("book:0001")));
         Assert.assertEquals("Java1", value);
-        value = s(rocks.session().get(TABLE2, b("book:0010")));
+        value = getString(rocks.session().get(TABLE2, getBytes("book:0010")));
         Assert.assertEquals("Java10", value);
-        value = s(rocks.session().get(TABLE2, b("book:0999")));
+        value = getString(rocks.session().get(TABLE2, getBytes("book:0999")));
         Assert.assertEquals("Java999", value);
-        value = s(rocks.session().get(TABLE2, b("book:1999")));
+        value = getString(rocks.session().get(TABLE2, getBytes("book:1999")));
         Assert.assertEquals("Java1999", value);
     }
 }

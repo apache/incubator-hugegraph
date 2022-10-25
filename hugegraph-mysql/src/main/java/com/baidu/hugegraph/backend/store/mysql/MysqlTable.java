@@ -39,6 +39,7 @@ import com.baidu.hugegraph.backend.page.PageState;
 import com.baidu.hugegraph.backend.query.Aggregate;
 import com.baidu.hugegraph.backend.query.Condition;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
+import com.baidu.hugegraph.backend.query.IdQuery;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.backend.store.BackendTable;
@@ -48,6 +49,8 @@ import com.baidu.hugegraph.backend.store.mysql.MysqlEntryIterator.PagePosition;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import com.baidu.hugegraph.exception.NotFoundException;
 import com.baidu.hugegraph.iterator.ExtendableIterator;
+import com.baidu.hugegraph.iterator.WrappedIterator;
+import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.Log;
@@ -56,14 +59,16 @@ import com.google.common.collect.ImmutableList;
 public abstract class MysqlTable
                 extends BackendTable<Session, MysqlBackendEntry.Row> {
 
-    private static final Logger LOG = Log.logger(MysqlStore.class);
+    private static final Logger LOG = Log.logger(MysqlTable.class);
 
     private static final String DECIMAL = "DECIMAL";
 
-    // The template for insert and delete statements
+    // The template cache for insert and delete statements
     private String insertTemplate;
     private String insertTemplateTtl;
     private String deleteTemplate;
+    private String updateIfPresentTemplate;
+    private String updateIfAbsentTemplate;
 
     private final MysqlShardSplitter shardSplitter;
 
@@ -72,6 +77,9 @@ public abstract class MysqlTable
         this.insertTemplate = null;
         this.insertTemplateTtl = null;
         this.deleteTemplate = null;
+        this.updateIfPresentTemplate = null;
+        this.updateIfAbsentTemplate = null;
+
         this.shardSplitter = new MysqlShardSplitter(this.table());
     }
 
@@ -175,45 +183,70 @@ public abstract class MysqlTable
         return ImmutableList.of(id.asObject());
     }
 
-    protected String buildInsertTemplate(MysqlBackendEntry.Row entry) {
-        if (entry.ttl() != 0L) {
-            return this.buildInsertTemplateWithTtl(entry);
+    protected void insertOrUpdate(Session session, String template,
+                                  List<?> params) {
+        PreparedStatement insertStmt;
+        try {
+            // Create or get insert prepare statement
+            insertStmt = session.prepareStatement(template);
+            int i = 1;
+            for (Object param : params) {
+                insertStmt.setObject(i++, param);
+            }
+        } catch (SQLException e) {
+            throw new BackendException("Failed to prepare statement '%s' " +
+                                       "with params: %s", template, params);
         }
-        if (this.insertTemplate != null) {
+        session.add(insertStmt);
+    }
+
+    protected final String buildUpdateTemplate(MysqlBackendEntry.Row entry) {
+        if (entry.ttl() != 0L) {
+            if (this.insertTemplateTtl != null) {
+                return this.insertTemplateTtl;
+            }
+
+            this.insertTemplateTtl = this.buildUpdateForcedTemplate(entry);
+            return this.insertTemplateTtl;
+        } else {
+            if (this.insertTemplate != null) {
+                return this.insertTemplate;
+            }
+
+            this.insertTemplate = this.buildUpdateForcedTemplate(entry);
             return this.insertTemplate;
         }
-
-        this.insertTemplate = this.buildInsertTemplateForce(entry);
-        return this.insertTemplate;
     }
 
-    protected String buildInsertTemplateWithTtl(MysqlBackendEntry.Row entry) {
-        assert entry.ttl() != 0L;
-        if (this.insertTemplateTtl != null) {
-            return this.insertTemplateTtl;
-        }
-
-        this.insertTemplateTtl = this.buildInsertTemplateForce(entry);
-        return this.insertTemplateTtl;
-    }
-
-    protected String buildInsertTemplateForce(MysqlBackendEntry.Row entry) {
+    protected String buildUpdateForcedTemplate(MysqlBackendEntry.Row entry) {
         StringBuilder insert = new StringBuilder();
-        insert.append("REPLACE INTO ").append(this.table()).append(" (");
+        insert.append("REPLACE INTO ").append(this.table());
+        return this.buildInsertKeys(insert, entry);
+    }
+
+    protected String buildUpdateIfAbsentTemplate(MysqlBackendEntry.Row entry) {
+        StringBuilder insert = new StringBuilder();
+        insert.append("INSERT IGNORE INTO ").append(this.table());
+        return this.buildInsertKeys(insert, entry);
+    }
+
+    protected String buildInsertKeys(StringBuilder insert,
+                                     MysqlBackendEntry.Row entry) {
+        insert.append(" (");
 
         int i = 0;
-        int n = entry.columns().size();
+        int size = entry.columns().size();
         for (HugeKeys key : entry.columns().keySet()) {
             insert.append(formatKey(key));
-            if (++i != n) {
+            if (++i != size) {
                 insert.append(", ");
             }
         }
         insert.append(") VALUES (");
-        // Fill with '?'
-        for (i = 0; i < n; i++) {
+        // Fill with '?' as a placeholder
+        for (i = 0; i < size; i++) {
             insert.append("?");
-            if (i != n - 1) {
+            if (i != size - 1) {
                 insert.append(", ");
             }
         }
@@ -222,11 +255,73 @@ public abstract class MysqlTable
         return insert.toString();
     }
 
-    protected String buildDeleteTemplate(List<HugeKeys> idNames) {
-        if (this.deleteTemplate != null) {
-            return this.deleteTemplate;
+    protected List<?> buildUpdateForcedParams(MysqlBackendEntry.Row entry) {
+        return this.buildColumnsParams(entry);
+    }
+
+    protected List<?> buildUpdateIfAbsentParams(MysqlBackendEntry.Row entry) {
+        return this.buildColumnsParams(entry);
+    }
+
+    protected List<Object> buildColumnsParams(MysqlBackendEntry.Row entry) {
+        return this.buildColumnsParams(entry, null);
+    }
+
+    protected List<Object> buildColumnsParams(MysqlBackendEntry.Row entry,
+                                              List<HugeKeys> skipKeys) {
+        List<Object> objects = new ArrayList<>();
+        for (Map.Entry<HugeKeys, Object> e : entry.columns().entrySet()) {
+            HugeKeys key = e.getKey();
+            Object value = e.getValue();
+            if (skipKeys != null && skipKeys.contains(key)) {
+                continue;
+            }
+            String type = this.tableDefine().columns().get(key);
+            if (type.startsWith(DECIMAL)) {
+                value = new BigDecimal(value.toString());
+            }
+            objects.add(value);
+        }
+        return objects;
+    }
+
+    protected String buildUpdateIfPresentTemplate(MysqlBackendEntry.Row entry) {
+        StringBuilder update = new StringBuilder();
+        update.append("UPDATE ").append(this.table());
+        update.append(" SET ");
+
+        List<HugeKeys> idNames = this.idColumnName();
+
+        int i = 0;
+        for (HugeKeys key : entry.columns().keySet()) {
+            if (idNames.contains(key)) {
+                continue;
+            }
+            if (i++ > 0) {
+                update.append(", ");
+            }
+            update.append(formatKey(key));
+            update.append("=?");
         }
 
+        WhereBuilder where = this.newWhereBuilder();
+        where.and(formatKeys(idNames), "=");
+        update.append(where.build());
+
+        return update.toString();
+    }
+
+    protected List<?> buildUpdateIfPresentParams(MysqlBackendEntry.Row entry) {
+        List<HugeKeys> idNames = this.idColumnName();
+        List<Object> params = this.buildColumnsParams(entry, idNames);
+
+        List<Long> idValues = this.idColumnValue(entry);
+        params.addAll(idValues);
+
+        return params;
+    }
+
+    protected String buildDeleteTemplate(List<HugeKeys> idNames) {
         StringBuilder delete = new StringBuilder();
         delete.append("DELETE FROM ").append(this.table());
         this.appendPartition(delete);
@@ -235,8 +330,7 @@ public abstract class MysqlTable
         where.and(formatKeys(idNames), "=");
         delete.append(where.build());
 
-        this.deleteTemplate = delete.toString();
-        return this.deleteTemplate;
+        return delete.toString();
     }
 
     protected String buildDropTemplate() {
@@ -256,40 +350,21 @@ public abstract class MysqlTable
      */
     @Override
     public void insert(Session session, MysqlBackendEntry.Row entry) {
-        String template = this.buildInsertTemplate(entry);
-
-        PreparedStatement insertStmt;
-        try {
-            // Create or get insert prepare statement
-            insertStmt = session.prepareStatement(template);
-            int i = 1;
-            for (Object object : this.buildInsertObjects(entry)) {
-                insertStmt.setObject(i++, object);
-            }
-        } catch (SQLException e) {
-            throw new BackendException("Failed to prepare statement '%s'" +
-                                       "for entry: %s", template, entry);
-        }
-        session.add(insertStmt);
-    }
-
-    protected List<Object> buildInsertObjects(MysqlBackendEntry.Row entry) {
-        List<Object> objects = new ArrayList<>();
-        for (Map.Entry<HugeKeys, Object> e : entry.columns().entrySet()) {
-            Object value = e.getValue();
-            String type = this.tableDefine().columns().get(e.getKey());
-            if (type.startsWith(DECIMAL)) {
-                value = new BigDecimal(value.toString());
-            }
-            objects.add(value);
-        }
-        return objects;
+        String template = this.buildUpdateTemplate(entry);
+        List<?> params = this.buildUpdateForcedParams(entry);
+        this.insertOrUpdate(session, template, params);
     }
 
     @Override
     public void delete(Session session, MysqlBackendEntry.Row entry) {
         List<HugeKeys> idNames = this.idColumnName();
-        String template = this.buildDeleteTemplate(idNames);
+
+        String template = this.deleteTemplate;
+        if (template == null) {
+            template = this.buildDeleteTemplate(idNames);
+            this.deleteTemplate = template;
+        }
+
         PreparedStatement deleteStmt;
         try {
             deleteStmt = session.prepareStatement(template);
@@ -329,6 +404,39 @@ public abstract class MysqlTable
     }
 
     @Override
+    public void updateIfPresent(Session session, MysqlBackendEntry.Row entry) {
+        String template = this.updateIfPresentTemplate;
+        if (template == null) {
+            template = this.buildUpdateIfPresentTemplate(entry);
+            this.updateIfPresentTemplate = template;
+        }
+        List<?> params = this.buildUpdateIfPresentParams(entry);
+        this.insertOrUpdate(session, template, params);
+    }
+
+    @Override
+    public void updateIfAbsent(Session session, MysqlBackendEntry.Row entry) {
+        String template = this.updateIfAbsentTemplate;
+        if (template == null) {
+            template = this.buildUpdateIfAbsentTemplate(entry);
+            this.updateIfAbsentTemplate = template;
+        }
+        List<?> params = this.buildUpdateIfAbsentParams(entry);
+        this.insertOrUpdate(session, template, params);
+    }
+
+    @Override
+    public boolean queryExist(Session session, MysqlBackendEntry.Row entry) {
+        Query query = new IdQuery.OneIdQuery(HugeType.UNKNOWN, entry.id());
+        Iterator<BackendEntry> iter = this.query(session, query);
+        try {
+            return iter.hasNext();
+        } finally {
+            WrappedIterator.close(iter);
+        }
+    }
+
+    @Override
     public Number queryNumber(Session session, Query query) {
         Aggregate aggregate = query.aggregateNotNull();
 
@@ -353,8 +461,8 @@ public abstract class MysqlTable
     }
 
     protected <R> Iterator<R> query(Session session, Query query,
-                                    BiFunction<Query, ResultSetWrapper, Iterator<R>>
-                                    parser) {
+                                    BiFunction<Query, ResultSetWrapper,
+                                               Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {

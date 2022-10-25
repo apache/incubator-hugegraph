@@ -18,7 +18,7 @@ GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 
 JACOCO_PORT=36320
 RAFT_TOOLS=$RAFT1_DIR/bin/raft-tools.sh
-RAFT_LEADER="127.0.0.1:8281"
+RAFT_LEADER="127.0.0.1:8091"
 
 mvn package -DskipTests
 

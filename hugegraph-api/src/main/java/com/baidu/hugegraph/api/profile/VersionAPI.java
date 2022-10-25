@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.profile;
 
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -35,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("versions")
 @Singleton
+@Tag(name = "VersionAPI")
 public class VersionAPI extends API {
 
     @GET

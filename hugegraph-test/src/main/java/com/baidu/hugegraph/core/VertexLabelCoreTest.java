@@ -567,7 +567,6 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         }
     }
 
-
     @Test
     public void testAddVertexLabelWithTtl() {
         super.initPropertyKeys();

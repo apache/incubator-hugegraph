@@ -40,7 +40,7 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
     private final RaftNode raftNode;
     private final RpcForwarder rpcForwarder;
 
-    public RaftGroupManagerImpl(RaftSharedContext context) {
+    public RaftGroupManagerImpl(RaftContext context) {
         this.group = context.group();
         this.raftNode = context.node();
         this.rpcForwarder = context.rpcForwarder();

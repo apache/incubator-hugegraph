@@ -31,7 +31,7 @@ import com.baidu.hugegraph.api.BaseApiTest;
 
 public class FusiformSimilarityApiTest extends BaseApiTest {
 
-    final static String path = TRAVERSERS_API + "/fusiformsimilarity";
+    static final String PATH = TRAVERSERS_API + "/fusiformsimilarity";
 
     @Before
     public void prepareSchema() {
@@ -44,7 +44,7 @@ public class FusiformSimilarityApiTest extends BaseApiTest {
 
     @Test
     public void testPost() {
-        Response r = client().post(path, "{ " +
+        Response r = client().post(PATH, "{ " +
                                          "\"sources\":{ " +
                                          " \"ids\":[], " +
                                          " \"label\": \"person\", " +

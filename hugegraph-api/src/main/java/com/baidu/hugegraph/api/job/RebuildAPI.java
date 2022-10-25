@@ -21,6 +21,7 @@ package com.baidu.hugegraph.api.job;
 
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.PUT;
@@ -42,6 +43,7 @@ import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/jobs/rebuild")
 @Singleton
+@Tag(name = "RebuildAPI")
 public class RebuildAPI extends API {
 
     private static final Logger LOG = Log.logger(RebuildAPI.class);

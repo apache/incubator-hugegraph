@@ -59,7 +59,7 @@ import com.baidu.hugegraph.util.StringEncoding;
 
 public class RocksDBTable extends BackendTable<Session, BackendEntry> {
 
-    private static final Logger LOG = Log.logger(RocksDBStore.class);
+    private static final Logger LOG = Log.logger(RocksDBTable.class);
 
     private final RocksDBShardSplitter shardSplitter;
 
@@ -119,6 +119,14 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
     public void eliminate(Session session, BackendEntry entry) {
         assert entry.columns().size() == 1;
         this.delete(session, entry);
+    }
+
+    @Override
+    public boolean queryExist(Session session, BackendEntry entry) {
+        Id id = entry.id();
+        try (BackendColumnIterator iter = this.queryById(session, id)) {
+            return iter.hasNext();
+        }
     }
 
     @Override

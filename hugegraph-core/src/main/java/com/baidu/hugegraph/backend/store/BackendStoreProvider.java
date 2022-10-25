@@ -19,54 +19,60 @@
 
 package com.baidu.hugegraph.backend.store;
 
-import com.baidu.hugegraph.HugeGraph;
+import com.alipay.remoting.rpc.RpcServer;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.event.EventHub;
 import com.baidu.hugegraph.event.EventListener;
 
 public interface BackendStoreProvider {
 
+    String SCHEMA_STORE = "m";
+    String GRAPH_STORE = "g";
+    String SYSTEM_STORE = "s";
+
     // Backend store type
-    public String type();
+    String type();
 
     // Backend store version
-    public String version();
+    String storedVersion();
+
+    // Current backend store driver version
+    String driverVersion();
 
     // Graph name (that's database name)
-    public String graph();
+    String graph();
 
-    public BackendStore loadSystemStore(HugeConfig config, String name);
+    BackendStore loadSystemStore(HugeConfig config);
 
-    public BackendStore loadSchemaStore(HugeConfig config, String name);
+    BackendStore loadSchemaStore(HugeConfig config);
 
-    public BackendStore loadGraphStore(HugeConfig config, String name);
+    BackendStore loadGraphStore(HugeConfig config);
 
+    void open(String name);
 
-    public void open(String name);
+    void waitReady(RpcServer rpcServer);
 
-    public void waitStoreStarted();
+    void close();
 
-    public void close();
+    void init();
 
-    public void init();
+    void clear();
 
-    public void clear();
+    boolean initialized();
 
-    public void truncate();
+    void truncate();
 
-    public void initSystemInfo(HugeGraph graph);
+    void createSnapshot();
 
-    public void createSnapshot();
+    void resumeSnapshot();
 
-    public void resumeSnapshot();
+    void listen(EventListener listener);
 
-    public void listen(EventListener listener);
+    void unlisten(EventListener listener);
 
-    public void unlisten(EventListener listener);
+    EventHub storeEventHub();
 
-    public EventHub storeEventHub();
+    void onCloneConfig(HugeConfig config, String newGraph);
 
-    public void onCloneConfig(HugeConfig config, String newGraph);
-
-    public void onDeleteConfig(HugeConfig config);
+    void onDeleteConfig(HugeConfig config);
 }
