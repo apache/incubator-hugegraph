@@ -386,6 +386,47 @@
                         </filesets>
                     </configuration>
                 </plugin>
+                <!-- Apache RAT for license check -->
+                <plugin>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>**/*.versionsBackup</exclude>
+                            <exclude>**/*.proto</exclude>
+                            <exclude>**/*.log</exclude>
+                            <exclude>**/*.txt</exclude>
+                            <exclude>**/*.json</exclude>
+                            <exclude>**/*.conf</exclude>
+                            <exclude>**/*.properties</exclude>
+                            <exclude>dist/**/*</exclude>
+                            <exclude>docs/**/*</exclude>
+                            <exclude>scripts/dev/reviewers</exclude>
+                            <exclude>**/*.md</exclude>
+                            <exclude>**/dependency-reduced-pom.xml</exclude>
+                            <exclude>**/hugegraph-style.xml</exclude>
+                            <exclude>**/logs/*.log</exclude>
+                            <exclude>**/META-INF/**/*</exclude>
+                            <exclude>**/assembly/**/*</exclude>
+                            <exclude>**/target/*</exclude>
+                            <exclude>style/*</exclude>
+                            <exclude>ChangeLog</exclude>
+                            <exclude>CONFIG.ini</exclude>
+                            <exclude>GROUPS</exclude>
+                            <exclude>OWNERS</exclude>
+                            <!-- GitHub -->
+                            <exclude>.github/**/*</exclude>
+                            <!-- Intellij -->
+                            <exclude>**/*.iml</exclude>
+                            <exclude>**/*.iws</exclude>
+                            <exclude>**/*.ipr</exclude>
+                            <exclude>**/META-INF/MANIFEST.MF</exclude>
+                            <!-- Maven -->
+                            <exclude>.repository/**</exclude>
+                        </excludes>
+                        <consoleOutput>true</consoleOutput>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
 
