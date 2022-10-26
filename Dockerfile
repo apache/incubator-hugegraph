@@ -1,4 +1,3 @@
-FROM ubuntu:xenial
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -15,6 +14,8 @@ FROM ubuntu:xenial
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+FROM ubuntu:xenial
 
 LABEL maintainer="HugeGraph Docker Maintainers <hugegraph@googlegroups.com>"
 
