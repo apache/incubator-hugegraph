@@ -23,12 +23,11 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.Set;
 
-import org.lionsoul.jcseg.tokenizer.core.ADictionary;
-import org.lionsoul.jcseg.tokenizer.core.DictionaryFactory;
-import org.lionsoul.jcseg.tokenizer.core.ISegment;
-import org.lionsoul.jcseg.tokenizer.core.IWord;
-import org.lionsoul.jcseg.tokenizer.core.JcsegTaskConfig;
-import org.lionsoul.jcseg.tokenizer.core.SegmentFactory;
+import org.lionsoul.jcseg.ISegment;
+import org.lionsoul.jcseg.IWord;
+import org.lionsoul.jcseg.dic.ADictionary;
+import org.lionsoul.jcseg.dic.DictionaryFactory;
+import org.lionsoul.jcseg.segmenter.SegmenterConfig;
 
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.config.ConfigException;
@@ -45,11 +44,10 @@ public class JcsegAnalyzer implements Analyzer {
             "Complex"
     );
 
-    private static final JcsegTaskConfig CONFIG = new JcsegTaskConfig();
-    private static final ADictionary DIC =
-            DictionaryFactory.createDefaultDictionary(new JcsegTaskConfig());
+    private static final SegmenterConfig CONFIG = new SegmenterConfig();
+    private static final ADictionary DIC = DictionaryFactory.createDefaultDictionary(CONFIG);
 
-    private int segMode;
+    private final ISegment.Type type;
 
     public JcsegAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
@@ -57,17 +55,23 @@ public class JcsegAnalyzer implements Analyzer {
                       "Unsupported segment mode '%s' for jcseg analyzer, " +
                       "the available values are %s", mode, SUPPORT_MODES);
         }
-        this.segMode = SUPPORT_MODES.indexOf(mode) + 1;
+
+        if ("Simple".equals(mode)) {
+            this.type = ISegment.SIMPLE;
+        } else {
+            this.type = ISegment.COMPLEX;
+        }
     }
 
     @Override
     public Set<String> segment(String text) {
         Set<String> result = InsertionOrderUtil.newSet();
         try {
-            Object[] args = new Object[]{new StringReader(text), CONFIG, DIC};
-            ISegment seg = SegmentFactory.createJcseg(this.segMode, args);
-            IWord word = null;
-            while ((word = seg.next()) != null) {
+            ISegment segmentor = this.type.factory.create(CONFIG, DIC);
+            segmentor.reset(new StringReader(text));
+
+            IWord word;
+            while ((word = segmentor.next()) != null) {
                 result.add(word.getValue());
             }
         } catch (Exception e) {

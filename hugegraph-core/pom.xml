@@ -29,6 +29,21 @@
 
     <properties>
         <top.level.dir>${basedir}/..</top.level.dir>
+        <jraft.version>1.3.11</jraft.version>
+        <ohc.version>0.7.4</ohc.version>
+        <lz4.version>1.8.0</lz4.version>
+        <apdplat-word.version>1.3.1</apdplat-word.version>
+        <mmseg4j-core.version>1.10.0</mmseg4j-core.version>
+        <jcseg.version>2.6.2</jcseg.version>
+        <hanlp.version>portable-1.8.3</hanlp.version>
+        <ansj-seg.version>5.1.6</ansj-seg.version>
+        <lucene.version>8.11.2</lucene.version>
+        <jieba-analysis.version>1.0.2</jieba-analysis.version>
+        <ikanalyzer.version>2012_u6</ikanalyzer.version>
+        <commons-compress.version>1.21</commons-compress.version>
+        <eclipse-collections.version>11.1.0</eclipse-collections.version>
+        <fastutil.version>8.5.9</fastutil.version>
+        <jjwt.version>0.11.5</jjwt.version>
     </properties>
 
     <dependencies>
@@ -69,7 +84,7 @@
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>jraft-core</artifactId>
-            <version>1.3.9</version>
+            <version>${jraft.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -101,7 +116,7 @@
         <dependency>
             <groupId>org.caffinitas.ohc</groupId>
             <artifactId>ohc-core</artifactId>
-            <version>0.7.0</version>
+            <version>${ohc.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.guava</groupId>
@@ -113,98 +128,106 @@
         <dependency>
             <groupId>org.apdplat</groupId>
             <artifactId>word</artifactId>
-            <version>1.3</version>
+            <version>${apdplat-word.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.lucene</groupId>
+                    <artifactId>lucene-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.lucene</groupId>
+                    <artifactId>lucene-analyzers-common</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>org.ansj</groupId>
             <artifactId>ansj_seg</artifactId>
-            <version>5.1.6</version>
+            <version>${ansj-seg.version}</version>
         </dependency>
         <dependency>
             <groupId>com.hankcs</groupId>
             <artifactId>hanlp</artifactId>
-            <version>portable-1.5.0</version>
+            <version>${hanlp.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-smartcn</artifactId>
-            <version>7.4.0</version>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>7.4.0</version>
+            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>com.huaban</groupId>
             <artifactId>jieba-analysis</artifactId>
-            <version>1.0.2</version>
+            <version>${jieba-analysis.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lionsoul</groupId>
             <artifactId>jcseg-core</artifactId>
-            <version>2.2.0</version>
+            <version>${jcseg.version}</version>
         </dependency>
         <dependency>
             <groupId>com.chenlb.mmseg4j</groupId>
             <artifactId>mmseg4j-core</artifactId>
-            <version>1.10.0</version>
+            <version>${mmseg4j-core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.janeluo</groupId>
             <artifactId>ikanalyzer</artifactId>
-            <version>2012_u6</version>
+            <version>${ikanalyzer.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.7.1</version>
+            <version>${lz4.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.21</version>
+            <version>${commons-compress.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.collections</groupId>
             <artifactId>eclipse-collections-api</artifactId>
-            <version>10.4.0</version>
+            <version>${eclipse-collections.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.collections</groupId>
             <artifactId>eclipse-collections</artifactId>
-            <version>10.4.0</version>
+            <version>${eclipse-collections.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/it.unimi.dsi/fastutil -->
         <dependency>
             <groupId>it.unimi.dsi</groupId>
             <artifactId>fastutil</artifactId>
-            <version>8.1.0</version>
+            <version>${fastutil.version}</version>
         </dependency>
         <!-- jwt auth token TODO: move to auth pom -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.2</version>
+            <version>${jjwt.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.11.2</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.2</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>

@@ -100,13 +100,17 @@ public class AnalyzerTest {
                                   "海淀区", "西北旺", "东路", "10", "号", "院"),
                             analyzer.segment(text2));
 
-        // nlp mode
-        analyzer = AnalyzerFactory.analyzer("hanlp", "nlp");
+        // Note latest hanlp portable version not contains model data
+        // https://github.com/hankcs/HanLP/tree/portable#%E6%96%B9%E5%BC%8F%E4%B8%80maven
+        // So test IndexTokenizer instead
+        analyzer = AnalyzerFactory.analyzer("hanlp", "index");
         Assert.assertEquals(setOf("England", " ", "wins", "World", "Cup"),
                             analyzer.segment(text1));
-        Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "，", "中华人民共和国",
-                                  "国歌", "百度", "科技园", "位于", "北京市",
-                                  "海淀区", "西北旺", "东路10号院"),
+        Assert.assertEquals(setOf("英格兰", "英格", "格兰", "世界杯", "世界", "夺冠", "，",
+                                  "中华人民共和国", "中华", "华人", "人民", "共和国",
+                                  "共和","国歌", "百度", "科技园", "科技", "位于",
+                                  "北京市", "北京", "海淀区", "海淀", "淀区", "西北旺",
+                                  "西北", "东路", "10", "号", "院"),
                             analyzer.segment(text2));
     }
 
@@ -153,7 +157,7 @@ public class AnalyzerTest {
                             analyzer.segment(text1));
         Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "，", "中华",
                                   "人民共和国", "国歌", "百度", "科技", "园", "位于",
-                                  "北京市", "海淀区", "西北", "旺", "东路", "10",
+                                  "北京市", "海淀区", "西北", "旺", "东路", "1", "0",
                                   "号", "院"),
                             analyzer.segment(text2));
 
@@ -163,7 +167,7 @@ public class AnalyzerTest {
                             analyzer.segment(text1));
         Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "，", "中华",
                                   "人民共和国", "国歌", "百度", "科技", "园", "位于",
-                                  "北京市", "海淀区", "西北", "旺", "东路", "10",
+                                  "北京市", "海淀区", "西北", "旺", "东路", "1", "0",
                                   "号", "院"),
                             analyzer.segment(text2));
     }
