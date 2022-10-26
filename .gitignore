@@ -1,6 +1,51 @@
-.DS_Store
-*.iml
+target/
+**.db
+logs/
+ui
+node_modules
+upload-files/
+demo*
+gen-java
+build
+*.class
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.svn
+
+### IntelliJ IDEA ###
+.idea
+.idea/
 *.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+# misc
+.DS_Store
+*/.DS_Store
+**/*.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 *.orig
 *.rej
 **/.keep
@@ -10,13 +55,29 @@
 *.swp
 *.log
 *.pyc
-.idea
-.svn
-.classpath
-.project
-.settings
-target
-gen-java
-build
-node*
+
+# maven ignore
+output/
+*.war
+*.zip
+*.tar
+*.tar.gz
+tree.txt
 *.versionsBackup
+
+# eclipse ignore
+.settings/
+
+# temp ignore
+*.cache
+*.diff
+*.patch
+*.tmp
+
+# system ignore
+Thumbs.db
+hs_err_pid*
+# mobile Tools for Java (J2ME)
+.mtj.tmp/
+# blueJ files
+*.ctxt

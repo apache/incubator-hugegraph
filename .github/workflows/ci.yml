@@ -18,20 +18,20 @@ jobs:
 
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
 
       - name: Cache Maven packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
@@ -49,6 +49,6 @@ jobs:
           mvn test -Dtest=UnitTestSuite
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3.0.0
         with:
           file: target/jacoco.xml

@@ -20,9 +20,9 @@ github:
     # Enable issue management
     issues: true
     # Enable wiki for documentation
-    wiki: false
+    wiki: true
     # Enable projects for project management boards
-    projects: false
+    projects: true
   description: HugeGraph Commons - include common library & RPC module
   homepage: https://hugegraph.apache.org/
   del_branch_on_merge: true
@@ -47,7 +47,8 @@ github:
         required_approving_review_count: 2
 
 notifications:
-  issues: issues@hugegraph.apache.org
-  discussions:  issues@hugegraph.apache.org
   pullrequests_status: dev@hugegraph.apache.org
-  #pullrequests_comment: issues@foo.apache.org
+  # Note: before use the config, we should ensure the "mail" address has set well (exist)
+  #pullrequests_comment: issues@hugegraph.apache.org
+  #issues: issues@hugegraph.apache.org
+  #discussions:  issues@hugegraph.apache.org

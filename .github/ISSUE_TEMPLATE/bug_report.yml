@@ -10,8 +10,8 @@ body:
       value: >-
         ### Note (特别注意) : 
 
-        > 1. 请先**搜索**现有的[Server-Issues](https://github.com/hugegraph/hugegraph/issues) 与
-        [Commons-Issues](https://github.com/hugegraph/hugegraph-commons/issues) 中没有与您相同
+        > 1. 请先**搜索**现有的[Server-Issues](https://github.com/apache/hugegraph/issues) 与
+        [Commons-Issues](https://github.com/apache/hugegraph-commons/issues) 中没有与您相同
         / 相关的问题 (请勿重复提交)
 
         > 2. 我们需要尽可能**详细**的信息来**复现**问题, 越详细的信息 (包括**日志 / 截图 / 配置**等)
@@ -35,14 +35,14 @@ body:
     attributes:
       label: Before submit
       options:
-        - label: 我已经确认现有的 [Server-Issues](https://github.com/hugegraph/hugegraph/issues) 与 [Commons-Issues](https://github.com/hugegraph/hugegraph-commons/issues) 中没有相同 / 重复问题
+        - label: 我已经确认现有的 [Server-Issues](https://github.com/apache/hugegraph/issues) 与 [Commons-Issues](https://github.com/apache/hugegraph-commons/issues) 中没有相同 / 重复问题
           required: true
 
   - type: textarea
     attributes:
       label: Environment (环境信息)
       description: |
-        > server version could get from [rest-api](https://hugegraph.github.io/hugegraph-doc/clients/restful-api/other.html) (http://localhost:8080/versions)
+        > server version could get from [rest-api](https://hugegraph.apache.org/docs/clients/restful-api/) (http://localhost:8080/versions)
       value: |
         - Server Version: v0.11.x
         - Common Version: v1.x
