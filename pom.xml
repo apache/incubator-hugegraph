@@ -398,16 +398,16 @@
                             <exclude>**/*.txt</exclude>
                             <exclude>**/*.json</exclude>
                             <exclude>**/*.conf</exclude>
+                            <exclude>**/*.map</exclude>
                             <exclude>**/*.properties</exclude>
                             <exclude>dist/**/*</exclude>
-                            <exclude>docs/**/*</exclude>
+                            <exclude>**/assembly/static/bin/hugegraph.service</exclude>
+                            <exclude>scripts/dev/reviewers</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
                             <exclude>**/*.md</exclude>
                             <exclude>**/dependency-reduced-pom.xml</exclude>
-                            <exclude>**/hugegraph-style.xml</exclude>
                             <exclude>**/logs/*.log</exclude>
                             <exclude>**/META-INF/**/*</exclude>
-                            <exclude>**/assembly/**/*</exclude>
                             <exclude>**/target/*</exclude>
                             <exclude>style/*</exclude>
                             <exclude>ChangeLog</exclude>
