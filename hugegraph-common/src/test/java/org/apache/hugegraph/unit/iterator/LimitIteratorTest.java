@@ -95,12 +95,8 @@ public class LimitIteratorTest extends BaseUnitTest {
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
 
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
 
         Iterator<Integer> results2 = new LimitIterator<>(vals, val -> false);
         Assert.assertFalse(results2.hasNext());
@@ -123,9 +119,7 @@ public class LimitIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 4; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -133,12 +127,8 @@ public class LimitIteratorTest extends BaseUnitTest {
         Iterator<Integer> vals = DATA.iterator();
 
         Iterator<Integer> results = new LimitIterator<>(vals, val -> true);
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test

@@ -37,7 +37,7 @@ public class LockGroupTest extends BaseUnitTest {
 
     private static final String GROUP = "LockGroupTest-test-group";
 
-    private LockGroup group = new LockGroup(GROUP);
+    private final LockGroup group = new LockGroup(GROUP);
 
     @Test
     public void testLock() {

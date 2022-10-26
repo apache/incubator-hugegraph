@@ -133,8 +133,7 @@ public class VersionUtilTest extends BaseUnitTest {
                             VersionUtil.getImplementationVersion(manifestPath));
 
         manifestPath = "file:./src/test/resources2";
-        Assert.assertEquals(null,
-                            VersionUtil.getImplementationVersion(manifestPath));
+        Assert.assertNull(VersionUtil.getImplementationVersion(manifestPath));
     }
 
     @Test

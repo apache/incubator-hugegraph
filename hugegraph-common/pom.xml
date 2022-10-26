@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>hugegraph-common</artifactId>
-    <name>${artifactId}</name>
+    <name>${project.artifactId}</name>
     <url>https://github.com/apache/incubator-hugegraph-commons/tree/master/hugegraph-common</url>
     <description>
         hugegraph-common is a common module for HugeGraph and its peripheral components.
@@ -211,7 +211,6 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
                 <configuration>
                     <source>${compiler.source}</source>
                     <target>${compiler.target}</target>
@@ -226,7 +225,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.6</version>
                 <configuration>
                     <archive>
                         <index>true</index>
@@ -281,7 +279,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -294,7 +291,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -307,7 +303,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>

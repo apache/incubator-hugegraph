@@ -40,8 +40,7 @@ public final class LongEncoding {
 
     public static Number decodeNumber(String str, Class<?> clazz) {
         long value = decodeSortable(str);
-        Number number = NumericUtil.sortableLongToNumber(value, clazz);
-        return number;
+        return NumericUtil.sortableLongToNumber(value, clazz);
     }
 
     public static String encodeSortable(long num) {
@@ -130,10 +129,11 @@ public final class LongEncoding {
         for (char ch : encoded.toCharArray()) {
             num *= B;
             int pos = symbols.indexOf(ch);
-            if (pos < 0)
+            if (pos < 0) {
                 throw new NumberFormatException(String.format(
                           "Can't decode symbol '%s' in string '%s'",
                           ch, encoded));
+            }
             num += pos;
         }
         return num;

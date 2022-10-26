@@ -361,7 +361,8 @@ public final class PerfUtil {
                 sb.append("',");
 
                 sb.append("value:");
-                sb.append(w.totalCost()); // w.totalCost() - w.totalWasted() ?
+                // w.totalCost() - w.totalWasted() ?
+                sb.append(w.totalCost());
                 sb.append(',');
 
                 sb.append("cost:");
@@ -419,7 +420,7 @@ public final class PerfUtil {
                     return c.parent().equals(parent.id());
                 });
                 // Fill other cost
-                long sumCost = children.mapToLong(c -> c.totalCost()).sum();
+                long sumCost = children.mapToLong(Stopwatch::totalCost).sum();
                 long otherCost = parent.totalCost() - sumCost;
                 if (otherCost > 0L) {
                     Stopwatch other = newStopwatch("~", parent.id());

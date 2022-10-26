@@ -49,21 +49,21 @@ public class StopwatchTest extends BaseUnitTest {
         Assert.assertEquals(watch4, watch1.child("w4", null));
         Assert.assertEquals(watch5, watch1.child("w5", null));
 
-        Assert.assertEquals(null, watch1.child("w2"));
-        Assert.assertEquals(null, watch1.child("w3"));
-        Assert.assertEquals(null, watch1.child("w4"));
-        Assert.assertEquals(null, watch1.child("w5"));
+        Assert.assertNull(watch1.child("w2"));
+        Assert.assertNull(watch1.child("w3"));
+        Assert.assertNull(watch1.child("w4"));
+        Assert.assertNull(watch1.child("w5"));
 
-        Assert.assertEquals(null, watch1.child("w2", watch2));
-        Assert.assertEquals(null, watch1.child("w3", watch3));
-        Assert.assertEquals(null, watch1.child("w4", watch4));
-        Assert.assertEquals(null, watch1.child("w5", watch5));
+        Assert.assertNull(watch1.child("w2", watch2));
+        Assert.assertNull(watch1.child("w3", watch3));
+        Assert.assertNull(watch1.child("w4", watch4));
+        Assert.assertNull(watch1.child("w5", watch5));
 
         watch1.clear();
-        Assert.assertEquals(null, watch1.child("w2"));
-        Assert.assertEquals(null, watch1.child("w3"));
-        Assert.assertEquals(null, watch1.child("w4"));
-        Assert.assertEquals(null, watch1.child("w5"));
+        Assert.assertNull(watch1.child("w2"));
+        Assert.assertNull(watch1.child("w3"));
+        Assert.assertNull(watch1.child("w4"));
+        Assert.assertNull(watch1.child("w5"));
     }
 
     @Test
@@ -85,20 +85,20 @@ public class StopwatchTest extends BaseUnitTest {
         Assert.assertEquals(watch4, watch1.child("w4", null));
         Assert.assertEquals(watch5, watch1.child("w5", null));
 
-        Assert.assertEquals(null, watch1.child("w2"));
-        Assert.assertEquals(null, watch1.child("w3"));
-        Assert.assertEquals(null, watch1.child("w4"));
-        Assert.assertEquals(null, watch1.child("w5"));
+        Assert.assertNull(watch1.child("w2"));
+        Assert.assertNull(watch1.child("w3"));
+        Assert.assertNull(watch1.child("w4"));
+        Assert.assertNull(watch1.child("w5"));
 
-        Assert.assertEquals(null, watch1.child("w2", watch2));
-        Assert.assertEquals(null, watch1.child("w3", watch3));
-        Assert.assertEquals(null, watch1.child("w4", watch4));
-        Assert.assertEquals(null, watch1.child("w5", watch5));
+        Assert.assertNull(watch1.child("w2", watch2));
+        Assert.assertNull(watch1.child("w3", watch3));
+        Assert.assertNull(watch1.child("w4", watch4));
+        Assert.assertNull(watch1.child("w5", watch5));
 
         watch1.clear();
-        Assert.assertEquals(null, watch1.child("w2"));
-        Assert.assertEquals(null, watch1.child("w3"));
-        Assert.assertEquals(null, watch1.child("w4"));
-        Assert.assertEquals(null, watch1.child("w5"));
+        Assert.assertNull(watch1.child("w2"));
+        Assert.assertNull(watch1.child("w3"));
+        Assert.assertNull(watch1.child("w4"));
+        Assert.assertNull(watch1.child("w5"));
     }
 }

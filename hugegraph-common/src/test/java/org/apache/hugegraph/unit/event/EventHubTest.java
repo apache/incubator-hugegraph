@@ -80,12 +80,7 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventAddListener() {
         final String event = "event-test";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event, listener);
 
@@ -98,12 +93,7 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventAddListenerTwice() {
         final String event = "event-test";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event, listener);
         this.eventHub.listen(event, listener);
@@ -118,12 +108,7 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventRemoveListener() {
         final String event = "event-test";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event, listener);
 
@@ -141,12 +126,7 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventRemoveListenerButNonResult() {
         final String event = "event-test";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event, listener);
 
@@ -167,12 +147,7 @@ public class EventHubTest extends BaseUnitTest {
         final String event1 = "event-test1";
         final String event2 = "event-test2";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event1, listener);
         this.eventHub.listen(event2, listener);
@@ -200,19 +175,8 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventRemoveListenerByEvent() {
         final String event = "event-test";
 
-        EventListener listener1 = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
-
-        EventListener listener2 = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener1 = (Event e) -> null;
+        EventListener listener2 = (Event e) -> null;
 
         this.eventHub.listen(event, listener1);
         this.eventHub.listen(event, listener2);
@@ -232,19 +196,8 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventRemoveListenerByEventButNonResult() {
         final String event = "event-test";
 
-        EventListener listener1 = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
-
-        EventListener listener2 = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener1 = (Event e) -> null;
+        EventListener listener2 = (Event e) -> null;
 
         this.eventHub.listen(event, listener1);
         this.eventHub.listen(event, listener2);
@@ -263,12 +216,7 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventRemoveListenerByEventOf2SameListener() {
         final String event = "event-test";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event arg0) {
-                return null;
-            }
-        };
+        EventListener listener = (Event e) -> null;
 
         this.eventHub.listen(event, listener);
         this.eventHub.listen(event, listener);
@@ -446,27 +394,21 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventNotifyWithMultiThreads() throws InterruptedException {
         final String notify = "event-notify";
 
-        EventListener listener1 = new EventListener() {
-            @Override
-            public Object event(Event event) {
-                Assert.assertEquals(notify, event.name());
-                event.checkArgs(Integer.class);
-                return null;
-            }
+        EventListener listener1 = event -> {
+            Assert.assertEquals(notify, event.name());
+            event.checkArgs(Integer.class);
+            return null;
         };
 
-        EventListener listener2 = new EventListener() {
-            @Override
-            public Object event(Event event) {
-                Assert.assertEquals(notify, event.name());
+        EventListener listener2 = event -> {
+            Assert.assertEquals(notify, event.name());
 
-                event.checkArgs(Integer.class);
-                int i = (int) event.args()[0];
-                if (i % 10000 == 0) {
-                    System.out.println("On event '" + notify + "': " + i);
-                }
-                return null;
+            event.checkArgs(Integer.class);
+            int i = (int) event.args()[0];
+            if (i % 10000 == 0) {
+                System.out.println("On event '" + notify + "': " + i);
             }
+            return null;
         };
 
         Thread listenerUpdateThread = new Thread(() -> {
@@ -503,15 +445,12 @@ public class EventHubTest extends BaseUnitTest {
     public void testEventCallWithMultiThreads() {
         final String call = "event-call";
 
-        EventListener listener = new EventListener() {
-            @Override
-            public Object event(Event event) {
-                Assert.assertEquals(call, event.name());
+        EventListener listener = event -> {
+            Assert.assertEquals(call, event.name());
 
-                event.checkArgs(Integer.class);
-                int i = (int) event.args()[0];
-                return i;
-            }
+            event.checkArgs(Integer.class);
+            int i = (int) event.args()[0];
+            return i;
         };
 
         this.eventHub.listen(call, listener);

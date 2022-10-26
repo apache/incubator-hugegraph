@@ -31,7 +31,7 @@ import org.apache.hugegraph.concurrent.PausableScheduledThreadPool;
 public class PausableScheduledThreadPoolTest {
 
     @Test
-    public void testscheduleWithFixedDelay() throws InterruptedException {
+    public void testScheduleWithFixedDelay() throws InterruptedException {
         PausableScheduledThreadPool executor =
                 ExecutorUtil.newPausableScheduledThreadPool("test");
         long period = 500L;
@@ -64,7 +64,7 @@ public class PausableScheduledThreadPoolTest {
     }
 
     @Test
-    public void testscheduleWithFixedRate() throws InterruptedException {
+    public void testScheduleWithFixedRate() throws InterruptedException {
         PausableScheduledThreadPool executor =
                 ExecutorUtil.newPausableScheduledThreadPool(2, "test");
         long period = 500L;

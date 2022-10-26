@@ -89,9 +89,7 @@ public class ExtendableIteratorTest extends BaseUnitTest {
     public void testNext() {
         Iterator<Integer> results = new ExtendableIterator<>(DATA1.iterator());
         Assert.assertEquals(1, (int) results.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -101,9 +99,7 @@ public class ExtendableIteratorTest extends BaseUnitTest {
         Assert.assertEquals(1, (int) results.next());
         Assert.assertEquals(2, (int) results.next());
         Assert.assertEquals(3, (int) results.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -114,9 +110,7 @@ public class ExtendableIteratorTest extends BaseUnitTest {
         Assert.assertEquals(1, (int) results.next());
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -143,15 +137,11 @@ public class ExtendableIteratorTest extends BaseUnitTest {
     @Test
     public void testRemoveWithoutResult() {
         Iterator<Integer> results = new ExtendableIterator<>();
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.remove();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::remove);
 
         List<Integer> list = new ArrayList<>();
         Iterator<Integer> results2 = new ExtendableIterator<>(list.iterator());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results2.remove();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results2::remove);
     }
 
     @Test

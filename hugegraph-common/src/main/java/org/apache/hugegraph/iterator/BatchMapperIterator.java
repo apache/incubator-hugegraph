@@ -25,6 +25,7 @@ import java.util.function.Function;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 
 public class BatchMapperIterator<T, R> extends WrappedIterator<R> {

@@ -23,8 +23,7 @@ public interface RpcServiceConfig4Server {
 
     <T, S extends T> String addService(Class<T> clazz, S serviceImpl);
 
-    <T, S extends T> String addService(String graph,
-                                              Class<T> clazz, S serviceImpl);
+    <T, S extends T> String addService(String graph, Class<T> clazz, S serviceImpl);
 
     void removeService(String serviceId);
 

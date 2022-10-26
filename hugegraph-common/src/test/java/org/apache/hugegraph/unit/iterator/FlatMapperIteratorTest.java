@@ -107,12 +107,8 @@ public class FlatMapperIteratorTest extends BaseUnitTest {
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
 
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -132,9 +128,7 @@ public class FlatMapperIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 10; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -157,12 +151,8 @@ public class FlatMapperIteratorTest extends BaseUnitTest {
             Assert.assertNull(DATA.get(key));
             return null;
         });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test

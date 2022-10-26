@@ -122,7 +122,7 @@ public class ReflectionUtilTest extends BaseUnitTest {
         List<String> classes = ReflectionUtil.nestedClasses(
                                TestClass.class.getName());
         Assert.assertEquals(5, classes.size());
-        classes.sort((c1, c2) -> c1.compareTo(c2));
+        classes.sort(String::compareTo);
         Assert.assertEquals(Bar.class.getName(), classes.get(0));
         Assert.assertEquals(Base.class.getName(), classes.get(1));
         Assert.assertEquals(Foo.class.getName(), classes.get(2));

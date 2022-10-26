@@ -20,13 +20,14 @@
 package org.apache.hugegraph.unit.util;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import org.junit.Test;
-
+import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.StringUtil;
 import org.apache.hugegraph.util.StringUtil.Chars;
-import org.apache.hugegraph.testutil.Assert;
+import org.junit.Test;
+
 import com.google.common.base.Splitter;
 
 public class StringUtilTest {
@@ -155,9 +156,7 @@ public class StringUtilTest {
 
     private static List<String> toStringList(String[] stringArray) {
         List<String> results = new ArrayList<>(stringArray.length);
-        for (String str : stringArray) {
-            results.add(str);
-        }
+        Collections.addAll(results, stringArray);
         return results;
     }
 }

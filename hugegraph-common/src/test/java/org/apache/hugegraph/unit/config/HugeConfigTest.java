@@ -99,8 +99,8 @@ public class HugeConfigTest extends BaseUnitTest {
 
     @Test
     public void testOptionRequired() {
-        Assert.assertEquals(false, TestOptions.text1.required());
-        Assert.assertEquals(true, TestSubOptions.text2.required());
+        Assert.assertFalse(TestOptions.text1.required());
+        Assert.assertTrue(TestSubOptions.text2.required());
     }
 
     @Test
@@ -670,6 +670,6 @@ public class HugeConfigTest extends BaseUnitTest {
 
     public enum WeekDay {
 
-        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY;
+        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY
     }
 }

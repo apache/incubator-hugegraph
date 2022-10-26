@@ -589,7 +589,7 @@ public abstract class AbstractRestClient implements RestClient {
     public static class BearerRequestFilter implements ClientRequestFilter {
 
         @Override
-        public void filter(ClientRequestContext context) throws IOException {
+        public void filter(ClientRequestContext context) {
             String token = context.getClient().getConfiguration()
                                   .getProperty(TOKEN_KEY).toString();
             context.getHeaders().add(HttpHeaders.AUTHORIZATION,

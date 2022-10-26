@@ -27,7 +27,8 @@ import com.google.common.base.Functions;
 import com.google.common.collect.Ordering;
 
 /**
- * Reference: https://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values
+ * Reference:
+ * <a href="https://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values">...</a>
  */
 public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>>
        extends TreeMap<K, V> {

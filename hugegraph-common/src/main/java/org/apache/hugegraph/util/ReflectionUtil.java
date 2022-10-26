@@ -39,14 +39,11 @@ import javassist.NotFoundException;
 public final class ReflectionUtil {
 
     public static boolean isSimpleType(Class<?> type) {
-        if (type.isPrimitive() ||
-            type.equals(String.class) ||
-            type.equals(Boolean.class) ||
-            type.equals(Character.class) ||
-            NumericUtil.isNumber(type)) {
-            return true;
-        }
-        return false;
+        return type.isPrimitive() ||
+               type.equals(String.class) ||
+               type.equals(Boolean.class) ||
+               type.equals(Character.class) ||
+               NumericUtil.isNumber(type);
     }
 
     public static List<Method> getMethodsAnnotatedWith(

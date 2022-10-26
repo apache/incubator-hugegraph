@@ -20,6 +20,7 @@
 package org.apache.hugegraph.util;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 
 public final class UnitUtil {
@@ -34,7 +35,7 @@ public final class UnitUtil {
 
     public static double doubleWith2Scale(double value) {
         BigDecimal decimal = new BigDecimal(value);
-        return decimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+        return decimal.setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
     public static String bytesToReadableString(long bytes) {

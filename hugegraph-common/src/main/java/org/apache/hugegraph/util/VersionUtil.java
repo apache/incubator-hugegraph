@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Objects;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -79,7 +80,7 @@ public final class VersionUtil {
          * https://stackoverflow.com/questions/1272648/reading-my-own-jars-manifest
          */
         String className = clazz.getSimpleName() + ".class";
-        String classPath = clazz.getResource(className).toString();
+        String classPath = Objects.requireNonNull(clazz.getResource(className)).toString();
         if (!classPath.startsWith("jar:file:")) {
           // Class not from JAR
           return null;

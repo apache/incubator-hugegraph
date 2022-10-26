@@ -629,7 +629,7 @@ public class LongEncodingTest extends BaseUnitTest {
             int cmp = Bytes.compare(encoded1.getBytes(), encoded2.getBytes());
 
             if (num1 == num2) {
-                Assert.assertTrue(cmp == 0);
+                Assert.assertEquals(0, cmp);
             } else if (num1 > num2) {
                 Assert.assertTrue(cmp > 0);
             } else {
@@ -675,7 +675,7 @@ public class LongEncodingTest extends BaseUnitTest {
         int cmp = Bytes.compare(encoded1.getBytes(), encoded2.getBytes());
 
         if (cmpExpected == 0) {
-            Assert.assertTrue(cmp == 0);
+            Assert.assertEquals(0, cmp);
         } else if (cmpExpected > 0) {
             Assert.assertTrue(cmp > 0);
         } else {

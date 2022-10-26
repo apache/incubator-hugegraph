@@ -95,12 +95,8 @@ public class FilterIteratorTest extends BaseUnitTest {
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
 
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -120,9 +116,7 @@ public class FilterIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 4; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -130,12 +124,8 @@ public class FilterIteratorTest extends BaseUnitTest {
         Iterator<Integer> vals = DATA.iterator();
 
         Iterator<Integer> results = new FilterIterator<>(vals, val -> false);
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test

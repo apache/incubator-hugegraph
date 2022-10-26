@@ -94,9 +94,7 @@ public class FlatMapperFilterIteratorTest extends BaseUnitTest {
                                          key -> DATA.get(key).iterator(),
                                          val -> false);
         Assert.assertFalse(results2.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results2.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results2::next);
     }
 
     @Test
@@ -113,12 +111,8 @@ public class FlatMapperFilterIteratorTest extends BaseUnitTest {
             results.next();
         }
         Assert.assertFalse(results.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
 
         Iterator<Integer> results2 = new FlatMapperFilterIterator<>(keys,
                                          key -> DATA.get(key).iterator(),
@@ -140,9 +134,7 @@ public class FlatMapperFilterIteratorTest extends BaseUnitTest {
         Iterator<Integer> results2 = new FlatMapperFilterIterator<>(keys,
                                          key -> DATA.get(key).iterator(),
                                          val -> false);
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results2.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results2::next);
     }
 
     @Test
@@ -155,19 +147,13 @@ public class FlatMapperFilterIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 10; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
 
         Iterator<Integer> results2 = new FlatMapperFilterIterator<>(keys,
                                          key -> DATA.get(key).iterator(),
                                          val -> false);
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results2.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results2.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results2::next);
+        Assert.assertThrows(NoSuchElementException.class, results2::next);
     }
 
     @Test

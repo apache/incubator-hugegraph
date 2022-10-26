@@ -54,7 +54,7 @@ public class ServerClientTest extends BaseUnitTest {
     }
 
     @AfterClass
-    public static void clear() throws Exception {
+    public static void clear() {
         if (rpcClient != null) {
             rpcClient.destroy();
         }
@@ -711,13 +711,13 @@ public class ServerClientTest extends BaseUnitTest {
         RpcCommonConfig.initRpcConfigs(RpcOptions.CONSUMER_RETRIES, 2);
     }
 
-    public static interface HelloService {
+    public interface HelloService {
 
-        public String hello(String string);
+        String hello(String string);
 
-        public String echo(String string);
+        String echo(String string);
 
-        public double sum(long a, double b);
+        double sum(long a, double b);
     }
 
     public static class HelloServiceImpl implements HelloService {

@@ -19,3 +19,4 @@ target
 gen-java
 build
 node*
+*.versionsBackup

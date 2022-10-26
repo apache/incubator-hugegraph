@@ -63,12 +63,12 @@ public class BytesTest extends BaseUnitTest {
 
     @Test
     public void testBytesCompare() {
-        Assert.assertTrue(Bytes.compare(b("12345678"), b("12345678")) == 0);
+        Assert.assertEquals(0, Bytes.compare(b("12345678"), b("12345678")));
         Assert.assertTrue(Bytes.compare(b("12345678"), b("1234567")) > 0);
         Assert.assertTrue(Bytes.compare(b("12345678"), b("12345679")) < 0);
 
-        Assert.assertTrue(Bytes.compare(new byte[]{1, 3, 5, 7},
-                                        new byte[]{1, 3, 5, 7}) == 0);
+        Assert.assertEquals(0,
+                            Bytes.compare(new byte[]{1, 3, 5, 7}, new byte[]{1, 3, 5, 7}));
 
         Assert.assertTrue(Bytes.compare(new byte[]{1, 3, 5, 7},
                                         new byte[]{1, 3, 5, 6}) > 0);

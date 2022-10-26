@@ -100,9 +100,7 @@ public class ListIteratorTest extends BaseUnitTest {
     public void testNext() {
         Iterator<Integer> results = new ListIterator<>(-1, DATA1.iterator());
         Assert.assertEquals(1, (int) results.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -111,9 +109,7 @@ public class ListIteratorTest extends BaseUnitTest {
         Assert.assertEquals(ImmutableList.of(1),
                             ((ListIterator<?>) results).list());
         Assert.assertEquals(1, (int) results.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -121,9 +117,7 @@ public class ListIteratorTest extends BaseUnitTest {
         Iterator<Integer> results = new ListIterator<>(-1, DATA2.iterator());
         Assert.assertEquals(2, (int) results.next());
         Assert.assertEquals(3, (int) results.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -134,9 +128,7 @@ public class ListIteratorTest extends BaseUnitTest {
         Assert.assertEquals(1, (int) results.next());
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -147,13 +139,9 @@ public class ListIteratorTest extends BaseUnitTest {
         Assert.assertEquals(ImmutableList.of(4, 5, 6), list);
         Assert.assertEquals(ImmutableList.of(4, 5, 6), results.list());
 
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            results.remove();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, results::remove);
         results.next();
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            results.remove();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, results::remove);
 
         Assert.assertEquals(ImmutableList.of(4, 5, 6), list);
         Assert.assertEquals(ImmutableList.of(4, 5, 6), results.list());
@@ -162,15 +150,11 @@ public class ListIteratorTest extends BaseUnitTest {
     @Test
     public void testRemoveWithoutResult() {
         Iterator<Integer> results = new ListIterator<>(-1, EMPTY);
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            results.remove();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, results::remove);
 
         List<Integer> list0 = new ArrayList<>();
         Iterator<Integer> results2 = new ListIterator<>(-1, list0.iterator());
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            results2.remove();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, results2::remove);
     }
 
     @Test
@@ -207,17 +191,13 @@ public class ListIteratorTest extends BaseUnitTest {
     public void testHasNextAndNextWithConstructFromList() {
         ListIterator<Integer> results0 = new ListIterator<>(ImmutableList.of());
         Assert.assertFalse(results0.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results0.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results0::next);
 
         ListIterator<Integer> results1 = new ListIterator<>(DATA1);
         Assert.assertTrue(results1.hasNext());
         Assert.assertEquals(1, results1.next());
         Assert.assertFalse(results1.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results1.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results1::next);
 
         ListIterator<Integer> results3 = new ListIterator<>(DATA3);
         Assert.assertTrue(results3.hasNext());
@@ -227,25 +207,19 @@ public class ListIteratorTest extends BaseUnitTest {
         Assert.assertTrue(results3.hasNext());
         Assert.assertEquals(6, results3.next());
         Assert.assertFalse(results3.hasNext());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results3.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results3::next);
     }
 
     @Test
     public void testNextWithConstructFromList() {
         ListIterator<Integer> results0 = new ListIterator<>(ImmutableList.of());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results0.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results0::next);
 
         ListIterator<Integer> results3 = new ListIterator<>(DATA3);
         Assert.assertEquals(4, results3.next());
         Assert.assertEquals(5, results3.next());
         Assert.assertEquals(6, results3.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results3.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results3::next);
     }
 
     @Test
@@ -255,8 +229,6 @@ public class ListIteratorTest extends BaseUnitTest {
         Assert.assertEquals(4, results3.next());
         Assert.assertEquals(5, results3.next());
         Assert.assertEquals(6, results3.next());
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results3.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results3::next);
     }
 }

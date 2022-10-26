@@ -140,7 +140,7 @@ public class NumericUtilTest extends BaseUnitTest {
     public void testIntToSortableBytesAndCompare() {
         byte[] bytes1 = NumericUtil.numberToSortableBytes(123456);
         byte[] bytes2 = NumericUtil.numberToSortableBytes(123456);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(1);
         bytes2 = NumericUtil.numberToSortableBytes(2);
@@ -156,7 +156,7 @@ public class NumericUtilTest extends BaseUnitTest {
 
         bytes1 = NumericUtil.numberToSortableBytes(-123456);
         bytes2 = NumericUtil.numberToSortableBytes(-123456);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(-1);
         bytes2 = NumericUtil.numberToSortableBytes(-2);
@@ -191,7 +191,7 @@ public class NumericUtilTest extends BaseUnitTest {
     public void testLongToSortableBytesAndCompare() {
         byte[] bytes1 = NumericUtil.numberToSortableBytes(123456L);
         byte[] bytes2 = NumericUtil.numberToSortableBytes(123456L);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(1L);
         bytes2 = NumericUtil.numberToSortableBytes(2L);
@@ -207,7 +207,7 @@ public class NumericUtilTest extends BaseUnitTest {
 
         bytes1 = NumericUtil.numberToSortableBytes(-123456L);
         bytes2 = NumericUtil.numberToSortableBytes(-123456L);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(-1L);
         bytes2 = NumericUtil.numberToSortableBytes(-2L);
@@ -242,7 +242,7 @@ public class NumericUtilTest extends BaseUnitTest {
     public void testFloatToSortableBytesAndCompare() {
         byte[] bytes1 = NumericUtil.numberToSortableBytes(123456F);
         byte[] bytes2 = NumericUtil.numberToSortableBytes(123456F);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(1F);
         bytes2 = NumericUtil.numberToSortableBytes(2F);
@@ -258,7 +258,7 @@ public class NumericUtilTest extends BaseUnitTest {
 
         bytes1 = NumericUtil.numberToSortableBytes(-123456F);
         bytes2 = NumericUtil.numberToSortableBytes(-123456F);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(-1F);
         bytes2 = NumericUtil.numberToSortableBytes(-2F);
@@ -293,7 +293,7 @@ public class NumericUtilTest extends BaseUnitTest {
     public void testDoubleToSortableBytesAndCompare() {
         byte[] bytes1 = NumericUtil.numberToSortableBytes(123456D);
         byte[] bytes2 = NumericUtil.numberToSortableBytes(123456D);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(1D);
         bytes2 = NumericUtil.numberToSortableBytes(2D);
@@ -309,7 +309,7 @@ public class NumericUtilTest extends BaseUnitTest {
 
         bytes1 = NumericUtil.numberToSortableBytes(-123456D);
         bytes2 = NumericUtil.numberToSortableBytes(-123456D);
-        Assert.assertTrue(Bytes.compare(bytes1, bytes2) == 0);
+        Assert.assertEquals(0, Bytes.compare(bytes1, bytes2));
 
         bytes1 = NumericUtil.numberToSortableBytes(-1D);
         bytes2 = NumericUtil.numberToSortableBytes(-2D);
@@ -392,28 +392,28 @@ public class NumericUtilTest extends BaseUnitTest {
 
     @Test
     public void testIsNumber() {
-        Assert.assertEquals(true, NumericUtil.isNumber(byte.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Byte.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(short.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Short.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(int.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Integer.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(long.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Long.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(float.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Float.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(double.class));
-        Assert.assertEquals(true, NumericUtil.isNumber(Double.class));
+        Assert.assertTrue(NumericUtil.isNumber(byte.class));
+        Assert.assertTrue(NumericUtil.isNumber(Byte.class));
+        Assert.assertTrue(NumericUtil.isNumber(short.class));
+        Assert.assertTrue(NumericUtil.isNumber(Short.class));
+        Assert.assertTrue(NumericUtil.isNumber(int.class));
+        Assert.assertTrue(NumericUtil.isNumber(Integer.class));
+        Assert.assertTrue(NumericUtil.isNumber(long.class));
+        Assert.assertTrue(NumericUtil.isNumber(Long.class));
+        Assert.assertTrue(NumericUtil.isNumber(float.class));
+        Assert.assertTrue(NumericUtil.isNumber(Float.class));
+        Assert.assertTrue(NumericUtil.isNumber(double.class));
+        Assert.assertTrue(NumericUtil.isNumber(Double.class));
 
-        Assert.assertEquals(false, NumericUtil.isNumber(char.class));
-        Assert.assertEquals(false, NumericUtil.isNumber(Character.class));
+        Assert.assertFalse(NumericUtil.isNumber(char.class));
+        Assert.assertFalse(NumericUtil.isNumber(Character.class));
 
-        Assert.assertEquals(true, NumericUtil.isNumber(1));
-        Assert.assertEquals(true, NumericUtil.isNumber(1L));
-        Assert.assertEquals(true, NumericUtil.isNumber(1.0f));
-        Assert.assertEquals(true, NumericUtil.isNumber(1.0d));
-        Assert.assertEquals(false, NumericUtil.isNumber('1'));
-        Assert.assertEquals(false, NumericUtil.isNumber((Object) null));
+        Assert.assertTrue(NumericUtil.isNumber(1));
+        Assert.assertTrue(NumericUtil.isNumber(1L));
+        Assert.assertTrue(NumericUtil.isNumber(1.0f));
+        Assert.assertTrue(NumericUtil.isNumber(1.0d));
+        Assert.assertFalse(NumericUtil.isNumber('1'));
+        Assert.assertFalse(NumericUtil.isNumber((Object) null));
     }
 
     @Test
@@ -421,13 +421,13 @@ public class NumericUtilTest extends BaseUnitTest {
         Assert.assertEquals(1, NumericUtil.convertToNumber(1));
         Assert.assertEquals(1.2, NumericUtil.convertToNumber(1.2));
 
-        Assert.assertEquals(new BigDecimal(1.25),
+        Assert.assertEquals(new BigDecimal("1.25"),
                             NumericUtil.convertToNumber("1.25"));
 
         Date date = new Date();
         Assert.assertEquals(date.getTime(), NumericUtil.convertToNumber(date));
 
-        Assert.assertEquals(null, NumericUtil.convertToNumber(null));
+        Assert.assertNull(NumericUtil.convertToNumber(null));
     }
 
     @Test

@@ -32,7 +32,7 @@ import org.apache.hugegraph.testutil.Assert;
 
 public class BarrierEventTest {
     
-    private static int WAIT_THREADS_COUNT = 10;
+    private static final int WAIT_THREADS_COUNT = 10;
 
     @Test(timeout = 5000)
     public void testAWait() throws InterruptedException {

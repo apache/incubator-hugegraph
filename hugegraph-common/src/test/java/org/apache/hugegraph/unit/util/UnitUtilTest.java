@@ -33,7 +33,7 @@ public class UnitUtilTest {
         Assert.assertEquals(0d, value, 0d);
 
         // KB
-        value = UnitUtil.bytesToMB(Bytes.KB * 1);
+        value = UnitUtil.bytesToMB(1 * Bytes.KB);
         Assert.assertEquals(0d, value, 0d);
 
         value = UnitUtil.bytesToMB(Bytes.KB * 10);
@@ -86,7 +86,7 @@ public class UnitUtilTest {
         Assert.assertEquals(0d, value, 0d);
 
         // MB
-        value = UnitUtil.bytesToGB(Bytes.MB * 1);
+        value = UnitUtil.bytesToGB(1 * Bytes.MB);
         Assert.assertEquals(0d, value, 0d);
 
         value = UnitUtil.bytesToGB(Bytes.MB * 10);

@@ -123,12 +123,8 @@ public class BatchMapperIteratorTest extends BaseUnitTest {
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
 
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -159,9 +155,7 @@ public class BatchMapperIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 2; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -281,12 +275,8 @@ public class BatchMapperIteratorTest extends BaseUnitTest {
         results = new BatchMapperIterator<>(1, DATA3.iterator(), batch -> {
             return null;
         });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test

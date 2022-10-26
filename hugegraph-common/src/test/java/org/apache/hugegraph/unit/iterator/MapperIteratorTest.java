@@ -46,9 +46,7 @@ public class MapperIteratorTest extends BaseUnitTest {
             "forth", 4
     );
 
-    private static final Function<String, Integer> MAPPER = key -> {
-        return DATA.get(key);
-    };
+    private static final Function<String, Integer> MAPPER = DATA::get;
 
     @Test
     public void testMapper() {
@@ -100,12 +98,8 @@ public class MapperIteratorTest extends BaseUnitTest {
         Assert.assertFalse(results.hasNext());
         Assert.assertFalse(results.hasNext());
 
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -125,9 +119,7 @@ public class MapperIteratorTest extends BaseUnitTest {
         for (int i = 0; i < 4; i++) {
             results.next();
         }
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -147,9 +139,7 @@ public class MapperIteratorTest extends BaseUnitTest {
         Iterator<Integer> results = new MapperIterator<>(keys, key -> {
             return null;
         });
-        Assert.assertThrows(NoSuchElementException.class, () -> {
-            results.next();
-        });
+        Assert.assertThrows(NoSuchElementException.class, results::next);
     }
 
     @Test
@@ -157,8 +147,7 @@ public class MapperIteratorTest extends BaseUnitTest {
         CloseableItor<String> keys = new CloseableItor<>(
                                      ImmutableList.of("fifth").iterator());
 
-        MapperIterator<String, Integer> results =
-                                        new MapperIterator<>(keys, k -> null);
+        MapperIterator<String, Integer> results = new MapperIterator<>(keys, k -> null);
 
         Assert.assertFalse(keys.closed());
         results.close();
