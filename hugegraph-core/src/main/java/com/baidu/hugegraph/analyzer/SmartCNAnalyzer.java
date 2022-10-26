@@ -52,7 +52,7 @@ public class SmartCNAnalyzer implements Analyzer {
         Reader reader = new StringReader(text);
         try (TokenStream tokenStream = ANALYZER.tokenStream("text", reader)) {
             tokenStream.reset();
-            CharTermAttribute term = null;
+            CharTermAttribute term;
             while (tokenStream.incrementToken()) {
                 term = tokenStream.getAttribute(CharTermAttribute.class);
                 result.add(term.toString());
