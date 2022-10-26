@@ -4,10 +4,10 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master, release-0.*, v0.* ]
+    branches: [ master, release-*, v*.* ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ master ]
+    # branches: [ master ] # enable in all PR
   schedule:
     - cron: '33 0 * * 5'
 
