@@ -45,8 +45,7 @@ public class JcsegAnalyzer implements Analyzer {
     );
 
     private static final SegmenterConfig CONFIG = new SegmenterConfig();
-    private static final ADictionary DIC =
-        DictionaryFactory.createDefaultDictionary(CONFIG);
+    private static final ADictionary DIC = DictionaryFactory.createDefaultDictionary(CONFIG);
 
     private final ISegment.Type type;
 
@@ -57,7 +56,7 @@ public class JcsegAnalyzer implements Analyzer {
                       "the available values are %s", mode, SUPPORT_MODES);
         }
 
-        if (mode.equals("Simple")) {
+        if ("Simple".equals(mode)) {
             this.type = ISegment.SIMPLE;
         } else {
             this.type = ISegment.COMPLEX;
