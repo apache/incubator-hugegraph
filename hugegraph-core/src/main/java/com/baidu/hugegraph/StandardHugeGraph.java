@@ -1395,7 +1395,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         private void setOpened() {
             // The backend tx may be reused, here just set a flag
-            assert this.opened.get() == false;
+            assert !this.opened.get();
             this.opened.set(true);
             this.transactions.get().openedTime(DateUtil.now().getTime());
             this.refs.incrementAndGet();

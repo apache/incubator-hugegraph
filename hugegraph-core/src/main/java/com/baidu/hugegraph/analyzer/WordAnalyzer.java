@@ -50,7 +50,7 @@ public class WordAnalyzer implements Analyzer {
                         .add("PureEnglish")
                         .build();
 
-    private SegmentationAlgorithm algorithm;
+    private final SegmentationAlgorithm algorithm;
 
     public WordAnalyzer(String mode) {
         try {

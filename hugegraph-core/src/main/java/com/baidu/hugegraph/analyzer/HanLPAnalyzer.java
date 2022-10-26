@@ -58,7 +58,7 @@ public class HanLPAnalyzer implements Analyzer {
                                  .enablePlaceRecognize(true)
                                  .enableOrganizationRecognize(true);
 
-    private String tokenizer;
+    private final String tokenizer;
 
     public HanLPAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
@@ -71,7 +71,7 @@ public class HanLPAnalyzer implements Analyzer {
 
     @Override
     public Set<String> segment(String text) {
-        List<Term> terms = null;
+        List<Term> terms;
         switch (this.tokenizer) {
             case "standard":
                 terms = StandardTokenizer.segment(text);

@@ -41,7 +41,7 @@ public class IKAnalyzer implements Analyzer {
             "max_word"
     );
 
-    private boolean smartSegMode;
+    private final boolean smartSegMode;
 
     public IKAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
@@ -58,7 +58,7 @@ public class IKAnalyzer implements Analyzer {
         IKSegmenter ik = new IKSegmenter(new StringReader(text),
                                          this.smartSegMode);
         try {
-            Lexeme word = null;
+            Lexeme word;
             while ((word = ik.next()) != null) {
                 result.add(word.getLexemeText());
             }

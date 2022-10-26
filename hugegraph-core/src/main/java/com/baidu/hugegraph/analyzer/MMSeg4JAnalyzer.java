@@ -48,7 +48,7 @@ public class MMSeg4JAnalyzer implements Analyzer {
 
     private static final Dictionary DIC = Dictionary.getInstance();
 
-    private Seg seg;
+    private final Seg seg;
 
     public MMSeg4JAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
@@ -69,7 +69,7 @@ public class MMSeg4JAnalyzer implements Analyzer {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported segment mode '%s'", this.seg));
+                          "Unsupported segment mode '%s'", mode));
         }
     }
 
@@ -78,7 +78,7 @@ public class MMSeg4JAnalyzer implements Analyzer {
         Set<String> result = InsertionOrderUtil.newSet();
         MMSeg mmSeg = new MMSeg(new StringReader(text), this.seg);
         try {
-            Word word = null;
+            Word word;
             while ((word = mmSeg.next()) != null) {
                 result.add(word.getString());
             }

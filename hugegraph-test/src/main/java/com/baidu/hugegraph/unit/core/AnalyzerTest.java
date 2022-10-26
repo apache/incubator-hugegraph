@@ -19,6 +19,7 @@
 
 package com.baidu.hugegraph.unit.core;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,9 +33,9 @@ import com.baidu.hugegraph.testutil.Assert;
 
 public class AnalyzerTest {
 
-    private static String text1 = "England wins World Cup";
-    private static String text2 = "英格兰世界杯夺冠，中华人民共和国国歌，" +
-                                  "百度科技园位于北京市海淀区西北旺东路10号院";
+    private static final String text1 = "England wins World Cup";
+    private static final String text2 = "英格兰世界杯夺冠，中华人民共和国国歌，" +
+                                        "百度科技园位于北京市海淀区西北旺东路10号院";
 
     @Before
     public void setup() {
@@ -216,11 +217,7 @@ public class AnalyzerTest {
     }
 
     private static Set<String> setOf(String... elems) {
-        Set<String> result = new HashSet<>();
-        for (String elem : elems) {
-            result.add(elem);
-        }
-        return result;
+        return new HashSet<>(Arrays.asList(elems));
     }
 
 }
