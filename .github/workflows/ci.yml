@@ -7,10 +7,6 @@ on:
       - /^release-.*$/
       - /^test-.*$/
   pull_request:
-    branches:
-      - master
-      - /^release-.*$/
-      - /^test-.*$/
 
 jobs:
   build:
