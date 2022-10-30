@@ -151,7 +151,7 @@ public interface IntSet {
             return true;
         }
 
-        private final IntSet segment(int key) {
+        private IntSet segment(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
                 E.checkArgument(false,
@@ -185,7 +185,7 @@ public interface IntSet {
             }
         }
 
-        private final IntSet segmentAt(int index) {
+        private IntSet segmentAt(int index) {
             // volatile get this.sets[index]
             long offset = (index << SHIFT) + BASE_OFFSET;
             IntSet set = (IntSet) UNSAFE.getObjectVolatile(this.sets, offset);
@@ -201,7 +201,7 @@ public interface IntSet {
      * - faster 20x than ec IntIntHashSet-segment-lock for 4 threads;
      * - faster 60x than ec IntIntHashSet-global-lock for 4 threads;
      */
-    public static final class IntSetByFixedAddr implements IntSet {
+    final class IntSetByFixedAddr implements IntSet {
 
         private final long[] bits;
         private final long numBits;
@@ -284,7 +284,7 @@ public interface IntSet {
             return true;
         }
 
-        private final long offset(long key) {
+        private long offset(long key) {
             long ukey = key + this.numBitsUnsigned;
             if (ukey >= this.numBits || ukey < 0L) {
                 E.checkArgument(false, "The key %s is out of bound %s",
@@ -294,7 +294,7 @@ public interface IntSet {
         }
     }
 
-    public static final class IntSetByFixedAddr4Unsigned implements IntSet {
+    final class IntSetByFixedAddr4Unsigned implements IntSet {
 
         private final long[] bits;
         private final int numBits;
@@ -422,7 +422,7 @@ public interface IntSet {
             return key;
         }
 
-        private final long offset(int key) {
+        private long offset(int key) {
             if (key >= this.numBits || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.numBits);
@@ -430,7 +430,7 @@ public interface IntSet {
             return bitOffsetToByteOffset(key);
         }
 
-        private static final long bitOffsetToByteOffset(long key) {
+        private static long bitOffsetToByteOffset(long key) {
             // bits to long offset
             long index = key >> DIV64;
             // long offset to byte offset
@@ -440,14 +440,14 @@ public interface IntSet {
             return offset;
         }
 
-        private static final long bitmaskOfKey(long key) {
+        private static long bitmaskOfKey(long key) {
             long bitIndex = key & MOD64;
             long bitmask = 1L << bitIndex;
             return bitmask;
         }
     }
 
-    public static final class IntSetByEcSegment implements IntSet {
+    final class IntSetByEcSegment implements IntSet {
 
         private final MutableIntCollection[] sets;
         private final int segmentMask;
@@ -467,7 +467,7 @@ public interface IntSet {
             }
         }
 
-        private final MutableIntCollection set(int key) {
+        private MutableIntCollection set(int key) {
             // NOTE '%' is slower 20% ~ 50% than '&': key % this.sets.length;
             int index = key & this.segmentMask;
             return this.sets[index];
@@ -510,7 +510,7 @@ public interface IntSet {
         }
     }
 
-    public static final class IntSetByFixedAddrByHppc implements IntSet {
+    final class IntSetByFixedAddrByHppc implements IntSet {
 
         private final com.carrotsearch.hppc.BitSet bits;
 
@@ -551,13 +551,13 @@ public interface IntSet {
         }
     }
 
-    public static final int CPUS = Runtime.getRuntime().availableProcessors();
-    public static final sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
+    int CPUS = Runtime.getRuntime().availableProcessors();
+    sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
 
-    public static final long MOD64 = 0x3fL;
-    public static final int DIV64 = 6;
+    long MOD64 = 0x3fL;
+    int DIV64 = 6;
 
-    public static int segmentSize(long capacity, int segments) {
+    static int segmentSize(long capacity, int segments) {
         long eachSize = capacity / segments;
         eachSize = IntSet.sizeToPowerOf2Size((int) eachSize);
         /*
@@ -571,7 +571,7 @@ public interface IntSet {
         return (int) eachSize;
     }
 
-    public static int sizeToPowerOf2Size(int size) {
+    static int sizeToPowerOf2Size(int size) {
         if (size < 1) {
             size = 1;
         }
@@ -587,7 +587,7 @@ public interface IntSet {
         return size;
     }
 
-    public static int bits2words(long numBits) {
+    static int bits2words(long numBits) {
         return (int) ((numBits - 1) >>> DIV64) + 1;
     }
 }

@@ -66,7 +66,6 @@ import com.baidu.hugegraph.unit.serializer.TableBackendEntryTest;
 import com.baidu.hugegraph.unit.serializer.TextBackendEntryTest;
 import com.baidu.hugegraph.unit.util.CompressUtilTest;
 import com.baidu.hugegraph.unit.util.JsonUtilTest;
-import com.baidu.hugegraph.unit.util.RateLimiterTest;
 import com.baidu.hugegraph.unit.util.StringEncodingTest;
 import com.baidu.hugegraph.unit.util.VersionTest;
 import com.baidu.hugegraph.unit.util.collection.CollectionFactoryTest;

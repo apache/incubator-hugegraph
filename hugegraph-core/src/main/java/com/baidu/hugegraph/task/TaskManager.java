@@ -324,15 +324,15 @@ public final class TaskManager {
 
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
-    protected static final void setContext(String context) {
+    protected static void setContext(String context) {
         CONTEXTS.set(context);
     }
 
-    protected static final void resetContext() {
+    protected static void resetContext() {
         CONTEXTS.remove();
     }
 
-    public static final String getContext() {
+    public static String getContext() {
         return CONTEXTS.get();
     }
 

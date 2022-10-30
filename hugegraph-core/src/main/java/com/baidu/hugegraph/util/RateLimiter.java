@@ -24,15 +24,13 @@ import org.slf4j.Logger;
 // TODO: Move to common module (concurrent package)
 public interface RateLimiter {
 
-    public final Logger LOG = Log.logger(RateLimiter.class);
-
-    public final long RESET_PERIOD = 1000L;
+    long RESET_PERIOD = 1000L;
 
     /**
      * Acquires one permit from RateLimiter if it can be acquired immediately
      * without delay.
      */
-    public boolean tryAcquire();
+    boolean tryAcquire();
 
     /**
      * Create a RateLimiter with specified rate, to keep compatible with
@@ -43,7 +41,7 @@ public interface RateLimiter {
      *
      * TODO: refactor it to make method unchangeable
      */
-    public static RateLimiter create(double ratePerSecond) {
+    static RateLimiter create(double ratePerSecond) {
         return new FixedTimerWindowRateLimiter((int) ratePerSecond);
     }
 }

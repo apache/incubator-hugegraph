@@ -21,13 +21,13 @@ package com.baidu.hugegraph.backend;
 
 public interface Transaction {
 
-    public void commit() throws BackendException;
+    void commit() throws BackendException;
 
-    public void commitIfGtSize(int size) throws BackendException;
+    void commitIfGtSize(int size) throws BackendException;
 
-    public void rollback() throws BackendException;
+    void rollback() throws BackendException;
 
-    public boolean autoCommit();
+    boolean autoCommit();
 
-    public void close();
+    void close();
 }

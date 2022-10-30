@@ -24,48 +24,48 @@ import java.util.function.Function;
 
 public interface Cache<K, V> {
 
-    public static final String ACTION_INVALID = "invalid";
-    public static final String ACTION_CLEAR = "clear";
-    public static final String ACTION_INVALIDED = "invalided";
-    public static final String ACTION_CLEARED = "cleared";
+    String ACTION_INVALID = "invalid";
+    String ACTION_CLEAR = "clear";
+    String ACTION_INVALIDED = "invalided";
+    String ACTION_CLEARED = "cleared";
 
-    public V get(K id);
+    V get(K id);
 
-    public V getOrFetch(K id, Function<K, V> fetcher);
+    V getOrFetch(K id, Function<K, V> fetcher);
 
-    public boolean containsKey(K id);
+    boolean containsKey(K id);
 
-    public boolean update(K id, V value);
+    boolean update(K id, V value);
 
-    public boolean update(K id, V value, long timeOffset);
+    boolean update(K id, V value, long timeOffset);
 
-    public boolean updateIfAbsent(K id, V value);
+    boolean updateIfAbsent(K id, V value);
 
-    public boolean updateIfPresent(K id, V value);
+    boolean updateIfPresent(K id, V value);
 
-    public void invalidate(K id);
+    void invalidate(K id);
 
-    public void traverse(Consumer<V> consumer);
+    void traverse(Consumer<V> consumer);
 
-    public void clear();
+    void clear();
 
-    public void expire(long ms);
+    void expire(long ms);
 
-    public long expire();
+    long expire();
 
-    public long tick();
+    long tick();
 
-    public long capacity();
+    long capacity();
 
-    public long size();
+    long size();
 
-    public boolean enableMetrics(boolean enabled);
+    boolean enableMetrics(boolean enabled);
 
-    public long hits();
+    long hits();
 
-    public long miss();
+    long miss();
 
-    public <T> T attachment(T object);
+    <T> T attachment(T object);
 
-    public <T> T attachment();
+    <T> T attachment();
 }

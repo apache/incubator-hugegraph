@@ -797,13 +797,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
-    private final void useSessions() {
+    private void useSessions() {
         for (RocksDBSessions sessions : this.sessions()) {
             sessions.useSession();
         }
     }
 
-    private final void closeSessions() {
+    private void closeSessions() {
         Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet()
                                                                     .iterator();
         while (iter.hasNext()) {
@@ -816,7 +816,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         }
     }
 
-    private final List<Session> session() {
+    private List<Session> session() {
         this.checkOpened();
 
         if (this.tableDiskMapping.isEmpty()) {
@@ -832,12 +832,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return list;
     }
 
-    private final Collection<RocksDBSessions> sessions() {
+    private Collection<RocksDBSessions> sessions() {
         return this.dbs.values();
     }
 
-    private final void parseTableDiskMapping(Map<String, String> disks,
-                                             String dataPath) {
+    private void parseTableDiskMapping(Map<String, String> disks,
+                                       String dataPath) {
+
         this.tableDiskMapping.clear();
         for (Map.Entry<String, String> disk : disks.entrySet()) {
             // The format of `disk` like: `graph/vertex: /path/to/disk1`
@@ -884,7 +885,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<Session> {
         return diskTableKey;
     }
 
-    private final void checkDbOpened() {
+    private void checkDbOpened() {
         E.checkState(this.sessions != null && !this.sessions.closed(),
                      "RocksDB has not been opened");
     }

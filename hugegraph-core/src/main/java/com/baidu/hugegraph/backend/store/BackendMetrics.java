@@ -23,27 +23,27 @@ import java.util.Map;
 
 public interface BackendMetrics {
 
-    public String BACKEND = "backend";
+    String BACKEND = "backend";
 
-    public String NODES = "nodes";
-    public String CLUSTER_ID = "cluster_id";
-    public String SERVERS = "servers";
-    public String SERVER_LOCAL = "local";
-    public String SERVER_CLUSTER = "cluster";
+    String NODES = "nodes";
+    String CLUSTER_ID = "cluster_id";
+    String SERVERS = "servers";
+    String SERVER_LOCAL = "local";
+    String SERVER_CLUSTER = "cluster";
 
     // Memory related metrics
-    public String MEM_USED = "mem_used";
-    public String MEM_COMMITTED = "mem_committed";
-    public String MEM_MAX = "mem_max";
-    public String MEM_UNIT = "mem_unit";
+    String MEM_USED = "mem_used";
+    String MEM_COMMITTED = "mem_committed";
+    String MEM_MAX = "mem_max";
+    String MEM_UNIT = "mem_unit";
 
     // Data load related metrics
-    public String DISK_USAGE = "disk_usage";
-    public String DISK_UNIT = "disk_unit";
+    String DISK_USAGE = "disk_usage";
+    String DISK_UNIT = "disk_unit";
 
-    public String READABLE = "_readable";
+    String READABLE = "_readable";
 
-    public String EXCEPTION = "exception";
+    String EXCEPTION = "exception";
 
-    public Map<String, Object> metrics();
+    Map<String, Object> metrics();
 }

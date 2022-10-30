@@ -21,7 +21,6 @@ package com.baidu.hugegraph.api.auth;
 
 import java.util.List;
 
-import io.swagger.annotations.Api;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;

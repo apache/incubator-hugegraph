@@ -23,5 +23,5 @@ import com.baidu.hugegraph.backend.id.Id;
 
 public interface Idfiable {
 
-    public Id id();
+    Id id();
 }

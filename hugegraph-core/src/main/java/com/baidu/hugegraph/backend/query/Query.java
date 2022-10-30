@@ -577,7 +577,7 @@ public class Query implements Cloneable {
         }
     }
 
-    public static enum Order {
+    public enum Order {
         ASC,
         DESC;
     }

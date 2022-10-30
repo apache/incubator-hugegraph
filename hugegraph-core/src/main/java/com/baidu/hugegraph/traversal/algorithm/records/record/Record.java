@@ -23,15 +23,15 @@ import com.baidu.hugegraph.util.collection.IntIterator;
 
 public interface Record {
 
-    public IntIterator keys();
+    IntIterator keys();
 
-    public boolean containsKey(int node);
+    boolean containsKey(int node);
 
-    public IntIterator get(int node);
+    IntIterator get(int node);
 
-    public void addPath(int node, int parent);
+    void addPath(int node, int parent);
 
-    public int size();
+    int size();
 
-    public boolean concurrent();
+    boolean concurrent();
 }

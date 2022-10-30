@@ -50,7 +50,7 @@ public enum GraphMode {
     private final byte code;
     private final String name;
 
-    private GraphMode(int code, String name) {
+    GraphMode(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;

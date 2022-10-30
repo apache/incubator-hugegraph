@@ -875,8 +875,8 @@ public class ConditionQuery extends IdQuery {
         }
     }
 
-    public static interface ResultsFilter {
+    public interface ResultsFilter {
 
-        public boolean test(HugeElement element);
+        boolean test(HugeElement element);
     }
 }

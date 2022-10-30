@@ -30,7 +30,7 @@ public enum GraphReadMode {
     private final byte code;
     private final String name;
 
-    private GraphReadMode(int code, String name) {
+    GraphReadMode(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;

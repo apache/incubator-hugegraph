@@ -19,9 +19,6 @@
 
 package com.baidu.hugegraph.api.gremlin;
 
-import java.util.Map;
-import java.util.Set;
-
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -30,22 +27,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 
-import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.api.filter.CompressInterceptor.Compress;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.ServerOptions;
-import com.baidu.hugegraph.exception.HugeGremlinException;
 import com.baidu.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 @Path("gremlin")
@@ -57,7 +47,6 @@ public class GremlinAPI extends GremlinQueryAPI {
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
     private static final Histogram GREMLIN_OUTPUT_HISTOGRAM =
             MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-output");
-
 
     @POST
     @Timed

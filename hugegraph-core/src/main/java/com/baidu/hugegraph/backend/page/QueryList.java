@@ -130,7 +130,7 @@ public final class QueryList<R> {
          * For non-paging situation
          * @return          BackendEntry iterator
          */
-        public QueryResults<R> iterator();
+        QueryResults<R> iterator();
 
         /**
          * For paging situation
@@ -139,9 +139,9 @@ public final class QueryList<R> {
          * @param pageSize  set query page size
          * @return          BackendEntry iterator with page
          */
-        public PageResults<R> iterator(int index, String page, long pageSize);
+        PageResults<R> iterator(int index, String page, long pageSize);
 
-        public int total();
+        int total();
     }
 
     /**

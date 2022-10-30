@@ -121,7 +121,7 @@ public abstract class IdGenerator {
         return IdType.UNKNOWN;
     }
 
-    private static final int compareType(Id id1, Id id2) {
+    private static int compareType(Id id1, Id id2) {
         return idType(id1).ordinal() - idType(id2).ordinal();
     }
 

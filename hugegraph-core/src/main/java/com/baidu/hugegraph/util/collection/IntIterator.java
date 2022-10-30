@@ -26,14 +26,14 @@ import java.util.NoSuchElementException;
 
 public interface IntIterator {
 
-    public final int[] EMPTY_INTS = new int[0];
-    public final IntIterator EMPTY = new EmptyIntIterator();
+    int[] EMPTY_INTS = new int[0];
+    IntIterator EMPTY = new EmptyIntIterator();
 
-    public boolean hasNext();
+    boolean hasNext();
 
-    public int next();
+    int next();
 
-    public default Iterator<Integer> asIterator() {
+    default Iterator<Integer> asIterator() {
         return new Iterator<Integer>() {
 
             @Override
@@ -48,20 +48,20 @@ public interface IntIterator {
         };
     }
 
-    public static IntIterator wrap(
+    static IntIterator wrap(
                   org.eclipse.collections.api.iterator.IntIterator iter) {
         return new EcIntIterator(iter);
     }
 
-    public static IntIterator wrap(int[] values) {
+    static IntIterator wrap(int[] values) {
         return new ArrayIntIterator(values);
     }
 
-    public static IntIterator wrap(int value) {
+    static IntIterator wrap(int value) {
         return new ArrayIntIterator(new int[]{value});
     }
 
-    public final class EcIntIterator implements IntIterator {
+    final class EcIntIterator implements IntIterator {
 
         private final org.eclipse.collections.api.iterator.IntIterator iterator;
 
@@ -81,7 +81,7 @@ public interface IntIterator {
         }
     }
 
-    public final class ArrayIntIterator implements IntIterator {
+    final class ArrayIntIterator implements IntIterator {
 
         private final int[] array;
         private int index;
@@ -102,7 +102,7 @@ public interface IntIterator {
         }
     }
 
-    public final class EmptyIntIterator implements IntIterator {
+    final class EmptyIntIterator implements IntIterator {
 
         @Override
         public boolean hasNext() {
@@ -115,7 +115,7 @@ public interface IntIterator {
         }
     }
 
-    public final class IntIterators implements IntIterator {
+    final class IntIterators implements IntIterator {
 
         private final List<IntIterator> iters;
         private int currentIndex;
@@ -158,7 +158,7 @@ public interface IntIterator {
         }
     }
 
-    public final class MapperInt2IntIterator implements IntIterator {
+    final class MapperInt2IntIterator implements IntIterator {
 
         private final IntIterator originIter;
         private final IntMapper intMapper;
@@ -180,11 +180,11 @@ public interface IntIterator {
 
         public interface IntMapper {
 
-            public int map(int key);
+            int map(int key);
         }
     }
 
-    public final class MapperInt2ObjectIterator<T> implements Iterator<T> {
+    final class MapperInt2ObjectIterator<T> implements Iterator<T> {
 
         private final IntIterator originIter;
         private final IntMapper<T> intMapper;
@@ -207,7 +207,7 @@ public interface IntIterator {
 
         public interface IntMapper<T> {
 
-            public T map(int key);
+            T map(int key);
         }
     }
 }

@@ -199,7 +199,7 @@ public interface IntMap {
             return true;
         }
 
-        private final IntMap segment(int key) {
+        private IntMap segment(int key) {
             long ukey = key + this.unsignedSize;
             if (ukey >= this.capacity || ukey < 0L) {
                 E.checkArgument(false,
@@ -233,7 +233,7 @@ public interface IntMap {
             }
         }
 
-        private final IntMap segmentAt(int index) {
+        private IntMap segmentAt(int index) {
             // volatile get this.maps[index]
             long offset = (index << SHIFT) + BASE_OFFSET;
             IntMap map = (IntMap) UNSAFE.getObjectVolatile(this.maps, offset);
@@ -247,7 +247,7 @@ public interface IntMap {
      * - faster 8x than ec IntIntHashMap for 4 threads, 4x operations
      *   with 0.5x cost;
      */
-    public static final class IntMapByFixedAddr implements IntMap {
+    final class IntMapByFixedAddr implements IntMap {
 
         private final int[] values;
         private final int capacity;
@@ -397,7 +397,7 @@ public interface IntMap {
             return true;
         }
 
-        private final long offset(int key) {
+        private long offset(int key) {
             if (key >= this.capacity || key < 0) {
                 E.checkArgument(false, "The key %s is out of bound %s",
                                 key, this.capacity);
@@ -509,7 +509,7 @@ public interface IntMap {
         }
     }
 
-    public static final class IntMapByEcSegment implements IntMap {
+    final class IntMapByEcSegment implements IntMap {
 
         private final MutableIntIntMap[] maps;
         private final int segmentMask;
@@ -529,7 +529,7 @@ public interface IntMap {
             }
         }
 
-        private final MutableIntIntMap map(int key) {
+        private MutableIntIntMap map(int key) {
             // NOTE '%' is slower 20% ~ 50% than '&': key % this.maps.length;
             int index = key & this.segmentMask;
             return this.maps[index];
@@ -597,6 +597,6 @@ public interface IntMap {
         }
     }
 
-    public static final int NULL_VALUE = Integer.MIN_VALUE;
-    public static final Unsafe UNSAFE = IntSet.UNSAFE;
+    int NULL_VALUE = Integer.MIN_VALUE;
+    Unsafe UNSAFE = IntSet.UNSAFE;
 }
