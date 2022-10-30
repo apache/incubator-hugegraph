@@ -36,7 +36,6 @@ import jakarta.inject.Singleton;
 
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.util.Log;
 
 @Provider

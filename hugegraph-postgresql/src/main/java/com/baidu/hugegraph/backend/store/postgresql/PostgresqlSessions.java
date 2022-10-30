@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 
 import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
-import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlUtil;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.util.Log;

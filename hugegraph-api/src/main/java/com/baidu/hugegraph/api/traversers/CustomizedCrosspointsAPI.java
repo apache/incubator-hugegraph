@@ -47,7 +47,6 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;

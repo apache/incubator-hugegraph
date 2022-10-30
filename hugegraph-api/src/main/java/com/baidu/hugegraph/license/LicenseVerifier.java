@@ -28,7 +28,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeException;
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.util.Log;

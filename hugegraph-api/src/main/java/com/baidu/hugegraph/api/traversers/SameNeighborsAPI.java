@@ -42,7 +42,6 @@ import com.baidu.hugegraph.api.graph.EdgeAPI;
 import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.SameNeighborTraverser;
 import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.Log;

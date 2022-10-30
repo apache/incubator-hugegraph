@@ -44,7 +44,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.ConditionQuery;
 import com.baidu.hugegraph.backend.store.Shard;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeEdge;
 import com.baidu.hugegraph.type.HugeType;
 import com.baidu.hugegraph.util.E;

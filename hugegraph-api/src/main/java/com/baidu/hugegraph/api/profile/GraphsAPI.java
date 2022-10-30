@@ -50,7 +50,6 @@ import com.baidu.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import com.baidu.hugegraph.auth.HugePermission;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.type.define.GraphMode;
 import com.baidu.hugegraph.type.define.GraphReadMode;
 import com.baidu.hugegraph.util.E;
