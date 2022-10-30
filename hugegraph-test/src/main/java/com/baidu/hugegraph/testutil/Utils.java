@@ -105,4 +105,10 @@ public class Utils {
         }
         return config;
     }
+
+    public static void println(String message) {
+        // CHECKSTYLE:OFF
+        System.out.println(message);
+        // CHECKSTYLE:ON
+    }
 }

@@ -40,13 +40,10 @@ import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.StateMachineCallback;
 import com.baidu.hugegraph.election.StateMachineContext;
 import com.baidu.hugegraph.testutil.Assert;
-import com.baidu.hugegraph.util.Log;
+import com.baidu.hugegraph.testutil.Utils;
 import org.junit.Test;
-import org.slf4j.Logger;
 
 public class RoleElectionStateMachineTest {
-
-    protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
     public static class LogEntry {
 
@@ -153,7 +150,7 @@ public class RoleElectionStateMachineTest {
                 if (logRecords.size() > MAX_COUNT) {
                     context.stateMachine().shutdown();
                 }
-                LOG.info("master node: " + node);
+                Utils.println("master node: " + node);
                 masterNodes.add(node);
             }
 
@@ -199,9 +196,9 @@ public class RoleElectionStateMachineTest {
 
             @Override
             public void error(StateMachineContext context, Throwable e) {
-                LOG.info("state machine error: node " +
-                         context.node() +
-                         " message " + e.getMessage());
+                Utils.println("state machine error: node " +
+                              context.node() +
+                              " message " + e.getMessage());
             }
         };
 
@@ -231,14 +228,14 @@ public class RoleElectionStateMachineTest {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
                         metaDataLogs.add(copy);
-                        LOG.info("The node " + copy + " become new master:");
+                        Utils.println("The node " + copy + " become new master:");
                         return copy;
                     }
 
                     Assert.assertEquals(value.epoch(), copy.epoch());
                     if (Objects.equals(value.node(), copy.node()) &&
                         value.clock() <= copy.clock()) {
-                        LOG.info("The master node " + copy + " keep heartbeat");
+                        Utils.println("The master node " + copy + " keep heartbeat");
                         metaDataLogs.add(copy);
                         if (value.clock() == copy.clock()) {
                             Assert.fail("Clock must increase when same epoch and node id");
@@ -304,7 +301,7 @@ public class RoleElectionStateMachineTest {
                 }
                 machines[Integer.parseInt(node)].shutdown();
                 dropNodes.add(node);
-                LOG.info("----shutdown machine " + node);
+                Utils.println("----shutdown machine " + node);
             }
             stop.countDown();
         });
