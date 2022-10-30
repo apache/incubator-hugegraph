@@ -69,7 +69,7 @@ public class RaysAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get rays paths from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",

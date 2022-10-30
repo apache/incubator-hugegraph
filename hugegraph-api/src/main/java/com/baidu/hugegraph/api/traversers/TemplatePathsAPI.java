@@ -136,7 +136,7 @@ public class TemplatePathsAPI extends TraverserAPI {
         @JsonProperty("capacity")
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 

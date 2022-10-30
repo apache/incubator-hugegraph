@@ -121,7 +121,7 @@ public class PersonalRankAPI extends API {
         @JsonProperty("max_degree")
         private long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
-        private long limit = Long.parseLong(DEFAULT_LIMIT);
+        private int limit = Integer.parseInt(DEFAULT_LIMIT);
         @JsonProperty("max_depth")
         private int maxDepth = DEFAULT_DEPTH;
         @JsonProperty("with_label")

@@ -70,7 +70,7 @@ public class CrosspointsAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get crosspoints with paths from '{}', to '{}' " +
                   "with direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",

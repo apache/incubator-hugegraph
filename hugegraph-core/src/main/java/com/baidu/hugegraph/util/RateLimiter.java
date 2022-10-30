@@ -19,8 +19,6 @@
 
 package com.baidu.hugegraph.util;
 
-import org.slf4j.Logger;
-
 // TODO: Move to common module (concurrent package)
 public interface RateLimiter {
 

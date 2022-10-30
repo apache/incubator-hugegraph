@@ -75,7 +75,7 @@ public class SingleSourceShortestPathAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit,
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit,
                       @QueryParam("with_vertex") boolean withVertex) {
         LOG.debug("Graph [{}] get single source shortest path from '{}' " +
                   "with direction {}, edge label {}, weight property {}, " +

@@ -83,7 +83,7 @@ public class PathsAPI extends TraverserAPI {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
@@ -169,7 +169,7 @@ public class PathsAPI extends TraverserAPI {
         @JsonProperty("capacity")
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 

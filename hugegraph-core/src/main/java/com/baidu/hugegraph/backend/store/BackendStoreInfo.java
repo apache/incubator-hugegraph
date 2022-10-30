@@ -22,7 +22,6 @@ package com.baidu.hugegraph.backend.store;
 import com.baidu.hugegraph.config.HugeConfig;
 import org.slf4j.Logger;
 
-import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.util.Log;
 
 public class BackendStoreInfo {

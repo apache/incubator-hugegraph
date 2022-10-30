@@ -81,7 +81,7 @@ public class KneighborAPI extends TraverserAPI {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}' and limit '{}'",
@@ -172,7 +172,7 @@ public class KneighborAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("count_only")
         public boolean countOnly = false;
         @JsonProperty("with_vertex")

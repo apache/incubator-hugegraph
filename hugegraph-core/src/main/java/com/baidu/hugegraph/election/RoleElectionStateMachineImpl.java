@@ -57,7 +57,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
                 failCount = 0;
             } catch (Throwable e) {
                 stateMachineCallback.error(context, e);
-                failCount ++;
+                failCount++;
                 if (failCount >= this.config.exceedsFailCount()) {
                     this.state = new AbdicationState(context.epoch());
                     Callback runnable = this.state.callback(stateMachineCallback);
