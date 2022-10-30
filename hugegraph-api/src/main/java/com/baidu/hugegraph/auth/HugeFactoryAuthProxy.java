@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-
 import com.baidu.hugegraph.HugeException;
 import com.baidu.hugegraph.HugeFactory;
 import com.baidu.hugegraph.HugeGraph;
@@ -57,15 +55,12 @@ import com.baidu.hugegraph.task.TaskManager;
 import com.baidu.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import com.baidu.hugegraph.traversal.optimize.HugeVertexStepStrategy;
-import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.Reflection;
 import com.baidu.hugegraph.variables.HugeVariables;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.configuration2.Configuration;
 
 public final class HugeFactoryAuthProxy {
-
-    private static final Logger LOG = Log.logger(HugeFactoryAuthProxy.class);
 
     public static final String GRAPH_FACTORY =
            "gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy";
@@ -314,13 +309,17 @@ public final class HugeFactoryAuthProxy {
         code = String.format("Reflection.registerFieldsToFilter(%s.class, \"%s\");",
                              clazz.getCanonicalName(), String.join("\", \"", fields));
         if (!fields.isEmpty()) {
-            LOG.info(code);
+            // CHECKSTYLE:OFF
+            System.out.println(code);
+            // CHECKSTYLE:ON
         }
 
         code = String.format("Reflection.registerMethodsToFilter(%s.class, \"%s\");",
                              clazz.getCanonicalName(), String.join("\", \"", methods));
         if (!methods.isEmpty()) {
-            LOG.info(code);
+            // CHECKSTYLE:OFF
+            System.out.println(code);
+            // CHECKSTYLE:ON
         }
 
         return true;

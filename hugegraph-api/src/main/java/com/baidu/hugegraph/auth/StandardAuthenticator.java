@@ -27,7 +27,6 @@ import java.util.Scanner;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.slf4j.Logger;
 
 import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.config.CoreOptions;
@@ -36,12 +35,9 @@ import com.baidu.hugegraph.config.ServerOptions;
 import com.baidu.hugegraph.rpc.RpcClientProviderWithAuth;
 import com.baidu.hugegraph.util.ConfigUtil;
 import com.baidu.hugegraph.util.E;
-import com.baidu.hugegraph.util.Log;
 import com.baidu.hugegraph.util.StringEncoding;
 
 public class StandardAuthenticator implements HugeAuthenticator {
-
-    private static final Logger LOG = Log.logger(StandardAuthenticator.class);
 
     private static final String INITING_STORE = "initing_store";
 
@@ -91,7 +87,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
                 char[] chars = console.readPassword(inputPrompt);
                 password = new String(chars);
             } else {
-                LOG.info(inputPrompt);
+                // CHECKSTYLE:OFF
+                System.out.println(inputPrompt);
+                // CHECKSTYLE:ON
                 @SuppressWarnings("resource") // just wrapper of System.in
                 Scanner scanner = new Scanner(System.in);
                 password = scanner.nextLine();
@@ -99,7 +97,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
             if (!password.isEmpty()) {
                 return password;
             }
-            LOG.info(notEmptyPrompt);
+            // CHECKSTYLE:OFF
+            System.out.println(notEmptyPrompt);
+            // CHECKSTYLE:ON
         }
     }
 
