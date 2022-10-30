@@ -50,7 +50,6 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CollectionPathsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.PathsTraverser;
@@ -83,7 +82,7 @@ public class PathsAPI extends TraverserAPI {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get paths from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
@@ -169,7 +168,7 @@ public class PathsAPI extends TraverserAPI {
         @JsonProperty("capacity")
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 

@@ -87,7 +87,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
                 char[] chars = console.readPassword(inputPrompt);
                 password = new String(chars);
             } else {
-                System.out.print(inputPrompt);
+                // CHECKSTYLE:OFF
+                System.out.println(inputPrompt);
+                // CHECKSTYLE:ON
                 @SuppressWarnings("resource") // just wrapper of System.in
                 Scanner scanner = new Scanner(System.in);
                 password = scanner.nextLine();
@@ -95,7 +97,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
             if (!password.isEmpty()) {
                 return password;
             }
+            // CHECKSTYLE:OFF
             System.out.println(notEmptyPrompt);
+            // CHECKSTYLE:ON
         }
     }
 

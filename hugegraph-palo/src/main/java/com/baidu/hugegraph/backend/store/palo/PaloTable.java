@@ -32,7 +32,6 @@ import com.baidu.hugegraph.backend.BackendException;
 import com.baidu.hugegraph.backend.store.TableDefine;
 import com.baidu.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import com.baidu.hugegraph.backend.store.mysql.MysqlSessions;
-import com.baidu.hugegraph.backend.store.mysql.MysqlStore;
 import com.baidu.hugegraph.backend.store.mysql.MysqlTable;
 import com.baidu.hugegraph.type.define.HugeKeys;
 import com.baidu.hugegraph.util.Log;

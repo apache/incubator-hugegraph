@@ -35,7 +35,7 @@ public class PredictionTraverser extends OltpTraverser {
     }
 
     public double adamicAdar(Id source, Id target, Directions dir,
-                             String label, long degree, long limit) {
+                             String label, long degree, int limit) {
         Set<Id> neighbors = checkAndGetCommonNeighbors(source, target, dir,
                                                        label, degree, limit);
         EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
@@ -52,7 +52,7 @@ public class PredictionTraverser extends OltpTraverser {
     }
 
     public double resourceAllocation(Id source, Id target, Directions dir,
-                                     String label, long degree, long limit) {
+                                     String label, long degree, int limit) {
         Set<Id> neighbors = checkAndGetCommonNeighbors(source, target, dir,
                                                        label, degree, limit);
         EdgeStep step = label == null ? new EdgeStep(graph(), dir) :
@@ -70,7 +70,7 @@ public class PredictionTraverser extends OltpTraverser {
 
     private Set<Id> checkAndGetCommonNeighbors(Id source, Id target,
                                                Directions dir, String label,
-                                               long degree, long limit) {
+                                               long degree, int limit) {
         E.checkNotNull(source, "source id");
         E.checkNotNull(target, "the target id");
         this.checkVertexExist(source, "source");

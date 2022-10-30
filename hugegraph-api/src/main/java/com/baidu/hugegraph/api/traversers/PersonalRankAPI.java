@@ -40,7 +40,6 @@ import com.baidu.hugegraph.HugeGraph;
 import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.PersonalRankTraverser;
@@ -121,7 +120,7 @@ public class PersonalRankAPI extends API {
         @JsonProperty("max_degree")
         private long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
-        private long limit = Long.parseLong(DEFAULT_LIMIT);
+        private int limit = Integer.parseInt(DEFAULT_LIMIT);
         @JsonProperty("max_depth")
         private int maxDepth = DEFAULT_DEPTH;
         @JsonProperty("with_label")

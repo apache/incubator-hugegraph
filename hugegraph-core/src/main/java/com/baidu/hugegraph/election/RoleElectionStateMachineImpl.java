@@ -57,7 +57,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
                 failCount = 0;
             } catch (Throwable e) {
                 stateMachineCallback.error(context, e);
-                failCount ++;
+                failCount++;
                 if (failCount >= this.config.exceedsFailCount()) {
                     this.state = new AbdicationState(context.epoch());
                     Callback runnable = this.state.callback(stateMachineCallback);
@@ -69,7 +69,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
     private interface RoleState {
 
-        SecureRandom secureRandom = new SecureRandom();
+        SecureRandom SECURE_RANDOM = new SecureRandom();
 
         RoleState transform(StateMachineContext context);
 
@@ -83,7 +83,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
         static void randomPark(StateMachineContext context) {
             long randomTimeout = context.config().randomTimeoutMillisecond();
             long baseTime = context.config().baseTimeoutMillisecond();
-            long timeout = (long) (baseTime + (randomTimeout / 10.0 * secureRandom.nextInt(11)));
+            long timeout = (long) (baseTime + (randomTimeout / 10.0 * SECURE_RANDOM.nextInt(11)));
             LockSupport.parkNanos(timeout * 1_000_000);
         }
     }
@@ -216,7 +216,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
             if (state.roleTypeData.epoch() > this.roleTypeData.epoch()) {
                 this.clock = 0;
                 this.roleTypeData = state.roleTypeData;
-            } else if (state.roleTypeData.epoch() < this.roleTypeData.epoch()){
+            } else if (state.roleTypeData.epoch() < this.roleTypeData.epoch()) {
                 throw new IllegalStateException("Epoch must increase");
             } else if (state.roleTypeData.epoch() == this.roleTypeData.epoch() &&
                        state.roleTypeData.clock() < this.roleTypeData.clock()) {

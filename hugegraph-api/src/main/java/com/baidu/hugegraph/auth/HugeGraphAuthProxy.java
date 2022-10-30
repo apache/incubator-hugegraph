@@ -1679,6 +1679,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public TraversalStrategies clone() {
+            // CHECKSTYLE:OFF
             return this.strategies.clone();
         }
 

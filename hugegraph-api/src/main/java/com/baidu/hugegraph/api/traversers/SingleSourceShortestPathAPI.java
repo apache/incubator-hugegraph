@@ -45,7 +45,6 @@ import com.baidu.hugegraph.api.graph.VertexAPI;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
 import com.baidu.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.WeightedPaths;
 import com.baidu.hugegraph.type.define.Directions;
@@ -75,7 +74,7 @@ public class SingleSourceShortestPathAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) long limit,
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit,
                       @QueryParam("with_vertex") boolean withVertex) {
         LOG.debug("Graph [{}] get single source shortest path from '{}' " +
                   "with direction {}, edge label {}, weight property {}, " +

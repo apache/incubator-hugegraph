@@ -40,6 +40,7 @@ import com.baidu.hugegraph.election.RoleTypeDataAdapter;
 import com.baidu.hugegraph.election.StateMachineCallback;
 import com.baidu.hugegraph.election.StateMachineContext;
 import com.baidu.hugegraph.testutil.Assert;
+import com.baidu.hugegraph.testutil.Utils;
 import org.junit.Test;
 
 public class RoleElectionStateMachineTest {
@@ -149,7 +150,7 @@ public class RoleElectionStateMachineTest {
                 if (logRecords.size() > MAX_COUNT) {
                     context.stateMachine().shutdown();
                 }
-                System.out.println("master node: " + node);
+                Utils.println("master node: " + node);
                 masterNodes.add(node);
             }
 
@@ -195,7 +196,9 @@ public class RoleElectionStateMachineTest {
 
             @Override
             public void error(StateMachineContext context, Throwable e) {
-                System.out.println("state machine error: node " + context.node() + " message " + e.getMessage());
+                Utils.println("state machine error: node " +
+                              context.node() +
+                              " message " + e.getMessage());
             }
         };
 
@@ -225,14 +228,14 @@ public class RoleElectionStateMachineTest {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
                         metaDataLogs.add(copy);
-                        System.out.println("The node " + copy + " become new master:");
+                        Utils.println("The node " + copy + " become new master:");
                         return copy;
                     }
 
                     Assert.assertEquals(value.epoch(), copy.epoch());
                     if (Objects.equals(value.node(), copy.node()) &&
                         value.clock() <= copy.clock()) {
-                        System.out.println("The master node " + copy + " keep heartbeat");
+                        Utils.println("The master node " + copy + " keep heartbeat");
                         metaDataLogs.add(copy);
                         if (value.clock() == copy.clock()) {
                             Assert.fail("Clock must increase when same epoch and node id");
@@ -247,14 +250,16 @@ public class RoleElectionStateMachineTest {
 
             @Override
             public Optional<RoleTypeData> query() {
-                return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
+                return Optional.ofNullable(
+                                this.copy(this.data.get(this.epoch)));
             }
         };
 
         RoleElectionStateMachine[] machines = new RoleElectionStateMachine[4];
         Thread node1 = new Thread(() -> {
             Config config = new TestConfig("1");
-            RoleElectionStateMachine stateMachine = new RoleElectionStateMachineImpl(config, adapter);
+            RoleElectionStateMachine stateMachine =
+                                     new RoleElectionStateMachineImpl(config, adapter);
             machines[1] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -262,7 +267,8 @@ public class RoleElectionStateMachineTest {
 
         Thread node2 = new Thread(() -> {
             Config config = new TestConfig("2");
-            RoleElectionStateMachine stateMachine = new RoleElectionStateMachineImpl(config, adapter);
+            RoleElectionStateMachine stateMachine =
+                                     new RoleElectionStateMachineImpl(config, adapter);
             machines[2] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -270,7 +276,8 @@ public class RoleElectionStateMachineTest {
 
         Thread node3 = new Thread(() -> {
             Config config = new TestConfig("3");
-            RoleElectionStateMachine stateMachine = new RoleElectionStateMachineImpl(config, adapter);
+            RoleElectionStateMachine stateMachine =
+                                     new RoleElectionStateMachineImpl(config, adapter);
             machines[3] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -294,7 +301,7 @@ public class RoleElectionStateMachineTest {
                 }
                 machines[Integer.parseInt(node)].shutdown();
                 dropNodes.add(node);
-                System.out.println("----shutdown machine " + node);
+                Utils.println("----shutdown machine " + node);
             }
             stop.countDown();
         });

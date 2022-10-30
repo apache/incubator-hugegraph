@@ -50,7 +50,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.KoutTraverser;
@@ -86,7 +85,7 @@ public class KoutAPI extends TraverserAPI {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get k-out from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', nearest " +
                   "'{}', max degree '{}', capacity '{}' and limit '{}'",
@@ -188,7 +187,7 @@ public class KoutAPI extends TraverserAPI {
         @JsonProperty("capacity")
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
         @JsonProperty("with_path")

@@ -40,7 +40,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.core.GraphManager;
 import com.baidu.hugegraph.job.ComputerJob;
 import com.baidu.hugegraph.job.JobBuilder;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.task.HugeTask;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;

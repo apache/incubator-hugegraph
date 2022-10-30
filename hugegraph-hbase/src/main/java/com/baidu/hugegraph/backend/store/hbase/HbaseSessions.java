@@ -457,7 +457,7 @@ public class HbaseSessions extends BackendSessionPool {
      * Session implement for HBase
      */
     public class Session extends AbstractBackendSession
-            implements HbaseSession<RowIterator> {
+                         implements HbaseSession<RowIterator> {
 
         private final Map<String, List<Row>> batch;
 
@@ -483,7 +483,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         private void checkBatchResults(Object[] results, List<Row> rows)
-                throws Throwable {
+                                       throws Throwable {
             assert rows.size() == results.length;
             for (int i = 0; i < results.length; i++) {
                 Object result = results[i];
@@ -552,7 +552,7 @@ public class HbaseSessions extends BackendSessionPool {
                 } catch (Throwable e) {
                     // TODO: Mark and delete committed records
                     throw new BackendException("Failed to commit, " +
-                                               "there may be inconsistent states for HBase", e);
+                              "there may be inconsistent states for HBase", e);
                 }
             }
 
@@ -806,7 +806,8 @@ public class HbaseSessions extends BackendSessionPool {
                     Cell cell = cellScanner.current();
                     byte[] key = CellUtil.cloneQualifier(cell);
                     byte[] val = CellUtil.cloneValue(cell);
-                    LOG.info("  {}={}", StringEncoding.format(key),
+                    LOG.info("  {}={}",
+                             StringEncoding.format(key),
                              StringEncoding.format(val));
                 }
             }

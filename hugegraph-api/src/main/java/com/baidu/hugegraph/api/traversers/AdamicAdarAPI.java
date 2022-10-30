@@ -67,7 +67,7 @@ public class AdamicAdarAPI extends API {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get adamic adar between '{}' and '{}' with " +
                   "direction {}, edge label {}, max degree '{}' and limit '{}'",
                   graph, current, other, direction, edgeLabel, maxDegree,

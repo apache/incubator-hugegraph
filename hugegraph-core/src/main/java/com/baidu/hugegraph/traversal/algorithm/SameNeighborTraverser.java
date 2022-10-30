@@ -36,7 +36,7 @@ public class SameNeighborTraverser extends HugeTraverser {
     }
 
     public Set<Id> sameNeighbors(Id vertex, Id other, Directions direction,
-                                 String label, long degree, long limit) {
+                                 String label, long degree, int limit) {
         E.checkNotNull(vertex, "vertex id");
         E.checkNotNull(other, "the other vertex id");
         this.checkVertexExist(vertex, "vertex");
@@ -54,7 +54,7 @@ public class SameNeighborTraverser extends HugeTraverser {
         Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
                                 sourceNeighbors, targetNeighbors);
         if (limit != NO_LIMIT) {
-            int end = Math.min(sameNeighbors.size(), (int) limit);
+            int end = Math.min(sameNeighbors.size(), limit);
             sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
         }
         return sameNeighbors;

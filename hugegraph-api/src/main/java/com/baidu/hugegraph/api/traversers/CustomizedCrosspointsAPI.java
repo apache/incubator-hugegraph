@@ -47,7 +47,6 @@ import com.baidu.hugegraph.api.API;
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.type.define.Directions;
@@ -141,7 +140,7 @@ public class CustomizedCrosspointsAPI extends API {
         @JsonProperty("capacity")
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_PATHS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_path")
         public boolean withPath = false;
         @JsonProperty("with_vertex")

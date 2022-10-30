@@ -49,7 +49,6 @@ import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.query.Query;
 import com.baidu.hugegraph.backend.query.QueryResults;
 import com.baidu.hugegraph.core.GraphManager;
-import com.baidu.hugegraph.server.RestServer;
 import com.baidu.hugegraph.structure.HugeVertex;
 import com.baidu.hugegraph.traversal.algorithm.HugeTraverser;
 import com.baidu.hugegraph.traversal.algorithm.KneighborTraverser;
@@ -81,7 +80,7 @@ public class KneighborAPI extends TraverserAPI {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}' and limit '{}'",
@@ -172,7 +171,7 @@ public class KneighborAPI extends TraverserAPI {
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("count_only")
         public boolean countOnly = false;
         @JsonProperty("with_vertex")
