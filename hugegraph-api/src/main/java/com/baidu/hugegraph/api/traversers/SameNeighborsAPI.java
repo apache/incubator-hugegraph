@@ -67,7 +67,7 @@ public class SameNeighborsAPI extends API {
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) long limit) {
+                      @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get same neighbors between '{}' and '{}' with " +
                   "direction {}, edge label {}, max degree '{}' and limit '{}'",
                   graph, vertex, other, direction, edgeLabel, maxDegree, limit);
