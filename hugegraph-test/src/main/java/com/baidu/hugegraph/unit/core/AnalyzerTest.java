@@ -48,27 +48,6 @@ public class AnalyzerTest {
     }
 
     @Test
-    public void testWordAnalyzer() {
-        // MaximumMatching mode
-        Analyzer analyzer = AnalyzerFactory.analyzer("word", "MaximumMatching");
-        Assert.assertEquals(setOf("england", "wins", "world", "cup"),
-                            analyzer.segment(TEXT_1));
-        Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "中华人民共和国",
-                                  "国歌", "百度", "科技园", "位于", "北京市",
-                                  "海淀区", "西北旺", "东路", "10号", "院"),
-                            analyzer.segment(TEXT_2));
-
-        // ReverseMaximumMatching mode
-        analyzer = AnalyzerFactory.analyzer("word", "ReverseMaximumMatching");
-        Assert.assertEquals(setOf("england", "wins", "world", "cup"),
-                            analyzer.segment(TEXT_1));
-        Assert.assertEquals(setOf("英格兰", "世界杯", "夺冠", "中华人民共和国",
-                                  "国歌", "百度", "科技园", "位于", "北京市",
-                                  "海淀区", "西北旺", "东路", "10号", "院"),
-                            analyzer.segment(TEXT_2));
-    }
-
-    @Test
     public void testAnsjAnalyzer() {
         // BaseAnalysis mode
         Analyzer analyzer = AnalyzerFactory.analyzer("ansj", "BaseAnalysis");

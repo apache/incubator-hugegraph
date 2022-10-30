@@ -571,7 +571,7 @@ public class CoreOptions extends OptionHolder {
                     "search.text_analyzer",
                     "Choose a text analyzer for searching the " +
                     "vertex/edge properties, available type are " +
-                    "[word, ansj, hanlp, smartcn, jieba, jcseg, " +
+                    "[ansj, hanlp, smartcn, jieba, jcseg, " +
                     "mmseg4j, ikanalyzer].",
                     disallowEmpty(),
                     "ikanalyzer"
@@ -582,13 +582,6 @@ public class CoreOptions extends OptionHolder {
                     "search.text_analyzer_mode",
                     "Specify the mode for the text analyzer, " +
                     "the available mode of analyzer are " +
-                    "{word: [MaximumMatching, ReverseMaximumMatching, " +
-                            "MinimumMatching, ReverseMinimumMatching, " +
-                            "BidirectionalMaximumMatching, " +
-                            "BidirectionalMinimumMatching, " +
-                            "BidirectionalMaximumMinimumMatching, " +
-                            "FullSegmentation, MinimalWordCount, " +
-                            "MaxNgramScore, PureEnglish], " +
                     "ansj: [BaseAnalysis, IndexAnalysis, ToAnalysis, " +
                            "NlpAnalysis], " +
                     "hanlp: [standard, nlp, index, nShort, shortest, speed], " +
