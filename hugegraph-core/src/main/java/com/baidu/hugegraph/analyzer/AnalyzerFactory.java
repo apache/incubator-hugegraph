@@ -36,8 +36,6 @@ public class AnalyzerFactory {
     public static Analyzer analyzer(String name, String mode) {
         name = name.toLowerCase();
         switch (name) {
-            case "word":
-                return new WordAnalyzer(mode);
             case "ansj":
                 return new AnsjAnalyzer(mode);
             case "hanlp":
