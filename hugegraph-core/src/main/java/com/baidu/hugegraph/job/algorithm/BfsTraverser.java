@@ -36,7 +36,7 @@ public abstract class BfsTraverser<T extends BfsTraverser.Node>
                 extends AbstractAlgorithm.AlgoTraverser
                 implements AutoCloseable {
 
-    private Stack<Id> traversedVertices = new Stack<>();
+    private final Stack<Id> traversedVertices = new Stack<>();
 
     public BfsTraverser(UserJob<Object> job) {
         super(job);
@@ -113,7 +113,7 @@ public abstract class BfsTraverser<T extends BfsTraverser.Node>
 
         private Id[] parents;
         private int pathCount;
-        private int distance;
+        private final int distance;
 
         public Node(Node parentNode) {
             this(0, parentNode.distance + 1);

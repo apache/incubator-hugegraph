@@ -30,7 +30,7 @@ import com.baidu.hugegraph.job.algorithm.cent.DegreeCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.EigenvectorCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithm;
 import com.baidu.hugegraph.job.algorithm.cent.StressCentralityAlgorithmV2;
-import com.baidu.hugegraph.job.algorithm.comm.ClusterCoeffcientAlgorithm;
+import com.baidu.hugegraph.job.algorithm.comm.ClusterCoefficientAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.KCoreAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LouvainAlgorithm;
 import com.baidu.hugegraph.job.algorithm.comm.LpaAlgorithm;
@@ -56,7 +56,7 @@ public class AlgorithmPool {
         INSTANCE.register(new EigenvectorCentralityAlgorithm());
 
         INSTANCE.register(new TriangleCountAlgorithm());
-        INSTANCE.register(new ClusterCoeffcientAlgorithm());
+        INSTANCE.register(new ClusterCoefficientAlgorithm());
         INSTANCE.register(new LpaAlgorithm());
         INSTANCE.register(new LouvainAlgorithm());
         INSTANCE.register(new WeakConnectedComponent());

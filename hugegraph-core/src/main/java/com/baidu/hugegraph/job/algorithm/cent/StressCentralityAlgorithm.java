@@ -100,7 +100,7 @@ public class StressCentralityAlgorithm extends AbstractCentAlgorithm {
                                                .groupCount();
             GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
-            return this.execute(tLimit, () -> tLimit.next());
+            return this.execute(tLimit, tLimit::next);
         }
     }
 }

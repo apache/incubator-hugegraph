@@ -34,7 +34,7 @@ public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {
 
     private static final String JOB_TYPE = "delete_expired_index";
 
-    private Set<HugeIndex> indexes;
+    private final Set<HugeIndex> indexes;
 
     public DeleteExpiredIndexJob(Set<HugeIndex> indexes) {
         E.checkArgument(indexes != null && !indexes.isEmpty(),

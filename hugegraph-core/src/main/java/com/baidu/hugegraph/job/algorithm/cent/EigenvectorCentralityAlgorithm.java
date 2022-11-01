@@ -96,7 +96,7 @@ public class EigenvectorCentralityAlgorithm extends AbstractCentAlgorithm {
             GraphTraversal<Vertex, Object> tCap = t.cap("m");
             GraphTraversal<Vertex, ?> tLimit = topN(tCap, topN);
 
-            return this.execute(tLimit, () -> tLimit.next());
+            return this.execute(tLimit, tLimit::next);
         }
     }
 }

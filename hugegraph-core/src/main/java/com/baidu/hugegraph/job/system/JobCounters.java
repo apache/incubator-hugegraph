@@ -30,8 +30,7 @@ import com.baidu.hugegraph.structure.HugeIndex;
 
 public class JobCounters {
 
-    private ConcurrentHashMap<String, JobCounter> jobCounters =
-                                                  new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, JobCounter> jobCounters = new ConcurrentHashMap<>();
 
     public JobCounter jobCounter(HugeGraph g) {
         int batch = g.option(CoreOptions.TASK_TTL_DELETE_BATCH);
@@ -44,10 +43,10 @@ public class JobCounters {
 
     public static class JobCounter {
 
-        private AtomicInteger jobs;
+        private final AtomicInteger jobs;
         private Set<HugeElement> elements;
         private Set<HugeIndex> indexes;
-        private int batchSize;
+        private final int batchSize;
 
         public JobCounter(int batchSize) {
             this.jobs = new AtomicInteger(0);
@@ -94,7 +93,7 @@ public class JobCounters {
         /**
          * Try to add element in collection waiting to be deleted
          * @param element
-         * @return true if should create a new delete job, false otherwise
+         * @return true if we should create a new delete job, false otherwise
          */
         public boolean addElementAndTriggerDelete(HugeElement element) {
             if (this.elements.size() >= this.batchSize) {
@@ -107,7 +106,7 @@ public class JobCounters {
         /**
          * Try to add edge in collection waiting to be deleted
          * @param index
-         * @return true if should create a new delete job, false otherwise
+         * @return true if we should create a new delete job, false otherwise
          */
         public boolean addIndexAndTriggerDelete(HugeIndex index) {
             if (this.indexes.size() >= this.batchSize) {

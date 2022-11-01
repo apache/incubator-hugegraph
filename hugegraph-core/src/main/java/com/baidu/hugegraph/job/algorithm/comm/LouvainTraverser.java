@@ -20,11 +20,12 @@
 package com.baidu.hugegraph.job.algorithm.comm;
 
 import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -238,10 +239,7 @@ public class LouvainTraverser extends AlgoTraverser {
             }
         }
         // skip the vertex with unmatched clabel
-        if (this.sourceCLabel != null && !match(v, this.sourceCLabel)) {
-            return true;
-        }
-        return false;
+        return this.sourceCLabel != null && !match(v, this.sourceCLabel);
     }
 
     private Iterator<Vertex> sourceVertices(int pass) {
@@ -321,9 +319,7 @@ public class LouvainTraverser extends AlgoTraverser {
         return comm;
     }
 
-    private Collection<Pair<Community, MutableInt>> nbCommunities(
-                                                    int pass,
-                                                    List<Edge> edges) {
+    private Collection<Pair<Community, MutableInt>> nbCommunities(int pass, List<Edge> edges) {
         // comms is a map of cid:[community,weight]
         Map<Id, Pair<Community, MutableInt>> comms = new HashMap<>();
         for (Edge edge : edges) {
@@ -512,7 +508,7 @@ public class LouvainTraverser extends AlgoTraverser {
                 if (cvertices.contains(otherV.id())) {
                     // inner edges of this community, will be calc twice
                     // due to both e-in and e-out are in vertices,
-                    kin += weightOfEdge(edge);
+                    kin += (int) weightOfEdge(edge);
                     continue;
                 }
                 assert this.cache.vertex2Community(otherV.id()) != null;
@@ -579,11 +575,10 @@ public class LouvainTraverser extends AlgoTraverser {
         int times = maxTimes;
         int movedTimes = 0;
         double movedPercent = 0d;
-        double lastMovedPercent = 0d;
+        double lastMovedPercent;
 
         for (int i = 0; i < maxTimes; i++) {
             boolean finished = true;
-            movedPercent = 0d;
             lastMovedPercent = 1d;
             int tinyChanges = 0;
             while ((movedPercent = this.moveCommunities(i)) > 0d) {
@@ -654,7 +649,7 @@ public class LouvainTraverser extends AlgoTraverser {
 
     public Collection<Object> showCommunity(String community) {
         final String C_PASS0 = labelOfPassN(0);
-        Collection<Object> comms = Arrays.asList(community);
+        Collection<Object> comms = Collections.singletonList(community);
         boolean reachPass0 = false;
         while (comms.size() > 0 && !reachPass0) {
             Iterator<Vertex> subComms = this.vertices(comms.iterator());
@@ -679,7 +674,7 @@ public class LouvainTraverser extends AlgoTraverser {
         String label = labelOfPassN(pass);
         GraphTraversal<Vertex, Vertex> t = this.g.V().hasLabel(label);
         this.execute(t, () -> {
-            try (OutputStream os = new FileOutputStream(exportFile);
+            try (OutputStream os = Files.newOutputStream(Paths.get(exportFile));
                  BufferedOutputStream bos = new BufferedOutputStream(os)) {
                 while (t.hasNext()) {
                     String comm = t.next().id().toString();
@@ -712,7 +707,7 @@ public class LouvainTraverser extends AlgoTraverser {
             List<String> els = this.cpassEdgeLabels();
             if (els.size() > 0) {
                 String first = els.remove(0);
-                te = te.hasLabel(first, els.toArray(new String[els.size()]));
+                te = te.hasLabel(first, els.toArray(new String[0]));
                 this.drop(te);
             }
             // drop schema
@@ -736,7 +731,7 @@ public class LouvainTraverser extends AlgoTraverser {
             List<String> vls = this.cpassVertexLabels();
             if (vls.size() > 0) {
                 String first = vls.remove(0);
-                tv = tv.hasLabel(first, vls.toArray(new String[vls.size()]));
+                tv = tv.hasLabel(first, vls.toArray(new String[0]));
                 this.drop(tv);
             }
             // drop schema
@@ -895,7 +890,7 @@ public class LouvainTraverser extends AlgoTraverser {
             // gen id for merge-community vertex
             String id = cid.toString();
             if (pass == 0) {
-                // conncat pass with cid
+                // concat pass with cid
                 id = pass + "~" + id;
             } else {
                 // replace last pass with current pass
@@ -915,11 +910,9 @@ public class LouvainTraverser extends AlgoTraverser {
                 if (c.empty()) {
                     continue;
                 }
-                Pair<Community, Set<Id>> pair = comms.get(c.cid);
-                if (pair == null) {
-                    pair = Pair.of(c, new HashSet<>());
-                    comms.put(c.cid, pair);
-                }
+                Pair<Community, Set<Id>> pair = comms.computeIfAbsent(c.cid, k -> {
+                    return Pair.of(c, new HashSet<>());
+                });
                 // collect members joined to the community [current pass]
                 pair.getRight().add(e.getKey());
             }

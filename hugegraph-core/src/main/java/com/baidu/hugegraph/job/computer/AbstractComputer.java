@@ -174,7 +174,7 @@ public abstract class AbstractComputer implements Computer {
                         "'%s' must be contained in config '%s'", sub);
 
         ImmutableNode root = null;
-        NodeHandler<ImmutableNode> nodeHandler = null;
+        NodeHandler<ImmutableNode> nodeHandler;
         Map<String, Object> results = new HashMap<>(nodes.size());
         for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
             NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
@@ -191,8 +191,7 @@ public abstract class AbstractComputer implements Computer {
     private String[] constructShellCommands(Map<String, Object> configs) {
         String hadoopHome = System.getenv(HADOOP_HOME);
         String commandPrefix = String.format(MAIN_COMMAND, hadoopHome);
-        List<String> command = new ArrayList<>();
-        command.addAll(Arrays.asList(commandPrefix.split(SPACE)));
+        List<String> command = new ArrayList<>(Arrays.asList(commandPrefix.split(SPACE)));
         command.add(this.name());
         for (Map.Entry<String, Object> entry : configs.entrySet()) {
             command.add(MINUS_C);

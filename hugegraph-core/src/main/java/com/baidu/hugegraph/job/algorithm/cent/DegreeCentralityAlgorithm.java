@@ -19,7 +19,7 @@
 
 package com.baidu.hugegraph.job.algorithm.cent;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +155,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
         }
 
         private long degree(Id source, String label) {
-            List<String> labels = label == null ? null : Arrays.asList(label);
+            List<String> labels = label == null ? null : Collections.singletonList(label);
             EdgeStep step = new EdgeStep(this.graph(), Directions.BOTH,
                                          labels, null, NO_LIMIT, 0);
             return this.edgesCount(source, step);

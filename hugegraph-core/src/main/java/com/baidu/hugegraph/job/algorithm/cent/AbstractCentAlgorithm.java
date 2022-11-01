@@ -86,8 +86,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
 
             t = t.filter(it -> {
                 this.updateProgress(++this.progress);
-                return sourceCLabel == null ? true :
-                       match(it.get(), sourceCLabel);
+                return sourceCLabel == null || match(it.get(), sourceCLabel);
             });
 
             if (sourceSample > 0L) {
@@ -164,9 +163,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                     triples.put(key, len);
                 } else {
                     assert len == shortest;
-                    if (keepOneShortestPath) {
-                        return false;
-                    }
+                    return !keepOneShortestPath;
                 }
                 return true;
             });
@@ -182,7 +179,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                     @SuppressWarnings("unchecked")
                     Iterator<HugeVertex> items = (Iterator<HugeVertex>)
                                                  path.iterator();
-                    return new MapperIterator<>(items, v -> v.id());
+                    return new MapperIterator<>(items, HugeVertex::id);
                 }
                 int len = path.size();
                 if (len < 3) {
@@ -195,7 +192,7 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                 @SuppressWarnings("unchecked")
                 Iterator<HugeVertex> items = (Iterator<HugeVertex>)
                                              path.iterator();
-                return new MapperIterator<>(items, v -> v.id());
+                return new MapperIterator<>(items, HugeVertex::id);
             });
         }
 

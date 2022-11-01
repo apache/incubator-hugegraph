@@ -22,7 +22,7 @@ package com.baidu.hugegraph.job.algorithm;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
@@ -90,7 +90,6 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
         PropertiesConfiguration config = new PropertiesConfiguration();
         config.setProperty(CoreOptions.BACKEND.name(), "memory");
         config.setProperty(CoreOptions.STORE.name(), name);
-        config.setDelimiterParsingDisabled(true);
         /*
          * NOTE: this temp graph don't need to init backend because no task info
          * required, also not set started because no task to be scheduled.
@@ -129,12 +128,11 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
 
     private static class Traverser extends AlgoTraverser {
 
-        private static Map<String, Object> PARAMS = ImmutableMap.of(
-                                                    "depth", 10L,
-                                                    "degree", -1L,
-                                                    "sample", -1L,
-                                                    "top", -1L /* sorted */,
-                                                    "workers", 0);
+        private static final Map<String, Object> PARAMS = ImmutableMap.of("depth", 10L,
+                                                                          "degree", -1L,
+                                                                          "sample", -1L,
+                                                                          "top", -1L /* sorted */,
+                                                                          "workers", 0);
 
         public Traverser(UserJob<Object> job) {
             super(job);
@@ -166,8 +164,8 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
 
             results.put("page_ranks", pageRanks(job));
 
-            algo = pool.get("cluster_coeffcient");
-            results.put("cluster_coeffcient", algo.call(job, parameters));
+            algo = pool.get("cluster_coefficient");
+            results.put("cluster_coefficient", algo.call(job, parameters));
 
             algo = pool.get("rings");
             parameters = ImmutableMap.<String, Object>builder()

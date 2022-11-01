@@ -61,7 +61,7 @@ public class ClosenessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
     private static class Traverser extends BfsTraverser<BfsTraverser.Node> {
 
-        private Map<Id, Float> globalCloseness;
+        private final Map<Id, Float> globalCloseness;
 
         private float startVertexCloseness;
 
