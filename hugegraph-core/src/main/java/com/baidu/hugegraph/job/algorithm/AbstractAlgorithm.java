@@ -57,8 +57,7 @@ import com.baidu.hugegraph.util.CollectionUtil;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.JsonUtil;
 import com.baidu.hugegraph.util.ParameterUtil;
-
-import jersey.repackaged.com.google.common.base.Objects;
+import com.google.common.base.Objects;
 
 @SuppressWarnings("deprecation") // StringEscapeUtils
 public abstract class AbstractAlgorithm implements Algorithm {
@@ -382,9 +381,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.capacity(Query.NO_CAPACITY);
             query.limit(limit);
-            if (label != null) {
-                query.eq(HugeKeys.LABEL, this.getVertexLabelId(label));
-            }
+            query.eq(HugeKeys.LABEL, this.getVertexLabelId(label));
             return this.graph().vertices(query);
         }
 
@@ -544,8 +541,8 @@ public abstract class AbstractAlgorithm implements Algorithm {
             this(4 * (int) Bytes.KB);
         }
 
-        public JsonMap(int initCapaticy) {
-            this.json = new StringBuilder(initCapaticy);
+        public JsonMap(int initCapacity) {
+            this.json = new StringBuilder(initCapacity);
         }
 
         public void startObject() {

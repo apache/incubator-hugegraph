@@ -92,7 +92,7 @@ public class Consumers<V> {
             this.run();
             this.done();
         } catch (Throwable e) {
-            // Only the first exception of one thread can be stored
+            // Only the first exception to one thread can be stored
             this.exception = e;
             if (!(e instanceof StopExecution)) {
                 LOG.error("Error when running task", e);
@@ -110,7 +110,8 @@ public class Consumers<V> {
             this.consume();
         }
         assert this.ending;
-        while (this.consume());
+        while (this.consume()) {
+        }
 
         LOG.debug("Worker finished");
     }

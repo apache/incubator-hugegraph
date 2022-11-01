@@ -102,7 +102,7 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
                                 .math("_-1").sack(Operator.div).sack().sum());
             GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
-            return this.execute(tLimit, () -> tLimit.next());
+            return this.execute(tLimit, tLimit::next);
         }
     }
 }

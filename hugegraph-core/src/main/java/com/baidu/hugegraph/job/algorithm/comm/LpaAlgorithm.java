@@ -184,7 +184,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
             Iterator<Id> neighbors = this.adjacentVertices(source, dir,
                                                            labelId, degree);
 
-            // whether or not include vertex itself, greatly affects the result.
+            // whether include vertex itself, greatly affects the result.
             // get a larger number of small communities if include itself
             //neighbors.inject(v);
 

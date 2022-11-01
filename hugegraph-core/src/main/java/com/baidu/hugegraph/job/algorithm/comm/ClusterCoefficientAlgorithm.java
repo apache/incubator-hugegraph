@@ -26,9 +26,9 @@ import com.baidu.hugegraph.type.define.Directions;
 import com.baidu.hugegraph.util.E;
 import com.baidu.hugegraph.util.InsertionOrderUtil;
 
-public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
+public class ClusterCoefficientAlgorithm extends AbstractCommAlgorithm {
 
-    public static final String ALGO_NAME = "cluster_coeffcient";
+    public static final String ALGO_NAME = "cluster_coefficient";
 
     @Override
     public String name() {
@@ -46,8 +46,7 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
     public Object call(UserJob<Object> job, Map<String, Object> parameters) {
         int workers = workersWhenBoth(parameters);
         try (Traverser traverser = new Traverser(job, workers)) {
-            return traverser.clusterCoeffcient(direction(parameters),
-                                               degree(parameters));
+            return traverser.clusterCoefficient(direction(parameters), degree(parameters));
         }
     }
 
@@ -67,18 +66,18 @@ public class ClusterCoeffcientAlgorithm extends AbstractCommAlgorithm {
             super(job, ALGO_NAME, workers);
         }
 
-        public Object clusterCoeffcient(Directions direction, long degree) {
+        public Object clusterCoefficient(Directions direction, long degree) {
             Map<String, Long> results = this.triangles(direction, degree);
             results = InsertionOrderUtil.newMap(results);
 
             long triangles = results.remove(KEY_TRIANGLES);
             long triads = results.remove(KEY_TRIADS);
             assert triangles <= triads;
-            double coeffcient = triads == 0L ? 0d : 1d * triangles / triads;
+            double coefficient = triads == 0L ? 0d : 1d * triangles / triads;
 
             @SuppressWarnings({ "unchecked", "rawtypes" })
             Map<String, Double> converted = (Map) results;
-            converted.put("cluster_coeffcient", coeffcient);
+            converted.put("cluster_coefficient", coefficient);
 
             return results;
         }

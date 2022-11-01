@@ -25,11 +25,11 @@ import com.baidu.hugegraph.job.UserJob;
 
 public interface Algorithm {
 
-    public String name();
+    String name();
 
-    public String category();
+    String category();
 
-    public Object call(UserJob<Object> job, Map<String, Object> parameters);
+    Object call(UserJob<Object> job, Map<String, Object> parameters);
 
-    public void checkParameters(Map<String, Object> parameters);
+    void checkParameters(Map<String, Object> parameters);
 }
