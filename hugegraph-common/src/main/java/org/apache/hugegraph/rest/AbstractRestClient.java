@@ -26,11 +26,13 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ExecutorUtil;
 import jakarta.ws.rs.client.Client;
@@ -396,15 +398,33 @@ public abstract class AbstractRestClient implements RestClient {
          * because Entity.json() method will reset "content encoding =
          * null" that has been set up by headers before.
          */
+        MediaType customContentType = parseCustomContentType(headers);
         Entity<?> entity;
         if (encoding == null) {
-            entity = Entity.json(object);
+            entity = Entity.entity(object, customContentType);
         } else {
-            Variant variant = new Variant(MediaType.APPLICATION_JSON_TYPE,
+            Variant variant = new Variant(customContentType,
                                           (String) null, encoding);
             entity = Entity.entity(object, variant);
         }
         return Pair.of(builder, entity);
+    }
+
+    /**
+     * parse user custom content-type, returns MediaType.APPLICATION_JSON_TYPE default.
+     * @param headers
+     * @return
+     */
+    public static MediaType parseCustomContentType(MultivaluedMap<String, Object> headers) {
+        String customContentType = null;
+        if (MapUtils.isNotEmpty(headers) && headers.get("Content-Type") != null) {
+            Object contentTypeObj = headers.get("Content-Type");
+            if (contentTypeObj instanceof List) {
+                customContentType = ((List<?>) contentTypeObj).get(0).toString();
+            }
+            return MediaType.valueOf(customContentType);
+        }
+        return MediaType.APPLICATION_JSON_TYPE;
     }
 
     private static void configConnectionManager(String url, ClientConfig conf) {
