@@ -924,7 +924,7 @@ public class BinarySerializer extends AbstractSerializer {
         return false;
     }
 
-    public static final byte[] increaseOne(byte[] bytes) {
+    public static byte[] increaseOne(byte[] bytes) {
         final byte BYTE_MAX_VALUE = (byte) 0xff;
         assert bytes.length > 0;
         byte last = bytes[bytes.length - 1];

@@ -37,7 +37,7 @@ public class CacheManager {
 
     private static final Logger LOG = Log.logger(CacheManager.class);
 
-    private static CacheManager INSTANCE = new CacheManager();
+    private static final CacheManager INSTANCE = new CacheManager();
 
     // Check the cache expiration every 30s by default
     private static final long TIMER_TICK_PERIOD = 30;

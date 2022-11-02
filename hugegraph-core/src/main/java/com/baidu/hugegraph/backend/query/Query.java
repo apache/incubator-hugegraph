@@ -522,7 +522,7 @@ public class Query implements Cloneable {
         StringBuilder sb = new StringBuilder(128);
         sb.append("`Query ");
         if (this.aggregate != null) {
-            sb.append(this.aggregate.toString());
+            sb.append(this.aggregate);
         } else {
             sb.append('*');
         }
@@ -568,8 +568,7 @@ public class Query implements Cloneable {
         return capacity != null ? capacity : DEFAULT_CAPACITY;
     }
 
-    public static final void checkForceCapacity(long count)
-                                                throws LimitExceedException {
+    public static void checkForceCapacity(long count) throws LimitExceedException {
         if (count > Query.DEFAULT_CAPACITY) {
             throw new LimitExceedException(
                       "Too many records(must <= %s) for one query",
@@ -579,6 +578,6 @@ public class Query implements Cloneable {
 
     public enum Order {
         ASC,
-        DESC;
+        DESC
     }
 }

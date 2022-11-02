@@ -123,7 +123,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer forReadWritten() {
-        ((Buffer) this.buffer).flip();
+        this.buffer.flip();
         return this;
     }
 
@@ -263,7 +263,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public boolean readBoolean() {
-        return this.buffer.get() == 0 ? false : true;
+        return this.buffer.get() != 0;
     }
 
     public char readChar() {

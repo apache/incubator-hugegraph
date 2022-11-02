@@ -74,9 +74,7 @@ public final class IdUtil {
 
     public static String writeString(Id id) {
         String idString = id.asString();
-        StringBuilder sb = new StringBuilder(1 + idString.length());
-        sb.append(id.type().prefix()).append(idString);
-        return sb.toString();
+        return id.type().prefix() + idString;
     }
 
     public static Id readString(String id) {
