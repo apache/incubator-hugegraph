@@ -334,7 +334,7 @@ public class RocksDBTables {
             E.checkArgumentNotNull(min, "Range index begin key is missing");
             byte[] begin = min.asBytes();
             if (!minEq) {
-                begin = BinarySerializer.increaseOne(begin);
+                BinarySerializer.increaseOne(begin);
             }
 
             if (max == null) {

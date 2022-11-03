@@ -184,7 +184,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public void reloadRocksDB() throws RocksDBException {
+    public void reloadRocksDB() {
         throw new UnsupportedOperationException("reloadRocksDB");
     }
 
@@ -235,7 +235,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
      */
     private final class SstSession extends Session {
 
-        private Map<String, Changes> batch;
+        private final Map<String, Changes> batch;
 
         public SstSession() {
             this.batch = new HashMap<>();

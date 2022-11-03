@@ -924,26 +924,26 @@ public class BinarySerializer extends AbstractSerializer {
         return false;
     }
 
-    public static final byte[] increaseOne(byte[] bytes) {
+    public static void increaseOne(byte[] bytes) {
         final byte BYTE_MAX_VALUE = (byte) 0xff;
+        final byte INCREASE_STEP = 0x01;
         assert bytes.length > 0;
         byte last = bytes[bytes.length - 1];
         if (last != BYTE_MAX_VALUE) {
-            bytes[bytes.length - 1] += 0x01;
+            bytes[bytes.length - 1] += INCREASE_STEP;
         } else {
             // Process overflow (like [1, 255] => [2, 0])
             int i = bytes.length - 1;
             for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
-                bytes[i] += 0x01;
+                bytes[i] += INCREASE_STEP;
             }
             if (bytes[i] == BYTE_MAX_VALUE) {
                 assert i == 0;
                 throw new BackendException("Unable to increase bytes: %s",
                                            Bytes.toHex(bytes));
             }
-            bytes[i] += 0x01;
+            bytes[i] += INCREASE_STEP;
         }
-        return bytes;
     }
 
     @Override
