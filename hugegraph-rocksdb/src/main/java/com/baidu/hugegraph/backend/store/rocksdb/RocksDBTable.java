@@ -291,9 +291,8 @@ public class RocksDBTable extends BackendTable<Session, BackendEntry> {
         return false;
     }
 
-    protected static BackendEntryIterator newEntryIterator(
-                                                BackendColumnIterator cols,
-                                                Query query) {
+    protected static BackendEntryIterator newEntryIterator(BackendColumnIterator cols,
+                                                           Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();

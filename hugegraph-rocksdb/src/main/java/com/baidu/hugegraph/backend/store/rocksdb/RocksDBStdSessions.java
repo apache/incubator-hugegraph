@@ -954,10 +954,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         @Override
         public void deletePrefix(String table, byte[] key) {
-            byte[] keyTo = Arrays.copyOf(key, key.length);
+            byte[] keyFrom = key;
+            byte[] keyTo = Arrays.copyOf(keyFrom, keyFrom.length);
             BinarySerializer.increaseOne(keyTo);
             try (CFHandle cf = cf(table)) {
-                this.batch.deleteRange(cf.get(), key, keyTo);
+                this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {
                 throw new BackendException(e);
             }
