@@ -197,6 +197,7 @@
                         <exclude>scripts/dev/reviewers</exclude>
                         <exclude>**/*.md</exclude>
                         <exclude>**/dependency-reduced-pom.xml</exclude>
+                        <exclude>**/.flattened-pom.xml</exclude>
                         <exclude>**/logs/*.log</exclude>
                         <exclude>**/target/*</exclude>
                         <exclude>style/*</exclude>
@@ -216,6 +217,32 @@
                     </excludes>
                     <consoleOutput>true</consoleOutput>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
