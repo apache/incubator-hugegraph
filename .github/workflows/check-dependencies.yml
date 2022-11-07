@@ -1,0 +1,26 @@
+name: third-party dependencies check
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SCRIPT_DEPENDENCY: hugegraph-dist/scripts/dependency
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: mvn install
+        run: |
+          mvn install -DskipTests=true
+      - name: generate current dependencies
+        run: |
+          bash $SCRIPT_DEPENDENCY/regenerate_known_dependencies.sh current-dependencies.txt
+      - name: check third dependencies
+        run: |
+          bash $SCRIPT_DEPENDENCY/check_dependencies.sh
