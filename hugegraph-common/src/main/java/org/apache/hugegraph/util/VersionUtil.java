@@ -82,8 +82,8 @@ public final class VersionUtil {
         String className = clazz.getSimpleName() + ".class";
         String classPath = Objects.requireNonNull(clazz.getResource(className)).toString();
         if (!classPath.startsWith("jar:file:")) {
-          // Class not from JAR
-          return null;
+            // Class not from JAR
+            return null;
         }
         int offset = classPath.lastIndexOf("!");
         assert offset > 0;

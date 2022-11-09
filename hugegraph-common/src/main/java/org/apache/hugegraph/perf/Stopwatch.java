@@ -24,26 +24,35 @@ import java.util.List;
 public interface Stopwatch extends Cloneable {
 
     Path id();
+
     String name();
+
     Path parent();
 
     void startTime(long startTime);
+
     void endTime(long startTime);
 
     void lastStartTime(long startTime);
 
     long times();
+
     long totalTimes();
+
     long totalChildrenTimes();
 
     long totalCost();
+
     void totalCost(long otherCost);
 
     long minCost();
+
     long maxCost();
 
     long totalWasted();
+
     long totalSelfWasted();
+
     long totalChildrenWasted();
 
     void fillChildrenTotal(List<Stopwatch> children);
@@ -51,9 +60,11 @@ public interface Stopwatch extends Cloneable {
     Stopwatch copy();
 
     Stopwatch child(String name);
+
     Stopwatch child(String name, Stopwatch watch);
 
     boolean empty();
+
     void clear();
 
     default String toJson() {
@@ -97,11 +108,7 @@ public interface Stopwatch extends Cloneable {
             if (parent == EMPTY) {
                 this.path = name;
             } else {
-                int len = parent.length() + 1 + name.length();
-                StringBuilder sb = new StringBuilder(len);
-                sb.append(parent.path).append('/').append(name);
-
-                this.path = sb.toString();
+                this.path = parent.path + '/' + name;
             }
         }
 

@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Predicate;

@@ -81,3 +81,4 @@ hs_err_pid*
 .mtj.tmp/
 # blueJ files
 *.ctxt
+.flattened-pom.xml

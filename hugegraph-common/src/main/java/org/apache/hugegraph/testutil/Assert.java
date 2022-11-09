@@ -144,8 +144,7 @@ public class Assert extends org.junit.Assert {
         private final Number expected;
         private final Function<Integer, Boolean> cmp;
 
-        public NumberMatcher(Number expected, Function<Integer, Boolean> cmp,
-                             String symbol) {
+        NumberMatcher(Number expected, Function<Integer, Boolean> cmp, String symbol) {
             this.expected = expected;
             this.cmp = cmp;
             this.symbol = symbol;

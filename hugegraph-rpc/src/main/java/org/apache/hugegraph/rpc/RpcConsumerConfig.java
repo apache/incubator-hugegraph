@@ -53,8 +53,8 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
     private final List<ConsumerBootstrap<?>> bootstraps;
 
     static {
-         ExtensionLoaderFactory.getExtensionLoader(Cluster.class)
-                               .loadExtension(FanoutCluster.class);
+        ExtensionLoaderFactory.getExtensionLoader(Cluster.class)
+                              .loadExtension(FanoutCluster.class);
     }
 
     public RpcConsumerConfig(HugeConfig config, String remoteUrls) {
@@ -148,7 +148,7 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
 
         private static final Logger LOG = Log.logger(FanoutCluster.class);
 
-        public FanoutCluster(ConsumerBootstrap<?> consumerBootstrap) {
+        FanoutCluster(ConsumerBootstrap<?> consumerBootstrap) {
             super(consumerBootstrap);
         }
 

@@ -19,9 +19,6 @@
 
 package org.apache.hugegraph.config;
 
-import org.apache.hugegraph.config.ConfigOption;
-import org.apache.hugegraph.config.OptionHolder;
-
 import static org.apache.hugegraph.config.OptionChecker.allowValues;
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
@@ -128,7 +125,7 @@ public class RpcOptions extends OptionHolder {
                     "rpc.client_load_balancer",
                     "The rpc client uses a load-balancing algorithm to " +
                     "access multiple rpc servers in one cluster. Default " +
-                    "value is 'consistentHash', means forwording by request " +
+                    "value is 'consistentHash', means forwarding by request " +
                     "parameters.",
                     allowValues("random", "localPref", "roundRobin",
                                 "consistentHash", "weightRoundRobin"),

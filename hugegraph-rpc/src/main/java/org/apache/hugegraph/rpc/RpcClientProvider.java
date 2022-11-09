@@ -41,6 +41,7 @@ public class RpcClientProvider {
         this.consumerConfig = StringUtils.isNotBlank(rpcUrl) ?
                               new RpcConsumerConfig(config, rpcUrl) : null;
     }
+
     public boolean enabled() {
         return this.consumerConfig != null;
     }

@@ -19,7 +19,6 @@
 
 package org.apache.hugegraph.rest;
 
-import java.io.IOException;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
@@ -32,19 +31,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.commons.collections.MapUtils;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.ExecutorUtil;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientRequestContext;
-import jakarta.ws.rs.client.ClientRequestFilter;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation.Builder;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Variant;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHeaders;
@@ -55,6 +49,8 @@ import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.pool.PoolStats;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.ExecutorUtil;
 import org.glassfish.jersey.SslConfigurator;
 import org.glassfish.jersey.apache.connector.ApacheClientProperties;
 import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
@@ -69,12 +65,16 @@ import org.glassfish.jersey.uri.UriComponent;
 
 import com.google.common.collect.ImmutableMap;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientRequestFilter;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation.Builder;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Variant;
 
 public abstract class AbstractRestClient implements RestClient {
 
@@ -412,15 +412,14 @@ public abstract class AbstractRestClient implements RestClient {
 
     /**
      * parse user custom content-type, returns MediaType.APPLICATION_JSON_TYPE default.
-     * @param headers
-     * @return
+     * @param headers custom http header
      */
-    public static MediaType parseCustomContentType(MultivaluedMap<String, Object> headers) {
+    private static MediaType parseCustomContentType(MultivaluedMap<String, Object> headers) {
         String customContentType = null;
         if (MapUtils.isNotEmpty(headers) && headers.get("Content-Type") != null) {
-            Object contentTypeObj = headers.get("Content-Type");
-            if (contentTypeObj instanceof List) {
-                customContentType = ((List<?>) contentTypeObj).get(0).toString();
+            List<?> contentTypeObj = headers.get("Content-Type");
+            if (contentTypeObj != null && !contentTypeObj.isEmpty()) {
+                customContentType = contentTypeObj.get(0).toString();
             }
             return MediaType.valueOf(customContentType);
         }
@@ -546,7 +545,7 @@ public abstract class AbstractRestClient implements RestClient {
 
         private final ClientConfig config;
 
-        public ConfigBuilder() {
+        ConfigBuilder() {
             this.config = new ClientConfig();
         }
 

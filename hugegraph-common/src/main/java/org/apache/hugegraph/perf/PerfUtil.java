@@ -55,7 +55,7 @@ import javassist.CtMethod;
 public final class PerfUtil {
 
     private static final Logger LOG = Log.logger(PerfUtil.class);
-    private static final int DEFAUL_CAPATICY = 1024;
+    private static final int DEFAULT_CAPACITY = 1024;
 
     private static final ThreadLocal<PerfUtil> INSTANCE = new ThreadLocal<>();
 
@@ -69,8 +69,8 @@ public final class PerfUtil {
     private final Stopwatch root;
 
     private PerfUtil() {
-        this.stopwatches = new HashMap<>(DEFAUL_CAPATICY);
-        this.callStack = new LocalStack<>(DEFAUL_CAPATICY);
+        this.stopwatches = new HashMap<>(DEFAULT_CAPACITY);
+        this.callStack = new LocalStack<>(DEFAULT_CAPACITY);
         this.root = newStopwatch(Path.ROOT_NAME, Path.EMPTY);
     }
 
@@ -403,32 +403,32 @@ public final class PerfUtil {
         };
 
         BiConsumer<List<Stopwatch>, List<Stopwatch>> fillChildrenTotal =
-                                    (itemsOfLn, itemsOfLnParent) -> {
-            for (Stopwatch parent : itemsOfLnParent) {
-                List<Stopwatch> children = itemsOfLn.stream().filter(c -> {
-                    return c.parent().equals(parent.id());
-                }).collect(Collectors.toList());
+                (itemsOfLn, itemsOfLnParent) -> {
+                    for (Stopwatch parent : itemsOfLnParent) {
+                        List<Stopwatch> children = itemsOfLn.stream().filter(c -> {
+                            return c.parent().equals(parent.id());
+                        }).collect(Collectors.toList());
 
-                parent.fillChildrenTotal(children);
-            }
-        };
+                        parent.fillChildrenTotal(children);
+                    }
+                };
 
         BiConsumer<List<Stopwatch>, List<Stopwatch>> fillOther =
-                                    (itemsOfLn, itemsOfLnParent) -> {
-            for (Stopwatch parent : itemsOfLnParent) {
-                Stream<Stopwatch> children = itemsOfLn.stream().filter(c -> {
-                    return c.parent().equals(parent.id());
-                });
-                // Fill other cost
-                long sumCost = children.mapToLong(Stopwatch::totalCost).sum();
-                long otherCost = parent.totalCost() - sumCost;
-                if (otherCost > 0L) {
-                    Stopwatch other = newStopwatch("~", parent.id());
-                    other.totalCost(otherCost);
-                    itemsOfLn.add(other);
-                }
-            }
-        };
+                (itemsOfLn, itemsOfLnParent) -> {
+                    for (Stopwatch parent : itemsOfLnParent) {
+                        Stream<Stopwatch> children = itemsOfLn.stream().filter(c -> {
+                            return c.parent().equals(parent.id());
+                        });
+                        // Fill other cost
+                        long sumCost = children.mapToLong(Stopwatch::totalCost).sum();
+                        long otherCost = parent.totalCost() - sumCost;
+                        if (otherCost > 0L) {
+                            Stopwatch other = newStopwatch("~", parent.id());
+                            other.totalCost(otherCost);
+                            itemsOfLn.add(other);
+                        }
+                    }
+                };
 
         Map<Path, Stopwatch> items = this.stopwatches;
         Map<Integer, List<Stopwatch>> levelItems = new HashMap<>();

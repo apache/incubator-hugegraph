@@ -186,11 +186,9 @@ public class HugeConfig extends PropertiesConfiguration {
                 case "yml":
                 case "yaml":
                     Parameters params = new Parameters();
-                    FileBasedConfigurationBuilder<FileBasedConfiguration>
-                    builder = new FileBasedConfigurationBuilder(
-                                  YAMLConfiguration.class)
-                                  .configure(params.fileBased()
-                                  .setFile(configFile));
+                    FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
+                            new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+                                    .configure(params.fileBased().setFile(configFile));
                     config = builder.getConfiguration();
                     break;
                 case "xml":
