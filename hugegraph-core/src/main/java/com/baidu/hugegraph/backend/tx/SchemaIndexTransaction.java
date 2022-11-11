@@ -86,7 +86,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
             return super.query(query);
         }
         IndexLabel il = IndexLabel.label(query.resultType());
-        String name = (String) query.condition(HugeKeys.NAME);
+        String name = query.condition(HugeKeys.NAME);
         E.checkState(name != null, "The name in condition can't be null " +
                      "when querying schema by name");
 

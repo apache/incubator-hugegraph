@@ -43,7 +43,7 @@ public class TableBackendEntry implements BackendEntry {
         private HugeType type;
         private Id id;
         private Id subId;
-        private Map<HugeKeys, Object> columns;
+        private final Map<HugeKeys, Object> columns;
         private long ttl;
 
         public Row(HugeType type) {

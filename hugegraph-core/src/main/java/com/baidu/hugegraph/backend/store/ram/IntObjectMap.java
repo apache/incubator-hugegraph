@@ -28,18 +28,32 @@ import com.baidu.hugegraph.exception.NotSupportException;
 
 public final class IntObjectMap<V> implements RamMap {
 
-    private final Object[] array;
+    private static final float DEFAULT_INITIAL_FACTOR = 0.25f;
+
+    private final int maxSize;
+    private int currentSize;
+    private Object[] array;
 
     public IntObjectMap(int size) {
-        this.array = new Object[size];
+        this.maxSize = size;
+        this.currentSize = (int) (size * DEFAULT_INITIAL_FACTOR);
+        this.array = new Object[this.currentSize];
     }
 
     @SuppressWarnings("unchecked")
     public V get(int key) {
+        if (key >= this.currentSize) {
+            return null;
+        }
+
         return (V) this.array[key];
     }
 
     public void set(int key, V value) {
+        if (key >= this.currentSize) {
+            this.expandCapacity();
+        }
+
         this.array[key] = value;
     }
 
@@ -50,7 +64,7 @@ public final class IntObjectMap<V> implements RamMap {
 
     @Override
     public long size() {
-        return this.array.length;
+        return this.maxSize;
     }
 
     @Override
@@ -61,5 +75,16 @@ public final class IntObjectMap<V> implements RamMap {
     @Override
     public void readFrom(DataInputStream buffer) throws IOException {
         throw new NotSupportException("IntObjectMap.readFrom");
+    }
+
+    private synchronized void expandCapacity() {
+        if (this.currentSize == this.maxSize) {
+            return;
+        }
+        this.currentSize = Math.min(this.currentSize * 2, this.maxSize);
+        Object[] newArray = new Object[this.currentSize];
+        System.arraycopy(this.array, 0, newArray, 0, this.array.length);
+        this.clear();
+        this.array = newArray;
     }
 }

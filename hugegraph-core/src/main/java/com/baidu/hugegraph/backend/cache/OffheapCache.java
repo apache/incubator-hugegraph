@@ -363,7 +363,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         DATE(DataType.DATE),
         UUID(DataType.UUID);
 
-        private DataType dataType;
+        private final DataType dataType;
 
         ValueType() {
             this(DataType.UNKNOWN);
@@ -390,7 +390,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         public static ValueType valueOf(Object object) {
             E.checkNotNull(object, "object");
-            Class<? extends Object> clazz = object.getClass();
+            Class<?> clazz = object.getClass();
             if (Collection.class.isAssignableFrom(clazz)) {
                 return ValueType.LIST;
             } else if (HugeVertex.class.isAssignableFrom(clazz)) {

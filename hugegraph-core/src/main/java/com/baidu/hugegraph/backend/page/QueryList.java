@@ -52,7 +52,7 @@ public final class QueryList<R> {
         return this.parent;
     }
 
-    protected QueryResults.Fetcher<R> fetcher() {
+    private QueryResults.Fetcher<R> fetcher() {
         return this.fetcher;
     }
 
@@ -97,7 +97,7 @@ public final class QueryList<R> {
         }
 
         // Fetch all results once
-        return QueryResults.flatMap(this.queries.iterator(), q -> q.iterator());
+        return QueryResults.flatMap(this.queries.iterator(), FlattenQuery::iterator);
     }
 
     protected PageResults<R> fetchNext(PageInfo pageInfo, long pageSize) {

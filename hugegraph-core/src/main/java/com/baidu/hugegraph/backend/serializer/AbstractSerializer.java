@@ -31,12 +31,14 @@ import com.baidu.hugegraph.type.HugeType;
 public abstract class AbstractSerializer
                 implements GraphSerializer, SchemaSerializer {
 
+    protected HugeConfig config;
+
     public AbstractSerializer() {
         // TODO: default constructor
     }
 
     public AbstractSerializer(HugeConfig config) {
-        // TODO: use the config
+       this.config = config;
     }
 
     protected BackendEntry convertEntry(BackendEntry entry) {

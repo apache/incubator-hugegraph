@@ -117,38 +117,7 @@ public class RamCache extends AbstractCache<Id, Object> {
         final Lock lock = this.keyLock.lock(id);
         try {
             // The cache is full
-            while (this.map.size() >= capacity) {
-                /*
-                 * Remove the oldest from the queue
-                 * NOTE: it maybe return null if someone else (that's other
-                 * threads) are doing dequeue() and the queue may be empty.
-                 */
-                LinkNode<Id, Object> removed = this.queue.dequeue();
-                if (removed == null) {
-                    /*
-                     * If at this time someone add some new items, these will
-                     * be cleared in the map, but still stay in the queue, so
-                     * the queue will have some more nodes than the map.
-                     */
-                    this.map.clear();
-                    break;
-                }
-                /*
-                 * Remove the oldest from the map
-                 * NOTE: it maybe return null if other threads are doing remove
-                 */
-                this.map.remove(removed.key());
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
-                              removed.key(), id, capacity);
-                }
-                /*
-                 * Release the object
-                 * NOTE: we can't reuse the removed node due to someone else
-                 * may access the node (will do remove() -> enqueue())
-                 */
-                removed = null;
-            }
+            this.removeOldestIfCacheFull(id, capacity);
 
             // Remove the old node if exists
             LinkNode<Id, Object> node = this.map.get(id);
@@ -170,7 +139,6 @@ public class RamCache extends AbstractCache<Id, Object> {
         if (id == null) {
             return;
         }
-        assert id != null;
 
         final Lock lock = this.keyLock.lock(id);
         try {
@@ -227,6 +195,41 @@ public class RamCache extends AbstractCache<Id, Object> {
     @Override
     public String toString() {
         return this.map.toString();
+    }
+
+    private void removeOldestIfCacheFull(Id id, long capacity) {
+        while (this.map.size() >= capacity) {
+            /*
+             * Remove the oldest from the queue
+             * NOTE: it maybe return null if someone else (that's other
+             * threads) are doing dequeue() and the queue may be empty.
+             */
+            LinkNode<Id, Object> removed = this.queue.dequeue();
+            if (removed == null) {
+                /*
+                 * If at this time someone add some new items, these will
+                 * be cleared in the map, but still stay in the queue, so
+                 * the queue will have some more nodes than the map.
+                 */
+                this.map.clear();
+                break;
+            }
+            /*
+             * Remove the oldest from the map
+             * NOTE: it maybe return null if other threads are doing remove
+             */
+            this.map.remove(removed.key());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("RamCache replaced '{}' with '{}' (capacity={})",
+                          removed.key(), id, capacity);
+            }
+            /*
+             * Release the object
+             * NOTE: we can't reuse the removed node due to someone else
+             * may access the node (will do remove() -> enqueue())
+             */
+            removed = null;
+        }
     }
 
     private static final class LinkNode<K, V> extends CacheNode<K, V> {
