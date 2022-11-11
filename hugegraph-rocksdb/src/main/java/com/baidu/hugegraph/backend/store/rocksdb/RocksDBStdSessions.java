@@ -744,11 +744,11 @@ public class RocksDBStdSessions extends RocksDBSessions {
         return tableConfig;
     }
 
-    public static final byte[] encode(String string) {
+    public static byte[] encode(String string) {
         return StringEncoding.encode(string);
     }
 
-    public static final String decode(byte[] bytes) {
+    public static String decode(byte[] bytes) {
         return StringEncoding.decode(bytes);
     }
 
@@ -758,7 +758,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final class StdSession extends RocksDBSessions.Session {
 
         private WriteBatch batch;
-        private WriteOptions writeOptions;
+        private final WriteOptions writeOptions;
 
         public StdSession(HugeConfig conf) {
             this.batch = new WriteBatch();
@@ -955,8 +955,8 @@ public class RocksDBStdSessions extends RocksDBSessions {
         @Override
         public void deletePrefix(String table, byte[] key) {
             byte[] keyFrom = key;
-            byte[] keyTo = Arrays.copyOf(key, key.length);
-            keyTo = BinarySerializer.increaseOne(keyTo);
+            byte[] keyTo = Arrays.copyOf(keyFrom, keyFrom.length);
+            BinarySerializer.increaseOne(keyTo);
             try (CFHandle cf = cf(table)) {
                 this.batch.deleteRange(cf.get(), keyFrom, keyTo);
             } catch (RocksDBException e) {

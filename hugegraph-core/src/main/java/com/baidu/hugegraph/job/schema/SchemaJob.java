@@ -106,8 +106,8 @@ public abstract class SchemaJob extends SysJob<Object> {
     /**
      * Use reflection to call SchemaTransaction.updateSchema(),
      * which is protected
-     * @param tx        The update operation actual executer
-     * @param schema    the schema to be update
+     * @param tx        The update operation actual execute
+     * @param schema    the schema to be updated
      */
     protected static void updateSchema(SchemaTransaction tx,
                                        SchemaElement schema) {
