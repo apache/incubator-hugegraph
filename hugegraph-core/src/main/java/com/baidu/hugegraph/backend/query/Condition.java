@@ -168,8 +168,8 @@ public abstract class Condition {
          * @param second is value in query condition
          * @return true if equal, otherwise false
          */
-        protected static boolean equals(final Object first,
-                                        final Object second) {
+        private static boolean equals(final Object first,
+                                      final Object second) {
             assert second != null;
             if (first instanceof Id) {
                 if (second instanceof String) {
@@ -196,7 +196,7 @@ public abstract class Condition {
          *         second; and a value greater than 0 if first is
          *         numerically greater than second.
          */
-        protected static int compare(final Object first, final Object second) {
+        private static int compare(final Object first, final Object second) {
             assert second != null;
             if (second instanceof Number) {
                 return NumericUtil.compareNumber(first == null ? 0 : first,
@@ -211,7 +211,7 @@ public abstract class Condition {
                       second, second.getClass().getSimpleName()));
         }
 
-        protected static int compareDate(Object first, Date second) {
+        private static int compareDate(Object first, Date second) {
             if (first == null) {
                 first = DateUtil.DATE_ZERO;
             }
@@ -646,7 +646,7 @@ public abstract class Condition {
 
     public static class SyspropRelation extends Relation {
 
-        private HugeKeys key;
+        private final HugeKeys key;
 
         public SyspropRelation(HugeKeys key, Object value) {
             this(key, RelationType.EQ, value);
@@ -701,7 +701,7 @@ public abstract class Condition {
     public static class UserpropRelation extends Relation {
 
         // Id of property key
-        private Id key;
+        private final Id key;
 
         public UserpropRelation(Id key, Object value) {
             this(key, RelationType.EQ, value);

@@ -286,13 +286,7 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void unsetCondition(Object key) {
-        for (Iterator<Condition> iter = this.conditions.iterator();
-             iter.hasNext();) {
-            Condition c = iter.next();
-            if (c.isRelation() && ((Condition.Relation) c).key().equals(key)) {
-                iter.remove();
-            }
-        }
+        this.conditions.removeIf(c -> c.isRelation() && ((Relation) c).key().equals(key));
     }
 
     public boolean containsCondition(HugeKeys key) {

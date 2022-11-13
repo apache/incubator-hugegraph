@@ -386,23 +386,8 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             if (key >= this.size) {
                 return;
             }
-            switch (type) {
-                case PROPERTY_KEY:
-                    this.pks.set(key, value);
-                    break;
-                case VERTEX_LABEL:
-                    this.vls.set(key, value);
-                    break;
-                case EDGE_LABEL:
-                    this.els.set(key, value);
-                    break;
-                case INDEX_LABEL:
-                    this.ils.set(key, value);
-                    break;
-                default:
-                    // pass
-                    break;
-            }
+
+            this.setValue(type, key, value);
         }
 
         public void remove(HugeType type, Id id) {
@@ -412,27 +397,11 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
                 return;
             }
             int key = (int) longId;
-            V value = null;
             if (key >= this.size) {
                 return;
             }
-            switch (type) {
-                case PROPERTY_KEY:
-                    this.pks.set(key, value);
-                    break;
-                case VERTEX_LABEL:
-                    this.vls.set(key, value);
-                    break;
-                case EDGE_LABEL:
-                    this.els.set(key, value);
-                    break;
-                case INDEX_LABEL:
-                    this.ils.set(key, value);
-                    break;
-                default:
-                    // pass
-                    break;
-            }
+
+            this.setValue(type, key, null);
         }
 
         public void clear() {
@@ -446,6 +415,26 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         public CachedTypes cachedTypes() {
             return this.cachedTypes;
+        }
+
+        private void setValue(HugeType type, int key, V value) {
+            switch (type) {
+                case PROPERTY_KEY:
+                    this.pks.set(key, value);
+                    break;
+                case VERTEX_LABEL:
+                    this.vls.set(key, value);
+                    break;
+                case EDGE_LABEL:
+                    this.els.set(key, value);
+                    break;
+                case INDEX_LABEL:
+                    this.ils.set(key, value);
+                    break;
+                default:
+                    // pass
+                    break;
+            }
         }
     }
 

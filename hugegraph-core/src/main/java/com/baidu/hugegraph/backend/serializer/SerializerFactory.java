@@ -27,7 +27,7 @@ import com.baidu.hugegraph.config.HugeConfig;
 
 public class SerializerFactory {
 
-    private static Map<String, Class<? extends AbstractSerializer>> serializers;
+    private static final Map<String, Class<? extends AbstractSerializer>> serializers;
 
     static {
         serializers = new ConcurrentHashMap<>();
