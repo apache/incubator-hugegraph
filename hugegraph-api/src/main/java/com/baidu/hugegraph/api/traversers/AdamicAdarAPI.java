@@ -82,7 +82,7 @@ public class AdamicAdarAPI extends API {
         HugeGraph g = graph(manager, graph);
         try (PredictionTraverser traverser = new PredictionTraverser(g)) {
             double score = traverser.adamicAdar(sourceId, targetId, dir,
-                edgeLabel, maxDegree, limit);
+                                                edgeLabel, maxDegree, limit);
             return JsonUtil.toJson(ImmutableMap.of("adamic_adar", score));
         }
     }
