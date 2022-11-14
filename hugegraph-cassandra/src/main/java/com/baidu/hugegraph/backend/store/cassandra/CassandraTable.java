@@ -160,7 +160,7 @@ public abstract class CassandraTable
             try {
                 rs.close();
             } catch (Exception e2) {
-                LOG.error("Got error {} when closing iterator for query {}", e, query);
+                LOG.error("Got error {} when closing iterator for query {}", e2, query);
             }
             throw new BackendException("Failed to query [%s]", e, query);
         }
