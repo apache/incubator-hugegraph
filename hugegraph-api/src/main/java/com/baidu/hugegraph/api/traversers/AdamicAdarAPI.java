@@ -80,9 +80,10 @@ public class AdamicAdarAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        PredictionTraverser traverser = new PredictionTraverser(g);
-        double score = traverser.adamicAdar(sourceId, targetId, dir,
-                                            edgeLabel, maxDegree, limit);
-        return JsonUtil.toJson(ImmutableMap.of("adamic_adar", score));
+        try (PredictionTraverser traverser = new PredictionTraverser(g)) {
+            double score = traverser.adamicAdar(sourceId, targetId, dir,
+                edgeLabel, maxDegree, limit);
+            return JsonUtil.toJson(ImmutableMap.of("adamic_adar", score));
+        }
     }
 }

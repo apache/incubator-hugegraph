@@ -80,10 +80,11 @@ public class ResourceAllocationAPI extends API {
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
         HugeGraph g = graph(manager, graph);
-        PredictionTraverser traverser = new PredictionTraverser(g);
-        double score = traverser.resourceAllocation(sourceId, targetId, dir,
-                                                    edgeLabel, maxDegree,
-                                                    limit);
-        return JsonUtil.toJson(ImmutableMap.of("resource_allocation", score));
+        try(PredictionTraverser traverser = new PredictionTraverser(g)) {
+            double score = traverser.resourceAllocation(sourceId, targetId, dir,
+                edgeLabel, maxDegree,
+                limit);
+            return JsonUtil.toJson(ImmutableMap.of("resource_allocation", score));
+        }
     }
 }
