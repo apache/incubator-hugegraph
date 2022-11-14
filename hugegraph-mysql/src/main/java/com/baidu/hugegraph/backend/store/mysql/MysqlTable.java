@@ -477,11 +477,11 @@ public abstract class MysqlTable
                 rs.extend(parser.apply(query, results));
             }
         } catch (SQLException e) {
-            // closing iterator
+            // Closing the iterator
             try {
                 rs.close();
-            } catch (Exception closeException) {
-                throw new BackendException("Error closing Iterator during query [%s]", e, query);
+            } catch (Exception e2) {
+                LOG.error("Got error {} when closing iterator for query {}", e, query);
             }
             throw new BackendException("Failed to query [%s]", e, query);
         }
