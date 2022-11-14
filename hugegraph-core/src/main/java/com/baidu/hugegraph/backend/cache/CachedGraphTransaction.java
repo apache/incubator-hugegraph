@@ -345,7 +345,6 @@ public final class CachedGraphTransaction extends GraphTransaction {
          * try fetch a few of the head results and determine whether to cache.
          */
         final int tryMax = 1 + MAX_CACHE_EDGES_PER_QUERY;
-        assert tryMax > MAX_CACHE_EDGES_PER_QUERY;
         edges = new ArrayList<>(tryMax);
         for (int i = 0; rs.hasNext() && i < tryMax; i++) {
             edges.add(rs.next());
