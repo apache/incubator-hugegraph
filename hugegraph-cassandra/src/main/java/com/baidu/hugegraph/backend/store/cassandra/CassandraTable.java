@@ -156,6 +156,12 @@ public abstract class CassandraTable
         } catch (DriverException e) {
             LOG.debug("Failed to query [{}], detail statement: {}",
                       query, selects, e);
+            // Closing the iterator
+            try {
+                rs.close();
+            } catch (Exception e2) {
+                LOG.error("Got error {} when closing iterator for query {}", e2, query);
+            }
             throw new BackendException("Failed to query [%s]", e, query);
         }
 
