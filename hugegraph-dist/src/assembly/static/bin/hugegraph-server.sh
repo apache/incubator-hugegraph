@@ -64,7 +64,7 @@ ensure_path_writable "$PLUGINS"
 # The maximum and minimum heap memory that service can use
 MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
-MIN_JAVA_VERSION=1.8
+MIN_JAVA_VERSION=8
 
 # Add the slf4j-log4j12 binding
 CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
@@ -94,7 +94,7 @@ else
     JAVA="$JAVA_HOME/bin/java -server"
 fi
 
-JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' | awk -F'_' '{print $1}')
+JAVA_VERSION=$($JAVA -version 2>&1 | head -1 | cut -d'"' -f2 | sed 's/^1\.//' | cut -d'.' -f1)
 if [[ $? -ne 0 || $JAVA_VERSION -lt $MIN_JAVA_VERSION ]]; then
     echo "Make sure the JDK is installed and the version >= $MIN_JAVA_VERSION, current is $JAVA_VERSION" \
          >> ${OUTPUT}
@@ -105,8 +105,7 @@ fi
 if [ "$JAVA_OPTIONS" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
-        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory" \
-             >> ${OUTPUT}
+        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory" >> ${OUTPUT}
         exit 1
     fi
     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
@@ -116,7 +115,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
-if [[ $JAVA_VERSION > "1.9" ]]; then
+if [[ $JAVA_VERSION -gt 9 ]]; then
     JAVA_OPTIONS="${JAVA_OPTIONS} --add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED \
                                   --add-modules=jdk.unsupported \
                                   --add-exports=java.base/sun.nio.ch=ALL-UNNAMED "
