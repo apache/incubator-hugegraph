@@ -116,7 +116,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
-if [[ $JAVA_VERSION -gt "1.9" ]]; then
+if [[ $JAVA_VERSION > "1.9" ]]; then
     JAVA_OPTIONS="${JAVA_OPTIONS} --add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED \
                                   --add-modules=jdk.unsupported \
                                   --add-exports=java.base/sun.nio.ch=ALL-UNNAMED "
