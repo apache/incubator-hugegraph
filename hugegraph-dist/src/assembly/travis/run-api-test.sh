@@ -32,17 +32,17 @@ JACOCO_PORT=36320
 mvn package -DskipTests
 
 # config rest-server
-sed -i 's/#auth.authenticator=/auth.authenticator=com.baidu.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
+sed -i 's/#auth.authenticator=/auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
 sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
 
 # config hugegraph.properties
-sed -i 's/gremlin.graph=.*/gremlin.graph=com.baidu.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
+sed -i 's/gremlin.graph=.*/gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
 
 # config gremlin-server
 echo "
 authentication: {
-  authenticator: com.baidu.hugegraph.auth.StandardAuthenticator,
-  authenticationHandler: com.baidu.hugegraph.auth.WsAndHttpBasicAuthHandler,
+  authenticator: org.apache.hugegraph.auth.StandardAuthenticator,
+  authenticationHandler: org.apache.hugegraph.auth.WsAndHttpBasicAuthHandler,
   config: {tokens: conf/rest-server.properties}
 }" >> $GREMLIN_SERVER_CONF
 
