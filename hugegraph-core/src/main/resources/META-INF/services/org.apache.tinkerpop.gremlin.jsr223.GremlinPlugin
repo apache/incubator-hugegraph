@@ -1,1 +1,1 @@
-com.baidu.hugegraph.plugin.HugeGraphGremlinPlugin
+org.apache.hugegraph.plugin.HugeGraphGremlinPlugin

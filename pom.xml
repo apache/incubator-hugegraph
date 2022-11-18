@@ -2,9 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.baidu.hugegraph</groupId>
+    <groupId>org.apache.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.13.0</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <prerequisites>
         <maven>3.3.9</maven>
@@ -88,6 +88,7 @@
     </developers>
 
     <properties>
+        <revision>1.0.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <release.name>hugegraph</release.name>
@@ -108,8 +109,8 @@
         <shell-executable>bash</shell-executable>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
-        <hugegraph-rpc.version>2.0.1</hugegraph-rpc.version>
-        <hugegraph-common.version>2.1.2</hugegraph-common.version>
+        <hugegraph-rpc.version>1.0.0</hugegraph-rpc.version>
+        <hugegraph-common.version>1.0.0</hugegraph-common.version>
         <grpc.version>1.47.0</grpc.version>
         <protobuf.version>3.21.7</protobuf.version>
     </properties>
@@ -132,12 +133,12 @@
         <dependencies>
             <!-- hugegraph-commons -->
             <dependency>
-                <groupId>com.baidu.hugegraph</groupId>
+                <groupId>org.apache.hugegraph</groupId>
                 <artifactId>hugegraph-rpc</artifactId>
                 <version>${hugegraph-rpc.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.baidu.hugegraph</groupId>
+                <groupId>org.apache.hugegraph</groupId>
                 <artifactId>hugegraph-common</artifactId>
                 <version>${hugegraph-common.version}</version>
             </dependency>
@@ -423,6 +424,7 @@
                             <exclude>**/META-INF/MANIFEST.MF</exclude>
                             <!-- Maven -->
                             <exclude>.repository/**</exclude>
+                            <exclude>**/.flattened-pom.xml</exclude>
                         </excludes>
                         <consoleOutput>true</consoleOutput>
                     </configuration>
@@ -670,4 +672,19 @@
             </build>
         </profile>
     </profiles>
+
+    <repositories>
+        <repository>
+            <id>staged-releases</id>
+            <name>staged-releases</name>
+            <url>https://repository.apache.org/content/groups/staging/</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>

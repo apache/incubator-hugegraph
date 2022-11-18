@@ -64,6 +64,7 @@ output/
 *.tar.gz
 tree.txt
 *.versionsBackup
+.flattened-pom.xml
 
 # eclipse ignore
 .settings/

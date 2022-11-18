@@ -46,4 +46,4 @@ cd $TOP
 echo "Dumping HugeGraph Config($conf)..."
 
 exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
-com.baidu.hugegraph.cmd.ConfDumper $conf
+org.apache.hugegraph.cmd.ConfDumper $conf
