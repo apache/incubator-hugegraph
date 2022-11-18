@@ -5223,7 +5223,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 // The last page is empty
                 Assert.assertEquals(6, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
             count += size.intValue();
@@ -5249,7 +5249,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 // The last page is empty
                 Assert.assertEquals(4, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
             count += size.intValue();
@@ -5275,7 +5275,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 // The last page is empty
                 Assert.assertEquals(2, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
             count += size.intValue();
