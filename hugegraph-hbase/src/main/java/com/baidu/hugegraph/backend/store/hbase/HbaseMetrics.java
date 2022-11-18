@@ -127,7 +127,8 @@ public class HbaseMetrics implements BackendMetrics {
                                                          .values();
         long fileSizeBytes = 0L;
         for (RegionMetrics region : regions) {
-            fileSizeBytes += region.getStoreFileSize().get(Size.Unit.BYTE);
+            Double tempValue = region.getStoreFileSize().get(Size.Unit.BYTE);
+            fileSizeBytes += tempValue.longValue();
         }
         metrics.put(DISK_USAGE, UnitUtil.bytesToGB(fileSizeBytes));
         metrics.put(DISK_USAGE + READABLE,

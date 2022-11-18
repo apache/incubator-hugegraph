@@ -110,9 +110,11 @@ public final class ConfigUtil {
 
     public static String writeToFile(String dir, String graphName,
                                      HugeConfig config) {
-        E.checkArgument(FileUtils.getFile(dir).exists(),
+        File file = FileUtils.getFile(dir);
+        E.checkArgument(file.exists(),
                         "The directory '%s' must exist", dir);
-        String fileName = Paths.get(dir, graphName + CONF_SUFFIX).toString();
+        String tmpGraphName = graphName + CONF_SUFFIX;
+        String fileName = Paths.get(dir, tmpGraphName).toString();
         try {
             config.save(new File(fileName));
             LOG.info("Write HugeConfig to file: '{}'", fileName);
