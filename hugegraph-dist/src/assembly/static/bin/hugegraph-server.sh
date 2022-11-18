@@ -32,7 +32,7 @@ if [[ $# -lt 3 ]]; then
 fi
 
 BIN=$(abs_path)
-TOP="$(cd $BIN/../ && pwd)"
+TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LIB="$TOP/lib"
 EXT="$TOP/ext"
@@ -41,7 +41,7 @@ LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-server.log
 
 export HUGEGRAPH_HOME="$TOP"
-. ${BIN}/util.sh
+. "${BIN}"/util.sh
 
 GREMLIN_SERVER_CONF="$1"
 REST_SERVER_CONF="$2"
@@ -58,13 +58,13 @@ elif [[ $# -eq 5 ]]; then
     GC_OPTION="$5"
 fi
 
-ensure_path_writable $LOGS
-ensure_path_writable $PLUGINS
+ensure_path_writable "$LOGS"
+ensure_path_writable "$PLUGINS"
 
-# The maximum and minium heap memory that service can use
+# The maximum and minimum heap memory that service can use
 MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
-EXPECT_JDK_VERSION=1.8
+MIN_JAVA_VERSION=1.8
 
 # Add the slf4j-log4j12 binding
 CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
@@ -85,19 +85,18 @@ CP="$CP":$(find -L $PLUGINS -name '*.jar' | sort | tr '\n' ':')
 export CLASSPATH="${CLASSPATH:-}:$CP"
 
 # Change to $BIN's parent
-cd ${TOP}
+cd "${TOP}" || exit 1;
 
-# Find Java
+# Find java & enable server option
 if [ "$JAVA_HOME" = "" ]; then
     JAVA="java -server"
 else
     JAVA="$JAVA_HOME/bin/java -server"
 fi
 
-JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' \
-              | awk -F'_' '{print $1}')
-if [[ $? -ne 0 || $JAVA_VERSION < $EXPECT_JDK_VERSION ]]; then
-    echo "Please make sure that the JDK is installed and the version >= $EXPECT_JDK_VERSION" \
+JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' | awk -F'_' '{print $1}')
+if [[ $? -ne 0 || $JAVA_VERSION -lt $MIN_JAVA_VERSION ]]; then
+    echo "Make sure the JDK is installed and the version >= $MIN_JAVA_VERSION, current is $JAVA_VERSION" \
          >> ${OUTPUT}
     exit 1
 fi
@@ -106,7 +105,7 @@ fi
 if [ "$JAVA_OPTIONS" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
-        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}m free memory" \
+        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory" \
              >> ${OUTPUT}
         exit 1
     fi
@@ -117,7 +116,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
-if [[ $JAVA_VERSION > "1.9" ]]; then
+if [[ $JAVA_VERSION -gt 1.9 ]]; then
     JAVA_OPTIONS="${JAVA_OPTIONS} --add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED \
                                   --add-modules=jdk.unsupported \
                                   --add-exports=java.base/sun.nio.ch=ALL-UNNAMED "
