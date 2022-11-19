@@ -112,15 +112,15 @@ public final class ConfigUtil {
                                      HugeConfig config) {
         File file = FileUtils.getFile(dir);
         E.checkArgument(file.exists(),
-                        "The directory '%s' must exist", dir);
-        String tmpGraphName = graphName + CONF_SUFFIX;
-        String fileName = Paths.get(dir, tmpGraphName).toString();
+            "The directory '%s' must exist", dir);
+        String fileName = file.getPath() + File.separator + graphName + CONF_SUFFIX;
         try {
-            config.save(new File(fileName));
+            File newFile = FileUtils.getFile(fileName);
+            config.save(newFile);
             LOG.info("Write HugeConfig to file: '{}'", fileName);
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to write HugeConfig to file '%s'",
-                                    e, fileName);
+                e, fileName);
         }
 
         return fileName;
