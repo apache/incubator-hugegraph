@@ -315,8 +315,11 @@ public class HbaseSessions extends BackendSessionPool {
                 //total += load.getMemStoreSizeMB() * Bytes.MB;
                 TableName tableName = TableName.valueOf(this.namespace, table);
                 for (RegionMetrics m : admin.getRegionMetrics(rs, tableName)) {
-                    total += m.getStoreFileSize().get(Size.Unit.BYTE);
-                    total += m.getMemStoreSize().get(Size.Unit.BYTE);
+                    Double storeFileSize = m.getStoreFileSize().get(Size.Unit.BYTE);
+                    total += storeFileSize.longValue();
+
+                    Double memStoreFileSize = m.getMemStoreSize().get(Size.Unit.BYTE);
+                    total += memStoreFileSize.longValue();
                 }
             }
         }
