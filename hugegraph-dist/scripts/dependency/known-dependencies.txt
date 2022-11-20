@@ -159,8 +159,7 @@ jjwt-api-0.11.5.jar
 jjwt-impl-0.11.5.jar
 jjwt-jackson-0.11.5.jar
 jline-2.14.6.jar
-jna-4.2.2.jar
-jna-5.5.0.jar
+jna-5.12.1.jar
 jnr-ffi-2.1.7.jar
 jnr-x86asm-1.0.2.jar
 joda-time-2.10.8.jar

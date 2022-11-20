@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -110,11 +109,13 @@ public final class ConfigUtil {
 
     public static String writeToFile(String dir, String graphName,
                                      HugeConfig config) {
-        E.checkArgument(FileUtils.getFile(dir).exists(),
-                        "The directory '%s' must exist", dir);
-        String fileName = Paths.get(dir, graphName + CONF_SUFFIX).toString();
+        File path = FileUtils.getFile(dir);
+        E.checkArgument(path.exists(),
+                "The directory '%s' must exist", dir);
+        String fileName = path.getPath() + File.separator + graphName + CONF_SUFFIX;
         try {
-            config.save(new File(fileName));
+            File newFile = FileUtils.getFile(fileName);
+            config.save(newFile);
             LOG.info("Write HugeConfig to file: '{}'", fileName);
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to write HugeConfig to file '%s'",
