@@ -41,13 +41,15 @@
 INSTALL_DIR=
 SERVER_PORT=
 
+${INSTALL_DIR:?"Please setting variables 'INSTALL_DIR'"}
+${SERVER_PORT:?"Please setting variables 'SERVER_PORT'"}
+
 BIN_DIR=$INSTALL_DIR/bin
 SERVER_URL="http://localhost:${SERVER_PORT}"
 DETECT_URL="$SERVER_URL/versions"
 
 # Start the HugeGraphServer
 start() {
-    check_variables
     echo "Starting HugeGraphServer..."
     # Verify if the service is running
     get_status
@@ -75,7 +77,6 @@ start() {
 
 # Stop the MATH
 stop() {
-    check_variables
     echo "Stopping HugeGraphServer..."
     # Verify if the service is running
     get_status
@@ -122,18 +123,6 @@ get_status() {
         return 0
     else
         return 1
-    fi
-}
-
-check_variables() {
-    if [ -z "$INSTALL_DIR" ]; then
-        echo "Please setting variables 'INSTALL_DIR'"
-        exit 1
-    fi
-
-    if [ -z "$SERVER_PORT" ]; then
-        echo "Please setting variables 'SERVER_PORT'"
-        exit 1
     fi
 }
 
