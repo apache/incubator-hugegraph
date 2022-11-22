@@ -36,6 +36,7 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -413,7 +414,7 @@ public class CassandraTables {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
-                    return Arrays.asList((Object[]) idParts);
+                    return Arrays.asList(idParts);
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
@@ -453,7 +454,7 @@ public class CassandraTables {
                 return;
             }
 
-            // The only element is label
+            // The only element is labeled
             this.deleteEdgesByLabel(session, entry.id());
         }
 
@@ -482,8 +483,7 @@ public class CassandraTables {
 
             // Delete edges
             long count = 0L;
-            for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
-                Row row = it.next();
+            for (Row row : rs) {
                 Object ownerVertex = row.getObject(OWNER_VERTEX);
                 Object sortValues = row.getObject(SORT_VALUES);
                 Object otherVertex = row.getObject(OTHER_VERTEX);
@@ -643,8 +643,8 @@ public class CassandraTables {
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
             long count = 0L;
-            for (Iterator<Row> it = rs.iterator(); it.hasNext();) {
-                fieldValues = it.next().get(FIELD_VALUES, String.class);
+            for (Row r : rs) {
+                fieldValues = r.get(FIELD_VALUES, String.class);
                 Delete delete = QueryBuilder.delete().from(this.table());
                 delete.where(formatEQ(HugeKeys.INDEX_LABEL_ID, indexLabel));
                 delete.where(formatEQ(HugeKeys.FIELD_VALUES, fieldValues));
@@ -660,8 +660,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            throw new BackendException(
-                      "SecondaryIndex insertion is not supported.");
+            throw new BackendException("SecondaryIndex insertion is not supported.");
         }
 
         @Override
@@ -691,8 +690,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            throw new BackendException(
-                      "SearchIndex insertion is not supported.");
+            throw new BackendException("SearchIndex insertion is not supported.");
         }
     }
 
@@ -710,8 +708,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            throw new BackendException(
-                      "UniqueIndex insertion is not supported.");
+            throw new BackendException("UniqueIndex insertion is not supported.");
         }
     }
 
@@ -764,8 +761,8 @@ public class CassandraTables {
 
             Long indexLabel = entry.column(HugeKeys.INDEX_LABEL_ID);
             if (indexLabel == null) {
-                throw new BackendException("Range index deletion " +
-                          "needs INDEX_LABEL_ID, but not provided.");
+                throw new BackendException("Range index deletion needs INDEX_LABEL_ID, " +
+                                           "but not provided.");
             }
 
             Delete delete = QueryBuilder.delete().from(this.table());
@@ -776,8 +773,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            throw new BackendException(
-                      "RangeIndex insertion is not supported.");
+            throw new BackendException("RangeIndex insertion is not supported.");
         }
 
         @Override
@@ -869,8 +865,7 @@ public class CassandraTables {
         @Override
         public void insert(CassandraSessionPool.Session session,
                            CassandraBackendEntry.Row entry) {
-            throw new BackendException(
-                      "ShardIndex insertion is not supported.");
+            throw new BackendException("ShardIndex insertion is not supported.");
         }
     }
 

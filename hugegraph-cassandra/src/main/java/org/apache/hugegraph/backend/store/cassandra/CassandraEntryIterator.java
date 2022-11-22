@@ -28,6 +28,7 @@ import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.util.E;
+
 import com.datastax.driver.core.ExecutionInfo;
 import com.datastax.driver.core.PagingState;
 import com.datastax.driver.core.ResultSet;
@@ -39,7 +40,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
     private final Iterator<Row> rows;
     private final BiFunction<BackendEntry, Row, BackendEntry> merger;
 
-    private int fetchdPageSize;
+    private int fetchedPageSize;
     private long expected;
     private BackendEntry next;
 
@@ -50,7 +51,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
         this.rows = results.iterator();
         this.merger = merger;
 
-        this.fetchdPageSize = results.getAvailableWithoutFetching();
+        this.fetchedPageSize = results.getAvailableWithoutFetching();
         this.next = null;
 
         if (query.paging()) {
@@ -60,20 +61,20 @@ public class CassandraEntryIterator extends BackendEntryIterator {
             this.expected = PageState.fromString(query.page()).offset();
             this.skipPageOffset(query.page());
             // Check the number of available rows
-            E.checkState(this.fetchdPageSize <= query.limit(),
+            E.checkState(this.fetchedPageSize <= query.limit(),
                          "Unexpected fetched page size: %s",
-                         this.fetchdPageSize);
+                         this.fetchedPageSize);
             if (results.isFullyFetched()) {
                 /*
                  * All results fetched
                  * NOTE: it may be enough or not enough for the entire page
                  */
-                this.expected = this.fetchdPageSize;
+                this.expected = this.fetchedPageSize;
             } else {
                 /*
-                 * Not fully fetched, that's fetchdPageSize == query.limit(),
+                 * Not fully fetched, that's fetchedPageSize == query.limit(),
                  *
-                 * NOTE: but there may be fetchdPageSize < query.limit(), means
+                 * NOTE: but there may be fetchedPageSize < query.limit(), means
                  * not fetched the entire page (ScyllaDB may go here #1340),
                  * try to fetch next page later until got the expected count.
                  * Can simulate by: `select.setFetchSize(total - 1)`
@@ -104,10 +105,10 @@ public class CassandraEntryIterator extends BackendEntryIterator {
             this.expected--;
             Row row = this.rows.next();
             if (this.query.paging()) {
-                // Update fetchdPageSize if auto fetch the next page
+                // Update fetchedPageSize if auto fetch the next page
                 if (this.expected > 0L && this.availableLocal() == 0) {
                     if (this.rows.hasNext()) {
-                        this.fetchdPageSize = this.availableLocal();
+                        this.fetchedPageSize = this.availableLocal();
                     }
                 }
             }
@@ -167,7 +168,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
             ExecutionInfo previous = infos.get(infos.size() - 2);
             PagingState page = previous.getPagingState();
             position = page.toBytes();
-            offset = this.fetchdPageSize - extra;
+            offset = this.fetchedPageSize - extra;
         } else {
             PagingState page = this.results.getExecutionInfo().getPagingState();
             if (page == null || this.expected > 0L) {

@@ -139,7 +139,7 @@ public class CassandraSessionPool extends BackendSessionPool {
 
     /**
      * The Session class is a wrapper of driver Session
-     * Expect every thread hold a its own session(wrapper)
+     * Expect every thread hold its own session(wrapper)
      */
     public final class Session extends AbstractBackendSession {
 
