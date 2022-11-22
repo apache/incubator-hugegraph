@@ -21,6 +21,7 @@ package com.baidu.hugegraph.dist;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
 
@@ -139,6 +140,7 @@ public class HugeGraphServer {
             server.stop();
             LOG.info("HugeGraphServer stopped");
 
+            LogManager.shutdown();
             serverStopped.complete(null);
         }, "hugegraph-server-shutdown"));
         // Wait for server-shutdown and server-stopped
