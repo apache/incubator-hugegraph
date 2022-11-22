@@ -5218,15 +5218,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).bothE()
                                                  .has("~page", page).limit(1);
-            long size = IteratorUtils.count(iterator);
+            Long size = IteratorUtils.count(iterator);
             if (size == 0L) {
                 // The last page is empty
                 Assert.assertEquals(6, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
-            count += size;
+            count += size.intValue();
         }
         Assert.assertEquals(6, count);
     }
@@ -5244,15 +5244,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).outE()
                                                  .has("~page", page).limit(1);
-            long size = IteratorUtils.count(iterator);
+            Long size = IteratorUtils.count(iterator);
             if (size == 0L) {
                 // The last page is empty
                 Assert.assertEquals(4, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
-            count += size;
+            count += size.intValue();
         }
         Assert.assertEquals(4, count);
     }
@@ -5270,15 +5270,15 @@ public class EdgeCoreTest extends BaseCoreTest {
         while (page != null) {
             GraphTraversal<?, ?> iterator = graph.traversal().V(james).inE()
                                                  .has("~page", page).limit(1);
-            long size = IteratorUtils.count(iterator);
+            Long size = IteratorUtils.count(iterator);
             if (size == 0L) {
                 // The last page is empty
                 Assert.assertEquals(2, count);
             } else {
-                Assert.assertEquals(1, size);
+                Assert.assertEquals(1, size.intValue());
             }
             page = TraversalUtil.page(iterator);
-            count += size;
+            count += size.intValue();
         }
         Assert.assertEquals(2, count);
     }
@@ -7516,10 +7516,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         int count = 0;
         while (page != null) {
             GraphTraversal<?, ?> iterator = fetcher.apply(page);
-            long size = IteratorUtils.count(iterator);
+            Long size = IteratorUtils.count(iterator);
             Assert.assertLte(1L, size);
             page = TraversalUtil.page(iterator);
-            count += size;
+            count += size.intValue();
         }
         return count;
     }
