@@ -58,7 +58,8 @@ import com.google.common.collect.ImmutableMap;
  * CassandraShard is used for cassandra scanning operations.
  * Each shard represents a range of tokens for a node.
  * Reading data from a given shard does not cross multiple nodes.
- * Refer to AbstractColumnFamilyInputFormat from https://github.com/2013Commons/hive-cassandra/
+ * Refer to AbstractColumnFamilyInputFormat from:
+ * <a href="https://github.com/2013Commons/hive-cassandra/">...</a>
  */
 public class CassandraShard {
 
@@ -89,10 +90,8 @@ public class CassandraShard {
      */
     public List<Shard> getSplits(long splitPartitions, long splitSize) {
         // Canonical ranges, split into pieces, fetch the splits in parallel
-        ExecutorService executor = new ThreadPoolExecutor(
-                0, 128, 60L,
-                TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>());
+        ExecutorService executor = new ThreadPoolExecutor(0, 128, 60L, TimeUnit.SECONDS,
+                                                          new LinkedBlockingQueue<>());
 
         List<Shard> splits = new ArrayList<>();
         try {
@@ -140,10 +139,8 @@ public class CassandraShard {
     public List<Shard> getSplits(String start, String end,
                                  int splitPartitions, int splitSize) {
 
-        ExecutorService executor = new ThreadPoolExecutor(
-                0, 128, 60L,
-                TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>());
+        ExecutorService executor = new ThreadPoolExecutor(0, 128, 60L, TimeUnit.SECONDS,
+                                                          new LinkedBlockingQueue<>());
 
         List<Shard> splits = new ArrayList<>();
         try {
@@ -249,8 +246,7 @@ public class CassandraShard {
         /*
          * If we have no data on this split or the size estimate is 0,
          * return the full split i.e., do not sub-split
-         * Assume smallest granularity of partition count available from
-         * CASSANDRA-7688.
+         * Assume the smallest granularity of partition count available from CASSANDRA-7688.
          */
         if (splitCount == 0) {
             return ImmutableMap.of(tokenRange, (long) 128);

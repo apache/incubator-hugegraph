@@ -47,6 +47,7 @@ import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
@@ -55,8 +56,7 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.schemabuilder.SchemaBuilder;
 
-public abstract class CassandraStore
-                extends AbstractBackendStore<CassandraSessionPool.Session> {
+public abstract class CassandraStore extends AbstractBackendStore<CassandraSessionPool.Session> {
 
     private static final Logger LOG = Log.logger(CassandraStore.class);
 
@@ -463,7 +463,7 @@ public abstract class CassandraStore
 
         if (session.txState() != TxState.COMMITT_FAIL &&
             session.txState() != TxState.CLEAN) {
-            LOG.warn("Store {} expect state COMMITT_FAIL/COMMITTING/CLEAN " +
+            LOG.warn("Store {} expect state COMMIT_FAIL/COMMITTING/CLEAN " +
                      "than {} when rollback()", this.store, session.txState());
         }
 
@@ -485,12 +485,8 @@ public abstract class CassandraStore
     }
 
     protected boolean existsTable(String table) {
-        KeyspaceMetadata keyspace = this.cluster().getMetadata()
-                                         .getKeyspace(this.keyspace);
-        if (keyspace != null && keyspace.getTable(table) != null) {
-            return true;
-        }
-        return false;
+        KeyspaceMetadata keyspace = this.cluster().getMetadata().getKeyspace(this.keyspace);
+        return keyspace != null && keyspace.getTable(table) != null;
     }
 
     protected void initKeyspace() {
@@ -623,12 +619,10 @@ public abstract class CassandraStore
                      "Cassandra cluster has not been connected");
     }
 
-    protected static final CassandraBackendEntry castBackendEntry(
-                                                 BackendEntry entry) {
+    protected static final CassandraBackendEntry castBackendEntry(BackendEntry entry) {
         assert entry instanceof CassandraBackendEntry : entry.getClass();
         if (!(entry instanceof CassandraBackendEntry)) {
-            throw new BackendException(
-                      "Cassandra store only supports CassandraBackendEntry");
+            throw new BackendException("Cassandra store only supports CassandraBackendEntry");
         }
         return (CassandraBackendEntry) entry;
     }
@@ -771,7 +765,7 @@ public abstract class CassandraStore
         public void clearOlapTable(Id id) {
             String name = this.olapTableName(id);
             CassandraTable table = this.table(name);
-            if (table == null || !this.existsTable(table.table())) {
+            if (!this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);
             }
             table.truncate(this.session(null));
@@ -781,7 +775,7 @@ public abstract class CassandraStore
         public void removeOlapTable(Id id) {
             String name = this.olapTableName(id);
             CassandraTable table = this.table(name);
-            if (table == null || !this.existsTable(table.table())) {
+            if (!this.existsTable(table.table())) {
                 throw new HugeException("Not exist table '%s'", name);
             }
             table.dropTable(this.session(null));
@@ -793,8 +787,7 @@ public abstract class CassandraStore
 
         private final CassandraTables.Meta meta;
 
-        public CassandraSystemStore(BackendStoreProvider provider,
-                                    String keyspace, String store) {
+        public CassandraSystemStore(BackendStoreProvider provider, String keyspace, String store) {
             super(provider, keyspace, store);
 
             this.meta = new CassandraTables.Meta();

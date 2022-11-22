@@ -24,7 +24,6 @@ import java.lang.management.MemoryUsage;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,9 +33,6 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry.JmxCounterMBean;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry.JmxTimerMBean;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.cassandra.tools.nodetool.Compact;
-import org.apache.tinkerpop.gremlin.util.NumberHelper;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.BackendMetrics;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendTable;
@@ -48,6 +44,9 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.UnitUtil;
+import org.apache.tinkerpop.gremlin.util.NumberHelper;
+import org.slf4j.Logger;
+
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Host;
 import com.google.common.collect.ImmutableList;
@@ -94,7 +93,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     protected List<String> tables() {
-        return Collections.unmodifiableList(this.tables);
+        return this.tables;
     }
 
     protected Map<String, Object> getMetricsByHost(String host) {

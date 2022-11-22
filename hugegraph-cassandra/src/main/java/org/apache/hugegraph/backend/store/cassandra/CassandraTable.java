@@ -76,8 +76,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class CassandraTable
-                extends BackendTable<CassandraSessionPool.Session,
-                                     CassandraBackendEntry.Row> {
+                extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraTable.class);
     private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
@@ -252,7 +251,7 @@ public abstract class CassandraTable
                 /*
                  * Can't set limit here `select.limit(total)`
                  * due to it will cause can't get the next page-state.
-                 * Also can't set `select.limit(total + 1)` due to it will
+                 * Also, can't set `select.limit(total + 1)` due to it will
                  * cause error "Paging state mismatch" when setPagingState().
                  */
 
@@ -566,11 +565,11 @@ public abstract class CassandraTable
         for (HugeKeys key : colNames) {
             /*
              * NOTE: eliminate from map<text, text> should just pass key,
-             * if use the following statement:
+             * if we use the following statement:
              * UPDATE vertices SET PROPERTIES=PROPERTIES-{'city':'"Wuhan"'}
              * WHERE LABEL='person' AND PRIMARY_VALUES='josh';
              * it will throw a cassandra exception:
-             * Invalid map literal for properties of typefrozen<set<text>>
+             * Invalid map literal for properties of type-frozen<set<text>>
              */
             if (!columns.containsKey(key)) {
                 continue;
