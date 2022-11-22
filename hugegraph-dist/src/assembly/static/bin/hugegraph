@@ -37,8 +37,12 @@
 ### END INIT INFO
 
 # Variables
+# it requires user to set a fixed abs path manually
 INSTALL_DIR=
 SERVER_PORT=
+
+${INSTALL_DIR:?"Please set variables 'INSTALL_DIR'"}
+${SERVER_PORT:?"Please set variables 'SERVER_PORT'"}
 
 BIN_DIR=$INSTALL_DIR/bin
 SERVER_URL="http://localhost:${SERVER_PORT}"
