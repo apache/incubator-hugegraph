@@ -16,9 +16,9 @@
   -->
 <code_scheme name="hugegraph-style" version="173">
   <option name="LINE_SEPARATOR" value="&#xA;" />
-  <option name="RIGHT_MARGIN" value="80" />
+  <option name="RIGHT_MARGIN" value="100" />
   <option name="WRAP_WHEN_TYPING_REACHES_RIGHT_MARGIN" value="true" />
-  <option name="SOFT_MARGINS" value="80" />
+  <option name="SOFT_MARGINS" value="100" />
   <JavaCodeStyleSettings>
     <option name="ANNOTATION_PARAMETER_WRAP" value="1" />
     <option name="ALIGN_MULTILINE_ANNOTATION_PARAMETERS" value="true" />
