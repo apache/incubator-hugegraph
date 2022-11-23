@@ -80,7 +80,6 @@
         <sun.xml.version>3.0.2</sun.xml.version>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
-        <implementation.version>2.1.2.0</implementation.version>
     </properties>
 
     <modules>
@@ -149,7 +148,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>${implementation.version}</Implementation-Version>
+                            <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

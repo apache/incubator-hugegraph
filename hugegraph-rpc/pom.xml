@@ -132,7 +132,7 @@
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
                                  upgrade script cannot replace the version number -->
-                            <Implementation-Version>${implementation.version}</Implementation-Version>
+                            <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
