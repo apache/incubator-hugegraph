@@ -200,7 +200,6 @@ public final class RamTable {
         Id lastId = IdGenerator.ZERO;
         while (vertices.hasNext()) {
             Id vertex = (Id) vertices.next().id();
-            LOG.info("scan from hbase {} loadfromDB", vertex);
             if (vertex.compareTo(lastId) < 0) {
                 throw new HugeException("The ramtable feature is not " +
                                         "supported by %s backend",
@@ -503,6 +502,7 @@ public final class RamTable {
         protected long load(Iterator<Vertex> vertices) {
             Consumers<Id> consumers = new Consumers<>(this.executor, vertex -> {
                 Iterator<Edge> adjEdges = this.graph.adjacentEdges(vertex);
+                this.graph.tx().commit();
                 this.edges.put(vertex, IteratorUtils.list(adjEdges));
             }, null);
 
