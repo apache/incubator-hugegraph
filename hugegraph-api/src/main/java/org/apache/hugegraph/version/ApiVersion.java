@@ -122,11 +122,11 @@ public final class ApiVersion {
      * The second parameter of Version.of() is for IDE running without JAR
      * TODO: what shall we set for this version? (consider the basic compatibility)
      */
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.69");
+    public static final Version VERSION = Version.of(ApiVersion.class, "1.0.0");
 
     public static void check() {
         // Check version of hugegraph-core. Firstly do check from version 0.3
         // TODO: what shall we set for this version? (consider the basic compatibility)
-        VersionUtil.check(CoreVersion.VERSION, "0.13", "0.14", CoreVersion.NAME);
+        VersionUtil.check(CoreVersion.VERSION, "1.0.0", "1.0.1", CoreVersion.NAME);
     }
 }
