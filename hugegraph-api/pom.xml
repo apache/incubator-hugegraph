@@ -186,7 +186,7 @@
                         </manifest>
                         <manifestEntries>
                             <!-- TODO: update it -->
-                            <Implementation-Version>0.69.0.0</Implementation-Version>
+                            <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
