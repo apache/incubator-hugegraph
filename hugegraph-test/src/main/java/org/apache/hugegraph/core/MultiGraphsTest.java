@@ -27,13 +27,6 @@ import java.util.List;
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.Test;
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -48,10 +41,17 @@ import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+import org.junit.Test;
+import org.rocksdb.RocksDBException;
+
 import com.google.common.collect.ImmutableList;
 
-public class MultiGraphsTest {
+public class MultiGraphsTest extends BaseCoreTest {
 
     private static final String NAME48 =
             "g12345678901234567890123456789012345678901234567";

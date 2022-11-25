@@ -19,21 +19,10 @@
 
 package org.apache.hugegraph.core;
 
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.core.PropertyCoreTest.EdgePropertyCoreTest;
 import org.apache.hugegraph.core.PropertyCoreTest.VertexPropertyCoreTest;
-import org.apache.hugegraph.dist.RegisterUtil;
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.hugegraph.util.Log;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -54,44 +43,4 @@ import org.apache.hugegraph.util.Log;
 })
 public class CoreTestSuite {
 
-    private static final Logger LOG = Log.logger(CoreTestSuite.class);
-
-    private static HugeGraph graph = null;
-
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
-    }
-
-    @BeforeClass
-    public static void init() {
-        graph = Utils.open();
-        graph.clearBackend();
-        graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
-    }
-
-    @AfterClass
-    public static void clear() {
-        if (graph == null) {
-            return;
-        }
-
-        try {
-            graph.clearBackend();
-        } finally {
-            try {
-                graph.close();
-            } catch (Throwable e) {
-                LOG.error("Error when close()", e);
-            }
-            graph = null;
-        }
-    }
-
-    protected static HugeGraph graph() {
-        Assert.assertNotNull(graph);
-        //Assert.assertFalse(graph.closed());
-        return graph;
-    }
 }
