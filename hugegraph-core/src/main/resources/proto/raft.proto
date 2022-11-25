@@ -19,9 +19,9 @@
 
 syntax="proto2";
 
-package com.baidu.hugegraph.backend.store.raft.rpc;
+package org.apache.hugegraph.backend.store.raft.rpc;
 
-option java_package="com.baidu.hugegraph.backend.store.raft.rpc";
+option java_package="org.apache.hugegraph.backend.store.raft.rpc";
 option java_outer_classname = "RaftRequests";
 
 enum StoreType {

@@ -16,8 +16,8 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-import com.baidu.hugegraph.HugeFactory
-import com.baidu.hugegraph.dist.RegisterUtil
+import org.apache.hugegraph.HugeFactory
+import org.apache.hugegraph.dist.RegisterUtil
 import org.apache.tinkerpop.gremlin.structure.T
 
 RegisterUtil.registerCassandra();

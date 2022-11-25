@@ -34,4 +34,4 @@ else
     JAVA=java
 fi
 
-"$JAVA" -cp lib/hugegraph-common-*.jar com.baidu.hugegraph.util.CheckSocket $1 $2
+"$JAVA" -cp lib/hugegraph-common-*.jar org.apache.hugegraph.util.CheckSocket $1 $2

@@ -101,7 +101,7 @@ while getopts "elpv" opt; do
        ;;
     p) PROFILING_ENABLED=true
        ;;
-    v) MAIN_CLASS=com.baidu.hugegraph.core.hugegraph
+    v) MAIN_CLASS=org.apache.hugegraph.core.hugegraph
     esac
 done
 

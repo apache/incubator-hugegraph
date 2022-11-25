@@ -19,23 +19,28 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
+        <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <groupId>com.baidu.hugegraph</groupId>
-        <version>0.13.0</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>hugegraph-api</artifactId>
 
+    <properties>
+        <hugegraph-core-version>1.0.0</hugegraph-core-version>
+    </properties>
+
     <dependencies>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
-            <version>${project.version}</version>
+            <version>${hugegraph-core-version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-rpc</artifactId>
             <exclusions>
                 <!-- conflict with jraft -->
@@ -180,6 +185,7 @@
                             </addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
+                            <!-- TODO: update it -->
                             <Implementation-Version>0.69.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>

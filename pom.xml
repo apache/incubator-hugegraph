@@ -2,23 +2,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.baidu.hugegraph</groupId>
+    <groupId>org.apache.hugegraph</groupId>
     <artifactId>hugegraph</artifactId>
-    <version>0.13.0</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
-    <prerequisites>
-        <maven>3.3.9</maven>
-    </prerequisites>
+
     <name>hugegraph</name>
-    <url>https://github.com/hugegraph/hugegraph</url>
+    <url>https://github.com/apache/hugegraph</url>
     <description>
         hugegraph is a fast-speed, highly-scalable, transactional graph database developed by baidu
     </description>
 
     <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>7</version>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>23</version>
     </parent>
 
     <inceptionYear>2017</inceptionYear>
@@ -30,64 +28,18 @@
         </license>
     </licenses>
 
+    <prerequisites>
+        <maven>3.5.0</maven>
+    </prerequisites>
+
     <scm>
-        <url>https://github.com/hugegraph/hugegraph</url>
-        <connection>https://github.com/hugegraph/hugegraph</connection>
-        <developerConnection>https://github.com/hugegraph/hugegraph</developerConnection>
+        <url>https://github.com/apache/hugegraph</url>
+        <connection>https://github.com/apache/hugegraph</connection>
+        <developerConnection>https://github.com/apache/hugegraph</developerConnection>
     </scm>
 
-    <developers>
-        <developer>
-            <name>lizhangmei</name>
-            <email>javaloveme@gmail.com</email>
-        </developer>
-        <developer>
-            <name>zhoney</name>
-            <email>zhangyi89817@126.com</email>
-        </developer>
-        <developer>
-            <name>liningrui</name>
-            <email>liningrui@vip.qq.com</email>
-        </developer>
-        <developer>
-            <name>wangjiankui</name>
-            <email>wangjiankui1989@163.com</email>
-        </developer>
-        <developer>
-            <name>lizhigang</name>
-            <email>albert_liang@126.com</email>
-        </developer>
-        <developer>
-            <name>huanghaiping</name>
-            <email>954872405@qq.com</email>
-        </developer>
-        <developer>
-            <name>jishilei</name>
-            <email>littlestonelover@gmail.com</email>
-        </developer>
-        <developer>
-            <name>zhanghuimin</name>
-            <email>283157054@qq.com</email>
-        </developer>
-        <developer>
-            <name>liunanke</name>
-            <email>lnkustc@126.com</email>
-        </developer>
-        <developer>
-            <name>liujie</name>
-            <email>liujie23@unknown</email>
-        </developer>
-        <developer>
-            <name>houzhizhen</name>
-            <email>houzhizhen_101@163.com</email>
-        </developer>
-        <developer>
-            <name>zhangsuochao</name>
-            <email>mysuochao@163.com</email>
-        </developer>
-    </developers>
-
     <properties>
+        <revision>1.0.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <release.name>hugegraph</release.name>
@@ -108,11 +60,11 @@
         <shell-executable>bash</shell-executable>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
-        <hugegraph-rpc.version>2.0.1</hugegraph-rpc.version>
-        <hugegraph-common.version>2.1.2</hugegraph-common.version>
+        <hugegraph-commons.version>1.0.0</hugegraph-commons.version>
         <grpc.version>1.47.0</grpc.version>
         <protobuf.version>3.21.7</protobuf.version>
     </properties>
+
     <modules>
         <module>hugegraph-core</module>
         <module>hugegraph-api</module>
@@ -130,16 +82,16 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- hugegraph-commons -->
+            <!-- TODO: could we merge them to hugegraph-commons only? -->
             <dependency>
-                <groupId>com.baidu.hugegraph</groupId>
+                <groupId>org.apache.hugegraph</groupId>
                 <artifactId>hugegraph-rpc</artifactId>
-                <version>${hugegraph-rpc.version}</version>
+                <version>${hugegraph-commons.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.baidu.hugegraph</groupId>
+                <groupId>org.apache.hugegraph</groupId>
                 <artifactId>hugegraph-common</artifactId>
-                <version>${hugegraph-common.version}</version>
+                <version>${hugegraph-commons.version}</version>
             </dependency>
 
             <!-- logging -->
@@ -423,6 +375,7 @@
                             <exclude>**/META-INF/MANIFEST.MF</exclude>
                             <!-- Maven -->
                             <exclude>.repository/**</exclude>
+                            <exclude>**/.flattened-pom.xml</exclude>
                         </excludes>
                         <consoleOutput>true</consoleOutput>
                     </configuration>
@@ -606,7 +559,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.2.1</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -619,7 +571,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.9.1</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -637,7 +588,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.5</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -670,4 +620,19 @@
             </build>
         </profile>
     </profiles>
+
+    <repositories>
+        <repository>
+            <id>staged-releases</id>
+            <name>staged-releases</name>
+            <url>https://repository.apache.org/content/groups/staging/</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
