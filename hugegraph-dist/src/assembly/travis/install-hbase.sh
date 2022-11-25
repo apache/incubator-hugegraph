@@ -4,7 +4,7 @@
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
 # The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
+# (the "License"); you may not use this fi5.le except in compliance with
 # the License.  You may obtain a copy of the License at
 #
 #    http://www.apache.org/licenses/LICENSE-2.0
@@ -19,7 +19,8 @@ set -ev
 
 TRAVIS_DIR=`dirname $0`
 HBASE_DOWNLOAD_ADDRESS="http://archive.apache.org/dist/hbase"
-HBASE_VERSION="3.0.0-alpha-3"
+HBASE_VERSION="2.5.1" # latest version in 2022-10
+#HBASE_VERSION="3.0.0-alpha-3"
 HBASE_PACKAGE="hbase-${HBASE_VERSION}"
 HBASE_TAR="${HBASE_PACKAGE}-bin.tar.gz"
 
