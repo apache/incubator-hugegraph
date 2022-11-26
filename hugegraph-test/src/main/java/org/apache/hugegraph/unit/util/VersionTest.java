@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.unit.util;
 
+import org.apache.hugegraph.version.ApiVersion;
 import org.junit.Test;
 
 import org.apache.hugegraph.testutil.Assert;
@@ -40,5 +41,11 @@ public class VersionTest {
     public void testCoreVersionCheck() {
         // Expect not throw exception
         CoreVersion.check();
+    }
+
+    @Test
+    public void testApiVersionCheck() {
+        // Expect not throw exception
+        ApiVersion.check();
     }
 }
