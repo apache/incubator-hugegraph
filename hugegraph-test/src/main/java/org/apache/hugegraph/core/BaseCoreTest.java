@@ -21,27 +21,72 @@ package org.apache.hugegraph.core;
 
 import java.util.Random;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.store.BackendFeatures;
+import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.testutil.Utils;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.store.BackendFeatures;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.Log;
 
 public class BaseCoreTest {
 
     protected static final Logger LOG = Log.logger(BaseCoreTest.class);
 
     protected static final int TX_BATCH = 100;
+    private static boolean registered = false;
+    private static HugeGraph graph = null;
 
-    public HugeGraph graph() {
-        return CoreTestSuite.graph();
+    public static HugeGraph graph() {
+        Assert.assertNotNull(graph);
+        //Assert.assertFalse(graph.closed());
+        return graph;
+    }
+
+    @BeforeClass
+    public static void initEnv() {
+        if (registered) {
+            return;
+        }
+        RegisterUtil.registerBackends();
+        registered = true;
+    }
+
+    @BeforeClass
+    public static void init() {
+        graph = Utils.open();
+        graph.clearBackend();
+        graph.initBackend();
+        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+    }
+
+    @AfterClass
+    public static void clear() {
+        if (graph == null) {
+            return;
+        }
+
+        try {
+            graph.clearBackend();
+        } finally {
+            try {
+                graph.close();
+            } catch (Throwable e) {
+                LOG.error("Error when close()", e);
+            }
+            graph = null;
+        }
     }
 
     @Before
