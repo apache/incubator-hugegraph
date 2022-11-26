@@ -37,12 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
@@ -62,6 +56,11 @@ import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Consumers;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
 
 public final class RamTable {
 
@@ -200,7 +199,6 @@ public final class RamTable {
         Id lastId = IdGenerator.ZERO;
         while (vertices.hasNext()) {
             Id vertex = (Id) vertices.next().id();
-            LOG.info("scan from hbase {} loadfromDB", vertex);
             if (vertex.compareTo(lastId) < 0) {
                 throw new HugeException("The ramtable feature is not " +
                                         "supported by %s backend",
@@ -496,6 +494,11 @@ public final class RamTable {
         @Override
         public void close() throws Exception {
             if (this.executor != null) {
+                for (int i = 0; i < Consumers.THREADS; i++) {
+                    this.executor.execute(() -> {
+                        this.graph.tx().commit();
+                    });
+                }
                 this.executor.shutdown();
             }
         }
