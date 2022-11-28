@@ -178,22 +178,9 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <tasks>
-                                <echo file="${top.level.dir}/dist.sh">
-                                    tar -zcvf \
-                                    ${top.level.dir}/${final.name}.tar.gz \
-                                    ${final.name} || exit 1
-                                    rm -f ${top.level.dir}/dist.sh
-                                    echo
-                                    echo "HugeGraph dist tar.gz available at:
-                                    ${top.level.dir}/${final.name}.tar.gz"
-                                    echo
-                                </echo>
-                                <exec executable="${shell-executable}"
-                                      dir="${top.level.dir}" failonerror="true">
-                                    <arg line="./dist.sh"/>
-                                </exec>
-                            </tasks>
+                            <target>
+                                <tar destfile="${top.level.dir}\${final.name}.tar.gz" basedir="${top.level.dir}\${final.name}" compression="gzip"/>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
