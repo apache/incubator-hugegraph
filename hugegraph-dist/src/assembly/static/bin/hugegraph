@@ -16,45 +16,26 @@
 # limitations under the License.
 #
 
-#
-# hugegraph     This shell script takes care of starting and stopping
-#               HugeGraphServer.
-#
-# chkconfig: - 58 74
-# description: HugeGraphServer is graph database server. It provides graph \
-# service by RESTful API consisted with graph, schema, gremlin and other APIs.
+# This script is used for starting and stopping HugeGraphServer easily.
+# We could copy this file under '/usr/bin' to use it globally
 
-### BEGIN INIT INFO
-# Provides: HugeGraphServer
-# Required-Start: $java
-# Required-Stop: $java
-# Should-Start: -
-# Should-Stop: -
-# Short-Description: start and stop HugeGraphServer
-# Description: HugeGraphServer is graph database server. It provides graph
-#              service by RESTful API consisted with graph, schema, gremlin
-#              and other APIs.
-### END INIT INFO
-
-# Variables
-# it requires user to set a fixed abs path manually
+# Note: user must set a absolute path below
 INSTALL_DIR=
 SERVER_PORT=
 
-${INSTALL_DIR:?"Please set variables 'INSTALL_DIR'"}
-${SERVER_PORT:?"Please set variables 'SERVER_PORT'"}
+${INSTALL_DIR:?"Please open the script then set variable 'INSTALL_DIR' manually"}
+${SERVER_PORT:?"Please open the script then set variable 'SERVER_PORT' manually"}
 
 BIN_DIR=$INSTALL_DIR/bin
 SERVER_URL="http://localhost:${SERVER_PORT}"
 DETECT_URL="$SERVER_URL/versions"
+EXIT=1
 
 # Start the HugeGraphServer
 start() {
-    echo "Starting HugeGraphServer..."
     # Verify if the service is running
-    get_status
-    if [ $? -eq 0 ]; then
-        echo "The service is already running"
+    if get_status; then
+        echo "The graph server is already running"
         exit 0
     else
         # Run the service
@@ -64,12 +45,11 @@ start() {
         #sleep 10
 
         # Verify if the service is running
-        get_status
-        if [ $? -eq 0 ]; then
-            echo "Service was successfully started"
+        if get_status; then
+            echo "Graph server was successfully started"
             exit 0
         else
-            echo "Failed to start service"
+            echo "Failed to start graph server"
             exit 1
         fi
     fi
@@ -77,37 +57,29 @@ start() {
 
 # Stop the MATH
 stop() {
-    echo "Stopping HugeGraphServer..."
     # Verify if the service is running
-    get_status
-    if [ $? -eq 0 ]; then
+    if get_status; then
         # Stop the service
         $BIN_DIR/stop-hugegraph.sh
 
-        # Sleep time before the service verification
-        #sleep 10
-
         # Verify if the service is running
-        get_status
-        if [ $? -eq 0 ]; then
+        if get_status; then
             echo "Failed to stop service"
-            exit 1
         else
             echo "Service was successfully stopped"
-            exit 0
         fi
     else
         echo "The service is already stopped"
+    fi
+
+    if [[ $EXIT -eq 1 ]]; then
         exit 0
     fi
 }
 
 # Verify the status of HugeGraphServer
 status() {
-    echo "Checking status of HugeGraphServer..."
-    # Verify if the HugeGraphServer is running
-    get_status
-    if [ $? -eq 0 ]; then
+    if get_status; then
         echo "Service is running"
         exit 0
     else
@@ -119,7 +91,7 @@ status() {
 # Get status of HugeGraphServer to ensure it is alive
 get_status() {
     HTTP_CODE=$(curl -I -s -w "%{http_code}" -o /dev/null $DETECT_URL)
-    if [ $HTTP_CODE = 200 ]; then
+    if [ "$HTTP_CODE" = 200 ]; then
         return 0
     else
         return 1
@@ -137,12 +109,13 @@ case "$1" in
     status)
         status
         ;;
-    restart|reload)
+    restart|reload|rs)
+        EXIT=0
         stop
         start
         ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart|reload}"
+        echo $"Usage: $0 {start, stop, status, restart|reload|rs}"
         exit 1
 esac
 exit 0
