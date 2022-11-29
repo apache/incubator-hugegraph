@@ -28,15 +28,11 @@
 
     <artifactId>hugegraph-scylladb</artifactId>
 
-    <properties>
-        <hugegraph-cassandra-version>1.0.0</hugegraph-cassandra-version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-cassandra</artifactId>
-            <version>${hugegraph-cassandra-version}</version>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 
