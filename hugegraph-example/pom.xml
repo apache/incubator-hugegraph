@@ -28,15 +28,11 @@
 
     <artifactId>hugegraph-example</artifactId>
 
-    <properties>
-        <hugegraph-dist-version>1.0.0</hugegraph-dist-version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-dist</artifactId>
-            <version>${hugegraph-dist-version}</version>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
     <build>
