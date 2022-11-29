@@ -179,8 +179,7 @@
                         </goals>
                         <configuration>
                             <target>
-                                <tar
-                                    destfile="${top.level.dir}/${final.name}.tar.gz" basedir="${top.level.dir}/${final.name}" compression="gzip"/>
+                                <tar destfile="${top.level.dir}/${final.name}.tar.gz" basedir="${top.level.dir}"  includes="${final.name}/*" compression="gzip"/>
                             </target>
                         </configuration>
                     </execution>
