@@ -28,15 +28,11 @@
 
     <artifactId>hugegraph-cassandra</artifactId>
 
-    <properties>
-        <hugegraph-core-version>1.0.0</hugegraph-core-version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
-            <version>${hugegraph-core-version}</version>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
