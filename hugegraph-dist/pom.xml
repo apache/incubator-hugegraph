@@ -30,8 +30,7 @@
 
     <properties>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
-        <assembly.descriptor.dir>${assembly.dir}/descriptor
-        </assembly.descriptor.dir>
+        <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
     </properties>
 
@@ -179,7 +178,10 @@
                         </goals>
                         <configuration>
                             <target>
-                                <tar destfile="${top.level.dir}/${final.name}.tar.gz" basedir="${top.level.dir}"  includes="${final.name}/*" compression="gzip"/>
+                                <tar destfile="${top.level.dir}/${final.name}.tar.gz" 
+                                     basedir="${top.level.dir}"  
+                                     includes="${final.name}/*"
+                                     compression="gzip"/>
                             </target>
                         </configuration>
                     </execution>
