@@ -23,8 +23,8 @@
 INSTALL_DIR=
 SERVER_PORT=
 
-${INSTALL_DIR:?"Please open the script then set variable 'INSTALL_DIR' manually"}
-${SERVER_PORT:?"Please open the script then set variable 'SERVER_PORT' manually"}
+INSTALL_DIR=${INSTALL_DIR:?"Please open the script then set variable 'INSTALL_DIR' manually"}
+SERVER_PORT=${SERVER_PORT:?"Please open the script then set variable 'SERVER_PORT' manually"}
 
 BIN_DIR=$INSTALL_DIR/bin
 SERVER_URL="http://localhost:${SERVER_PORT}"
