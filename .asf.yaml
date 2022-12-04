@@ -31,7 +31,7 @@ github:
   enabled_merge_buttons:
     merge:  false
     squash: true
-    rebase: false
+    rebase: true
   protected_branches:
     master:
       required_status_checks:
