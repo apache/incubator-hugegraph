@@ -31,6 +31,10 @@ JACOCO_PORT=36320
 
 mvn package -DskipTests
 
+
+# add mysql dependency
+wget -P $SERVER_DIR/lib/ https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
+
 # config rest-server
 sed -i 's/#auth.authenticator=/auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
 sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
