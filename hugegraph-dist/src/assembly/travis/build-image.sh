@@ -28,4 +28,10 @@ CONTEXT_PATH=$(mvn -f "${PROJECT_POM_PATH}" -q -N \
     -Dexec.executable='echo' -Dexec.args='${final.name}')
     CONTEXT_PATH="${PROJECT_PATH}/${CONTEXT_PATH}"
 
-docker build -t $1 $CONTEXT_PATH -f $PROJECT_PATH/Dockerfile
+if [ -n "$2" ]; then
+    wget $2 -O /tmp/hugegraph-hubble.tar.gz
+    tar -zxf /tmp/hugegraph-hubble.tar.gz -C $CONTEXT_PATH
+    docker build -t $1 $CONTEXT_PATH -f $PROJECT_PATH/DockerfileWithHubble
+else
+    docker build -t $1 $CONTEXT_PATH -f $PROJECT_PATH/Dockerfile
+fi
