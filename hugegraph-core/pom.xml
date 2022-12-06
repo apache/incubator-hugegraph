@@ -265,7 +265,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${basedir}/src/protobuf/java</source>
+                                <source>${basedir}/target/generated-sources/protobuf/java</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -280,7 +280,6 @@
                     <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>protoc-java</pluginId>
                     <protoSourceRoot>${project.basedir}/src/main/resources/proto</protoSourceRoot>
-                    <outputDirectory>${project.basedir}/src/protobuf/java</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>
