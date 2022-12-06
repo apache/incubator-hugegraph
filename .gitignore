@@ -29,10 +29,10 @@ build
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
 build/
+dist/
 
 ### VS Code ###
 .vscode/
@@ -61,7 +61,7 @@ output/
 *.war
 *.zip
 *.tar
-*.tar.gz
+*.tar.gz*
 tree.txt
 *.versionsBackup
 
