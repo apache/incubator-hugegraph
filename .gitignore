@@ -6,7 +6,6 @@ node_modules
 upload-files/
 demo*
 gen-java
-build
 *.class
 
 ### STS ###
@@ -29,9 +28,9 @@ build
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
-/dist/
 /nbdist/
 /.nb-gradle/
+dist/
 build/
 
 ### VS Code ###
@@ -57,14 +56,16 @@ build/
 *.pyc
 
 # maven ignore
+apache-hugegraph-incubating-*/
 output/
 *.war
 *.zip
 *.tar
-*.tar.gz
+*.tar.gz*
 tree.txt
 *.versionsBackup
 .flattened-pom.xml
+
 
 # eclipse ignore
 .settings/

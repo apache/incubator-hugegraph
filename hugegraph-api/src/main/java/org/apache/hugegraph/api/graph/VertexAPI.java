@@ -127,8 +127,8 @@ public class VertexAPI extends BatchAPI {
 
     /**
      * Batch update steps like:
-     * 1. Get all newVertices' ID & combine first
-     * 2. Get all oldVertices & update
+     * 1. Get all newVertices' ID &amp; combine first
+     * 2. Get all oldVertices &amp; update
      * 3. Add the final vertex together
      */
     @PUT
