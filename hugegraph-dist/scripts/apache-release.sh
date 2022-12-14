@@ -21,17 +21,22 @@ GROUP="hugegraph"
 REPO="${GROUP}"
 # release version (input by committer)
 RELEASE_VERSION=$1
+USERNAME=$2
+PASSWORD=$3
 # git release branch (check it carefully)
 GIT_BRANCH="release-${RELEASE_VERSION}"
 
 RELEASE_VERSION=${RELEASE_VERSION:?"Please input the release version behind script"}
 
-WORK_DIR=$(cd "$(dirname "$0")" || exit; pwd)
+WORK_DIR=$(
+  cd "$(dirname "$0")" || exit
+  pwd
+)
 cd "${WORK_DIR}" || exit
 echo "In the work dir: $(pwd)"
 
 # clean old dir then build a new one
-rm -rfv dist && mkdir -p dist/apache-${REPO}
+rm -rf dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
 cd ../../
@@ -53,7 +58,7 @@ for i in *.tar.gz; do
   echo "$i" && eval gpg "${GPG_OPT}" --armor --output "$i".asc --detach-sig "$i"
 done
 
-##### 3.2 Generate SHA512 file
+##### 3.2 generate SHA512 file
 shasum --version 1>/dev/null || exit
 for i in *.tar.gz; do
   echo "$i" && shasum -a 512 "$i" >"$i".sha512
@@ -83,13 +88,18 @@ mkdir -p ${SVN_DIR}/"${RELEASE_VERSION}"
 cp -v apache-${REPO}/*tar.gz* "${SVN_DIR}/${RELEASE_VERSION}"
 cd ${SVN_DIR} || exit
 
-##### 4.3 commit to svn
-# check status first
+##### 4.3 check status & add files
 svn status
-svn add --parents ${RELEASE_VERSION}/apache-${REPO}-*
+svn add --parents "${RELEASE_VERSION}"/apache-${REPO}-*
 ## check status again
 svn status
-## commit & push files
-svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}"
+
+##### 4.4 commit & push files
+if [ "$USERNAME" = "" ]; then
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" || exit
+else
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" --username "${USERNAME}" \
+    --password "${PASSWORD}" || exit
+fi
 
 echo "Finished all, please check all steps in script manually again!"

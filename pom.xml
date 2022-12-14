@@ -323,6 +323,7 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!-- TODO: move necessary plugin out of pluginManagement? -->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
@@ -369,6 +370,7 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
                     <configuration>
                         <filesets>
@@ -377,7 +379,7 @@
                                 <includes>
                                     <include>*.tar</include>
                                     <include>*.tar.gz</include>
-                                    <include>*.zip</include>
+                                    <include>.flattened-pom.xml</include>
                                     <include>${final.name}/**</include>
                                 </includes>
                                 <followSymlinks>false</followSymlinks>
