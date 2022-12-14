@@ -42,7 +42,7 @@ commons-lang3-3.11.jar
 commons-logging-1.1.1.jar
 commons-logging-1.2.jar
 commons-math3-3.2.jar
-commons-text-1.9.jar
+commons-text-1.10.0.jar
 compress-lzf-0.8.4.jar
 concurrent-trees-2.4.0.jar
 concurrentlinkedhashmap-lru-1.4.jar
