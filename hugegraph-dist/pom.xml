@@ -149,14 +149,15 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
-                <version>3.0.0</version>
                 <configuration>
                     <filesets>
                         <fileset>
                             <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar.gz</include>
+                                <include>.flattened-pom.xml</include>
                                 <!--<include>${final.name}/**</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
@@ -178,7 +179,7 @@
                         </goals>
                         <configuration>
                             <target>
-                                <tar destfile="${top.level.dir}/${final.name}.tar.gz" 
+                                <tar destfile="${final.destfile}"
                                      basedir="${top.level.dir}"  
                                      includes="${final.name}/**"
                                      compression="gzip"/>

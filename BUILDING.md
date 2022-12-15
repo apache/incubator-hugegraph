@@ -3,7 +3,7 @@ Building hugegraph
 
 Required:
 
-* Java 8 (0.9 and later)
+* Java 8/11
 * Maven
 
 To build without executing tests:
@@ -38,8 +38,7 @@ To build without executing tests:
 
 1. Click on "File" -> "Open", choose your project location.
 2. Open maven view by click "View" -> "Tool Windows" -> "Maven Projects".
-3. Choose root module "hugegraph: Distributed Graph Database", unfold the 
-menu of "Lifecycle".
+3. Choose root module "hugegraph: Distributed Graph Database", unfold the menu of "Lifecycle".
 4. Click the "Toggle 'Skip Tests' Mode" button which is located on the top
 navibar of "Maven Projects" window to skip tests.
 5. Double click "package" or "install" to build project.

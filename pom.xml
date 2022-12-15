@@ -39,20 +39,54 @@
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
+    <developers>
+      <developer>
+        <id>Apache Hugegraph(incubating)</id>
+        <email>dev-subscribe@hugegraph.apache.org</email>
+        <url>https://hugegraph.apache.org/</url>
+      </developer>
+    </developers>
+
+    <mailingLists>
+      <mailingList>
+        <name>Development Mailing List</name>
+        <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
+        <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
+        <post>dev@hugegraph.incubator.apache.org</post>
+      </mailingList>
+      <mailingList>
+        <name>Commits List</name>
+        <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
+        <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
+        <post>commits@hugegraph.apache.org</post>
+      </mailingList>
+      <mailingList>
+        <name>Issues List</name>
+        <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
+        <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
+        <post>issues@hugegraph.apache.org</post>
+      </mailingList>
+    </mailingLists>
+
+    <issueManagement>
+      <system>Github Issues</system>
+      <url>https://github.com/apache/hugegraph/issues</url>
+    </issueManagement>
 
     <scm>
         <url>https://github.com/apache/hugegraph</url>
-        <connection>https://github.com/apache/hugegraph</connection>
-        <developerConnection>https://github.com/apache/hugegraph</developerConnection>
+        <connection>scm:git:https://github.com/apache/hugegraph.git</connection>
+        <developerConnection>scm:git:https://github.com/apache/hugegraph.git</developerConnection>
     </scm>
+
+    <prerequisites>
+        <maven>3.5.0</maven>
+    </prerequisites>
 
     <properties>
         <revision>1.0.0</revision>
@@ -60,6 +94,7 @@
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <release.name>hugegraph</release.name>
         <final.name>apache-${release.name}-incubating-${project.version}</final.name>
+        <final.destfile>${top.level.dir}/${final.name}.tar.gz</final.destfile>
         <compiler.source>1.8</compiler.source>
         <compiler.target>1.8</compiler.target>
         <slf4j.version>1.7.5</slf4j.version>
@@ -282,12 +317,19 @@
                 <version>${protobuf.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.10.0</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
     <build>
         <pluginManagement>
             <plugins>
+                <!-- TODO: move necessary plugin out of pluginManagement? -->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
@@ -334,8 +376,8 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.0.0</version>
                     <configuration>
                         <filesets>
                             <fileset>
@@ -343,7 +385,7 @@
                                 <includes>
                                     <include>*.tar</include>
                                     <include>*.tar.gz</include>
-                                    <include>*.zip</include>
+                                    <include>.flattened-pom.xml</include>
                                     <include>${final.name}/**</include>
                                 </includes>
                                 <followSymlinks>false</followSymlinks>
@@ -382,8 +424,10 @@
                             <exclude>CONFIG.ini</exclude>
                             <exclude>GROUPS</exclude>
                             <exclude>OWNERS</exclude>
-                            <!-- GitHub -->
+                            <!-- Git & GitHub  -->
                             <exclude>.github/**/*</exclude>
+                            <exclude>.gitignore</exclude>
+                            <exclude>.gitattributes</exclude>
                             <!-- Intellij -->
                             <exclude>**/*.iml</exclude>
                             <exclude>**/*.iws</exclude>
@@ -470,7 +514,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
                         <executions>
                             <execution>
                                 <id>core-test</id>
@@ -491,7 +534,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
                         <executions>
                             <execution>
                                 <id>unit-test</id>
@@ -512,7 +554,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
                         <executions>
                             <execution>
                                 <id>api-test</id>
@@ -533,7 +574,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
                         <executions>
                             <execution>
                                 <id>tinkerpop-structure-test</id>
@@ -554,7 +594,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
                         <executions>
                             <execution>
                                 <id>tinkerpop-process-test</id>
@@ -569,7 +608,7 @@
             </build>
         </profile>
         <profile>
-            <id>release</id>
+            <id>apache-release</id>
             <build>
                 <plugins>
                     <plugin>
@@ -593,12 +632,15 @@
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>
+                                <configuration>
+                                    <doclint>none</doclint>
+                                    <failOnError>false</failOnError>
+                                </configuration>
                             </execution>
                         </executions>
                         <configuration>
-                            <additionalJOptions>
-                                <additionalJOption>-Xdoclint:none</additionalJOption>
-                            </additionalJOptions>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
                         </configuration>
                     </plugin>
                     <plugin>
@@ -619,17 +661,6 @@
                                 <arg>--pinentry-mode</arg>
                                 <arg>loopback</arg>
                             </gpgArguments>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.3</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
                         </configuration>
                     </plugin>
                 </plugins>
