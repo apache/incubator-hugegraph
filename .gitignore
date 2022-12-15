@@ -2,7 +2,7 @@ target/
 **.db
 logs/
 ui
-node_modules
+node_modules/
 upload-files/
 demo*
 gen-java
@@ -20,7 +20,6 @@ build
 .svn
 
 ### IntelliJ IDEA ###
-.idea
 .idea/
 *.iws
 *.iml
@@ -58,12 +57,14 @@ dist/
 
 # maven ignore
 output/
+apache-hugegraph-*-incubating-*/
 *.war
 *.zip
 *.tar
 *.tar.gz*
 tree.txt
 *.versionsBackup
+.flattened-pom.xml
 
 # eclipse ignore
 .settings/
@@ -81,4 +82,3 @@ hs_err_pid*
 .mtj.tmp/
 # blueJ files
 *.ctxt
-.flattened-pom.xml

@@ -17,10 +17,12 @@
 #
 
 GROUP="hugegraph"
-# current REPOsitory name
+# current repository name
 REPO="${GROUP}-commons"
 # release version (input by committer)
 RELEASE_VERSION=$1
+USERNAME=$2
+PASSWORD=$3
 # git release branch (check it carefully)
 GIT_BRANCH="release-${RELEASE_VERSION}"
 
@@ -34,9 +36,12 @@ echo "In the work dir: $(pwd)"
 rm -rfv dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
+cd ../../ || exit
 git archive --format=tar.gz \
-  --output="dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
-  --prefix=apache-${REPO}-incubating-"${RELEASE_VERSION}"-src/ "${GIT_BRANCH}" || exit
+  --output="${GROUP}-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
+  --prefix="apache-${REPO}-incubating-${RELEASE_VERSION}-src/" "${GIT_BRANCH}" || exit
+
+cd - || exit
 
 # step2: copy the binary file (Optional)
 # Note: it's optional for project to generate binary package (skip this step if not need)
@@ -73,17 +78,23 @@ SVN_DIR="${GROUP}-svn-dev"
 cd ../
 rm -rfv ${SVN_DIR}
 
+##### 4.1 pull from remote & copy files
 svn co "https://dist.apache.org/repos/dist/dev/incubator/${GROUP}" ${SVN_DIR}
 mkdir -p ${SVN_DIR}/"${RELEASE_VERSION}"
 cp -v apache-${REPO}/*tar.gz* "${SVN_DIR}/${RELEASE_VERSION}"
 cd ${SVN_DIR} || exit
 
-# check status first
+##### 4.2 check status first
 svn status
-svn add "${RELEASE_VERSION}"
+svn add --parents "${RELEASE_VERSION}"/apache-${REPO}-*
 # check status again
 svn status
-# commit & push files
-svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}"
 
-echo "Finished all, please check all steps in script manually again! "
+##### 4.3 commit & push files
+if [ "$USERNAME" = "" ]; then
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}"
+else
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" --username "${USERNAME}" --password "${PASSWORD}"
+fi
+
+echo "Finished all, please check all steps in script manually again!"
