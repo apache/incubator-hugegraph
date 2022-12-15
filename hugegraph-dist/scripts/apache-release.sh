@@ -28,12 +28,15 @@ GIT_BRANCH="release-${RELEASE_VERSION}"
 
 RELEASE_VERSION=${RELEASE_VERSION:?"Please input the release version behind script"}
 
-WORK_DIR=$(cd "$(dirname "$0")" || exit; pwd)
+WORK_DIR=$(
+  cd "$(dirname "$0")" || exit
+  pwd
+)
 cd "${WORK_DIR}" || exit
 echo "In the work dir: $(pwd)"
 
 # clean old dir then build a new one
-rm -rfv dist && mkdir -p dist/apache-${REPO}
+rm -rf dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
 cd ../../ || exit
@@ -92,9 +95,10 @@ svn status
 
 ##### 4.3 commit & push files
 if [ "$USERNAME" = "" ]; then
-  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}"
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" || exit
 else
-  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" --username "${USERNAME}" --password "${PASSWORD}"
+  svn commit -m "submit files for ${REPO} ${RELEASE_VERSION}" \
+    --username "${USERNAME}" --password "${PASSWORD}" || exit
 fi
 
 echo "Finished all, please check all steps in script manually again!"

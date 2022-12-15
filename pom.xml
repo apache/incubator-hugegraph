@@ -28,9 +28,10 @@
     <name>${project.artifactId}</name>
     <url>https://github.com/apache/hugegraph-commons</url>
     <description>
-        hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their peripheral components.
-        It includes rpc frame, locks, configurations, events, iterators, rest and some
-        numeric or collection util classes to simplify the development of HugeGraph and its components.
+        hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their
+        peripheral components.
+        It includes rpc frame, locks, configurations, events, iterators, rest and some numeric or
+        collection util classes to simplify the development of HugeGraph and its components.
     </description>
 
     <parent>
@@ -48,37 +49,37 @@
     </licenses>
 
     <developers>
-      <developer>
-        <id>Apache Hugegraph(Incubating)</id>
-        <email>dev-subscribe@hugegraph.apache.org</email>
-        <url>https://hugegraph.apache.org/</url>
-      </developer>
+        <developer>
+            <id>Apache Hugegraph(Incubating)</id>
+            <email>dev-subscribe@hugegraph.apache.org</email>
+            <url>https://hugegraph.apache.org/</url>
+        </developer>
     </developers>
 
     <mailingLists>
-      <mailingList>
-        <name>Developer List</name>
-        <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>dev@hugegraph.incubator.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Commits List</name>
-        <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>commits@hugegraph.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Issues List</name>
-        <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>issues@hugegraph.apache.org</post>
-      </mailingList>
+        <mailingList>
+            <name>Developer List</name>
+            <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>dev@hugegraph.incubator.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Commits List</name>
+            <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>commits@hugegraph.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Issues List</name>
+            <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>issues@hugegraph.apache.org</post>
+        </mailingList>
     </mailingLists>
 
     <issueManagement>
-      <system>Github Issues</system>
-      <url>https://github.com/apache/hugegraph-commons/issues</url>
+        <system>Github Issues</system>
+        <url>https://github.com/apache/hugegraph-commons/issues</url>
     </issueManagement>
 
     <scm>
@@ -171,12 +172,8 @@
                     <archive>
                         <index>true</index>
                         <manifest>
-                            <addDefaultImplementationEntries>
-                                false
-                            </addDefaultImplementationEntries>
-                            <addDefaultSpecificationEntries>
-                                true
-                            </addDefaultSpecificationEntries>
+                            <addDefaultImplementationEntries>false</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
                             <!-- Must be on one line, otherwise the automatic
@@ -279,7 +276,7 @@
 
     <profiles>
         <profile>
-            <id>release</id>
+            <id>apache-release</id>
             <build>
                 <plugins>
                     <plugin>
@@ -306,9 +303,8 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <additionalOptions>
-                                <additionalOption>-Xdoclint:none</additionalOption>
-                            </additionalOptions>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
                         </configuration>
                     </plugin>
                     <plugin>
