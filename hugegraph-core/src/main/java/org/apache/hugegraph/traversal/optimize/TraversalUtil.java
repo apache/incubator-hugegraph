@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -54,6 +55,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
+import org.apache.tinkerpop.gremlin.process.traversal.step.TraversalParent;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.FilterStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.filter.RangeGlobalStep;
@@ -105,12 +107,71 @@ public final class TraversalUtil {
     }
 
     public static HugeGraph tryGetGraph(Step<?, ?> step) {
-        Graph graph = step.getTraversal().getGraph().get();
-        if (graph instanceof HugeGraph) {
-            return (HugeGraph) graph;
+        Optional<Graph> graph = step.getTraversal()
+                                    .getGraph()
+                                    .filter(g -> {
+                                        return !(g instanceof EmptyGraph);
+                                    });
+        if (!graph.isPresent()) {
+            TraversalParent parent = step.getTraversal().getParent();
+            if (parent instanceof Traversal) {
+                Optional<Graph> parentGraph = ((Traversal<?, ?>) parent)
+                                              .asAdmin()
+                                              .getGraph()
+                                              .filter(g -> {
+                                                 return !(g instanceof EmptyGraph);
+                                              });
+                if (parentGraph.isPresent()) {
+                    step.getTraversal().setGraph(parentGraph.get());
+                    return (HugeGraph) parentGraph.get();
+                }
+            }
+
+            return null;
         }
-        assert graph == null || graph instanceof EmptyGraph;
-        return null;
+
+        assert graph.get() instanceof HugeGraph;
+        return (HugeGraph) graph.get();
+    }
+
+    public static void trySetGraph(Step<?, ?> step, HugeGraph graph) {
+        if (graph == null || step == null || step.getTraversal() == null) {
+            return;
+        }
+
+        Optional<Graph> stepGraph = step.getTraversal()
+                                        .getGraph()
+                                        .filter(g -> {
+                                            return !(g instanceof EmptyGraph);
+                                        });
+
+        if (step instanceof TraversalParent) {
+            for (final Traversal.Admin<?, ?> local : ((TraversalParent) step).getLocalChildren()) {
+                if (local.getGraph()
+                         .filter(g -> {
+                             return !(g instanceof EmptyGraph);
+                         }).isPresent()) {
+                    continue;
+                }
+                local.setGraph(graph);
+            }
+            for (final Traversal.Admin<?, ?> global : ((TraversalParent) step).getGlobalChildren()) {
+                if (global.getGraph()
+                          .filter(g -> {
+                              return !(g instanceof EmptyGraph);
+                          }).isPresent()) {
+                    continue;
+                }
+                global.setGraph(graph);
+            }
+        }
+
+        if (stepGraph.isPresent()) {
+            assert stepGraph.get() instanceof HugeGraph;
+            return;
+        }
+
+        step.getTraversal().setGraph(graph);
     }
 
     public static void extractHasContainer(HugeGraphStep<?, ?> newStep,
@@ -580,14 +641,34 @@ public final class TraversalUtil {
         List<HasStep> steps =
                       TraversalHelper.getStepsOfAssignableClassRecursively(
                       HasStep.class, traversal);
+
+        if (steps.isEmpty()) {
+            return;
+        }
+
         /*
          * The graph in traversal may be null, for example:
          *   `g.V().hasLabel('person').union(__.has('name', 'tom'))`
          * Here `__.has()` will create a new traversal, but the graph is null
          */
-        if (steps.isEmpty() || !traversal.getGraph().isPresent()) {
-            return;
+        if (!traversal.getGraph()
+                      .filter(g -> {
+                            return !(g instanceof EmptyGraph);
+                      }).isPresent()) {
+            if (traversal.getParent() == null || !(traversal.getParent() instanceof Traversal)) {
+                return;
+            }
+
+            Optional<Graph> parentGraph = ((Traversal<?, ?>) traversal.getParent())
+                                                                      .asAdmin()
+                                                                      .getGraph();
+            if (parentGraph.filter(g -> {
+                  return !(g instanceof EmptyGraph);
+               }).isPresent()) {
+                traversal.setGraph(parentGraph.get());
+            }
         }
+
         HugeGraph graph = (HugeGraph) traversal.getGraph().get();
         for (HasStep<?> step : steps) {
             TraversalUtil.convHasStep(graph, step);

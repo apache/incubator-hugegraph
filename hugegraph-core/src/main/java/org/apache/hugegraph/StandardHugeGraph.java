@@ -193,7 +193,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.taskManager = TaskManager.instance();
 
-        boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
+        boolean supportsPersistence = !"memory".equals(config.get(CoreOptions.BACKEND));
         this.features = new HugeFeatures(this, supportsPersistence);
 
         this.name = config.get(CoreOptions.STORE);
