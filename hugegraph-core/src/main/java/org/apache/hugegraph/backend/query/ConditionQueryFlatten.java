@@ -51,23 +51,7 @@ public final class ConditionQueryFlatten {
     public static List<ConditionQuery> flatten(ConditionQuery query,
                                                boolean supportIn) {
         if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
-            Relations relations = new Relations();
-            List<Condition> noRelations = new ArrayList<>();
-            for (Condition condition : query.conditions()) {
-                if (condition.isRelation()) {
-                    relations.add((Relation) condition);
-                } else {
-                    noRelations.add(condition);
-                }
-            }
-            relations = optimizeRelations(relations);
-            if (relations != null) {
-                ConditionQuery cq = newQueryFromRelations(query, relations);
-                cq.query(noRelations);
-                return ImmutableList.of(cq);
-            }
-
-            return ImmutableList.of(query);
+            return flattenRelations(query);
         }
 
         List<ConditionQuery> queries = new ArrayList<>();
@@ -265,6 +249,25 @@ public final class ConditionQueryFlatten {
             cq.query(relation);
         }
         return cq;
+    }
+
+    private static ImmutableList<ConditionQuery> flattenRelations(ConditionQuery query) {
+        Relations relations = new Relations();
+        List<Condition> noRelations = new ArrayList<>();
+        for (Condition condition : query.conditions()) {
+            if (condition.isRelation()) {
+                relations.add((Relation) condition);
+            } else {
+                noRelations.add(condition);
+            }
+        }
+        relations = optimizeRelations(relations);
+        if (relations != null) {
+            ConditionQuery cq = newQueryFromRelations(query, relations);
+            cq.query(noRelations);
+            return ImmutableList.of(cq);
+        }
+        return ImmutableList.of(query);
     }
 
     private static Relations optimizeRelations(Relations relations) {
