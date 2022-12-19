@@ -51,6 +51,22 @@ public final class ConditionQueryFlatten {
     public static List<ConditionQuery> flatten(ConditionQuery query,
                                                boolean supportIn) {
         if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
+            Relations relations = new Relations();
+            List<Condition> noRelations = new ArrayList<>();
+            for (Condition condition : query.conditions()) {
+                if (condition.isRelation()) {
+                    relations.add((Relation) condition);
+                } else {
+                    noRelations.add(condition);
+                }
+            }
+            relations = optimizeRelations(relations);
+            if (relations != null) {
+                ConditionQuery cq = newQueryFromRelations(query, relations);
+                cq.query(noRelations);
+                return ImmutableList.of(cq);
+            }
+
             return ImmutableList.of(query);
         }
 
