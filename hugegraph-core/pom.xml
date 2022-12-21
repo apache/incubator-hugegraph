@@ -280,6 +280,7 @@
                     <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>protoc-java</pluginId>
                     <protoSourceRoot>${project.basedir}/src/main/resources/proto</protoSourceRoot>
+                    <outputDirectory>${basedir}/target/generated-sources/protobuf/java</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>
