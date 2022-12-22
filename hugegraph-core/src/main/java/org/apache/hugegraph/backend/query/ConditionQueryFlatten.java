@@ -251,23 +251,26 @@ public final class ConditionQueryFlatten {
         return cq;
     }
 
-    private static ImmutableList<ConditionQuery> flattenRelations(ConditionQuery query) {
+    private static List<ConditionQuery> flattenRelations(ConditionQuery query) {
         Relations relations = new Relations();
-        List<Condition> noRelations = new ArrayList<>();
+        List<Condition> nonRelations = new ArrayList<>();
         for (Condition condition : query.conditions()) {
             if (condition.isRelation()) {
                 relations.add((Relation) condition);
             } else {
-                noRelations.add(condition);
+                nonRelations.add(condition);
             }
         }
         relations = optimizeRelations(relations);
+        List<ConditionQuery> conditionQueries = new ArrayList<>();
         if (relations != null) {
             ConditionQuery cq = newQueryFromRelations(query, relations);
-            cq.query(noRelations);
-            return ImmutableList.of(cq);
+            cq.query(nonRelations);
+            conditionQueries.add(cq);
+            return conditionQueries;
         }
-        return ImmutableList.of(query);
+        conditionQueries.add(query);
+        return conditionQueries;
     }
 
     private static Relations optimizeRelations(Relations relations) {
