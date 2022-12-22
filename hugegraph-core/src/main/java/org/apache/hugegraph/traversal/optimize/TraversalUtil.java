@@ -107,7 +107,7 @@ public final class TraversalUtil {
     }
 
     public static HugeGraph tryGetGraph(Step<?, ?> step) {
-        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version
+        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version tinkerpop#1699
         Optional<Graph> graph = step.getTraversal()
                                     .getGraph()
                                     .filter(g -> {
@@ -140,7 +140,7 @@ public final class TraversalUtil {
             return;
         }
 
-        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version
+        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version tinkerpop#1699
         Optional<Graph> stepGraph = step.getTraversal()
                                         .getGraph()
                                         .filter(g -> {

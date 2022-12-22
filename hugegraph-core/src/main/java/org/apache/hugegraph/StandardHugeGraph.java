@@ -193,9 +193,6 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.taskManager = TaskManager.instance();
 
-        boolean supportsPersistence = !"memory".equals(config.get(CoreOptions.BACKEND));
-        this.features = new HugeFeatures(this, supportsPersistence);
-
         this.name = config.get(CoreOptions.STORE);
         this.started = false;
         this.closed = false;
@@ -215,6 +212,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         try {
             this.tx = new TinkerPopTransaction(this);
+            boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
+            this.features = new HugeFeatures(this, supportsPersistence);
 
             SnowflakeIdGenerator.init(this.params);
 
