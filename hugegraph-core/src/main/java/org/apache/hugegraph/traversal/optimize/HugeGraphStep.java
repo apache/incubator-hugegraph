@@ -73,7 +73,7 @@ public final class HugeGraphStep<S, E extends Element>
 
     protected long count() {
         if (this.ids == null) {
-            return 0;
+            return 0L;
         }
 
         if (this.returnsVertex()) {

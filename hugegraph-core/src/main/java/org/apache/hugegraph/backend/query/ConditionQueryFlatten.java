@@ -262,15 +262,12 @@ public final class ConditionQueryFlatten {
             }
         }
         relations = optimizeRelations(relations);
-        List<ConditionQuery> conditionQueries = new ArrayList<>();
         if (relations != null) {
             ConditionQuery cq = newQueryFromRelations(query, relations);
             cq.query(nonRelations);
-            conditionQueries.add(cq);
-            return conditionQueries;
+            return ImmutableList.of(cq);
         }
-        conditionQueries.add(query);
-        return conditionQueries;
+        return ImmutableList.of(query);
     }
 
     private static Relations optimizeRelations(Relations relations) {
