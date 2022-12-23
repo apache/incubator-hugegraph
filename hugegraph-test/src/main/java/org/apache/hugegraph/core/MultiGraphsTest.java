@@ -333,7 +333,7 @@ public class MultiGraphsTest extends BaseCoreTest {
         g1.clearBackend();
 
         final HugeGraph[] g2 = new HugeGraph[1];
-        Assert.assertThrows(ConnectionException.class, () -> {
+        Assert.assertThrows(RuntimeException.class, () -> {
             g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/range_int_index:rocksdb-index1]");
@@ -348,7 +348,7 @@ public class MultiGraphsTest extends BaseCoreTest {
         });
 
         final HugeGraph[] g3 = new HugeGraph[1];
-        Assert.assertThrows(ConnectionException.class, () -> {
+        Assert.assertThrows(RuntimeException.class, () -> {
             g3[0] = openGraphWithBackend("g3", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/secondary_index:/]");
