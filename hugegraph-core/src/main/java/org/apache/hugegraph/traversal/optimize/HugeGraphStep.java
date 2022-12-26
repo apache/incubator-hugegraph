@@ -148,14 +148,13 @@ public final class HugeGraphStep<S, E extends Element>
     }
 
     private Query makeQuery(HugeGraph graph, HugeType type) {
-        Query query = null;
+        Query query;
         if (this.hasContainers.isEmpty()) {
             // Query all
             query = new Query(type);
         } else {
             ConditionQuery q = new ConditionQuery(type);
-            query = TraversalUtil.fillConditionQuery(q, this.hasContainers,
-                                                     graph);
+            query = TraversalUtil.fillConditionQuery(q, this.hasContainers, graph);
         }
 
         query = this.injectQueryInfo(query);
@@ -202,6 +201,7 @@ public final class HugeGraphStep<S, E extends Element>
         return this.lastTimeResults;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof HugeGraphStep)) {
             return false;

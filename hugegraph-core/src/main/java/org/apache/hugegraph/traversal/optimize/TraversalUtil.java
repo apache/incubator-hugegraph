@@ -107,21 +107,17 @@ public final class TraversalUtil {
     }
 
     public static HugeGraph tryGetGraph(Step<?, ?> step) {
-        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version tinkerpop#1699
+        // TODO: remove these EmptyGraph judgments when upgrade tinkerpop (refer-tinkerpop#1699)
         Optional<Graph> graph = step.getTraversal()
                                     .getGraph()
-                                    .filter(g -> {
-                                        return !(g instanceof EmptyGraph);
-                                    });
+                                    .filter(g -> !(g instanceof EmptyGraph));
         if (!graph.isPresent()) {
             TraversalParent parent = step.getTraversal().getParent();
             if (parent instanceof Traversal) {
-                Optional<Graph> parentGraph = ((Traversal<?, ?>) parent)
-                                              .asAdmin()
-                                              .getGraph()
-                                              .filter(g -> {
-                                                 return !(g instanceof EmptyGraph);
-                                              });
+                Optional<Graph> parentGraph;
+                parentGraph = ((Traversal<?, ?>) parent).asAdmin()
+                                                        .getGraph()
+                                                        .filter(g -> !(g instanceof EmptyGraph));
                 if (parentGraph.isPresent()) {
                     step.getTraversal().setGraph(parentGraph.get());
                     return (HugeGraph) parentGraph.get();
@@ -140,28 +136,20 @@ public final class TraversalUtil {
             return;
         }
 
-        // TODO: remove these EmptyGraph judgments when upgrading tinkerpop to a fixed version tinkerpop#1699
+        // TODO: remove these EmptyGraph judgments when upgrade tinkerpop (refer-tinkerpop#1699)
         Optional<Graph> stepGraph = step.getTraversal()
                                         .getGraph()
-                                        .filter(g -> {
-                                            return !(g instanceof EmptyGraph);
-                                        });
+                                        .filter(g -> !(g instanceof EmptyGraph));
 
         if (step instanceof TraversalParent) {
             for (final Traversal.Admin<?, ?> local : ((TraversalParent) step).getLocalChildren()) {
-                if (local.getGraph()
-                         .filter(g -> {
-                             return !(g instanceof EmptyGraph);
-                         }).isPresent()) {
+                if (local.getGraph().filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                     continue;
                 }
                 local.setGraph(graph);
             }
             for (final Traversal.Admin<?, ?> global : ((TraversalParent) step).getGlobalChildren()) {
-                if (global.getGraph()
-                          .filter(g -> {
-                              return !(g instanceof EmptyGraph);
-                          }).isPresent()) {
+                if (global.getGraph().filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                     continue;
                 }
                 global.setGraph(graph);
@@ -217,7 +205,6 @@ public final class TraversalUtil {
             step = step.getNextStep();
             if (step instanceof OrderGlobalStep) {
                 QueryHolder holder = (QueryHolder) newStep;
-                @SuppressWarnings("resource")
                 OrderGlobalStep<?, ?> orderStep = (OrderGlobalStep<?, ?>) step;
                 orderStep.getComparators().forEach(comp -> {
                     ElementValueComparator<?> comparator =
@@ -288,7 +275,6 @@ public final class TraversalUtil {
         do {
             step = step.getNextStep();
             if (step instanceof PropertiesStep) {
-                @SuppressWarnings("resource")
                 PropertiesStep<?> propStep = (PropertiesStep<?>) step;
                 if (propStep.getReturnType() == PropertyType.VALUE &&
                     propStep.getPropertyKeys().length == 1) {
@@ -653,10 +639,7 @@ public final class TraversalUtil {
          *   `g.V().hasLabel('person').union(__.has('name', 'tom'))`
          * Here `__.has()` will create a new traversal, but the graph is null
          */
-        if (!traversal.getGraph()
-                      .filter(g -> {
-                            return !(g instanceof EmptyGraph);
-                      }).isPresent()) {
+        if (!traversal.getGraph().filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
             if (traversal.getParent() == null || !(traversal.getParent() instanceof Traversal)) {
                 return;
             }
@@ -664,9 +647,7 @@ public final class TraversalUtil {
             Optional<Graph> parentGraph = ((Traversal<?, ?>) traversal.getParent())
                                                                       .asAdmin()
                                                                       .getGraph();
-            if (parentGraph.filter(g -> {
-                  return !(g instanceof EmptyGraph);
-               }).isPresent()) {
+            if (parentGraph.filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                 traversal.setGraph(parentGraph.get());
             }
         }
@@ -686,7 +667,7 @@ public final class TraversalUtil {
 
     private static void convPredicateValue(HugeGraph graph,
                                            HasContainer has) {
-        // No need to convert if key is sysprop
+        // No need to convert if key is sys-prop
         if (isSysProp(has.getKey())) {
             return;
         }
@@ -802,8 +783,7 @@ public final class TraversalUtil {
 
     public static void retrieveSysprop(List<HasContainer> hasContainers,
                                        Function<HasContainer, Boolean> func) {
-        for (Iterator<HasContainer> iter = hasContainers.iterator();
-             iter.hasNext();) {
+        for (Iterator<HasContainer> iter = hasContainers.iterator(); iter.hasNext();) {
             HasContainer container = iter.next();
             if (container.getKey().startsWith("~") && func.apply(container)) {
                 iter.remove();
