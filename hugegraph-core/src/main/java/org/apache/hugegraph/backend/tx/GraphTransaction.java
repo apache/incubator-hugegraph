@@ -569,8 +569,6 @@ public class GraphTransaction extends IndexableTransaction {
                     // The ids size means results count (assume no left index)
                     result = q.idsSize();
                 } else {
-                    assert optimized == OptimizedType.INDEX_FILTER ||
-                           optimized == OptimizedType.INDEX;
                     assert !fallback;
                     fallback = true;
                     result = null;
