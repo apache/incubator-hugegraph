@@ -53,8 +53,7 @@ import com.google.common.collect.ImmutableList;
 
 public class MultiGraphsTest extends BaseCoreTest {
 
-    private static final String NAME48 =
-            "g12345678901234567890123456789012345678901234567";
+    private static final String NAME48 = "g12345678901234567890123456789012345678901234567";
 
     @Test
     public void testWriteAndReadVersion() {
@@ -233,16 +232,12 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     @Test
     public void testCreateGraphsWithInvalidNames() {
-        List<String> invalidNames = ImmutableList.of(
-                                    "", " ", " g", "g 1", " .", ". .",
-                                    "@", "$", "%", "^", "&", "*", "(", ")",
-                                    "_", "+", "`", "-", "=", "{", "}", "|",
-                                    "[", "]", "\"", "<", "?", ";", "'", "~",
-                                    ",", ".", "/", "\\",
-                                    "~g", "g~", "g'",
-                                    "_1", "_a",
-                                    "1a", "123",
-                                    NAME48 + "8");
+        List<String> invalidNames = ImmutableList.of("", " ", " g", "g 1", " .", ". .",
+                                                     "@", "$", "%", "^", "&", "*", "(", ")",
+                                                     "_", "+", "`", "-", "=", "{", "}", "|",
+                                                     "[", "]", "\"", "<", "?", ";", "'", "~",
+                                                     ",", ".", "/", "\\", "~g", "g~", "g'",
+                                                     "_1", "_a", "1a", "123", NAME48 + "8");
         for (String name : invalidNames) {
             Assert.assertThrows(RuntimeException.class, () -> openGraphs(name));
         }
@@ -267,8 +262,7 @@ public class MultiGraphsTest extends BaseCoreTest {
                             () -> g2.vertexLabel("node"));
         Assert.assertThrows(IllegalArgumentException.class,
                             () -> g3.vertexLabel("node"));
-        g1.schema().vertexLabel("node").useCustomizeNumberId()
-                   .ifNotExist().create();
+        g1.schema().vertexLabel("node").useCustomizeNumberId().ifNotExist().create();
         g2.vertexLabel("node");
         g3.vertexLabel("node");
 
@@ -294,13 +288,11 @@ public class MultiGraphsTest extends BaseCoreTest {
     }
 
     @Test
-    public void testCreateGraphWithSameNameDifferentBackends()
-                throws Exception {
+    public void testCreateGraphWithSameNameDifferentBackends() throws Exception {
         HugeGraph g1 = openGraphWithBackend("graph", "memory", "text");
         g1.initBackend();
         Assert.assertThrows(RuntimeException.class,
-                            () -> openGraphWithBackend("graph", "rocksdb",
-                                                       "binary"));
+                            () -> openGraphWithBackend("graph", "rocksdb", "binary"));
         g1.clearBackend();
         g1.close();
     }
@@ -323,17 +315,15 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     @Test
     public void testCreateGraphsWithMultiDisksForRocksDB() {
-        HugeGraph g1 = openGraphWithBackend(
-                       "g1", "rocksdb", "binary",
-                       "rocksdb.data_disks",
-                       "[g/secondary_index:rocksdb-index1," +
-                       " g/range_int_index:rocksdb-index1," +
-                       " g/range_long_index:rocksdb-index2]");
+        HugeGraph g1 = openGraphWithBackend("g1", "rocksdb", "binary", "rocksdb.data_disks",
+                                            "[g/secondary_index:rocksdb-index1," +
+                                            " g/range_int_index:rocksdb-index1," +
+                                            " g/range_long_index:rocksdb-index2]");
         g1.initBackend();
         g1.clearBackend();
 
         final HugeGraph[] g2 = new HugeGraph[1];
-        Assert.assertThrows(ConnectionException.class, () -> {
+        Assert.assertThrows(RuntimeException.class, () -> {
             g2[0] = openGraphWithBackend("g2", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/range_int_index:rocksdb-index1]");
@@ -348,7 +338,7 @@ public class MultiGraphsTest extends BaseCoreTest {
         });
 
         final HugeGraph[] g3 = new HugeGraph[1];
-        Assert.assertThrows(ConnectionException.class, () -> {
+        Assert.assertThrows(RuntimeException.class, () -> {
             g3[0] = openGraphWithBackend("g3", "rocksdb", "binary",
                                          "rocksdb.data_disks",
                                          "[g/secondary_index:/]");
@@ -388,7 +378,7 @@ public class MultiGraphsTest extends BaseCoreTest {
         Configuration config = buildConfig(graph);
         config.setProperty(CoreOptions.BACKEND.name(), backend);
         config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
-        for (int i = 0; i < configs.length;) {
+        for (int i = 0; i < configs.length; ) {
             config.setProperty(configs[i++], configs[i++]);
         }
         return ((HugeGraph) GraphFactory.open(config));
@@ -397,7 +387,7 @@ public class MultiGraphsTest extends BaseCoreTest {
     private static Configuration buildConfig(String graphName) {
         PropertiesConfiguration conf = Utils.getConf();
         Configuration config = new BaseConfiguration();
-        for (Iterator<String> keys = conf.getKeys(); keys.hasNext();) {
+        for (Iterator<String> keys = conf.getKeys(); keys.hasNext(); ) {
             String key = keys.next();
             config.setProperty(key, conf.getProperty(key));
         }

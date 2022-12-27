@@ -457,6 +457,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("ripple").ifNotExist().create();
         schema.propertyKey("lop").ifNotExist().create();
         schema.propertyKey("test").ifNotExist().create();
+        schema.propertyKey("p").ifNotExist().create();
 
         switch (idStrategy) {
             case AUTOMATIC:
@@ -475,8 +476,8 @@ public class TestGraph implements Graph {
                       .nullableKeys("name")
                       .ifNotExist().create();
                 schema.vertexLabel(DEFAULT_VL)
-                      .properties("name", "age")
-                      .nullableKeys("name", "age")
+                      .properties("name", "age", "p")
+                      .nullableKeys("name", "age", "p")
                       .ifNotExist().create();
                 schema.vertexLabel("animal")
                       .properties("name", "age", "peter", "josh", "marko",
@@ -499,8 +500,8 @@ public class TestGraph implements Graph {
                       .nullableKeys("name")
                       .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel(DEFAULT_VL)
-                      .properties("name", "age")
-                      .nullableKeys("name", "age")
+                      .properties("name", "age", "p")
+                      .nullableKeys("name", "age", "p")
                       .useCustomizeStringId().ifNotExist().create();
                 schema.vertexLabel("animal")
                       .properties("name", "age")
@@ -556,6 +557,8 @@ public class TestGraph implements Graph {
         schema.indexLabel("createdByWeight").onE("created").by("weight")
               .range().ifNotExist().create();
         schema.indexLabel("personByNameAge").onV("person").by("name", "age")
+              .ifNotExist().create();
+        schema.indexLabel("vertexByP").onV("vertex").by("p")
               .ifNotExist().create();
     }
 
@@ -659,6 +662,8 @@ public class TestGraph implements Graph {
         schema.propertyKey("f").asFloat().ifNotExist().create();
         schema.propertyKey("i").asInt().ifNotExist().create();
         schema.propertyKey("l").asLong().ifNotExist().create();
+        schema.propertyKey("p").ifNotExist().create();
+        schema.propertyKey("k").ifNotExist().create();
         schema.propertyKey("here").ifNotExist().create();
         schema.propertyKey("to-change").ifNotExist().create();
         schema.propertyKey("to-remove").ifNotExist().create();
@@ -704,7 +709,7 @@ public class TestGraph implements Graph {
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
-                                  "n", "d", "f", "i", "l", "to-change",
+                                  "n", "d", "f", "i", "l", "p", "k", "to-change",
                                   "to-remove", "to-keep", "old", "new",
                                   "gremlin.partitionGraphStrategy.partition",
                                   "color", "blah")
@@ -714,7 +719,7 @@ public class TestGraph implements Graph {
                                     "favoriteColor", "aKey", "age", "boolean",
                                     "float", "double", "string", "integer",
                                     "long", "myId", "location", "x", "y", "s",
-                                    "n", "d", "f", "i", "l", "to-change",
+                                    "n", "d", "f", "i", "l", "p", "k", "to-change",
                                     "to-remove", "to-keep", "old", "new",
                                     "gremlin.partitionGraphStrategy.partition",
                                     "color", "blah")
@@ -729,7 +734,7 @@ public class TestGraph implements Graph {
                                   "favoriteColor", "aKey", "age", "boolean",
                                   "float", "double", "string", "integer",
                                   "long", "myId", "location", "x", "y", "s",
-                                  "n", "d", "f", "i", "l", "to-change",
+                                  "n", "d", "f", "i", "l", "p", "k", "to-change",
                                   "to-remove", "to-keep", "old", "new",
                                   "gremlin.partitionGraphStrategy.partition",
                                   "color", "blah")
@@ -739,7 +744,7 @@ public class TestGraph implements Graph {
                                     "favoriteColor", "aKey", "age", "boolean",
                                     "float", "double", "string", "integer",
                                     "long", "myId", "location", "x", "y", "s",
-                                    "n", "d", "f", "i", "l", "to-change",
+                                    "n", "d", "f", "i", "l", "p", "k", "to-change",
                                     "to-remove", "to-keep", "old", "new",
                                     "gremlin.partitionGraphStrategy.partition",
                                     "color", "blah")
@@ -753,6 +758,10 @@ public class TestGraph implements Graph {
         schema.indexLabel("defaultVLBy__id").onV(defaultVL).by("__id")
               .ifNotExist().create();
         schema.indexLabel("defaultVLByName").onV(defaultVL).by("name")
+              .ifNotExist().create();
+        schema.indexLabel("defaultVLBySome").onV(defaultVL).by("some")
+              .ifNotExist().create();
+        schema.indexLabel("defaultVLByK").onV(defaultVL).by("k")
               .ifNotExist().create();
     }
 

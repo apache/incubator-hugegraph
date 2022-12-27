@@ -35,13 +35,14 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public final class ConditionQueryFlatten {
 
     private static final Set<HugeKeys> SPECIAL_KEYS = ImmutableSet.of(
-            HugeKeys.LABEL
+        HugeKeys.LABEL
     );
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {
@@ -51,7 +52,7 @@ public final class ConditionQueryFlatten {
     public static List<ConditionQuery> flatten(ConditionQuery query,
                                                boolean supportIn) {
         if (query.isFlattened() && !query.mayHasDupKeys(SPECIAL_KEYS)) {
-            return ImmutableList.of(query);
+            return flattenRelations(query);
         }
 
         List<ConditionQuery> queries = new ArrayList<>();
@@ -123,8 +124,8 @@ public final class ConditionQueryFlatten {
                 return new Condition.Or(flattenIn(or.left(), supportIn),
                                         flattenIn(or.right(), supportIn));
             default:
-                throw new AssertionError(String.format(
-                          "Wrong condition type: '%s'", condition.type()));
+                throw new AssertionError(String.format("Wrong condition type: '%s'",
+                                                       condition.type()));
         }
     }
 
@@ -144,8 +145,7 @@ public final class ConditionQueryFlatten {
             (key == HugeKeys.OWNER_VERTEX || key == HugeKeys.ID)) {
             // TODO: Should not rely on HugeKeys here, improve key judgment
             // Just mark flatten
-            return new Condition.FlattenSyspropRelation(
-                       (SyspropRelation) relation);
+            return new Condition.FlattenSyspropRelation((SyspropRelation) relation);
         }
 
         // Do IN flatten, return null if values.size() == 0
@@ -214,8 +214,8 @@ public final class ConditionQueryFlatten {
                             flattenAndOr(or.right()));
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Wrong condition type: '%s'", condition.type()));
+                throw new AssertionError(String.format("Wrong condition type: '%s'",
+                                                       condition.type()));
         }
         return result;
     }
@@ -249,6 +249,25 @@ public final class ConditionQueryFlatten {
             cq.query(relation);
         }
         return cq;
+    }
+
+    private static List<ConditionQuery> flattenRelations(ConditionQuery query) {
+        Relations relations = new Relations();
+        List<Condition> nonRelations = new ArrayList<>();
+        for (Condition condition : query.conditions()) {
+            if (condition.isRelation()) {
+                relations.add((Relation) condition);
+            } else {
+                nonRelations.add(condition);
+            }
+        }
+        relations = optimizeRelations(relations);
+        if (relations != null) {
+            ConditionQuery cq = newQueryFromRelations(query, relations);
+            cq.query(nonRelations);
+            return ImmutableList.of(cq);
+        }
+        return ImmutableList.of(query);
     }
 
     private static Relations optimizeRelations(Relations relations) {
@@ -289,8 +308,9 @@ public final class ConditionQueryFlatten {
 
     /**
      * Reduce and merge relations linked with 'AND' for same key
-     * @param relations linked with 'AND' having same key, may contains 'in',
-     *                 'not in', '>', '<', '>=', '<=', '==', '!='
+     *
+     * @param relations linked with 'AND' having same key, may contain 'in', 'not in',
+     *                  '>', '<', '>=', '<=', '==', '!='
      * @return merged relations
      */
     private static Relations mergeRelations(Relations relations) {
@@ -410,8 +430,8 @@ public final class ConditionQueryFlatten {
             return true;
         }
         return compare(low, high) < 0 || compare(low, high) == 0 &&
-               low.relation() == Condition.RelationType.GTE &&
-               high.relation() == Condition.RelationType.LTE;
+                                         low.relation() == Condition.RelationType.GTE &&
+                                         high.relation() == Condition.RelationType.LTE;
     }
 
     private static boolean validEq(Relation eq, Relation low, Relation high) {
@@ -460,8 +480,7 @@ public final class ConditionQueryFlatten {
         return selectRelation(first, second, false);
     }
 
-    private static Relation selectRelation(Relation first, Relation second,
-                                                     boolean high) {
+    private static Relation selectRelation(Relation first, Relation second, boolean high) {
         if (first == null) {
             return second;
         }
@@ -491,8 +510,8 @@ public final class ConditionQueryFlatten {
         } else if (firstValue instanceof Date && secondValue instanceof Date) {
             return ((Date) firstValue).compareTo((Date) secondValue);
         } else {
-            throw new IllegalArgumentException(String.format(
-                      "Can't compare between %s and %s", first, second));
+            throw new IllegalArgumentException(String.format("Can't compare between %s and %s",
+                                                             first, second));
         }
     }
 

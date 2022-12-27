@@ -104,6 +104,7 @@ public final class HugeCountStepStrategy
         graphStep.queryInfo().aggregate(Aggregate.AggregateFunc.COUNT, null);
         HugeCountStep<?> countStep = new HugeCountStep<>(traversal, graphStep);
         for (Step<?, ?> origin : originSteps) {
+            TraversalHelper.copyLabels(origin, countStep, false);
             traversal.removeStep(origin);
         }
         traversal.addStep(0, countStep);
