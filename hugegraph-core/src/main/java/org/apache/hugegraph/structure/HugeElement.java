@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
