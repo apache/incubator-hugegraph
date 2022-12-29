@@ -56,8 +56,6 @@ import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 
-import com.alipay.remoting.util.StringUtils;
-
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
@@ -433,19 +431,15 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
                 throw Element.Exceptions
                       .providedKeyValuesMustHaveALegalKeyOnEvenIndices();
             }
-
-            if(ObjectUtils.isEmpty(val)) {
-                if (val == null && key.equals(T.label)) {
+            if (val == null) {
+                if (key.equals(T.label)) {
                     throw Element.Exceptions.labelCanNotBeNull();
-                } else if (key.equals(T.label)) {
-                    throw Element.Exceptions.labelCanNotBeEmpty();
                 }
                 throw Property.Exceptions.propertyDoesNotExist();
             }
 
             if (key.equals(T.id)) {
                 elemKeys.id = val;
-
             } else if (key.equals(T.label)) {
                 elemKeys.label = val;
             } else {
