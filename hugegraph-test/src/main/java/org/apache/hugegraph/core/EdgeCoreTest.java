@@ -31,23 +31,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.apache.hugegraph.testutil.FakeObjects;
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
@@ -69,6 +52,8 @@ import org.apache.hugegraph.schema.Userdata;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.FakeObjects;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.traversal.optimize.ConditionP;
 import org.apache.hugegraph.traversal.optimize.Text;
@@ -78,6 +63,21 @@ import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -1835,19 +1835,20 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Query all with limit after delete
         graph.traversal().E().limit(14).drop().iterate();
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            // Query count with uncommitted records
-            graph.traversal().E().count().next();
-        });
+        // Query count with uncommitted records
+        Assert.assertEquals(4L, graph.traversal().E().count().next());
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
             graph.traversal().E().limit(3).toList();
         });
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with offset
             graph.traversal().E().range(1, -1).toList();
         });
 
+        // Query all with limit after delete once
         graph.tx().commit();
         Assert.assertEquals(4L, graph.traversal().E().count().next());
         List<Edge> edges = graph.traversal().E().limit(3).toList();
@@ -1877,21 +1878,30 @@ public class EdgeCoreTest extends BaseCoreTest {
                       "comment", "good book!",
                       "comment", "good book too!");
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            // Query count with uncommitted records
-            graph.traversal().E().count().next();
-        });
+        // Query count with uncommitted records
+        Assert.assertEquals(19L, graph.traversal().E().count().next());
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with limit
             graph.traversal().E().limit(3).toList();
         });
+
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             // Query with offset
             graph.traversal().E().range(1, -1).toList();
         });
 
+        // Do commit
         graph.tx().commit();
+
+        // Query count
         Assert.assertEquals(19L, graph.traversal().E().count().next());
+
+        // Query with limit
+        Assert.assertEquals(3L, graph.traversal().E().limit(3).toList().size());
+
+        // Query with offset
+        Assert.assertEquals(18L, graph.traversal().E().range(1, -1).toList().size());
     }
 
     @Test

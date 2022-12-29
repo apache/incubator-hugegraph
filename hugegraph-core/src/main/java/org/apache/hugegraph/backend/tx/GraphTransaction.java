@@ -32,19 +32,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import jakarta.ws.rs.ForbiddenException;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendMutation;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -64,6 +52,9 @@ import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendMutation;
+import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.LimitExceedException;
@@ -98,7 +89,17 @@ import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LockUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
 import com.google.common.collect.ImmutableList;
+
+import jakarta.ws.rs.ForbiddenException;
 
 public class GraphTransaction extends IndexableTransaction {
 
@@ -528,12 +529,12 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     public QueryResults<BackendEntry> query(Query query) {
         if (!(query instanceof ConditionQuery)) {
+            // It's a sysprop-query, don't need to optimize
             LOG.debug("Query{final:{}}", query);
             return super.query(query);
         }
 
-        QueryList<BackendEntry> queries = this.optimizeQueries(query,
-                                                               super::query);
+        QueryList<BackendEntry> queries = this.optimizeQueries(query, super::query);
         LOG.debug("{}", queries);
         return queries.empty() ? QueryResults.empty() :
                                  queries.fetch(this.pageSize);
@@ -541,39 +542,51 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Override
     public Number queryNumber(Query query) {
-        E.checkArgument(!this.hasUpdate(),
-                        "It's not allowed to query number when " +
-                        "there are uncommitted records.");
-
-        if (!(query instanceof ConditionQuery)) {
-            return super.queryNumber(query);
-        }
-
+        boolean hasUpdate = this.hasUpdate();
         Aggregate aggregate = query.aggregateNotNull();
 
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
-            boolean indexQuery = q.getClass() == IdQuery.class;
-            OptimizedType optimized = ((ConditionQuery) query).optimized();
+            boolean isIndexQuery = q instanceof IdQuery;
+            boolean isConditionQuery = query instanceof ConditionQuery;
+            assert isIndexQuery || isConditionQuery || q == query;
+            // Need to fallback if there are uncommitted records
+            boolean fallback = hasUpdate;
             Number result;
-            if (!indexQuery) {
+
+            if (fallback) {
+                // Here just ignore it, and do fallback later
+                result = null;
+            } else if (!isIndexQuery || !isConditionQuery) {
+                // It's a sysprop-query, let parent tx do it
+                assert !fallback;
                 result = super.queryNumber(q);
             } else {
                 E.checkArgument(aggregate.func() == AggregateFunc.COUNT,
                                 "The %s operator on index is not supported now",
                                 aggregate.func().string());
-                if (this.optimizeAggrByIndex &&
-                    optimized == OptimizedType.INDEX) {
+                assert query instanceof ConditionQuery;
+                OptimizedType optimized = ((ConditionQuery) query).optimized();
+                if (this.optimizeAggrByIndex && optimized == OptimizedType.INDEX) {
                     // The ids size means results count (assume no left index)
                     result = q.idsSize();
                 } else {
-                    assert optimized == OptimizedType.INDEX_FILTER ||
-                           optimized == OptimizedType.INDEX;
-                    assert q.resultType().isVertex() || q.resultType().isEdge();
-                    result = IteratorUtils.count(q.resultType().isVertex() ?
-                                                 this.queryVertices(q) :
-                                                 this.queryEdges(q));
+                    assert !fallback;
+                    fallback = true;
+                    result = null;
                 }
             }
+
+            // Can't be optimized, then do fallback
+            if (fallback) {
+                assert result == null;
+                assert q.resultType().isVertex() || q.resultType().isEdge();
+                // Reset aggregate to fallback and scan
+                q.aggregate(null);
+                result = IteratorUtils.count(q.resultType().isVertex() ?
+                                             this.queryVertices(q) :
+                                             this.queryEdges(q));
+            }
+
             return new QueryResults<>(IteratorUtils.of(result), q);
         });
 
@@ -1335,14 +1348,20 @@ public class GraphTransaction extends IndexableTransaction {
 
     private <R> QueryList<R> optimizeQueries(Query query,
                                              QueryResults.Fetcher<R> fetcher) {
-        boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
         QueryList<R> queries = new QueryList<>(query, fetcher);
+        if (!(query instanceof ConditionQuery)) {
+            // It's a sysprop-query, add itself as subquery, don't need to flatten
+            queries.add(query);
+            return queries;
+        }
+
+        boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
         for (ConditionQuery cq: ConditionQueryFlatten.flatten(
                                 (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
-             * NOTE: There are two possibilities for this query:
+             * NOTE: There are two possibilities for the returned q:
              * 1.sysprop-query, which would not be empty.
              * 2.index-query result(ids after optimization), which may be empty.
              */
