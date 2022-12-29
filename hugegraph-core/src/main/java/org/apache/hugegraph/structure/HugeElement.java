@@ -434,15 +434,18 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
             if (key.equals(T.id)) {
                 elemKeys.id = val;
             } else if (key.equals(T.label)) {
-
-                if(val==null){
+                if (val == null) {
                     throw Element.Exceptions.labelCanNotBeNull();
                 }
-
                 elemKeys.label = val;
             } else {
                 elemKeys.keys.add(key.toString());
             }
+
+            if (val == null) {
+                throw Property.Exceptions.propertyDoesNotExist();
+            }
+
         }
         return elemKeys;
     }
