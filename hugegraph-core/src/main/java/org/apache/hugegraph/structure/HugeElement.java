@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
@@ -54,6 +55,8 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
+import com.alipay.remoting.util.StringUtils;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
@@ -430,15 +433,19 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
                 throw Element.Exceptions
                       .providedKeyValuesMustHaveALegalKeyOnEvenIndices();
             }
-            if (val == null) {
-                if (key.equals(T.label)) {
+
+            if(ObjectUtils.isEmpty(val)) {
+                if (val == null && key.equals(T.label)) {
                     throw Element.Exceptions.labelCanNotBeNull();
+                } else if (key.equals(T.label)) {
+                    throw Element.Exceptions.labelCanNotBeEmpty();
                 }
                 throw Property.Exceptions.propertyDoesNotExist();
             }
 
             if (key.equals(T.id)) {
                 elemKeys.id = val;
+
             } else if (key.equals(T.label)) {
                 elemKeys.label = val;
             } else {
