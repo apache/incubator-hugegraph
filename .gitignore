@@ -7,8 +7,6 @@ upload-files/
 demo*
 gen-java
 *.class
-apache-hugegraph-incubating-1.0.0/
-.github/
 
 ### STS ###
 .apt_generated
