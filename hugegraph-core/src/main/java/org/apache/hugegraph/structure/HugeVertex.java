@@ -22,6 +22,7 @@ package org.apache.hugegraph.structure;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -61,6 +62,9 @@ import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
+import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyVertexProperty;
+
 import com.google.common.collect.ImmutableList;
 
 public class HugeVertex extends HugeElement implements Vertex, Cloneable {
@@ -164,8 +168,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                 }
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Unknown id strategy '%s'", strategy));
+                throw new AssertionError(String.format("Unknown id strategy '%s'", strategy));
         }
         this.checkIdLength();
     }
@@ -252,7 +255,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add one edge between this vertex and other vertex
-     *
+     * <p>
      * *** this method is not thread safe, must clone this vertex first before
      * multi thread access e.g. `vertex.copy().resetTx();` ***
      */
@@ -297,7 +300,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
                         label, this.label(), vertex.label());
         // Check sortKeys
         List<Id> keys = this.graph().mapPkName2Id(elemKeys.keys());
-        E.checkArgument(keys.containsAll(edgeLabel.sortKeys()),
+        E.checkArgument(new HashSet<>(keys).containsAll(edgeLabel.sortKeys()),
                         "The sort key(s) must be set for the edge " +
                         "with label: '%s'", edgeLabel.name());
 
@@ -306,7 +309,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
                                      edgeLabel.properties(),
                                      edgeLabel.nullableKeys());
-        if (!keys.containsAll(nonNullKeys)) {
+        if (!new HashSet<>(keys).containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
@@ -421,9 +424,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Watched(prefix = "vertex")
     @Override
-    public <V> VertexProperty<V> property(
-               VertexProperty.Cardinality cardinality,
-               String key, V value, Object... objects) {
+    public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality,
+                                          String key, V value, Object... objects) {
         if (objects.length != 0 && objects[0].equals(T.id)) {
             throw VertexProperty.Exceptions.userSuppliedIdsNotSupported();
         }
@@ -439,7 +441,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
          *              .property(list, "key2", val2)
          *
          * The cardinality single may be user supplied single, it may also be
-         * that user doesn't supplied cardinality, when it is latter situation,
+         * that user doesn't supply cardinality, when it is latter situation,
          * we shouldn't check it. Because of this reason, we are forced to
          * give up the check of user supplied cardinality single.
          * The cardinality not single must be user supplied, so should check it
@@ -462,10 +464,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
                             "Can't update primary key: '%s'", key);
         }
+        if (value == null) {
+            this.removeProperty(propertyKey.id());
+            return EmptyVertexProperty.instance();
+        }
 
         @SuppressWarnings("unchecked")
-        VertexProperty<V> prop = (VertexProperty<V>) this.addProperty(
-                                 propertyKey, value, !this.fresh());
+        VertexProperty<V> prop = (VertexProperty<V>) this.addProperty(propertyKey,
+                                                                      value, !this.fresh());
         return prop;
     }
 
