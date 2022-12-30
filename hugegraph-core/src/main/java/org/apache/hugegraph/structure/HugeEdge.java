@@ -369,7 +369,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         if (ownerLabel.equals(this.label.sourceLabel())) {
             this.vertices(true, owner, other);
         } else {
-            // TODO: why when compare the label but ignore the result?
+            // TODO: why compare the label but ignore the result?
             ownerLabel.equals(this.label.targetLabel());
             this.vertices(false, owner, other);
         }
