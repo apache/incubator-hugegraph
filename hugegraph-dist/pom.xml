@@ -157,7 +157,7 @@
                             <directory>${top.level.dir}</directory>
                             <includes>
                                 <include>*.tar.gz</include>
-                                <include>.flattened-pom.xml</include>
+                                <!--<include>.flattened-pom.xml</include>-->
                                 <!--<include>${final.name}/**</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
