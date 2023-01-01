@@ -6,4 +6,3 @@
 apache-release.sh export-ignore
 
 hugegraph-dist/scripts export-ignore
-style/ export-ignore
