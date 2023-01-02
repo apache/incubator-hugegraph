@@ -542,12 +542,19 @@ public class GraphTransaction extends IndexableTransaction {
 
     @Override
     public Number queryNumber(Query query) {
+        boolean isConditionQuery = query instanceof ConditionQuery;
         boolean hasUpdate = this.hasUpdate();
         Aggregate aggregate = query.aggregateNotNull();
 
+        // TODO: we can concat index-query results and tx uncommitted records.
+        if (hasUpdate) {
+            E.checkArgument(!isConditionQuery,
+                            "It's not allowed to query by index when " +
+                            "there are uncommitted records.");
+        }
+
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean isIndexQuery = q instanceof IdQuery;
-            boolean isConditionQuery = query instanceof ConditionQuery;
             assert isIndexQuery || isConditionQuery || q == query;
             // Need to fallback if there are uncommitted records
             boolean fallback = hasUpdate;
