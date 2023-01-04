@@ -179,10 +179,11 @@
                         </goals>
                         <configuration>
                             <target>
-                                <tar destfile="${final.destfile}"
-                                     basedir="${top.level.dir}"  
-                                     includes="${final.name}/**"
-                                     compression="gzip"/>
+                                <tar destfile="${final.destfile}" compression="gzip">
+                                    <tarfileset dir="${top.level.dir}/" filemode="755">
+                                        <include name="${final.name}/**"/>
+                                    </tarfileset>
+                                </tar>
                             </target>
                         </configuration>
                     </execution>
