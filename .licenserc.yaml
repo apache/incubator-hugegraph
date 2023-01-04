@@ -55,6 +55,7 @@ header: # `header` section is configurations for source codes license header.
     - '.gitignore'
     - '.gitattributes'
     - 'LICENSE'
+    - 'NOTICE'
     - '**/*.versionsBackup'
     - '**/*.versionsBackup'
     - '**/*.proto'
