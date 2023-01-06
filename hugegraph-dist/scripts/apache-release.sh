@@ -62,10 +62,11 @@ done
 ##### 3.2 Generate SHA512 file
 shasum --version 1>/dev/null || exit
 for i in *.tar.gz; do
-  echo "$i" && shasum -a 512 "$i" >"$i".sha512
+  shasum -a 512 "$i" | tee "$i".sha512
 done
 
 #### 3.3 check signature & sha512
+echo "#### start to check signature & hashcode ####"
 for i in *.tar.gz; do
   echo "$i"
   gpg --verify "$i".asc "$i" || exit
