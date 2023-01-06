@@ -48,6 +48,15 @@
                 <include>*.jar</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>${top.level.dir}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>LICENSE*</include>
+                <include>NOTICE*</include>
+                <include>DISCLAIMER*</include>
+            </includes>
+        </fileSet>
     </fileSets>
 
     <dependencySets>
