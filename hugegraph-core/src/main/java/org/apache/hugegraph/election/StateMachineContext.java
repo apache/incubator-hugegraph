@@ -1,5 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
