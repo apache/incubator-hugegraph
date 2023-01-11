@@ -42,7 +42,7 @@ rm -rf dist && mkdir -p dist/apache-${REPO}
 cd ../../
 git archive --format=tar.gz \
   --output="hugegraph-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
-  --prefix=apache-${REPO}-"${RELEASE_VERSION}"-incubating-src/ "${GIT_BRANCH}" || exit
+  --prefix=apache-${REPO}-incubating-"${RELEASE_VERSION}"-src/ "${GIT_BRANCH}" || exit
 cd - || exit
 
 # step2: copy the binary file (Optional)
