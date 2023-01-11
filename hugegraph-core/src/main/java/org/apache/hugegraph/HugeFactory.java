@@ -31,15 +31,14 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.task.TaskManager;
-import org.apache.hugegraph.type.define.SerialEnum;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.traversal.algorithm.OltpTraverser;
+import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class HugeFactory {
 
@@ -47,7 +46,7 @@ public class HugeFactory {
 
     private static final Thread SHUT_DOWN_HOOK = new Thread(() -> {
         LOG.info("HugeGraph is shutting down");
-        HugeFactory.shutdown(30L);
+        HugeFactory.shutdown(30L, true);
     }, "hugegraph-shutdown");
 
     static {
@@ -142,11 +141,16 @@ public class HugeFactory {
         }
     }
 
+    public static void shutdown(long timeout) {
+        shutdown(timeout, false);
+    }
+
     /**
      * Stop all the daemon threads
-     * @param timeout seconds
+     * @param timeout wait in seconds
+     * @param ignoreException don't throw exception if true
      */
-    public static void shutdown(long timeout) {
+    public static void shutdown(long timeout, boolean ignoreException) {
         if (!SHUT_DOWN.compareAndSet(false, true)) {
             return;
         }
@@ -159,7 +163,11 @@ public class HugeFactory {
         } catch (Throwable e) {
             LOG.error("Error while shutdown", e);
             SHUT_DOWN.compareAndSet(true, false);
-            throw new HugeException("Failed to shutdown", e);
+            if (ignoreException) {
+                return;
+            } else {
+                throw new HugeException("Failed to shutdown", e);
+            }
         }
 
         LOG.info("HugeFactory shutdown");
