@@ -157,6 +157,7 @@ cd - || exit
 #### step5.2: running toolchain
 cd ./*toolchain*"${RELEASE_VERSION}" || exit
 ls -lh
+
 ##### 5.2.1 test loader
 cd ./*loader*"${RELEASE_VERSION}" || exit
 bin/hugegraph-loader.sh -f ./example/file/struct.json -s ./example/file/schema.groovy \
