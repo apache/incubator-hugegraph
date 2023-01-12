@@ -381,7 +381,7 @@
                     <configuration>
                         <filesets>
                             <fileset>
-                                <directory>${top.level.dir}</directory>
+                                <directory>${project.basedir}/</directory>
                                 <includes>
                                     <include>*.tar</include>
                                     <include>*.tar.gz</include>
