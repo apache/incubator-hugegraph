@@ -412,6 +412,7 @@
                             <exclude>**/*.properties</exclude>
                             <exclude>dist/**/*</exclude>
                             <exclude>**/assembly/static/bin/hugegraph.service</exclude>
+                            <exclude>**/swagger-ui/**/*</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
                             <exclude>**/*.md</exclude>
