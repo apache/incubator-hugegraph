@@ -6,23 +6,23 @@ on:
       release_version:
         required: true
         default: '1.0.0'
-      deploy_maven:
+      deploy:
         required: true
-        default: 'false'
+        default: false
+        type: boolean
 
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       SCRIPT_PATH: hugegraph-dist/scripts/
-      RELEASE_VERSION: ${{ github.event.inputs.release_version }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
-      - name: Install JDK ${{ matrix.JAVA_VERSION }}
+      - name: Install JDK ${{ matrix.java_version }}
         uses: actions/setup-java@v3
         with:
-          java-version: ${{ matrix.JAVA_VERSION }}
+          java-version: ${{ matrix.java_version }}
           distribution: 'adopt'
       - name: Cache Maven packages
         uses: actions/cache@v3
@@ -47,7 +47,7 @@ jobs:
       # TODO: do we need svn & gpg environment?
       - name: Test Building Source & Running
         run: |
-          bash $SCRIPT_PATH/validate-release.sh $RELEASE_VERSION ${{ matrix.JAVA_VERSION }}
+          bash $SCRIPT_PATH/validate-release.sh ${{ inputs.release_version }} ${{ matrix.java_version }}
       - name: Test Running Binary
         run: |
           echo "TODO: separate script to test binary"
@@ -55,4 +55,4 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        JAVA_VERSION: [ '8', '11' ]
+        java_version: [ '8', '11' ]
