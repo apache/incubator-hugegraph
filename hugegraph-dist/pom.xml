@@ -173,6 +173,29 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>download-swagger-ui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <echo file="${project.basedir}/dist.sh">
+                                    wget https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz
+                                    tar zxvf v4.15.5.tar.gz
+                                    echo "window.onload = function() { window.ui = SwaggerUIBundle({
+                                    url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
+                                    presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
+                                    plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
+                                    cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
+                                </echo>
+                                <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
+                                    <arg line="./dist.sh"/>
+                                </exec>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <phase>package</phase>
                         <goals>
                             <goal>run</goal>
