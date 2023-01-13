@@ -19,6 +19,9 @@
 
 package org.apache.hugegraph.unit;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -26,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.util.TimeUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -42,7 +46,7 @@ public class BaseUnitTest {
         // pass
     }
 
-    protected static final void runWithThreads(int threads, Runnable task) {
+    protected static void runWithThreads(int threads, Runnable task) {
         ExecutorService executor = Executors.newFixedThreadPool(threads);
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < threads; i++) {
@@ -57,7 +61,17 @@ public class BaseUnitTest {
         }
     }
 
-    protected static final void waitTillNext(long seconds) {
+    protected static void waitTillNext(long seconds) {
         TimeUtil.tillNextMillis(TimeUtil.timeGen() + seconds * 1000);
+    }
+
+    public static void downloadFileByUrl(String url, String destPath) {
+        int connectTimeout = 5000;
+        int readTimeout = 5000;
+        try {
+            FileUtils.copyURLToFile(new URL(url), new File(destPath), connectTimeout, readTimeout);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -39,6 +39,7 @@ import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
+import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -271,7 +272,11 @@ public class RestClientTest {
 
     @Test
     public void testPostHttpsWithAllParams() {
+        String url = "https://github.com/apache/incubator-hugegraph-doc/" +
+                     "raw/master/dist/commons/cacerts.jks";
         String trustStoreFile = "src/test/resources/cacerts.jks";
+        BaseUnitTest.downloadFileByUrl(url, trustStoreFile);
+
         String trustStorePassword = "changeit";
         RestClient client = new RestClientImpl("/test", "user", "", 1000,
                                                10, 5, trustStoreFile,
@@ -282,7 +287,11 @@ public class RestClientTest {
 
     @Test
     public void testPostHttpsWithTokenAndAllParams() {
+        String url = "https://github.com/apache/incubator-hugegraph-doc/" +
+                     "raw/master/dist/commons/cacerts.jks";
         String trustStoreFile = "src/test/resources/cacerts.jks";
+        BaseUnitTest.downloadFileByUrl(url, trustStoreFile);
+
         String trustStorePassword = "changeit";
         RestClient client = new RestClientImpl("/test", "token", 1000,
                                                10, 5, trustStoreFile,

@@ -20,6 +20,7 @@
 package org.apache.hugegraph.unit.concurrent;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 
@@ -103,7 +104,7 @@ public class KeyLockTest extends BaseUnitTest {
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            locks.lockAll(Arrays.asList().toArray());
+            locks.lockAll(Collections.emptyList().toArray());
         }, e -> {
             Assert.assertContains("Lock keys can't be null or empty",
                                   e.getMessage());

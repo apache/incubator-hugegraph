@@ -20,20 +20,18 @@
 package org.apache.hugegraph.unit.license;
 
 import java.io.IOException;
-import java.text.ParseException;
 
 import org.apache.hugegraph.date.SafeDateFormat;
-import org.junit.Test;
-
 import org.apache.hugegraph.license.LicenseCreateParam;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.Test;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LicenseCreateParamTest {
 
     @Test
-    public void testDeserializeLicenseCreateParam()
-                throws IOException, ParseException {
+    public void testDeserializeLicenseCreateParam() throws IOException {
         String json = "{"
                 + "\"subject\":\"hugegraph-evaluation\","
                 + "\"private_alias\":\"privatekey\","
