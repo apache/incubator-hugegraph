@@ -21,10 +21,6 @@ package org.apache.hugegraph.dist;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.tinkerpop.gremlin.server.GremlinServer;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
@@ -33,6 +29,9 @@ import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.Log;
+import org.apache.logging.log4j.LogManager;
+import org.apache.tinkerpop.gremlin.server.GremlinServer;
+import org.slf4j.Logger;
 
 public class HugeGraphServer {
 
@@ -122,7 +121,7 @@ public class HugeGraphServer {
         try {
             server = new HugeGraphServer(args[0], args[1]);
         } catch (Throwable e) {
-            HugeFactory.shutdown(30L);
+            HugeFactory.shutdown(30L, true);
             throw e;
         }
 

@@ -25,10 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections.map.MultiValueMap;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.apache.hugegraph.dist.RegisterUtil;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.StandardAuthenticator;
@@ -36,9 +32,12 @@ import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+import org.slf4j.Logger;
 
 public class InitStore {
 
@@ -87,7 +86,7 @@ public class InitStore {
             for (HugeGraph graph : graphs) {
                 graph.close();
             }
-            HugeFactory.shutdown(30L);
+            HugeFactory.shutdown(30L, true);
         }
     }
 
