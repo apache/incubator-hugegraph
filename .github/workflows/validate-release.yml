@@ -3,7 +3,7 @@ name: Validate Apache Release
 on:
   workflow_dispatch:
     inputs:
-      current_version:
+      release_version:
         required: true
         default: '1.0.0'
       deploy_maven:
@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SCRIPT_PATH: hugegraph-dist/scripts/
+      RELEASE_VERSION: ${{ github.event.inputs.release_version }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
@@ -46,8 +47,7 @@ jobs:
       # TODO: do we need svn & gpg environment?
       - name: Test Building Source & Running
         run: |
-          bash $SCRIPT_PATH/validate-release.sh ${{ github.event.inputs.current_version }} \
-          ${{ matrix.JAVA_VERSION }}
+          bash $SCRIPT_PATH/validate-release.sh $RELEASE_VERSION ${{ matrix.JAVA_VERSION }}
       - name: Test Running Binary
         run: |
           echo "TODO: separate script to test binary"
