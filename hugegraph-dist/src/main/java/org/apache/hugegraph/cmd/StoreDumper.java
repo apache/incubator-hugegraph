@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -21,19 +19,18 @@ package org.apache.hugegraph.cmd;
 
 import java.util.Iterator;
 
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.hugegraph.dist.RegisterUtil;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.slf4j.Logger;
 
 public class StoreDumper {
 
@@ -90,7 +87,7 @@ public class StoreDumper {
         dumper.close();
 
         // Stop daemon thread
-        HugeFactory.shutdown(30L);
+        HugeFactory.shutdown(30L, true);
     }
 
     private static String arg(String[] args, int index, String deflt) {
