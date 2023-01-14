@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -23,15 +21,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-import org.apache.tinkerpop.gremlin.groovy.engine.GremlinExecutor;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.server.GraphManager;
-import org.apache.tinkerpop.gremlin.server.GremlinServer;
-import org.apache.tinkerpop.gremlin.server.Settings;
-import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.Context;
@@ -41,6 +30,14 @@ import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.groovy.engine.GremlinExecutor;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.server.GraphManager;
+import org.apache.tinkerpop.gremlin.server.GremlinServer;
+import org.apache.tinkerpop.gremlin.server.Settings;
+import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.slf4j.Logger;
 
 /**
  * GremlinServer with custom ServerGremlinExecutor, which can pass Context
@@ -84,6 +81,9 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     private void unlistenChanges() {
+        if (this.eventHub == null) {
+            return;
+        }
         this.eventHub.unlisten(Events.GRAPH_CREATE);
         this.eventHub.unlisten(Events.GRAPH_DROP);
     }
