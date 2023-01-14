@@ -26,8 +26,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        BACKEND: [memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql]
-        JAVA_VERSION: ['8', '11']
+        BACKEND: [ memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql ]
+        JAVA_VERSION: [ '8', '11' ]
 
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
@@ -56,14 +56,13 @@ jobs:
 
       - name: Compile
         run: |
-          mvn clean compile -U -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
+          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
       - name: Install JDK 8
         uses: actions/setup-java@v3
         with:
           java-version: '8'
           distribution: 'zulu'
-
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
@@ -71,8 +70,8 @@ jobs:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
-           java-version: ${{ matrix.JAVA_VERSION }}
-           distribution: 'zulu'
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'zulu'
 
       - name: Run unit test
         run: |
