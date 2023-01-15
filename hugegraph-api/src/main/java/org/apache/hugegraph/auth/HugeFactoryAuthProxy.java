@@ -33,7 +33,6 @@ import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.tx.AbstractTransaction;
 import org.apache.hugegraph.concurrent.LockManager;
-import org.apache.hugegraph.license.LicenseVerifier;
 import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaManager;
@@ -184,8 +183,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(CacheManager.class, "access$0", "scheduleTimer", "instance");
         Reflection.registerFieldsToFilter(org.apache.hugegraph.concurrent.LockManager.class, "INSTANCE", "lockGroupMap");
         Reflection.registerMethodsToFilter(org.apache.hugegraph.concurrent.LockManager.class, "instance");
-        Reflection.registerFieldsToFilter(LicenseVerifier.class, "LOG", "LICENSE_PARAM_PATH", "INSTANCE", "CHECK_INTERVAL", "lastCheckTime", "verifyParam", "manager");
-        Reflection.registerMethodsToFilter(LicenseVerifier.class, "buildVerifyParam", "initLicenseParam", "verifyPublicCert", "instance");
         Reflection.registerFieldsToFilter(ServerReporter.class, "instance", "gauges", "counters", "histograms", "meters", "timers");
         Reflection.registerMethodsToFilter(ServerReporter.class, "instance", "instance");
         Reflection.registerFieldsToFilter(com.codahale.metrics.ScheduledReporter.class, "LOG", "FACTORY_ID", "registry", "executor", "shutdownExecutorOnStop", "disabledMetricAttributes", "scheduledFuture", "filter", "durationFactor", "durationUnit", "rateFactor", "rateUnit");
@@ -261,7 +258,6 @@ public final class HugeFactoryAuthProxy {
 
         registerPrivateActions(CacheManager.class);
         registerPrivateActions(LockManager.class);
-        registerPrivateActions(LicenseVerifier.class);
         registerPrivateActions(ServerReporter.class);
         registerPrivateActions(JsonSerializer.class);
         registerPrivateActions(HugeVertexStepStrategy.class);

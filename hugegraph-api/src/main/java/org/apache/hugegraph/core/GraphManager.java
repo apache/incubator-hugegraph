@@ -36,7 +36,6 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.license.LicenseVerifier;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.serializer.JsonSerializer;
@@ -104,8 +103,6 @@ public final class GraphManager {
         this.listenChanges();
 
         this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
-
-        // this.installLicense(conf, "");
 
         // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
         this.startRpcServer();
@@ -331,10 +328,6 @@ public final class GraphManager {
         return this.authenticator;
     }
 
-    @SuppressWarnings("unused")
-    private void installLicense(HugeConfig config, String md5) {
-        LicenseVerifier.instance().install(config, this, md5);
-    }
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
                          final Transaction.Status tx) {
