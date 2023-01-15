@@ -23,7 +23,8 @@ BASE_DIR=$1
 BACKEND=$2
 JACOCO_PORT=$3
 
-JACOCO_JAR=${HOME_DIR}/${TRAVIS_DIR}/jacocoagent.jar
+JACOCO_DIR=${HOME_DIR}/${TRAVIS_DIR}
+JACOCO_JAR=${JACOCO_DIR}/jacocoagent.jar
 
 BIN=$BASE_DIR/bin
 CONF=$BASE_DIR/conf/graphs/hugegraph.properties
@@ -61,6 +62,9 @@ echo "schema.sync_deletion=true" >> $CONF
 
 JACOCO_OPTION=""
 if [ -n "$JACOCO_PORT" ]; then
+    if [[ ! -e ${JACOCO_JAR} ]]; then
+      wget -P "${JACOCO_DIR}" https://github.com/apache/incubator-hugegraph-doc/blob/master/dist/server/jacocoagent.jar
+    fi
     JACOCO_OPTION="-javaagent:${JACOCO_JAR}=includes=*,port=${JACOCO_PORT},destfile=jacoco-it.exec,output=tcpserver"
 fi
 
