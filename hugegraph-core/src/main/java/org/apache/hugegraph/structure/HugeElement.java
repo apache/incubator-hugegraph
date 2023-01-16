@@ -433,12 +433,6 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
                 // Ignore null value for tinkerpop test compatibility
                 continue;
             }
-            if (val == null) {
-                if (key.equals(T.label)) {
-                    throw Element.Exceptions.labelCanNotBeNull();
-                }
-                throw Property.Exceptions.propertyDoesNotExist();
-            }
 
             if (key.equals(T.id)) {
                 elemKeys.id = val;
