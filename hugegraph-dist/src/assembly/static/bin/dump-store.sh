@@ -45,5 +45,7 @@ cd $TOP
 
 echo "Dumping HugeGraph Store($conf)..."
 
-exec $JAVA -cp $LIB/hugegraph-dist-*.jar -Djava.ext.dirs=$LIB/ \
+dump_store_ext_jar_path=$LIB/hugegraph-dist-*.jar
+for i in $LIB/*.jar; do dump_store_ext_jar_path=$dump_store_ext_jar_path:$i;  export dump_store_ext_jar_path; done
+exec $JAVA -cp dump_store_ext_jar_path \
 org.apache.hugegraph.cmd.StoreDumper $conf $2 $3 $4
