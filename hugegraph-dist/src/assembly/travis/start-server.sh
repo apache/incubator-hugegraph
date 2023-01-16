@@ -31,6 +31,8 @@ CONF=$BASE_DIR/conf/graphs/hugegraph.properties
 REST_CONF=$BASE_DIR/conf/rest-server.properties
 GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 
+. ${BIN}/util.sh
+
 declare -A backend_serializer_map=(["memory"]="text" \
                                    ["cassandra"]="cassandra" \
                                    ["scylladb"]="scylladb" \
@@ -63,7 +65,7 @@ echo "schema.sync_deletion=true" >> $CONF
 JACOCO_OPTION=""
 if [ -n "$JACOCO_PORT" ]; then
     if [[ ! -e ${JACOCO_JAR} ]]; then
-      wget -P "${JACOCO_DIR}" https://github.com/apache/incubator-hugegraph-doc/blob/master/dist/server/jacocoagent.jar
+      download "${JACOCO_DIR}" "https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/incubator-hugegraph-doc/master/dist/server/jacocoagent.jar"
     fi
     JACOCO_OPTION="-javaagent:${JACOCO_JAR}=includes=*,port=${JACOCO_PORT},destfile=jacoco-it.exec,output=tcpserver"
 fi
