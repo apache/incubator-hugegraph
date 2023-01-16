@@ -30,6 +30,11 @@ fi
 cd hugegraph-test
 mvn jacoco:dump@pull-test-data -Dapp.host=localhost -Dapp.port=$JACOCO_PORT -Dskip.dump=false
 cd ../
+
+if [[ ! -e "${TRAVIS_DIR}/jacococli.jar" ]]; then
+  wget -P "${TRAVIS_DIR}" https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/jacococli.jar
+fi
+
 java -jar $TRAVIS_DIR/jacococli.jar report hugegraph-test/target/jacoco-it.exec \
      --classfiles hugegraph-dist/target/classes/org/apache/hugegraph \
      --classfiles hugegraph-api/target/classes/org/apache/hugegraph \

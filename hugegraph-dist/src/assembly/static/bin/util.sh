@@ -271,7 +271,7 @@ function download() {
 
     if command_available "wget"; then
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
-        wget "${link_url}" -P "${path}" "$progress_opt"
+        wget "${link_url}" -P "${path}" $progress_opt
     elif command_available "curl"; then
         curl "${link_url}" -o "${path}"/"${link_url}"
     else
