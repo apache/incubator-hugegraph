@@ -67,8 +67,8 @@ MIN_MEM=$((1 * 512))
 MIN_JAVA_VERSION=8
 
 # download binary file
-if [[ ! -e ${CONF}/hugegraph-server.keystore  ]]; then
-  download "${CONF}" "https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/incubator-hugegraph-doc/master/dist/server/hugegraph-server.keystore"
+if [[ ! -e "${CONF}/hugegraph-server.keystore"  ]]; then
+  download "${CONF}" "https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/hugegraph-doc/master/dist/server/hugegraph-server.keystore"
 fi
 
 # Add the slf4j-log4j12 binding

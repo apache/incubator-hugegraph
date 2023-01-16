@@ -32,7 +32,7 @@ mvn jacoco:dump@pull-test-data -Dapp.host=localhost -Dapp.port=$JACOCO_PORT -Dsk
 cd ../
 
 if [[ ! -e "${TRAVIS_DIR}/jacococli.jar" ]]; then
-  wget -P "${TRAVIS_DIR}" https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/incubator-hugegraph-doc/master/dist/server/jacococli.jar
+  wget -P "${TRAVIS_DIR}" https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/hugegraph-doc/master/dist/server/jacococli.jar
 fi
 
 java -jar $TRAVIS_DIR/jacococli.jar report hugegraph-test/target/jacoco-it.exec \
