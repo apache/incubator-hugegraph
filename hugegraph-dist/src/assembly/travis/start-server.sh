@@ -65,7 +65,7 @@ echo "schema.sync_deletion=true" >> $CONF
 JACOCO_OPTION=""
 if [ -n "$JACOCO_PORT" ]; then
     if [[ ! -e "${JACOCO_JAR}" ]]; then
-      download "${JACOCO_DIR}" "https://gh.api.99988866.xyz/https://raw.githubusercontent.com/apache/hugegraph-doc/master/dist/server/jacocoagent.jar"
+      download "${JACOCO_DIR}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/jacocoagent.jar"
     fi
     JACOCO_OPTION="-javaagent:${JACOCO_JAR}=includes=*,port=${JACOCO_PORT},destfile=jacoco-it.exec,output=tcpserver"
 fi
