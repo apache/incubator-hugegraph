@@ -45,6 +45,7 @@ import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.type.define.NodeRole;
+
 import com.google.common.collect.ImmutableSet;
 
 @Graph.OptIn("org.apache.hugegraph.tinkerpop.StructureBasicSuite")
@@ -55,8 +56,7 @@ public class TestGraph implements Graph {
 
     public static final String DEFAULT_VL = "vertex";
 
-    public static final Set<String> TRUNCATE_BACKENDS =
-           ImmutableSet.of("rocksdb", "mysql");
+    public static final Set<String> TRUNCATE_BACKENDS = ImmutableSet.of("rocksdb", "mysql");
 
     private static volatile int id = 666;
 
@@ -130,19 +130,19 @@ public class TestGraph implements Graph {
         // Clear schema and graph data will be cleared at same time
         SchemaManager schema = this.graph.schema();
 
-        schema.getIndexLabels().stream().forEach(elem -> {
+        schema.getIndexLabels().forEach(elem -> {
             schema.indexLabel(elem.name()).remove();
         });
 
-        schema.getEdgeLabels().stream().forEach(elem -> {
+        schema.getEdgeLabels().forEach(elem -> {
             schema.edgeLabel(elem.name()).remove();
         });
 
-        schema.getVertexLabels().stream().forEach(elem -> {
+        schema.getVertexLabels().forEach(elem -> {
             schema.vertexLabel(elem.name()).remove();
         });
 
-        schema.getPropertyKeys().stream().forEach(elem -> {
+        schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
 
@@ -155,7 +155,7 @@ public class TestGraph implements Graph {
     @Watched
     protected void clearVariables() {
         Variables variables = this.variables();
-        variables.keys().forEach(key -> variables.remove(key));
+        variables.keys().forEach(variables::remove);
     }
 
     protected boolean closed() {
@@ -250,8 +250,7 @@ public class TestGraph implements Graph {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
-        Whitebox.setInternalState(HugeGraphSONModule.class,
-                                  "OPTIMIZE_SERIALIZE", false);
+        Whitebox.setInternalState(HugeGraphSONModule.class, "OPTIMIZE_SERIALIZE", false);
         return (I) builder.graph(this).onMapper(mapper ->
             mapper.addRegistry(HugeGraphIoRegistry.instance())
         ).create();
@@ -315,8 +314,7 @@ public class TestGraph implements Graph {
             case "regularLoad":
                 return false;
             default:
-                throw new AssertionError(String.format(
-                          "Wrong IO type %s", this.loadedGraph));
+                throw new AssertionError(String.format("Wrong IO type %s", this.loadedGraph));
         }
     }
 
@@ -344,24 +342,19 @@ public class TestGraph implements Graph {
                 schema.propertyKey(key).ifNotExist().create();
                 break;
             case "BooleanArray":
-                schema.propertyKey(key).asBoolean().valueList()
-                      .ifNotExist().create();
+                schema.propertyKey(key).asBoolean().valueList().ifNotExist().create();
                 break;
             case "IntegerArray":
-                schema.propertyKey(key).asInt().valueList()
-                      .ifNotExist().create();
+                schema.propertyKey(key).asInt().valueList().ifNotExist().create();
                 break;
             case "LongArray":
-                schema.propertyKey(key).asLong().valueList()
-                      .ifNotExist().create();
+                schema.propertyKey(key).asLong().valueList().ifNotExist().create();
                 break;
             case "FloatArray":
-                schema.propertyKey(key).asFloat().valueList()
-                      .ifNotExist().create();
+                schema.propertyKey(key).asFloat().valueList().ifNotExist().create();
                 break;
             case "DoubleArray":
-                schema.propertyKey(key).asDouble().valueList()
-                      .ifNotExist().create();
+                schema.propertyKey(key).asDouble().valueList().ifNotExist().create();
                 break;
             case "StringArray":
                 schema.propertyKey(key).valueList().ifNotExist().create();
@@ -374,8 +367,7 @@ public class TestGraph implements Graph {
             case "Serializable":
                 break;
             default:
-                throw new RuntimeException(
-                          String.format("Wrong type %s for %s", type, key));
+                throw new RuntimeException(String.format("Wrong type %s for %s", type, key));
         }
     }
 
@@ -411,8 +403,7 @@ public class TestGraph implements Graph {
                       .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Id strategy must be customize or automatic"));
+                throw new AssertionError("Id strategy must be customize or automatic");
         }
 
         schema.edgeLabel("followedBy")
@@ -507,8 +498,7 @@ public class TestGraph implements Graph {
                       .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Id strategy must be customize or automatic"));
+                throw new AssertionError("Id strategy must be customize or automatic");
         }
 
         schema.edgeLabel("knows").link("person", "person")
@@ -584,8 +574,7 @@ public class TestGraph implements Graph {
                       .useCustomizeStringId().ifNotExist().create();
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Id strategy must be customize or automatic"));
+                throw new AssertionError("Id strategy must be customize or automatic");
         }
 
         schema.edgeLabel("knows").link("vertex", "vertex")
@@ -673,8 +662,7 @@ public class TestGraph implements Graph {
         schema.propertyKey("new").ifNotExist().create();
         schema.propertyKey("color").ifNotExist().create();
         schema.propertyKey("every").ifNotExist().create();
-        schema.propertyKey("gremlin.partitionGraphStrategy.partition")
-              .ifNotExist().create();
+        schema.propertyKey("gremlin.partitionGraphStrategy.partition").ifNotExist().create();
         schema.propertyKey("blah").asDouble().ifNotExist().create();
         schema.propertyKey("bloop").asInt().ifNotExist().create();
 
@@ -693,8 +681,7 @@ public class TestGraph implements Graph {
     }
 
     @Watched
-    private void initBasicVertexLabelV(IdStrategy idStrategy,
-                                       String defaultVL) {
+    private void initBasicVertexLabelV(IdStrategy idStrategy, String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
         switch (idStrategy) {
@@ -767,7 +754,7 @@ public class TestGraph implements Graph {
     private void initBasicVertexLabelAndEdgeLabelExceptV(String defaultVL) {
         SchemaManager schema = this.graph.schema();
 
-        if (!defaultVL.equals("person")) {
+        if (!"person".equals(defaultVL)) {
             schema.vertexLabel("person")
                   .properties("name", "age")
                   .nullableKeys("name", "age")

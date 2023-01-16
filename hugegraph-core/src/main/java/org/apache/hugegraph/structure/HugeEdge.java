@@ -45,12 +45,14 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
+
 import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     private Id id;
-    private EdgeLabel label;
+    private final EdgeLabel label;
     private String name;
 
     private HugeVertex sourceVertex;
@@ -200,6 +202,11 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         E.checkArgument(this.label.properties().contains(propertyKey.id()),
                         "Invalid property '%s' for edge label '%s'",
                         key, this.label());
+        if (value == null) {
+            this.removeProperty(propertyKey.id());
+            return EmptyProperty.instance();
+        }
+
         // Sort-Keys can only be set once
         if (this.schemaLabel().sortKeys().contains(propertyKey.id())) {
             E.checkArgument(!this.hasProperty(propertyKey.id()),
@@ -279,7 +286,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         if (keys.length == 0) {
             for (HugeProperty<?> prop : this.getProperties()) {
-                assert prop instanceof Property;
+                assert prop != null;
                 props.add((Property<V>) prop);
             }
         } else {
@@ -295,7 +302,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
                     // Not found
                     continue;
                 }
-                assert prop instanceof Property;
                 props.add((Property<V>) prop);
             }
         }
@@ -320,8 +326,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             case PROPERTIES:
                 return this.getPropertiesMap();
             default:
-                E.checkArgument(false,
-                                "Invalid system property '%s' of Edge", key);
+                E.checkArgument(false, "Invalid system property '%s' of Edge", key);
                 return null;
         }
     }
@@ -362,6 +367,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         if (ownerLabel.equals(this.label.sourceLabel())) {
             this.vertices(true, owner, other);
         } else {
+            // TODO: why compare the label but ignore the result?
             ownerLabel.equals(this.label.targetLabel());
             this.vertices(false, owner, other);
         }
@@ -515,8 +521,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             ownerVertex.correctVertexLabel(tgtLabel);
             otherVertexLabel = srcLabel;
         }
-        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId,
-                                                otherVertexLabel);
+        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId, otherVertexLabel);
 
         ownerVertex.propNotLoaded();
         otherVertex.propNotLoaded();
