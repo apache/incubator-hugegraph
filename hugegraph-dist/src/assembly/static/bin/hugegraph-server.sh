@@ -66,6 +66,11 @@ MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
 MIN_JAVA_VERSION=8
 
+# download binary file
+if [[ ! -e "${CONF}/hugegraph-server.keystore"  ]]; then
+  download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
+fi
+
 # Add the slf4j-log4j12 binding
 CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 # Add the jars in lib that start with "hugegraph"
