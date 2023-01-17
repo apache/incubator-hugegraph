@@ -200,3 +200,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
+========================================================================
+Apache 2.0 licenses
+========================================================================
+
+The following components are provided under the Apache License. See project link for details.
+The text of each license is the standard Apache 2.0 license.
+
+hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java files from https://github.com/twitter-archive/snowflake
