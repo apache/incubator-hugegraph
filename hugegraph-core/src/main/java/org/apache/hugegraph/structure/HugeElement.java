@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -33,7 +31,9 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.schema.VertexLabel;
@@ -41,6 +41,9 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.Idfiable;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.CollectionUtil;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -48,12 +51,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
-
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.util.CollectionUtil;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
 
 public abstract class HugeElement implements Element, GraphType, Idfiable {
 
@@ -63,8 +60,8 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
 
     private final HugeGraph graph;
     private MutableIntObjectMap<HugeProperty<?>> properties;
-
-    private long expiredTime; // TODO: move into properties to keep small object
+    // TODO: move into properties to keep small object
+    private long expiredTime;
 
     private boolean removed;
     private boolean fresh;
@@ -427,11 +424,14 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
             Object val = keyValues[i + 1];
 
             if (!(key instanceof String) && !(key instanceof T)) {
-                throw Element.Exceptions
-                      .providedKeyValuesMustHaveALegalKeyOnEvenIndices();
+                throw Element.Exceptions.providedKeyValuesMustHaveALegalKeyOnEvenIndices();
             }
             if (val == null) {
-                throw Property.Exceptions.propertyDoesNotExist();
+                if (T.label.equals(key)) {
+                    throw Element.Exceptions.labelCanNotBeNull();
+                }
+                // Ignore null value for tinkerpop test compatibility
+                continue;
             }
 
             if (key.equals(T.id)) {

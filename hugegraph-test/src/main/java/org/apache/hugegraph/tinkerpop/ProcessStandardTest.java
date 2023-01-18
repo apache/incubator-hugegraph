@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -23,7 +21,6 @@ import org.apache.tinkerpop.gremlin.GraphProviderClass;
 import org.junit.runner.RunWith;
 
 @RunWith(ProcessBasicSuite.class)
-@GraphProviderClass(provider = ProcessTestGraphProvider.class,
-                    graph = TestGraph.class)
+@GraphProviderClass(provider = ProcessTestGraphProvider.class, graph = TestGraph.class)
 public class ProcessStandardTest {
 }

@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -230,7 +228,7 @@ public class PropertyKey extends SchemaElement implements Propertiable {
     }
 
     /**
-     * Check type of all the values(may be some of list properties) valid
+     * Check type of all the values(maybe some list properties) valid
      * @param values the property values to be checked data type
      * @param <V> the property value class
      * @return true if all the values are or can convert to the data type,

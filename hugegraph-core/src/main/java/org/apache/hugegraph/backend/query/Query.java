@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -37,6 +35,7 @@ import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.collection.IdSet;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -419,6 +418,10 @@ public class Query implements Cloneable {
 
     public void aggregate(AggregateFunc func, String property) {
         this.aggregate = new Aggregate(func, property);
+    }
+
+    public void aggregate(Aggregate aggregate) {
+        this.aggregate = aggregate;
     }
 
     public boolean showHidden() {
