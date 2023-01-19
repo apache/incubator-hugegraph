@@ -94,7 +94,8 @@ public class SnowflakeIdGenerator extends IdGenerator {
         return this.generate();
     }
 
-    /*
+    /**
+     * TODO: lack LICENSE reference & seems need move to header
      * Copyright 2010-2012 Twitter, Inc.
      * Licensed under the Apache License, Version 2.0 (the "License");
      * you may not use this file except in compliance with the License.

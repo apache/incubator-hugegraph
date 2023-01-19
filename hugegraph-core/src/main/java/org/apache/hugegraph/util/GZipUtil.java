@@ -27,6 +27,7 @@ import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 
 /**
+ * TODO: ensure the refer is valid & clear
  * Reference from https://dzone.com/articles/how-compress-and-uncompress
  */
 public final class GZipUtil {

@@ -32,6 +32,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
+ * TODO: ensure the refer is valid & clear
  * Reference from https://my.oschina.net/apdplat/blog/412921
  */
 public class AnsjAnalyzer implements Analyzer {
@@ -56,7 +57,7 @@ public class AnsjAnalyzer implements Analyzer {
 
     @Override
     public Set<String> segment(String text) {
-        Result terms = null;
+        Result terms;
         switch (this.analysis) {
             case "BaseAnalysis":
                 terms = BaseAnalysis.parse(text);

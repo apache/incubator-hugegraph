@@ -1,4 +1,4 @@
-/*
+/* TODO: remove the APL2 license header?
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -18,6 +18,7 @@
 package org.apache.hugegraph.type;
 
 /**
+ * TODO: lack license header & LICENSE reference
  * Represents an entity that can be uniquely identified by a String name.
  *
  * @author Matthias Broecheler (me@matthiasb.com)

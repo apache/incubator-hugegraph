@@ -17,19 +17,22 @@
 
 package org.apache.hugegraph.util;
 
-import java.io.UnsupportedEncodingException;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
 
-import org.mindrot.jbcrypt.BCrypt;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.google.common.base.CharMatcher;
 
 /**
+ * TODO: lack license header & LICENSE reference
  * @author Matthias Broecheler (me@matthiasb.com)
  * @author HugeGraph Authors
  */
@@ -52,7 +55,7 @@ public final class StringEncoding {
     private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
     private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
 
-    // Similar to {@link StringSerializer}
+    /** Similar to {@link StringSerializer} */
     public static int writeAsciiString(byte[] array, int offset, String value) {
         E.checkArgument(CharMatcher.ascii().matchesAllOf(value),
                         "'%s' must be ASCII string", value);
@@ -68,7 +71,8 @@ public final class StringEncoding {
             assert c <= 127;
             byte b = (byte) c;
             if (++i == len) {
-                b |= 0x80; // End marker
+                // End marker
+                b |= 0x80;
             }
             array[offset++] = b;
         } while (i < len);
@@ -78,7 +82,7 @@ public final class StringEncoding {
 
     public static String readAsciiString(byte[] array, int offset) {
         StringBuilder sb = new StringBuilder();
-        int c = 0;
+        int c;
         do {
             c = 0xFF & array[offset++];
             if (c != 0x80) {
@@ -95,33 +99,21 @@ public final class StringEncoding {
     }
 
     public static byte[] encode(String value) {
-        try {
-            return value.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new HugeException("Failed to encode string", e);
-        }
+        return value.getBytes(UTF_8);
     }
 
     public static String decode(byte[] bytes) {
         if (bytes.length == 0) {
             return STRING_EMPTY;
         }
-        try {
-            return new String(bytes, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new HugeException("Failed to decode string", e);
-        }
+        return new String(bytes, UTF_8);
     }
 
     public static String decode(byte[] bytes, int offset, int length) {
         if (length == 0) {
             return STRING_EMPTY;
         }
-        try {
-            return new String(bytes, offset, length, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new HugeException("Failed to decode string", e);
-        }
+        return new String(bytes, offset, length, UTF_8);
     }
 
     public static String encodeBase64(byte[] bytes) {
@@ -140,9 +132,11 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value, float bufferRatio) {
-        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE,
-                                           bufferRatio);
-        return buf.bytes();
+        try (BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE, bufferRatio)) {
+            return buf.bytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String decompress(byte[] value) {
@@ -150,8 +144,11 @@ public final class StringEncoding {
     }
 
     public static String decompress(byte[] value, float bufferRatio) {
-        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio);
-        return decode(buf.array(), 0, buf.position());
+        try (BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio)) {
+            return decode(buf.array(), 0, buf.position());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String hashPassword(String password) {
@@ -180,8 +177,7 @@ public final class StringEncoding {
                 return UUID.fromString(value);
             }
             // UUID represented by hex string
-            E.checkArgument(value.length() == 32,
-                            "Invalid UUID string: %s", value);
+            E.checkArgument(value.length() == 32, "Invalid UUID string: %s", value);
             String high = value.substring(0, 16);
             String low = value.substring(16);
             return new UUID(Long.parseUnsignedLong(high, 16),

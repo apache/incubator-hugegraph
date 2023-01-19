@@ -56,12 +56,13 @@ import com.google.common.collect.ImmutableMap;
  * CassandraShard is used for cassandra scanning operations.
  * Each shard represents a range of tokens for a node.
  * Reading data from a given shard does not cross multiple nodes.
+ * <p>
  * Refer to AbstractColumnFamilyInputFormat from:
  * <a href="https://github.com/2013Commons/hive-cassandra/">...</a>
  */
 public class CassandraShard {
 
-    // The minimal shard size should >= 1M to prevent too many number of shards
+    /** The minimal shard size should >= 1M to prevent too many number of shards */
     private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
 
     private CassandraSessionPool.Session session;
@@ -228,7 +229,7 @@ public class CassandraShard {
                                               tokenRange.getEnd().toString());
         Row row = resultSet.one();
 
-        long meanPartitionSize = 0L;
+        long meanPartitionSize;
         long partitionsCount = 0L;
         long splitCount = 0L;
 

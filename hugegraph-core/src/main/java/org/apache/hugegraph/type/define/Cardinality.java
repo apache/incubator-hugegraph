@@ -20,6 +20,7 @@ package org.apache.hugegraph.type.define;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 /**
+ * TODO: lack license header & LICENSE reference
  * The cardinality of the values associated with given key for a particular element.
  *
  * @author Matthias Broecheler (me@matthiasb.com)
@@ -42,8 +43,8 @@ public enum Cardinality implements SerialEnum {
      */
     SET(3, "set");
 
-    private byte code = 0;
-    private String name = null;
+    private final byte code;
+    private final String name;
 
     static {
         SerialEnum.register(Cardinality.class);
@@ -81,8 +82,8 @@ public enum Cardinality implements SerialEnum {
             case set:
                 return SET;
             default:
-                throw new AssertionError(String.format(
-                          "Unrecognized cardinality: '%s'", cardinality));
+                throw new AssertionError(String.format("Unrecognized cardinality: '%s'",
+                                                       cardinality));
         }
     }
 }

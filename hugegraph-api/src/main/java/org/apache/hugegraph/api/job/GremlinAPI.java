@@ -150,7 +150,7 @@ public class GremlinAPI extends API {
                 return firstLine;
             }
 
-            /*
+            /* TODO: ensure the refer is valid
              * Reference https://stackoverflow.com/questions/3576754/truncating-strings-by-bytes
              */
             CharsetDecoder decoder = charset.newDecoder();
