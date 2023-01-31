@@ -103,6 +103,13 @@
             <version>8.0.28</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.janeluo</groupId>
+            <artifactId>ikanalyzer</artifactId>
+            <version>2012_u6</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
