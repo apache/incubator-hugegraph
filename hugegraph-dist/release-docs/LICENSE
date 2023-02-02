@@ -263,6 +263,7 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Apache Log4j Core (org.apache.logging.log4j:log4j-core:2.17.1 - https://logging.apache.org/log4j/2.x/log4j-core/)
 	(Apache License, Version 2.0) * Apache Log4j SLF4J Binding (org.apache.logging.log4j:log4j-slf4j-impl:2.17.1 - https://logging.apache.org/log4j/2.x/log4j-slf4j-impl/)
 	(Apache License, Version 2.0) * Apache Thrift (org.apache.thrift:libthrift:0.9.2 - http://thrift.apache.org)
+	(Apache License, Version 2.0) * JanusGraph (https://github.com/apache/tinkerpop)
 	(Apache License, Version 2.0) * Apache TinkerPop :: Gremlin Console (org.apache.tinkerpop:gremlin-console:3.5.1 - http://tinkerpop.apache.org/gremlin-console/)
 	(Apache License, Version 2.0) * Apache TinkerPop :: Gremlin Core (org.apache.tinkerpop:gremlin-core:3.5.1 - http://tinkerpop.apache.org/gremlin-core/)
 	(Apache License, Version 2.0) * Apache TinkerPop :: Gremlin Driver (org.apache.tinkerpop:gremlin-driver:3.5.1 - http://tinkerpop.apache.org/gremlin-driver/)
