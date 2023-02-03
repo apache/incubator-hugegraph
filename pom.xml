@@ -218,12 +218,10 @@
                         <exclude>**/*.txt</exclude>
                         <exclude>**/*.json</exclude>
                         <exclude>**/*.conf</exclude>
-                        <exclude>**/*.properties</exclude>
                         <exclude>dist/**/*</exclude>
                         <exclude>docs/**/*</exclude>
                         <exclude>scripts/dev/reviewers</exclude>
                         <exclude>**/*.md</exclude>
-                        <exclude>**/dependency-reduced-pom.xml</exclude>
                         <exclude>**/.flattened-pom.xml</exclude>
                         <exclude>**/logs/*.log</exclude>
                         <exclude>**/target/*</exclude>

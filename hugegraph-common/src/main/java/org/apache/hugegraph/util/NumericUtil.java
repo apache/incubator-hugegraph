@@ -291,12 +291,9 @@ public final class NumericUtil {
 
     public static boolean isNumber(Class<?> clazz) {
         if (clazz.isPrimitive()) {
-            if (clazz == int.class || clazz == long.class ||
-                clazz == float.class || clazz == double.class ||
-                clazz == short.class || clazz == byte.class) {
-                return true;
-            }
-            return false;
+            return clazz == int.class || clazz == long.class ||
+                   clazz == float.class || clazz == double.class ||
+                   clazz == short.class || clazz == byte.class;
         }
         return Number.class.isAssignableFrom(clazz);
     }

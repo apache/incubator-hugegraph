@@ -38,8 +38,7 @@ public final class Bytes {
     public static final long PB = GB * MB;
     public static final long EB = GB * GB;
 
-    private static final Comparator<byte[]> CMP =
-                         UnsignedBytes.lexicographicalComparator();
+    private static final Comparator<byte[]> CMP = UnsignedBytes.lexicographicalComparator();
 
     public static int compare(byte[] bytes1, byte[] bytes2) {
         return CMP.compare(bytes1, bytes2);

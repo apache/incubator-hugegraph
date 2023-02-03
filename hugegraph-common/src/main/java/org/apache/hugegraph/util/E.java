@@ -40,9 +40,7 @@ public final class E {
                                     "The '%s' can't be empty", elem);
     }
 
-    public static void checkNotEmpty(Collection<?> collection,
-                                     String elem,
-                                     String owner) {
+    public static void checkNotEmpty(Collection<?> collection, String elem, String owner) {
         Preconditions.checkArgument(!collection.isEmpty(),
                                     "The '%s' of '%s' can't be empty",
                                     elem, owner);

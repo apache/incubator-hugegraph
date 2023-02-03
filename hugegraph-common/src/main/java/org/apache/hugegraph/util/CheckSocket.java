@@ -1,55 +1,37 @@
-// Copyright 2017 JanusGraph Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
 package org.apache.hugegraph.util;
 
-import java.io.IOException;
+import static java.lang.System.exit;
+
 import java.net.InetAddress;
 import java.net.Socket;
 
-/*
- *  This doesn't really belong here.  It's only used in the zipfile
- *  distribution to check whether Gremlin Server or ES are listening on
- *  their respective TCP ports.    But it's so tiny that I don't want
- *  to reorganize the repo to accommodate it (yet).
- *
- *  Many widely available *NIX programs do this task better (e.g.
- *  netcat, telnet, nmap, socat, ... we could even use netstat since
- *  we're interested only in the status of local ports).  But we want
- *  to keep the JanusGraph distribution self-contained insofar as is
- *  reasonable.
- */
 public final class CheckSocket {
 
-    private static final int E_USAGE = 1;
-    private static final int E_FAILED = 2;
-    private static final String MSG_USAGE =
-            "Usage: " + CheckSocket.class.getSimpleName() + " hostname port";
-
     public static void main(String[] args) {
-        if (args.length != 2) {
-            System.err.println(MSG_USAGE);
-            System.exit(E_USAGE);
-        }
         try {
-            Socket s = new Socket(InetAddress.getByName(args[0]),
-                                  Integer.parseInt(args[1]));
-            s.close();
-            System.exit(0);
-        } catch (IOException e) {
-            System.err.println(e);
-            System.exit(E_FAILED);
+            // Check if the socket connection can be closed normally
+            new Socket(InetAddress.getByName(args[0]), Integer.parseInt(args[1])).close();
+            exit(0);
+        } catch (Exception e) {
+            e.printStackTrace();
+            exit(-1);
         }
     }
 }

@@ -37,8 +37,7 @@ public final class DateUtil {
             "yyyy-MM-dd HH:mm:ss.SSS"
     );
 
-    private static final Map<String, SafeDateFormat> DATE_FORMATS =
-                                                     new ConcurrentHashMap<>();
+    private static final Map<String, SafeDateFormat> DATE_FORMATS = new ConcurrentHashMap<>();
 
     public static Date parse(String value) {
         for (Map.Entry<String, String> entry : VALID_DFS.entrySet()) {
@@ -47,8 +46,7 @@ public final class DateUtil {
             }
         }
         throw new IllegalArgumentException(String.format(
-                  "Expected date format is: %s, but got '%s'",
-                  VALID_DFS.values(), value));
+                  "Expected date format is: %s, but got '%s'", VALID_DFS.values(), value));
     }
 
     public static Date parse(String value, String df) {

@@ -24,12 +24,7 @@ import java.util.TreeMap;
 import com.google.common.base.Functions;
 import com.google.common.collect.Ordering;
 
-/**
- * Reference:
- * <a href="https://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values">...</a>
- */
-public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>>
-       extends TreeMap<K, V> {
+public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>> extends TreeMap<K, V> {
 
     private static final long serialVersionUID = 756490437953358633L;
 
@@ -37,7 +32,7 @@ public class OrderLimitMap<K extends Comparable<K>, V extends Comparable<V>>
     private final Map<K, V> valueMap;
 
     private static <V extends Comparable<V>> Ordering<? super V> incr() {
-        return Ordering.from((V o1, V o2) -> o1.compareTo(o2));
+        return Ordering.from(Comparable::compareTo);
     }
 
     private static <V extends Comparable<V>> Ordering<? super V> decr() {

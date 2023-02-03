@@ -75,7 +75,6 @@ public final class VersionUtil {
         /*
          * We don't use Package.getImplementationVersion() due to
          * a duplicate package would override the origin package info.
-         * https://stackoverflow.com/questions/1272648/reading-my-own-jars-manifest
          */
         String className = clazz.getSimpleName() + ".class";
         String classPath = Objects.requireNonNull(clazz.getResource(className)).toString();
@@ -137,10 +136,6 @@ public final class VersionUtil {
         }
     }
 
-    /**
-     * class Version for compare
-     * https://stackoverflow.com/questions/198431/how-do-you-compare-two-version-strings-in-java
-     */
     public static class Version implements Comparable<Version> {
 
         public static Version of(Class<?> clazz) {

@@ -427,13 +427,8 @@ public abstract class AbstractRestClient implements RestClient {
     private static void configConnectionManager(String url, ClientConfig conf) {
         /*
          * Using httpclient with connection pooling, and configuring the
-         * jersey connector, reference:
-         * http://www.theotherian.com/2013/08/jersey-client-2.0-httpclient-timeouts-max-connections.html
-         * https://stackoverflow.com/questions/43228051/memory-issue-with-jax-rs-using-jersey/46175943#46175943
-         *
-         * But the jersey that has been released in the maven central
-         * repository seems to have a bug.
-         * https://github.com/jersey/jersey/pull/3752
+         * jersey connector. But the jersey that has been released in the maven central
+         * repository seems to have a bug: https://github.com/jersey/jersey/pull/3752
          */
         PoolingHttpClientConnectionManager pool = connectionManager(url, conf);
         Object maxTotal = conf.getProperty("maxTotal");

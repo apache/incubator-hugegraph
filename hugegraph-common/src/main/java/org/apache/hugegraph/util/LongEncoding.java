@@ -17,10 +17,6 @@
 
 package org.apache.hugegraph.util;
 
-/**
- * Utility class for encoding longs in strings based on:
- * @see <a href="http://stackoverflow.com/questions/2938482/encode-decode-a-long-to-a-string-using-a-fixed-set-of-letters-in-java">encode decode long to string</a>
- */
 public final class LongEncoding {
 
     private static final String B64_SYMBOLS =
