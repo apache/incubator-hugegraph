@@ -20,3 +20,29 @@ jobs:
         with:
           log: info
           config: .licenserc.yaml
+
+  dependency-license:
+    name: Dependency licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          cache: "maven"
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.16"
+      - name: Check Dependencies Licenses
+        run: |
+          go install github.com/apache/skywalking-eyes/cmd/license-eye@442d462
+          license-eye dependency resolve --summary ./hugegraph-dist/release-docs/LICENSE.tpl || exit 1
+          if [ ! -z "$(git diff -U0 ./hugegraph-dist/release-docs/LICENSE)" ]; then
+            echo "LICENSE file is not updated correctly"
+            git diff -U0 ./hugegraph-dist/release-docs/LICENSE
+            exit 1
+          fi
