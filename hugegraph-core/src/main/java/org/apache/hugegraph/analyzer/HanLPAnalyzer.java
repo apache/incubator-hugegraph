@@ -33,7 +33,7 @@ import com.hankcs.hanlp.tokenizer.SpeedTokenizer;
 import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 
 /**
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/hankcs/HanLP/wiki
  */
 public class HanLPAnalyzer implements Analyzer {
 

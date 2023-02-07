@@ -61,7 +61,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class CassandraShard {
 
-    // The minimal shard size should >= 1M to prevent too many number of shards
+    /* The minimal shard size should >= 1M to prevent too many number of shards */
     private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
 
     private CassandraSessionPool.Session session;

@@ -35,6 +35,10 @@ mvn package -DskipTests
 # add mysql dependency
 wget -P $SERVER_DIR/lib/ https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
 
+if [[ ! -e "$SERVER_DIR/ikanalyzer-2012_u6.jar" ]]; then
+  wget -P $SERVER_DIR/lib/ https://raw.githubusercontent.com/apache/incubator-hugegraph-doc/ik_binary/dist/server/ikanalyzer-2012_u6.jar
+fi
+
 # config rest-server
 sed -i 's/#auth.authenticator=/auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
 sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
