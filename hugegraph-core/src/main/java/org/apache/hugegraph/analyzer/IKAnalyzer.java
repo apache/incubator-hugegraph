@@ -30,8 +30,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
- * TODO: ensure the refer is valid & clear
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/yyn0210/IKAnalyzer
  */
 public class IKAnalyzer implements Analyzer {
 

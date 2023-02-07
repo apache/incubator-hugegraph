@@ -27,8 +27,7 @@ import com.huaban.analysis.jieba.JiebaSegmenter;
 import com.huaban.analysis.jieba.SegToken;
 
 /**
- * TODO: ensure the refer is valid & clear
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/huaban/jieba-analysis
  */
 public class JiebaAnalyzer implements Analyzer {
 

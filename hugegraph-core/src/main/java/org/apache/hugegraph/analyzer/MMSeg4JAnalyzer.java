@@ -34,8 +34,7 @@ import com.chenlb.mmseg4j.Word;
 import com.google.common.collect.ImmutableList;
 
 /**
- * TODO: ensure the refer is valid & clear
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/chenlb/mmseg4j-core
  */
 public class MMSeg4JAnalyzer implements Analyzer {
 
