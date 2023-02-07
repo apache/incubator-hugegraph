@@ -1,4 +1,4 @@
-name: hugegraph-commons ci
+name: "hugegraph-commons ci"
 
 on:
   push:
