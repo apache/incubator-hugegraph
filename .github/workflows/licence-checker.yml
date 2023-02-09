@@ -32,3 +32,10 @@ jobs:
           mvn apache-rat:check -ntp
           find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
           grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
+
+      - name: Check Dependencies' License
+        uses: apache/skywalking-eyes/dependency@main      # always prefer to use a revision instead of `main`.
+          # with:
+          # log: debug # optional: set the log level. The default value is `info`.
+          # config: .licenserc.yaml # optional: set the config file. The default value is `.licenserc.yaml`.
+          # mode: # optional: Which mode License-Eye should be run in. Choices are `check` or `resolve`. The default value is `check`.
