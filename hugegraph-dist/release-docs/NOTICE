@@ -1,10 +1,8 @@
-Apache HugeGraph(incubating)
-Copyright 2022-2023 The Apache Software Foundation
+Apache HugeGraph
+Copyright 2021-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
-
-The initial codebase was donated to the ASF by HugeGraph Authors, copyright 2017-2021.
 
 ========================================================================
 
@@ -452,7 +450,7 @@ Sax (0.2)
 
 testng (6.14.2)
 
-* License: Apache-2.0 AND (MIT OR GPL-1.0+)
+* License: Apache-2.0 AND (MIT )
 * Project: https://testng.org/doc/index.html
 * Source: https://github.com/cbeust/testng
 
@@ -532,7 +530,7 @@ availability set forth in the Eclipse Public License v. 2.0 are satisfied: GNU
 General Public License, version 2 with the GNU Classpath Exception which is
 available at https://www.gnu.org/software/classpath/license.html.
 
-SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+SPDX-License-Identifier: EPL-2.0
 
 ## Source Code
 

@@ -218,13 +218,13 @@ Third party Apache 2.0 licenses
 The following components are provided under the Apache 2.0 License.
 See licenses/ for text of these licenses.
 
-    (Apache License, 2.0) (LGPL 2.1) (MPL 1.1) Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
-    (Apache License, 2.0) (BSD 2-Clause) (EDL 1.0) (EPL 2.0) (GPL2 w/ CPE) (MIT license) (Modified BSD) (Public Domain) (W3C license) (jQuery license) jersey-connectors-apache (org.glassfish.jersey.connectors:jersey-apache-connector:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-apache-connector)
-    (Apache License, 2.0) (BSD 2-Clause) (EDL 1.0) (EPL 2.0) (GPL2 w/ CPE) (MIT license) (Modified BSD) (Public Domain) (W3C license) (jQuery license) jersey-core-client (org.glassfish.jersey.core:jersey-client:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-client)
-    (Apache License, 2.0) (EPL 2.0) (Public Domain) (The GNU General Public License (GPL), Version 2, With Classpath Exception) jersey-core-common (org.glassfish.jersey.core:jersey-common:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-common)
-    (Apache License, 2.0) (BSD 2-Clause) (EDL 1.0) (EPL 2.0) (GPL2 w/ CPE) (MIT license) (Modified BSD) (Public Domain) (W3C license) (jQuery license) jersey-ext-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-entity-filtering)
-    (Apache License, 2.0) (BSD 2-Clause) (EDL 1.0) (EPL 2.0) (GPL2 w/ CPE) (MIT license) (Modified BSD) (Public Domain) (W3C license) (jQuery license) jersey-inject-hk2 (org.glassfish.jersey.inject:jersey-hk2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-hk2)
-    (Apache License, 2.0) (EPL 2.0) (The GNU General Public License (GPL), Version 2, With Classpath Exception) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
+    (Apache License, 2.0) Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
+    (Apache License, 2.0) jersey-connectors-apache (org.glassfish.jersey.connectors:jersey-apache-connector:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-apache-connector)
+    (Apache License, 2.0) jersey-core-client (org.glassfish.jersey.core:jersey-client:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-client)
+    (Apache License, 2.0) jersey-core-common (org.glassfish.jersey.core:jersey-common:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-common)
+    (Apache License, 2.0) jersey-ext-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-entity-filtering)
+    (Apache License, 2.0) jersey-inject-hk2 (org.glassfish.jersey.inject:jersey-hk2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-hk2)
+    (Apache License, 2.0) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
     (Apache License, Version 2.0) * Apache Commons BeanUtils:- commons-beanutils:commons-beanutils:1.9.4 (https://commons.apache.org/proper/commons-beanutils/)
     (Apache License, Version 2.0) * Apache Commons Codec:- commons-codec:commons-codec:1.13 (https://commons.apache.org/proper/commons-codec/)
     (Apache License, Version 2.0) * Apache Commons Collections:- commons-collections:commons-collections:3.2.2 (http://commons.apache.org/collections/)
@@ -292,9 +292,9 @@ Third party CDDL licenses
 
 The following components are provided under the CDDL License.
 See licenses/ for text of these licenses.
-   (CDDL + GPLv2 with classpath exception) * JavaBeans Activation Framework API jar:- javax.activation:javax.activation-api:1.2.0 (http://java.net/all/javax.activation-api/)
-   (CDDL 1.1, GPL2 w/ CPE)  * jaxb-api:- javax.xml.bind:jaxb-api:2.3.1 (https://github.com/javaee/jaxb-spec/jaxb-api)
-   (Dual license consisting of the CDDL v1.1 and GPL v2)  * Default Provider:- org.glassfish:javax.json:1.0 (http://jsonp.java.net)
+   (CDDL) * JavaBeans Activation Framework API jar:- javax.activation:javax.activation-api:1.2.0 (http://java.net/all/javax.activation-api/)
+   (CDDL 1.1)  * jaxb-api:- javax.xml.bind:jaxb-api:2.3.1 (https://github.com/javaee/jaxb-spec/jaxb-api)
+   (Dual license consisting of the CDDL v1.1)  * Default Provider:- org.glassfish:javax.json:1.0 (http://jsonp.java.net)
 
 
 ========================================================================
@@ -303,13 +303,13 @@ Third party EPL licenses
 
 The following components are provided under the EPL License.
 See licenses/ for text of these licenses.
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * HK2 API module:- org.glassfish.hk2:hk2-api:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-api)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * HK2 Implementation Utilities:- org.glassfish.hk2:hk2-utils:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-utils)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * Jakarta Annotations API:- jakarta.annotation:jakarta.annotation-api:2.0.0 (https://projects.eclipse.org/projects/ee4j.ca)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * OSGi resource locator:- org.glassfish.hk2:osgi-resource-locator:1.0.3 (https://projects.eclipse.org/projects/ee4j/osgi-resource-locator)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * ServiceLocator Default Implementation:- org.glassfish.hk2:hk2-locator:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-locator)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * aopalliance version 1.0 repackaged as a module:- org.glassfish.hk2.external:aopalliance-repackaged:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/external/aopalliance-repackaged)
-    (Eclipse Public License - v2.0, GPL2 w/ CPE) * jakarta.ws.rs-api:- jakarta.ws.rs:jakarta.ws.rs-api:3.0.0 (https://github.com/eclipse-ee4j/jaxrs-api)
+    (Eclipse Public License - v2.0) * HK2 API module:- org.glassfish.hk2:hk2-api:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-api)
+    (Eclipse Public License - v2.0) * HK2 Implementation Utilities:- org.glassfish.hk2:hk2-utils:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-utils)
+    (Eclipse Public License - v2.0) * Jakarta Annotations API:- jakarta.annotation:jakarta.annotation-api:2.0.0 (https://projects.eclipse.org/projects/ee4j.ca)
+    (Eclipse Public License - v2.0) * OSGi resource locator:- org.glassfish.hk2:osgi-resource-locator:1.0.3 (https://projects.eclipse.org/projects/ee4j/osgi-resource-locator)
+    (Eclipse Public License - v2.0) * ServiceLocator Default Implementation:- org.glassfish.hk2:hk2-locator:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-locator)
+    (Eclipse Public License - v2.0) * aopalliance version 1.0 repackaged as a module:- org.glassfish.hk2.external:aopalliance-repackaged:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/external/aopalliance-repackaged)
+    (Eclipse Public License - v2.0) * jakarta.ws.rs-api:- jakarta.ws.rs:jakarta.ws.rs-api:3.0.0 (https://github.com/eclipse-ee4j/jaxrs-api)
     (Eclipse Public License - v2.0) * JUnit:- junit:junit:4.13.1 (http://junit.org)
 
 ========================================================================
