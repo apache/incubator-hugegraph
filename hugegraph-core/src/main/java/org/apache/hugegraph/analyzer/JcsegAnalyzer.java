@@ -33,7 +33,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/lionsoul2014/jcseg
  */
 public class JcsegAnalyzer implements Analyzer {
 

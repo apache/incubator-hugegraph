@@ -199,6 +199,7 @@
             <groupId>com.janeluo</groupId>
             <artifactId>ikanalyzer</artifactId>
             <version>${ikanalyzer.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- fastutil: https://mvnrepository.com/artifact/it.unimi.dsi/fastutil -->

@@ -90,6 +90,10 @@ header: # `header` section is configurations for source codes license header.
     - '.repository/**'
     - '**/.flattened-pom.xml'
     - 'hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java'
+    - '**/optimize/HugeScriptTraversal.java'
+    - '**/type/Nameable.java'
+    - '**/define/Cardinality.java'
+    - '**/util/StringEncoding.java'
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,

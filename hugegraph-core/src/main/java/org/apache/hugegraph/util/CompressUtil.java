@@ -56,9 +56,6 @@ import net.jpountz.lz4.LZ4FastDecompressor;
 
 public final class CompressUtil {
 
-    /**
-     * Reference: https://mkyong.com/java/how-to-create-tar-gz-in-java/
-     */
     public static void compressTar(String inputDir, String outputFile,
                                    Checksum checksum) throws IOException {
         LZ4Factory factory = LZ4Factory.fastestInstance();
