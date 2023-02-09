@@ -1009,7 +1009,7 @@ This product optionally depends on 'JBoss Marshalling', an alternative Java
 serialization API, which can be obtained at:
 
   * LICENSE:
-    * license/LICENSE.jboss-marshalling.txt (GNU LGPL 2.1)
+    * license/LICENSE.jboss-marshalling.txt
   * HOMEPAGE:
     * http://www.jboss.org/jbossmarshalling
 
