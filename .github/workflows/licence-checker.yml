@@ -22,6 +22,27 @@ jobs:
           token: ${{ github.token }}
           config: .licenserc.yaml
 
+  dependency-license:
+    name: Dependency licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          cache: "maven"
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.16"
+      - name: Check Dependencies Licenses
+        run: |
+          go install github.com/apache/skywalking-eyes/cmd/license-eye@442d462
+          license-eye -c .licenserc.yaml dep check || exit 1
+
       - uses: actions/setup-java@v3
         with:
           java-version: '11'
@@ -32,10 +53,3 @@ jobs:
           mvn apache-rat:check -ntp
           find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
           grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
-
-      - name: Check Dependencies' License
-        uses: apache/skywalking-eyes/dependency@main      # always prefer to use a revision instead of `main`.
-          # with:
-          # log: debug # optional: set the log level. The default value is `info`.
-          # config: .licenserc.yaml # optional: set the config file. The default value is `.licenserc.yaml`.
-          # mode: # optional: Which mode License-Eye should be run in. Choices are `check` or `resolve`. The default value is `check`.
