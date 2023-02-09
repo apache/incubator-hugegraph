@@ -99,3 +99,7 @@ header: # `header` section is configurations for source codes license header.
   # license-location-threshold specifies the index threshold where the license header can be located,
   # after all, a "header" cannot be TOO far from the file start.
   license-location-threshold: 80
+
+dependency:
+  files:
+    - pom.xml
