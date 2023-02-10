@@ -34,7 +34,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal;
 
 /**
- * TODO: lack LICENSE reference
  * ScriptTraversal encapsulates a {@link ScriptEngine} and a script which is
  * compiled into a {@link Traversal} at {@link Admin#applyStrategies()}.
  *
