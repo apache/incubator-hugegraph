@@ -98,7 +98,6 @@ import org.junit.runners.model.Statement;
 import org.apache.hugegraph.dist.RegisterUtil;
 
 /**
- * TODO: lack license header & LICENSE reference
  * Standard process test suite for tinkerpop graph
  *
  * @author Stephen Mallette (http://stephen.genoprime.com)
