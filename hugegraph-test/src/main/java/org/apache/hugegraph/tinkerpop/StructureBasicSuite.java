@@ -55,7 +55,6 @@ import org.junit.runners.model.RunnerBuilder;
 import org.junit.runners.model.Statement;
 
 /**
- * TODO: lack license header & LICENSE reference
  * Standard structure test suite for tinkerpop graph
  *
  * @author Stephen Mallette (http://stephen.genoprime.com)
