@@ -17,7 +17,6 @@ package org.apache.hugegraph.type.define;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 /**
- * TODO: lack license header & LICENSE reference
  * The cardinality of the values associated with given key for a particular element.
  *
  * @author Matthias Broecheler (me@matthiasb.com)
