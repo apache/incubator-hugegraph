@@ -29,7 +29,6 @@ import org.mindrot.jbcrypt.BCrypt;
 import com.google.common.base.CharMatcher;
 
 /**
- * TODO: lack license header & LICENSE reference
  * @author Matthias Broecheler (me@matthiasb.com)
  * @author HugeGraph Authors
  */
