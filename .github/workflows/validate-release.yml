@@ -270,4 +270,5 @@ jobs:
       fail-fast: false
       matrix:
         java_version: [ '8','11' ]
-        os: [ubuntu-latest, macos-latest] # TODO: support windows-latest or other os in future
+        # TODO: support windows-latest or other os in future
+        os: [ubuntu-latest, macos-latest]
