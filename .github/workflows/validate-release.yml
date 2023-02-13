@@ -1,5 +1,5 @@
 name: "Validate Apache Release"
-
+#latest please refer: https://github.com/apache/incubator-hugegraph-doc/blob/master/.github/workflows/validate-release.yml
 on:
   workflow_dispatch:
     inputs:
