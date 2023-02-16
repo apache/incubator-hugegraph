@@ -150,8 +150,8 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
                 this.raftNode.node().removePeer(peerId, future);
             } else {
                 RemovePeerRequest request = RemovePeerRequest.newBuilder()
-                    .setEndpoint(endpoint)
-                    .build();
+                                                             .setEndpoint(endpoint)
+                                                             .build();
                 future = this.forwardToLeader(request);
             }
             future.waitFinished();
