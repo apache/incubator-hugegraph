@@ -57,6 +57,8 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import org.apache.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
 import org.apache.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.AddPeerProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.RemovePeerProcessor;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
@@ -409,6 +411,8 @@ public final class RaftContext {
     }
 
     private void registerRpcRequestProcessors() {
+        this.raftRpcServer.registerProcessor(new AddPeerProcessor(this));
+        this.raftRpcServer.registerProcessor(new RemovePeerProcessor(this));
         this.raftRpcServer.registerProcessor(new StoreCommandProcessor(this));
         this.raftRpcServer.registerProcessor(new SetLeaderProcessor(this));
         this.raftRpcServer.registerProcessor(new ListPeersProcessor(this));

@@ -77,3 +77,19 @@ message SetLeaderRequest {
 message SetLeaderResponse {
     required CommonResponse common = 1;
 }
+
+message AddPeerRequest {
+    required string endpoint = 1;
+}
+
+message AddPeerResponse {
+    required CommonResponse common = 1;
+}
+
+message RemovePeerRequest {
+    required string endpoint = 1;
+}
+
+message RemovePeerResponse {
+    required CommonResponse common = 1;
+}
