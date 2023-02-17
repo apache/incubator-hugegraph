@@ -62,43 +62,43 @@ for i in *src.tar.gz; do
   echo "$i"
   #### step4.0: check the directory name include "incubating"
   if [[ ! "$i" =~ "incubating" ]]; then
-    echo "The package name:$i should include incubating" && exit 1
+    echo "The package name $i should include incubating" && exit 1
   fi
   tar xzvf "$i" || exit
   cd "$(basename "$i" .tar.gz)" || exit
 
   #### step4.1: check the directory include "NOTICE" and "LICENSE" file and "DISCLAIMER" file
   if [[ ! -f "LICENSE" ]]; then
-    echo "The package:$i should include LICENSE file" && exit 1
+    echo "The package $i should include LICENSE file" && exit 1
   fi
   if [[ ! -f "NOTICE" ]]; then
-    echo "The package:$i should include NOTICE file" && exit 1
+    echo "The package $i should include NOTICE file" && exit 1
   fi
   if [[ ! -f "DISCLAIMER" ]]; then
-    echo "The package:$i should include DISCLAIMER file" && exit 1
+    echo "The package $i should include DISCLAIMER file" && exit 1
   fi
   # step4.2: ensure doesn't contains *GPL/BCL/JSR-275/RSAL/QPL/SSPL/CPOL/NPL1.*/CC-BY
   COUNT=$(grep -E "GPL|BCL|JSR-275|RSAL|QPL|SSPL|CPOL|NPL1|CC-BY" LICENSE NOTICE | wc -l)
   if [[ $COUNT -ne 0 ]]; then
      grep -E "GPL|BCL|JSR-275|RSAL|QPL|SSPL|CPOL|NPL1.0|CC-BY" LICENSE NOTICE
-     echo "The package:$i shouldn't include GPL* invalid dependency, but get $COUNT" && exit 1
+     echo "The package $i shouldn't include GPL* invalid dependency, but get $COUNT" && exit 1
   fi
   # step4.3: ensure doesn't contains empty directory or file
   COUNT=$(find . -type d -empty | wc -l)
   if [[ $COUNT -ne 0 ]]; then
     find . -type d -empty
-    echo "The package:$i should not include empty directory, but get $COUNT" # TODO: && exit 1
+    echo "The package $i should not include empty directory, but get $COUNT" # TODO: && exit 1
   fi
   # step4.4: ensure any file should less than 900kb & not include binary file
   COUNT=$(find . -type f -size +900k | wc -l)
   if [[ $COUNT -ne 0 ]]; then
     find . -type f -size +900k
-    echo "The package:$i shouldn't include file larger than 900kb, but get $COUNT" && exit 1
+    echo "The package $i shouldn't include file larger than 900kb, but get $COUNT" && exit 1
   fi
   COUNT=$(find . -type f | perl -lne 'print if -B' | grep -v *.txt | wc -l)
   if [[ $COUNT -ne 0 ]]; then
     find . -type f | perl -lne 'print if -B'
-    echo "The package:$i shouldn't include binary file, but get $COUNT"
+    echo "The package $i shouldn't include binary file, but get $COUNT"
   fi
 
   #### step4.5: test compile the packages
@@ -148,35 +148,35 @@ for i in *.tar.gz; do
   echo "$i"
   #### step7.1: check the directory name include "incubating"
   if [[ ! "$i" =~ "incubating" ]]; then
-    echo "The package name:$i should include incubating" && exit 1
+    echo "The package name $i should include incubating" && exit 1
   fi
   tar xzvf "$i" || exit
 
   #### step7.2: check root dir include "NOTICE"/"LICENSE"/"DISCLAIMER" files & "licenses" dir
   cd "$(basename "$i" .tar.gz)" && ls -lh || exit
   if [[ ! -f "LICENSE" ]]; then
-    echo "The package:$i should include LICENSE file" && exit 1
+    echo "The package $i should include LICENSE file" && exit 1
   fi
   if [[ ! -f "NOTICE" ]]; then
-    echo "The package:$i should include NOTICE file" && exit 1
+    echo "The package $i should include NOTICE file" && exit 1
   fi
   if [[ ! -f "DISCLAIMER" ]]; then
-    echo "The package:$i should include DISCLAIMER file" && exit 1
+    echo "The package $i should include DISCLAIMER file" && exit 1
   fi
   if [[ ! -d "licenses" ]]; then
-    echo "The package:$i should include licenses dir" && exit 1
+    echo "The package $i should include licenses dir" && exit 1
   fi
   #### step7.3: ensure doesn't contains *GPL/BCL/JSR-275/RSAL/QPL/SSPL/CPOL/NPL1.*/CC-BY
   COUNT=$(grep -r -E "GPL|BCL|JSR-275|RSAL|QPL|SSPL|CPOL|NPL1|CC-BY" LICENSE NOTICE licenses | wc -l)
   if [[ $COUNT -ne 0 ]]; then
     grep -r -E "GPL|BCL|JSR-275|RSAL|QPL|SSPL|CPQL|NPL1|CC-BY" LICENSE NOTICE licenses
-    echo "The package:$i shouldn't include GPL* invalid dependency, but get $COUNT" && exit 1
+    echo "The package $i shouldn't include GPL* invalid dependency, but get $COUNT" && exit 1
   fi
   #### step7.4: ensure doesn't contains empty directory or file
   COUNT=$(find . -type d -empty | wc -l)
   if [[ $COUNT -ne 0 ]]; then
     find . -type d -empty
-    echo "The package:$i should not include empty directory, but get $COUNT" # TODO: && exit 1
+    echo "The package $i should not include empty directory, but get $COUNT" # TODO: && exit 1
   fi
   cd - || exit
 done
