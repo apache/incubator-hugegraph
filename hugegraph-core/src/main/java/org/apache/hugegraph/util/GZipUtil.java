@@ -26,9 +26,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 
-/**
- * Reference from https://dzone.com/articles/how-compress-and-uncompress
- */
 public final class GZipUtil {
 
     private static final int BUF_SIZE = (int) (4 * Bytes.KB);

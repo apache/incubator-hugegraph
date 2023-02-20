@@ -51,10 +51,6 @@
         <fileSet>
             <directory>${top.level.dir}/hugegraph-dist/release-docs/</directory>
             <outputDirectory>/</outputDirectory>
-            <includes>
-                <include>LICENSE*</include>
-                <include>NOTICE*</include>
-            </includes>
         </fileSet>
         <fileSet>
             <directory>${top.level.dir}</directory>

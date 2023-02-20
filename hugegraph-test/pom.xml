@@ -103,6 +103,23 @@
             <version>8.0.28</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.janeluo</groupId>
+            <artifactId>ikanalyzer</artifactId>
+            <version>2012_u6</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>lucene-analyzers-common</artifactId>
+                    <groupId>org.apache.lucene</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>lucene-core</artifactId>
+                    <groupId>org.apache.lucene</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
