@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -31,6 +29,11 @@ import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerResponse;
+
 import org.apache.hugegraph.util.E;
 import com.google.protobuf.Message;
 
@@ -120,12 +123,17 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
 
     @Override
     public String addPeer(String endpoint) {
-        E.checkArgument(this.raftNode.selfIsLeader(),
-                        "Operation add_peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
-        RaftClosure<?> future = new RaftClosure<>();
         try {
-            this.raftNode.node().addPeer(peerId, future);
+            RaftClosure<?> future = new RaftClosure<>();
+            if (this.raftNode.selfIsLeader()) {
+                this.raftNode.node().addPeer(peerId, future);
+            } else {
+                AddPeerRequest request = AddPeerRequest.newBuilder()
+                                                       .setEndpoint(endpoint)
+                                                       .build();
+                future = this.forwardToLeader(request);
+            }
             future.waitFinished();
         } catch (Throwable e) {
             throw new BackendException("Failed to add peer '%s'", e, endpoint);
@@ -135,16 +143,20 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
 
     @Override
     public String removePeer(String endpoint) {
-        E.checkArgument(this.raftNode.selfIsLeader(),
-                        "Operation add_peer can only be executed on leader");
         PeerId peerId = PeerId.parsePeer(endpoint);
-        RaftClosure<?> future = new RaftClosure<>();
         try {
-            this.raftNode.node().removePeer(peerId, future);
+            RaftClosure<?> future = new RaftClosure<>();
+            if (this.raftNode.selfIsLeader()) {
+                this.raftNode.node().removePeer(peerId, future);
+            } else {
+                RemovePeerRequest request = RemovePeerRequest.newBuilder()
+                                                             .setEndpoint(endpoint)
+                                                             .build();
+                future = this.forwardToLeader(request);
+            }
             future.waitFinished();
         } catch (Throwable e) {
-            throw new BackendException("Failed to remove peer '%s'",
-                                       e, endpoint);
+            throw new BackendException("Failed to remove peer '%s'", e, endpoint);
         }
         return peerId.toString();
     }

@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -104,6 +102,7 @@ public final class HugeCountStepStrategy
         graphStep.queryInfo().aggregate(Aggregate.AggregateFunc.COUNT, null);
         HugeCountStep<?> countStep = new HugeCountStep<>(traversal, graphStep);
         for (Step<?, ?> origin : originSteps) {
+            TraversalHelper.copyLabels(origin, countStep, false);
             traversal.removeStep(origin);
         }
         traversal.addStep(0, countStep);

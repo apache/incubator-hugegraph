@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -63,7 +61,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class CassandraShard {
 
-    // The minimal shard size should >= 1M to prevent too many number of shards
+    /* The minimal shard size should >= 1M to prevent too many number of shards */
     private static final int MIN_SHARD_SIZE = (int) Bytes.MB;
 
     private CassandraSessionPool.Session session;

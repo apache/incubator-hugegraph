@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -51,8 +49,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
     }
 
     public Object id() {
-        return SplicingIdGenerator.concat(this.owner.id().asString(),
-                                          this.key());
+        return SplicingIdGenerator.concat(this.owner.id().asString(), this.key());
     }
 
     @Override

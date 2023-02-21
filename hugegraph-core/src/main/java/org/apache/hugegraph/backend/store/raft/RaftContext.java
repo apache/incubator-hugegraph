@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -232,7 +230,7 @@ public final class RaftContext {
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
         nodeOptions.setInitialConf(this.groupPeers);
 
-        String raftPath = "/Users/zsm/hugegraph-instance/raftlog/raft" + new Date().getTime();
+        String raftPath = "/Users/zsm/hugegraph-instance/raftlog/raft " + new Date().getTime();
         String logUri = Paths.get(raftPath, "log").toString();
         FileUtils.forceMkdir(new File(logUri));
         nodeOptions.setLogUri(logUri);

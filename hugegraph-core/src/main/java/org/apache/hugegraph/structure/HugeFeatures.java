@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -271,6 +269,11 @@ public class HugeFeatures implements Graph.Features {
             return VertexProperty.Cardinality.single;
         }
 
+        @Override
+        public boolean supportsNullPropertyValues() {
+            return false;
+        }
+
         public boolean supportsDefaultLabel() {
             return true;
         }
@@ -290,6 +293,11 @@ public class HugeFeatures implements Graph.Features {
         @Override
         public EdgePropertyFeatures properties() {
             return this.edgePropertyFeatures;
+        }
+
+        @Override
+        public boolean supportsNullPropertyValues() {
+            return false;
         }
     }
 

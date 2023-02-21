@@ -1,0 +1,58 @@
+name: Validate Apache Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        required: true
+        default: '1.0.0'
+      deploy:
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SCRIPT_PATH: hugegraph-dist/scripts/
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Install JDK ${{ matrix.java_version }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java_version }}
+          distribution: 'adopt'
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Get Yarn path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Cache Yarn packages
+        uses: actions/cache@v3
+        # use id to check `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+
+      # TODO: do we need svn & gpg environment?
+      - name: Test Building Source & Running
+        run: |
+          bash $SCRIPT_PATH/validate-release.sh ${{ inputs.release_version }} ${{ matrix.java_version }}
+      - name: Test Running Binary
+        run: |
+          echo "TODO: separate script to test binary"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        java_version: [ '8', '11' ]

@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -152,9 +150,6 @@ public class GremlinAPI extends API {
                 return firstLine;
             }
 
-            /*
-             * Reference https://stackoverflow.com/questions/3576754/truncating-strings-by-bytes
-             */
             CharsetDecoder decoder = charset.newDecoder();
             decoder.onMalformedInput(CodingErrorAction.IGNORE);
             decoder.reset();

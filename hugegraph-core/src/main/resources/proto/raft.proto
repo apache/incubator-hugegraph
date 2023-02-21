@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -90,5 +88,21 @@ message SetLeaderRequest {
 }
 
 message SetLeaderResponse {
+    required CommonResponse common = 1;
+}
+
+message AddPeerRequest {
+    required string endpoint = 1;
+}
+
+message AddPeerResponse {
+    required CommonResponse common = 1;
+}
+
+message RemovePeerRequest {
+    required string endpoint = 1;
+}
+
+message RemovePeerResponse {
     required CommonResponse common = 1;
 }

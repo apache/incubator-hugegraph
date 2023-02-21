@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -193,8 +191,6 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.taskManager = TaskManager.instance();
 
-        this.features = new HugeFeatures(this, true);
-
         this.name = config.get(CoreOptions.STORE);
         this.started = false;
         this.closed = false;
@@ -214,6 +210,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         try {
             this.tx = new TinkerPopTransaction(this);
+            boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
+            this.features = new HugeFeatures(this, supportsPersistence);
 
             SnowflakeIdGenerator.init(this.params);
 

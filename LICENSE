@@ -1,4 +1,4 @@
-Apache License
+                                 Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -200,3 +200,17 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
+========================================================================
+Apache 2.0 licenses
+========================================================================
+
+The following components are provided under the Apache License. See project link for details.
+The text of each license is the standard Apache 2.0 license.
+
+hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/StructureBasicSuite.java from https://github.com/apache/tinkerpop
+hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/ProcessBasicSuite.java from https://github.com/apache/tinkerpop
+hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java from https://github.com/twitter-archive/snowflake
+hugegraph-core/src/main/java/org/apache/hugegraph/traversal/optimize/HugeScriptTraversal.java from https://github.com/apache/tinkerpop
+hugegraph-core/src/main/java/org/apache/hugegraph/type/Nameable.java from https://github.com/JanusGraph/janusgraph
+hugegraph-core/src/main/java/org/apache/hugegraph/type/define/Cardinality.java from https://github.com/JanusGraph/janusgraph
+hugegraph-core/src/main/java/org/apache/hugegraph/util/StringEncoding.java from https://github.com/JanusGraph/janusgraph

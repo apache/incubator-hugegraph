@@ -210,6 +210,21 @@
    subcomponents is subject to the terms and conditions of the following
    licenses.
 
+========================================================================
+Apache 2.0 licenses
+========================================================================
+
+The following components are provided under the Apache License. See project link for details.
+The text of each license is the standard Apache 2.0 license.
+
+hugegraph-core/src/main/java/org/apache/hugegraph/type/Nameable.java from https://github.com/JanusGraph/janusgraph
+hugegraph-core/src/main/java/org/apache/hugegraph/type/define/Cardinality.java from https://github.com/JanusGraph/janusgraph
+hugegraph-core/src/main/java/org/apache/hugegraph/util/StringEncoding.java from https://github.com/JanusGraph/janusgraph
+hugegraph-core/src/main/java/org/apache/hugegraph/traversal/optimize/HugeScriptTraversal.java from https://github.com/apache/tinkerpop
+hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/ProcessBasicSuite.java from https://github.com/apache/tinkerpop
+hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/StructureBasicSuite.java from https://github.com/apache/tinkerpop
+hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java from https://github.com/twitter-archive/snowflake
+
 
 ========================================================================
 Third party Apache 2.0 licenses
@@ -217,21 +232,21 @@ Third party Apache 2.0 licenses
 
 The following components are provided under the Apache 2.0 License.
 See licenses/ for text of these licenses.
-	(Apache License, Version 2.0, LGPL, version 2.1) * Java Native Access (net.java.dev.jna:jna:5.5.0 - https://github.com/java-native-access/jna)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-connectors-apache (org.glassfish.jersey.connectors:jersey-apache-connector:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-apache-connector)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-container-grizzly2-http (org.glassfish.jersey.containers:jersey-container-grizzly2-http:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-grizzly2-http)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-container-grizzly2-servlet (org.glassfish.jersey.containers:jersey-container-grizzly2-servlet:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-grizzly2-servlet)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-container-servlet (org.glassfish.jersey.containers:jersey-container-servlet:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-servlet)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-servlet-core)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-core-client (org.glassfish.jersey.core:jersey-client:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-client)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-ext-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-entity-filtering)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-inject-hk2 (org.glassfish.jersey.inject:jersey-hk2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-hk2)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-jaxb)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-test-framework-core (org.glassfish.jersey.test-framework:jersey-test-framework-core:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-test-framework-core)
-	(Apache License, Version 2.0, BSD 2-Clause, EDL 1.0, EPL 2.0, GPL2 w/ CPE, jQuery license, MIT license, Modified BSD, Public Domain, W3C license) * jersey-test-framework-provider-grizzly2 (org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/project/jersey-test-framework-provider-grizzly2)
-	(Apache License, Version 2.0, EPL 2.0, Modified BSD, The GNU General Public License (GPL), Version 2, With Classpath Exception) * jersey-core-server (org.glassfish.jersey.core:jersey-server:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-server)
-	(Apache License, Version 2.0, EPL 2.0, Public Domain, The GNU General Public License (GPL), Version 2, With Classpath Exception) * jersey-core-common (org.glassfish.jersey.core:jersey-common:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-common)
-	(Apache License, Version 2.0, EPL 2.0, The GNU General Public License (GPL), Version 2, With Classpath Exception) * jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
+	(Apache License, Version 2.0) * Java Native Access (net.java.dev.jna:jna:5.5.0 - https://github.com/java-native-access/jna)
+	(Apache License, Version 2.0) * jersey-connectors-apache (org.glassfish.jersey.connectors:jersey-apache-connector:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-apache-connector)
+	(Apache License, Version 2.0) * jersey-container-grizzly2-http (org.glassfish.jersey.containers:jersey-container-grizzly2-http:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-grizzly2-http)
+	(Apache License, Version 2.0) * jersey-container-grizzly2-servlet (org.glassfish.jersey.containers:jersey-container-grizzly2-servlet:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-grizzly2-servlet)
+	(Apache License, Version 2.0) * jersey-container-servlet (org.glassfish.jersey.containers:jersey-container-servlet:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-servlet)
+	(Apache License, Version 2.0) * jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-container-servlet-core)
+	(Apache License, Version 2.0) * jersey-core-client (org.glassfish.jersey.core:jersey-client:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-client)
+	(Apache License, Version 2.0) * jersey-ext-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-entity-filtering)
+	(Apache License, Version 2.0) * jersey-inject-hk2 (org.glassfish.jersey.inject:jersey-hk2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-hk2)
+	(Apache License, Version 2.0) * jersey-media-jaxb (org.glassfish.jersey.media:jersey-media-jaxb:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-jaxb)
+	(Apache License, Version 2.0) * jersey-test-framework-core (org.glassfish.jersey.test-framework:jersey-test-framework-core:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-test-framework-core)
+	(Apache License, Version 2.0) * jersey-test-framework-provider-grizzly2 (org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/project/jersey-test-framework-provider-grizzly2)
+	(Apache License, Version 2.0) * jersey-core-server (org.glassfish.jersey.core:jersey-server:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-server)
+	(Apache License, Version 2.0) * jersey-core-common (org.glassfish.jersey.core:jersey-common:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-common)
+	(Apache License, Version 2.0) * jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
 	(Apache License, Version 2.0) * ASM based accessors helper used by json-smart (net.minidev:accessors-smart:1.2 - http://www.minidev.net/)
 	(Apache License, Version 2.0) * Annotations for Metrics (io.dropwizard.metrics:metrics-annotation:4.2.4 - https://metrics.dropwizard.io/metrics-annotation)
 	(Apache License, Version 2.0) * Apache Cassandra (org.apache.cassandra:cassandra-all:3.11.12 - https://cassandra.apache.org)
@@ -296,7 +311,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Guava: Google Core Libraries for Java (com.google.guava:guava:25.1-jre - https://github.com/google/guava/guava)
 	(Apache License, Version 2.0) * HPPC Collections (com.carrotsearch:hppc:0.7.1 - http://labs.carrotsearch.com/hppc.html/hppc)
 	(Apache License, Version 2.0) * HanLP (com.hankcs:hanlp:portable-1.8.3 - https://github.com/hankcs/HanLP)
-	(Apache License, Version 2.0) * IKAnalyzer (com.janeluo:ikanalyzer:2012_u6 - https://github.com/yangyining/IKAnalyzer)
 	(Apache License, Version 2.0) * J2ObjC Annotations (com.google.j2objc:j2objc-annotations:1.1 - https://github.com/google/j2objc/)
 	(Apache License, Version 2.0) * JCIP Annotations under Apache License (com.github.stephenc.jcip:jcip-annotations:1.0-1 - http://stephenc.github.com/jcip-annotations)
 	(Apache License, Version 2.0) * JJWT :: API (io.jsonwebtoken:jjwt-api:0.11.5 - https://github.com/jwtk/jjwt/jjwt-api)
@@ -340,9 +354,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * LZ4 and xxHash (org.lz4:lz4-java:1.8.0 - https://github.com/lz4/lz4-java)
 	(Apache License, Version 2.0) * Lucene Common Analyzers (org.apache.lucene:lucene-analyzers-common:8.11.2 - https://lucene.apache.org/lucene-parent/lucene-analyzers-common)
 	(Apache License, Version 2.0) * Lucene Core (org.apache.lucene:lucene-core:8.11.2 - https://lucene.apache.org/lucene-parent/lucene-core)
-	(Apache License, Version 2.0) * Lucene Queries (org.apache.lucene:lucene-queries:4.7.2 - http://lucene.apache.org/lucene-parent/lucene-queries)
-	(Apache License, Version 2.0) * Lucene QueryParsers (org.apache.lucene:lucene-queryparser:4.7.2 - http://lucene.apache.org/lucene-parent/lucene-queryparser)
-	(Apache License, Version 2.0) * Lucene Sandbox (org.apache.lucene:lucene-sandbox:4.7.2 - http://lucene.apache.org/lucene-parent/lucene-sandbox)
 	(Apache License, Version 2.0) * Lucene Smart Chinese Analyzer (org.apache.lucene:lucene-analyzers-smartcn:8.11.2 - https://lucene.apache.org/lucene-parent/lucene-analyzers-smartcn)
 	(Apache License, Version 2.0) * Metrics Core (com.codahale.metrics:metrics-core:3.0.2 - http://metrics.codahale.com/metrics-core/)
 	(Apache License, Version 2.0) * Metrics Core (io.dropwizard.metrics:metrics-core:3.1.5 - http://metrics.codahale.com/metrics-core/)
@@ -432,8 +443,8 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * swagger-models-jakarta (io.swagger.core.v3:swagger-models-jakarta:2.1.9 - https://github.com/swagger-api/swagger-core/modules/swagger-models-jakarta)
 	(Apache License, Version 2.0) * tracer-core (com.alipay.sofa:tracer-core:3.0.8 - https://projects.spring.io/spring-boot/#/spring-boot-starter-parent/sofaboot-dependencies/tracer-all-parent/tracer-core)
 	(Apache License, Version 2.0) * 结巴分词工具(jieba for java) (com.huaban:jieba-analysis:1.0.2 - http://maven.apache.org)
-	(Apache License, Version 2.0, GNU General Public License, version 2) * RocksDB JNI (org.rocksdb:rocksdbjni:7.2.2 - https://rocksdb.org)
-	(Apache License, Version 2.0, LGPL 2.1, MPL 1.1) * Javassist (org.javassist:javassist:3.21.0-GA - http://www.javassist.org/)
+	(Apache License, Version 2.0) * RocksDB JNI (org.rocksdb:rocksdbjni:7.2.2 - https://rocksdb.org)
+	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.21.0-GA - http://www.javassist.org/)
 
 ========================================================================
 Third party CDDL licenses
@@ -441,9 +452,9 @@ Third party CDDL licenses
 
 The following components are provided under the CDDL License.
 See licenses/ for text of these licenses.
-	(CDDL + GPLv2 with classpath exception) * JavaBeans Activation Framework API jar (javax.activation:javax.activation-api:1.2.0 - http://java.net/all/javax.activation-api/)
-	(CDDL 1.1, GPL2 w/ CPE) * jaxb-api (javax.xml.bind:jaxb-api:2.3.1 - https://github.com/javaee/jaxb-spec/jaxb-api)
-	(Dual license consisting of the CDDL v1.1 and GPL v2) * JSR 353 (JSON Processing) Default Provider (org.glassfish:javax.json:1.0 - http://jsonp.java.net)
+	(CDDL) * JavaBeans Activation Framework API jar (javax.activation:javax.activation-api:1.2.0 - http://java.net/all/javax.activation-api/)
+	(CDDL 1.1) * jaxb-api (javax.xml.bind:jaxb-api:2.3.1 - https://github.com/javaee/jaxb-spec/jaxb-api)
+	(Dual license consisting of the CDDL v1.1) * JSR 353 (JSON Processing) Default Provider (org.glassfish:javax.json:1.0 - http://jsonp.java.net)
 
 ========================================================================
 Third party EPL licenses
@@ -452,18 +463,18 @@ Third party EPL licenses
 The following components are provided under the EPL License.
 See licenses/ for text of these licenses.
 	(Eclipse Public License - v1.0) * JUnit (junit:junit:4.12 - http://junit.org)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * HK2 API module (org.glassfish.hk2:hk2-api:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-api)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * HK2 Implementation Utilities (org.glassfish.hk2:hk2-utils:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-utils)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.0.0 - https://projects.eclipse.org/projects/ee4j.ca)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:5.0.0 - https://projects.eclipse.org/projects/ee4j.servlet)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * OSGi resource locator (org.glassfish.hk2:osgi-resource-locator:1.0.3 - https://projects.eclipse.org/projects/ee4j/osgi-resource-locator)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * ServiceLocator Default Implementation (org.glassfish.hk2:hk2-locator:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-locator)
-	(Eclipse Public License - v2.0, GPL2 w/ CPE) * aopalliance version 1.0 repackaged as a module (org.glassfish.hk2.external:aopalliance-repackaged:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/external/aopalliance-repackaged)
+	(Eclipse Public License - v2.0) * HK2 API module (org.glassfish.hk2:hk2-api:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-api)
+	(Eclipse Public License - v2.0) * HK2 Implementation Utilities (org.glassfish.hk2:hk2-utils:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-utils)
+	(Eclipse Public License - v2.0) * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.0.0 - https://projects.eclipse.org/projects/ee4j.ca)
+	(Eclipse Public License - v2.0) * Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:5.0.0 - https://projects.eclipse.org/projects/ee4j.servlet)
+	(Eclipse Public License - v2.0) * OSGi resource locator (org.glassfish.hk2:osgi-resource-locator:1.0.3 - https://projects.eclipse.org/projects/ee4j/osgi-resource-locator)
+	(Eclipse Public License - v2.0) * ServiceLocator Default Implementation (org.glassfish.hk2:hk2-locator:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/hk2-locator)
+	(Eclipse Public License - v2.0) * aopalliance version 1.0 repackaged as a module (org.glassfish.hk2.external:aopalliance-repackaged:3.0.1 - https://github.com/eclipse-ee4j/glassfish-hk2/external/aopalliance-repackaged)
 	(Eclipse Public License - v2.0) * grizzly-framework (org.glassfish.grizzly:grizzly-framework:3.0.1 - https://projects.eclipse.org/projects/ee4j.grizzly/grizzly-framework)
 	(Eclipse Public License - v2.0) * grizzly-http (org.glassfish.grizzly:grizzly-http:3.0.1 - https://projects.eclipse.org/projects/ee4j.grizzly/grizzly-http)
 	(Eclipse Public License - v2.0) * grizzly-http-server (org.glassfish.grizzly:grizzly-http-server:3.0.1 - https://projects.eclipse.org/projects/ee4j.grizzly/grizzly-http-server)
 	(Eclipse Public License - v2.0) * grizzly-http-servlet (org.glassfish.grizzly:grizzly-http-servlet:3.0.1 - https://projects.eclipse.org/projects/ee4j.grizzly/grizzly-http-servlet)
-	(Eclipse Public License - v2.0, GPL-2.0-with-classpath-exception) * jakarta.ws.rs-api (jakarta.ws.rs:jakarta.ws.rs-api:3.0.0 - https://github.com/eclipse-ee4j/jaxrs-api)
+	(Eclipse Public License - v2.0) * jakarta.ws.rs-api (jakarta.ws.rs:jakarta.ws.rs-api:3.0.0 - https://github.com/eclipse-ee4j/jaxrs-api)
 
 ========================================================================
 Third party EDL licenses
@@ -471,8 +482,8 @@ Third party EDL licenses
 
 The following components are provided under the EDL License.
 See licenses/ for text of these licenses.
-	(Eclipse Distribution License - v 1.0, Eclipse Public License v1.0) * Eclipse Collections API (org.eclipse.collections:eclipse-collections-api:11.1.0 - https://github.com/eclipse/eclipse-collections/eclipse-collections-api)
-	(Eclipse Distribution License - v 1.0, Eclipse Public License v1.0) * Eclipse Collections Main Library (org.eclipse.collections:eclipse-collections:11.1.0 - https://github.com/eclipse/eclipse-collections/eclipse-collections)
+	(Eclipse Distribution License - v1.0) * Eclipse Collections API (org.eclipse.collections:eclipse-collections-api:11.1.0 - https://github.com/eclipse/eclipse-collections/eclipse-collections-api)
+	(Eclipse Distribution License - v1.0) * Eclipse Collections Main Library (org.eclipse.collections:eclipse-collections:11.1.0 - https://github.com/eclipse/eclipse-collections/eclipse-collections)
 	(Eclipse Distribution License - v1.0) * Jakarta Activation (com.sun.activation:jakarta.activation:2.0.1 - https://github.com/eclipse-ee4j/jaf/jakarta.activation)
 	(Eclipse Distribution License - v1.0) * Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:4.0.0-RC2 - https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
 	(Eclipse Distribution License - v1.0) * JavaBeans Activation Framework API jar (jakarta.activation:jakarta.activation-api:1.2.1 - https://github.com/eclipse-ee4j/jaf/jakarta.activation-api)
@@ -524,7 +535,7 @@ See licenses/ for text of these licenses.
 	(The MIT License) * jnr-x86asm (com.github.jnr:jnr-x86asm:1.0.2 - http://github.com/jnr/jnr-x86asm)
 	(The MIT License) * mockito-core (org.mockito:mockito-core:3.3.3 - https://github.com/mockito/mockito)
 	(The MIT License) * sourcecode (com.lihaoyi:sourcecode_2.12:0.1.4 - https://github.com/lihaoyi/sourcecode)
-	(The MIT License, GNU General Public License, version 2 (GPL2), with the classpath exception) * Checker Qual (org.checkerframework:checker-qual:2.0.0 - http://checkerframework.org)
+	(The MIT License) * Checker Qual (org.checkerframework:checker-qual:2.0.0 - http://checkerframework.org)
 
 ========================================================================
 Third party Public Domain licenses

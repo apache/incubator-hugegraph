@@ -1,0 +1,91 @@
+Apache HugeGraph(incubating)
+Copyright 2022-2023 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+The initial codebase was donated to the ASF by HugeGraph Authors, copyright 2017-2021.
+
+
+-----------------------------------------------------------------------
+This product contains code form the Apache TinkerPop Project:
+-----------------------------------------------------------------------
+Apache TinkerPop
+Copyright 2015-2022 The Apache Software Foundation.
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+------------------------------------------------------------------------
+Activiti
+------------------------------------------------------------------------
+Activiti BPM Platform
+Copyright 2010-2014 Alfresco Software, Ltd.
+
+gremlin-core/src/main/java/org/apache/tinkerpop/gremlin/structure/io/graphml/GraphMLWriterHelper.java
+contains DelegatingXMLStreamWriter.java and IndentingXMLStreamWriter.java from
+https://github.com/Activiti/Activiti/tree/activiti-5.16/modules/activiti-bpmn-converter/src/main/java/org/activiti/bpmn/converter
+
+------------------------------------------------------------------------
+Apache Kerby
+------------------------------------------------------------------------
+Apache Kerby
+Copyright 2015-2017 The Apache Software Foundation
+
+gremlin-server/src/main/java/org/apache/tinkerpop/gremlin/server/auth/JaasKrbUtil.java
+from
+https://github.com/apache/directory-kerby/blob/kerby-all-1.0.0/kerby-kerb/kerb-simplekdc/src/main/java/org/apache/kerby/kerberos/kerb/client/JaasKrbUtil.java
+
+
+-----------------------------------------------------------------------
+This product contains code form the JanusGraph Project:
+-----------------------------------------------------------------------
+==============================================================
+ JanusGraph: Distributed Graph Database
+ Copyright 2012 and onwards JanusGraph Authors
+==============================================================
+
+This product includes software developed by JanusGraph contributors listed
+in CONTRIBUTORS.txt; JanusGraph copyright holders are listed in AUTHORS.txt.
+
+This product is based on Titan, originally developed by Aurelius (acquired by
+DataStax) and the following individuals:
+
+ * Matthias Broecheler
+ * Dan LaRocque
+ * Marko A. Rodriguez
+ * Stephen Mallette
+ * Pavel Yaskevich
+
+It also includes software from other open source projects including, but not limited to (check pom.xml for complete listing):
+
+ * Apache Cassandra [https://cassandra.apache.org/]
+ * Apache Commons [https://commons.apache.org/]
+ * Apache Groovy [http://groovy-lang.org/]
+ * Apache HBase [https://hbase.apache.org/]
+ * Apache Hadoop [https://hadoop.apache.org/]
+ * Apache Kerby [https://github.com/apache/directory-kerby]
+ * Apache Log4j [https://logging.apache.org/log4j]
+ * Apache Lucene [https://lucene.apache.org/]
+ * Apache Solr [https://lucene.apache.org/solr/]
+ * Apache TinkerPop [https://tinkerpop.apache.org/]
+ * Astyanax [https://github.com/Netflix/astyanax]
+ * DataStax Driver for Apache Cassandra  [https://github.com/datastax/java-driver]
+ * EasyMock [http://easymock.org/]
+ * Elasticsearch [https://www.elastic.co/]
+ * Google Cloud Bigtable [https://github.com/googlecloudplatform/cloud-bigtable-client]
+ * Google Guava [https://github.com/google/guava]
+ * HPPC [https://labs.carrotsearch.com/hppc.html]
+ * JUnit [https://www.junit.org/]
+ * Jackson [https://github.com/FasterXML/jackson]
+ * Kryo [https://github.com/EsotericSoftware/kryo]
+ * Metrics [https://metrics.dropwizard.io]
+ * Mockito [https://site.mockito.org/]
+ * Noggit [https://github.com/yonik/noggit]
+ * OpenRDF [http://rdf4j.org/]
+ * Oracle BerkeleyDB Java Edition [https://www.oracle.com/technetwork/products/berkeleydb/] (see license below)
+ * Project Lombok [https://projectlombok.org/]
+ * Reflections8 [https://github.com/aschoerk/reflections8]
+ * SLF4J [https://www.slf4j.org/]
+ * Spatial4j [https://github.com/locationtech/spatial4j]
+ * Vavr [https://www.vavr.io/]

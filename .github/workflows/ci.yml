@@ -26,8 +26,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        BACKEND: [memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql]
-        JAVA_VERSION: ['8', '11']
+        BACKEND: [ memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql ]
+        JAVA_VERSION: [ '8', '11' ]
 
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
@@ -37,7 +37,7 @@ jobs:
           distribution: 'zulu'
 
       - name: Cache Maven packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -48,16 +48,21 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: License check(RAT)
+        run: |
+          mvn apache-rat:check -ntp
+          find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
+          grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
+
       - name: Compile
         run: |
-          mvn clean compile -U -Dmaven.javadoc.skip=true | grep -v "Downloading\|Downloaded"
+          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
       - name: Install JDK 8
         uses: actions/setup-java@v3
         with:
           java-version: '8'
           distribution: 'zulu'
-
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
@@ -65,20 +70,8 @@ jobs:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
-           java-version: ${{ matrix.JAVA_VERSION }}
-           distribution: 'zulu'
-
-#      - name: Init MySQL Env
-#        if: ${{ env.BACKEND == 'mysql' }}
-#        uses: mirromutth/mysql-action@v1.1
-#        with:
-#          host port: 3306 # Optional, default value is 3306. The port of host
-#          container port: 3306 # Optional, default value is 3306. The port of container
-#          character set server: 'utf8mb4' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
-#          collation server: 'utf8mb4_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
-#          mysql version: '5.7' # Optional, default value is "latest". The version of the MySQL
-#          mysql database: 'test' # Optional, default value is "test". The specified database which will be create
-#          mysql root password: "******" # Required if "mysql user" is empty, default is empty. The root superuser password
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'zulu'
 
       - name: Run unit test
         run: |

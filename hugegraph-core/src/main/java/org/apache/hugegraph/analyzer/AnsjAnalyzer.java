@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -34,7 +32,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Reference from https://my.oschina.net/apdplat/blog/412921
+ * Reference from https://github.com/NLPchina/ansj_seg/wiki
  */
 public class AnsjAnalyzer implements Analyzer {
 
