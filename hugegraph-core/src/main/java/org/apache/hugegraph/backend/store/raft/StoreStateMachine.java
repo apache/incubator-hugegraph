@@ -57,7 +57,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
 
     public StoreStateMachine(RaftContext context) {
         this.context = context;
-        this.snapshotFile = new StoreSnapshotFile(context.stores());
+        this.snapshotFile = new StoreSnapshotFile(context.stores(), context.shardId());
     }
 
     private BackendStore store(StoreType type) {

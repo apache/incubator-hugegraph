@@ -31,13 +31,14 @@ public final class StoreCommand {
     private final StoreAction action;
     private final byte[] data;
     private final boolean forwarded;
+    private short shardId;
 
-    public StoreCommand(StoreType type, StoreAction action, byte[] data) {
-        this(type, action, data, false);
+    public StoreCommand(StoreType type, StoreAction action, byte[] data, short shardId) {
+        this(type, action, data, false, shardId);
     }
 
     public StoreCommand(StoreType type, StoreAction action,
-                        byte[] data, boolean forwarded) {
+                        byte[] data, boolean forwarded, short shardId) {
         this.type = type;
         this.action = action;
         if (data == null) {
@@ -49,6 +50,7 @@ public final class StoreCommand {
         this.data[0] = (byte) this.type.getNumber();
         this.data[1] = (byte) this.action.getNumber();
         this.forwarded = forwarded;
+        this.shardId = shardId;
     }
 
     public StoreType type() {
@@ -57,6 +59,14 @@ public final class StoreCommand {
 
     public StoreAction action() {
         return this.action;
+    }
+
+    public short shardId() {
+        return this.shardId;
+    }
+
+    public void setShardId(short shardId) {
+        this.shardId = shardId;
     }
 
     public byte[] data() {
@@ -78,10 +88,11 @@ public final class StoreCommand {
         return bytes;
     }
 
+    // just for test
     public static StoreCommand fromBytes(byte[] bytes) {
         StoreType type = StoreType.valueOf(bytes[0]);
         StoreAction action = StoreAction.valueOf(bytes[1]);
-        return new StoreCommand(type, action, bytes);
+        return new StoreCommand(type, action, bytes, (short) 0);
     }
 
     @Override

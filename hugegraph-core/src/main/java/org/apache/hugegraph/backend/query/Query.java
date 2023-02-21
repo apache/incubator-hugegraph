@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.query;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -40,7 +41,7 @@ import org.apache.hugegraph.util.collection.IdSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public class Query implements Cloneable {
+public class Query implements Cloneable, Serializable {
 
     // TODO: we should better not use Long.Max as the unify limit number
     public static final long NO_LIMIT = Long.MAX_VALUE;

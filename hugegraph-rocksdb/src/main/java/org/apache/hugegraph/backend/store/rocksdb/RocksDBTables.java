@@ -22,7 +22,9 @@ package org.apache.hugegraph.backend.store.rocksdb;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Condition;
@@ -65,6 +67,38 @@ public class RocksDBTables {
                 return null;
             }
             return StringEncoding.decode(value);
+        }
+    }
+
+    public static class RaftRoute extends RocksDBTable {
+
+        private static final String TABLE = HugeType.RAFT_ROUTE.string();
+
+        public RaftRoute(String database) {
+            super(database, TABLE);
+        }
+
+        public void writeRoute(RocksDBSessions.Session session, Map<Short, String> routeTable) {
+            for (Map.Entry<Short, String> entry : routeTable.entrySet()) {
+                byte[] key = StringEncoding.encode(String.valueOf(entry.getKey()));
+                byte[] value = StringEncoding.encode(entry.getValue());
+                session.put(this.table(), key, value);
+            }
+            try {
+                session.commit();
+            } catch (Exception e) {
+                session.rollback();
+            }
+        }
+
+        public Map<Short, String> readRoute(RocksDBSessions.Session session) {
+            BackendColumnIterator values = session.scan(this.table());
+            Map<Short, String> results = new HashMap<>();
+            while (values.hasNext()) {
+                BackendEntry.BackendColumn col = values.next();
+                results.put(Short.valueOf(new String(col.name)), new String(col.value));
+            }
+            return results;
         }
     }
 

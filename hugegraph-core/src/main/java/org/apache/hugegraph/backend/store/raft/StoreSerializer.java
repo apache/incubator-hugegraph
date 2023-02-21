@@ -20,8 +20,10 @@
 package org.apache.hugegraph.backend.store.raft;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -41,18 +43,23 @@ public final class StoreSerializer {
 
     private static final int MUTATION_SIZE = (int) (1 * Bytes.MB);
 
-    public static byte[] writeMutations(List<BackendMutation> mutations) {
-        int estimateSize = mutations.size() * MUTATION_SIZE;
-        // The first two bytes are reserved for StoreType and StoreAction
-        BytesBuffer buffer = BytesBuffer.allocate(StoreCommand.HEADER_SIZE +
-                                                  4 + estimateSize);
-        StoreCommand.writeHeader(buffer);
+    public static Map<Short, byte[]> writeMutations(Map<Short, List<BackendMutation>> mutations) {
 
-        buffer.writeVInt(mutations.size());
-        for (BackendMutation mutation : mutations) {
-            buffer.writeBigBytes(writeMutation(mutation));
+        Map<Short, byte[]> mutationBytes = new HashMap<>();
+        for (Map.Entry<Short, List<BackendMutation>> mutationEntry : mutations.entrySet()) {
+            List<BackendMutation> backendMutations = mutationEntry.getValue();
+            int estimateSize = backendMutations.size() * MUTATION_SIZE;
+            // The first two bytes are reserved for StoreType and StoreAction
+            BytesBuffer buffer = BytesBuffer.allocate(StoreCommand.HEADER_SIZE +
+                                                      4 + estimateSize);
+            StoreCommand.writeHeader(buffer);
+            buffer.writeVInt(backendMutations.size());
+            for (BackendMutation mutation : backendMutations) {
+                buffer.writeBigBytes(writeMutation(mutation));
+            }
+            mutationBytes.put(mutationEntry.getKey(), buffer.bytes());
         }
-        return buffer.bytes();
+        return mutationBytes;
     }
 
     public static List<BackendMutation> readMutations(BytesBuffer buffer) {

@@ -942,12 +942,14 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     public static class RocksDBSchemaStore extends RocksDBStore {
 
         private final RocksDBTables.Counters counters;
+        private final RocksDBTables.RaftRoute raftRoute;
 
         public RocksDBSchemaStore(BackendStoreProvider provider,
                                   String database, String store) {
             super(provider, database, store);
 
             this.counters = new RocksDBTables.Counters(database);
+            this.raftRoute = new RocksDBTables.RaftRoute(database);
 
             registerTableManager(HugeType.VERTEX_LABEL,
                                  new RocksDBTables.VertexLabel(database));
@@ -965,6 +967,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         protected List<String> tableNames() {
             List<String> tableNames = super.tableNames();
             tableNames.add(this.counters.table());
+            tableNames.add(this.raftRoute.table());
             return tableNames;
         }
 
@@ -989,6 +992,32 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                 super.checkOpened();
                 RocksDBSessions.Session session = super.sessions.session();
                 return this.counters.getCounter(session, type);
+            } finally {
+                readLock.unlock();
+            }
+        }
+
+        @Override
+        public void writeRoute(Map<Short, String> routeTable) {
+            Lock writeLock = super.storeLock.writeLock();
+            writeLock.lock();
+            try {
+                super.checkOpened();
+                RocksDBSessions.Session session = super.sessions.session();
+                this.raftRoute.writeRoute(session, routeTable);
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
+        @Override
+        public Map<Short, String> readRoute() {
+            Lock readLock = super.storeLock.readLock();
+            readLock.lock();
+            try {
+                super.checkOpened();
+                RocksDBSessions.Session session = super.sessions.session();
+                return this.raftRoute.readRoute(session);
             } finally {
                 readLock.unlock();
             }

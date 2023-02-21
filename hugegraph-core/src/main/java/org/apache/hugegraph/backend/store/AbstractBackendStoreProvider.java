@@ -61,11 +61,11 @@ public abstract class AbstractBackendStoreProvider
                      "The BackendStoreProvider has not been opened");
     }
 
-    protected abstract BackendStore newSchemaStore(HugeConfig config, String store);
+    public abstract BackendStore newSchemaStore(HugeConfig config, String store);
 
-    protected abstract BackendStore newGraphStore(HugeConfig config, String store);
+    public abstract BackendStore newGraphStore(HugeConfig config, String store);
 
-    protected abstract BackendStore newSystemStore(HugeConfig config, String store);
+    public abstract BackendStore newSystemStore(HugeConfig config, String store);
 
     @Override
     public void listen(EventListener listener) {

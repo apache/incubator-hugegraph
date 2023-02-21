@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -30,11 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
-import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.NodeManager;
 import com.alipay.sofa.jraft.conf.Configuration;
@@ -44,9 +40,9 @@ import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
-import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
+import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.cache.Cache;
@@ -55,10 +51,8 @@ import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import org.apache.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
@@ -68,6 +62,7 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public final class RaftContext {
 
@@ -106,8 +101,9 @@ public final class RaftContext {
     private RaftNode raftNode;
     private RaftGroupManager raftGroupManager;
     private RpcForwarder rpcForwarder;
+    private short shardId;
 
-    public RaftContext(HugeGraphParams params) {
+    public RaftContext(HugeGraphParams params, String groupPeersString) {
         this.params = params;
 
         HugeConfig config = params.configuration();
@@ -116,7 +112,6 @@ public final class RaftContext {
          * NOTE: `raft.group_peers` option is transfered from ServerConfig
          * to CoreConfig, since it's shared by all graphs.
          */
-        String groupPeersString = this.config().getString("raft.group_peers");
         E.checkArgument(groupPeersString != null,
                         "Please ensure config `raft.group_peers` in raft mode");
         this.groupPeers = new Configuration();
@@ -148,16 +143,19 @@ public final class RaftContext {
         this.rpcForwarder = null;
     }
 
-    public void initRaftNode(com.alipay.remoting.rpc.RpcServer rpcServer) {
-        this.raftRpcServer = this.wrapRpcServer(rpcServer);
-        this.endpoint = new PeerId(rpcServer.ip(), rpcServer.port());
+    public void initRaftNode(RpcServer rpcServer, short shardId, PeerId endpoint) {
+        this.raftRpcServer = rpcServer;
+        this.endpoint = endpoint;
 
-        this.registerRpcRequestProcessors();
         LOG.info("Start raft server successfully: {}", this.endpoint());
-
-        this.raftNode = new RaftNode(this);
+        this.shardId = shardId;
+        this.raftNode = new RaftNode(this, shardId);
         this.rpcForwarder = new RpcForwarder(this.raftNode.node());
         this.raftGroupManager = new RaftGroupManagerImpl(this);
+    }
+
+    public Short shardId() {
+        return this.shardId;
     }
 
     public void waitRaftNodeStarted() {
@@ -168,7 +166,6 @@ public final class RaftContext {
 
     public void close() {
         LOG.info("Stop raft server: {}", this.endpoint());
-
         RaftNode node = this.node();
         if (node != null) {
             node.shutdown();
@@ -202,17 +199,6 @@ public final class RaftContext {
         this.stores[type.getNumber()] = store;
     }
 
-    public StoreType storeType(String store) {
-        if (BackendStoreProvider.SCHEMA_STORE.equals(store)) {
-            return StoreType.SCHEMA;
-        } else if (BackendStoreProvider.GRAPH_STORE.equals(store)) {
-            return StoreType.GRAPH;
-        } else {
-            assert BackendStoreProvider.SYSTEM_STORE.equals(store);
-            return StoreType.SYSTEM;
-        }
-    }
-
     protected RaftBackendStore[] stores() {
         return this.stores;
     }
@@ -221,7 +207,7 @@ public final class RaftContext {
         RaftBackendStore raftStore = this.stores[storeType.getNumber()];
         E.checkState(raftStore != null,
                      "The raft store of type %s shouldn't be null", storeType);
-        return raftStore.originStore();
+        return raftStore.originStore(this.shardId());
     }
 
     public NodeOptions nodeOptions() throws IOException {
@@ -246,7 +232,7 @@ public final class RaftContext {
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
         nodeOptions.setInitialConf(this.groupPeers);
 
-        String raftPath = config.get(CoreOptions.RAFT_PATH);
+        String raftPath = "/Users/zsm/hugegraph-instance/raftlog/raft" + new Date().getTime();
         String logUri = Paths.get(raftPath, "log").toString();
         FileUtils.forceMkdir(new File(logUri));
         nodeOptions.setLogUri(logUri);
@@ -386,34 +372,12 @@ public final class RaftContext {
         return rpcServer;
     }
 
-    private RpcServer wrapRpcServer(com.alipay.remoting.rpc.RpcServer rpcServer) {
-        // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
-        Integer lowWaterMark = this.config().get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
-        System.setProperty("bolt.channel_write_buf_low_water_mark",
-                           String.valueOf(lowWaterMark));
-        Integer highWaterMark = this.config().get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
-        System.setProperty("bolt.channel_write_buf_high_water_mark",
-                           String.valueOf(highWaterMark));
-
-        // Reference from RaftRpcServerFactory.createAndStartRaftRpcServer
-        RpcServer raftRpcServer = new BoltRpcServer(rpcServer);
-        RaftRpcServerFactory.addRaftRequestProcessors(raftRpcServer);
-
-        return raftRpcServer;
-    }
-
     private void shutdownRpcServer() {
-        this.raftRpcServer.shutdown();
-        PeerId endpoint = this.endpoint();
-        NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
-    }
-
-    private void registerRpcRequestProcessors() {
-        this.raftRpcServer.registerProcessor(new StoreCommandProcessor(this));
-        this.raftRpcServer.registerProcessor(new SetLeaderProcessor(this));
-        this.raftRpcServer.registerProcessor(new ListPeersProcessor(this));
+        if (this.raftRpcServer != null) {
+            this.raftRpcServer.shutdown();
+            PeerId endpoint = this.endpoint();
+            NodeManager.getInstance().removeAddress(endpoint.getEndpoint());
+        }
     }
 
     private ExecutorService createReadIndexExecutor(int coreThreads) {

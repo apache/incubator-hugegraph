@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.query;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -43,7 +44,7 @@ import org.apache.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-public abstract class Condition {
+public abstract class Condition implements Serializable {
 
     public enum ConditionType {
         NONE,

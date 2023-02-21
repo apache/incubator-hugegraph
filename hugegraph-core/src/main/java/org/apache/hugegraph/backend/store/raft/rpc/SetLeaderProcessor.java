@@ -19,6 +19,8 @@
 
 package org.apache.hugegraph.backend.store.raft.rpc;
 
+import java.util.Map;
+
 import org.apache.hugegraph.backend.store.raft.RaftContext;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
@@ -36,18 +38,19 @@ public class SetLeaderProcessor
 
     private static final Logger LOG = Log.logger(SetLeaderProcessor.class);
 
-    private final RaftContext context;
+    private final Map<Short, RaftContext> contexts;
 
-    public SetLeaderProcessor(RaftContext context) {
+    public SetLeaderProcessor(Map<Short, RaftContext> contexts) {
         super(null, null);
-        this.context = context;
+        this.contexts = contexts;
     }
 
     @Override
     public Message processRequest(SetLeaderRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing SetLeaderRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.contexts.entrySet().stream().findFirst().get()
+                                                    .getValue().raftNodeManager();
         try {
             nodeManager.setLeader(request.getEndpoint());
             CommonResponse common = CommonResponse.newBuilder()

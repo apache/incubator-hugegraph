@@ -32,6 +32,7 @@ import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.backend.store.BackendStore;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -58,14 +59,15 @@ public class StoreSnapshotFile {
     private final RaftBackendStore[] stores;
     private final Map<String, String> dataDisks;
     private final AtomicBoolean compressing;
-
-    public StoreSnapshotFile(RaftBackendStore[] stores) {
+    private final short shardId;
+    public StoreSnapshotFile(RaftBackendStore[] stores, short shardId) {
+        this.shardId = shardId;
         this.stores = stores;
         this.dataDisks = new HashMap<>();
         for (RaftBackendStore raftStore : stores) {
             // Call RocksDBStore method reportDiskMapping()
-            this.dataDisks.putAll(Whitebox.invoke(raftStore, "store",
-                                                  "reportDiskMapping"));
+            BackendStore store = raftStore.originStore(shardId);
+            this.dataDisks.putAll(Whitebox.invoke(store.getClass(), "reportDiskMapping", store));
         }
         this.compressing = new AtomicBoolean(false);
         /*
@@ -146,7 +148,7 @@ public class StoreSnapshotFile {
     private Map<String, String> doSnapshotSave() {
         Map<String, String> snapshotDirMaps = InsertionOrderUtil.newMap();
         for (RaftBackendStore store : this.stores) {
-            snapshotDirMaps.putAll(store.originStore()
+            snapshotDirMaps.putAll(store.originStore(this.shardId)
                                         .createSnapshot(SNAPSHOT_DIR));
         }
         LOG.info("Saved all snapshots: {}", snapshotDirMaps);
@@ -155,7 +157,7 @@ public class StoreSnapshotFile {
 
     private void doSnapshotLoad() {
         for (RaftBackendStore store : this.stores) {
-            store.originStore().resumeSnapshot(SNAPSHOT_DIR, false);
+            store.originStore(this.shardId).resumeSnapshot(SNAPSHOT_DIR, false);
         }
     }
 

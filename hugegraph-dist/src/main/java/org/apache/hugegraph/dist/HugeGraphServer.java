@@ -107,6 +107,10 @@ public class HugeGraphServer {
     }
 
     public static void main(String[] args) throws Exception {
+        String node = args[0];
+        args = new String[]{"/Users/zsm/hugegraph-instance/cluster/"+node+"/gremlin-server.yaml",
+                            "/Users/zsm/hugegraph-instance/cluster/"+node+"/rest-server.properties"};
+
         if (args.length != 2) {
             String msg = "Start HugeGraphServer need to pass 2 parameters, " +
                          "they are the config files of GremlinServer and " +

@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.store;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableList;
 
-public abstract class BackendTable<Session extends BackendSession, Entry> {
+public abstract class BackendTable<Session extends BackendSession, Entry> implements Serializable {
 
     private final String table;
 

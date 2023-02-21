@@ -30,17 +30,17 @@ public class HbaseStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected BackendStore newSchemaStore(HugeConfig config, String store) {
+    public BackendStore newSchemaStore(HugeConfig config, String store) {
         return new HbaseStore.HbaseSchemaStore(config, this, this.namespace(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(HugeConfig config, String store) {
+    public BackendStore newGraphStore(HugeConfig config, String store) {
         return new HbaseStore.HbaseGraphStore(config, this, this.namespace(), store);
     }
 
     @Override
-    protected BackendStore newSystemStore(HugeConfig config, String store) {
+    public BackendStore newSystemStore(HugeConfig config, String store) {
         return new HbaseStore.HbaseSystemStore(config, this, this.namespace(), store);
     }
 

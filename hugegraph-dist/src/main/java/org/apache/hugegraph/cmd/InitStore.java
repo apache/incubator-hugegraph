@@ -20,6 +20,7 @@
 package org.apache.hugegraph.cmd;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,8 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
+        args = new String[]{
+            "/Users/zsm/hugegraph-instance/cluster/node-1/rest-server.properties"};
         E.checkArgument(args.length == 1,
                         "HugeGraph init-store need to pass the config file " +
                         "of RestServer, like: conf/rest-server.properties");
@@ -95,7 +98,6 @@ public class InitStore {
         LOG.info("Init graph with config file: {}", configPath);
         HugeConfig config = new HugeConfig(configPath);
         // Forced set RAFT_MODE to false when initializing backend
-        config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
         try {

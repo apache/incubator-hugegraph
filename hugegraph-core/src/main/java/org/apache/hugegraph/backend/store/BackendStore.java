@@ -152,6 +152,14 @@ public interface BackendStore {
     // Get current counter for a specific type
     long getCounter(HugeType type);
 
+    default public void writeRoute(Map<Short, String> routeTable) {
+        throw new UnsupportedOperationException("BackendStore.writeRoute()");
+    }
+
+    default public Map<Short, String> readRoute() {
+        throw new UnsupportedOperationException("BackendStore.readRoute()");
+    }
+
     default void createOlapTable(Id pkId) {
         throw new UnsupportedOperationException("BackendStore.createOlapTable()");
     }

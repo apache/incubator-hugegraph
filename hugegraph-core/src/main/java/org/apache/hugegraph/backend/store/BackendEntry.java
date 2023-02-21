@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.store;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -31,9 +32,9 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
 
-public interface BackendEntry extends Idfiable {
+public interface BackendEntry extends Idfiable, Serializable {
 
-    class BackendColumn implements Comparable<BackendColumn> {
+    class BackendColumn implements Comparable<BackendColumn>, Serializable {
 
         public byte[] name;
         public byte[] value;

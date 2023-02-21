@@ -19,9 +19,11 @@
 
 package org.apache.hugegraph.backend.id;
 
+import java.io.Serializable;
+
 import org.apache.hugegraph.util.E;
 
-public interface Id extends Comparable<Id> {
+public interface Id extends Comparable<Id>, Serializable {
 
     int UUID_LENGTH = 16;
 

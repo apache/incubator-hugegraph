@@ -26,7 +26,6 @@ import static org.apache.hugegraph.config.OptionChecker.positiveInt;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.Bytes;
 
@@ -88,6 +87,38 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "text"
             );
+
+    public static final ConfigOption<Integer> RAFT_SHARD_NUM =
+        new ConfigOption<>(
+            "raft.shard_num",
+            "The raft shard number. ",
+            disallowEmpty(),
+            3
+        );
+
+    public static final ConfigOption<Integer> RAFT_REPLICATION_NUM =
+        new ConfigOption<>(
+            "raft.replication_num",
+            "The raft replication number. ",
+            disallowEmpty(),
+            3
+        );
+
+    public static final ConfigOption<String> RAFT_ENDPOINT =
+        new ConfigOption<>(
+            "raft.endpoint",
+            "The peerid of current raft node.",
+            disallowEmpty(),
+            "127.0.0.1:8281"
+        );
+
+    public static final ConfigOption<String> RAFT_GROUP_PEERS =
+        new ConfigOption<>(
+            "raft.group_peers",
+            "The rpc address of raft group initial peers.",
+            disallowEmpty(),
+            "127.0.0.1:8281,127.0.0.1:8282,127.0.0.1:8283"
+        );
 
     public static final ConfigOption<Boolean> RAFT_MODE =
             new ConfigOption<>(

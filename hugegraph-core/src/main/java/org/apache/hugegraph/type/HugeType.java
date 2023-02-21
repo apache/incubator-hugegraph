@@ -36,6 +36,7 @@ public enum HugeType implements SerialEnum {
 
     META(40, "M"),
     COUNTER(50, "C"),
+    RAFT_ROUTE(60, "RR"),
 
     /* Data types */
     VERTEX(101, "V"),

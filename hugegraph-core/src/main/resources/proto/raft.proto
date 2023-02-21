@@ -52,11 +52,24 @@ message StoreCommandRequest {
     required StoreType type = 1;
     required StoreAction action = 2;
     required bytes data = 3;
+    required int32 shardId = 4;
 }
 
 message StoreCommandResponse {
     required bool status = 1;
     optional string message = 2;
+    optional bytes data = 3;
+}
+
+message QueryCommandRequest {
+    required bytes data = 3;
+    required int32 shardId = 4;
+}
+
+message QueryCommandResponse {
+    required bool status = 1;
+    optional string message = 2;
+    optional bytes data = 3;
 }
 
 message CommonResponse {

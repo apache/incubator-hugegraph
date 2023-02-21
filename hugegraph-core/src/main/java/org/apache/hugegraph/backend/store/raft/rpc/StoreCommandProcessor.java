@@ -19,45 +19,69 @@
 
 package org.apache.hugegraph.backend.store.raft.rpc;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.backend.store.raft.RaftClosure;
 import org.apache.hugegraph.backend.store.raft.RaftContext;
-import org.apache.hugegraph.backend.store.raft.RaftNode;
 import org.apache.hugegraph.backend.store.raft.RaftStoreClosure;
 import org.apache.hugegraph.backend.store.raft.StoreCommand;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import org.apache.hugegraph.util.Log;
+import com.alipay.sofa.jraft.util.BytesUtil;
 import com.google.protobuf.Message;
+import com.google.protobuf.ZeroByteStringHelper;
 
 public class StoreCommandProcessor
        extends RpcRequestProcessor<StoreCommandRequest> {
 
-    private static final Logger LOG = Log.logger(
-                                      StoreCommandProcessor.class);
+    private static final Logger LOG = Log.logger(StoreCommandProcessor.class);
 
-    private final RaftContext context;
+    private final Map<Short, RaftContext> contexts;
 
-    public StoreCommandProcessor(RaftContext context) {
+    public StoreCommandProcessor(Map<Short, RaftContext> contexts) {
         super(null, null);
-        this.context = context;
+        this.contexts = contexts;
     }
 
     @Override
     public Message processRequest(StoreCommandRequest request,
                                   RpcRequestClosure done) {
-        LOG.debug("Processing StoreCommandRequest: {}", request.getAction());
-        RaftNode node = this.context.node();
+        StoreCommandResponse.Builder response = StoreCommandResponse.newBuilder();
         try {
-            StoreCommand command = this.parseStoreCommand(request);
-            RaftStoreClosure closure = new RaftStoreClosure(command);
-            node.submitAndWait(command, closure);
-            // TODO: return the submitAndWait() result to rpc client
-            return StoreCommandResponse.newBuilder().setStatus(true).build();
+            short shardId = (short) request.getShardId();
+            RaftContext context = this.contexts.get(shardId);
+            if (StoreAction.QUERY.equals(request.getAction())) {
+                byte[] result = query(context, request);
+                response.setData(ZeroByteStringHelper.wrap(result));
+            } else {
+                StoreCommand command = this.parseStoreCommand(request);
+                RaftStoreClosure closure = new RaftStoreClosure(command);
+                context.node().submitAndWait(command, closure);
+                // TODO: return the submitAndWait() result to rpc client
+            }
+
+            return response.setStatus(true).build();
         } catch (Throwable e) {
             LOG.warn("Failed to process StoreCommandRequest: {}",
                      request.getAction(), e);
@@ -80,6 +104,40 @@ public class StoreCommandProcessor
         StoreType type = request.getType();
         StoreAction action = request.getAction();
         byte[] data = request.getData().toByteArray();
-        return new StoreCommand(type, action, data, true);
+        int shardId = request.getShardId();
+        return new StoreCommand(type, action, data, true, (short) shardId);
+    }
+
+    private byte[] query(RaftContext raftContext, StoreCommandRequest request) throws Throwable {
+        RaftClosure<Object> future = new RaftClosure<>();
+        BackendStore backendStore = raftContext.originStore(request.getType());
+        byte[] data = request.getData().toByteArray();
+        Query query = (Query) new ObjectInputStream(new ByteArrayInputStream(data))
+                      .readObject();
+
+        ReadIndexClosure readIndexClosure = new ReadIndexClosure() {
+            @Override
+            public void run(Status status, long index, byte[] reqCtx) {
+                if (status.isOk()) {
+                    future.complete(status, () -> backendStore.query(query));
+                } else {
+                    future.failure(status, new BackendException(
+                                           "Failed to do raft read-index: %s",
+                                           status));
+                }
+            }
+        };
+
+        raftContext.node().readIndex(BytesUtil.EMPTY_BYTES, readIndexClosure);
+        Object result = future.waitFinished();
+        Iterator<BackendEntry> backendEntryIterator = (Iterator<BackendEntry>) result;
+
+        List<BackendEntry> resultList = new ArrayList<>();
+        resultList.addAll(IteratorUtils.toList(backendEntryIterator));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream sOut = new ObjectOutputStream(out);
+        sOut.writeObject(resultList);
+        sOut.flush();
+        return out.toByteArray();
     }
 }

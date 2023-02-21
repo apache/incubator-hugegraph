@@ -34,12 +34,12 @@ public class PaloStoreProvider extends MysqlStoreProvider {
     private static final BackendFeatures FEATURES = new PaloFeatures();
 
     @Override
-    protected BackendStore newSchemaStore(HugeConfig config, String store) {
+    public BackendStore newSchemaStore(HugeConfig config, String store) {
         return new PaloSchemaStore(this, this.database(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(HugeConfig config, String store) {
+    public BackendStore newGraphStore(HugeConfig config, String store) {
         return new PaloGraphStore(this, this.database(), store);
     }
 

@@ -19,6 +19,9 @@
 
 package org.apache.hugegraph.backend.serializer;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.BiFunction;
 
 import org.apache.hugegraph.backend.page.PageState;
@@ -27,11 +30,17 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
 
-    protected final BackendIterator<Elem> results;
+    protected BackendIterator<Elem> results;
     protected final BiFunction<BackendEntry, Elem, BackendEntry> merger;
+    protected final List<Iterator<Elem>> listIterators;
+    protected final List<BackendIterator<Elem>> binaryEntryIterators;
+    protected int listIteratorsCursor = -1;
+    protected int binaryEntryIteratorsCursor = -1;
 
     protected BackendEntry next;
 
@@ -45,7 +54,12 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         this.results = results;
         this.merger = m;
         this.next = null;
-
+        this.listIterators = new ArrayList<>();
+        this.binaryEntryIterators = new ArrayList<>();
+        if (this.results.hasNext()) {
+            binaryEntryIteratorsCursor += 1;
+            this.binaryEntryIterators.add(this.results);
+        }
         if (query.paging()) {
             assert query.offset() == 0L;
             assert PageState.fromString(query.page()).offset() == 0;
@@ -53,6 +67,20 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
         } else {
             this.skipOffset();
         }
+    }
+
+    public void addResults(Iterator<Elem> rs) {
+        listIteratorsCursor += 1;
+        this.listIterators.add(rs);
+    }
+
+    public void addResults(BackendIterator<Elem> rs) {
+        binaryEntryIteratorsCursor += 1;
+        this.binaryEntryIterators.add(rs);
+    }
+
+    public BackendIterator<Elem> result() {
+        return this.results;
     }
 
     @Override
@@ -68,23 +96,43 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             this.next = null;
         }
 
-        while (this.results.hasNext()) {
-            Elem elem = this.results.next();
-            BackendEntry merged = this.merger.apply(this.current, elem);
-            E.checkState(merged != null, "Error when merging entry");
-            if (this.current == null) {
-                // The first time to read
-                this.current = merged;
-            } else if (merged == this.current) {
-                // The next entry belongs to the current entry
-                assert this.current != null;
-                if (this.sizeOf(this.current) >= INLINE_BATCH_SIZE) {
+        Iterator<Elem> results = this.results;
+        boolean isLocalResults = true;
+
+        if (this.binaryEntryIteratorsCursor >= 0) {
+            results = this.binaryEntryIterators.get(this.binaryEntryIteratorsCursor);
+        } else if (this.listIteratorsCursor >= 0) {
+            isLocalResults = false;
+            results = this.listIterators.get(this.listIteratorsCursor);
+        }
+
+        while (results.hasNext()) {
+            Elem elem = results.next();
+            BackendEntry merged;
+            if (isLocalResults) {
+                merged = this.merger.apply(this.current, elem);
+                E.checkState(merged != null, "Error when merging entry");
+                if (this.current == null) {
+                    // The first time to read
+                    this.current = merged;
+                } else if (merged == this.current) {
+                    // The next entry belongs to the current entry
+                    assert this.current != null;
+                    if (this.sizeOf(this.current) >= INLINE_BATCH_SIZE) {
+                        break;
+                    }
+                } else {
+                    // New entry
+                    assert this.next == null;
+                    this.next = merged;
                     break;
                 }
             } else {
-                // New entry
-                assert this.next == null;
-                this.next = merged;
+                if (this.current == null) {
+                    this.current = (BackendEntry) elem;
+                } else {
+                    this.next = (BackendEntry) elem;
+                }
                 break;
             }
 
@@ -92,9 +140,19 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             if (this.reachLimit(this.fetched() - 1)) {
                 // Need remove last one because fetched limit + 1 records
                 this.removeLastRecord();
-                this.results.close();
+                try {
+                    this.close();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 break;
             }
+        }
+
+        if (!results.hasNext() && !isLocalResults) {
+            this.listIteratorsCursor -= 1;
+        } else if (!results.hasNext() && isLocalResults) {
+            this.binaryEntryIteratorsCursor -= 1;
         }
 
         return this.current != null;

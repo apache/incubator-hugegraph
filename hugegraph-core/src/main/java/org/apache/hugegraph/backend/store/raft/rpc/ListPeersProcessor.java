@@ -19,6 +19,8 @@
 
 package org.apache.hugegraph.backend.store.raft.rpc;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
@@ -37,18 +39,19 @@ public class ListPeersProcessor
 
     private static final Logger LOG = Log.logger(ListPeersProcessor.class);
 
-    private final RaftContext context;
+    private final Map<Short, RaftContext> contexts;
 
-    public ListPeersProcessor(RaftContext context) {
+    public ListPeersProcessor(Map<Short, RaftContext> contexts) {
         super(null, null);
-        this.context = context;
+        this.contexts = contexts;
     }
 
     @Override
     public Message processRequest(ListPeersRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing ListPeersRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.contexts.entrySet().stream().findFirst()
+                                                    .get().getValue().raftNodeManager();
         try {
             CommonResponse common = CommonResponse.newBuilder()
                                                   .setStatus(true)

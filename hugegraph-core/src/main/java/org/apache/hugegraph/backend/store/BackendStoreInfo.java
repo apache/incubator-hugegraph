@@ -44,8 +44,9 @@ public class BackendStoreInfo {
 
     public boolean checkVersion() {
         String driverVersion = this.storeProvider.driverVersion();
-        String storedVersion = this.storeProvider.loadSystemStore(this.config)
-                                                 .storedVersion();
+        BackendStore store = this.storeProvider.loadSystemStore(this.config);
+        store.init();
+        String storedVersion = store.storedVersion();
         if (!driverVersion.equals(storedVersion)) {
             LOG.error("The backend driver version '{}' is inconsistent with " +
                       "the data version '{}' of backend store for graph '{}'",

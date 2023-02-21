@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.store.rocksdb;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +56,8 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
 
-public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendEntry> {
+public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendEntry> implements
+                                                                                      Serializable {
 
     private static final Logger LOG = Log.logger(RocksDBTable.class);
 
@@ -146,6 +148,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
     @Override
     public Iterator<BackendEntry> query(RocksDBSessions.Session session, Query query) {
+        LOG.info("#query {}",query);
         if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();

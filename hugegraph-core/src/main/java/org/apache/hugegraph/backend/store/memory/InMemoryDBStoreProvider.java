@@ -68,17 +68,17 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected BackendStore newSchemaStore(HugeConfig config, String store) {
+    public BackendStore newSchemaStore(HugeConfig config, String store) {
         return new InMemorySchemaStore(this, this.graph(), store);
     }
 
     @Override
-    protected BackendStore newGraphStore(HugeConfig config, String store) {
+    public BackendStore newGraphStore(HugeConfig config, String store) {
         return new InMemoryGraphStore(this, this.graph(), store);
     }
 
     @Override
-    protected BackendStore newSystemStore(HugeConfig config, String store) {
+    public BackendStore newSystemStore(HugeConfig config, String store) {
         return new InMemorySystemStore(this, this.graph(), store);
     }
 

@@ -54,9 +54,11 @@ public final class RaftNode {
     private final AtomicReference<LeaderInfo> leaderInfo;
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
+    private final Short shardId;
 
-    public RaftNode(RaftContext context) {
+    public RaftNode(RaftContext context, short shardId) {
         this.context = context;
+        this.shardId = shardId;
         this.stateMachine = new StoreStateMachine(context);
         try {
             // Start raft node
@@ -78,6 +80,10 @@ public final class RaftNode {
     protected Node node() {
         assert this.node != null;
         return this.node;
+    }
+
+    public String groupId() {
+        return String.format("a%s", this.shardId);
     }
 
     public PeerId nodeId() {
@@ -174,7 +180,7 @@ public final class RaftNode {
     }
 
     protected LeaderInfo waitLeaderElected(int timeout) {
-        String group = this.context.group();
+        String group = this.groupId();
         LeaderInfo leaderInfo = this.leaderInfo.get();
         if (leaderInfo.leaderId != null) {
             return leaderInfo;
@@ -202,7 +208,7 @@ public final class RaftNode {
     }
 
     protected void waitRaftLogSynced(int timeout) {
-        String group = this.context.group();
+        String group = this.groupId();
         LOG.info("Waiting for raft group '{}' log synced", group);
         long beginTime = System.currentTimeMillis();
         while (!this.started.get()) {
@@ -264,7 +270,7 @@ public final class RaftNode {
          * TODO: the groupId is same as graph name now, when support sharding,
          *       groupId needs to be bound to shard Id
          */
-        String groupId = this.context.group();
+        String group = this.groupId();
         PeerId endpoint = this.context.endpoint();
 
         /*
@@ -275,15 +281,14 @@ public final class RaftNode {
         RpcServer rpcServer = this.context.rpcServer();
         LOG.debug("Start raft node with endpoint '{}', initial conf [{}]",
                   endpoint, nodeOptions.getInitialConf());
-        this.raftGroupService = new RaftGroupService(groupId, endpoint,
-                                                     nodeOptions,
+        this.raftGroupService = new RaftGroupService(group, endpoint, nodeOptions,
                                                      rpcServer, true);
         return this.raftGroupService.start(false);
     }
 
     @Override
     public String toString() {
-        return String.format("[%s-%s]", this.context.group(), this.nodeId());
+        return String.format("[%s-%s]", this.groupId(), this.nodeId());
     }
 
     protected final class RaftStateListener implements ReplicatorStateListener {

@@ -19,6 +19,7 @@
 
 package org.apache.hugegraph.backend.store;
 
+import java.io.Serializable;
 import java.util.NoSuchElementException;
 
 import org.apache.hugegraph.backend.BackendException;
@@ -32,7 +33,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-public abstract class BackendEntryIterator implements CIter<BackendEntry> {
+public abstract class BackendEntryIterator implements CIter<BackendEntry>, Serializable {
 
     private static final Logger LOG = Log.logger(BackendEntryIterator.class);
     public static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;

@@ -52,7 +52,7 @@ public class BackendProviderFactory {
         if (raftMode) {
             LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
                      backend, graph);
-            provider = new RaftBackendStoreProvider(params, provider);
+            provider = new RaftBackendStoreProvider(params, (AbstractBackendStoreProvider) provider);
         }
         provider.open(graph);
         return provider;
