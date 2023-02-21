@@ -15,14 +15,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-abs_path() {
+function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
-        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd )"
         SOURCE="$(readlink "$SOURCE")"
         [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
-    echo "$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    cd -P "$(dirname "$SOURCE")" && pwd
 }
 
 if [[ $# -lt 3 ]]; then
@@ -128,14 +128,22 @@ fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 case "$GC_OPTION" in
-    g1)
+    g1|G1|g1gc)
         echo "Using G1GC as the default garbage collector"
         JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
-                      -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
+                                      -XX:InitiatingHeapOccupancyPercent=50 \
+                                      -XX:G1RSetUpdatingPauseTimePercent=5"
+        ;;
+    zgc|ZGC)
+        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
+                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
+                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
         ;;
     "") ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', only support 'G1/ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 
