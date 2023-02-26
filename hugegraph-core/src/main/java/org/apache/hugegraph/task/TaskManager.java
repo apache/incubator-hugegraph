@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.*;
 import org.apache.hugegraph.util.Consumers;
 import org.apache.hugegraph.util.LockUtil;
@@ -57,6 +58,8 @@ public final class TaskManager {
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
+
+    private boolean useRoleStateMachine = false;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -254,6 +257,34 @@ public final class TaskManager {
         }
     }
 
+    public void onMaster() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.MASTER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to master role", e);
+        }
+    }
+
+    public void onWorker() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.WORKER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to worker role", e);
+        }
+    }
+
+    public void useRoleStateMachine(boolean useRoleStateMachine) {
+        this.useRoleStateMachine = useRoleStateMachine;
+    }
+
     private void scheduleOrExecuteJob() {
         // Called by scheduler timer
         try {
@@ -303,7 +334,7 @@ public final class TaskManager {
              */
             if (serverManager.master()) {
                 scheduler.scheduleTasks();
-                if (!serverManager.onlySingleNode()) {
+                if (!this.useRoleStateMachine && !serverManager.onlySingleNode()) {
                     return;
                 }
             }

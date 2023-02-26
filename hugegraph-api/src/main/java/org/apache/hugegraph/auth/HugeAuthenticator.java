@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
@@ -65,6 +66,8 @@ public interface HugeAuthenticator extends Authenticator {
     UserWithRole authenticate(String username, String password, String token);
 
     AuthManager authManager();
+
+    HugeGraph graph();
 
     @Override
     default void setup(final Map<String, Object> config) {

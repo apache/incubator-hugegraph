@@ -29,7 +29,6 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -52,7 +51,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
-public class ServerInfoManager {
+public class ServerInfoManager{
 
     private static final Logger LOG = Log.logger(ServerInfoManager.class);
 
@@ -102,6 +101,19 @@ public class ServerInfoManager {
             });
         }
         return true;
+    }
+
+    public synchronized void forceInitServerInfo(Id server, NodeRole role) {
+        if (this.closed) {
+            return;
+        }
+
+        E.checkArgument(server != null && role != null,
+                        "The server id or role can't be null");
+        this.selfServerId = server;
+        this.selfServerRole = role;
+
+        this.saveServerInfo(this.selfServerId, this.selfServerRole);
     }
 
     public synchronized void initServerInfo(Id server, NodeRole role) {

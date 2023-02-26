@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -83,6 +84,12 @@ public class ConfigAuthenticator implements HugeAuthenticator {
 
     @Override
     public AuthManager authManager() {
+        throw new NotImplementedException(
+                  "AuthManager is unsupported by ConfigAuthenticator");
+    }
+
+    @Override
+    public HugeGraph graph() {
         throw new NotImplementedException(
                   "AuthManager is unsupported by ConfigAuthenticator");
     }

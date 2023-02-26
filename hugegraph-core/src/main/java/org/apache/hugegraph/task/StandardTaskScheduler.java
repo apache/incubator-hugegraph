@@ -318,6 +318,10 @@ public class StandardTaskScheduler implements TaskScheduler {
                     continue;
                 }
 
+                if (!this.serverManager.master()) {
+                    return;
+                }
+
                 HugeServerInfo server = this.serverManager().pickWorkerNode(
                                         scheduleInfos, task);
                 if (server == null) {

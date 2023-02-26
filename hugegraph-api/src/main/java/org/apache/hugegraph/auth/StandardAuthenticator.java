@@ -41,16 +41,17 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private HugeGraph graph = null;
 
-    private HugeGraph graph() {
-        E.checkState(this.graph != null, "Must setup Authenticator first");
-        return this.graph;
-    }
-
     private void initAdminUser() throws Exception {
         if (this.requireInitAdminUser()) {
             this.initAdminUser(this.inputPassword());
         }
         this.graph.close();
+    }
+
+    @Override
+    public HugeGraph graph() {
+        E.checkState(this.graph != null, "Must setup Authenticator first");
+        return this.graph;
     }
 
     @Override

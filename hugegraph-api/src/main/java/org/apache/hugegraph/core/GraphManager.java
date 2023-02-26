@@ -22,12 +22,21 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.StandardHugeGraph;
+import org.apache.hugegraph.auth.StandardAuthenticator;
+import org.apache.hugegraph.election.Config;
+import org.apache.hugegraph.election.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.election.RoleElectionStateMachine;
+import org.apache.hugegraph.election.RoleElectionStateMachineImpl;
+import org.apache.hugegraph.election.RoleTypeDataAdapter;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -81,6 +90,9 @@ public final class GraphManager {
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
     private final HugeConfig conf;
+
+    private RoleElectionStateMachine roleStateMachine;
+    private Executor applyThread;
 
     private Id server;
     private NodeRole role;
@@ -265,6 +277,9 @@ public final class GraphManager {
         }
         this.destroyRpcServer();
         this.unlistenChanges();
+        if (this.roleStateMachine != null) {
+            this.roleStateMachine.shutdown();
+        }
     }
 
     private void startRpcServer() {
@@ -428,11 +443,41 @@ public final class GraphManager {
                         "The server role can't be null or empty");
         this.server = IdGenerator.of(server);
         this.role = NodeRole.valueOf(role.toUpperCase());
+
+        initRoleStateMachine(config, server);
+
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
             hugegraph.serverStarted(this.server, this.role);
         }
+    }
+
+    private void initRoleStateMachine(HugeConfig config, String server) {
+        try {
+            if (!(this.authenticator() instanceof StandardAuthenticator)) {
+                LOG.info("Current not support role state machine");
+                return;
+            }
+        } catch (IllegalStateException e) {
+            LOG.info("Current not support role state machine");
+            return;
+        }
+
+        E.checkArgument(this.roleStateMachine == null, "Repetition init");
+        Config roleStateMachineConfig = new HugeRoleStateMachineConfig(server,
+                                            config.get(ServerOptions.EXCEEDS_FAIL_COUNT),
+                                            config.get(ServerOptions.RANDOM_TIMEOUT_MILLISECOND),
+                                            config.get(ServerOptions.HEARTBEAT_INTERVAL_SECOUND),
+                                            config.get(ServerOptions.EXCEEDS_WORKER_COUNT),
+                                            config.get(ServerOptions.BASE_TIMEOUT_MILLISECOND));
+        StandardHugeGraph graph = (StandardHugeGraph) this.authenticator().graph().hugegraph();
+        RoleTypeDataAdapter adapter = new RoleTypeDataAdapterImpl(graph.hugeGraphParams());
+        this.roleStateMachine = new RoleElectionStateMachineImpl(roleStateMachineConfig, adapter);
+        applyThread = Executors.newSingleThreadExecutor();
+        applyThread.execute(() -> {
+            this.roleStateMachine.apply(new StateMachineCallbackImpl(TaskManager.instance()));
+        });
     }
 
     private void addMetrics(HugeConfig config) {

@@ -1063,6 +1063,10 @@ public class StandardHugeGraph implements HugeGraph {
         return StringFactory.graphString(this, this.name());
     }
 
+    public HugeGraphParams hugeGraphParams() {
+        return this.params;
+    }
+
     @Override
     public final void proxy(HugeGraph graph) {
         this.params.graph(graph);
