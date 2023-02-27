@@ -440,33 +440,48 @@ public final class GraphManager {
         this.server = IdGenerator.of(server);
         this.role = NodeRole.valueOf(role.toUpperCase());
 
-        this.initRoleStateWorker(config, server);
+        boolean supportRoleStateWorker = this.supportRoleStateWorker();
+        if (supportRoleStateWorker) {
+            this.role = NodeRole.WORKER;
+        }
 
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
             hugegraph.serverStarted(this.server, this.role);
         }
+
+        if (supportRoleStateWorker) {
+            this.initRoleStateWorker();
+        }
     }
 
-    private void initRoleStateWorker(HugeConfig config, String server) {
-        try {
-            if (!(this.authenticator() instanceof StandardAuthenticator)) {
-                LOG.info("{} authenticator does not support role election currently",
-                         this.authenticator().getClass().getSimpleName());
-                return;
-            }
-        } catch (IllegalStateException e) {
-            LOG.info("Unconfigured StandardAuthenticator, not support role state machine");
-            return;
-        }
-
+    private void initRoleStateWorker() {
         E.checkArgument(this.roleStateWorker == null, "Repetition init");
-        this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
         this.applyThread = Executors.newSingleThreadExecutor();
+        this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
         this.applyThread.execute(() -> {
             this.roleStateWorker.apply(new StandardStateMachineCallback(TaskManager.instance()));
         });
+    }
+
+    private boolean supportRoleStateWorker() {
+        if (this.role.computer()) {
+            return false;
+        }
+
+        try {
+            if (!(this.authenticator() instanceof StandardAuthenticator)) {
+                LOG.info("{} authenticator does not support role election currently",
+                        this.authenticator().getClass().getSimpleName());
+                return false;
+            }
+        } catch (IllegalStateException e) {
+            LOG.info("Unconfigured StandardAuthenticator, not support role election currently");
+            return false;
+        }
+
+        return true;
     }
 
     private void addMetrics(HugeConfig config) {
