@@ -1,6 +1,7 @@
 # How to Contribute to HugeGraph
 
-Thanks for taking the time to contribute! As an open source project, HugeGraph is looking forward to be contributed from everyone, and we are also grateful to all of the contributors.
+Thanks for taking the time to contribute! As an open source project, HugeGraph is looking forward to be contributed from everyone, 
+and we are also grateful to all the contributors.
 
 The following is a contribution guide for HugeGraph:
 
@@ -36,7 +37,7 @@ Before submitting the code, we need to do some preparation:
    git config user.email "{email-address-of-github}" # like "jermy@apache.org"
    ```
 
-Optional: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the commit and update process.
+**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
 
 ## 2. Create an Issue on GitHub
 
@@ -46,7 +47,7 @@ If you encounter bugs or have any questions, please go to [GitHub Issues](https:
 
 #### 3.1 Create a new branch
 
-Please don't use master branch for development. Instead we should create a new branch:
+Please don't use master branch for development. Instead, we should create a new branch:
 
 ```shell
 # checkout master branch
@@ -63,8 +64,8 @@ Assume that we need to modify some files like "HugeGraph.java" and "HugeFactory.
 
 ```shell
 # modify code to fix a bug
-vim hugegraph-core/src/main/java/com/baidu/hugegraph/HugeGraph.java
-vim hugegraph-core/src/main/java/com/baidu/hugegraph/HugeFactory.java
+vim hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
+vim hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
 # run test locally (optional)
 mvn test -Pcore-test,memory
 ```
@@ -76,8 +77,8 @@ After the code has been completed, we submit them to the local git repo:
 
 ```shell
 # add files to local git index
-git add hugegraph-core/src/main/java/com/baidu/hugegraph/HugeGraph.java
-git add hugegraph-core/src/main/java/com/baidu/hugegraph/HugeFactory.java
+git add hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
+git add hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
 # commit to local git repo
 git commit
 ```
