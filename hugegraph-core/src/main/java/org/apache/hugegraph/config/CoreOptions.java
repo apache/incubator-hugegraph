@@ -24,7 +24,6 @@ import static org.apache.hugegraph.config.OptionChecker.positiveInt;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.Bytes;
 
@@ -626,5 +625,46 @@ public class CoreOptions extends OptionHolder {
                     allowValues("JCF", "EC", "FU"),
                     CollectionType::valueOf,
                     "EC"
+            );
+
+    public static final ConfigOption<Integer> EXCEEDS_FAIL_COUNT =
+            new ConfigOption<>(
+                    "server.role.fail_count",
+                    "The role state machine fail count exceeds",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    2
+            );
+
+    public static final ConfigOption<Integer> RANDOM_TIMEOUT_MILLISECOND =
+            new ConfigOption<>(
+                    "server.role.random.timeout",
+                    "The role state machine random timeout millisecond time",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    400
+            );
+
+    public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOUND =
+            new ConfigOption<>(
+                    "server.role.heartbeat.interval",
+                    "The role state machine heartbeat interval second time",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    1
+            );
+
+    public static final ConfigOption<Integer> EXCEEDS_WORKER_COUNT =
+            new ConfigOption<>(
+                    "server.role.worker.count",
+                    "Check the number of times that the master node does not initiate " +
+                            "the heartbeat threshold",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    5
+            );
+
+    public static final ConfigOption<Integer> BASE_TIMEOUT_MILLISECOND =
+            new ConfigOption<>(
+                    "server.role.base.timeout",
+                    "The role state machine candidate state base timeout time",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    100
             );
 }

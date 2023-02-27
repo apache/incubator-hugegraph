@@ -30,15 +30,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.auth.StandardAuthenticator;
-import org.apache.hugegraph.core.serverrole.StandardRoleTypeDataAdapter;
-import org.apache.hugegraph.core.serverrole.StandardStateMachineCallback;
-import org.apache.hugegraph.election.Config;
-import org.apache.hugegraph.election.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.election.StandardStateMachineCallback;
 import org.apache.hugegraph.election.RoleElectionStateMachine;
-import org.apache.hugegraph.election.RoleElectionStateMachineImpl;
-import org.apache.hugegraph.election.RoleTypeDataAdapter;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -468,15 +462,7 @@ public final class GraphManager {
         }
 
         E.checkArgument(this.roleStateWorker == null, "Repetition init");
-        Config roleStateMachineConfig = new HugeRoleStateMachineConfig(server,
-                                            config.get(ServerOptions.EXCEEDS_FAIL_COUNT),
-                                            config.get(ServerOptions.RANDOM_TIMEOUT_MILLISECOND),
-                                            config.get(ServerOptions.HEARTBEAT_INTERVAL_SECOUND),
-                                            config.get(ServerOptions.EXCEEDS_WORKER_COUNT),
-                                            config.get(ServerOptions.BASE_TIMEOUT_MILLISECOND));
-        StandardHugeGraph graph = (StandardHugeGraph) this.authenticator().graph().hugegraph();
-        RoleTypeDataAdapter adapter = new StandardRoleTypeDataAdapter(graph.hugeGraphParams());
-        this.roleStateWorker = new RoleElectionStateMachineImpl(roleStateMachineConfig, adapter);
+        this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
         this.applyThread = Executors.newSingleThreadExecutor();
         this.applyThread.execute(() -> {
             this.roleStateWorker.apply(new StandardStateMachineCallback(TaskManager.instance()));

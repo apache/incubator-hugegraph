@@ -64,47 +64,6 @@ public class ServerOptions extends OptionHolder {
                     "master"
             );
 
-    public static final ConfigOption<Integer> EXCEEDS_FAIL_COUNT =
-            new ConfigOption<>(
-                    "server.role.fail_count",
-                    "The role state machine fail count exceeds",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    2
-            );
-
-    public static final ConfigOption<Integer> RANDOM_TIMEOUT_MILLISECOND =
-            new ConfigOption<>(
-                    "server.role.random.timeout",
-                    "The role state machine random timeout millisecond time",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    400
-            );
-
-    public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOUND =
-            new ConfigOption<>(
-                    "server.role.heartbeat.interval",
-                    "The role state machine heartbeat interval second time",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    1
-            );
-
-    public static final ConfigOption<Integer> EXCEEDS_WORKER_COUNT =
-            new ConfigOption<>(
-                    "server.role.worker.count",
-                    "Check the number of times that the master node does not initiate " +
-                    "the heartbeat threshold",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    5
-            );
-
-    public static final ConfigOption<Integer> BASE_TIMEOUT_MILLISECOND =
-            new ConfigOption<>(
-                    "server.role.base.timeout",
-                    "The role state machine candidate state base timeout time",
-                    rangeInt(0, Integer.MAX_VALUE),
-                    100
-            );
-
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",

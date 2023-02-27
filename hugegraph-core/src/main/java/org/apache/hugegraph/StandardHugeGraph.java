@@ -45,6 +45,12 @@ import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.election.Config;
+import org.apache.hugegraph.election.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.election.RoleElectionStateMachine;
+import org.apache.hugegraph.election.RoleTypeDataAdapter;
+import org.apache.hugegraph.election.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.election.StandardRoleTypeDataAdapter;
 import org.apache.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -156,6 +162,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final TaskManager taskManager;
     private AuthManager authManager;
 
+    private RoleElectionStateMachine roleElectionStateMachine;
+
     private final HugeFeatures features;
 
     private final BackendStoreProvider storeProvider;
@@ -262,6 +270,8 @@ public class StandardHugeGraph implements HugeGraph {
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
+        initRoleStateWorker(serverId);
+
         // TODO: check necessary?
         LOG.info("Check olap property-key tables for graph '{}'", this.name);
         for (PropertyKey pk : this.schemaTransaction().getPropertyKeys()) {
@@ -274,6 +284,17 @@ public class StandardHugeGraph implements HugeGraph {
         this.taskScheduler().restoreTasks();
 
         this.started = true;
+    }
+
+    private void initRoleStateWorker(Id serverId) {
+        Config roleStateMachineConfig = new HugeRoleStateMachineConfig(serverId.toString(),
+                                            this.configuration.get(CoreOptions.EXCEEDS_FAIL_COUNT),
+                                            this.configuration.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND),
+                                            this.configuration.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND),
+                                            this.configuration.get(CoreOptions.EXCEEDS_WORKER_COUNT),
+                                            this.configuration.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
+        RoleTypeDataAdapter adapter = new StandardRoleTypeDataAdapter(this.params);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, adapter);
     }
 
     @Override
@@ -1036,6 +1057,11 @@ public class StandardHugeGraph implements HugeGraph {
     public AuthManager authManager() {
         // this.authManager.initSchemaIfNeeded();
         return this.authManager;
+    }
+
+    @Override
+    public RoleElectionStateMachine roleElectionStateMachine() {
+        return this.roleElectionStateMachine;
     }
 
     @Override

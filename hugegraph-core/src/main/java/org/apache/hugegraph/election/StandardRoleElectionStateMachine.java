@@ -23,14 +23,14 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hugegraph.util.E;
 
-public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
+public class StandardRoleElectionStateMachine implements RoleElectionStateMachine {
 
     private volatile boolean shutdown;
     private final Config config;
     private volatile RoleState state;
     private final RoleTypeDataAdapter roleTypeDataAdapter;
 
-    public RoleElectionStateMachineImpl(Config config, RoleTypeDataAdapter adapter) {
+    public StandardRoleElectionStateMachine(Config config, RoleTypeDataAdapter adapter) {
         this.config = config;
         this.roleTypeDataAdapter = adapter;
         this.state = new UnknownState(null);
@@ -261,9 +261,9 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         private Integer epoch;
         private final String node;
-        private final RoleElectionStateMachineImpl machine;
+        private final StandardRoleElectionStateMachine machine;
 
-        public StateMachineContextImpl(RoleElectionStateMachineImpl machine) {
+        public StateMachineContextImpl(StandardRoleElectionStateMachine machine) {
             this.node = machine.config.node();
             this.machine = machine;
         }

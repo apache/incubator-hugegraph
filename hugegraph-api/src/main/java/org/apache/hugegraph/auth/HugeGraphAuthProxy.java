@@ -37,6 +37,7 @@ import java.util.function.Supplier;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.election.RoleElectionStateMachine;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
@@ -702,6 +703,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public AuthManager authManager() {
         // Just return proxy
         return this.authManager;
+    }
+
+    @Override
+    public RoleElectionStateMachine roleElectionStateMachine() {
+        this.verifyAdminPermission();
+        return this.hugegraph.roleElectionStateMachine();
     }
 
     @Override

@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.core.serverrole;
+package org.apache.hugegraph.election;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,8 +29,6 @@ import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.election.RoleTypeData;
-import org.apache.hugegraph.election.RoleTypeDataAdapter;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;

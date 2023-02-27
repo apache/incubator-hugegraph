@@ -15,10 +15,8 @@
  * under the License.
  */
 
-package org.apache.hugegraph.core.serverrole;
+package org.apache.hugegraph.election;
 
-import org.apache.hugegraph.election.StateMachineCallback;
-import org.apache.hugegraph.election.StateMachineContext;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;

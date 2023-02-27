@@ -32,7 +32,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hugegraph.election.Config;
 import org.apache.hugegraph.election.RoleElectionStateMachine;
-import org.apache.hugegraph.election.RoleElectionStateMachineImpl;
+import org.apache.hugegraph.election.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.election.RoleTypeData;
 import org.apache.hugegraph.election.RoleTypeDataAdapter;
 import org.apache.hugegraph.election.StateMachineCallback;
@@ -257,7 +257,7 @@ public class RoleElectionStateMachineTest {
         Thread node1 = new Thread(() -> {
             Config config = new TestConfig("1");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, adapter);
             machines[1] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -266,7 +266,7 @@ public class RoleElectionStateMachineTest {
         Thread node2 = new Thread(() -> {
             Config config = new TestConfig("2");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, adapter);
             machines[2] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -275,7 +275,7 @@ public class RoleElectionStateMachineTest {
         Thread node3 = new Thread(() -> {
             Config config = new TestConfig("3");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, adapter);
             machines[3] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
