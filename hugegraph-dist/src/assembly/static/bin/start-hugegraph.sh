@@ -78,6 +78,7 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
+#TODO: test
 if [[ $DAEMON == "false" ]]; then
     echo "Starting HugeGraphServer in foreground mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
@@ -89,6 +90,7 @@ else
 fi
 
 PID="$!"
+echo "$DAEMON, pid=$PID"
 # Write pid to file
 echo "$PID" > "$PID_FILE"
 
@@ -97,8 +99,8 @@ trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STARTUP_TIMEOUT_S} || {
     echo "See $LOGS/hugegraph-server.log for HugeGraphServer log output." >&2
     # TODO: test now
-    cat "$LOGS"/hugegraph-server.log
     if [[ $DAEMON == "true" ]]; then
+        echo "exit here" && cat "$LOGS"/hugegraph-server.log
         exit 1
     fi
 }
