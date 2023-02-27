@@ -73,7 +73,7 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
-            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issue-387202362
+            // Fixed https://github.com/apache/hugegraph/pull/892#issue-387202362
             "org.apache.hugegraph.backend.tx.SchemaTransaction",
             ImmutableSet.of("removeVertexLabel", "removeEdgeLabel",
                             "removeIndexLabel", "rebuildIndex"),
@@ -91,7 +91,7 @@ public class HugeSecurityManager extends SecurityManager {
             // Fixed #758
             "org.apache.hugegraph.backend.store.cassandra.CassandraStore",
             ImmutableSet.of("open", "opened", "init"),
-            // Fixed https://github.com/hugegraph/hugegraph/pull/892#issuecomment-598545072
+            // Fixed https://github.com/apache/hugegraph/pull/892#issuecomment-598545072
             "com.datastax.driver.core.AbstractSession",
             ImmutableSet.of("execute")
     );
