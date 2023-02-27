@@ -19,12 +19,12 @@ package org.apache.hugegraph.election;
 
 public class HugeRoleStateMachineConfig implements Config {
 
-    String node;
-    int exceedsFailCount;
-    long randomTimeoutMillisecond;
-    long heartBeatIntervalSecond;
-    int exceedsWorkerCount;
-    long baseTimeoutMillisecond;
+    private String node;
+    private int exceedsFailCount;
+    private long randomTimeoutMillisecond;
+    private long heartBeatIntervalSecond;
+    private int exceedsWorkerCount;
+    private long baseTimeoutMillisecond;
 
     public HugeRoleStateMachineConfig(String node, int exceedsFailCount,
                                       long randomTimeoutMillisecond, long heartBeatIntervalSecond,

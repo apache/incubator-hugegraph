@@ -149,7 +149,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public Callback callback(StateMachineCallback callback) {
-            return callback::abdication;
+            return callback::onAsRoleAbdication;
         }
     }
 
@@ -175,7 +175,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public Callback callback(StateMachineCallback callback) {
-            return callback::master;
+            return callback::onAsRoleMaster;
         }
     }
 
@@ -207,7 +207,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public Callback callback(StateMachineCallback callback) {
-            return callback::worker;
+            return callback::onAsRoleWorker;
         }
 
         public void merge(WorkerState state) {
@@ -253,7 +253,7 @@ public class RoleElectionStateMachineImpl implements RoleElectionStateMachine {
 
         @Override
         public Callback callback(StateMachineCallback callback) {
-            return callback::candidate;
+            return callback::onAsRoleCandidate;
         }
     }
 

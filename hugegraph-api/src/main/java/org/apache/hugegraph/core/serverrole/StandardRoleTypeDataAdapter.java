@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.core;
+package org.apache.hugegraph.core.serverrole;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,12 +40,12 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-public class RoleTypeDataAdapterImpl implements RoleTypeDataAdapter {
+public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
 
     private final HugeGraphParams graphParams;
     private final Schema schema;
 
-    public RoleTypeDataAdapterImpl(HugeGraphParams graphParams) {
+    public StandardRoleTypeDataAdapter(HugeGraphParams graphParams) {
         this.graphParams = graphParams;
         this.schema = new Schema(graphParams);
         this.schema.initSchemaIfNeeded();
@@ -82,7 +82,7 @@ public class RoleTypeDataAdapterImpl implements RoleTypeDataAdapter {
         return true;
     }
 
-    BackendEntry constructEntry(RoleTypeData stateData) {
+    private BackendEntry constructEntry(RoleTypeData stateData) {
         List<Object> list = new ArrayList<>(8);
         list.add(T.label);
         list.add(P.ROLE_DATA);

@@ -91,7 +91,7 @@ public class ConfigAuthenticator implements HugeAuthenticator {
     @Override
     public HugeGraph graph() {
         throw new NotImplementedException(
-                  "AuthManager is unsupported by ConfigAuthenticator");
+                  "graph() is unsupported by ConfigAuthenticator");
     }
 
     @Override

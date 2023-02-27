@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.core;
+package org.apache.hugegraph.core.serverrole;
 
 import org.apache.hugegraph.election.StateMachineCallback;
 import org.apache.hugegraph.election.StateMachineContext;
@@ -23,31 +23,32 @@ import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-public class StateMachineCallbackImpl implements StateMachineCallback {
+public class StandardStateMachineCallback implements StateMachineCallback {
 
-    private static final Logger LOG = Log.logger(StateMachineCallbackImpl.class);
+    private static final Logger LOG = Log.logger(StandardStateMachineCallback.class);
 
     private final TaskManager taskManager;
 
-    boolean isMaster = false;
+    private boolean isMaster = false;
 
-    public StateMachineCallbackImpl(TaskManager taskManager) {
+    public StandardStateMachineCallback(TaskManager taskManager) {
         this.taskManager = taskManager;
-        this.taskManager.useRoleStateMachine(true);
+        this.taskManager.enableRoleElected(true);
     }
+
     @Override
-    public void master(StateMachineContext context) {
+    public void onAsRoleMaster(StateMachineContext context) {
         if (!isMaster) {
-            this.taskManager.onMaster();
+            this.taskManager.onAsRoleMaster();
             LOG.info("Server {} change to master role", context.config().node());
         }
         this.isMaster = true;
     }
 
     @Override
-    public void worker(StateMachineContext context) {
+    public void onAsRoleWorker(StateMachineContext context) {
         if (isMaster) {
-            this.taskManager.onWorker();
+            this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -55,9 +56,9 @@ public class StateMachineCallbackImpl implements StateMachineCallback {
     }
 
     @Override
-    public void candidate(StateMachineContext context) {
+    public void onAsRoleCandidate(StateMachineContext context) {
         if (isMaster) {
-            this.taskManager.onWorker();
+            this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -67,7 +68,7 @@ public class StateMachineCallbackImpl implements StateMachineCallback {
     @Override
     public void unknown(StateMachineContext context) {
         if (isMaster) {
-            this.taskManager.onWorker();
+            this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -75,9 +76,9 @@ public class StateMachineCallbackImpl implements StateMachineCallback {
     }
 
     @Override
-    public void abdication(StateMachineContext context) {
+    public void onAsRoleAbdication(StateMachineContext context) {
         if (isMaster) {
-            this.taskManager.onWorker();
+            this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
 

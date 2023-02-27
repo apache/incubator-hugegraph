@@ -59,7 +59,7 @@ public final class TaskManager {
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
 
-    private boolean useRoleStateMachine = false;
+    private boolean enableRoleElected = false;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -257,7 +257,7 @@ public final class TaskManager {
         }
     }
 
-    public void onMaster() {
+    public void onAsRoleMaster() {
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
@@ -269,7 +269,7 @@ public final class TaskManager {
         }
     }
 
-    public void onWorker() {
+    public void onAsRoleWorker() {
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
                 StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
@@ -281,8 +281,8 @@ public final class TaskManager {
         }
     }
 
-    public void useRoleStateMachine(boolean useRoleStateMachine) {
-        this.useRoleStateMachine = useRoleStateMachine;
+    public void enableRoleElected(boolean enableRoleElected) {
+        this.enableRoleElected = enableRoleElected;
     }
 
     private void scheduleOrExecuteJob() {
@@ -330,11 +330,15 @@ public final class TaskManager {
 
             /*
              * Master schedule tasks to suitable servers.
+             * Worker maybe become Master, so Master also need perform tasks assigned by
+             * previous Master when enableRoleElected is true.
+             * However, the master only needs to take the assignment,
+             * because the master stays the same when enableRoleElected is false.
              * There is no suitable server when these tasks are created
              */
             if (serverManager.master()) {
                 scheduler.scheduleTasks();
-                if (!this.useRoleStateMachine && !serverManager.onlySingleNode()) {
+                if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
                     return;
                 }
             }

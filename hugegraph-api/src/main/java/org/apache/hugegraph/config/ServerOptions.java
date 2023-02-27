@@ -66,7 +66,7 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<Integer> EXCEEDS_FAIL_COUNT =
             new ConfigOption<>(
-                    "server.role.fail.count",
+                    "server.role.fail_count",
                     "The role state machine fail count exceeds",
                     rangeInt(0, Integer.MAX_VALUE),
                     2

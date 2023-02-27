@@ -19,15 +19,15 @@ package org.apache.hugegraph.election;
 
 public interface StateMachineCallback {
 
-    void master(StateMachineContext context);
+    void onAsRoleMaster(StateMachineContext context);
 
-    void worker(StateMachineContext context);
+    void onAsRoleWorker(StateMachineContext context);
 
-    void candidate(StateMachineContext context);
+    void onAsRoleCandidate(StateMachineContext context);
 
     void unknown(StateMachineContext context);
 
-    void abdication(StateMachineContext context);
+    void onAsRoleAbdication(StateMachineContext context);
 
     void error(StateMachineContext context, Throwable e);
 }

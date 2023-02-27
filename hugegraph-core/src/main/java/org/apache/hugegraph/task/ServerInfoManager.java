@@ -51,7 +51,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import com.google.common.collect.ImmutableMap;
 
-public class ServerInfoManager{
+public class ServerInfoManager {
 
     private static final Logger LOG = Log.logger(ServerInfoManager.class);
 

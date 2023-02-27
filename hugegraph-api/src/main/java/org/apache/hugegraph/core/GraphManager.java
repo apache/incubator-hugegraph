@@ -32,6 +32,8 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.auth.StandardAuthenticator;
+import org.apache.hugegraph.core.serverrole.StandardRoleTypeDataAdapter;
+import org.apache.hugegraph.core.serverrole.StandardStateMachineCallback;
 import org.apache.hugegraph.election.Config;
 import org.apache.hugegraph.election.HugeRoleStateMachineConfig;
 import org.apache.hugegraph.election.RoleElectionStateMachine;
@@ -91,7 +93,7 @@ public final class GraphManager {
     private final RpcClientProvider rpcClient;
     private final HugeConfig conf;
 
-    private RoleElectionStateMachine roleStateMachine;
+    private RoleElectionStateMachine roleStateWorker;
     private Executor applyThread;
 
     private Id server;
@@ -277,8 +279,8 @@ public final class GraphManager {
         }
         this.destroyRpcServer();
         this.unlistenChanges();
-        if (this.roleStateMachine != null) {
-            this.roleStateMachine.shutdown();
+        if (this.roleStateWorker != null) {
+            this.roleStateWorker.shutdown();
         }
     }
 
@@ -444,7 +446,7 @@ public final class GraphManager {
         this.server = IdGenerator.of(server);
         this.role = NodeRole.valueOf(role.toUpperCase());
 
-        initRoleStateMachine(config, server);
+        this.initRoleStateWorker(config, server);
 
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
@@ -453,18 +455,19 @@ public final class GraphManager {
         }
     }
 
-    private void initRoleStateMachine(HugeConfig config, String server) {
+    private void initRoleStateWorker(HugeConfig config, String server) {
         try {
             if (!(this.authenticator() instanceof StandardAuthenticator)) {
-                LOG.info("Current not support role state machine");
+                LOG.info("{} authenticator does not support role election currently",
+                         this.authenticator().getClass().getSimpleName());
                 return;
             }
         } catch (IllegalStateException e) {
-            LOG.info("Current not support role state machine");
+            LOG.info("Unconfigured StandardAuthenticator, not support role state machine");
             return;
         }
 
-        E.checkArgument(this.roleStateMachine == null, "Repetition init");
+        E.checkArgument(this.roleStateWorker == null, "Repetition init");
         Config roleStateMachineConfig = new HugeRoleStateMachineConfig(server,
                                             config.get(ServerOptions.EXCEEDS_FAIL_COUNT),
                                             config.get(ServerOptions.RANDOM_TIMEOUT_MILLISECOND),
@@ -472,11 +475,11 @@ public final class GraphManager {
                                             config.get(ServerOptions.EXCEEDS_WORKER_COUNT),
                                             config.get(ServerOptions.BASE_TIMEOUT_MILLISECOND));
         StandardHugeGraph graph = (StandardHugeGraph) this.authenticator().graph().hugegraph();
-        RoleTypeDataAdapter adapter = new RoleTypeDataAdapterImpl(graph.hugeGraphParams());
-        this.roleStateMachine = new RoleElectionStateMachineImpl(roleStateMachineConfig, adapter);
-        applyThread = Executors.newSingleThreadExecutor();
-        applyThread.execute(() -> {
-            this.roleStateMachine.apply(new StateMachineCallbackImpl(TaskManager.instance()));
+        RoleTypeDataAdapter adapter = new StandardRoleTypeDataAdapter(graph.hugeGraphParams());
+        this.roleStateWorker = new RoleElectionStateMachineImpl(roleStateMachineConfig, adapter);
+        this.applyThread = Executors.newSingleThreadExecutor();
+        this.applyThread.execute(() -> {
+            this.roleStateWorker.apply(new StandardStateMachineCallback(TaskManager.instance()));
         });
     }
 

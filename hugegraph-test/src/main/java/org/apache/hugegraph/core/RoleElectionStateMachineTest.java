@@ -141,7 +141,7 @@ public class RoleElectionStateMachineTest {
         final StateMachineCallback callback = new StateMachineCallback() {
 
             @Override
-            public void master(StateMachineContext context) {
+            public void onAsRoleMaster(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.master));
@@ -153,7 +153,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void worker(StateMachineContext context) {
+            public void onAsRoleWorker(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.worker));
@@ -163,7 +163,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void candidate(StateMachineContext context) {
+            public void onAsRoleCandidate(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.candidate));
@@ -183,7 +183,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void abdication(StateMachineContext context) {
+            public void onAsRoleAbdication(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.abdication));
