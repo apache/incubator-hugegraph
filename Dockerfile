@@ -35,7 +35,6 @@ ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:Max
 WORKDIR /hugegraph/
 
 # 1. Install environment
-# && sed -i s@/deb.debian.org/@/mirrors.tencentyun.com/@g /etc/apt/sources.list && apt-get clean \
 RUN set -x \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
@@ -50,7 +49,7 @@ RUN set -x \
 RUN set -e \
     && pwd && cd /hugegraph/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
-    && ./bin/init-store.sh
+    && ./bin/init-store.sh && ./bin/start-hugegraph.sh -d false -j $JAVA_OPTS -g g1
     #     && sed -n '81p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 81{s/\&$/#/g} ./bin/start-hugegraph.sh \
     #     && sed -n '91p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 91{s/^/#/g} ./bin/start-hugegraph.sh \
 

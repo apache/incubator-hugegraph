@@ -94,8 +94,10 @@ echo "$PID" > "$PID_FILE"
 
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
-wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" "${SERVER_STARTUP_TIMEOUT_S}" || {
+wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STARTUP_TIMEOUT_S} || {
     echo "See $LOGS/hugegraph-server.log for HugeGraphServer log output." >&2
+    # TODO: test now
+    cat "$LOGS"/hugegraph-server.log
     if [[ $DAEMON == "true" ]]; then
         exit 1
     fi
