@@ -32,8 +32,8 @@ while getopts "d:g:m:s:j:t" arg; do
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         #v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options] \
-             [-t timeout]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]
+                [-t timeout]" && exit 1 ;;
     esac
 done
 
@@ -49,8 +49,8 @@ fi
 
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
-    while [ -h "$SOURCE" ]; do
-        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd )"
+    while [[ -h "$SOURCE" ]]; do
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
         SOURCE="$(readlink "$SOURCE")"
         [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
@@ -78,12 +78,12 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
-echo "Starting HugeGraphServer..."
-
 if [[ $DAEMON == "false" ]]; then
+    echo "Starting HugeGraphServer in foreground mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
 else
+    echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
 fi

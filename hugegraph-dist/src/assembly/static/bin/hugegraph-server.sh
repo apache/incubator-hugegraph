@@ -17,8 +17,8 @@
 #
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
-    while [ -h "$SOURCE" ]; do
-        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd )"
+    while [[ -h "$SOURCE" ]]; do
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
         SOURCE="$(readlink "$SOURCE")"
         [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
@@ -28,7 +28,7 @@ function abs_path() {
 if [[ $# -lt 3 ]]; then
     echo "USAGE: $0 GREMLIN_SERVER_CONF REST_SERVER_CONF OPEN_SECURITY_CHECK"
     echo " e.g.: $0 conf/gremlin-server.yaml conf/rest-server.properties true"
-    exit 1;
+    exit 1
 fi
 
 BIN=$(abs_path)
@@ -67,8 +67,8 @@ MIN_MEM=$((1 * 512))
 MIN_JAVA_VERSION=8
 
 # download binary file
-if [[ ! -e "${CONF}/hugegraph-server.keystore"  ]]; then
-  download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
+if [[ ! -e "${CONF}/hugegraph-server.keystore" ]]; then
+    download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
 fi
 
 # Add the slf4j-log4j12 binding
@@ -77,8 +77,8 @@ CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 CP="$CP":$(find -L $LIB -name 'hugegraph*.jar' | sort | tr '\n' ':')
 # Add the remaining jars in lib.
 CP="$CP":$(find -L $LIB -name '*.jar' \
-                \! -name 'hugegraph*' \
-                \! -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
+    \! -name 'hugegraph*' \
+    \! -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 # Add the jars in ext (at any subdirectory depth)
 CP="$CP":$(find -L $EXT -name '*.jar' | sort | tr '\n' ':')
 # Add the jars in plugins (at any subdirectory depth)
@@ -90,7 +90,7 @@ CP="$CP":$(find -L $PLUGINS -name '*.jar' | sort | tr '\n' ':')
 export CLASSPATH="${CLASSPATH:-}:$CP"
 
 # Change to $BIN's parent
-cd "${TOP}" || exit 1;
+cd "${TOP}" || exit 1
 
 # Find java & enable server option
 if [ "$JAVA_HOME" = "" ]; then
@@ -102,7 +102,7 @@ fi
 JAVA_VERSION=$($JAVA -version 2>&1 | head -1 | cut -d'"' -f2 | sed 's/^1\.//' | cut -d'.' -f1)
 if [[ $? -ne 0 || $JAVA_VERSION -lt $MIN_JAVA_VERSION ]]; then
     echo "Make sure the JDK is installed and the version >= $MIN_JAVA_VERSION, current is $JAVA_VERSION" \
-         >> ${OUTPUT}
+         >> "${OUTPUT}"
     exit 1
 fi
 
@@ -110,7 +110,7 @@ fi
 if [ "$JAVA_OPTIONS" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
-        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory" >> ${OUTPUT}
+        echo "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory" >> "${OUTPUT}"
         exit 1
     fi
     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
@@ -153,6 +153,6 @@ if [[ ${OPEN_SECURITY_CHECK} == "true" ]]; then
 fi
 
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-     -cp ${CLASSPATH}: org.apache.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
-     >> ${OUTPUT} 2>&1
+exec ${JAVA} -Dname="HugeGraphServer" ${JVM_OPTIONS} ${JAVA_OPTIONS} -cp ${CLASSPATH}: \
+    org.apache.hugegraph.dist.HugeGraphServer ${GREMLIN_SERVER_CONF} ${REST_SERVER_CONF} \
+    >> ${OUTPUT} 2>&1
