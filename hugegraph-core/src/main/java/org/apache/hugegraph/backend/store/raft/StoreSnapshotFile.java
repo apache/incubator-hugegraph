@@ -30,6 +30,7 @@ import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.backend.store.raft.compress.CompressStrategyManager;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -40,7 +41,6 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
 import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.CompressUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
@@ -172,7 +172,9 @@ public class StoreSnapshotFile {
                 LOG.info("Prepare to compress dir '{}' to '{}'",
                          snapshotDir, outputFile);
                 long begin = System.currentTimeMillis();
-                CompressUtil.compressZip(snapshotDir, outputFile, checksum);
+                String rootDir = Paths.get(snapshotDir).getParent().toString();
+                String sourceDir = Paths.get(snapshotDir).getFileName().toString();
+                CompressStrategyManager.getDefault().compressZip(rootDir, sourceDir, outputFile, checksum);
                 long end = System.currentTimeMillis();
                 LOG.info("Compressed dir '{}' to '{}', took {} seconds",
                          snapshotDir, outputFile, (end - begin) / 1000.0F);
@@ -219,13 +221,19 @@ public class StoreSnapshotFile {
         Checksum checksum = new CRC64();
         String archiveFile = Paths.get(reader.getPath(), snapshotDirTar)
                                   .toString();
-        LOG.info("Prepare to decompress snapshot zip '{}' to '{}'",
-                 archiveFile, parentPath);
-        long begin = System.currentTimeMillis();
-        CompressUtil.decompressZip(archiveFile, parentPath, checksum);
-        long end = System.currentTimeMillis();
-        LOG.info("Decompress snapshot zip '{}' to '{}', took {} seconds",
-                 archiveFile, parentPath, (end - begin) / 1000.0F);
+        try {
+            LOG.info("Prepare to decompress snapshot zip '{}' to '{}'",
+                     archiveFile, parentPath);
+            long begin = System.currentTimeMillis();
+            CompressStrategyManager.getDefault().decompressZip(archiveFile, parentPath, checksum);
+            long end = System.currentTimeMillis();
+            LOG.info("Decompress snapshot zip '{}' to '{}', took {} seconds",
+                     archiveFile, parentPath, (end - begin) / 1000.0F);
+        } catch (Throwable e) {
+            throw new RaftException(
+                      "Failed to decompress snapshot, zip=%s", e, archiveFile);
+        }
+
         if (meta.hasChecksum()) {
             String expected = meta.getChecksum();
             String actual = Long.toHexString(checksum.getValue());
