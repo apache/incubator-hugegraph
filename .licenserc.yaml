@@ -99,3 +99,73 @@ header: # `header` section is configurations for source codes license header.
   # license-location-threshold specifies the index threshold where the license header can be located,
   # after all, a "header" cannot be TOO far from the file start.
   license-location-threshold: 80
+
+dependency:
+  files:
+    - pom.xml
+  excludes:
+    - name: org.apache.hugegraph:* # Exclude self dependencies
+  licenses: # Declare the licenses which cannot be identified by this tool.
+    - name: com.addthis.metrics:reporter-config-base
+      version: 3.0.3
+      license: Apache-2.0
+    - name: com.addthis.metrics:reporter-config3
+      version: 3.0.3
+      license: Apache-2.0
+    - name: com.alipay.sofa.lookout:lookout-api
+      version: 1.4.1
+      license: Apache-2.0
+    - name: com.alipay.sofa:jraft-core
+      version: 1.3.11
+      license: Apache-2.0
+    - name: com.carrotsearch:hppc
+      version: 0.7.1
+      license: Apache-2.0
+    - name: com.fasterxml.jackson.dataformat:jackson-dataformat-yaml
+      version: 2.9.3
+      license: Apache-2.0
+    - name: com.fasterxml.jackson.datatype:jackson-datatype-jsr310
+      version: 2.12.1
+      license: Apache-2.0
+    - name: com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider
+      version: 2.12.1
+      license: Apache-2.0
+    - name: io.swagger.core.v3:swagger-models-jakarta
+      version: 2.1.9
+      license: Apache-2.0
+    - name: io.swagger.core.v3:swagger-annotations-jakarta
+      version: 2.1.9
+      license: Apache-2.0
+    - name: io.swagger:swagger-annotations
+      version: 2.1.9
+      license: Apache-2.0
+    - name: io.swagger:swagger-models
+      version: 1.5.18
+      license: Apache-2.0
+    - name: io.swagger:swagger-annotations
+      version: 1.5.18
+      license: Apache-2.0
+    - name: net.bytebuddy:byte-buddy
+      version: 1.10.5
+      license: Apache-2.0
+    - name: org.antlr:antlr-runtime
+      version: 3.5.2
+      license: BSD
+    - name: org.fusesource:sigar
+      version: 1.6.4
+      license: Apache-2.0
+    - name: org.lionsoul:jcseg-core
+      version: 2.6.2
+      license: Apache-2.0
+    - name: org.slf4j:jcl-over-slf4j
+      version: 1.7.25
+      license: Apache-2.0
+    - name: org.slf4j:slf4j-api
+      version: 1.7.25
+      license: MIT
+    - name: org.slf4j:slf4j-api
+      version: 1.7.7
+      license: MIT
+    - name: com.google.code.gson:gson
+      version: 2.8.6
+      license: Apache-2.0
