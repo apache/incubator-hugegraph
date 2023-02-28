@@ -635,6 +635,14 @@ public class CoreOptions extends OptionHolder {
                     2
             );
 
+    public static final ConfigOption<String> NODE_EXTERNAL_URL =
+            new ConfigOption<>(
+                    "server.role.node_external_url",
+                    "The url of external accessibility",
+                    disallowEmpty(),
+                    "127.0.0.1:8080"
+            );
+
     public static final ConfigOption<Integer> RANDOM_TIMEOUT_MILLISECOND =
             new ConfigOption<>(
                     "server.role.random_timeout",

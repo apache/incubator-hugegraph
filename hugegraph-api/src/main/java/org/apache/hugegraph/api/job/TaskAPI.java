@@ -39,6 +39,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
 import org.apache.groovy.util.Maps;
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
 import org.apache.hugegraph.core.GraphManager;
 import org.slf4j.Logger;
@@ -132,6 +133,7 @@ public class TaskAPI extends API {
     @DELETE
     @Timed
     @Path("{id}")
+    @RedirectFilter.RedirectMasterRole
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
                        @PathParam("id") long id) {
@@ -147,6 +149,7 @@ public class TaskAPI extends API {
     @Path("{id}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Object> update(@Context GraphManager manager,
                                       @PathParam("graph") String graph,
                                       @PathParam("id") long id,

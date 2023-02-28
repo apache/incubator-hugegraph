@@ -21,6 +21,8 @@ import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import java.util.Objects;
+
 public class StandardStateMachineCallback implements StateMachineCallback {
 
     private static final Logger LOG = Log.logger(StandardStateMachineCallback.class);
@@ -32,12 +34,14 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public StandardStateMachineCallback(TaskManager taskManager) {
         this.taskManager = taskManager;
         this.taskManager.enableRoleElected(true);
+        GlobalMasterInfo.instance().isFeatureSupport(true);
     }
 
     @Override
     public void onAsRoleMaster(StateMachineContext context) {
         if (!isMaster) {
             this.taskManager.onAsRoleMaster();
+            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to master role", context.config().node());
         }
         this.isMaster = true;
@@ -47,6 +51,7 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleWorker(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
+            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -57,6 +62,7 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleCandidate(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
+            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -67,6 +73,7 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void unknown(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
+            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -77,6 +84,7 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleAbdication(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
+            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
 
@@ -86,5 +94,17 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     @Override
     public void error(StateMachineContext context, Throwable e) {
         LOG.error("Server {} exception occurred", context.config().node(), e);
+    }
+
+    public void initGlobalMasterInfo(StateMachineContext context) {
+        StateMachineContext.MasterServerInfo master = context.master();
+        if (master == null) {
+            GlobalMasterInfo.instance().set(false, null);
+            return;
+        }
+
+        boolean isMaster = Objects.equals(context.node(), master.node());
+        String url = master.url();
+        GlobalMasterInfo.instance().set(isMaster, url);
     }
 }

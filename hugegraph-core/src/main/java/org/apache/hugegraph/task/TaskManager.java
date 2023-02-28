@@ -266,6 +266,7 @@ public final class TaskManager {
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when change to master role", e);
+            throw e;
         }
     }
 
@@ -278,6 +279,7 @@ public final class TaskManager {
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when change to worker role", e);
+            throw e;
         }
     }
 

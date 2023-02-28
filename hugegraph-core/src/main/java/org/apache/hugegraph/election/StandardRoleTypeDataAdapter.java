@@ -88,6 +88,9 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
         list.add(P.NODE);
         list.add(stateData.node());
 
+        list.add(P.URL);
+        list.add(stateData.url());
+
         list.add(P.CLOCK);
         list.add(stateData.clock());
 
@@ -111,10 +114,11 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
 
     private RoleTypeData from(Vertex vertex) {
         String node = (String) vertex.property(P.NODE).value();
+        String url = (String) vertex.property(P.URL).value();
         Long clock = (Long) vertex.property(P.CLOCK).value();
         Integer epoch = (Integer) vertex.property(P.EPOCH).value();
 
-        RoleTypeData roleTypeData = new RoleTypeData(node, epoch, clock);
+        RoleTypeData roleTypeData = new RoleTypeData(node, url, epoch, clock);
         return roleTypeData;
     }
 
@@ -145,6 +149,8 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
         public static final String CLOCK = Graph.Hidden.hide("role_clock");
 
         public static final String EPOCH = Graph.Hidden.hide("role_epoch");
+
+        public static final String URL = Graph.Hidden.hide("role_url");
 
         public static final String TYPE = Graph.Hidden.hide("role_type");
     }
@@ -177,6 +183,7 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
             List<String> props = new ArrayList<>();
 
             props.add(createPropertyKey(P.NODE, DataType.TEXT));
+            props.add(createPropertyKey(P.URL, DataType.TEXT));
             props.add(createPropertyKey(P.CLOCK, DataType.LONG));
             props.add(createPropertyKey(P.EPOCH, DataType.INT));
             props.add(createPropertyKey(P.TYPE, DataType.TEXT));

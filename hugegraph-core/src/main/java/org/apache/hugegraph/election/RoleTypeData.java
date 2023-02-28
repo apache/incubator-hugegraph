@@ -25,12 +25,15 @@ public class RoleTypeData {
     private long clock;
     private int epoch;
 
-    public RoleTypeData(String node, int epoch) {
-        this(node, epoch, 1);
+    private String url;
+
+    public RoleTypeData(String node, String url, int epoch) {
+        this(node, url, epoch, 1);
     }
 
-    public RoleTypeData(String node, int epoch, long clock) {
+    public RoleTypeData(String node, String url, int epoch, long clock) {
         this.node = node;
+        this.url = url;
         this.epoch = epoch;
         this.clock = clock;
     }
@@ -57,6 +60,10 @@ public class RoleTypeData {
 
     public String node() {
         return this.node;
+    }
+
+    public String url() {
+        return this.url;
     }
 
     @Override

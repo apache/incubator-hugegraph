@@ -288,6 +288,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     private void initRoleStateWorker(Id serverId) {
         Config roleStateMachineConfig = new HugeRoleStateMachineConfig(serverId.toString(),
+                                            this.configuration.get(CoreOptions.NODE_EXTERNAL_URL),
                                             this.configuration.get(CoreOptions.EXCEEDS_FAIL_COUNT),
                                             this.configuration.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND),
                                             this.configuration.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND),

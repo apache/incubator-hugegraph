@@ -28,6 +28,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
 import org.apache.hugegraph.core.GraphManager;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ import com.google.common.collect.ImmutableMap;
 @Path("graphs/{graph}/jobs/rebuild")
 @Singleton
 @Tag(name = "RebuildAPI")
+@RedirectFilter.RedirectMasterRole
 public class RebuildAPI extends API {
 
     private static final Logger LOG = Log.logger(RebuildAPI.class);

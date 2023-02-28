@@ -29,7 +29,17 @@ public interface StateMachineContext {
 
     Config config();
 
+    MasterServerInfo master();
+
+    void master(MasterServerInfo info);
+
     RoleTypeDataAdapter adapter();
 
     void reset();
+
+    interface MasterServerInfo {
+
+        String url();
+        String node();
+    }
 }

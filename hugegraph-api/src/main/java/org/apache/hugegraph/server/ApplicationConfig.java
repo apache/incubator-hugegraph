@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.server;
 
+import org.apache.hugegraph.api.filter.RedirectFilterDynamicFeature;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.MultiException;
@@ -66,6 +67,8 @@ public class ApplicationConfig extends ResourceConfig {
 
         // Register to use the jsr250 annotations @RolesAllowed
         register(RolesAllowedDynamicFeature.class);
+
+        register(RedirectFilterDynamicFeature.class);
 
         // Register HugeConfig to context
         register(new ConfFactory(conf));

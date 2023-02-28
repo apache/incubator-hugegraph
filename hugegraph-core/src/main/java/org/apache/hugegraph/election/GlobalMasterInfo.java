@@ -17,19 +17,41 @@
 
 package org.apache.hugegraph.election;
 
-public interface Config {
+public class GlobalMasterInfo {
 
-    String node();
+    private boolean isMaster;
+    private String url;
 
-    String url();
+    private volatile boolean featureSupport;
 
-    int exceedsFailCount();
+    private static GlobalMasterInfo instance = new GlobalMasterInfo();
 
-    long randomTimeoutMillisecond();
+    public static GlobalMasterInfo instance() {
+        return instance;
+    }
 
-    long heartBeatIntervalSecond();
+    private GlobalMasterInfo() {
+        this.featureSupport = false;
+    }
 
-    int exceedsWorkerCount();
+    public synchronized void set(boolean isMaster, String url) {
+        this.isMaster = isMaster;
+        this.url = url;
+    }
 
-    long baseTimeoutMillisecond();
+    public synchronized boolean isMaster() {
+        return this.isMaster;
+    }
+
+    public synchronized String url() {
+        return this.url;
+    }
+
+    public void isFeatureSupport(boolean featureSupport) {
+        this.featureSupport = featureSupport;
+    }
+
+    public boolean isFeatureSupport() {
+        return this.featureSupport;
+    }
 }

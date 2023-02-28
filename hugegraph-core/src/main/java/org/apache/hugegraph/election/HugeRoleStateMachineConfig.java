@@ -20,16 +20,18 @@ package org.apache.hugegraph.election;
 public class HugeRoleStateMachineConfig implements Config {
 
     private String node;
+    private String url;
     private int exceedsFailCount;
     private long randomTimeoutMillisecond;
     private long heartBeatIntervalSecond;
     private int exceedsWorkerCount;
     private long baseTimeoutMillisecond;
 
-    public HugeRoleStateMachineConfig(String node, int exceedsFailCount,
+    public HugeRoleStateMachineConfig(String node, String url, int exceedsFailCount,
                                       long randomTimeoutMillisecond, long heartBeatIntervalSecond,
                                       int exceedsWorkerCount, long baseTimeoutMillisecond) {
         this.node = node;
+        this.url = url;
         this.exceedsFailCount = exceedsFailCount;
         this.randomTimeoutMillisecond = randomTimeoutMillisecond;
         this.heartBeatIntervalSecond = heartBeatIntervalSecond;
@@ -41,6 +43,11 @@ public class HugeRoleStateMachineConfig implements Config {
     @Override
     public String node() {
         return this.node;
+    }
+
+    @Override
+    public String url() {
+        return this.url;
     }
 
     @Override

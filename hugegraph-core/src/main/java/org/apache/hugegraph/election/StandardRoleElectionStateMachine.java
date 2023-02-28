@@ -120,6 +120,8 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             }
 
             context.epoch(roleTypeData.epoch());
+            context.master(new StateMachineContextImpl.MasterServerInfoImpl(
+                               roleTypeData.node(), roleTypeData.url()));
             if (roleTypeData.isMaster(context.node())) {
                 return new MasterState(roleTypeData);
             } else {
@@ -143,6 +145,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
         @Override
         public RoleState transform(StateMachineContext context) {
+            context.master(null);
             RoleState.heartBeatPark(context);
             return new UnknownState(this.epoch).transform(context);
         }
@@ -241,10 +244,13 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public RoleState transform(StateMachineContext context) {
             RoleState.randomPark(context);
             int epoch = this.epoch == null ? 1 : this.epoch;
-            RoleTypeData roleTypeData = new RoleTypeData(context.config().node(), epoch);
+            RoleTypeData roleTypeData = new RoleTypeData(context.config().node(),
+                                                         context.config().url(), epoch);
             //failover to master success
             context.epoch(roleTypeData.epoch());
             if (context.adapter().updateIfNodePresent(roleTypeData)) {
+                context.master(new StateMachineContextImpl.MasterServerInfoImpl(
+                               roleTypeData.node(), roleTypeData.url()));
                 return new MasterState(roleTypeData);
             } else {
                 return new UnknownState(epoch).transform(context);
@@ -263,9 +269,16 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         private final String node;
         private final StandardRoleElectionStateMachine machine;
 
+        private MasterServerInfo masterServerInfo;
+
         public StateMachineContextImpl(StandardRoleElectionStateMachine machine) {
             this.node = machine.config.node();
             this.machine = machine;
+        }
+
+        @Override
+        public void master(MasterServerInfo info) {
+            this.masterServerInfo = info;
         }
 
         @Override
@@ -294,6 +307,11 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
+        public MasterServerInfo master() {
+            return this.masterServerInfo;
+        }
+
+        @Override
         public RoleElectionStateMachine stateMachine() {
             return this.machine;
         }
@@ -301,6 +319,27 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         @Override
         public void reset() {
             this.epoch = null;
+        }
+
+        private static class MasterServerInfoImpl implements MasterServerInfo {
+
+            private final String node;
+            private final String url;
+
+            public MasterServerInfoImpl(String node, String url) {
+                this.node = node;
+                this.url = url;
+            }
+
+            @Override
+            public String url() {
+                return this.url;
+            }
+
+            @Override
+            public String node() {
+                return this.node;
+            }
         }
     }
 

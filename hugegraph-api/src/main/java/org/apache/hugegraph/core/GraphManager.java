@@ -369,6 +369,7 @@ public final class GraphManager {
         String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                            raftGroupPeers);
+        this.addRoleWorkerConfig(config);
 
         Graph graph = GraphFactory.open(config);
         this.graphs.put(name, graph);
@@ -384,6 +385,21 @@ public final class GraphManager {
             LOG.warn("You may need to support access control for '{}' with {}",
                      graphConfPath, HugeFactoryAuthProxy.GRAPH_FACTORY);
         }
+    }
+
+    private void addRoleWorkerConfig(HugeConfig config) {
+        config.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
+                           this.conf.get(CoreOptions.NODE_EXTERNAL_URL));
+        config.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
+                           this.conf.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
+        config.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),
+                           this.conf.get(CoreOptions.EXCEEDS_FAIL_COUNT));
+        config.addProperty(CoreOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
+                           this.conf.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND));
+        config.addProperty(CoreOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
+                           this.conf.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND));
+        config.addProperty(CoreOptions.EXCEEDS_WORKER_COUNT.name(),
+                           this.conf.get(CoreOptions.EXCEEDS_WORKER_COUNT));
     }
 
     private void waitGraphsReady() {

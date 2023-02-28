@@ -107,6 +107,11 @@ public class RoleElectionStateMachineTest {
         }
 
         @Override
+        public String url() {
+            return "http://127.0.0.1:8080";
+        }
+
+        @Override
         public int exceedsFailCount() {
             return 2;
         }
@@ -211,7 +216,8 @@ public class RoleElectionStateMachineTest {
                 if (stateData == null) {
                     return null;
                 }
-                return new RoleTypeData(stateData.node(), stateData.epoch(), stateData.clock());
+                return new RoleTypeData(stateData.node(), stateData.url(),
+                                        stateData.epoch(), stateData.clock());
             }
 
             @Override

@@ -19,6 +19,7 @@ package org.apache.hugegraph.api.job;
 
 import java.util.Map;
 
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.server.RestServer;
 import org.slf4j.Logger;
@@ -56,6 +57,7 @@ public class AlgorithmAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graph") String graph,
                                 @PathParam("name") String algorithm,

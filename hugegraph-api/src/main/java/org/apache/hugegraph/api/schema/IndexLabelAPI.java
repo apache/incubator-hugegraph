@@ -36,6 +36,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
 import org.slf4j.Logger;
@@ -70,6 +71,7 @@ public class IndexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_write"})
+    @RedirectFilter.RedirectMasterRole
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonIndexLabel jsonIndexLabel) {
@@ -88,6 +90,7 @@ public class IndexLabelAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RedirectFilter.RedirectMasterRole
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -157,6 +160,7 @@ public class IndexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=index_label_delete"})
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {

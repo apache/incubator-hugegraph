@@ -35,6 +35,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
 import org.apache.hugegraph.metrics.MetricsUtil;
@@ -58,6 +59,7 @@ import com.google.common.collect.ImmutableMap;
 @Path("graphs/{graph}/jobs/gremlin")
 @Singleton
 @Tag(name = "GremlinAPI")
+@RedirectFilter.RedirectMasterRole
 public class GremlinAPI extends API {
 
     private static final Logger LOG = Log.logger(GremlinAPI.class);
