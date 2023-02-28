@@ -43,9 +43,9 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
     private final HugeGraphParams graphParams;
     private final Schema schema;
 
-    public StandardRoleTypeDataAdapter(HugeGraphParams graphParams) {
-        this.graphParams = graphParams;
-        this.schema = new Schema(graphParams);
+    public StandardRoleTypeDataAdapter(HugeGraphParams graph) {
+        this.graphParams = graph;
+        this.schema = new Schema(graph);
         this.schema.initSchemaIfNeeded();
     }
 

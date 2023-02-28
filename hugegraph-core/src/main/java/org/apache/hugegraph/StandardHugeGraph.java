@@ -270,7 +270,7 @@ public class StandardHugeGraph implements HugeGraph {
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
-        initRoleStateWorker(serverId);
+        this.initRoleStateWorker(serverId);
 
         // TODO: check necessary?
         LOG.info("Check olap property-key tables for graph '{}'", this.name);
