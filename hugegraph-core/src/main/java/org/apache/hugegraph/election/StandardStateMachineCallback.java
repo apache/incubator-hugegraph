@@ -60,13 +60,6 @@ public class StandardStateMachineCallback implements StateMachineCallback {
 
     @Override
     public void onAsRoleCandidate(StateMachineContext context) {
-        if (isMaster) {
-            this.taskManager.onAsRoleWorker();
-            this.initGlobalMasterInfo(context);
-            LOG.info("Server {} change to worker role", context.config().node());
-        }
-
-        isMaster = false;
     }
 
     @Override

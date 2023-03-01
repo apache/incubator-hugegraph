@@ -632,7 +632,7 @@ public class CoreOptions extends OptionHolder {
                     "server.role.fail_count",
                     "The role state machine fail count exceeds",
                     rangeInt(0, Integer.MAX_VALUE),
-                    2
+                    5
             );
 
     public static final ConfigOption<String> NODE_EXTERNAL_URL =
@@ -648,7 +648,7 @@ public class CoreOptions extends OptionHolder {
                     "server.role.random_timeout",
                     "The role state machine random timeout millisecond time",
                     rangeInt(0, Integer.MAX_VALUE),
-                    400
+                    1000
             );
 
     public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOUND =
@@ -656,16 +656,16 @@ public class CoreOptions extends OptionHolder {
                     "server.role.heartbeat_interval",
                     "The role state machine heartbeat interval second time",
                     rangeInt(0, Integer.MAX_VALUE),
-                    1
+                    2
             );
 
     public static final ConfigOption<Integer> EXCEEDS_WORKER_COUNT =
             new ConfigOption<>(
                     "server.role.worker_count",
                     "Check the number of times that the master node does not initiate " +
-                            "the heartbeat threshold",
+                    "the heartbeat threshold",
                     rangeInt(0, Integer.MAX_VALUE),
-                    5
+                    10
             );
 
     public static final ConfigOption<Integer> BASE_TIMEOUT_MILLISECOND =
@@ -673,6 +673,6 @@ public class CoreOptions extends OptionHolder {
                     "server.role.base_timeout",
                     "The role state machine candidate state base timeout time",
                     rangeInt(0, Integer.MAX_VALUE),
-                    100
+                    500
             );
 }

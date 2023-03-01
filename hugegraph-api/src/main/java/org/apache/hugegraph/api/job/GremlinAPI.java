@@ -59,7 +59,6 @@ import com.google.common.collect.ImmutableMap;
 @Path("graphs/{graph}/jobs/gremlin")
 @Singleton
 @Tag(name = "GremlinAPI")
-@RedirectFilter.RedirectMasterRole
 public class GremlinAPI extends API {
 
     private static final Logger LOG = Log.logger(GremlinAPI.class);

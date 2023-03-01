@@ -43,7 +43,6 @@ import com.google.common.collect.ImmutableMap;
 @Path("graphs/{graph}/jobs/rebuild")
 @Singleton
 @Tag(name = "RebuildAPI")
-@RedirectFilter.RedirectMasterRole
 public class RebuildAPI extends API {
 
     private static final Logger LOG = Log.logger(RebuildAPI.class);

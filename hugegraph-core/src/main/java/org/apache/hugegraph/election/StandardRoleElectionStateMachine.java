@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class StandardRoleElectionStateMachine implements RoleElectionStateMachine {
 
@@ -29,6 +31,8 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
     private final Config config;
     private volatile RoleState state;
     private final RoleTypeDataAdapter roleTypeDataAdapter;
+
+    private static final Logger LOG = Log.logger(StandardRoleElectionStateMachine.class);
 
     public StandardRoleElectionStateMachine(Config config, RoleTypeDataAdapter adapter) {
         this.config = config;
@@ -49,7 +53,9 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         while (!this.shutdown) {
             E.checkArgumentNotNull(this.state, "State don't be null");
             try {
+                RoleState pre = this.state;
                 this.state = state.transform(context);
+                LOG.trace("server {} epoch {} role state change {} to {}", context.node(), context.epoch(), pre.getClass().getSimpleName(), this.state.getClass().getSimpleName());
                 Callback runnable = this.state.callback(stateMachineCallback);
                 runnable.call(context);
                 failCount = 0;

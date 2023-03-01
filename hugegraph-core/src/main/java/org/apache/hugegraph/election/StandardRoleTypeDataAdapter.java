@@ -34,46 +34,55 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
 
     private final HugeGraphParams graphParams;
     private final Schema schema;
 
+    private static final Logger LOG = Log.logger(StandardRoleTypeDataAdapter.class);
+
+    private boolean first;
+
     public StandardRoleTypeDataAdapter(HugeGraphParams graph) {
         this.graphParams = graph;
         this.schema = new Schema(graph);
         this.schema.initSchemaIfNeeded();
+        this.first = true;
     }
 
     @Override
     public boolean updateIfNodePresent(RoleTypeData stateData) {
         // if epoch increase, update and return true
         // if epoch equal, ignore different node, return false
-        try {
-            Optional<Vertex> oldTypeDataOpt = this.queryVertex();
-            if (oldTypeDataOpt.isPresent()) {
-                RoleTypeData oldTypeData = this.from(oldTypeDataOpt.get());
-                if (stateData.epoch() < oldTypeData.epoch()) {
-                    return false;
-                }
-
-                if (stateData.epoch() == oldTypeData.epoch() &&
-                    !Objects.equals(stateData.node(), oldTypeData.node())) {
-                    return false;
-                }
-
-                this.graphParams.systemTransaction().removeVertex((HugeVertex) oldTypeDataOpt.get());
-                this.graphParams.systemTransaction().commitOrRollback();
+        Optional<Vertex> oldTypeDataOpt = this.queryVertex();
+        if (oldTypeDataOpt.isPresent()) {
+            RoleTypeData oldTypeData = this.from(oldTypeDataOpt.get());
+            if (stateData.epoch() < oldTypeData.epoch()) {
+                return false;
             }
 
+            if (stateData.epoch() == oldTypeData.epoch() &&
+                !Objects.equals(stateData.node(), oldTypeData.node())) {
+                return false;
+            }
+            LOG.trace("Server {} epoch {} begin remove data old epoch {}, ", stateData.node(), stateData.epoch(), oldTypeData.epoch());
+            this.graphParams.systemTransaction().removeVertex((HugeVertex) oldTypeDataOpt.get());
+            this.graphParams.systemTransaction().commitOrRollback();
+            LOG.trace("Server {} epoch {} success remove data old epoch {}, ", stateData.node(), stateData.epoch(), oldTypeData.epoch());
+        }
+        try {
             GraphTransaction tx = this.graphParams.systemTransaction();
             tx.doUpdateIfAbsent(this.constructEntry(stateData));
             tx.commitOrRollback();
+            LOG.trace("Server {} epoch {} success update data", stateData.node(), stateData.epoch());
         } catch (Throwable ignore){
+            LOG.trace("Server {} epoch {} fail update data", stateData.node(), stateData.epoch());
             return false;
         }
 
@@ -109,6 +118,16 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
     @Override
     public Optional<RoleTypeData> query() {
         Optional<Vertex> vertex = this.queryVertex();
+        if (!vertex.isPresent() && !this.first) {
+            // If query nothing, retry once
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException ignore) {
+            }
+
+            vertex = this.queryVertex();
+        }
+        this.first = false;
         return vertex.map(this::from);
     }
 
@@ -131,7 +150,6 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
         query.showHidden(true);
         Iterator<Vertex> vertexIterator = tx.queryVertices(query);
         if (vertexIterator.hasNext()) {
-
             return Optional.of(vertexIterator.next());
         }
 
@@ -171,11 +189,11 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
             String[] properties = this.initProperties();
 
             VertexLabel label = this.schema().vertexLabel(this.label)
-                    .enableLabelIndex(true)
-                    .usePrimaryKeyId()
-                    .primaryKeys(P.TYPE)
-                    .properties(properties)
-                    .build();
+                                             .enableLabelIndex(true)
+                                             .usePrimaryKeyId()
+                                             .primaryKeys(P.TYPE)
+                                             .properties(properties)
+                                             .build();
             this.graph.schemaTransaction().addVertexLabel(label);
         }
 
