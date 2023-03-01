@@ -30,6 +30,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 
 import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import com.codahale.metrics.Histogram;
@@ -51,6 +52,7 @@ public class GremlinAPI extends GremlinQueryAPI {
     @Compress
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RedirectFilter.RedirectMasterRole
     public Response post(@Context HugeConfig conf,
                          @Context HttpHeaders headers,
                          String request) {

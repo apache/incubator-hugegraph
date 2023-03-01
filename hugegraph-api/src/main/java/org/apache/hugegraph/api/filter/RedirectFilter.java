@@ -22,25 +22,53 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.ws.rs.NameBinding;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.hugegraph.election.GlobalMasterInfo;
 import org.apache.hugegraph.util.Log;
+import org.glassfish.jersey.message.internal.HeaderUtils;
 import org.slf4j.Logger;
 
 public class RedirectFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(RedirectFilter.class);
+    public static final String X_HG_REDIRECT = "x-hg-redirect";
+
+    private static volatile Client client = null;
+
+    private static final Set<String> MUST_BE_NULL = new HashSet<>();
+
+    static {
+        MUST_BE_NULL.add("DELETE");
+        MUST_BE_NULL.add("GET");
+        MUST_BE_NULL.add("HEAD");
+        MUST_BE_NULL.add("TRACE");
+    }
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         GlobalMasterInfo instance = GlobalMasterInfo.instance();
         if (!instance.isFeatureSupport()) {
+            return;
+        }
+
+        String redirectTag = requestContext.getHeaderString(X_HG_REDIRECT);
+        if (StringUtils.isNotEmpty(redirectTag)) {
             return;
         }
 
@@ -54,7 +82,7 @@ public class RedirectFilter implements ContainerRequestFilter {
 
         URI redirectUri = null;
         try {
-            URIBuilder redirectURIBuilder = new URIBuilder(requestContext.getUriInfo().getAbsolutePath());
+            URIBuilder redirectURIBuilder = new URIBuilder(requestContext.getUriInfo().getRequestUri());
             String[] host = url.split(":");
             redirectURIBuilder.setHost(host[0]);
             if (host.length == 2 && StringUtils.isNotEmpty(host[1].trim())) {
@@ -66,7 +94,47 @@ public class RedirectFilter implements ContainerRequestFilter {
             LOG.error("Redirect request exception occurred", e);
             return;
         }
-        requestContext.abortWith(Response.temporaryRedirect(redirectUri).build());
+        this.initClientIfNeeded();
+        Response response = this.forwardRequest(requestContext, redirectUri);
+        requestContext.abortWith(response);
+    }
+
+    private Response forwardRequest(ContainerRequestContext requestContext, URI redirectUri) {
+        MultivaluedMap<String, String> headers = requestContext.getHeaders();
+        MultivaluedMap<String, Object> newHeaders = HeaderUtils.createOutbound();
+        if (headers != null) {
+            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+                for (String value : entry.getValue()) {
+                    newHeaders.add(entry.getKey(), value);
+                }
+            }
+        }
+        newHeaders.add(X_HG_REDIRECT, new Date().getTime());
+        Invocation.Builder builder = client.target(redirectUri)
+                                           .request()
+                                           .headers(newHeaders);
+        Response response = null;
+        if (MUST_BE_NULL.contains(requestContext.getMethod())) {
+            response = builder.method(requestContext.getMethod());
+        } else {
+            response = builder.method(requestContext.getMethod(),
+                                      Entity.json(requestContext.getEntityStream()));
+        }
+        return response;
+    }
+
+    private void initClientIfNeeded() {
+        if (client != null) {
+            return;
+        }
+
+        synchronized (RedirectFilter.class) {
+            if (client != null) {
+                return;
+            }
+
+            client = ClientBuilder.newClient();
+        }
     }
 
     @NameBinding

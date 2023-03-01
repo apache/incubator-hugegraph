@@ -41,9 +41,9 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleMaster(StateMachineContext context) {
         if (!isMaster) {
             this.taskManager.onAsRoleMaster();
-            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to master role", context.config().node());
         }
+        this.initGlobalMasterInfo(context);
         this.isMaster = true;
     }
 
@@ -51,10 +51,9 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleWorker(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
-            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
-
+        this.initGlobalMasterInfo(context);
         this.isMaster = false;
     }
 
@@ -66,9 +65,9 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void unknown(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
-            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
+        this.initGlobalMasterInfo(context);
 
         isMaster = false;
     }
@@ -77,9 +76,9 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void onAsRoleAbdication(StateMachineContext context) {
         if (isMaster) {
             this.taskManager.onAsRoleWorker();
-            this.initGlobalMasterInfo(context);
             LOG.info("Server {} change to worker role", context.config().node());
         }
+        this.initGlobalMasterInfo(context);
 
         isMaster = false;
     }
