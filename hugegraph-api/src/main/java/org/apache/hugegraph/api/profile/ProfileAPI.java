@@ -44,6 +44,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.version.CoreVersion;
+
 import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
@@ -52,8 +53,8 @@ import com.codahale.metrics.annotation.Timed;
 public class ProfileAPI {
 
     private static final String SERVICE = "hugegraph";
-    private static final String DOC = "https://hugegraph.github.io/hugegraph-doc/";
-    private static final String API_DOC = DOC + "clients/hugegraph-api.html";
+    private static final String DOC = "https://hugegraph.apache.org/docs/";
+    private static final String API_DOC = DOC + "clients/";
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;

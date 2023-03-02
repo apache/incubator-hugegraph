@@ -173,7 +173,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         /*
          * May cause bug to drop CF when someone is reading or writing this CF,
          * use CFHandle to wait for others and then do drop:
-         * https://github.com/hugegraph/hugegraph/issues/697
+         * https://github.com/apache/hugegraph/issues/697
          */
         List<ColumnFamilyHandle> cfhs = new ArrayList<>();
         for (String table : tables) {
