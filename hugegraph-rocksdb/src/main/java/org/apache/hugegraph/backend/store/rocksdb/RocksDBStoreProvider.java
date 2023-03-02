@@ -31,12 +31,12 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    public BackendStore newSchemaStore(HugeConfig config, String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new RocksDBStore.RocksDBSchemaStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore newGraphStore(HugeConfig config, String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new RocksDBStore.RocksDBGraphStore(this, this.database(), store);
     }
 
@@ -64,7 +64,7 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    public BackendStore newSystemStore(HugeConfig config, String store) {
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
         return new RocksDBStore.RocksDBSystemStore(this, this.database(), store);
     }
 

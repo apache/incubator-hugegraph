@@ -59,11 +59,11 @@ public abstract class AbstractBackendStoreProvider
                      "The BackendStoreProvider has not been opened");
     }
 
-    public abstract BackendStore newSchemaStore(HugeConfig config, String store);
+    protected abstract BackendStore newSchemaStore(HugeConfig config, String store);
 
-    public abstract BackendStore newGraphStore(HugeConfig config, String store);
+    protected abstract BackendStore newGraphStore(HugeConfig config, String store);
 
-    public abstract BackendStore newSystemStore(HugeConfig config, String store);
+    protected abstract BackendStore newSystemStore(HugeConfig config, String store);
 
     @Override
     public void listen(EventListener listener) {
@@ -180,6 +180,9 @@ public abstract class AbstractBackendStoreProvider
         String name = SCHEMA_STORE;
         LOG.debug("The '{}' StoreProvider load SchemaStore '{}'",
                   this.type(), name);
+        if (config.get(CoreOptions.RAFT_MODE)){
+            return this.newSchemaStore(config, name);
+        }
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
@@ -197,6 +200,9 @@ public abstract class AbstractBackendStoreProvider
         String name = GRAPH_STORE;
         LOG.debug("The '{}' StoreProvider load GraphStore '{}'",
                   this.type(), name);
+        if (config.get(CoreOptions.RAFT_MODE)){
+            return this.newGraphStore(config, name);
+        }
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {
@@ -214,6 +220,9 @@ public abstract class AbstractBackendStoreProvider
         String name = SYSTEM_STORE;
         LOG.debug("The '{}' StoreProvider load SystemStore '{}'",
                   this.type(), name);
+        if (config.get(CoreOptions.RAFT_MODE)){
+            return this.newSystemStore(config, name);
+        }
 
         this.checkOpened();
         if (!this.stores.containsKey(name)) {

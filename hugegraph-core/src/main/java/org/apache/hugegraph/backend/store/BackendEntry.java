@@ -34,6 +34,7 @@ public interface BackendEntry extends Idfiable, Serializable {
 
     class BackendColumn implements Comparable<BackendColumn>, Serializable {
 
+        private static final long serialVersionUID = 3563871462409083920L;
         public byte[] name;
         public byte[] value;
 

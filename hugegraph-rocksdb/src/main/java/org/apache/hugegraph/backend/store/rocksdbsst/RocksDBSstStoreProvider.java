@@ -24,7 +24,7 @@ import org.apache.hugegraph.config.HugeConfig;
 public class RocksDBSstStoreProvider extends RocksDBStoreProvider {
 
     @Override
-    public BackendStore newGraphStore(HugeConfig config, String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new RocksDBSstStore.RocksDBSstGraphStore(this, this.database(), store);
     }
 

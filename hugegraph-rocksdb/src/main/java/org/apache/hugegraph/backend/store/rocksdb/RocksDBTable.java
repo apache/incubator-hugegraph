@@ -58,6 +58,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
                                                                                       Serializable {
 
     private static final Logger LOG = Log.logger(RocksDBTable.class);
+    private static final long serialVersionUID = -894781283433154906L;
 
     private final RocksDBShardSplitter shardSplitter;
 

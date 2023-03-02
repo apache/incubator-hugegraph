@@ -44,6 +44,8 @@ import com.google.common.collect.ImmutableSet;
 
 public abstract class Condition implements Serializable {
 
+    private static final long serialVersionUID = -9022141513960001388L;
+
     public enum ConditionType {
         NONE,
         RELATION,

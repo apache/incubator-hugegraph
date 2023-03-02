@@ -56,6 +56,7 @@ public class Query implements Cloneable, Serializable {
     protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
     private static final Set<Id> EMPTY_OLAP_PKS = ImmutableSet.of();
+    private static final long serialVersionUID = -5380625463972149849L;
 
     private HugeType resultType;
     private Map<HugeKeys, Order> orders;

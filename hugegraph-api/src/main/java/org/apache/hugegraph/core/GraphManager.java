@@ -354,7 +354,7 @@ public final class GraphManager {
     private void loadGraph(String name, String graphConfPath) {
         HugeConfig config = new HugeConfig(graphConfPath);
 
-        //// Transfer `raft.group_peers` from server config to graph config
+        // Transfer `raft.group_peers` from server config to graph config
         //String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         //config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
         //                   raftGroupPeers);

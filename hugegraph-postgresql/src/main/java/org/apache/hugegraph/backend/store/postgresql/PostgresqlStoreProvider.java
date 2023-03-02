@@ -39,17 +39,17 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
     private static final Logger LOG = Log.logger(PostgresqlStoreProvider.class);
 
     @Override
-    public BackendStore newSchemaStore(HugeConfig config, String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new PostgresqlSchemaStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore newGraphStore(HugeConfig config, String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new PostgresqlGraphStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore newSystemStore(HugeConfig config, String store) {
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
         return new PostgresqlSystemStore(this, this.database(), store);
     }
 

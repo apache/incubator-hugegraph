@@ -35,6 +35,7 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry>, Seria
 
     private static final Logger LOG = Log.logger(BackendEntryIterator.class);
     public static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;
+    private static final long serialVersionUID = -7463075160791340137L;
 
     protected final Query query;
 

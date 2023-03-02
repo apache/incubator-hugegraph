@@ -127,7 +127,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                 if (stores.containsKey(i)) {
                     continue;
                 }
-                BackendStore store = this.provider.newSchemaStore(config, SCHEMA_STORE);
+                BackendStore store = this.provider.loadSchemaStore(config);
                 this.checkNonSharedStore(store);
                 stores.putIfAbsent((short) i, store);
             }
@@ -195,7 +195,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                 if (stores.containsKey(i)) {
                     continue;
                 }
-                BackendStore store = this.provider.newGraphStore(config, GRAPH_STORE);
+                BackendStore store = this.provider.loadGraphStore(config);
                 this.checkNonSharedStore(store);
                 stores.put((short) i, store);
             }
@@ -221,7 +221,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
                 if (stores.containsKey(i)) {
                     continue;
                 }
-                BackendStore store = this.provider.newSystemStore(config, SYSTEM_STORE);
+                BackendStore store = this.provider.loadSystemStore(config);
                 this.checkNonSharedStore(store);
                 stores.put((short) i, store);
             }

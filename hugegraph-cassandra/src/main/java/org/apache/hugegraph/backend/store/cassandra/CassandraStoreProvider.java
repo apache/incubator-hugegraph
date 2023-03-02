@@ -31,17 +31,17 @@ public class CassandraStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    public BackendStore newSchemaStore(HugeConfig config, String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new CassandraSchemaStore(this, this.keyspace(), store);
     }
 
     @Override
-    public BackendStore newGraphStore(HugeConfig config, String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new CassandraGraphStore(this, this.keyspace(), store);
     }
 
     @Override
-    public BackendStore newSystemStore(HugeConfig config, String store) {
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
         return new CassandraSystemStore(this, this.keyspace(), store);
     }
 

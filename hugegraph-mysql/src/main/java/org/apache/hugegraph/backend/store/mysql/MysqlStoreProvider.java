@@ -31,17 +31,17 @@ public class MysqlStoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    public BackendStore newSchemaStore(HugeConfig config, String store) {
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
         return new MysqlSchemaStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore newGraphStore(HugeConfig config, String store) {
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
         return new MysqlGraphStore(this, this.database(), store);
     }
 
     @Override
-    public BackendStore newSystemStore(HugeConfig config, String store) {
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
         return new MysqlSystemStore(this, this.database(), store);
     }
 

@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class BackendTable<Session extends BackendSession, Entry> implements Serializable {
 
+    private static final long serialVersionUID = -3920947285072164086L;
     private final String table;
 
     private final MetaDispatcher<Session> dispatcher;
