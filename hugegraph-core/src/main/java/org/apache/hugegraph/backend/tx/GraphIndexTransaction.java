@@ -1120,13 +1120,18 @@ public class GraphIndexTransaction extends AbstractTransaction {
             result = new ArrayList<>(n);
         }
 
+        int index = result.size();
         if (m == n) {
             result.addAll(all.subList(current, all.size()));
             n = 0;
         }
         if (n == 0) {
             // All n items are selected
-            return callback.apply(result);
+            Boolean apply = callback.apply(result);
+            while (index < result.size()) {
+                result.remove(index);
+            }
+            return apply;
         }
         if (current >= all.size()) {
             // Reach the end of items
@@ -1134,7 +1139,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         // Select current item, continue to select C(m-1, n-1)
-        int index = result.size();
         result.add(all.get(current));
         if (cmn(all, m - 1, n - 1, ++current, result, callback)) {
             return true;
