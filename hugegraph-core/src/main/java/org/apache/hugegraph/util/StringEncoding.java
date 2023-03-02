@@ -127,11 +127,8 @@ public final class StringEncoding {
     }
 
     public static byte[] compress(String value, float bufferRatio) {
-        try (BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE, bufferRatio)) {
-            return buf.bytes();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BytesBuffer buf = LZ4Util.compress(encode(value), BLOCK_SIZE, bufferRatio);
+        return buf.bytes();
     }
 
     public static String decompress(byte[] value) {
@@ -139,11 +136,8 @@ public final class StringEncoding {
     }
 
     public static String decompress(byte[] value, float bufferRatio) {
-        try (BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio)) {
-            return decode(buf.array(), 0, buf.position());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        BytesBuffer buf = LZ4Util.decompress(value, BLOCK_SIZE, bufferRatio);
+        return decode(buf.array(), 0, buf.position());
     }
 
     public static String hashPassword(String password) {
