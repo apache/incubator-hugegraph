@@ -28,23 +28,26 @@ import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import java.util.Map;
+
 public class RemovePeerProcessor
        extends RpcRequestProcessor<RemovePeerRequest> {
 
     private static final Logger LOG = Log.logger(RemovePeerProcessor.class);
 
-    private final RaftContext context;
+    private final Map<Short, RaftContext> contexts;
 
-    public RemovePeerProcessor(RaftContext context) {
+    public RemovePeerProcessor(Map<Short, RaftContext> contexts) {
         super(null, null);
-        this.context = context;
+        this.contexts = contexts;
     }
 
     @Override
     public Message processRequest(RemovePeerRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing RemovePeerRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.contexts.entrySet().stream().findFirst().get()
+                                                    .getValue().raftNodeManager();
         try {
             nodeManager.removePeer(request.getEndpoint());
             CommonResponse common = CommonResponse.newBuilder()

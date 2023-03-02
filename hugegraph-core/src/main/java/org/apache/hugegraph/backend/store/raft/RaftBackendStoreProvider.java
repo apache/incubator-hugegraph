@@ -33,12 +33,9 @@ import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
-import org.apache.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.*;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
-import org.apache.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
@@ -156,6 +153,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         if (this.routeTable.size() == 0) {
             initRaftRouteTable();
         }
+        LOG.info("routeTable: {}", this.routeTable);
         for (Map.Entry<Short, String> shard : this.routeTable.entrySet()) {
             String peers = shard.getValue();
             // init RaftContext if endpoint in routeTable
@@ -268,6 +266,8 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         wrapRpcServer.registerProcessor(new StoreCommandProcessor(this.raftContexts));
         wrapRpcServer.registerProcessor(new SetLeaderProcessor(this.raftContexts));
         wrapRpcServer.registerProcessor(new ListPeersProcessor(this.raftContexts));
+        wrapRpcServer.registerProcessor(new AddPeerProcessor(this.raftContexts));
+        wrapRpcServer.registerProcessor(new RemovePeerProcessor(this.raftContexts));
         return wrapRpcServer;
     }
 

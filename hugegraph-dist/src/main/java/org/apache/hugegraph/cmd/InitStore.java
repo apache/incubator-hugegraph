@@ -18,7 +18,6 @@
 package org.apache.hugegraph.cmd;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,6 @@ import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
-import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.dist.RegisterUtil;
@@ -59,8 +57,6 @@ public class InitStore {
     }
 
     public static void main(String[] args) throws Exception {
-        args = new String[]{
-            "/Users/zsm/hugegraph-instance/cluster/node-1/rest-server.properties"};
         E.checkArgument(args.length == 1,
                         "HugeGraph init-store need to pass the config file " +
                         "of RestServer, like: conf/rest-server.properties");

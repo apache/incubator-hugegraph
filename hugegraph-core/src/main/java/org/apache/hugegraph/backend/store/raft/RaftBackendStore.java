@@ -65,14 +65,14 @@ public class RaftBackendStore implements BackendStore {
     private final int shardNum;
     private final String endpoint;
     private final RpcForwarder rpcForwarder;
-    private final Map<Short, BackendStore> store;
+    private final Map<Short, BackendStore> stores;
     private final Map<Short, RaftContext> contexts;
     private final ThreadLocal<MutationBatch> mutationBatch;
     private Map<Short, String> raftRoute;
 
-    public RaftBackendStore(Map<Short, BackendStore> store, Map<Short, RaftContext> contexts,
+    public RaftBackendStore(Map<Short, BackendStore> stores, Map<Short, RaftContext> contexts,
                             int shardNum, String endpoint, RpcForwarder rpcForwarder) {
-        this.store = store;
+        this.stores = stores;
         this.contexts = contexts;
         this.mutationBatch = new ThreadLocal<>();
         this.shardNum = shardNum;
@@ -81,11 +81,11 @@ public class RaftBackendStore implements BackendStore {
     }
 
     public BackendStore originStore(Short shardId) {
-        return this.store.get(shardId);
+        return this.stores.get(shardId);
     }
 
     public BackendStore getStore() {
-        return this.store.entrySet().stream().findFirst().get().getValue();
+        return this.stores.entrySet().stream().findFirst().get().getValue();
     }
 
 
@@ -97,7 +97,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void writeRoute(Map<Short, String> routeTable) {
-        this.store.forEach((id, store) -> store.writeRoute(routeTable));
+        this.stores.forEach((id, store) -> store.writeRoute(routeTable));
     }
 
     @Override
@@ -141,7 +141,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public synchronized void open(HugeConfig config) {
-        this.store.forEach((id, store) -> store.open(shardConfig(config, id)));
+        this.stores.forEach((id, store) -> store.open(shardConfig(config, id)));
     }
 
     public HugeConfig shardConfig(HugeConfig config, int i) {
@@ -159,12 +159,12 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public void close() {
-        this.store.forEach((id, store) -> store.close());
+        this.stores.forEach((id, store) -> store.close());
     }
 
     @Override
     public boolean opened() {
-        for (Map.Entry<Short, BackendStore> store : this.store.entrySet()) {
+        for (Map.Entry<Short, BackendStore> store : this.stores.entrySet()) {
             if (!store.getValue().opened()) {
                 return false;
             }
@@ -175,7 +175,7 @@ public class RaftBackendStore implements BackendStore {
     @Override
     public void init() {
         // this.submitAndWait(StoreCommand.INIT);
-        this.store.forEach((id, store) -> store.init());
+        this.stores.forEach((id, store) -> store.init());
     }
 
     @Override
@@ -191,7 +191,7 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public boolean initialized() {
-        for (Map.Entry<Short, BackendStore> store : this.store.entrySet()) {
+        for (Map.Entry<Short, BackendStore> store : this.stores.entrySet()) {
             if (!store.getValue().initialized()){
                 return false;
             }
@@ -351,8 +351,10 @@ public class RaftBackendStore implements BackendStore {
         Collection<Id> ids = query.ids();
         Map<Short, String> forwardQuery = new HashMap<>();
         Map<Short, String> localQuery = new HashMap<>();
+        List<Object> resultSet = new ArrayList<>();
 
         if (ids.isEmpty()) {
+            // query all shard
             for (Map.Entry<Short, String> entry : this.raftRoute.entrySet()) {
                 if (!entry.getValue().contains(this.endpoint)) {
                     forwardQuery.put(entry.getKey(), entry.getValue());
@@ -364,7 +366,6 @@ public class RaftBackendStore implements BackendStore {
 
         for (Id id : ids) {
             short shardId = getShardId(id, this.shardNum);
-            LOG.info("QueryByRaft shardId {}", shardId);
             if (!this.contexts.containsKey(shardId)) {
                 forwardQuery.put(shardId, this.raftRoute.get(shardId));
             } else {
@@ -372,9 +373,7 @@ public class RaftBackendStore implements BackendStore {
             }
         }
 
-        List<Object> resultSet = new ArrayList<>();
         for (Map.Entry<Short, String> entry : localQuery.entrySet()) {
-            LOG.info("【本地查询】: shardId {}, {}", entry.getKey(), query);
             RaftContext raftContext = contexts.get(entry.getKey());
             Object result = this.queryByRaft(query, raftContext, func);
             resultSet.add(result);
@@ -387,18 +386,20 @@ public class RaftBackendStore implements BackendStore {
             resultSet.add(result);
         }
 
+        List<RaftClosure<RaftRequests.StoreCommandResponse>> raftClosures = new ArrayList<>();
         for (Map.Entry<Short, String> entry : forwardQuery.entrySet()) {
             PeerId peer = getRandomPeer(entry.getValue());
-            RaftClosure<RaftRequests.StoreCommandResponse> raftClosure =
-                this.rpcForwarder.forwardToQuery(peer, query, entry.getKey(),
-                                                 this.getStoreType());
+            raftClosures.add(this.rpcForwarder.forwardToQuery(peer, query, entry.getKey(),
+                             this.getStoreType()));
+        }
+
+        for (RaftClosure<RaftRequests.StoreCommandResponse> raftClosure : raftClosures) {
             try {
                 RaftRequests.StoreCommandResponse response = raftClosure.waitFinished();
                 if (response != null) {
-                    List<BackendEntry> r = (List<BackendEntry>) new ObjectInputStream(
-                        new ByteArrayInputStream(
-                            ZeroByteStringHelper.getByteArray(response.getData())))
-                        .readObject();
+                    byte[] byteArray = ZeroByteStringHelper.getByteArray(response.getData());
+                    ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(byteArray));
+                    List<BackendEntry> r = (List<BackendEntry>) inputStream.readObject();
                     resultSet.add(r.iterator());
                 }
             } catch (Throwable e) {
@@ -415,7 +416,6 @@ public class RaftBackendStore implements BackendStore {
         return new PeerId(peer[0], Integer.parseInt(peer[1]));
     }
 
-    // Long Number Iterator<BackendEntry>
     private Object queryByRaft(Object query, RaftContext raftContext,
                                BiFunction<Object, Short, Object> func) {
         if (!raftContext.safeRead()) {

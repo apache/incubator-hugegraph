@@ -262,7 +262,7 @@ public final class RaftNode {
     }
 
     private Node initRaftNode() throws IOException {
-        NodeOptions nodeOptions = this.context.nodeOptions();
+        NodeOptions nodeOptions = this.context.nodeOptions(this.shardId);
         nodeOptions.setFsm(this.stateMachine);
         /*
          * TODO: the groupId is same as graph name now, when support sharding,

@@ -208,7 +208,7 @@ public final class RaftContext {
         return raftStore.originStore(this.shardId());
     }
 
-    public NodeOptions nodeOptions() throws IOException {
+    public NodeOptions nodeOptions(Short shardId) throws IOException {
         HugeConfig config = this.config();
 
         NodeOptions nodeOptions = new NodeOptions();
@@ -230,16 +230,16 @@ public final class RaftContext {
         nodeOptions.setSnapshotIntervalSecs(snapshotInterval);
         nodeOptions.setInitialConf(this.groupPeers);
 
-        String raftPath = "/Users/zsm/hugegraph-instance/raftlog/raft " + new Date().getTime();
-        String logUri = Paths.get(raftPath, "log").toString();
+        String raftPath = config.get(CoreOptions.RAFT_PATH);
+        String logUri = Paths.get(raftPath, "log", shardId.toString()).toString();
         FileUtils.forceMkdir(new File(logUri));
         nodeOptions.setLogUri(logUri);
 
-        String metaUri = Paths.get(raftPath, "meta").toString();
+        String metaUri = Paths.get(raftPath, "meta", shardId.toString()).toString();
         FileUtils.forceMkdir(new File(metaUri));
         nodeOptions.setRaftMetaUri(metaUri);
 
-        String snapshotUri = Paths.get(raftPath, "snapshot").toString();
+        String snapshotUri = Paths.get(raftPath, "snapshot", shardId.toString()).toString();
         FileUtils.forceMkdir(new File(snapshotUri));
         nodeOptions.setSnapshotUri(snapshotUri);
 

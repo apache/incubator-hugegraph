@@ -28,23 +28,26 @@ import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerResponse;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import java.util.Map;
+
 public class AddPeerProcessor
        extends RpcRequestProcessor<AddPeerRequest> {
 
     private static final Logger LOG = Log.logger(AddPeerProcessor.class);
 
-    private final RaftContext context;
+    private final Map<Short, RaftContext> contexts;
 
-    public AddPeerProcessor(RaftContext context) {
+    public AddPeerProcessor(Map<Short, RaftContext> contexts) {
         super(null, null);
-        this.context = context;
+        this.contexts = contexts;
     }
 
     @Override
     public Message processRequest(AddPeerRequest request,
                                   RpcRequestClosure done) {
         LOG.debug("Processing AddPeerRequest {}", request.getClass());
-        RaftGroupManager nodeManager = this.context.raftNodeManager();
+        RaftGroupManager nodeManager = this.contexts.entrySet().stream().findFirst().get()
+                                                    .getValue().raftNodeManager();
         try {
             nodeManager.addPeer(request.getEndpoint());
             CommonResponse common = CommonResponse.newBuilder()
