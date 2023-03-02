@@ -14,9 +14,8 @@
 
 package org.apache.hugegraph.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -95,21 +94,21 @@ public final class StringEncoding {
     }
 
     public static byte[] encode(String value) {
-        return value.getBytes(UTF_8);
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 
     public static String decode(byte[] bytes) {
         if (bytes.length == 0) {
             return STRING_EMPTY;
         }
-        return new String(bytes, UTF_8);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public static String decode(byte[] bytes, int offset, int length) {
         if (length == 0) {
             return STRING_EMPTY;
         }
-        return new String(bytes, offset, length, UTF_8);
+        return new String(bytes, offset, length, StandardCharsets.UTF_8);
     }
 
     public static String encodeBase64(byte[] bytes) {
@@ -151,8 +150,7 @@ public final class StringEncoding {
         return BCrypt.hashpw(password, BCrypt.gensalt(4));
     }
 
-    public static boolean checkPassword(String candidatePassword,
-                                        String dbPassword) {
+    public static boolean checkPassword(String candidatePassword, String dbPassword) {
         return BCrypt.checkpw(candidatePassword, dbPassword);
     }
 
