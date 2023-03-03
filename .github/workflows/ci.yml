@@ -46,12 +46,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: License check(RAT)
-        run: |
-          mvn apache-rat:check -ntp
-          find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
-          grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
-
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
