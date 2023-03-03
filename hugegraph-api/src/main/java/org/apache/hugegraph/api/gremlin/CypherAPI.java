@@ -30,7 +30,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -38,9 +38,10 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 
-@Path("graphs/{graph}/cypher")
+//@Path("graphs/{graph}/cypher")
 @Singleton
 @Tag(name = "CypherAPI")
+@Deprecated
 public class CypherAPI extends GremlinQueryAPI {
 
     private static final Logger LOG = Log.logger(CypherAPI.class);

@@ -665,7 +665,12 @@ public class StandardAuthManager implements AuthManager {
         Claims payload = null;
         boolean needBuildCache = false;
         if (username == null) {
-            payload = this.tokenGenerator.verify(token);
+            try{
+                payload = this.tokenGenerator.verify(token);
+            }catch (Throwable t){
+                LOG.error(String.format("Failed to verify token:[ %s ], cause:",token),t);
+                return new UserWithRole("");
+            }
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
             needBuildCache = true;
         }

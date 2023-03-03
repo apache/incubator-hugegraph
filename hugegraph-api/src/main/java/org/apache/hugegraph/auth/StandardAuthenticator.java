@@ -19,11 +19,15 @@ package org.apache.hugegraph.auth;
 
 import java.io.Console;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import org.apache.hugegraph.HugeGraph;
@@ -35,10 +39,13 @@ import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
 
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_PASSWORD;
+import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
+
 public class StandardAuthenticator implements HugeAuthenticator {
 
     private static final String INITING_STORE = "initing_store";
-
+    private static final byte NUL = 0;
     private HugeGraph graph = null;
 
     private HugeGraph graph() {
@@ -177,7 +184,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     @Override
     public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
-        throw new NotImplementedException("SaslNegotiator is unsupported");
+        return new PlainTextSaslAuthenticator();
     }
 
     public static void initAdminUserIfNeeded(String confFile) throws Exception {
@@ -191,6 +198,75 @@ public class StandardAuthenticator implements HugeAuthenticator {
         auth.setup(config);
         if (auth.graph().backendStoreFeatures().supportsPersistence()) {
             auth.initAdminUser();
+        }
+    }
+
+    /**
+     * Copied from org.apache.tinkerpop.gremlin.server.auth.SimpleAuthenticator.PlainTextSaslAuthenticator.
+     * Added support of token.
+     */
+    private class PlainTextSaslAuthenticator implements SaslNegotiator {
+        private boolean complete = false;
+        private String username;
+        private String password;
+
+        private String token;
+
+        @Override
+        public byte[] evaluateResponse(final byte[] clientResponse) throws AuthenticationException {
+            decodeCredentials(clientResponse);
+            complete = true;
+            return null;
+        }
+
+        @Override
+        public boolean isComplete() {
+            return complete;
+        }
+
+        @Override
+        public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
+            if (!complete) throw new AuthenticationException("SASL negotiation not complete");
+            final Map<String,String> credentials = new HashMap<>();
+            credentials.put(PROPERTY_USERNAME, username);
+            credentials.put(PROPERTY_PASSWORD, password);
+
+            credentials.put(KEY_TOKEN, token);
+
+            return authenticate(credentials);
+        }
+
+        /**
+         * SASL PLAIN mechanism specifies that credentials are encoded in a
+         * sequence of UTF-8 bytes, delimited by 0 (US-ASCII NUL).
+         * The form is : {code}authzId<NUL>authnId<NUL>password<NUL>{code}.
+         *
+         * @param bytes encoded credentials string sent by the client
+         */
+        private void decodeCredentials(byte[] bytes) throws AuthenticationException {
+            byte[] user = null;
+            byte[] pass = null;
+            int end = bytes.length;
+            for (int i = bytes.length - 1 ; i >= 0; i--) {
+                if (bytes[i] == NUL) {
+                    if (pass == null)
+                        pass = Arrays.copyOfRange(bytes, i + 1, end);
+                    else if (user == null)
+                        user = Arrays.copyOfRange(bytes, i + 1, end);
+                    end = i;
+                }
+            }
+
+            if (null == user) throw new AuthenticationException("Authentication ID must not be null");
+            if (null == pass) throw new AuthenticationException("Password must not be null");
+
+            username = new String(user, StandardCharsets.UTF_8);
+            password = new String(pass, StandardCharsets.UTF_8);
+
+            /* The trick is here. >_*/
+            if(password.isEmpty()){
+                token=username;
+            }
         }
     }
 }

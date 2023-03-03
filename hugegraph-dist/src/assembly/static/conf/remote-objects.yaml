@@ -20,6 +20,11 @@ serializer: {
   className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
   config: {
     serializeResultToString: false,
-    ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+    # The duplication of HugeGraphIoRegistry is meant to fix a bug in the
+    # 'org.apache.tinkerpop.gremlin.driver.Settings:from(Configuration)' method.
+    ioRegistries: [
+        org.apache.hugegraph.io.HugeGraphIoRegistry,
+        org.apache.hugegraph.io.HugeGraphIoRegistry
+    ]
   }
 }

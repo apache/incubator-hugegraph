@@ -31,6 +31,7 @@ import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
 import org.apache.hugegraph.task.TaskScheduler;
+import org.apache.hugegraph.traversal.optimize.HugePrimaryKeyStrategy;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
@@ -317,7 +318,9 @@ public interface HugeGraph extends Graph {
                                         .clone();
         strategies.addStrategies(HugeVertexStepStrategy.instance(),
                                  HugeGraphStepStrategy.instance(),
-                                 HugeCountStepStrategy.instance());
+                                 HugeCountStepStrategy.instance(),
+                                 HugePrimaryKeyStrategy.instance());
+
         TraversalStrategies.GlobalCache.registerStrategies(clazz, strategies);
     }
 }
