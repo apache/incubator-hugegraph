@@ -174,7 +174,8 @@ public class StoreSnapshotFile {
                 long begin = System.currentTimeMillis();
                 String rootDir = Paths.get(snapshotDir).getParent().toString();
                 String sourceDir = Paths.get(snapshotDir).getFileName().toString();
-                CompressStrategyManager.getDefault().compressZip(rootDir, sourceDir, outputFile, checksum);
+                CompressStrategyManager.getDefault()
+                                       .compressZip(rootDir, sourceDir, outputFile, checksum);
                 long end = System.currentTimeMillis();
                 LOG.info("Compressed dir '{}' to '{}', took {} seconds",
                          snapshotDir, outputFile, (end - begin) / 1000.0F);

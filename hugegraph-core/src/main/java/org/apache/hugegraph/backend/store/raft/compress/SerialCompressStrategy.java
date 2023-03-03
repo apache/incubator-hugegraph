@@ -1,23 +1,43 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.backend.store.raft.compress;
+
+import java.util.zip.Checksum;
 
 import org.apache.hugegraph.util.CompressUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.zip.Checksum;
-
 public class SerialCompressStrategy implements CompressStrategy {
+
     private static final Logger LOG = LoggerFactory.getLogger(SerialCompressStrategy.class);
 
     @Override
-    public void compressZip(final String rootDir, final String sourceDir, final String outputZipFile,
+    public void compressZip(final String rootDir, final String sourceDir,
+                            final String outputZipFile,
                             final Checksum checksum) throws Throwable {
         LOG.info("Start to compress snapshot in serial strategy");
         CompressUtil.compressZip(rootDir, sourceDir, outputZipFile, checksum);
     }
 
     @Override
-    public void decompressZip(final String sourceZipFile, final String outputDir, final Checksum checksum)
+    public void decompressZip(final String sourceZipFile, final String outputDir,
+                              final Checksum checksum)
         throws Throwable {
         LOG.info("Start to decompress snapshot in serial strategy");
         CompressUtil.decompressZip(sourceZipFile, outputDir, checksum);
