@@ -29,12 +29,15 @@ public class StandardStateMachineCallback implements StateMachineCallback {
 
     private final TaskManager taskManager;
 
+    private final GlobalMasterInfo globalMasterInfo;
+
     private boolean isMaster = false;
 
-    public StandardStateMachineCallback(TaskManager taskManager) {
+    public StandardStateMachineCallback(TaskManager taskManager, GlobalMasterInfo globalMasterInfo) {
         this.taskManager = taskManager;
         this.taskManager.enableRoleElected(true);
-        GlobalMasterInfo.instance().isFeatureSupport(true);
+        this.globalMasterInfo = globalMasterInfo;
+        this.globalMasterInfo.isFeatureSupport(true);
     }
 
     @Override
@@ -91,12 +94,12 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void initGlobalMasterInfo(StateMachineContext context) {
         StateMachineContext.MasterServerInfo master = context.master();
         if (master == null) {
-            GlobalMasterInfo.instance().set(false, null);
+            this.globalMasterInfo.set(false, null);
             return;
         }
 
         boolean isMaster = Objects.equals(context.node(), master.node());
         String url = master.url();
-        GlobalMasterInfo.instance().set(isMaster, url);
+        this.globalMasterInfo.set(isMaster, url);
     }
 }

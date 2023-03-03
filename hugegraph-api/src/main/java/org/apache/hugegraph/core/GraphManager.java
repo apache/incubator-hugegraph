@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.auth.StandardAuthenticator;
+import org.apache.hugegraph.election.GlobalMasterInfo;
 import org.apache.hugegraph.election.StandardStateMachineCallback;
 import org.apache.hugegraph.election.RoleElectionStateMachine;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
@@ -88,6 +89,7 @@ public final class GraphManager {
     private final HugeConfig conf;
 
     private RoleElectionStateMachine roleStateWorker;
+    private GlobalMasterInfo globalMasterInfo;
     private Executor applyThread;
 
     private Id server;
@@ -476,9 +478,17 @@ public final class GraphManager {
         E.checkArgument(this.roleStateWorker == null, "Repetition init");
         this.applyThread = Executors.newSingleThreadExecutor();
         this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
+        this.globalMasterInfo = new GlobalMasterInfo();
+        StandardStateMachineCallback stateMachineCallback = new StandardStateMachineCallback(
+                                                                TaskManager.instance(),
+                                                                this.globalMasterInfo);
         this.applyThread.execute(() -> {
-            this.roleStateWorker.apply(new StandardStateMachineCallback(TaskManager.instance()));
+            this.roleStateWorker.apply(stateMachineCallback);
         });
+    }
+
+    public GlobalMasterInfo globalMasterInfo() {
+        return this.globalMasterInfo;
     }
 
     private boolean supportRoleStateWorker() {

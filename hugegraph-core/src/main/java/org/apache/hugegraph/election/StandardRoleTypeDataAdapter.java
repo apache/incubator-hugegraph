@@ -42,27 +42,28 @@ import org.slf4j.Logger;
 
 public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
 
-    private final HugeGraphParams graphParams;
+    private static final Logger LOG = Log.logger(StandardRoleTypeDataAdapter.class);
+    public static final int RETRY_QUERY_TIMEOUT = 200;
+
+    private final HugeGraphParams graph;
     private final Schema schema;
 
-    private static final Logger LOG = Log.logger(StandardRoleTypeDataAdapter.class);
-
-    private boolean first;
+    private boolean firstTime;
 
     public StandardRoleTypeDataAdapter(HugeGraphParams graph) {
-        this.graphParams = graph;
+        this.graph = graph;
         this.schema = new Schema(graph);
         this.schema.initSchemaIfNeeded();
-        this.first = true;
+        this.firstTime = true;
     }
 
     @Override
-    public boolean updateIfNodePresent(RoleTypeData stateData) {
+    public boolean updateIfNodePresent(ClusterRole stateData) {
         // if epoch increase, update and return true
         // if epoch equal, ignore different node, return false
         Optional<Vertex> oldTypeDataOpt = this.queryVertex();
         if (oldTypeDataOpt.isPresent()) {
-            RoleTypeData oldTypeData = this.from(oldTypeDataOpt.get());
+            ClusterRole oldTypeData = this.from(oldTypeDataOpt.get());
             if (stateData.epoch() < oldTypeData.epoch()) {
                 return false;
             }
@@ -71,13 +72,15 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
                 !Objects.equals(stateData.node(), oldTypeData.node())) {
                 return false;
             }
-            LOG.trace("Server {} epoch {} begin remove data old epoch {}, ", stateData.node(), stateData.epoch(), oldTypeData.epoch());
-            this.graphParams.systemTransaction().removeVertex((HugeVertex) oldTypeDataOpt.get());
-            this.graphParams.systemTransaction().commitOrRollback();
-            LOG.trace("Server {} epoch {} success remove data old epoch {}, ", stateData.node(), stateData.epoch(), oldTypeData.epoch());
+            LOG.trace("Server {} epoch {} begin remove data old epoch {}, ",
+                       stateData.node(), stateData.epoch(), oldTypeData.epoch());
+            this.graph.systemTransaction().removeVertex((HugeVertex) oldTypeDataOpt.get());
+            this.graph.systemTransaction().commitOrRollback();
+            LOG.trace("Server {} epoch {} success remove data old epoch {}, ",
+                       stateData.node(), stateData.epoch(), oldTypeData.epoch());
         }
         try {
-            GraphTransaction tx = this.graphParams.systemTransaction();
+            GraphTransaction tx = this.graph.systemTransaction();
             tx.doUpdateIfAbsent(this.constructEntry(stateData));
             tx.commitOrRollback();
             LOG.trace("Server {} epoch {} success update data", stateData.node(), stateData.epoch());
@@ -89,7 +92,7 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
         return true;
     }
 
-    private BackendEntry constructEntry(RoleTypeData stateData) {
+    private BackendEntry constructEntry(ClusterRole stateData) {
         List<Object> list = new ArrayList<>(8);
         list.add(T.label);
         list.add(P.ROLE_DATA);
@@ -109,42 +112,42 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
         list.add(P.TYPE);
         list.add("default");
 
-        HugeVertex vertex = this.graphParams.systemTransaction()
-                                            .constructVertex(false, list.toArray());
+        HugeVertex vertex = this.graph.systemTransaction()
+                                      .constructVertex(false, list.toArray());
 
-        return this.graphParams.serializer().writeVertex(vertex);
+        return this.graph.serializer().writeVertex(vertex);
     }
 
     @Override
-    public Optional<RoleTypeData> query() {
+    public Optional<ClusterRole> query() {
         Optional<Vertex> vertex = this.queryVertex();
-        if (!vertex.isPresent() && !this.first) {
+        if (!vertex.isPresent() && !this.firstTime) {
             // If query nothing, retry once
             try {
-                Thread.sleep(200);
+                Thread.sleep(RETRY_QUERY_TIMEOUT);
             } catch (InterruptedException ignore) {
             }
 
             vertex = this.queryVertex();
         }
-        this.first = false;
+        this.firstTime = false;
         return vertex.map(this::from);
     }
 
-    private RoleTypeData from(Vertex vertex) {
+    private ClusterRole from(Vertex vertex) {
         String node = (String) vertex.property(P.NODE).value();
         String url = (String) vertex.property(P.URL).value();
         Long clock = (Long) vertex.property(P.CLOCK).value();
         Integer epoch = (Integer) vertex.property(P.EPOCH).value();
 
-        RoleTypeData roleTypeData = new RoleTypeData(node, url, epoch, clock);
+        ClusterRole roleTypeData = new ClusterRole(node, url, epoch, clock);
         return roleTypeData;
     }
 
     private Optional<Vertex> queryVertex() {
-        GraphTransaction tx = this.graphParams.systemTransaction();
+        GraphTransaction tx = this.graph.systemTransaction();
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
-        VertexLabel vl = this.graphParams.graph().vertexLabel(P.ROLE_DATA);
+        VertexLabel vl = this.graph.graph().vertexLabel(P.ROLE_DATA);
         query.eq(HugeKeys.LABEL, vl.id());
         query.query(Condition.eq(vl.primaryKeys().get(0), "default"));
         query.showHidden(true);

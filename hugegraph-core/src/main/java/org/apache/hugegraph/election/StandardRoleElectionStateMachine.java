@@ -55,7 +55,9 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             try {
                 RoleState pre = this.state;
                 this.state = state.transform(context);
-                LOG.trace("server {} epoch {} role state change {} to {}", context.node(), context.epoch(), pre.getClass().getSimpleName(), this.state.getClass().getSimpleName());
+                LOG.trace("server {} epoch {} role state change {} to {}",
+                           context.node(), context.epoch(), pre.getClass().getSimpleName(),
+                           this.state.getClass().getSimpleName());
                 Callback runnable = this.state.callback(stateMachineCallback);
                 runnable.call(context);
                 failCount = 0;
@@ -109,7 +111,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleTypeDataAdapter adapter = context.adapter();
-            Optional<RoleTypeData> roleTypeDataOpt = adapter.query();
+            Optional<ClusterRole> roleTypeDataOpt = adapter.query();
             if (!roleTypeDataOpt.isPresent()) {
                 context.reset();
                 Integer nextEpoch = this.epoch == null ? 1 : this.epoch + 1;
@@ -117,7 +119,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
                 return new CandidateState(nextEpoch);
             }
 
-            RoleTypeData roleTypeData = roleTypeDataOpt.get();
+            ClusterRole roleTypeData = roleTypeDataOpt.get();
             if (this.epoch != null && roleTypeData.epoch() < this.epoch) {
                 context.reset();
                 Integer nextEpoch = this.epoch + 1;
@@ -126,7 +128,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             }
 
             context.epoch(roleTypeData.epoch());
-            context.master(new StateMachineContextImpl.MasterServerInfoImpl(
+            context.master(new MasterServerInfoImpl(
                                roleTypeData.node(), roleTypeData.url()));
             if (roleTypeData.isMaster(context.node())) {
                 return new MasterState(roleTypeData);
@@ -164,9 +166,9 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
     private static class MasterState implements RoleState {
 
-        private final RoleTypeData roleTypeData;
+        private final ClusterRole roleTypeData;
 
-        public MasterState(RoleTypeData roleTypeData) {
+        public MasterState(ClusterRole roleTypeData) {
             this.roleTypeData = roleTypeData;
         }
 
@@ -190,10 +192,10 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
     private static class WorkerState implements RoleState {
 
-        private RoleTypeData roleTypeData;
+        private ClusterRole roleTypeData;
         private int clock;
 
-        public WorkerState(RoleTypeData roleTypeData) {
+        public WorkerState(ClusterRole roleTypeData) {
             this.roleTypeData = roleTypeData;
             this.clock = 0;
         }
@@ -250,13 +252,13 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public RoleState transform(StateMachineContext context) {
             RoleState.randomPark(context);
             int epoch = this.epoch == null ? 1 : this.epoch;
-            RoleTypeData roleTypeData = new RoleTypeData(context.config().node(),
-                                                         context.config().url(), epoch);
-            //failover to master success
+            ClusterRole roleTypeData = new ClusterRole(context.config().node(),
+                                                       context.config().url(), epoch);
+            // The master failover completed
             context.epoch(roleTypeData.epoch());
             if (context.adapter().updateIfNodePresent(roleTypeData)) {
-                context.master(new StateMachineContextImpl.MasterServerInfoImpl(
-                               roleTypeData.node(), roleTypeData.url()));
+                context.master(new MasterServerInfoImpl(
+                                   roleTypeData.node(), roleTypeData.url()));
                 return new MasterState(roleTypeData);
             } else {
                 return new UnknownState(epoch).transform(context);
@@ -326,26 +328,26 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public void reset() {
             this.epoch = null;
         }
+    }
 
-        private static class MasterServerInfoImpl implements MasterServerInfo {
+    private static class MasterServerInfoImpl implements StateMachineContext.MasterServerInfo {
 
-            private final String node;
-            private final String url;
+        private final String node;
+        private final String url;
 
-            public MasterServerInfoImpl(String node, String url) {
-                this.node = node;
-                this.url = url;
-            }
+        public MasterServerInfoImpl(String node, String url) {
+            this.node = node;
+            this.url = url;
+        }
 
-            @Override
-            public String url() {
-                return this.url;
-            }
+        @Override
+        public String url() {
+            return this.url;
+        }
 
-            @Override
-            public String node() {
-                return this.node;
-            }
+        @Override
+        public String node() {
+            return this.node;
         }
     }
 

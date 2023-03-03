@@ -21,7 +21,7 @@ import java.util.Optional;
 
 public interface RoleTypeDataAdapter {
 
-    boolean updateIfNodePresent(RoleTypeData stateData);
+    boolean updateIfNodePresent(ClusterRole stateData);
 
-    Optional<RoleTypeData> query();
+    Optional<ClusterRole> query();
 }

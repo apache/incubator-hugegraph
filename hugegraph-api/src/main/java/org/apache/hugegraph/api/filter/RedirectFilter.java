@@ -35,11 +35,14 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.Invocation;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.election.GlobalMasterInfo;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.glassfish.jersey.message.internal.HeaderUtils;
 import org.slf4j.Logger;
@@ -47,9 +50,13 @@ import org.slf4j.Logger;
 public class RedirectFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(RedirectFilter.class);
+
     public static final String X_HG_REDIRECT = "x-hg-redirect";
 
     private static volatile Client client = null;
+
+    @Context
+    private jakarta.inject.Provider<GraphManager> managerProvider;
 
     private static final Set<String> MUST_BE_NULL = new HashSet<>();
 
@@ -61,28 +68,30 @@ public class RedirectFilter implements ContainerRequestFilter {
     }
 
     @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
-        GlobalMasterInfo instance = GlobalMasterInfo.instance();
-        if (!instance.isFeatureSupport()) {
+    public void filter(ContainerRequestContext context) throws IOException {
+        GraphManager manager = managerProvider.get();
+        E.checkState(manager != null, "Context GraphManager is absent");
+        GlobalMasterInfo globalMasterInfo = manager.globalMasterInfo();
+        if (globalMasterInfo == null || !globalMasterInfo.isFeatureSupport()) {
             return;
         }
 
-        String redirectTag = requestContext.getHeaderString(X_HG_REDIRECT);
+        String redirectTag = context.getHeaderString(X_HG_REDIRECT);
         if (StringUtils.isNotEmpty(redirectTag)) {
             return;
         }
 
         String url = "";
-        synchronized (instance) {
-            if (instance.isMaster() || StringUtils.isEmpty(instance.url())) {
+        synchronized (globalMasterInfo) {
+            if (globalMasterInfo.isMaster() || StringUtils.isEmpty(globalMasterInfo.url())) {
                 return;
             }
-            url = instance.url();
+            url = globalMasterInfo.url();
         }
 
         URI redirectUri = null;
         try {
-            URIBuilder redirectURIBuilder = new URIBuilder(requestContext.getUriInfo().getRequestUri());
+            URIBuilder redirectURIBuilder = new URIBuilder(context.getUriInfo().getRequestUri());
             String[] host = url.split(":");
             redirectURIBuilder.setHost(host[0]);
             if (host.length == 2 && StringUtils.isNotEmpty(host[1].trim())) {
@@ -95,8 +104,8 @@ public class RedirectFilter implements ContainerRequestFilter {
             return;
         }
         this.initClientIfNeeded();
-        Response response = this.forwardRequest(requestContext, redirectUri);
-        requestContext.abortWith(response);
+        Response response = this.forwardRequest(context, redirectUri);
+        context.abortWith(response);
     }
 
     private Response forwardRequest(ContainerRequestContext requestContext, URI redirectUri) {

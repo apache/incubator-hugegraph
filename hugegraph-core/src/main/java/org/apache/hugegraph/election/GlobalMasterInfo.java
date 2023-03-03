@@ -24,13 +24,7 @@ public class GlobalMasterInfo {
 
     private volatile boolean featureSupport;
 
-    private static GlobalMasterInfo instance = new GlobalMasterInfo();
-
-    public static GlobalMasterInfo instance() {
-        return instance;
-    }
-
-    private GlobalMasterInfo() {
+    public GlobalMasterInfo() {
         this.featureSupport = false;
     }
 

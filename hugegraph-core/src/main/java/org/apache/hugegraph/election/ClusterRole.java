@@ -19,7 +19,7 @@ package org.apache.hugegraph.election;
 
 import java.util.Objects;
 
-public class RoleTypeData {
+public class ClusterRole {
 
     private String node;
     private long clock;
@@ -27,11 +27,11 @@ public class RoleTypeData {
 
     private String url;
 
-    public RoleTypeData(String node, String url, int epoch) {
+    public ClusterRole(String node, String url, int epoch) {
         this(node, url, epoch, 1);
     }
 
-    public RoleTypeData(String node, String url, int epoch, long clock) {
+    public ClusterRole(String node, String url, int epoch, long clock) {
         this.node = node;
         this.url = url;
         this.epoch = epoch;
@@ -71,10 +71,10 @@ public class RoleTypeData {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof RoleTypeData)) {
+        if (!(obj instanceof ClusterRole)) {
             return false;
         }
-        RoleTypeData metaData = (RoleTypeData) obj;
+        ClusterRole metaData = (ClusterRole) obj;
         return clock == metaData.clock &&
                epoch == metaData.epoch &&
                Objects.equals(node, metaData.node);
