@@ -40,10 +40,12 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
+
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
+
 import com.google.protobuf.ByteString;
 
 public class StoreSnapshotFile {
@@ -83,8 +85,7 @@ public class StoreSnapshotFile {
                 if (!this.compressing.compareAndSet(false, true)) {
                     LOG.info("Last compress task doesn't finish, skipped it");
                     done.run(new Status(RaftError.EBUSY,
-                                        "Last compress task doesn't finish, " +
-                                        "skipped it"));
+                                        "Last compress task doesn't finish, skipped it"));
                     return;
                 }
 
@@ -104,8 +105,7 @@ public class StoreSnapshotFile {
         } catch (Throwable e) {
             LOG.error("Failed to save snapshot", e);
             done.run(new Status(RaftError.EIO,
-                                "Failed to save snapshot, error is %s",
-                                e.getMessage()));
+                                "Failed to save snapshot, error is %s", e.getMessage()));
         }
     }
 
@@ -120,8 +120,7 @@ public class StoreSnapshotFile {
 
         try {
             for (String snapshotDirTar : snapshotDirTars) {
-                String snapshotDir = this.decompressSnapshot(reader,
-                                                             snapshotDirTar);
+                String snapshotDir = this.decompressSnapshot(reader, snapshotDirTar);
                 snapshotDirs.add(snapshotDir);
             }
         } catch (Throwable e) {
@@ -144,8 +143,7 @@ public class StoreSnapshotFile {
     private Map<String, String> doSnapshotSave() {
         Map<String, String> snapshotDirMaps = InsertionOrderUtil.newMap();
         for (RaftBackendStore store : this.stores) {
-            snapshotDirMaps.putAll(store.originStore()
-                                        .createSnapshot(SNAPSHOT_DIR));
+            snapshotDirMaps.putAll(store.originStore().createSnapshot(SNAPSHOT_DIR));
         }
         LOG.info("Saved all snapshots: {}", snapshotDirMaps);
         return snapshotDirMaps;
@@ -157,20 +155,16 @@ public class StoreSnapshotFile {
         }
     }
 
-    private void compressSnapshotDir(SnapshotWriter writer,
-                                     Map<String, String> snapshotDirMaps) {
+    private void compressSnapshotDir(SnapshotWriter writer, Map<String, String> snapshotDirMaps) {
         String writerPath = writer.getPath();
         for (Map.Entry<String, String> entry : snapshotDirMaps.entrySet()) {
             String snapshotDir = entry.getKey();
             String diskTableKey = entry.getValue();
-            String snapshotDirTar = Paths.get(snapshotDir).getFileName()
-                                         .toString() + TAR;
-            String outputFile = Paths.get(writerPath, snapshotDirTar)
-                                     .toString();
+            String snapshotDirTar = Paths.get(snapshotDir).getFileName().toString() + TAR;
+            String outputFile = Paths.get(writerPath, snapshotDirTar).toString();
             Checksum checksum = new CRC64();
             try {
-                LOG.info("Prepare to compress dir '{}' to '{}'",
-                         snapshotDir, outputFile);
+                LOG.info("Prepare to compress dir '{}' to '{}'", snapshotDir, outputFile);
                 long begin = System.currentTimeMillis();
                 String rootDir = Paths.get(snapshotDir).getParent().toString();
                 String sourceDir = Paths.get(snapshotDir).getFileName().toString();
@@ -180,9 +174,8 @@ public class StoreSnapshotFile {
                 LOG.info("Compressed dir '{}' to '{}', took {} seconds",
                          snapshotDir, outputFile, (end - begin) / 1000.0F);
             } catch (Throwable e) {
-                throw new RaftException(
-                          "Failed to compress snapshot, path=%s, files=%s",
-                          e, writerPath, snapshotDirMaps.keySet());
+                throw new RaftException("Failed to compress snapshot, path=%s, files=%s",
+                                        e, writerPath, snapshotDirMaps.keySet());
             }
 
             LocalFileMeta.Builder metaBuilder = LocalFileMeta.newBuilder();
@@ -193,19 +186,16 @@ public class StoreSnapshotFile {
              */
             metaBuilder.setUserMeta(ByteString.copyFromUtf8(diskTableKey));
             if (!writer.addFile(snapshotDirTar, metaBuilder.build())) {
-                throw new RaftException("Failed to add snapshot file: '%s'",
-                                        snapshotDirTar);
+                throw new RaftException("Failed to add snapshot file: '%s'", snapshotDirTar);
             }
         }
     }
 
     private String decompressSnapshot(SnapshotReader reader,
-                                      String snapshotDirTar)
-                                      throws IOException {
+                                      String snapshotDirTar) throws IOException {
         LocalFileMeta meta = (LocalFileMeta) reader.getFileMeta(snapshotDirTar);
         if (meta == null) {
-            throw new IOException("Can't find snapshot archive file, path=" +
-                                  snapshotDirTar);
+            throw new IOException("Can't find snapshot archive file, path=" + snapshotDirTar);
         }
 
         String diskTableKey = meta.getUserMeta().toStringUtf8();
@@ -213,15 +203,13 @@ public class StoreSnapshotFile {
                         "The data path for '%s' should be exist", diskTableKey);
         String dataPath = this.dataDisks.get(diskTableKey);
         String parentPath = Paths.get(dataPath).getParent().toString();
-        String snapshotDir = Paths.get(parentPath,
-                                       StringUtils.removeEnd(snapshotDirTar, TAR))
+        String snapshotDir = Paths.get(parentPath, StringUtils.removeEnd(snapshotDirTar, TAR))
                                   .toString();
         FileUtils.deleteDirectory(new File(snapshotDir));
         LOG.info("Delete stale snapshot dir {}", snapshotDir);
 
         Checksum checksum = new CRC64();
-        String archiveFile = Paths.get(reader.getPath(), snapshotDirTar)
-                                  .toString();
+        String archiveFile = Paths.get(reader.getPath(), snapshotDirTar).toString();
         try {
             LOG.info("Prepare to decompress snapshot zip '{}' to '{}'",
                      archiveFile, parentPath);
@@ -232,15 +220,14 @@ public class StoreSnapshotFile {
                      archiveFile, parentPath, (end - begin) / 1000.0F);
         } catch (Throwable e) {
             throw new RaftException(
-                      "Failed to decompress snapshot, zip=%s", e, archiveFile);
+                "Failed to decompress snapshot, zip=%s", e, archiveFile);
         }
 
         if (meta.hasChecksum()) {
             String expected = meta.getChecksum();
             String actual = Long.toHexString(checksum.getValue());
             E.checkArgument(expected.equals(actual),
-                            "Snapshot checksum error: '%s' != '%s'",
-                            actual, expected);
+                            "Snapshot checksum error: '%s' != '%s'", actual, expected);
         }
         return snapshotDir;
     }

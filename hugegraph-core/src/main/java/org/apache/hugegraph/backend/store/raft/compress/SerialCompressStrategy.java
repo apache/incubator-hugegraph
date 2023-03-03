@@ -29,16 +29,14 @@ public class SerialCompressStrategy implements CompressStrategy {
 
     @Override
     public void compressZip(final String rootDir, final String sourceDir,
-                            final String outputZipFile,
-                            final Checksum checksum) throws Throwable {
+                            final String outputZipFile, final Checksum checksum) throws Throwable {
         LOG.info("Start to compress snapshot in serial strategy");
         CompressUtil.compressZip(rootDir, sourceDir, outputZipFile, checksum);
     }
 
     @Override
     public void decompressZip(final String sourceZipFile, final String outputDir,
-                              final Checksum checksum)
-        throws Throwable {
+                              final Checksum checksum) throws Throwable {
         LOG.info("Start to decompress snapshot in serial strategy");
         CompressUtil.decompressZip(sourceZipFile, outputDir, checksum);
     }

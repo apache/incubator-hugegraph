@@ -25,9 +25,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -103,9 +105,9 @@ public class ParallelCompressStrategy implements CompressStrategy {
         LOG.info("Start to compress snapshot in parallel mode");
         FileUtils.forceMkdir(zipFile.getParentFile());
 
-        final ExecutorService compressExecutor = newFixedPool(compressThreads, compressThreads,
-                                                              "raft-snapshot-compress-executor",
-                                                              new ThreadPoolExecutor.CallerRunsPolicy());
+        final ExecutorService compressExecutor =
+            newFixedPool(compressThreads, compressThreads, "raft-snapshot-compress-executor",
+                         new ThreadPoolExecutor.CallerRunsPolicy());
         final ZipArchiveScatterOutputStream scatterOutput =
             new ZipArchiveScatterOutputStream(compressExecutor);
         compressDirectoryToZipFile(rootFile, scatterOutput, sourceDir, ZipEntry.DEFLATED);
@@ -124,8 +126,7 @@ public class ParallelCompressStrategy implements CompressStrategy {
 
     @Override
     public void decompressZip(final String sourceZipFile, final String outputDir,
-                              final Checksum checksum)
-        throws Throwable {
+                              final Checksum checksum) throws Throwable {
         LOG.info("Start to decompress snapshot in parallel mode");
         final ExecutorService decompressExecutor =
             newFixedPool(decompressThreads, decompressThreads,
@@ -168,7 +169,8 @@ public class ParallelCompressStrategy implements CompressStrategy {
             addEntry(sourceDir, dir, scatterOutput, method);
             return;
         }
-        final File[] files = Requires.requireNonNull(dir.listFiles(), "files");
+        final File[] files = Requires.requireNonNull(Objects.requireNonNull(dir.listFiles()),
+                                                     "files");
         for (final File file : files) {
             final String child = Paths.get(sourceDir, file.getName()).toString();
             if (file.isDirectory()) {
@@ -189,8 +191,8 @@ public class ParallelCompressStrategy implements CompressStrategy {
         archiveEntry.setMethod(method);
         scatterOutputStream.addEntry(archiveEntry, () -> {
             try {
-                return file.isDirectory() ? new NullInputStream(0) :
-                       new BufferedInputStream(new FileInputStream(file));
+                return file.isDirectory() ? new NullInputStream(0)
+                                          : new BufferedInputStream(new FileInputStream(file));
             } catch (final FileNotFoundException e) {
                 LOG.error("Can't find file, path={}, {}", file.getPath(), e);
             }
@@ -202,19 +204,17 @@ public class ParallelCompressStrategy implements CompressStrategy {
      * Unzip the archive entry to targetDir
      */
     private void unZipFile(final ZipFile zipFile, final ZipArchiveEntry entry,
-                           final String targetDir)
-        throws Exception {
+                           final String targetDir) throws Exception {
         final File targetFile = new File(Paths.get(targetDir, entry.getName()).toString());
         if (!targetFile.toPath().normalize().startsWith(targetDir)) {
-            throw new IOException(String.format("Bad entry: %s",
-                                                entry.getName()));
+            throw new IOException(String.format("Bad entry: %s", entry.getName()));
         }
 
         FileUtils.forceMkdir(targetFile.getParentFile());
         try (final InputStream is = zipFile.getInputStream(entry);
              final BufferedInputStream fis = new BufferedInputStream(is);
-             final BufferedOutputStream bos = new BufferedOutputStream(
-                 new FileOutputStream(targetFile))) {
+             final BufferedOutputStream bos =
+                 new BufferedOutputStream(Files.newOutputStream(targetFile.toPath()))) {
             IOUtils.copy(fis, bos);
         }
     }
@@ -222,19 +222,20 @@ public class ParallelCompressStrategy implements CompressStrategy {
     /**
      * Compute the value of checksum
      */
-    private void computeZipFileChecksumValue(final String zipPath, final Checksum checksum) throws
-                                                                                            Exception {
-        try (final BufferedInputStream bis = new BufferedInputStream(new FileInputStream(zipPath));
+    private void computeZipFileChecksumValue(final String zipPath,
+                                             final Checksum checksum) throws Exception {
+        try (final BufferedInputStream bis =
+                 new BufferedInputStream(Files.newInputStream(Paths.get(zipPath)));
              final CheckedInputStream cis = new CheckedInputStream(bis, checksum);
              final ZipArchiveInputStream zis = new ZipArchiveInputStream(cis)) {
             // checksum is calculated in the process
-            while ((zis.getNextZipEntry()) != null)
-                ;
+            while (zis.getNextZipEntry() != null) {
+                // TODO: any better way to do the check?
+            }
         }
     }
 
-    private static ExecutorService newFixedPool(int coreThreads, int maxThreads,
-                                                String name,
+    private static ExecutorService newFixedPool(int coreThreads, int maxThreads, String name,
                                                 RejectedExecutionHandler handler) {
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
         return ThreadPoolUtil.newBuilder()

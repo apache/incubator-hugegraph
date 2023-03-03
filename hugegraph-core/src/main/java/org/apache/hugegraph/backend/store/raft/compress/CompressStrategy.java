@@ -1,4 +1,5 @@
 /*
+ * Copyright 2017 HugeGraph Authors (Test only)
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -22,8 +23,7 @@ import java.util.zip.Checksum;
 public interface CompressStrategy {
 
     void compressZip(final String rootDir, final String sourceDir, final String outputZipFile,
-                     final Checksum checksum)
-        throws Throwable;
+                     final Checksum checksum) throws Throwable;
 
     void decompressZip(final String sourceZipFile, final String outputDir,
                        final Checksum checksum) throws Throwable;
