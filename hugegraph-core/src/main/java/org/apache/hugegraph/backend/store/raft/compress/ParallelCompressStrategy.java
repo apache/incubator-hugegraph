@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.Enumeration;
@@ -204,6 +205,11 @@ public class ParallelCompressStrategy implements CompressStrategy {
                            final String targetDir)
         throws Exception {
         final File targetFile = new File(Paths.get(targetDir, entry.getName()).toString());
+        if (!targetFile.toPath().normalize().startsWith(targetDir)) {
+            throw new IOException(String.format("Bad entry: %s",
+                                                entry.getName()));
+        }
+
         FileUtils.forceMkdir(targetFile.getParentFile());
         try (final InputStream is = zipFile.getInputStream(entry);
              final BufferedInputStream fis = new BufferedInputStream(is);
