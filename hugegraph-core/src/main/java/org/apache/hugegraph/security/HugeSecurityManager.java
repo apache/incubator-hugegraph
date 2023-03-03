@@ -228,13 +228,13 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(String file) {
-//        if (callFromGremlin() && !callFromCaffeine() &&
-//            !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
-//            !callFromSnapshot() && !callFromRaft() &&
-//            !callFromSofaRpc()) {
-//            throw newSecurityException(
-//                  "Not allowed to read file via Gremlin: %s", file);
-//        }
+        if (callFromGremlin() && !callFromCaffeine() &&
+            !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
+            !callFromSnapshot() && !callFromRaft() &&
+            !callFromSofaRpc()) {
+            throw newSecurityException(
+                  "Not allowed to read file via Gremlin: %s", file);
+        }
         super.checkRead(file);
     }
 

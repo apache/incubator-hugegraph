@@ -44,6 +44,8 @@ import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.election.GlobalMasterInfo;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.glassfish.hk2.api.IterableProvider;
+import org.glassfish.hk2.api.ServiceHandle;
 import org.glassfish.jersey.message.internal.HeaderUtils;
 import org.slf4j.Logger;
 
@@ -56,7 +58,7 @@ public class RedirectFilter implements ContainerRequestFilter {
     private static volatile Client client = null;
 
     @Context
-    private jakarta.inject.Provider<GraphManager> managerProvider;
+    private IterableProvider<GraphManager> managerProvider;
 
     private static final Set<String> MUST_BE_NULL = new HashSet<>();
 
@@ -69,7 +71,9 @@ public class RedirectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        GraphManager manager = managerProvider.get();
+        ServiceHandle<GraphManager> handle = managerProvider.getHandle();
+        E.checkState(handle != null, "Context GraphManager is absent");
+        GraphManager manager = handle.getService();
         E.checkState(manager != null, "Context GraphManager is absent");
         GlobalMasterInfo globalMasterInfo = manager.globalMasterInfo();
         if (globalMasterInfo == null || !globalMasterInfo.isFeatureSupport()) {
