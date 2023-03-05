@@ -19,9 +19,9 @@ package org.apache.hugegraph.election;
 
 import java.util.Optional;
 
-public interface RoleTypeDataAdapter {
+public interface ClusterRoleStore {
 
-    boolean updateIfNodePresent(ClusterRole stateData);
+    boolean updateIfNodePresent(ClusterRole clusterRole);
 
     Optional<ClusterRole> query();
 }

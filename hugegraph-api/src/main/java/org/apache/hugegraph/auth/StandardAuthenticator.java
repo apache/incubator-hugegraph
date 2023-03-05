@@ -140,7 +140,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private void addRoleWorkerConfig(HugeConfig graphConfig, HugeConfig config) {
         graphConfig.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
-                    config.get(CoreOptions.NODE_EXTERNAL_URL));
+                    config.get(ServerOptions.REST_SERVER_URL));
         graphConfig.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
                     config.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
         graphConfig.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),

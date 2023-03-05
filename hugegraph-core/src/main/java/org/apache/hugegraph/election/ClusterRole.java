@@ -74,10 +74,10 @@ public class ClusterRole {
         if (!(obj instanceof ClusterRole)) {
             return false;
         }
-        ClusterRole metaData = (ClusterRole) obj;
-        return clock == metaData.clock &&
-               epoch == metaData.epoch &&
-               Objects.equals(node, metaData.node);
+        ClusterRole clusterRole = (ClusterRole) obj;
+        return clock == clusterRole.clock &&
+               epoch == clusterRole.epoch &&
+               Objects.equals(node, clusterRole.node);
     }
 
     @Override

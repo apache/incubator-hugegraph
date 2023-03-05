@@ -71,7 +71,7 @@ public class RedirectFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        ServiceHandle<GraphManager> handle = managerProvider.getHandle();
+        ServiceHandle<GraphManager> handle = this.managerProvider.getHandle();
         E.checkState(handle != null, "Context GraphManager is absent");
         GraphManager manager = handle.getService();
         E.checkState(manager != null, "Context GraphManager is absent");
@@ -96,11 +96,10 @@ public class RedirectFilter implements ContainerRequestFilter {
         URI redirectUri = null;
         try {
             URIBuilder redirectURIBuilder = new URIBuilder(context.getUriInfo().getRequestUri());
-            String[] host = url.split(":");
-            redirectURIBuilder.setHost(host[0]);
-            if (host.length == 2 && StringUtils.isNotEmpty(host[1].trim())) {
-                redirectURIBuilder.setPort(Integer.parseInt(host[1].trim()));
-            }
+            URI masterURI = URI.create(url);
+            redirectURIBuilder.setHost(masterURI.getHost());
+            redirectURIBuilder.setPort(masterURI.getPort());
+            redirectURIBuilder.setScheme(masterURI.getScheme());
 
             redirectUri = redirectURIBuilder.build();
         } catch (URISyntaxException e) {

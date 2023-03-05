@@ -30,13 +30,13 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
     private volatile boolean shutdown;
     private final Config config;
     private volatile RoleState state;
-    private final RoleTypeDataAdapter roleTypeDataAdapter;
+    private final ClusterRoleStore clusterRoleStore;
 
     private static final Logger LOG = Log.logger(StandardRoleElectionStateMachine.class);
 
-    public StandardRoleElectionStateMachine(Config config, RoleTypeDataAdapter adapter) {
+    public StandardRoleElectionStateMachine(Config config, ClusterRoleStore adapter) {
         this.config = config;
-        this.roleTypeDataAdapter = adapter;
+        this.clusterRoleStore = adapter;
         this.state = new UnknownState(null);
         this.shutdown = false;
     }
@@ -110,30 +110,30 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            RoleTypeDataAdapter adapter = context.adapter();
-            Optional<ClusterRole> roleTypeDataOpt = adapter.query();
-            if (!roleTypeDataOpt.isPresent()) {
+            ClusterRoleStore adapter = context.adapter();
+            Optional<ClusterRole> clusterRoleOpt = adapter.query();
+            if (!clusterRoleOpt.isPresent()) {
                 context.reset();
                 Integer nextEpoch = this.epoch == null ? 1 : this.epoch + 1;
                 context.epoch(nextEpoch);
                 return new CandidateState(nextEpoch);
             }
 
-            ClusterRole roleTypeData = roleTypeDataOpt.get();
-            if (this.epoch != null && roleTypeData.epoch() < this.epoch) {
+            ClusterRole clusterRole = clusterRoleOpt.get();
+            if (this.epoch != null && clusterRole.epoch() < this.epoch) {
                 context.reset();
                 Integer nextEpoch = this.epoch + 1;
                 context.epoch(nextEpoch);
                 return new CandidateState(nextEpoch);
             }
 
-            context.epoch(roleTypeData.epoch());
+            context.epoch(clusterRole.epoch());
             context.master(new MasterServerInfoImpl(
-                               roleTypeData.node(), roleTypeData.url()));
-            if (roleTypeData.isMaster(context.node())) {
-                return new MasterState(roleTypeData);
+                               clusterRole.node(), clusterRole.url()));
+            if (clusterRole.isMaster(context.node())) {
+                return new MasterState(clusterRole);
             } else {
-                return new WorkerState(roleTypeData);
+                return new WorkerState(clusterRole);
             }
         }
 
@@ -166,22 +166,22 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
     private static class MasterState implements RoleState {
 
-        private final ClusterRole roleTypeData;
+        private final ClusterRole clusterRole;
 
-        public MasterState(ClusterRole roleTypeData) {
-            this.roleTypeData = roleTypeData;
+        public MasterState(ClusterRole clusterRole) {
+            this.clusterRole = clusterRole;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            this.roleTypeData.increaseClock();
+            this.clusterRole.increaseClock();
             RoleState.heartBeatPark(context);
-            if (context.adapter().updateIfNodePresent(this.roleTypeData)) {
+            if (context.adapter().updateIfNodePresent(this.clusterRole)) {
                 return this;
             }
             context.reset();
-            context.epoch(this.roleTypeData.epoch());
-            return new UnknownState(this.roleTypeData.epoch()).transform(context);
+            context.epoch(this.clusterRole.epoch());
+            return new UnknownState(this.clusterRole.epoch()).transform(context);
         }
 
         @Override
@@ -192,22 +192,22 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
     private static class WorkerState implements RoleState {
 
-        private ClusterRole roleTypeData;
+        private ClusterRole clusterRole;
         private int clock;
 
-        public WorkerState(ClusterRole roleTypeData) {
-            this.roleTypeData = roleTypeData;
+        public WorkerState(ClusterRole clusterRole) {
+            this.clusterRole = clusterRole;
             this.clock = 0;
         }
 
         @Override
         public RoleState transform(StateMachineContext context) {
             RoleState.heartBeatPark(context);
-            RoleState nextState = new UnknownState(this.roleTypeData.epoch()).transform(context);
+            RoleState nextState = new UnknownState(this.clusterRole.epoch()).transform(context);
             if (nextState instanceof WorkerState) {
                 this.merge((WorkerState) nextState);
                 if (this.clock > context.config().exceedsWorkerCount()) {
-                    return new CandidateState(this.roleTypeData.epoch() + 1);
+                    return new CandidateState(this.clusterRole.epoch() + 1);
                 } else {
                     return this;
                 }
@@ -222,18 +222,18 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         public void merge(WorkerState state) {
-            if (state.roleTypeData.epoch() > this.roleTypeData.epoch()) {
+            if (state.clusterRole.epoch() > this.clusterRole.epoch()) {
                 this.clock = 0;
-                this.roleTypeData = state.roleTypeData;
-            } else if (state.roleTypeData.epoch() < this.roleTypeData.epoch()) {
+                this.clusterRole = state.clusterRole;
+            } else if (state.clusterRole.epoch() < this.clusterRole.epoch()) {
                 throw new IllegalStateException("Epoch must increase");
-            } else if (state.roleTypeData.epoch() == this.roleTypeData.epoch() &&
-                       state.roleTypeData.clock() < this.roleTypeData.clock()) {
+            } else if (state.clusterRole.epoch() == this.clusterRole.epoch() &&
+                       state.clusterRole.clock() < this.clusterRole.clock()) {
                 throw new IllegalStateException("Clock must increase");
-            } else if (state.roleTypeData.epoch() == this.roleTypeData.epoch() &&
-                       state.roleTypeData.clock() > this.roleTypeData.clock()) {
+            } else if (state.clusterRole.epoch() == this.clusterRole.epoch() &&
+                       state.clusterRole.clock() > this.clusterRole.clock()) {
                 this.clock = 0;
-                this.roleTypeData = state.roleTypeData;
+                this.clusterRole = state.clusterRole;
             } else {
                 this.clock++;
             }
@@ -252,14 +252,14 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public RoleState transform(StateMachineContext context) {
             RoleState.randomPark(context);
             int epoch = this.epoch == null ? 1 : this.epoch;
-            ClusterRole roleTypeData = new ClusterRole(context.config().node(),
-                                                       context.config().url(), epoch);
+            ClusterRole clusterRole = new ClusterRole(context.config().node(),
+                                                      context.config().url(), epoch);
             // The master failover completed
-            context.epoch(roleTypeData.epoch());
-            if (context.adapter().updateIfNodePresent(roleTypeData)) {
+            context.epoch(clusterRole.epoch());
+            if (context.adapter().updateIfNodePresent(clusterRole)) {
                 context.master(new MasterServerInfoImpl(
-                                   roleTypeData.node(), roleTypeData.url()));
-                return new MasterState(roleTypeData);
+                                   clusterRole.node(), clusterRole.url()));
+                return new MasterState(clusterRole);
             } else {
                 return new UnknownState(epoch).transform(context);
             }
@@ -305,7 +305,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public RoleTypeDataAdapter adapter() {
+        public ClusterRoleStore adapter() {
             return this.machine.adapter();
         }
 
@@ -351,7 +351,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
     }
 
-    protected RoleTypeDataAdapter adapter() {
-        return this.roleTypeDataAdapter;
+    protected ClusterRoleStore adapter() {
+        return this.clusterRoleStore;
     }
 }

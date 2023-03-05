@@ -391,7 +391,7 @@ public final class GraphManager {
 
     private void addRoleWorkerConfig(HugeConfig config) {
         config.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
-                           this.conf.get(CoreOptions.NODE_EXTERNAL_URL));
+                           this.conf.get(ServerOptions.REST_SERVER_URL));
         config.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
                            this.conf.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
         config.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),
@@ -499,7 +499,7 @@ public final class GraphManager {
         try {
             if (!(this.authenticator() instanceof StandardAuthenticator)) {
                 LOG.info("{} authenticator does not support role election currently",
-                        this.authenticator().getClass().getSimpleName());
+                         this.authenticator().getClass().getSimpleName());
                 return false;
             }
         } catch (IllegalStateException e) {

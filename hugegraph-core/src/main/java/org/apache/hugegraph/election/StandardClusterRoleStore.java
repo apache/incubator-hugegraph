@@ -40,9 +40,9 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
+public class StandardClusterRoleStore implements ClusterRoleStore {
 
-    private static final Logger LOG = Log.logger(StandardRoleTypeDataAdapter.class);
+    private static final Logger LOG = Log.logger(StandardClusterRoleStore.class);
     public static final int RETRY_QUERY_TIMEOUT = 200;
 
     private final HugeGraphParams graph;
@@ -50,7 +50,7 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
 
     private boolean firstTime;
 
-    public StandardRoleTypeDataAdapter(HugeGraphParams graph) {
+    public StandardClusterRoleStore(HugeGraphParams graph) {
         this.graph = graph;
         this.schema = new Schema(graph);
         this.schema.initSchemaIfNeeded();
@@ -58,56 +58,56 @@ public class StandardRoleTypeDataAdapter implements RoleTypeDataAdapter {
     }
 
     @Override
-    public boolean updateIfNodePresent(ClusterRole stateData) {
+    public boolean updateIfNodePresent(ClusterRole clusterRole) {
         // if epoch increase, update and return true
         // if epoch equal, ignore different node, return false
-        Optional<Vertex> oldTypeDataOpt = this.queryVertex();
-        if (oldTypeDataOpt.isPresent()) {
-            ClusterRole oldTypeData = this.from(oldTypeDataOpt.get());
-            if (stateData.epoch() < oldTypeData.epoch()) {
+        Optional<Vertex> oldClusterRoleOpt = this.queryVertex();
+        if (oldClusterRoleOpt.isPresent()) {
+            ClusterRole oldClusterRole = this.from(oldClusterRoleOpt.get());
+            if (clusterRole.epoch() < oldClusterRole.epoch()) {
                 return false;
             }
 
-            if (stateData.epoch() == oldTypeData.epoch() &&
-                !Objects.equals(stateData.node(), oldTypeData.node())) {
+            if (clusterRole.epoch() == oldClusterRole.epoch() &&
+                !Objects.equals(clusterRole.node(), oldClusterRole.node())) {
                 return false;
             }
             LOG.trace("Server {} epoch {} begin remove data old epoch {}, ",
-                       stateData.node(), stateData.epoch(), oldTypeData.epoch());
-            this.graph.systemTransaction().removeVertex((HugeVertex) oldTypeDataOpt.get());
+                       clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
+            this.graph.systemTransaction().removeVertex((HugeVertex) oldClusterRoleOpt.get());
             this.graph.systemTransaction().commitOrRollback();
             LOG.trace("Server {} epoch {} success remove data old epoch {}, ",
-                       stateData.node(), stateData.epoch(), oldTypeData.epoch());
+                       clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
         }
         try {
             GraphTransaction tx = this.graph.systemTransaction();
-            tx.doUpdateIfAbsent(this.constructEntry(stateData));
+            tx.doUpdateIfAbsent(this.constructEntry(clusterRole));
             tx.commitOrRollback();
-            LOG.trace("Server {} epoch {} success update data", stateData.node(), stateData.epoch());
+            LOG.trace("Server {} epoch {} success update data", clusterRole.node(), clusterRole.epoch());
         } catch (Throwable ignore){
-            LOG.trace("Server {} epoch {} fail update data", stateData.node(), stateData.epoch());
+            LOG.trace("Server {} epoch {} fail update data", clusterRole.node(), clusterRole.epoch());
             return false;
         }
 
         return true;
     }
 
-    private BackendEntry constructEntry(ClusterRole stateData) {
+    private BackendEntry constructEntry(ClusterRole clusterRole) {
         List<Object> list = new ArrayList<>(8);
         list.add(T.label);
         list.add(P.ROLE_DATA);
 
         list.add(P.NODE);
-        list.add(stateData.node());
+        list.add(clusterRole.node());
 
         list.add(P.URL);
-        list.add(stateData.url());
+        list.add(clusterRole.url());
 
         list.add(P.CLOCK);
-        list.add(stateData.clock());
+        list.add(clusterRole.clock());
 
         list.add(P.EPOCH);
-        list.add(stateData.epoch());
+        list.add(clusterRole.epoch());
 
         list.add(P.TYPE);
         list.add("default");

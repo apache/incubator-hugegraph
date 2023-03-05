@@ -33,7 +33,7 @@ public interface StateMachineContext {
 
     void master(MasterServerInfo info);
 
-    RoleTypeDataAdapter adapter();
+    ClusterRoleStore adapter();
 
     void reset();
 

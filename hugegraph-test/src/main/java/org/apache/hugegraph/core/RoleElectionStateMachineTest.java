@@ -30,11 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.hugegraph.election.ClusterRoleStore;
 import org.apache.hugegraph.election.Config;
 import org.apache.hugegraph.election.RoleElectionStateMachine;
 import org.apache.hugegraph.election.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.election.ClusterRole;
-import org.apache.hugegraph.election.RoleTypeDataAdapter;
 import org.apache.hugegraph.election.StateMachineCallback;
 import org.apache.hugegraph.election.StateMachineContext;
 import org.apache.hugegraph.testutil.Assert;
@@ -205,33 +205,33 @@ public class RoleElectionStateMachineTest {
             }
         };
 
-        final List<ClusterRole> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
-        final RoleTypeDataAdapter adapter = new RoleTypeDataAdapter() {
+        final List<ClusterRole> clusterRoleLogs = Collections.synchronizedList(new ArrayList<>(100));
+        final ClusterRoleStore adapter = new ClusterRoleStore() {
 
             volatile int epoch = 0;
 
             final Map<Integer, ClusterRole> data = new ConcurrentHashMap<>();
 
-            ClusterRole copy(ClusterRole stateData) {
-                if (stateData == null) {
+            ClusterRole copy(ClusterRole clusterRole) {
+                if (clusterRole == null) {
                     return null;
                 }
-                return new ClusterRole(stateData.node(), stateData.url(),
-                                       stateData.epoch(), stateData.clock());
+                return new ClusterRole(clusterRole.node(), clusterRole.url(),
+                                       clusterRole.epoch(), clusterRole.clock());
             }
 
             @Override
-            public boolean updateIfNodePresent(ClusterRole stateData) {
-                if (stateData.epoch() < this.epoch) {
+            public boolean updateIfNodePresent(ClusterRole clusterRole) {
+                if (clusterRole.epoch() < this.epoch) {
                     return false;
                 }
 
-                ClusterRole copy = this.copy(stateData);
-                ClusterRole newData = data.compute(copy.epoch(), (key, value) -> {
+                ClusterRole copy = this.copy(clusterRole);
+                ClusterRole newClusterRole = data.compute(copy.epoch(), (key, value) -> {
                     if (copy.epoch() > this.epoch) {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
-                        metaDataLogs.add(copy);
+                        clusterRoleLogs.add(copy);
                         Utils.println("The node " + copy + " become new master:");
                         return copy;
                     }
@@ -240,7 +240,7 @@ public class RoleElectionStateMachineTest {
                     if (Objects.equals(value.node(), copy.node()) &&
                         value.clock() <= copy.clock()) {
                         Utils.println("The master node " + copy + " keep heartbeat");
-                        metaDataLogs.add(copy);
+                        clusterRoleLogs.add(copy);
                         if (value.clock() == copy.clock()) {
                             Assert.fail("Clock must increase when same epoch and node id");
                         }
@@ -249,7 +249,7 @@ public class RoleElectionStateMachineTest {
                     return value;
 
                 });
-                return Objects.equals(newData, copy);
+                return Objects.equals(newClusterRole, copy);
             }
 
             @Override
