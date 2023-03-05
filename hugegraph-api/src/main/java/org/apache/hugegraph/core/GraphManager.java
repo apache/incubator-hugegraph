@@ -32,6 +32,7 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.StandardStateMachineCallback;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
@@ -390,18 +391,18 @@ public final class GraphManager {
     }
 
     private void transferRoleWorkerConfig(HugeConfig config) {
-        config.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
+        config.addProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
                            this.conf.get(ServerOptions.REST_SERVER_URL));
-        config.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
-                           this.conf.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
-        config.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),
-                           this.conf.get(CoreOptions.EXCEEDS_FAIL_COUNT));
-        config.addProperty(CoreOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
-                           this.conf.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND));
-        config.addProperty(CoreOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
-                           this.conf.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND));
-        config.addProperty(CoreOptions.EXCEEDS_WORKER_COUNT.name(),
-                           this.conf.get(CoreOptions.EXCEEDS_WORKER_COUNT));
+        config.addProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
+                           this.conf.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+        config.addProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
+                           this.conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
+        config.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
+                           this.conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
+        config.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
+                           this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
+        config.addProperty(RoleElectionOptions.EXCEEDS_WORKER_COUNT.name(),
+                           this.conf.get(RoleElectionOptions.EXCEEDS_WORKER_COUNT));
     }
 
     private void waitGraphsReady() {

@@ -24,6 +24,7 @@ import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 import org.apache.hugegraph.HugeGraph;
@@ -139,18 +140,18 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     private void transferRoleWorkerConfig(HugeConfig graphConfig, HugeConfig config) {
-        graphConfig.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
+        graphConfig.addProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
                                 config.get(ServerOptions.REST_SERVER_URL));
-        graphConfig.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
-                                config.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
-        graphConfig.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),
-                                config.get(CoreOptions.EXCEEDS_FAIL_COUNT));
-        graphConfig.addProperty(CoreOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
-                                config.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND));
-        graphConfig.addProperty(CoreOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
-                                config.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND));
-        graphConfig.addProperty(CoreOptions.EXCEEDS_WORKER_COUNT.name(),
-                                config.get(CoreOptions.EXCEEDS_WORKER_COUNT));
+        graphConfig.addProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
+                                config.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+        graphConfig.addProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
+                                config.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
+        graphConfig.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
+                                config.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
+        graphConfig.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
+                                config.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
+        graphConfig.addProperty(RoleElectionOptions.EXCEEDS_WORKER_COUNT.name(),
+                                config.get(RoleElectionOptions.EXCEEDS_WORKER_COUNT));
     }
 
     /**

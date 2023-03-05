@@ -48,6 +48,7 @@ import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
 import org.apache.hugegraph.masterelection.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
@@ -288,12 +289,12 @@ public class StandardHugeGraph implements HugeGraph {
 
     private void initRoleStateWorker(Id serverId) {
         Config roleStateMachineConfig = new HugeRoleStateMachineConfig(serverId.toString(),
-                                            this.configuration.get(CoreOptions.NODE_EXTERNAL_URL),
-                                            this.configuration.get(CoreOptions.EXCEEDS_FAIL_COUNT),
-                                            this.configuration.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND),
-                                            this.configuration.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND),
-                                            this.configuration.get(CoreOptions.EXCEEDS_WORKER_COUNT),
-                                            this.configuration.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
+                                            this.configuration.get(RoleElectionOptions.NODE_EXTERNAL_URL),
+                                            this.configuration.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
+                                            this.configuration.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
+                                            this.configuration.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND),
+                                            this.configuration.get(RoleElectionOptions.EXCEEDS_WORKER_COUNT),
+                                            this.configuration.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
         this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);
     }
