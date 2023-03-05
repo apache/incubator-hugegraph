@@ -15,21 +15,19 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
-public interface Config {
+public interface StateMachineCallback {
 
-    String node();
+    void onAsRoleMaster(StateMachineContext context);
 
-    String url();
+    void onAsRoleWorker(StateMachineContext context);
 
-    int exceedsFailCount();
+    void onAsRoleCandidate(StateMachineContext context);
 
-    long randomTimeoutMillisecond();
+    void unknown(StateMachineContext context);
 
-    long heartBeatIntervalSecond();
+    void onAsRoleAbdication(StateMachineContext context);
 
-    int exceedsWorkerCount();
-
-    long baseTimeoutMillisecond();
+    void error(StateMachineContext context, Throwable e);
 }

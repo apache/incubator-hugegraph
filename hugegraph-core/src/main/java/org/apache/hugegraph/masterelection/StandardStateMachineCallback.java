@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.util.Log;

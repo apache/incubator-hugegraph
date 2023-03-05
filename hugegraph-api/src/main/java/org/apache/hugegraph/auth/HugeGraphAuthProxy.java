@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.hugegraph.election.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;

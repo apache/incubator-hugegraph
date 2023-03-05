@@ -15,37 +15,13 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
-public class GlobalMasterInfo {
+import java.util.Optional;
 
-    private boolean isMaster;
-    private String url;
+public interface ClusterRoleStore {
 
-    private volatile boolean featureSupport;
+    boolean updateIfNodePresent(ClusterRole clusterRole);
 
-    public GlobalMasterInfo() {
-        this.featureSupport = false;
-    }
-
-    public synchronized void set(boolean isMaster, String url) {
-        this.isMaster = isMaster;
-        this.url = url;
-    }
-
-    public synchronized boolean isMaster() {
-        return this.isMaster;
-    }
-
-    public synchronized String url() {
-        return this.url;
-    }
-
-    public void isFeatureSupport(boolean featureSupport) {
-        this.featureSupport = featureSupport;
-    }
-
-    public boolean isFeatureSupport() {
-        return this.featureSupport;
-    }
+    Optional<ClusterRole> query();
 }

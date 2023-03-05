@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 public interface RoleElectionStateMachine {
 

@@ -45,12 +45,12 @@ import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.election.ClusterRoleStore;
-import org.apache.hugegraph.election.Config;
-import org.apache.hugegraph.election.HugeRoleStateMachineConfig;
-import org.apache.hugegraph.election.RoleElectionStateMachine;
-import org.apache.hugegraph.election.StandardRoleElectionStateMachine;
-import org.apache.hugegraph.election.StandardClusterRoleStore;
+import org.apache.hugegraph.masterelection.ClusterRoleStore;
+import org.apache.hugegraph.masterelection.Config;
+import org.apache.hugegraph.masterelection.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -294,8 +294,8 @@ public class StandardHugeGraph implements HugeGraph {
                                             this.configuration.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND),
                                             this.configuration.get(CoreOptions.EXCEEDS_WORKER_COUNT),
                                             this.configuration.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
-        ClusterRoleStore adapter = new StandardClusterRoleStore(this.params);
-        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, adapter);
+        ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);
     }
 
     @Override
@@ -1089,7 +1089,6 @@ public class StandardHugeGraph implements HugeGraph {
     public String toString() {
         return StringFactory.graphString(this, this.name());
     }
-
 
     @Override
     public final void proxy(HugeGraph graph) {

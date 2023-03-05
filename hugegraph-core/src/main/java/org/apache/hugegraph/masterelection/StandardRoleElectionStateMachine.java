@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import java.security.SecureRandom;
 import java.util.Optional;
@@ -27,16 +27,16 @@ import org.slf4j.Logger;
 
 public class StandardRoleElectionStateMachine implements RoleElectionStateMachine {
 
+    private static final Logger LOG = Log.logger(StandardRoleElectionStateMachine.class);
+
     private volatile boolean shutdown;
     private final Config config;
     private volatile RoleState state;
     private final ClusterRoleStore clusterRoleStore;
 
-    private static final Logger LOG = Log.logger(StandardRoleElectionStateMachine.class);
-
-    public StandardRoleElectionStateMachine(Config config, ClusterRoleStore adapter) {
+    public StandardRoleElectionStateMachine(Config config, ClusterRoleStore clusterRoleStore) {
         this.config = config;
-        this.clusterRoleStore = adapter;
+        this.clusterRoleStore = clusterRoleStore;
         this.state = new UnknownState(null);
         this.shutdown = false;
     }

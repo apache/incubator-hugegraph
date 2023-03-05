@@ -30,13 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.hugegraph.election.ClusterRoleStore;
-import org.apache.hugegraph.election.Config;
-import org.apache.hugegraph.election.RoleElectionStateMachine;
-import org.apache.hugegraph.election.StandardRoleElectionStateMachine;
-import org.apache.hugegraph.election.ClusterRole;
-import org.apache.hugegraph.election.StateMachineCallback;
-import org.apache.hugegraph.election.StateMachineContext;
+import org.apache.hugegraph.masterelection.ClusterRoleStore;
+import org.apache.hugegraph.masterelection.Config;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.ClusterRole;
+import org.apache.hugegraph.masterelection.StateMachineCallback;
+import org.apache.hugegraph.masterelection.StateMachineContext;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Utils;
 import org.junit.Test;
@@ -206,7 +206,7 @@ public class RoleElectionStateMachineTest {
         };
 
         final List<ClusterRole> clusterRoleLogs = Collections.synchronizedList(new ArrayList<>(100));
-        final ClusterRoleStore adapter = new ClusterRoleStore() {
+        final ClusterRoleStore clusterRoleStore = new ClusterRoleStore() {
 
             volatile int epoch = 0;
 
@@ -263,7 +263,7 @@ public class RoleElectionStateMachineTest {
         Thread node1 = new Thread(() -> {
             Config config = new TestConfig("1");
             RoleElectionStateMachine stateMachine =
-                                     new StandardRoleElectionStateMachine(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[1] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -272,7 +272,7 @@ public class RoleElectionStateMachineTest {
         Thread node2 = new Thread(() -> {
             Config config = new TestConfig("2");
             RoleElectionStateMachine stateMachine =
-                                     new StandardRoleElectionStateMachine(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[2] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -281,7 +281,7 @@ public class RoleElectionStateMachineTest {
         Thread node3 = new Thread(() -> {
             Config config = new TestConfig("3");
             RoleElectionStateMachine stateMachine =
-                                     new StandardRoleElectionStateMachine(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[3] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();

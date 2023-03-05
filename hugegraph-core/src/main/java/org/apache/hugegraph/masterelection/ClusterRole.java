@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import java.util.Objects;
 
@@ -24,7 +24,6 @@ public class ClusterRole {
     private String node;
     private long clock;
     private int epoch;
-
     private String url;
 
     public ClusterRole(String node, String url, int epoch) {

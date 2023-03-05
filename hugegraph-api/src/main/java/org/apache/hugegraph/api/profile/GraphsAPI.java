@@ -40,7 +40,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.core.GraphManager;
 import org.slf4j.Logger;
 
@@ -71,7 +70,6 @@ public class GraphsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$dynamic"})
-    @RedirectFilter.RedirectMasterRole
     public Object list(@Context GraphManager manager,
                        @Context SecurityContext sc) {
         Set<String> graphs = manager.graphs();
@@ -96,7 +94,6 @@ public class GraphsAPI extends API {
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
-    @RedirectFilter.RedirectMasterRole
     public Object get(@Context GraphManager manager,
                       @PathParam("name") String name) {
         LOG.debug("Get graph by name '{}'", name);

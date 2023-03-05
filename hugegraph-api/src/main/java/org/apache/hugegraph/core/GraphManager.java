@@ -31,9 +31,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.auth.StandardAuthenticator;
-import org.apache.hugegraph.election.GlobalMasterInfo;
-import org.apache.hugegraph.election.StandardStateMachineCallback;
-import org.apache.hugegraph.election.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.masterelection.StandardStateMachineCallback;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -371,7 +371,7 @@ public final class GraphManager {
         String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                            raftGroupPeers);
-        this.addRoleWorkerConfig(config);
+        this.transferRoleWorkerConfig(config);
 
         Graph graph = GraphFactory.open(config);
         this.graphs.put(name, graph);
@@ -389,7 +389,7 @@ public final class GraphManager {
         }
     }
 
-    private void addRoleWorkerConfig(HugeConfig config) {
+    private void transferRoleWorkerConfig(HugeConfig config) {
         config.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
                            this.conf.get(ServerOptions.REST_SERVER_URL));
         config.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),

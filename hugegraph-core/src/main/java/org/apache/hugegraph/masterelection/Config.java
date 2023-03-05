@@ -15,13 +15,21 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
-import java.util.Optional;
+public interface Config {
 
-public interface ClusterRoleStore {
+    String node();
 
-    boolean updateIfNodePresent(ClusterRole clusterRole);
+    String url();
 
-    Optional<ClusterRole> query();
+    int exceedsFailCount();
+
+    long randomTimeoutMillisecond();
+
+    long heartBeatIntervalSecond();
+
+    int exceedsWorkerCount();
+
+    long baseTimeoutMillisecond();
 }

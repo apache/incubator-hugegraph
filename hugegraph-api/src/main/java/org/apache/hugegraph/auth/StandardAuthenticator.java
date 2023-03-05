@@ -126,7 +126,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String raftGroupPeers = config.get(ServerOptions.RAFT_GROUP_PEERS);
         graphConfig.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                                 raftGroupPeers);
-        this.addRoleWorkerConfig(graphConfig, config);
+        this.transferRoleWorkerConfig(graphConfig, config);
 
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 
@@ -138,19 +138,19 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
     }
 
-    private void addRoleWorkerConfig(HugeConfig graphConfig, HugeConfig config) {
+    private void transferRoleWorkerConfig(HugeConfig graphConfig, HugeConfig config) {
         graphConfig.addProperty(CoreOptions.NODE_EXTERNAL_URL.name(),
-                    config.get(ServerOptions.REST_SERVER_URL));
+                                config.get(ServerOptions.REST_SERVER_URL));
         graphConfig.addProperty(CoreOptions.BASE_TIMEOUT_MILLISECOND.name(),
-                    config.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
+                                config.get(CoreOptions.BASE_TIMEOUT_MILLISECOND));
         graphConfig.addProperty(CoreOptions.EXCEEDS_FAIL_COUNT.name(),
-                    config.get(CoreOptions.EXCEEDS_FAIL_COUNT));
+                                config.get(CoreOptions.EXCEEDS_FAIL_COUNT));
         graphConfig.addProperty(CoreOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
-                    config.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND));
+                                config.get(CoreOptions.RANDOM_TIMEOUT_MILLISECOND));
         graphConfig.addProperty(CoreOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
-                    config.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND));
+                                config.get(CoreOptions.HEARTBEAT_INTERVAL_SECOUND));
         graphConfig.addProperty(CoreOptions.EXCEEDS_WORKER_COUNT.name(),
-                    config.get(CoreOptions.EXCEEDS_WORKER_COUNT));
+                                config.get(CoreOptions.EXCEEDS_WORKER_COUNT));
     }
 
     /**

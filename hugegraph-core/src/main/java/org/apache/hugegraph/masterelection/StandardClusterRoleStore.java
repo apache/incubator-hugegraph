@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -43,7 +43,7 @@ import org.slf4j.Logger;
 public class StandardClusterRoleStore implements ClusterRoleStore {
 
     private static final Logger LOG = Log.logger(StandardClusterRoleStore.class);
-    public static final int RETRY_QUERY_TIMEOUT = 200;
+    private static final int RETRY_QUERY_TIMEOUT = 200;
 
     private final HugeGraphParams graph;
     private final Schema schema;

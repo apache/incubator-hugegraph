@@ -41,7 +41,7 @@ import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.election.GlobalMasterInfo;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.glassfish.hk2.api.IterableProvider;
@@ -53,7 +53,7 @@ public class RedirectFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(RedirectFilter.class);
 
-    public static final String X_HG_REDIRECT = "x-hg-redirect";
+    private static final String X_HG_REDIRECT = "x-hg-redirect";
 
     private static volatile Client client = null;
 
