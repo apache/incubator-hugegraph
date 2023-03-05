@@ -59,7 +59,8 @@ public class RoleElectionOptions  extends OptionHolder {
     public static final ConfigOption<Integer> RANDOM_TIMEOUT_MILLISECOND =
             new ConfigOption<>(
                     "server.role.random_timeout",
-                    "The role state machine random timeout millisecond time",
+                    "The random timeout time that be used when candidate state node request " +
+                    "to become master state to reduce competitive voting",
                     rangeInt(0, Integer.MAX_VALUE),
                     1000
             );
@@ -72,11 +73,12 @@ public class RoleElectionOptions  extends OptionHolder {
                     2
             );
 
-    public static final ConfigOption<Integer> EXCEEDS_WORKER_COUNT =
+    public static final ConfigOption<Integer> EXCEEDS_WORKER_CLOCK_COUNT =
             new ConfigOption<>(
                     "server.role.worker_count",
-                    "Check the number of times that the master node does not initiate " +
-                          "the heartbeat threshold",
+                    "When the worker node detects that the number of times " +
+                    "the master node fails to update heartbeat information reaches this threshold, " +
+                    "the working node will be converted to a candidate node",
                     rangeInt(0, Integer.MAX_VALUE),
                     10
             );

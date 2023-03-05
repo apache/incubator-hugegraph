@@ -401,8 +401,8 @@ public final class GraphManager {
                            this.conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
         config.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
                            this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
-        config.addProperty(RoleElectionOptions.EXCEEDS_WORKER_COUNT.name(),
-                           this.conf.get(RoleElectionOptions.EXCEEDS_WORKER_COUNT));
+        config.addProperty(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT.name(),
+                           this.conf.get(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT));
     }
 
     private void waitGraphsReady() {

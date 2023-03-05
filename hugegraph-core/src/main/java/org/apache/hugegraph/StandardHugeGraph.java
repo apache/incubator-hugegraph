@@ -293,7 +293,7 @@ public class StandardHugeGraph implements HugeGraph {
                                             this.configuration.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
                                             this.configuration.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
                                             this.configuration.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND),
-                                            this.configuration.get(RoleElectionOptions.EXCEEDS_WORKER_COUNT),
+                                            this.configuration.get(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT),
                                             this.configuration.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
         this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);
