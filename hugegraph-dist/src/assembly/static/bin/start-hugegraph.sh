@@ -23,7 +23,7 @@ GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "d:g:m:s:j:t" arg; do
+while getopts "d:g:m:s:j:t:v" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
@@ -31,7 +31,8 @@ while getopts "d:g:m:s:j:t" arg; do
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
-        #v) VERBOSE="verbose" ;;
+        # TODO: should remove it in future (check the usage carefully)
+        v) VERBOSE="verbose" ;;
         ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]
                 [-t timeout]" && exit 1 ;;
     esac
@@ -79,14 +80,14 @@ if [ ! -d "$LOGS" ]; then
 fi
 
 #TODO: test
-if [[ $DAEMON == "false" ]]; then
-    echo "Starting HugeGraphServer in foreground mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
-    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
-else
+if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
+else
+    echo "Starting HugeGraphServer in foreground mode..."
+    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
 PID="$!"

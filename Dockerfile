@@ -49,12 +49,13 @@ RUN set -x \
 RUN set -e \
     && pwd && cd /hugegraph/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
-    && ./bin/init-store.sh && ./bin/start-hugegraph.sh -d false -j $JAVA_OPTS -g g1
-    #     && sed -n '81p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 81{s/\&$/#/g} ./bin/start-hugegraph.sh \
-    #     && sed -n '91p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 91{s/^/#/g} ./bin/start-hugegraph.sh \
+    && ./bin/init-store.sh
+    #&& sed -n '89p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 89{s/\&$/#/g} ./bin/start-hugegraph.sh \
+    #&& sed -n '104p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 104{s/^/#/g} ./bin/start-hugegraph.sh
+    #&& ./bin/start-hugegraph.sh -d false -j $JAVA_OPTS -g g1
 
 EXPOSE 8080
 VOLUME /hugegraph
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["./bin/start-hugegraph.sh", "-d false -j $JAVA_OPTS -g g1"]
+CMD ["./bin/start-hugegraph.sh", "-d false -j $JAVA_OPTS -g zgc"]
