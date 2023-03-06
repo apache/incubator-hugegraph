@@ -125,7 +125,7 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
             // If query nothing, retry once
             try {
                 Thread.sleep(RETRY_QUERY_TIMEOUT);
-            } catch (InterruptedException ignore) {
+            } catch (InterruptedException ignored) {
             }
 
             vertex = this.queryVertex();

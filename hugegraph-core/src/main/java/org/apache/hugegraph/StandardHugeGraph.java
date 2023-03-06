@@ -47,7 +47,7 @@ import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
-import org.apache.hugegraph.masterelection.HugeRoleStateMachineConfig;
+import org.apache.hugegraph.masterelection.RoleElectionConfig;
 import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
@@ -288,12 +288,12 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private void initRoleStateWorker(Id serverId) {
-        Config roleStateMachineConfig = new HugeRoleStateMachineConfig(serverId.toString(),
+        Config roleStateMachineConfig = new RoleElectionConfig(serverId.toString(),
                                             this.configuration.get(RoleElectionOptions.NODE_EXTERNAL_URL),
                                             this.configuration.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
                                             this.configuration.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
                                             this.configuration.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND),
-                                            this.configuration.get(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT),
+                                            this.configuration.get(RoleElectionOptions.MASTER_DEAD_TIMES),
                                             this.configuration.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
         this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);

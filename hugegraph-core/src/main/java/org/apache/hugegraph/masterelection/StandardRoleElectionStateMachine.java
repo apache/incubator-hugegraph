@@ -206,7 +206,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             RoleState nextState = new UnknownState(this.clusterRole.epoch()).transform(context);
             if (nextState instanceof WorkerState) {
                 this.merge((WorkerState) nextState);
-                if (this.clock > context.config().exceedsWorkerCount()) {
+                if (this.clock > context.config().masterDeadTimes()) {
                     return new CandidateState(this.clusterRole.epoch() + 1);
                 } else {
                     return this;

@@ -24,6 +24,7 @@ import java.util.ServiceLoader;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.slf4j.Logger;
 
 import org.apache.hugegraph.HugeException;
@@ -45,6 +46,7 @@ public class RegisterUtil {
     static {
         OptionSpace.register("core", CoreOptions.instance());
         OptionSpace.register("dist", DistOptions.instance());
+        OptionSpace.register("masterElection", RoleElectionOptions.instance());
     }
 
     public static void registerBackends() {

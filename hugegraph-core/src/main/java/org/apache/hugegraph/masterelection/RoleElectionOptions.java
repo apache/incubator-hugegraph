@@ -43,7 +43,9 @@ public class RoleElectionOptions  extends OptionHolder {
     public static final ConfigOption<Integer> EXCEEDS_FAIL_COUNT =
             new ConfigOption<>(
                     "server.role.fail_count",
-                    "The role state machine fail count exceeds",
+                    "When the node failed count of update or query heartbeat " +
+                    "is reaches this threshold, the node will become abdication state to guard" +
+                    "safe property.",
                     rangeInt(0, Integer.MAX_VALUE),
                     5
             );
@@ -51,16 +53,16 @@ public class RoleElectionOptions  extends OptionHolder {
     public static final ConfigOption<String> NODE_EXTERNAL_URL =
             new ConfigOption<>(
                     "server.role.node_external_url",
-                    "The url of external accessibility",
+                    "The url of external accessibility.",
                     disallowEmpty(),
-                    "127.0.0.1:8080"
+                    "http://127.0.0.1:8080"
             );
 
     public static final ConfigOption<Integer> RANDOM_TIMEOUT_MILLISECOND =
             new ConfigOption<>(
                     "server.role.random_timeout",
-                    "The random timeout time that be used when candidate state node request " +
-                    "to become master state to reduce competitive voting",
+                    "The random timeout in ms that be used when candidate node request " +
+                    "to become master state to reduce competitive voting.",
                     rangeInt(0, Integer.MAX_VALUE),
                     1000
             );
@@ -68,17 +70,17 @@ public class RoleElectionOptions  extends OptionHolder {
     public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOUND =
             new ConfigOption<>(
                     "server.role.heartbeat_interval",
-                    "The role state machine heartbeat interval second time",
+                    "The role state machine heartbeat interval second time.",
                     rangeInt(0, Integer.MAX_VALUE),
                     2
             );
 
-    public static final ConfigOption<Integer> EXCEEDS_WORKER_CLOCK_COUNT =
+    public static final ConfigOption<Integer> MASTER_DEAD_TIMES =
             new ConfigOption<>(
-                    "server.role.worker_count",
+                    "server.role.master_dead_times",
                     "When the worker node detects that the number of times " +
-                    "the master node fails to update heartbeat information reaches this threshold, " +
-                    "the working node will be converted to a candidate node",
+                    "the master node fails to update heartbeat reaches this threshold, " +
+                    "the worker node will become to a candidate node.",
                     rangeInt(0, Integer.MAX_VALUE),
                     10
             );
@@ -86,7 +88,7 @@ public class RoleElectionOptions  extends OptionHolder {
     public static final ConfigOption<Integer> BASE_TIMEOUT_MILLISECOND =
             new ConfigOption<>(
                     "server.role.base_timeout",
-                    "The role state machine candidate state base timeout time",
+                    "The role state machine candidate state base timeout time.",
                     rangeInt(0, Integer.MAX_VALUE),
                     500
             );

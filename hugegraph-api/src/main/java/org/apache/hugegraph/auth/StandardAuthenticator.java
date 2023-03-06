@@ -150,8 +150,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
                                 config.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
         graphConfig.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
                                 config.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
-        graphConfig.addProperty(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT.name(),
-                                config.get(RoleElectionOptions.EXCEEDS_WORKER_CLOCK_COUNT));
+        graphConfig.addProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
+                                config.get(RoleElectionOptions.MASTER_DEAD_TIMES));
     }
 
     /**

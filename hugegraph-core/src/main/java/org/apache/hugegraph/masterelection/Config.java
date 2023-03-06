@@ -29,7 +29,7 @@ public interface Config {
 
     long heartBeatIntervalSecond();
 
-    int exceedsWorkerCount();
+    int masterDeadTimes();
 
     long baseTimeoutMillisecond();
 }

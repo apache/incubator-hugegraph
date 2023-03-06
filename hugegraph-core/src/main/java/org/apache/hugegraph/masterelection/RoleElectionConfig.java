@@ -17,28 +17,27 @@
 
 package org.apache.hugegraph.masterelection;
 
-public class HugeRoleStateMachineConfig implements Config {
+public class RoleElectionConfig implements Config {
 
     private String node;
     private String url;
     private int exceedsFailCount;
     private long randomTimeoutMillisecond;
     private long heartBeatIntervalSecond;
-    private int exceedsWorkerCount;
+    private int masterDeadTimes;
     private long baseTimeoutMillisecond;
 
-    public HugeRoleStateMachineConfig(String node, String url, int exceedsFailCount,
-                                      long randomTimeoutMillisecond, long heartBeatIntervalSecond,
-                                      int exceedsWorkerCount, long baseTimeoutMillisecond) {
+    public RoleElectionConfig(String node, String url, int exceedsFailCount,
+                              long randomTimeoutMillisecond, long heartBeatIntervalSecond,
+                              int masterDeadTimes, long baseTimeoutMillisecond) {
         this.node = node;
         this.url = url;
         this.exceedsFailCount = exceedsFailCount;
         this.randomTimeoutMillisecond = randomTimeoutMillisecond;
         this.heartBeatIntervalSecond = heartBeatIntervalSecond;
-        this.exceedsWorkerCount = exceedsWorkerCount;
+        this.masterDeadTimes = masterDeadTimes;
         this.baseTimeoutMillisecond = baseTimeoutMillisecond;
     }
-
 
     @Override
     public String node() {
@@ -66,8 +65,8 @@ public class HugeRoleStateMachineConfig implements Config {
     }
 
     @Override
-    public int exceedsWorkerCount() {
-        return this.exceedsWorkerCount;
+    public int masterDeadTimes() {
+        return this.masterDeadTimes;
     }
 
     @Override

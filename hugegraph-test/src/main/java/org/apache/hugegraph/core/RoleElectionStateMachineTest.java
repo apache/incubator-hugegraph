@@ -127,7 +127,7 @@ public class RoleElectionStateMachineTest {
         }
 
         @Override
-        public int exceedsWorkerCount() {
+        public int masterDeadTimes() {
             return 5;
         }
 
