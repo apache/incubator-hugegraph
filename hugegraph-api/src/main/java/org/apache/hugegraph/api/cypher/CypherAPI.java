@@ -27,7 +27,9 @@ import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.CompressInterceptor;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+
 import com.codahale.metrics.annotation.Timed;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -67,8 +69,7 @@ public class CypherAPI extends API {
     @Timed
     @CompressInterceptor.Compress(buffer = (1024 * 40))
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public CypherModel query(@PathParam("graph") String graph,
-                             @Context HttpHeaders headers,
+    public CypherModel query(@PathParam("graph") String graph, @Context HttpHeaders headers,
                              @QueryParam("cypher") String cypher) {
         LOG.debug("Graph [{}] query by cypher: {}", graph, cypher);
 
@@ -80,21 +81,18 @@ public class CypherAPI extends API {
     @CompressInterceptor.Compress
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public CypherModel post(@PathParam("graph") String graph,
-                            @Context HttpHeaders headers,
+    public CypherModel post(@PathParam("graph") String graph, @Context HttpHeaders headers,
                             String cypher) {
         LOG.debug("Graph [{}] query by cypher: {}", graph, cypher);
         return this.queryByCypher(graph, headers, cypher);
     }
 
-    private CypherModel queryByCypher(String graph,
-                                      HttpHeaders headers,
-                                      String cypher) {
+    private CypherModel queryByCypher(String graph, HttpHeaders headers, String cypher) {
 
         E.checkArgument(graph != null && !graph.isEmpty(),
-            "The graph parameter can't be null or empty");
+                        "The graph parameter can't be null or empty");
         E.checkArgument(cypher != null && !cypher.isEmpty(),
-            "The cypher parameter can't be null or empty");
+                        "The cypher parameter can't be null or empty");
 
         Map<String, String> aliases = new HashMap<>(1, 1);
         aliases.put("g", "__g_" + graph);

@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
+
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
@@ -50,9 +51,9 @@ public final class CypherClient {
         this.configurationSupplier = configurationSupplier;
     }
 
-    public CypherModel submitQuery(String cypherQuery,@Nullable Map<String, String> aliases) {
+    public CypherModel submitQuery(String cypherQuery, @Nullable Map<String, String> aliases) {
         E.checkArgument(cypherQuery != null && !cypherQuery.isEmpty(),
-                "The cypher-query parameter can't be null or empty");
+                        "The cypher-query parameter can't be null or empty");
 
         Cluster cluster = Cluster.open(getConfig());
         Client client = cluster.connect();
@@ -69,7 +70,7 @@ public final class CypherClient {
             res = CypherModel.dataOf(request.getRequestId().toString(), list);
         } catch (Exception e) {
             LOG.error(String.format("Failed to submit cypher-query: [ %s ], cause by:"
-                    , cypherQuery), e);
+                , cypherQuery), e);
             res = CypherModel.failOf(request.getRequestId().toString(), e.getMessage());
         } finally {
             client.close();
@@ -81,13 +82,13 @@ public final class CypherClient {
 
     private RequestMessage createRequest(String cypherQuery) {
         return RequestMessage.build(Tokens.OPS_EVAL)
-                .processor("cypher")
-                .add(Tokens.ARGS_GREMLIN, cypherQuery)
-                .create();
+                             .processor("cypher")
+                             .add(Tokens.ARGS_GREMLIN, cypherQuery)
+                             .create();
     }
 
     private List<Object> doQueryList(Client client, RequestMessage request)
-            throws ExecutionException, InterruptedException {
+        throws ExecutionException, InterruptedException {
 
         ResultSet results = null;
         results = client.submitAsync(request).get();
@@ -125,8 +126,8 @@ public final class CypherClient {
         CypherClient that = (CypherClient) o;
 
         return Objects.equals(userName, that.userName)
-                && Objects.equals(password, that.password)
-                && Objects.equals(token, that.token);
+               && Objects.equals(password, that.password)
+               && Objects.equals(token, that.token);
     }
 
     @Override

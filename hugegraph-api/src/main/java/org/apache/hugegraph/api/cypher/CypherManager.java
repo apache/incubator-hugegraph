@@ -22,6 +22,7 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.YAMLConfiguration;
 
 import javax.annotation.concurrent.ThreadSafe;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
@@ -35,7 +36,7 @@ public final class CypherManager {
 
     public static CypherManager configOf(String configurationFile) {
         E.checkArgument(configurationFile != null && !configurationFile.isEmpty(),
-            "The configurationFile parameter can't be null or empty");
+                        "The configurationFile parameter can't be null or empty");
         return new CypherManager(configurationFile);
     }
 
@@ -45,9 +46,9 @@ public final class CypherManager {
 
     public CypherClient getClient(String userName, String password) {
         E.checkArgument(userName != null && !userName.isEmpty(),
-            "The userName parameter can't be null or empty");
+                        "The userName parameter can't be null or empty");
         E.checkArgument(password != null && !password.isEmpty(),
-            "The password parameter can't be null or empty");
+                        "The password parameter can't be null or empty");
 
         //TODO: Need to cache the client and make it hold the connection.
         return new CypherClient(userName, password, () -> this.cloneConfig());
@@ -55,7 +56,7 @@ public final class CypherManager {
 
     public CypherClient getClient(String token) {
         E.checkArgument(token != null && !token.isEmpty(),
-            "The token parameter can't be null or empty");
+                        "The token parameter can't be null or empty");
 
         //TODO: Need to cache the client and make it hold the connection.
         return new CypherClient(token, () -> this.cloneConfig());
@@ -79,7 +80,7 @@ public final class CypherManager {
             yaml.read(reader);
         } catch (Exception e) {
             throw new RuntimeException(String.format("Failed to load configuration file," +
-                " the file at %s.", configurationFile), e);
+                                                     " the file at %s.", configurationFile), e);
         }
 
         return yaml;
@@ -94,8 +95,9 @@ public final class CypherManager {
             final File resourceFile = new File(resource.getFile());
 
             if (!resourceFile.exists()) {
-                throw new IllegalArgumentException(String.format("Configuration file at %s does not exist"
-                    , configurationFile));
+                throw new IllegalArgumentException(
+                    String.format("Configuration file at %s does not exist"
+                        , configurationFile));
             }
             return resourceFile;
 
