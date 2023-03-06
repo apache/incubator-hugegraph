@@ -14,6 +14,22 @@
  * limitations under the License.
  */
 
+
+/**
+ * Description of the modifications:
+ *
+ * 1) Changed the method signature to adopt the gremlin-server 3.5.1.
+ * public Optional<ThrowingConsumer<Context>> selectOther(RequestMessage requestMessage)
+ * -->
+ * public Optional<ThrowingConsumer<Context>> selectOther(Context ctx)
+ *
+ * 2) Changed the package name.
+ * org.opencypher.gremlin.server.op.cypher
+ * -->
+ * org.apache.hugegraph.api.cypher
+ *
+ */
+
 package org.apache.hugegraph.api.cypher;
 
 import io.netty.channel.ChannelHandlerContext;

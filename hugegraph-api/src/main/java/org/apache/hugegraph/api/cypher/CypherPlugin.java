@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
+
+/**
+ * Description of the modifications:
+ *
+ * 1) Changed the package name.
+ * org.opencypher.gremlin.server.jsr223
+ * -->
+ * org.apache.hugegraph.api.cypher
+ *
+ */
+
 package org.apache.hugegraph.api.cypher;
 
 import org.apache.tinkerpop.gremlin.jsr223.Customizer;
