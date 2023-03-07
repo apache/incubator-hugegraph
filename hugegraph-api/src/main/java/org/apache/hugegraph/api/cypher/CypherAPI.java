@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.CompressInterceptor;
 import org.apache.hugegraph.util.E;
@@ -37,6 +36,7 @@ import com.codahale.metrics.annotation.Timed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -48,8 +48,10 @@ import jakarta.ws.rs.core.HttpHeaders;
 @Path("graphs/{graph}/cypher")
 @Singleton
 public class CypherAPI extends API {
+
     private static final Logger LOG = Log.logger(CypherAPI.class);
     private static final Charset UTF8 = StandardCharsets.UTF_8;
+    private static final String CLIENT_CONF = "conf/remote-objects.yaml";
     private final Base64.Decoder decoder = Base64.getUrlDecoder();
     private final String basic = "Basic ";
     private final String bearer = "Bearer ";
@@ -58,7 +60,7 @@ public class CypherAPI extends API {
 
     private CypherManager cypherManager() {
         if (this.cypherManager == null) {
-            this.cypherManager = CypherManager.configOf("conf/remote-objects.yaml");
+            this.cypherManager = CypherManager.configOf(CLIENT_CONF);
         }
         return this.cypherManager;
     }
@@ -67,8 +69,8 @@ public class CypherAPI extends API {
     @Timed
     @CompressInterceptor.Compress(buffer = (1024 * 40))
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public CypherModel query(@PathParam("graph") String graph,
-                             @Context HttpHeaders headers, @QueryParam("cypher") String cypher) {
+    public CypherModel query(@PathParam("graph") String graph, @Context HttpHeaders headers,
+                             @QueryParam("cypher") String cypher) {
         LOG.debug("Graph [{}] query by cypher: {}", graph, cypher);
         return this.queryByCypher(graph, headers, cypher);
     }
@@ -103,17 +105,15 @@ public class CypherAPI extends API {
             auth = auth.split(",")[0];
         }
 
-        if (auth == null) {
-            throw new HugeException("The Cypher-API is being called without any authorization.");
+        if (auth != null) {
+            if (auth.startsWith(basic)) {
+                return this.clientViaBasic(auth);
+            } else if (auth.startsWith(bearer)) {
+                return this.clientViaToken(auth);
+            }
         }
 
-        if (auth.startsWith(basic)) {
-            return this.clientViaBasic(auth);
-        } else if (auth.startsWith(bearer)) {
-            return this.clientViaToken(auth);
-        }
-
-        throw new HugeException("The Cypher-API is being called without any authorization.");
+        throw new NotAuthorizedException("The Cypher-API called without any authorization.");
     }
 
     private CypherClient clientViaBasic(String auth) {
@@ -151,5 +151,4 @@ public class CypherAPI extends API {
         }
         return ImmutablePair.of(split[0], split[1]);
     }
-
 }

@@ -14,7 +14,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.api.cypher;
+
+/**
+ * Description of the modifications:
+ * <p>
+ * 1) Changed the package name.
+ * <pre>
+ * org.opencypher.gremlin.server.jsr223
+ * -->
+ * org.apache.hugegraph.opencypher
+ * </pre>
+ * </p>
+ */
+
+package org.apache.hugegraph.opencypher;
 
 import org.apache.tinkerpop.gremlin.jsr223.Customizer;
 import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
@@ -33,7 +46,8 @@ import java.util.stream.Stream;
 public class CypherPlugin implements GremlinPlugin {
 
     private static final ImportCustomizer IMPORTS =
-        DefaultImportCustomizer.build().addClassImports(CustomPredicate.class)
+        DefaultImportCustomizer.build()
+                               .addClassImports(CustomPredicate.class)
                                .addMethodImports(getDeclaredPublicMethods(CustomPredicate.class))
                                .addClassImports(CustomFunctions.class)
                                .addMethodImports(getDeclaredPublicMethods(CustomFunctions.class))

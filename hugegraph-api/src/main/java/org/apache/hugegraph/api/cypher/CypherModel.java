@@ -25,6 +25,7 @@ import java.util.Map;
  * As same as response of GremlinAPI
  */
 public class CypherModel {
+
     public String requestId;
     public Status status = new Status();
     public Result result = new Result();

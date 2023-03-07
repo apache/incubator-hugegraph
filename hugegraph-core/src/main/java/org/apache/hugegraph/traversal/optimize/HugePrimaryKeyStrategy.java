@@ -32,7 +32,6 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty.Cardinality;
 import java.util.LinkedList;
 import java.util.List;
 
-
 public class HugePrimaryKeyStrategy
     extends AbstractTraversalStrategy<TraversalStrategy.ProviderOptimizationStrategy>
     implements ProviderOptimizationStrategy {
@@ -104,6 +103,5 @@ public class HugePrimaryKeyStrategy
         for (Step index : removeSteps) {
             traversal.removeStep(index);
         }
-
     }
 }

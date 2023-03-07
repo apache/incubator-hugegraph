@@ -94,9 +94,7 @@ public final class CypherClient {
 
     private List<Object> doQueryList(Client client, RequestMessage request)
         throws ExecutionException, InterruptedException {
-
-        ResultSet results;
-        results = client.submitAsync(request).get();
+        ResultSet results = client.submitAsync(request).get();
 
         Iterator<Result> iter = results.iterator();
         List<Object> list = new LinkedList<>();

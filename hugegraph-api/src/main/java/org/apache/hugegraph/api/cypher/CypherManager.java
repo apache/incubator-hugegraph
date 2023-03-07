@@ -104,5 +104,4 @@ public final class CypherManager {
 
         return systemFile;
     }
-
 }

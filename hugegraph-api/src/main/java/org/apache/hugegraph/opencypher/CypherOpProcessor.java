@@ -14,7 +14,30 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.api.cypher;
+/**
+ * Description of the modifications:
+ * <p>
+ * 1) Changed the method signature to adopt the gremlin-server 3.5.1.
+ * <pre>
+ * public Optional<ThrowingConsumer<Context>> selectOther(RequestMessage requestMessage)
+ * -->
+ * public Optional<ThrowingConsumer<Context>> selectOther(Context ctx)
+ * </pre>
+ * </p>
+ * <p>
+ * 2) Changed the package name.
+ * <pre>
+ * org.opencypher.gremlin.server.op.cypher
+ * -->
+ * org.apache.hugegraph.opencypher
+ * </pre>
+ * </p>
+ * <p>
+ * 3) Set the logger level from info to trace
+ * </p>
+ */
+
+package org.apache.hugegraph.opencypher;
 
 import io.netty.channel.ChannelHandlerContext;
 
@@ -71,6 +94,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * </pre>
  */
 public class CypherOpProcessor extends AbstractEvalOpProcessor {
+
     private static final String DEFAULT_TRANSLATOR_DEFINITION =
         "gremlin+cfog_server_extensions+inline_parameters";
 
@@ -98,7 +122,7 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
     private void evalCypher(Context context) throws OpProcessorException {
         Map<String, Object> args = context.getRequestMessage().getArgs();
         String cypher = (String) args.get(Tokens.ARGS_GREMLIN);
-        logger.info("Cypher: {}", cypher.replaceAll("\n", " "));
+        logger.trace("Cypher: {}", cypher.replaceAll("\n", " "));
 
         GraphTraversalSource gts = traversal(context);
         DefaultGraphTraversal g = new DefaultGraphTraversal(gts.clone());
@@ -120,7 +144,7 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
                                             strTranslator.features(), procedureContext);
 
         String gremlin = TranslationWriter.write(ir, strTranslator, parameters);
-        logger.info("Gremlin: {}", gremlin);
+        logger.trace("Gremlin: {}", gremlin);
 
         if (ast.getOptions().contains(EXPLAIN)) {
             explainQuery(context, ast, gremlin);
