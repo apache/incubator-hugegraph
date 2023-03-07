@@ -35,14 +35,14 @@ public class CompressStrategyManager {
     private CompressStrategyManager() {
     }
 
-    public static void addCompressStrategy(final int idx, final CompressStrategy compressStrategy) {
-        if (compressStrategies.length <= idx) {
-            final CompressStrategy[] newCompressStrategies = new CompressStrategy[idx + 5];
+    public static void addCompressStrategy(int index, CompressStrategy compressStrategy) {
+        if (compressStrategies.length <= index) {
+            CompressStrategy[] newCompressStrategies = new CompressStrategy[index + MAX_STRATEGY];
             System.arraycopy(compressStrategies, 0, newCompressStrategies, 0,
                              compressStrategies.length);
             compressStrategies = newCompressStrategies;
         }
-        compressStrategies[idx] = compressStrategy;
+        compressStrategies[index] = compressStrategy;
     }
 
     public static CompressStrategy getDefault() {
@@ -50,16 +50,17 @@ public class CompressStrategyManager {
     }
 
     public static void init(final HugeConfig config) {
-        if (config.get(CoreOptions.RAFT_SNAPSHOT_PARALLEL_COMPRESS)) {
-            // add parallel compress strategy
-            if (compressStrategies[PARALLEL_STRATEGY] == null) {
-                final CompressStrategy compressStrategy = new ParallelCompressStrategy(
+        if (!config.get(CoreOptions.RAFT_SNAPSHOT_PARALLEL_COMPRESS)) {
+            return;
+        }
+        // add parallel compress strategy
+        if (compressStrategies[PARALLEL_STRATEGY] == null) {
+            CompressStrategy compressStrategy = new ParallelCompressStrategy(
                     config.get(CoreOptions.RAFT_SNAPSHOT_COMPRESS_THREADS),
                     config.get(CoreOptions.RAFT_SNAPSHOT_DECOMPRESS_THREADS));
-                CompressStrategyManager.addCompressStrategy(
+            CompressStrategyManager.addCompressStrategy(
                     CompressStrategyManager.PARALLEL_STRATEGY, compressStrategy);
-                DEFAULT_STRATEGY = PARALLEL_STRATEGY;
-            }
+            DEFAULT_STRATEGY = PARALLEL_STRATEGY;
         }
     }
 }

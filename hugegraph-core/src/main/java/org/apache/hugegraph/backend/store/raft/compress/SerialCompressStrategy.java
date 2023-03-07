@@ -28,15 +28,15 @@ public class SerialCompressStrategy implements CompressStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(SerialCompressStrategy.class);
 
     @Override
-    public void compressZip(final String rootDir, final String sourceDir,
-                            final String outputZipFile, final Checksum checksum) throws Throwable {
+    public void compressZip(String rootDir, String sourceDir, String outputZipFile,
+                            Checksum checksum) throws Throwable {
         LOG.info("Start to compress snapshot in serial strategy");
         CompressUtil.compressZip(rootDir, sourceDir, outputZipFile, checksum);
     }
 
     @Override
-    public void decompressZip(final String sourceZipFile, final String outputDir,
-                              final Checksum checksum) throws Throwable {
+    public void decompressZip(String sourceZipFile, String outputDir, Checksum checksum)
+            throws Throwable {
         LOG.info("Start to decompress snapshot in serial strategy");
         CompressUtil.decompressZip(sourceZipFile, outputDir, checksum);
     }
