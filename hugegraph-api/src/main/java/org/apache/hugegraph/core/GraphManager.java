@@ -20,6 +20,7 @@ package org.apache.hugegraph.core;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -30,31 +31,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.auth.StandardAuthenticator;
-import org.apache.hugegraph.masterelection.GlobalMasterInfo;
-import org.apache.hugegraph.masterelection.RoleElectionOptions;
-import org.apache.hugegraph.masterelection.StandardStateMachineCallback;
-import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
-import org.apache.tinkerpop.gremlin.server.util.MetricManager;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
-import org.apache.hugegraph.auth.HugeGraphAuthProxy;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.metrics.MetricsUtil;
-import org.apache.hugegraph.metrics.ServerReporter;
-import org.apache.hugegraph.serializer.JsonSerializer;
-import org.apache.hugegraph.serializer.Serializer;
-import org.apache.hugegraph.server.RestServer;
-import org.slf4j.Logger;
-
-import com.alipay.sofa.rpc.config.ServerConfig;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.HugeAuthenticator;
+import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
+import org.apache.hugegraph.auth.HugeGraphAuthProxy;
+import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
@@ -63,13 +46,23 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.exception.NotSupportException;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardStateMachineCallback;
+import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.rpc.RpcClientProvider;
 import org.apache.hugegraph.rpc.RpcConsumerConfig;
 import org.apache.hugegraph.rpc.RpcProviderConfig;
 import org.apache.hugegraph.rpc.RpcServer;
+import org.apache.hugegraph.serializer.JsonSerializer;
+import org.apache.hugegraph.serializer.Serializer;
+import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.define.NodeRole;
@@ -77,6 +70,14 @@ import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.apache.tinkerpop.gremlin.server.util.MetricManager;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+import org.slf4j.Logger;
+
+import com.alipay.sofa.rpc.config.ServerConfig;
 
 public final class GraphManager {
 
@@ -91,7 +92,6 @@ public final class GraphManager {
 
     private RoleElectionStateMachine roleStateWorker;
     private GlobalMasterInfo globalMasterInfo;
-    private Executor applyThread;
 
     private Id server;
     private NodeRole role;
@@ -378,7 +378,7 @@ public final class GraphManager {
         this.graphs.put(name, graph);
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
-        assert graphConfPath.equals(graphConfig.file().getPath());
+        assert graphConfPath.equals(Objects.requireNonNull(graphConfig.file()).getPath());
 
         LOG.info("Graph '{}' was successfully configured via '{}'",
                  name, graphConfPath);
@@ -399,8 +399,8 @@ public final class GraphManager {
                            this.conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
         config.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
                            this.conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
-        config.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
-                           this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
+        config.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
+                           this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND));
         config.addProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
                            this.conf.get(RoleElectionOptions.MASTER_DEAD_TIMES));
     }
@@ -423,6 +423,7 @@ public final class GraphManager {
         for (String graph : this.graphs()) {
             // TODO: close tx from main thread
             HugeGraph hugegraph = this.graph(graph);
+            assert hugegraph != null;
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
                 if (this.requireAuthentication()) {
@@ -477,13 +478,13 @@ public final class GraphManager {
 
     private void initRoleStateWorker() {
         E.checkArgument(this.roleStateWorker == null, "Repetition init");
-        this.applyThread = Executors.newSingleThreadExecutor();
+        Executor applyThread = Executors.newSingleThreadExecutor();
         this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
         this.globalMasterInfo = new GlobalMasterInfo();
         StandardStateMachineCallback stateMachineCallback = new StandardStateMachineCallback(
                                                                 TaskManager.instance(),
                                                                 this.globalMasterInfo);
-        this.applyThread.execute(() -> {
+        applyThread.execute(() -> {
             this.roleStateWorker.apply(stateMachineCallback);
         });
     }
@@ -627,6 +628,7 @@ public final class GraphManager {
         Object incomingValue = config.get(option);
         for (String graphName : this.graphs.keySet()) {
             HugeGraph graph = this.graph(graphName);
+            assert graph != null;
             Object existedValue = graph.option(option);
             E.checkArgument(!incomingValue.equals(existedValue),
                             "The value '%s' of option '%s' conflicts with " +
@@ -651,11 +653,11 @@ public final class GraphManager {
                 continue;
             }
 
-            MetricsUtil.registerGauge(Cache.class, hits, () -> cache.hits());
-            MetricsUtil.registerGauge(Cache.class, miss, () -> cache.miss());
-            MetricsUtil.registerGauge(Cache.class, exp, () -> cache.expire());
-            MetricsUtil.registerGauge(Cache.class, size, () -> cache.size());
-            MetricsUtil.registerGauge(Cache.class, cap, () -> cache.capacity());
+            MetricsUtil.registerGauge(Cache.class, hits, cache::hits);
+            MetricsUtil.registerGauge(Cache.class, miss, cache::miss);
+            MetricsUtil.registerGauge(Cache.class, exp, cache::expire);
+            MetricsUtil.registerGauge(Cache.class, size, cache::size);
+            MetricsUtil.registerGauge(Cache.class, cap, cache::capacity);
         }
     }
 }

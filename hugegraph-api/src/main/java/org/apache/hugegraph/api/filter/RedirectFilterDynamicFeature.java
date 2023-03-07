@@ -27,7 +27,8 @@ public class RedirectFilterDynamicFeature implements DynamicFeature {
 
     @Override
     public void configure(ResourceInfo resourceInfo, FeatureContext context) {
-        if (resourceInfo.getResourceMethod().isAnnotationPresent(RedirectFilter.RedirectMasterRole.class)) {
+        if (resourceInfo.getResourceMethod()
+                        .isAnnotationPresent(RedirectFilter.RedirectMasterRole.class)) {
             context.register(RedirectFilter.class);
         }
     }

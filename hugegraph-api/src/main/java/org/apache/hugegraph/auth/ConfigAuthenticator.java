@@ -24,19 +24,16 @@ import java.util.Objects;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
-
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 
 public class ConfigAuthenticator implements HugeAuthenticator {
 
-    public static final String KEY_USERNAME =
-                               CredentialGraphTokens.PROPERTY_USERNAME;
-    public static final String KEY_PASSWORD =
-                               CredentialGraphTokens.PROPERTY_PASSWORD;
+    public static final String KEY_USERNAME = CredentialGraphTokens.PROPERTY_USERNAME;
+    public static final String KEY_PASSWORD = CredentialGraphTokens.PROPERTY_PASSWORD;
 
     private final Map<String, String> tokens;
 
@@ -72,7 +69,7 @@ public class ConfigAuthenticator implements HugeAuthenticator {
             if (username.equals(USER_ADMIN)) {
                 role = ROLE_ADMIN;
             } else {
-                // Return role with all permission, set user name as owner graph
+                // Return role with all permission, set username as owner graph
                 role = RolePermission.all(username);
             }
         } else {
@@ -84,18 +81,16 @@ public class ConfigAuthenticator implements HugeAuthenticator {
 
     @Override
     public AuthManager authManager() {
-        throw new NotImplementedException(
-                  "AuthManager is unsupported by ConfigAuthenticator");
+        throw new NotImplementedException("AuthManager is unsupported by ConfigAuthenticator");
     }
 
     @Override
     public HugeGraph graph() {
-        throw new NotImplementedException(
-                  "graph() is unsupported by ConfigAuthenticator");
+        throw new NotImplementedException("graph() is unsupported by ConfigAuthenticator");
     }
 
     @Override
-    public void initAdminUser(String password) throws Exception {
+    public void initAdminUser(String password) {
         String adminToken = this.tokens.get(USER_ADMIN);
         E.checkArgument(Objects.equals(adminToken, password),
                         "The password can't be changed for " +
@@ -104,7 +99,6 @@ public class ConfigAuthenticator implements HugeAuthenticator {
 
     @Override
     public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
-        throw new NotImplementedException(
-                  "SaslNegotiator is unsupported by ConfigAuthenticator");
+        throw new NotImplementedException("SaslNegotiator is unsupported by ConfigAuthenticator");
     }
 }

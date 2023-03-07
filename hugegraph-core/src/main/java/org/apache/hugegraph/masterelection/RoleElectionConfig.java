@@ -19,13 +19,13 @@ package org.apache.hugegraph.masterelection;
 
 public class RoleElectionConfig implements Config {
 
-    private String node;
-    private String url;
-    private int exceedsFailCount;
-    private long randomTimeoutMillisecond;
-    private long heartBeatIntervalSecond;
-    private int masterDeadTimes;
-    private long baseTimeoutMillisecond;
+    private final String node;
+    private final String url;
+    private final int exceedsFailCount;
+    private final long randomTimeoutMillisecond;
+    private final long heartBeatIntervalSecond;
+    private final int masterDeadTimes;
+    private final long baseTimeoutMillisecond;
 
     public RoleElectionConfig(String node, String url, int exceedsFailCount,
                               long randomTimeoutMillisecond, long heartBeatIntervalSecond,

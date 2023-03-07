@@ -40,6 +40,7 @@ public interface StateMachineContext {
     interface MasterServerInfo {
 
         String url();
+
         String node();
     }
 }

@@ -24,17 +24,16 @@ import java.util.Scanner;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hugegraph.masterelection.RoleElectionOptions;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.rpc.RpcClientProviderWithAuth;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
@@ -57,7 +56,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     @Override
     public void initAdminUser(String password) {
-        // Not allowed to call by non main thread
+        // Not allowed to call by non-main thread
         String caller = Thread.currentThread().getName();
         E.checkState("main".equals(caller), "Invalid caller '%s'", caller);
 
@@ -90,7 +89,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
                 // CHECKSTYLE:OFF
                 System.out.println(inputPrompt);
                 // CHECKSTYLE:ON
-                @SuppressWarnings("resource") // just wrapper of System.in
+                // just wrapper of System.in
                 Scanner scanner = new Scanner(System.in);
                 password = scanner.nextLine();
             }
@@ -148,8 +147,8 @@ public class StandardAuthenticator implements HugeAuthenticator {
                                 config.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
         graphConfig.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
                                 config.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
-        graphConfig.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND.name(),
-                                config.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOUND));
+        graphConfig.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
+                                config.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND));
         graphConfig.addProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
                                 config.get(RoleElectionOptions.MASTER_DEAD_TIMES));
     }

@@ -21,14 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hugegraph.HugeGraph;
-import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
-import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
-import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
-
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.Context;
 import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.backend.id.Id;
@@ -39,6 +33,11 @@ import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
 public interface HugeAuthenticator extends Authenticator {
 

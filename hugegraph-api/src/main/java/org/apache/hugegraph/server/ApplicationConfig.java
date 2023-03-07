@@ -17,7 +17,14 @@
 
 package org.apache.hugegraph.server;
 
+import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.api.filter.RedirectFilterDynamicFeature;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.WorkLoad;
+import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.version.CoreVersion;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.MultiException;
@@ -30,13 +37,6 @@ import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.WorkLoad;
-import org.apache.hugegraph.event.EventHub;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.version.CoreVersion;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
 
@@ -48,15 +48,13 @@ import jakarta.ws.rs.ApplicationPath;
 
 @ApplicationPath("/")
 @OpenAPIDefinition(
-        info =
-        @Info(
-                title = "HugeGraph RESTful API",
-                version = CoreVersion.DEFAULT_VERSION,
-                description = "All management API for HugeGraph",
-                contact =
-                @Contact(
-                        url = "https://github.com/apache/hugegraph",
-                        name = "HugeGraph")))
+    info = @Info(
+        title = "HugeGraph RESTful API",
+        version = CoreVersion.DEFAULT_VERSION,
+        description = "All management API for HugeGraph",
+        contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
+    )
+)
 public class ApplicationConfig extends ResourceConfig {
 
     public ApplicationConfig(HugeConfig conf, EventHub hub) {
@@ -87,10 +85,9 @@ public class ApplicationConfig extends ResourceConfig {
         register(OpenApiResource.class);
     }
 
-    private class ConfFactory extends AbstractBinder
-                              implements Factory<HugeConfig> {
+    private class ConfFactory extends AbstractBinder implements Factory<HugeConfig> {
 
-        private HugeConfig conf = null;
+        private final HugeConfig conf;
 
         public ConfFactory(HugeConfig conf) {
             E.checkNotNull(conf, "configuration");
@@ -113,8 +110,7 @@ public class ApplicationConfig extends ResourceConfig {
         }
     }
 
-    private class GraphManagerFactory extends AbstractBinder
-                                      implements Factory<GraphManager> {
+    private class GraphManagerFactory extends AbstractBinder implements Factory<GraphManager> {
 
         private GraphManager manager = null;
 
@@ -170,8 +166,7 @@ public class ApplicationConfig extends ResourceConfig {
         }
     }
 
-    private class WorkLoadFactory extends AbstractBinder
-                                  implements Factory<WorkLoad> {
+    private class WorkLoadFactory extends AbstractBinder implements Factory<WorkLoad> {
 
         private final WorkLoad load;
 

@@ -30,11 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.hugegraph.masterelection.ClusterRole;
 import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
-import org.apache.hugegraph.masterelection.ClusterRole;
 import org.apache.hugegraph.masterelection.StateMachineCallback;
 import org.apache.hugegraph.masterelection.StateMachineContext;
 import org.apache.hugegraph.testutil.Assert;
@@ -86,10 +86,10 @@ public class RoleElectionStateMachineTest {
         @Override
         public String toString() {
             return "LogEntry{" +
-                    "epoch=" + epoch +
-                    ", node='" + node + '\'' +
-                    ", role=" + role +
-                    '}';
+                   "epoch=" + epoch +
+                   ", node='" + node + '\'' +
+                   ", role=" + role +
+                   '}';
         }
     }
 
@@ -254,8 +254,7 @@ public class RoleElectionStateMachineTest {
 
             @Override
             public Optional<ClusterRole> query() {
-                return Optional.ofNullable(
-                                this.copy(this.data.get(this.epoch)));
+                return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
         };
 
@@ -315,7 +314,7 @@ public class RoleElectionStateMachineTest {
 
         Assert.assertGt(0, logRecords.size());
         Map<Integer, String> masters = new HashMap<>();
-        for (LogEntry entry: logRecords) {
+        for (LogEntry entry : logRecords) {
             if (entry.role == LogEntry.Role.master) {
                 String lastNode = masters.putIfAbsent(entry.epoch, entry.node);
                 if (lastNode != null) {

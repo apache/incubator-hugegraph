@@ -25,30 +25,30 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.HugeKeys;
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.iterator.ListIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
 
 public class ServerInfoManager {
@@ -192,9 +192,8 @@ public class ServerInfoManager {
         return !this.closed && this.graph.started() && this.graph.initialized();
     }
 
-    protected synchronized HugeServerInfo pickWorkerNode(
-                                          Collection<HugeServerInfo> servers,
-                                          HugeTask<?> task) {
+    protected synchronized HugeServerInfo pickWorkerNode(Collection<HugeServerInfo> servers,
+                                                         HugeTask<?> task) {
         HugeServerInfo master = null;
         HugeServerInfo serverWithMinLoad = null;
         int minLoad = Integer.MAX_VALUE;
@@ -271,7 +270,7 @@ public class ServerInfoManager {
     private int save(Collection<HugeServerInfo> serverInfos) {
         return this.call(() -> {
             if (serverInfos.isEmpty()) {
-                return serverInfos.size();
+                return 0;
             }
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {

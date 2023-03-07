@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.masterelection;
 
-import org.apache.hugegraph.config.ConfigOption;
-import org.apache.hugegraph.config.OptionHolder;
-
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
+
+import org.apache.hugegraph.config.ConfigOption;
+import org.apache.hugegraph.config.OptionHolder;
 
 public class RoleElectionOptions  extends OptionHolder {
 
@@ -67,7 +67,7 @@ public class RoleElectionOptions  extends OptionHolder {
                     1000
             );
 
-    public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOUND =
+    public static final ConfigOption<Integer> HEARTBEAT_INTERVAL_SECOND =
             new ConfigOption<>(
                     "server.role.heartbeat_interval",
                     "The role state machine heartbeat interval second time.",

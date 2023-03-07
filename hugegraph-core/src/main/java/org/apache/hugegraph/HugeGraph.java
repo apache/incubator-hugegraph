@@ -28,10 +28,23 @@ import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
+import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.IndexLabel;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.schema.SchemaLabel;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.task.TaskScheduler;
+import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
+import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
+import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
@@ -44,19 +57,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import com.alipay.remoting.rpc.RpcServer;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.TypedOption;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.structure.HugeFeatures;
-import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
-import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
-import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 
 /**
  * Graph interface for Gremlin operations
@@ -314,10 +314,9 @@ public interface HugeGraph extends Graph {
     }
 
     static void registerTraversalStrategies(Class<?> clazz) {
-        TraversalStrategies strategies = null;
-        strategies = TraversalStrategies.GlobalCache
-                                        .getStrategies(Graph.class)
-                                        .clone();
+        TraversalStrategies strategies = TraversalStrategies.GlobalCache
+                                                            .getStrategies(Graph.class)
+                                                            .clone();
         strategies.addStrategies(HugeVertexStepStrategy.instance(),
                                  HugeGraphStepStrategy.instance(),
                                  HugeCountStepStrategy.instance());

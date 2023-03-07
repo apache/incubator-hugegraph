@@ -21,10 +21,10 @@ import java.util.Objects;
 
 public class ClusterRole {
 
-    private String node;
+    private final String node;
     private long clock;
-    private int epoch;
-    private String url;
+    private final int epoch;
+    private final String url;
 
     public ClusterRole(String node, String url, int epoch) {
         this(node, url, epoch, 1);

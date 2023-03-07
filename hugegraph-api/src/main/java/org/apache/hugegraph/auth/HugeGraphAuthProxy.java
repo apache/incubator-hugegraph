@@ -37,27 +37,6 @@ import java.util.function.Supplier;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
-import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
-import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
-import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
-import org.apache.tinkerpop.gremlin.process.traversal.Script;
-import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
-import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
-import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.translator.GroovyTranslator;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.structure.io.Io;
-import org.slf4j.Logger;
-
-import com.alipay.remoting.rpc.RpcServer;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeAuthenticator.RolePerm;
 import org.apache.hugegraph.auth.HugeAuthenticator.User;
@@ -76,6 +55,7 @@ import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
 import org.apache.hugegraph.schema.EdgeLabel;
@@ -102,6 +82,26 @@ import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.RateLimiter;
+import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
+import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
+import org.apache.tinkerpop.gremlin.process.traversal.Script;
+import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
+import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.translator.GroovyTranslator;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.slf4j.Logger;
+
+import com.alipay.remoting.rpc.RpcServer;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
@@ -1664,10 +1664,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                 return Collections.emptyIterator();
 
             }
-            return new MapperIterator<TraversalStrategy<?>, TraversalStrategy<?>>(
-                       this.strategies.iterator(), (strategy) -> {
-                           return new TraversalStrategyProxy<>(strategy);
-                       });
+            return new MapperIterator<>(this.strategies.iterator(), TraversalStrategyProxy::new);
         }
 
         @Override
@@ -1675,7 +1672,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             return this.strategies.addStrategies(strategies);
         }
 
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"unchecked"})
         @Override
         public TraversalStrategies removeStrategies(
                Class<? extends TraversalStrategy>... strategyClasses) {
@@ -1773,8 +1770,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public int compareTo(@SuppressWarnings("rawtypes")
-                             Class<? extends TraversalStrategy> other) {
+        public int compareTo(Class<? extends TraversalStrategy> other) {
             return this.origin.compareTo(other);
         }
 
@@ -1876,7 +1872,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
                                          ThreadFactory threadFactory) {
             super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<Runnable>(), threadFactory);
+                  new LinkedBlockingQueue<>(), threadFactory);
         }
 
         @Override

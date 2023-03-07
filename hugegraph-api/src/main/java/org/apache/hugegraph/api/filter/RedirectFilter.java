@@ -28,16 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.ws.rs.NameBinding;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.hugegraph.core.GraphManager;
@@ -48,6 +38,17 @@ import org.glassfish.hk2.api.IterableProvider;
 import org.glassfish.hk2.api.ServiceHandle;
 import org.glassfish.jersey.message.internal.HeaderUtils;
 import org.slf4j.Logger;
+
+import jakarta.ws.rs.NameBinding;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 public class RedirectFilter implements ContainerRequestFilter {
 
@@ -85,7 +86,7 @@ public class RedirectFilter implements ContainerRequestFilter {
             return;
         }
 
-        String url = "";
+        String url;
         synchronized (globalMasterInfo) {
             if (globalMasterInfo.isMaster() || StringUtils.isEmpty(globalMasterInfo.url())) {
                 return;
@@ -93,7 +94,7 @@ public class RedirectFilter implements ContainerRequestFilter {
             url = globalMasterInfo.url();
         }
 
-        URI redirectUri = null;
+        URI redirectUri;
         try {
             URIBuilder redirectURIBuilder = new URIBuilder(context.getUriInfo().getRequestUri());
             URI masterURI = URI.create(url);
@@ -125,7 +126,7 @@ public class RedirectFilter implements ContainerRequestFilter {
         Invocation.Builder builder = client.target(redirectUri)
                                            .request()
                                            .headers(newHeaders);
-        Response response = null;
+        Response response;
         if (MUST_BE_NULL.contains(requestContext.getMethod())) {
             response = builder.method(requestContext.getMethod());
         } else {
@@ -144,7 +145,6 @@ public class RedirectFilter implements ContainerRequestFilter {
             if (client != null) {
                 return;
             }
-
             client = ClientBuilder.newClient();
         }
     }

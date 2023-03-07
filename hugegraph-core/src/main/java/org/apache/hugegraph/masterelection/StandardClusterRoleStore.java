@@ -46,14 +46,13 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
     private static final int RETRY_QUERY_TIMEOUT = 200;
 
     private final HugeGraphParams graph;
-    private final Schema schema;
 
     private boolean firstTime;
 
     public StandardClusterRoleStore(HugeGraphParams graph) {
         this.graph = graph;
-        this.schema = new Schema(graph);
-        this.schema.initSchemaIfNeeded();
+        Schema schema = new Schema(graph);
+        schema.initSchemaIfNeeded();
         this.firstTime = true;
     }
 
@@ -73,19 +72,21 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
                 return false;
             }
             LOG.trace("Server {} epoch {} begin remove data old epoch {}, ",
-                       clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
+                      clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
             this.graph.systemTransaction().removeVertex((HugeVertex) oldClusterRoleOpt.get());
             this.graph.systemTransaction().commitOrRollback();
             LOG.trace("Server {} epoch {} success remove data old epoch {}, ",
-                       clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
+                      clusterRole.node(), clusterRole.epoch(), oldClusterRole.epoch());
         }
         try {
             GraphTransaction tx = this.graph.systemTransaction();
             tx.doUpdateIfAbsent(this.constructEntry(clusterRole));
             tx.commitOrRollback();
-            LOG.trace("Server {} epoch {} success update data", clusterRole.node(), clusterRole.epoch());
-        } catch (Throwable ignore){
-            LOG.trace("Server {} epoch {} fail update data", clusterRole.node(), clusterRole.epoch());
+            LOG.trace("Server {} epoch {} success update data",
+                      clusterRole.node(), clusterRole.epoch());
+        } catch (Throwable ignore) {
+            LOG.trace("Server {} epoch {} fail update data",
+                      clusterRole.node(), clusterRole.epoch());
             return false;
         }
 
@@ -140,8 +141,7 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
         Long clock = (Long) vertex.property(P.CLOCK).value();
         Integer epoch = (Integer) vertex.property(P.EPOCH).value();
 
-        ClusterRole roleTypeData = new ClusterRole(node, url, epoch, clock);
-        return roleTypeData;
+        return new ClusterRole(node, url, epoch, clock);
     }
 
     private Optional<Vertex> queryVertex() {
@@ -191,12 +191,13 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
 
             String[] properties = this.initProperties();
 
-            VertexLabel label = this.schema().vertexLabel(this.label)
-                                             .enableLabelIndex(true)
-                                             .usePrimaryKeyId()
-                                             .primaryKeys(P.TYPE)
-                                             .properties(properties)
-                                             .build();
+            VertexLabel label = this.schema()
+                                    .vertexLabel(this.label)
+                                    .enableLabelIndex(true)
+                                    .usePrimaryKeyId()
+                                    .primaryKeys(P.TYPE)
+                                    .properties(properties)
+                                    .build();
             this.graph.schemaTransaction().addVertexLabel(label);
         }
 

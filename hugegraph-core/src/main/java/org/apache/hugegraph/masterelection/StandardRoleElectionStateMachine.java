@@ -56,8 +56,8 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
                 RoleState pre = this.state;
                 this.state = state.transform(context);
                 LOG.trace("server {} epoch {} role state change {} to {}",
-                           context.node(), context.epoch(), pre.getClass().getSimpleName(),
-                           this.state.getClass().getSimpleName());
+                          context.node(), context.epoch(), pre.getClass().getSimpleName(),
+                          this.state.getClass().getSimpleName());
                 Callback runnable = this.state.callback(stateMachineCallback);
                 runnable.call(context);
                 failCount = 0;
@@ -128,8 +128,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             }
 
             context.epoch(clusterRole.epoch());
-            context.master(new MasterServerInfoImpl(
-                               clusterRole.node(), clusterRole.url()));
+            context.master(new MasterServerInfoImpl(clusterRole.node(), clusterRole.url()));
             if (clusterRole.isMaster(context.node())) {
                 return new MasterState(clusterRole);
             } else {
@@ -257,8 +256,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
             // The master failover completed
             context.epoch(clusterRole.epoch());
             if (context.adapter().updateIfNodePresent(clusterRole)) {
-                context.master(new MasterServerInfoImpl(
-                                   clusterRole.node(), clusterRole.url()));
+                context.master(new MasterServerInfoImpl(clusterRole.node(), clusterRole.url()));
                 return new MasterState(clusterRole);
             } else {
                 return new UnknownState(epoch).transform(context);
