@@ -112,7 +112,7 @@ public final class CypherClient {
      * we had to use a trick to fix it. When the token is set, the password will be set to
      * an empty string, which is an uncommon value under normal conditions.
      * The token will then be transferred through the userName-property.
-     * To see org.apache.hugegraph.auth.StandardAuthenticator.PlainTextSaslAuthenticator
+     * To see org.apache.hugegraph.auth.StandardAuthenticator.TokenSaslAuthenticator
      */
     private Configuration getConfig() {
         Configuration conf = this.configurationSupplier.get();
