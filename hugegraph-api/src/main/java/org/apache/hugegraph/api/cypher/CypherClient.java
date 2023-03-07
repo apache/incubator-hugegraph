@@ -27,12 +27,17 @@ import org.slf4j.Logger;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @ThreadSafe
 public final class CypherClient {
+
     private static final Logger LOG = Log.logger(CypherClient.class);
     private String userName;
     private String password;
@@ -90,8 +95,7 @@ public final class CypherClient {
     private List<Object> doQueryList(Client client, RequestMessage request)
         throws ExecutionException, InterruptedException {
 
-        ResultSet results = null;
-        results = client.submitAsync(request).get();
+        ResultSet results = client.submitAsync(request).get();
 
         Iterator<Result> iter = results.iterator();
         List<Object> list = new LinkedList<>();

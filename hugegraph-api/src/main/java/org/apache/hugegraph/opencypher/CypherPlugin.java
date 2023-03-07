@@ -19,12 +19,15 @@
  * Description of the modifications:
  * <p>
  * 1) Changed the package name.
+ * <pre>
  * org.opencypher.gremlin.server.jsr223
  * -->
- * org.apache.hugegraph.api.cypher
+ * org.apache.hugegraph.opencypher
+ * </pre>
+ * </p>
  */
 
-package org.apache.hugegraph.api.cypher;
+package org.apache.hugegraph.opencypher;
 
 import org.apache.tinkerpop.gremlin.jsr223.Customizer;
 import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;

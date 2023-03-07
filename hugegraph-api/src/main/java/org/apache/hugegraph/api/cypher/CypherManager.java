@@ -31,6 +31,7 @@ import java.net.URL;
 
 @ThreadSafe
 public final class CypherManager {
+
     private String configurationFile;
     private YAMLConfiguration configuration;
 
@@ -105,5 +106,4 @@ public final class CypherManager {
 
         return systemFile;
     }
-
 }
