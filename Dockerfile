@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# Dockerfile for HugeGraph Server
 # 1st stage: build source code
 FROM maven:3.9.0-eclipse-temurin-11 AS build
 
@@ -50,9 +52,6 @@ RUN set -e \
     && pwd && cd /hugegraph/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
     && ./bin/init-store.sh
-    #&& sed -n '89p' ./bin/start-hugegraph.sh | grep "&" > /dev/null && sed -i 89{s/\&$/#/g} ./bin/start-hugegraph.sh \
-    #&& sed -n '104p' ./bin/start-hugegraph.sh | grep "exit" > /dev/null && sed -i 104{s/^/#/g} ./bin/start-hugegraph.sh
-    #&& ./bin/start-hugegraph.sh -d false -j $JAVA_OPTS -g g1
 
 EXPOSE 8080
 VOLUME /hugegraph
