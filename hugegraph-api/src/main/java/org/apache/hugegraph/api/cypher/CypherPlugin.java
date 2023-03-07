@@ -32,18 +32,18 @@ import java.util.stream.Stream;
 
 public class CypherPlugin implements GremlinPlugin {
 
-    private static final ImportCustomizer imports = DefaultImportCustomizer.build()
-        .addClassImports(CustomPredicate.class)
-        .addMethodImports(getDeclaredPublicMethods(CustomPredicate.class))
-        .addClassImports(CustomFunctions.class)
-        .addMethodImports(getDeclaredPublicMethods(CustomFunctions.class))
-        .create();
+    private static final ImportCustomizer IMPORTS =
+        DefaultImportCustomizer.build().addClassImports(CustomPredicate.class)
+                               .addMethodImports(getDeclaredPublicMethods(CustomPredicate.class))
+                               .addClassImports(CustomFunctions.class)
+                               .addMethodImports(getDeclaredPublicMethods(CustomFunctions.class))
+                               .create();
 
     private static List<Method> getDeclaredPublicMethods(Class<?> klass) {
         Method[] declaredMethods = klass.getDeclaredMethods();
         return Stream.of(declaredMethods)
-            .filter(method -> Modifier.isPublic(method.getModifiers()))
-            .collect(Collectors.toList());
+                     .filter(method -> Modifier.isPublic(method.getModifiers()))
+                     .collect(Collectors.toList());
     }
 
     @Override
@@ -62,6 +62,6 @@ public class CypherPlugin implements GremlinPlugin {
 
     @Override
     public Optional<Customizer[]> getCustomizers(String scriptEngineName) {
-        return Optional.of(new Customizer[]{imports});
+        return Optional.of(new Customizer[]{IMPORTS});
     }
 }

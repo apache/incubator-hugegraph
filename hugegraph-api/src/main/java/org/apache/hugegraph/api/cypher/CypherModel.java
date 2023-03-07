@@ -48,13 +48,13 @@ public class CypherModel {
     private CypherModel() {
     }
 
-    public class Status {
+    public static class Status {
         public String message = "";
         public int code;
         public Map<String, Object> attributes = Collections.EMPTY_MAP;
     }
 
-    private class Result {
+    private static class Result {
         public List<Object> data;
         public Map<String, Object> meta = Collections.EMPTY_MAP;
     }

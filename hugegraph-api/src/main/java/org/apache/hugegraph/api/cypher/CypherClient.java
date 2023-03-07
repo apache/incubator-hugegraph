@@ -26,17 +26,23 @@ import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.util.*;
+
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @ThreadSafe
 public final class CypherClient {
+
     private static final Logger LOG = Log.logger(CypherClient.class);
+    private final Supplier<Configuration> configurationSupplier;
     private String userName;
     private String password;
     private String token;
-    private Supplier<Configuration> configurationSupplier;
 
     CypherClient(String userName, String password,
                  Supplier<Configuration> configurationSupplier) {
@@ -50,9 +56,9 @@ public final class CypherClient {
         this.configurationSupplier = configurationSupplier;
     }
 
-    public CypherModel submitQuery(String cypherQuery,@Nullable Map<String, String> aliases) {
+    public CypherModel submitQuery(String cypherQuery, @Nullable Map<String, String> aliases) {
         E.checkArgument(cypherQuery != null && !cypherQuery.isEmpty(),
-                "The cypher-query parameter can't be null or empty");
+                        "The cypher-query parameter can't be null or empty");
 
         Cluster cluster = Cluster.open(getConfig());
         Client client = cluster.connect();
@@ -62,14 +68,14 @@ public final class CypherClient {
         }
 
         RequestMessage request = createRequest(cypherQuery);
-        CypherModel res = null;
+        CypherModel res;
 
         try {
             List<Object> list = this.doQueryList(client, request);
             res = CypherModel.dataOf(request.getRequestId().toString(), list);
         } catch (Exception e) {
-            LOG.error(String.format("Failed to submit cypher-query: [ %s ], cause by:"
-                    , cypherQuery), e);
+            LOG.error(String.format("Failed to submit cypher-query: [ %s ], cause by:",
+                                    cypherQuery), e);
             res = CypherModel.failOf(request.getRequestId().toString(), e.getMessage());
         } finally {
             client.close();
@@ -81,21 +87,21 @@ public final class CypherClient {
 
     private RequestMessage createRequest(String cypherQuery) {
         return RequestMessage.build(Tokens.OPS_EVAL)
-                .processor("cypher")
-                .add(Tokens.ARGS_GREMLIN, cypherQuery)
-                .create();
+                             .processor("cypher")
+                             .add(Tokens.ARGS_GREMLIN, cypherQuery)
+                             .create();
     }
 
     private List<Object> doQueryList(Client client, RequestMessage request)
-            throws ExecutionException, InterruptedException {
+        throws ExecutionException, InterruptedException {
 
-        ResultSet results = null;
+        ResultSet results;
         results = client.submitAsync(request).get();
 
         Iterator<Result> iter = results.iterator();
         List<Object> list = new LinkedList<>();
 
-        for (; iter.hasNext(); ) {
+        while (iter.hasNext()) {
             Result data = iter.next();
             list.add(data.getObject());
         }
@@ -120,13 +126,17 @@ public final class CypherClient {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         CypherClient that = (CypherClient) o;
 
-        return Objects.equals(userName, that.userName)
-                && Objects.equals(password, that.password)
-                && Objects.equals(token, that.token);
+        return Objects.equals(userName, that.userName) &&
+               Objects.equals(password, that.password) &&
+               Objects.equals(token, that.token);
     }
 
     @Override
@@ -136,10 +146,9 @@ public final class CypherClient {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("CypherClient{");
-        sb.append("userName='").append(userName).append('\'');
-        sb.append(", token='").append(token).append('\'');
-        sb.append('}');
+        final StringBuilder sb = new StringBuilder("CypherClient{");
+        sb.append("userName='").append(userName).append('\'')
+          .append(", token='").append(token).append('\'').append('}');
 
         return sb.toString();
     }

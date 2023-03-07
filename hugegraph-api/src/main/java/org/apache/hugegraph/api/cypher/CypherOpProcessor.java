@@ -17,6 +17,7 @@
 package org.apache.hugegraph.api.cypher;
 
 import io.netty.channel.ChannelHandlerContext;
+
 import org.apache.tinkerpop.gremlin.driver.Tokens;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
 import org.apache.tinkerpop.gremlin.driver.message.ResponseMessage;
@@ -43,6 +44,7 @@ import org.opencypher.gremlin.traversal.ParameterNormalizer;
 import org.opencypher.gremlin.traversal.ProcedureContext;
 import org.opencypher.gremlin.traversal.ReturnNormalizer;
 import org.slf4j.Logger;
+
 import scala.collection.Seq;
 
 import java.util.*;
@@ -89,8 +91,7 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
     }
 
     @Override
-    public Optional<ThrowingConsumer<Context>> selectOther(Context ctx)
-        throws OpProcessorException {
+    public Optional<ThrowingConsumer<Context>> selectOther(Context ctx) {
         return empty();
     }
 
@@ -107,18 +108,18 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
 
         String translatorDefinition = getTranslatorDefinition(context);
 
-        Translator<String, GroovyPredicate> stringTranslator = Translator.builder()
-            .gremlinGroovy()
-            .build(translatorDefinition);
+        Translator<String, GroovyPredicate> strTranslator = Translator.builder()
+                                                                      .gremlinGroovy()
+                                                                      .build(translatorDefinition);
 
         Translator<GraphTraversal, P> traversalTranslator = Translator.builder()
-            .traversal(g)
-            .build(translatorDefinition);
+                                                                      .traversal(g)
+                                                                      .build(translatorDefinition);
 
-        Seq<GremlinStep> ir = ast.translate(stringTranslator.flavor(),
-            stringTranslator.features(), procedureContext);
+        Seq<GremlinStep> ir = ast.translate(strTranslator.flavor(),
+                                            strTranslator.features(), procedureContext);
 
-        String gremlin = TranslationWriter.write(ir, stringTranslator, parameters);
+        String gremlin = TranslationWriter.write(ir, strTranslator, parameters);
         logger.info("Gremlin: {}", gremlin);
 
         if (ast.getOptions().contains(EXPLAIN)) {
@@ -126,7 +127,8 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
             return;
         }
 
-        GraphTraversal<?, ?> traversal = TranslationWriter.write(ir, traversalTranslator, parameters);
+        GraphTraversal<?, ?> traversal = TranslationWriter.write(ir, traversalTranslator,
+                                                                 parameters);
         ReturnNormalizer returnNormalizer = ReturnNormalizer.create(ast.getReturnTypes());
         Iterator normalizedTraversal = returnNormalizer.normalize(traversal);
         inTransaction(gts, () -> handleIterator(context, normalizedTraversal));
@@ -135,7 +137,6 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
     private void inTransaction(GraphTraversalSource gts, Runnable runnable) {
         Graph graph = gts.getGraph();
         boolean supportsTransactions = graph.features().graph().supportsTransactions();
-
         if (!supportsTransactions) {
             runnable.run();
             return;
@@ -157,17 +158,17 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
         GraphManager graphManager = context.getGraphManager();
 
         Optional<Map<String, String>> aliasesOptional = msg.optionalArgs(Tokens.ARGS_ALIASES);
-        String gAlias = aliasesOptional
-            .map(aliases -> aliases.get(Tokens.VAL_TRAVERSAL_SOURCE_ALIAS))
-            .orElse(null);
+        String gAlias = aliasesOptional.map(alias -> alias.get(Tokens.VAL_TRAVERSAL_SOURCE_ALIAS))
+                                       .orElse(null);
 
         if (gAlias == null) {
             return graphManager.getGraphNames().stream()
-                .sorted()
-                .findFirst()
-                .map(graphManager::getGraph)
-                .map(Graph::traversal)
-                .orElseThrow(() -> opProcessorException(msg, "No graphs found on the server"));
+                               .sorted()
+                               .findFirst()
+                               .map(graphManager::getGraph)
+                               .map(Graph::traversal)
+                               .orElseThrow(() -> opProcessorException(msg, "No graphs found on " +
+                                                                            "the server"));
         }
 
         Graph graph = graphManager.getGraph(gAlias);
@@ -184,17 +185,18 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
     }
 
     private OpProcessorException opProcessorException(RequestMessage msg, String errorMessage) {
-        return new OpProcessorException(errorMessage,
-            ResponseMessage.build(msg)
-                .code(SERVER_ERROR)
-                .statusMessage(errorMessage).create());
+        return new OpProcessorException(errorMessage, ResponseMessage.build(msg)
+                                                                     .code(SERVER_ERROR)
+                                                                     .statusMessage(errorMessage)
+                                                                     .create());
     }
 
+    @Override
     protected void handleIterator(Context context, Iterator traversal) {
         RequestMessage msg = context.getRequestMessage();
         final long timeout = msg.getArgs().containsKey(Tokens.ARGS_EVAL_TIMEOUT)
-            ? ((Number) msg.getArgs().get(Tokens.ARGS_EVAL_TIMEOUT)).longValue()
-            : context.getSettings().evaluationTimeout;
+                             ? ((Number) msg.getArgs().get(Tokens.ARGS_EVAL_TIMEOUT)).longValue()
+                             : context.getSettings().evaluationTimeout;
 
         FutureTask<Void> evalFuture = new FutureTask<>(() -> {
             try {
@@ -205,17 +207,17 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
                 logger.error("Error during traversal iteration", ex);
                 ChannelHandlerContext ctx = context.getChannelHandlerContext();
                 ctx.writeAndFlush(ResponseMessage.build(msg)
-                    .code(SERVER_ERROR)
-                    .statusMessage(errorMessage)
-                    .statusAttributeException(ex)
-                    .create());
+                                                 .code(SERVER_ERROR)
+                                                 .statusMessage(errorMessage)
+                                                 .statusAttributeException(ex)
+                                                 .create());
             }
             return null;
         }
         );
 
         final Future<?> executionFuture = context.getGremlinExecutor()
-            .getExecutorService().submit(evalFuture);
+                                                 .getExecutorService().submit(evalFuture);
         if (timeout > 0) {
             context.getScheduledExecutorService().schedule(
                 () -> executionFuture.cancel(true)
@@ -227,7 +229,8 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
     private String getErrorMessage(RequestMessage msg, Exception ex) {
         if (ex instanceof InterruptedException || ex instanceof TraversalInterruptedException) {
             return String.format("A timeout occurred during traversal evaluation of [%s] " +
-                "- consider increasing the limit given to scriptEvaluationTimeout", msg);
+                                 "- consider increasing the limit given to scriptEvaluationTimeout",
+                                 msg);
         } else {
             return ex.getMessage();
         }
@@ -239,10 +242,10 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
         explanation.put("options", ast.getOptions().toString());
 
         ResponseMessage explainMsg = ResponseMessage.build(context.getRequestMessage())
-            .code(ResponseStatusCode.SUCCESS)
-            .statusMessage("OK")
-            .result(singletonList(explanation))
-            .create();
+                                                    .code(ResponseStatusCode.SUCCESS)
+                                                    .statusMessage("OK")
+                                                    .result(singletonList(explanation))
+                                                    .create();
 
         ChannelHandlerContext ctx = context.getChannelHandlerContext();
         ctx.writeAndFlush(explainMsg);
@@ -264,20 +267,20 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
 
     private String getTranslatorDefinition(Context context) {
         Map<String, Object> config = context.getSettings()
-            .optionalProcessor(CypherOpProcessor.class)
-            .map(p -> p.config)
-            .orElse(emptyMap());
+                                            .optionalProcessor(CypherOpProcessor.class)
+                                            .map(p -> p.config)
+                                            .orElse(emptyMap());
 
         HashSet<String> properties = new HashSet<>(config.keySet());
         properties.remove("translatorDefinition");
         properties.remove("translatorFeatures");
         if (!properties.isEmpty()) {
             throw new IllegalStateException("Unknown configuration parameters " +
-                "found for CypherOpProcessor: " + properties);
+                                            "found for CypherOpProcessor: " + properties);
         }
 
         return config.getOrDefault("translatorDefinition", DEFAULT_TRANSLATOR_DEFINITION)
-            + "+" + config.getOrDefault("translatorFeatures", "");
+               + "+" + config.getOrDefault("translatorFeatures", "");
     }
 
 }
