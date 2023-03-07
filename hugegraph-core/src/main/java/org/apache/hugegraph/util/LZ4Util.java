@@ -37,25 +37,20 @@ public class LZ4Util {
         return compress(bytes, blockSize, DEFAULT_BUFFER_RATIO);
     }
 
-    public static BytesBuffer compress(byte[] bytes, int blockSize,
-                                       float bufferRatio) {
+    public static BytesBuffer compress(byte[] bytes, int blockSize, float bufferRatio) {
         float ratio = bufferRatio <= 0.0F ? DEFAULT_BUFFER_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4Compressor compressor = factory.fastCompressor();
         int initBufferSize = Math.round(bytes.length / ratio);
         BytesBuffer buf = new BytesBuffer(initBufferSize);
-        LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(
-                                         buf, blockSize, compressor);
+        LZ4BlockOutputStream lz4Output = new LZ4BlockOutputStream(buf, blockSize, compressor);
         try {
             lz4Output.write(bytes);
             lz4Output.close();
         } catch (IOException e) {
             throw new BackendException("Failed to compress", e);
         }
-        /*
-         * If need to perform reading outside the method,
-         * remember to call forReadWritten()
-         */
+        // If we need to perform reading outside the method, remember to call forReadWritten()
         return buf;
     }
 
@@ -63,8 +58,7 @@ public class LZ4Util {
         return decompress(bytes, blockSize, DEFAULT_BUFFER_RATIO);
     }
 
-    public static BytesBuffer decompress(byte[] bytes, int blockSize,
-                                         float bufferRatio) {
+    public static BytesBuffer decompress(byte[] bytes, int blockSize, float bufferRatio) {
         float ratio = bufferRatio <= 0.0F ? DEFAULT_BUFFER_RATIO : bufferRatio;
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
@@ -72,8 +66,7 @@ public class LZ4Util {
         int initBufferSize = Math.min(Math.round(bytes.length * ratio),
                                       BytesBuffer.MAX_BUFFER_CAPACITY);
         BytesBuffer buf = new BytesBuffer(initBufferSize);
-        LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais,
-                                                              decompressor);
+        LZ4BlockInputStream lzInput = new LZ4BlockInputStream(bais, decompressor);
         int count;
         byte[] buffer = new byte[blockSize];
         try {
@@ -84,10 +77,7 @@ public class LZ4Util {
         } catch (IOException e) {
             throw new BackendException("Failed to decompress", e);
         }
-        /*
-         * If need to perform reading outside the method,
-         * remember to call forReadWritten()
-         */
+        // If we need to perform reading outside the method, remember to call forReadWritten()
         return buf;
     }
 }

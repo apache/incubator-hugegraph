@@ -53,10 +53,8 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
 
     private Object result;
 
-    public HugeScriptTraversal(TraversalSource traversalSource,
-                               String language, String script,
-                               Map<String, Object> bindings,
-                               Map<String, String> aliases) {
+    public HugeScriptTraversal(TraversalSource traversalSource, String language, String script,
+                               Map<String, Object> bindings, Map<String, String> aliases) {
         this.graph = traversalSource.getGraph();
         this.language = language;
         this.script = script;
@@ -75,8 +73,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
 
     @Override
     public void applyStrategies() throws IllegalStateException {
-        ScriptEngine engine =
-                     SingleGremlinScriptEngineManager.get(this.language);
+        ScriptEngine engine = SingleGremlinScriptEngineManager.get(this.language);
 
         Bindings bindings = engine.createBindings();
         bindings.putAll(this.bindings);
@@ -94,9 +91,8 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
         for (Map.Entry<String, String> entry : this.aliases.entrySet()) {
             Object value = bindings.get(entry.getValue());
             if (value == null) {
-                throw new IllegalArgumentException(String.format(
-                          "Invalid aliase '%s':'%s'",
-                          entry.getKey(), entry.getValue()));
+                throw new IllegalArgumentException(String.format("Invalid alias '%s':'%s'",
+                                                                 entry.getKey(), entry.getValue()));
             }
             bindings.put(entry.getKey(), value);
         }
@@ -105,7 +101,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
             Object result = engine.eval(this.script, bindings);
 
             if (result instanceof Admin) {
-                @SuppressWarnings({ "unchecked", "resource" })
+                @SuppressWarnings({ "unchecked"})
                 Admin<S, E> traversal = (Admin<S, E>) result;
                 traversal.getSideEffects().mergeInto(this.sideEffects);
                 traversal.getSteps().forEach(this::addStep);
