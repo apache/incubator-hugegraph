@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.tinkerpop;
 
-import org.apache.commons.configuration.ConfigurationException;
+import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.tinkerpop.gremlin.AbstractGremlinSuite;
 import org.apache.tinkerpop.gremlin.GraphManager;
 import org.apache.tinkerpop.gremlin.GraphProvider;
@@ -53,8 +53,6 @@ import org.apache.tinkerpop.gremlin.structure.util.star.StarGraphTest;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
 import org.junit.runners.model.Statement;
-
-import org.apache.hugegraph.dist.RegisterUtil;
 
 /**
  * Standard structure test suite for tinkerpop graph
@@ -100,8 +98,7 @@ public class StructureBasicSuite extends AbstractGremlinSuite {
 
     public StructureBasicSuite(final Class<?> klass,
                                final RunnerBuilder builder)
-                               throws InitializationError,
-                                      ConfigurationException {
+                               throws InitializationError {
         super(klass, builder, ALL_TESTS, null, true,
               TraversalEngine.Type.STANDARD);
 

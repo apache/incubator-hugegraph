@@ -1,10 +1,10 @@
-name: License checker
+name: "License checker"
 
 on:
   push:
     branches:
       - master
-      - /^v[0-9]\..*$/
+      - 'release-*'
   pull_request:
 
 jobs:

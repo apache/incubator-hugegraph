@@ -201,7 +201,7 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
      * A list of the minimum set of base tests that
      * Gremlin flavors should implement to be compliant with Gremlin.
      */
-    private static final Class<?>[] TESTS_TO_ENFORCE = new Class<?>[] {
+    private static final Class<?>[] TESTS_TO_ENFORCE = new Class<?>[]{
         // branch
         BranchTest.class,
         ChooseTest.class,
@@ -267,17 +267,14 @@ public class ProcessBasicSuite extends AbstractGremlinSuite {
     };
 
     public ProcessBasicSuite(final Class<?> klass,
-                             final RunnerBuilder builder)
-                             throws InitializationError {
+                             final RunnerBuilder builder) throws InitializationError {
         super(klass, builder, ALL_TESTS, TESTS_TO_ENFORCE, true,
               TraversalEngine.Type.STANDARD);
         RegisterUtil.registerBackends();
     }
 
-    public ProcessBasicSuite(final Class<?> klass,
-                             final RunnerBuilder builder,
-                             final Class<?>[] testsToExecute)
-                             throws InitializationError {
+    public ProcessBasicSuite(final Class<?> klass, final RunnerBuilder builder,
+                             final Class<?>[] testsToExecute) throws InitializationError {
         super(klass, builder, testsToExecute, TESTS_TO_ENFORCE, true,
               TraversalEngine.Type.STANDARD);
         RegisterUtil.registerBackends();

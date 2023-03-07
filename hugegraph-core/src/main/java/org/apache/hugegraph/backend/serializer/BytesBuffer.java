@@ -165,11 +165,11 @@ public final class BytesBuffer extends OutputStream {
         E.checkState(this.resize, "Can't resize for wrapped buffer");
 
         // Extra capacity as buffer
-        int newcapacity = size + this.buffer.limit() + DEFAULT_CAPACITY;
-        E.checkArgument(newcapacity <= MAX_BUFFER_CAPACITY,
+        int newCapacity = size + this.buffer.limit() + DEFAULT_CAPACITY;
+        E.checkArgument(newCapacity <= MAX_BUFFER_CAPACITY,
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
-        ByteBuffer newBuffer = ByteBuffer.allocate(newcapacity);
+        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
         ((Buffer) this.buffer).flip();
         newBuffer.put(this.buffer);
         this.buffer = newBuffer;
