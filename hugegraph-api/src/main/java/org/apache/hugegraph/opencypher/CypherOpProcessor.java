@@ -14,29 +14,6 @@
  * limitations under the License.
  */
 
-/**
- * Description of the modifications:
- * <p>
- * 1) Changed the method signature to adopt the gremlin-server 3.5.1.
- * <pre>
- * public Optional<ThrowingConsumer<Context>> selectOther(RequestMessage requestMessage)
- * -->
- * public Optional<ThrowingConsumer<Context>> selectOther(Context ctx)
- * </pre>
- * </p>
- * <p>
- * 2) Changed the package name.
- * <pre>
- * org.opencypher.gremlin.server.op.cypher
- * -->
- * org.apache.hugegraph.opencypher
- * </pre>
- * </p>
- * <p>
- * 3) Set the logger level from info to trace
- * </p>
- */
-
 package org.apache.hugegraph.opencypher;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -83,6 +60,27 @@ import static org.opencypher.gremlin.translation.StatementOption.EXPLAIN;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
+ * Description of the modifications:
+ * <p>
+ * 1) Changed the method signature to adopt the gremlin-server 3.5.1.
+ * <pre>
+ * public Optional<ThrowingConsumer<Context>> selectOther(RequestMessage requestMessage)
+ * -->
+ * public Optional<ThrowingConsumer<Context>> selectOther(Context ctx)
+ * </pre>
+ * </p>
+ * <p>
+ * 2) Changed the package name.
+ * <pre>
+ * org.opencypher.gremlin.server.op.cypher
+ * -->
+ * org.apache.hugegraph.opencypher
+ * </pre>
+ * </p>
+ * <p>
+ * 3) Set the logger level from info to trace
+ * </p>
+ *
  * {@link OpProcessor} implementation for processing Cypher {@link RequestMessage}s:
  * <pre>
  * {
