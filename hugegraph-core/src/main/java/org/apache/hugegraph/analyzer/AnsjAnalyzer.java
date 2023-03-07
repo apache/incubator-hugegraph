@@ -56,7 +56,7 @@ public class AnsjAnalyzer implements Analyzer {
 
     @Override
     public Set<String> segment(String text) {
-        Result terms = null;
+        Result terms;
         switch (this.analysis) {
             case "BaseAnalysis":
                 terms = BaseAnalysis.parse(text);

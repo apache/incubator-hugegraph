@@ -39,8 +39,8 @@ public enum Cardinality implements SerialEnum {
      */
     SET(3, "set");
 
-    private byte code = 0;
-    private String name = null;
+    private final byte code;
+    private final String name;
 
     static {
         SerialEnum.register(Cardinality.class);
@@ -78,8 +78,8 @@ public enum Cardinality implements SerialEnum {
             case set:
                 return SET;
             default:
-                throw new AssertionError(String.format(
-                          "Unrecognized cardinality: '%s'", cardinality));
+                throw new AssertionError(String.format("Unrecognized cardinality: '%s'",
+                                                       cardinality));
         }
     }
 }
