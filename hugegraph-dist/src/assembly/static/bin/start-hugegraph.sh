@@ -17,41 +17,45 @@
 #
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
-VERBOSE=""
+DAEMON="true"
+#VERBOSE=""
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "g:m:s:j:t:v" arg; do
+while getopts "d:g:m:s:j:t:v" arg; do
     case ${arg} in
+        d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
+        # TODO: should remove it in future (check the usage carefully)
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j java_options] [-t timeout] [-v]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]
+                [-t timeout]" && exit 1 ;;
     esac
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-g g1] [-m true|false] [-s true|false] [-j xxx] [-v]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
-    while [ -h "$SOURCE" ]; do
-        DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    while [[ -h "$SOURCE" ]]; do
+        DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
         SOURCE="$(readlink "$SOURCE")"
         [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
     done
-    echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    cd -P "$(dirname "$SOURCE")" && pwd
 }
 
 BIN=$(abs_path)
@@ -75,10 +79,15 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
-echo "Starting HugeGraphServer..."
-
-${BIN}/hugegraph-server.sh ${CONF}/gremlin-server.yaml ${CONF}/rest-server.properties \
-${OPEN_SECURITY_CHECK} ${USER_OPTION} ${GC_OPTION} >>${LOGS}/hugegraph-server.log 2>&1 &
+if [[ $DAEMON == "true" ]]; then
+    echo "Starting HugeGraphServer in daemon mode..."
+    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
+else
+    echo "Starting HugeGraphServer in foreground mode..."
+    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
+fi
 
 PID="$!"
 # Write pid to file
@@ -86,15 +95,16 @@ echo "$PID" > "$PID_FILE"
 
 trap 'kill $PID; exit' SIGHUP SIGINT SIGQUIT SIGTERM
 
-wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" ${SERVER_STARTUP_TIMEOUT_S} || {
+wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" "${SERVER_STARTUP_TIMEOUT_S}" || {
     echo "See $LOGS/hugegraph-server.log for HugeGraphServer log output." >&2
-    exit 1
+    if [[ $DAEMON == "true" ]]; then
+        exit 1
+    fi
 }
 disown
 
 if [ "$OPEN_MONITOR" == "true" ]; then
-    "$BIN"/start-monitor.sh
-    if [ $? -ne 0 ]; then
+    if ! "$BIN"/start-monitor.sh; then
         echo "Failed to open monitor, please start it manually"
     fi
     echo "An HugeGraphServer monitor task has been append to crontab"

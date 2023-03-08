@@ -21,15 +21,15 @@ BACKEND=$1
 REPORT_DIR=$2
 REPORT_FILE=$REPORT_DIR/jacoco-api-test-for-raft.xml
 
-TRAVIS_DIR=`dirname $0`
-VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
+TRAVIS_DIR=$(dirname $0)
+VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 SERVER_DIR=apache-hugegraph-incubating-$VERSION
 CONF=$SERVER_DIR/conf/graphs/hugegraph.properties
 REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 JACOCO_PORT=36320
 
-mvn package -DskipTests
+mvn package -DskipTests -ntp
 
 
 # add mysql dependency
