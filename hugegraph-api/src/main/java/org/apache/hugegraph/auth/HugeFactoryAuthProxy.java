@@ -26,24 +26,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.configuration2.Configuration;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.tx.AbstractTransaction;
+import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.IndexableTransaction;
 import org.apache.hugegraph.concurrent.LockManager;
 import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.backend.tx.IndexableTransaction;
+import org.apache.hugegraph.schema.builder.AbstractBuilder;
 import org.apache.hugegraph.schema.builder.EdgeLabelBuilder;
 import org.apache.hugegraph.schema.builder.IndexLabelBuilder;
 import org.apache.hugegraph.schema.builder.PropertyKeyBuilder;
 import org.apache.hugegraph.schema.builder.VertexLabelBuilder;
 import org.apache.hugegraph.serializer.JsonSerializer;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask;
@@ -51,23 +54,20 @@ import org.apache.hugegraph.task.StandardTaskScheduler;
 import org.apache.hugegraph.task.TaskCallable;
 import org.apache.hugegraph.task.TaskCallable.SysTaskCallable;
 import org.apache.hugegraph.task.TaskManager;
-import org.apache.hugegraph.schema.builder.AbstractBuilder;
-import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import org.apache.hugegraph.util.Reflection;
 import org.apache.hugegraph.variables.HugeVariables;
+
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.configuration2.Configuration;
 
 public final class HugeFactoryAuthProxy {
 
     public static final String GRAPH_FACTORY =
            "gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy";
 
-    private static final Set<String> PROTECT_METHODS = ImmutableSet.of(
-                                                       "instance");
+    private static final Set<String> PROTECT_METHODS = ImmutableSet.of("instance");
 
     private static final Map<HugeGraph, HugeGraph> GRAPHS = new HashMap<>();
 

@@ -29,6 +29,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.query.Condition;
@@ -37,32 +40,29 @@ import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.Cardinality;
-import org.apache.hugegraph.type.define.DataType;
-import org.apache.hugegraph.type.define.HugeKeys;
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.job.EphemeralJob;
+import org.apache.hugegraph.schema.IndexLabel;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask.P;
 import org.apache.hugegraph.task.TaskCallable.SysTaskCallable;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Cardinality;
+import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
 
 public class StandardTaskScheduler implements TaskScheduler {
@@ -123,7 +123,7 @@ public class StandardTaskScheduler implements TaskScheduler {
              * NOTE: don't synchronized(this) due to scheduler thread hold
              * this lock through scheduleTasks(), then query tasks and wait
              * for db-worker thread after call(), the tx may not be initialized
-             * but can't catch this lock, then cause dead lock.
+             * but can't catch this lock, then cause deadlock.
              * We just use this.serverManager as a monitor here
              */
             synchronized (this.serverManager) {
@@ -316,6 +316,10 @@ public class StandardTaskScheduler implements TaskScheduler {
                 if (task.server() != null) {
                     // Skip if already scheduled
                     continue;
+                }
+
+                if (!this.serverManager.master()) {
+                    return;
                 }
 
                 HugeServerInfo server = this.serverManager().pickWorkerNode(
@@ -632,7 +636,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     public void waitUntilAllTasksCompleted(long seconds)
                                            throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
-        int taskSize = 0;
+        int taskSize;
         for (long pass = 0;; pass++) {
             taskSize = this.pendingTasks();
             if (taskSize == 0) {

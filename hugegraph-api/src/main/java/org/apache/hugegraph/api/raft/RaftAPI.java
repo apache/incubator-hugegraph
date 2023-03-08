@@ -34,6 +34,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
+import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.core.GraphManager;
 import org.slf4j.Logger;
 
@@ -151,6 +152,7 @@ public class RaftAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> addPeer(@Context GraphManager manager,
                                    @PathParam("graph") String graph,
                                    @QueryParam("group") @DefaultValue("default")
@@ -180,6 +182,7 @@ public class RaftAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin"})
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> removePeer(@Context GraphManager manager,
                                       @PathParam("graph") String graph,
                                       @QueryParam("group")

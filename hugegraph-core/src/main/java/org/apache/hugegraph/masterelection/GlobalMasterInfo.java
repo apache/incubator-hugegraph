@@ -15,21 +15,37 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
-public interface StateMachineContext {
+public class GlobalMasterInfo {
 
-    Integer epoch();
+    private boolean isMaster;
+    private String url;
 
-    String node();
+    private volatile boolean featureSupport;
 
-    RoleElectionStateMachine stateMachine();
+    public GlobalMasterInfo() {
+        this.featureSupport = false;
+    }
 
-    void epoch(Integer epoch);
+    public synchronized void set(boolean isMaster, String url) {
+        this.isMaster = isMaster;
+        this.url = url;
+    }
 
-    Config config();
+    public synchronized boolean isMaster() {
+        return this.isMaster;
+    }
 
-    RoleTypeDataAdapter adapter();
+    public synchronized String url() {
+        return this.url;
+    }
 
-    void reset();
+    public void isFeatureSupport(boolean featureSupport) {
+        this.featureSupport = featureSupport;
+    }
+
+    public boolean isFeatureSupport() {
+        return this.featureSupport;
+    }
 }

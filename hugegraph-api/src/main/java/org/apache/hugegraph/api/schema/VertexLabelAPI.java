@@ -18,8 +18,30 @@
 package org.apache.hugegraph.api.schema;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.RedirectFilter;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.schema.Userdata;
+import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.type.define.GraphMode;
+import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -35,26 +57,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.Checkable;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.define.GraphMode;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
-
 @Path("graphs/{graph}/schema/vertexlabels")
 @Singleton
 @Tag(name = "VertexLabelAPI")
@@ -68,6 +70,7 @@ public class VertexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_write"})
+    @RedirectFilter.RedirectMasterRole
     public String create(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
@@ -87,6 +90,7 @@ public class VertexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_write"})
+    @RedirectFilter.RedirectMasterRole
     public String update(@Context GraphManager manager,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
@@ -159,6 +163,7 @@ public class VertexLabelAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_delete"})
+    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> delete(@Context GraphManager manager,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
@@ -254,11 +259,11 @@ public class VertexLabelAPI extends API {
         @Override
         public String toString() {
             return String.format("JsonVertexLabel{" +
-                   "name=%s, idStrategy=%s, primaryKeys=%s, nullableKeys=%s, " +
-                   "properties=%s, ttl=%s, ttlStartTime=%s}",
-                   this.name, this.idStrategy, this.primaryKeys,
-                   this.nullableKeys, this.properties, this.ttl,
-                   this.ttlStartTime);
+                                 "name=%s, idStrategy=%s, primaryKeys=%s, nullableKeys=%s, " +
+                                 "properties=%s, ttl=%s, ttlStartTime=%s}",
+                                 this.name, this.idStrategy, Arrays.toString(this.primaryKeys),
+                                 Arrays.toString(this.nullableKeys),
+                                 Arrays.toString(this.properties), this.ttl, this.ttlStartTime);
         }
     }
 }
