@@ -17,13 +17,15 @@
 
 package org.apache.hugegraph.backend.query;
 
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.function.BiFunction;
 
 import org.apache.tinkerpop.gremlin.util.NumberHelper;
 
-public class Aggregate {
+public class Aggregate implements Serializable {
 
+    private static final long serialVersionUID = -8223620088406557906L;
     private final AggregateFunc func;
     private final String column;
 

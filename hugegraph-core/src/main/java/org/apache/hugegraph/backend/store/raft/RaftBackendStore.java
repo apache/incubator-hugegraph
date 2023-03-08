@@ -242,7 +242,6 @@ public class RaftBackendStore implements BackendStore {
         return backendEntryIterator;
     }
 
-
     @Override
     public Number queryNumber(Query query) {
         return (Number)
