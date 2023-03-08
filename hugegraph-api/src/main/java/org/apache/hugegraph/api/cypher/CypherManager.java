@@ -79,7 +79,7 @@ public final class CypherManager {
             yaml.read(reader);
         } catch (Exception e) {
             throw new RuntimeException(String.format("Failed to load configuration file," +
-                                                     " the file at %s.", configurationFile), e);
+                                                     " the file at '%s'.", configurationFile), e);
         }
 
         return yaml;
@@ -95,8 +95,8 @@ public final class CypherManager {
             final File resourceFile = new File(resource.getFile());
 
             if (!resourceFile.exists()) {
-                throw new IllegalArgumentException(String.format("Configuration file at %s does " +
-                                                                 "not exist", configurationFile));
+                throw new IllegalArgumentException(String.format("Configuration file at '%s' does" +
+                                                                 " not exist", configurationFile));
             }
             return resourceFile;
 

@@ -74,7 +74,7 @@ public final class CypherClient {
             List<Object> list = this.doQueryList(client, request);
             res = CypherModel.dataOf(request.getRequestId().toString(), list);
         } catch (Exception e) {
-            LOG.error(String.format("Failed to submit cypher-query: [ %s ], cause by:",
+            LOG.error(String.format("Failed to submit cypher-query: [ %s ], caused by:",
                                     cypherQuery), e);
             res = CypherModel.failOf(request.getRequestId().toString(), e.getMessage());
         } finally {
@@ -144,10 +144,10 @@ public final class CypherClient {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("CypherClient{");
-        sb.append("userName='").append(userName).append('\'')
-          .append(", token='").append(token).append('\'').append('}');
+        final StringBuilder builder = new StringBuilder("CypherClient{");
+        builder.append("userName='").append(userName).append('\'')
+               .append(", token='").append(token).append('\'').append('}');
 
-        return sb.toString();
+        return builder.toString();
     }
 }
