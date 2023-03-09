@@ -15,13 +15,13 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import java.util.Optional;
 
-public interface RoleTypeDataAdapter {
+public interface ClusterRoleStore {
 
-    boolean updateIfNodePresent(RoleTypeData stateData);
+    boolean updateIfNodePresent(ClusterRole clusterRole);
 
-    Optional<RoleTypeData> query();
+    Optional<ClusterRole> query();
 }

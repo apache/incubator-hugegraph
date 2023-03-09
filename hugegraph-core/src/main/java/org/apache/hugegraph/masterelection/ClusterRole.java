@@ -15,22 +15,24 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.masterelection;
 
 import java.util.Objects;
 
-public class RoleTypeData {
+public class ClusterRole {
 
-    private String node;
+    private final String node;
     private long clock;
-    private int epoch;
+    private final int epoch;
+    private final String url;
 
-    public RoleTypeData(String node, int epoch) {
-        this(node, epoch, 1);
+    public ClusterRole(String node, String url, int epoch) {
+        this(node, url, epoch, 1);
     }
 
-    public RoleTypeData(String node, int epoch, long clock) {
+    public ClusterRole(String node, String url, int epoch, long clock) {
         this.node = node;
+        this.url = url;
         this.epoch = epoch;
         this.clock = clock;
     }
@@ -59,18 +61,22 @@ public class RoleTypeData {
         return this.node;
     }
 
+    public String url() {
+        return this.url;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof RoleTypeData)) {
+        if (!(obj instanceof ClusterRole)) {
             return false;
         }
-        RoleTypeData metaData = (RoleTypeData) obj;
-        return clock == metaData.clock &&
-               epoch == metaData.epoch &&
-               Objects.equals(node, metaData.node);
+        ClusterRole clusterRole = (ClusterRole) obj;
+        return clock == clusterRole.clock &&
+               epoch == clusterRole.epoch &&
+               Objects.equals(node, clusterRole.node);
     }
 
     @Override

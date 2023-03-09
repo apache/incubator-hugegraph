@@ -15,11 +15,21 @@
  * under the License.
  */
 
-package org.apache.hugegraph.election;
+package org.apache.hugegraph.api.filter;
 
-public interface RoleElectionStateMachine {
+import jakarta.ws.rs.container.DynamicFeature;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.FeatureContext;
+import jakarta.ws.rs.ext.Provider;
 
-    void shutdown();
+@Provider
+public class RedirectFilterDynamicFeature implements DynamicFeature {
 
-    void apply(StateMachineCallback stateMachineCallback);
+    @Override
+    public void configure(ResourceInfo resourceInfo, FeatureContext context) {
+        if (resourceInfo.getResourceMethod()
+                        .isAnnotationPresent(RedirectFilter.RedirectMasterRole.class)) {
+            context.register(RedirectFilter.class);
+        }
+    }
 }

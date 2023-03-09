@@ -30,13 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.hugegraph.election.Config;
-import org.apache.hugegraph.election.RoleElectionStateMachine;
-import org.apache.hugegraph.election.RoleElectionStateMachineImpl;
-import org.apache.hugegraph.election.RoleTypeData;
-import org.apache.hugegraph.election.RoleTypeDataAdapter;
-import org.apache.hugegraph.election.StateMachineCallback;
-import org.apache.hugegraph.election.StateMachineContext;
+import org.apache.hugegraph.masterelection.ClusterRole;
+import org.apache.hugegraph.masterelection.ClusterRoleStore;
+import org.apache.hugegraph.masterelection.Config;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StateMachineCallback;
+import org.apache.hugegraph.masterelection.StateMachineContext;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Utils;
 import org.junit.Test;
@@ -86,10 +86,10 @@ public class RoleElectionStateMachineTest {
         @Override
         public String toString() {
             return "LogEntry{" +
-                    "epoch=" + epoch +
-                    ", node='" + node + '\'' +
-                    ", role=" + role +
-                    '}';
+                   "epoch=" + epoch +
+                   ", node='" + node + '\'' +
+                   ", role=" + role +
+                   '}';
         }
     }
 
@@ -104,6 +104,11 @@ public class RoleElectionStateMachineTest {
         @Override
         public String node() {
             return this.node;
+        }
+
+        @Override
+        public String url() {
+            return "http://127.0.0.1:8080";
         }
 
         @Override
@@ -122,7 +127,7 @@ public class RoleElectionStateMachineTest {
         }
 
         @Override
-        public int exceedsWorkerCount() {
+        public int masterDeadTimes() {
             return 5;
         }
 
@@ -141,7 +146,7 @@ public class RoleElectionStateMachineTest {
         final StateMachineCallback callback = new StateMachineCallback() {
 
             @Override
-            public void master(StateMachineContext context) {
+            public void onAsRoleMaster(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.master));
@@ -153,7 +158,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void worker(StateMachineContext context) {
+            public void onAsRoleWorker(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.worker));
@@ -163,7 +168,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void candidate(StateMachineContext context) {
+            public void onAsRoleCandidate(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.candidate));
@@ -183,7 +188,7 @@ public class RoleElectionStateMachineTest {
             }
 
             @Override
-            public void abdication(StateMachineContext context) {
+            public void onAsRoleAbdication(StateMachineContext context) {
                 Integer epochId = context.epoch();
                 String node = context.node();
                 logRecords.add(new LogEntry(epochId, node, LogEntry.Role.abdication));
@@ -200,32 +205,33 @@ public class RoleElectionStateMachineTest {
             }
         };
 
-        final List<RoleTypeData> metaDataLogs = Collections.synchronizedList(new ArrayList<>(100));
-        final RoleTypeDataAdapter adapter = new RoleTypeDataAdapter() {
+        final List<ClusterRole> clusterRoleLogs = Collections.synchronizedList(new ArrayList<>(100));
+        final ClusterRoleStore clusterRoleStore = new ClusterRoleStore() {
 
             volatile int epoch = 0;
 
-            final Map<Integer, RoleTypeData> data = new ConcurrentHashMap<>();
+            final Map<Integer, ClusterRole> data = new ConcurrentHashMap<>();
 
-            RoleTypeData copy(RoleTypeData stateData) {
-                if (stateData == null) {
+            ClusterRole copy(ClusterRole clusterRole) {
+                if (clusterRole == null) {
                     return null;
                 }
-                return new RoleTypeData(stateData.node(), stateData.epoch(), stateData.clock());
+                return new ClusterRole(clusterRole.node(), clusterRole.url(),
+                                       clusterRole.epoch(), clusterRole.clock());
             }
 
             @Override
-            public boolean updateIfNodePresent(RoleTypeData stateData) {
-                if (stateData.epoch() < this.epoch) {
+            public boolean updateIfNodePresent(ClusterRole clusterRole) {
+                if (clusterRole.epoch() < this.epoch) {
                     return false;
                 }
 
-                RoleTypeData copy = this.copy(stateData);
-                RoleTypeData newData = data.compute(copy.epoch(), (key, value) -> {
+                ClusterRole copy = this.copy(clusterRole);
+                ClusterRole newClusterRole = data.compute(copy.epoch(), (key, value) -> {
                     if (copy.epoch() > this.epoch) {
                         this.epoch = copy.epoch();
                         Assert.assertNull(value);
-                        metaDataLogs.add(copy);
+                        clusterRoleLogs.add(copy);
                         Utils.println("The node " + copy + " become new master:");
                         return copy;
                     }
@@ -234,7 +240,7 @@ public class RoleElectionStateMachineTest {
                     if (Objects.equals(value.node(), copy.node()) &&
                         value.clock() <= copy.clock()) {
                         Utils.println("The master node " + copy + " keep heartbeat");
-                        metaDataLogs.add(copy);
+                        clusterRoleLogs.add(copy);
                         if (value.clock() == copy.clock()) {
                             Assert.fail("Clock must increase when same epoch and node id");
                         }
@@ -243,13 +249,12 @@ public class RoleElectionStateMachineTest {
                     return value;
 
                 });
-                return Objects.equals(newData, copy);
+                return Objects.equals(newClusterRole, copy);
             }
 
             @Override
-            public Optional<RoleTypeData> query() {
-                return Optional.ofNullable(
-                                this.copy(this.data.get(this.epoch)));
+            public Optional<ClusterRole> query() {
+                return Optional.ofNullable(this.copy(this.data.get(this.epoch)));
             }
         };
 
@@ -257,7 +262,7 @@ public class RoleElectionStateMachineTest {
         Thread node1 = new Thread(() -> {
             Config config = new TestConfig("1");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[1] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -266,7 +271,7 @@ public class RoleElectionStateMachineTest {
         Thread node2 = new Thread(() -> {
             Config config = new TestConfig("2");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[2] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -275,7 +280,7 @@ public class RoleElectionStateMachineTest {
         Thread node3 = new Thread(() -> {
             Config config = new TestConfig("3");
             RoleElectionStateMachine stateMachine =
-                                     new RoleElectionStateMachineImpl(config, adapter);
+                                     new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[3] = stateMachine;
             stateMachine.apply(callback);
             stop.countDown();
@@ -309,7 +314,7 @@ public class RoleElectionStateMachineTest {
 
         Assert.assertGt(0, logRecords.size());
         Map<Integer, String> masters = new HashMap<>();
-        for (LogEntry entry: logRecords) {
+        for (LogEntry entry : logRecords) {
             if (entry.role == LogEntry.Role.master) {
                 String lastNode = masters.putIfAbsent(entry.epoch, entry.node);
                 if (lastNode != null) {

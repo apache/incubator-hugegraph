@@ -21,6 +21,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -29,15 +38,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/schema")
 @Singleton

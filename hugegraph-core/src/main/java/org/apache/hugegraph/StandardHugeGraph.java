@@ -25,6 +25,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hugegraph.analyzer.Analyzer;
+import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.StandardAuthManager;
 import org.apache.hugegraph.backend.BackendException;
@@ -39,41 +41,6 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SnowflakeIdGenerator;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
-import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
-import org.apache.hugegraph.backend.store.ram.RamTable;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.io.HugeGraphIoRegistry;
-import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
-import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
-import org.apache.hugegraph.task.ServerInfoManager;
-import org.apache.hugegraph.task.TaskManager;
-import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.GraphMode;
-import org.apache.hugegraph.type.define.GraphReadMode;
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.hugegraph.util.*;
-import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.structure.io.Io;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransaction;
-import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-import org.apache.hugegraph.util.ConfigUtil;
-import org.apache.hugegraph.util.Events;
-import org.apache.hugegraph.util.LockUtil;
-import org.slf4j.Logger;
-
-import com.alipay.remoting.rpc.RpcServer;
-import org.apache.hugegraph.analyzer.Analyzer;
-import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.serializer.SerializerFactory;
 import org.apache.hugegraph.backend.store.BackendFeatures;
@@ -81,12 +48,28 @@ import org.apache.hugegraph.backend.store.BackendProviderFactory;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
+import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
+import org.apache.hugegraph.backend.store.ram.RamTable;
+import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.exception.NotAllowException;
+import org.apache.hugegraph.io.HugeGraphIoRegistry;
+import org.apache.hugegraph.masterelection.ClusterRoleStore;
+import org.apache.hugegraph.masterelection.Config;
+import org.apache.hugegraph.masterelection.RoleElectionConfig;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
+import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
+import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
+import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -99,7 +82,33 @@ import org.apache.hugegraph.structure.HugeEdgeProperty;
 import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.task.ServerInfoManager;
+import org.apache.hugegraph.task.TaskManager;
+import org.apache.hugegraph.task.TaskScheduler;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.GraphMode;
+import org.apache.hugegraph.type.define.GraphReadMode;
+import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.hugegraph.util.ConfigUtil;
+import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.LockUtil;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.variables.HugeVariables;
+import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.io.Io;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractThreadLocalTransaction;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
+import org.slf4j.Logger;
+
+import com.alipay.remoting.rpc.RpcServer;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -155,6 +164,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final RateLimiter readRateLimiter;
     private final TaskManager taskManager;
     private AuthManager authManager;
+
+    private RoleElectionStateMachine roleElectionStateMachine;
 
     private final HugeFeatures features;
 
@@ -262,6 +273,8 @@ public class StandardHugeGraph implements HugeGraph {
                  serverId, serverRole, this.name);
         this.serverInfoManager().initServerInfo(serverId, serverRole);
 
+        this.initRoleStateWorker(serverId);
+
         // TODO: check necessary?
         LOG.info("Check olap property-key tables for graph '{}'", this.name);
         for (PropertyKey pk : this.schemaTransaction().getPropertyKeys()) {
@@ -274,6 +287,18 @@ public class StandardHugeGraph implements HugeGraph {
         this.taskScheduler().restoreTasks();
 
         this.started = true;
+    }
+
+    private void initRoleStateWorker(Id serverId) {
+        Config roleStateMachineConfig = new RoleElectionConfig(serverId.toString(),
+                                            this.configuration.get(RoleElectionOptions.NODE_EXTERNAL_URL),
+                                            this.configuration.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
+                                            this.configuration.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
+                                            this.configuration.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND),
+                                            this.configuration.get(RoleElectionOptions.MASTER_DEAD_TIMES),
+                                            this.configuration.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+        ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);
     }
 
     @Override
@@ -371,7 +396,7 @@ public class StandardHugeGraph implements HugeGraph {
         LockUtil.lock(this.name, LockUtil.GRAPH_LOCK);
         try {
             this.storeProvider.truncate();
-            // TOOD: remove this after serverinfo saved in etcd
+            // TODO: remove this after serverinfo saved in etcd
             this.serverStarted(this.serverInfoManager().selfServerId(),
                                this.serverInfoManager().selfServerRole());
         } finally {
@@ -1036,6 +1061,11 @@ public class StandardHugeGraph implements HugeGraph {
     public AuthManager authManager() {
         // this.authManager.initSchemaIfNeeded();
         return this.authManager;
+    }
+
+    @Override
+    public RoleElectionStateMachine roleElectionStateMachine() {
+        return this.roleElectionStateMachine;
     }
 
     @Override

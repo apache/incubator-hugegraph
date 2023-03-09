@@ -26,6 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.*;
 import org.apache.hugegraph.util.Consumers;
 import org.apache.hugegraph.util.LockUtil;
@@ -57,6 +58,8 @@ public final class TaskManager {
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
+
+    private boolean enableRoleElected = false;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -254,6 +257,36 @@ public final class TaskManager {
         }
     }
 
+    public void onAsRoleMaster() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.MASTER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to master role", e);
+            throw e;
+        }
+    }
+
+    public void onAsRoleWorker() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.WORKER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to worker role", e);
+            throw e;
+        }
+    }
+
+    public void enableRoleElected(boolean enableRoleElected) {
+        this.enableRoleElected = enableRoleElected;
+    }
+
     private void scheduleOrExecuteJob() {
         // Called by scheduler timer
         try {
@@ -299,11 +332,15 @@ public final class TaskManager {
 
             /*
              * Master schedule tasks to suitable servers.
+             * Worker maybe become Master, so Master also need perform tasks assigned by
+             * previous Master when enableRoleElected is true.
+             * However, the master only needs to take the assignment,
+             * because the master stays the same when enableRoleElected is false.
              * There is no suitable server when these tasks are created
              */
             if (serverManager.master()) {
                 scheduler.scheduleTasks();
-                if (!serverManager.onlySingleNode()) {
+                if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
                     return;
                 }
             }

@@ -26,29 +26,24 @@ import java.util.Map;
 import java.util.Scanner;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
-import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
-import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.rpc.RpcClientProviderWithAuth;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
-
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
     private static final String INITING_STORE = "initing_store";
-    private HugeGraph graph = null;
 
-    private HugeGraph graph() {
-        E.checkState(this.graph != null, "Must setup Authenticator first");
-        return this.graph;
-    }
+    private HugeGraph graph = null;
 
     private void initAdminUser() throws Exception {
         if (this.requireInitAdminUser()) {
@@ -58,8 +53,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     @Override
+    public HugeGraph graph() {
+        E.checkState(this.graph != null, "Must setup Authenticator first");
+        return this.graph;
+    }
+
+    @Override
     public void initAdminUser(String password) {
-        // Not allowed to call by non main thread
+        // Not allowed to call by non-main thread
         String caller = Thread.currentThread().getName();
         E.checkState("main".equals(caller), "Invalid caller '%s'", caller);
 
@@ -92,7 +93,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
                 // CHECKSTYLE:OFF
                 System.out.println(inputPrompt);
                 // CHECKSTYLE:ON
-                @SuppressWarnings("resource") // just wrapper of System.in
+                // just wrapper of System.in
                 Scanner scanner = new Scanner(System.in);
                 password = scanner.nextLine();
             }
@@ -129,6 +130,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String raftGroupPeers = config.get(ServerOptions.RAFT_GROUP_PEERS);
         graphConfig.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                                 raftGroupPeers);
+        this.transferRoleWorkerConfig(graphConfig, config);
 
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 
@@ -138,6 +140,21 @@ public class StandardAuthenticator implements HugeAuthenticator {
                                       new RpcClientProviderWithAuth(config);
             this.graph.switchAuthManager(clientProvider.authManager());
         }
+    }
+
+    private void transferRoleWorkerConfig(HugeConfig graphConfig, HugeConfig config) {
+        graphConfig.addProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
+                                config.get(ServerOptions.REST_SERVER_URL));
+        graphConfig.addProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
+                                config.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+        graphConfig.addProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
+                                config.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
+        graphConfig.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
+                                config.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
+        graphConfig.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
+                                config.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND));
+        graphConfig.addProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
+                                config.get(RoleElectionOptions.MASTER_DEAD_TIMES));
     }
 
     /**
@@ -217,8 +234,10 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
         @Override
         public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
-            if (!this.isComplete())
-                throw new AuthenticationException("The SASL negotiation has not yet been completed.");
+            if (!this.isComplete()) {
+                throw new AuthenticationException(
+                        "The SASL negotiation has not yet been completed.");
+            }
 
             final Map<String, String> credentials = new HashMap<>(6, 1);
             credentials.put(KEY_USERNAME, username);
@@ -243,16 +262,23 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
             for (int i = bytes.length - 1; i >= 0; i--) {
                 if (bytes[i] == NUL) {
-                    if (this.password == null)
-                        password = new String(Arrays.copyOfRange(bytes, i + 1, end), StandardCharsets.UTF_8);
-                    else if (this.username == null)
-                        username = new String(Arrays.copyOfRange(bytes, i + 1, end), StandardCharsets.UTF_8);
+                    if (this.password == null) {
+                        password = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                              StandardCharsets.UTF_8);
+                    } else if (this.username == null) {
+                        username = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                              StandardCharsets.UTF_8);
+                    }
                     end = i;
                 }
             }
 
-            if (this.username == null) throw new AuthenticationException("SASL authentication ID must not be null.");
-            if (this.password == null) throw new AuthenticationException("SASL password must not be null.");
+            if (this.username == null) {
+                throw new AuthenticationException("SASL authentication ID must not be null.");
+            }
+            if (this.password == null) {
+                throw new AuthenticationException("SASL password must not be null.");
+            }
 
             /* The trick is here. >_*/
             if (password.isEmpty()) {
