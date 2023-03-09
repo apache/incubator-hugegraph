@@ -19,26 +19,20 @@ package org.apache.hugegraph.masterelection;
 
 public class GlobalMasterInfo {
 
-    private boolean isMaster;
-    private String url;
-
+    private volatile Info info;
     private volatile boolean featureSupport;
 
     public GlobalMasterInfo() {
         this.featureSupport = false;
+        this.info = new Info(false, "");
     }
 
-    public synchronized void set(boolean isMaster, String url) {
-        this.isMaster = isMaster;
-        this.url = url;
+    public void info(boolean isMaster, String url) {
+        this.info = new Info(isMaster, url);
     }
 
-    public synchronized boolean isMaster() {
-        return this.isMaster;
-    }
-
-    public synchronized String url() {
-        return this.url;
+    public Info info() {
+        return this.info;
     }
 
     public void isFeatureSupport(boolean featureSupport) {
@@ -47,5 +41,24 @@ public class GlobalMasterInfo {
 
     public boolean isFeatureSupport() {
         return this.featureSupport;
+    }
+
+    public static class Info {
+
+        private boolean isMaster;
+        private String url;
+
+        public Info(boolean isMaster, String url) {
+            this.isMaster = isMaster;
+            this.url = url;
+        }
+
+        public boolean isMaster() {
+            return this.isMaster;
+        }
+
+        public String url() {
+            return this.url;
+        }
     }
 }

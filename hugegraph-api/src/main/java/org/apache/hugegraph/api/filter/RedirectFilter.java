@@ -76,23 +76,22 @@ public class RedirectFilter implements ContainerRequestFilter {
         E.checkState(handle != null, "Context GraphManager is absent");
         GraphManager manager = handle.getService();
         E.checkState(manager != null, "Context GraphManager is absent");
-        GlobalMasterInfo globalMasterInfo = manager.globalMasterInfo();
-        if (globalMasterInfo == null || !globalMasterInfo.isFeatureSupport()) {
-            return;
-        }
 
         String redirectTag = context.getHeaderString(X_HG_REDIRECT);
         if (StringUtils.isNotEmpty(redirectTag)) {
             return;
         }
 
-        String url;
-        synchronized (globalMasterInfo) {
-            if (globalMasterInfo.isMaster() || StringUtils.isEmpty(globalMasterInfo.url())) {
-                return;
-            }
-            url = globalMasterInfo.url();
+        GlobalMasterInfo globalMasterInfo = manager.globalMasterInfo();
+        if (globalMasterInfo == null || !globalMasterInfo.isFeatureSupport()) {
+            return;
         }
+        GlobalMasterInfo.Info masterInfo = globalMasterInfo.info();
+        if (masterInfo == null || masterInfo.isMaster() ||
+            StringUtils.isEmpty(masterInfo.url())) {
+            return;
+        }
+        String url = masterInfo.url();
 
         URI redirectUri;
         try {

@@ -94,12 +94,12 @@ public class StandardStateMachineCallback implements StateMachineCallback {
     public void initGlobalMasterInfo(StateMachineContext context) {
         StateMachineContext.MasterServerInfo master = context.master();
         if (master == null) {
-            this.globalMasterInfo.set(false, null);
+            this.globalMasterInfo.info(false, null);
             return;
         }
 
         boolean isMaster = Objects.equals(context.node(), master.node());
         String url = master.url();
-        this.globalMasterInfo.set(isMaster, url);
+        this.globalMasterInfo.info(isMaster, url);
     }
 }
