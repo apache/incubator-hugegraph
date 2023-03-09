@@ -31,6 +31,10 @@ import java.util.zip.Checksum;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.backend.store.raft.compress.CompressStrategyManager;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -40,12 +44,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
-
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.Log;
-
 import com.google.protobuf.ByteString;
 
 public class StoreSnapshotFile {

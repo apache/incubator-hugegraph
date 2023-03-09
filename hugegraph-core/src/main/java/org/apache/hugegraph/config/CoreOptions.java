@@ -24,7 +24,6 @@ import static org.apache.hugegraph.config.OptionChecker.positiveInt;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.Bytes;
 

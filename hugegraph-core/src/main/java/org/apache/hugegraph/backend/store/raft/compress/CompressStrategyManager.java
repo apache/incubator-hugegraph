@@ -56,10 +56,10 @@ public class CompressStrategyManager {
         // add parallel compress strategy
         if (compressStrategies[PARALLEL_STRATEGY] == null) {
             CompressStrategy compressStrategy = new ParallelCompressStrategy(
-                    config.get(CoreOptions.RAFT_SNAPSHOT_COMPRESS_THREADS),
-                    config.get(CoreOptions.RAFT_SNAPSHOT_DECOMPRESS_THREADS));
+                config.get(CoreOptions.RAFT_SNAPSHOT_COMPRESS_THREADS),
+                config.get(CoreOptions.RAFT_SNAPSHOT_DECOMPRESS_THREADS));
             CompressStrategyManager.addCompressStrategy(
-                    CompressStrategyManager.PARALLEL_STRATEGY, compressStrategy);
+                CompressStrategyManager.PARALLEL_STRATEGY, compressStrategy);
             DEFAULT_STRATEGY = PARALLEL_STRATEGY;
         }
     }

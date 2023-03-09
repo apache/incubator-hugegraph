@@ -123,8 +123,8 @@ public class ParallelCompressStrategy implements CompressStrategy {
     }
 
     @Override
-    public void decompressZip(String sourceZipFile, String outputDir, Checksum checksum)
-            throws Throwable {
+    public void decompressZip(String sourceZipFile, String outputDir,
+                              Checksum checksum) throws Throwable {
         LOG.info("Start to decompress snapshot in parallel mode");
         ExecutorService decompressExecutor =
             newFixedPool(decompressThreads, decompressThreads,
@@ -166,8 +166,7 @@ public class ParallelCompressStrategy implements CompressStrategy {
             addEntry(sourceDir, dir, scatterOutput, method);
             return;
         }
-        File[] files = Requires.requireNonNull(Objects.requireNonNull(dir.listFiles()),
-                                                     "files");
+        File[] files = Requires.requireNonNull(Objects.requireNonNull(dir.listFiles()), "files");
         for (File file : files) {
             String child = Paths.get(sourceDir, file.getName()).toString();
             if (file.isDirectory()) {
@@ -199,8 +198,8 @@ public class ParallelCompressStrategy implements CompressStrategy {
     /**
      * Unzip the archive entry to targetDir
      */
-    private void unZipFile(ZipFile zipFile, ZipArchiveEntry entry, String targetDir)
-            throws Exception {
+    private void unZipFile(ZipFile zipFile, ZipArchiveEntry entry,
+                           String targetDir) throws Exception {
         File targetFile = new File(Paths.get(targetDir, entry.getName()).toString());
         if (!targetFile.toPath().normalize().startsWith(targetDir)) {
             throw new IOException(String.format("Bad entry: %s", entry.getName()));

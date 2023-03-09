@@ -35,8 +35,8 @@ public class SerialCompressStrategy implements CompressStrategy {
     }
 
     @Override
-    public void decompressZip(String sourceZipFile, String outputDir, Checksum checksum)
-            throws Throwable {
+    public void decompressZip(String sourceZipFile, String outputDir,
+                              Checksum checksum) throws Throwable {
         LOG.info("Start to decompress snapshot in serial strategy");
         CompressUtil.decompressZip(sourceZipFile, outputDir, checksum);
     }

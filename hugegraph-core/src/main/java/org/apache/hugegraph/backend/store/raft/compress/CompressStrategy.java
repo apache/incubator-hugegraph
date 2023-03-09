@@ -21,8 +21,8 @@ import java.util.zip.Checksum;
 
 public interface CompressStrategy {
 
-    void compressZip(String rootDir, String sourceDir, String outputZipFile, Checksum checksum)
-            throws Throwable;
+    void compressZip(String rootDir, String sourceDir, String outputZipFile,
+                     Checksum checksum) throws Throwable;
 
     void decompressZip(String sourceZipFile, String outputDir, Checksum checksum) throws Throwable;
 }

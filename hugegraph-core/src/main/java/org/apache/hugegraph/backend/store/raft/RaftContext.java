@@ -30,9 +30,32 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.cache.Cache;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.store.BackendAction;
+import org.apache.hugegraph.backend.store.BackendMutation;
+import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.compress.CompressStrategyManager;
+import org.apache.hugegraph.backend.store.raft.rpc.AddPeerProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.ListPeersProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import org.apache.hugegraph.backend.store.raft.rpc.RemovePeerProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import org.apache.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
+import org.apache.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
+import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.GraphMode;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.NodeManager;
@@ -46,29 +69,6 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.alipay.sofa.jraft.util.NamedThreadFactory;
 import com.alipay.sofa.jraft.util.ThreadPoolUtil;
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.cache.Cache;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.store.BackendAction;
-import org.apache.hugegraph.backend.store.BackendMutation;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.BackendStoreProvider;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import org.apache.hugegraph.backend.store.raft.rpc.SetLeaderProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.StoreCommandProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.AddPeerProcessor;
-import org.apache.hugegraph.backend.store.raft.rpc.RemovePeerProcessor;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.event.EventHub;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.GraphMode;
-import org.apache.hugegraph.util.Bytes;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Events;
-import org.apache.hugegraph.util.Log;
 
 public final class RaftContext {
 
@@ -114,7 +114,7 @@ public final class RaftContext {
         HugeConfig config = params.configuration();
 
         /*
-         * NOTE: `raft.group_peers` option is transfered from ServerConfig
+         * NOTE: `raft.group_peers` option is transferred from ServerConfig
          * to CoreConfig, since it's shared by all graphs.
          */
         String groupPeersString = this.config().getString("raft.group_peers");
