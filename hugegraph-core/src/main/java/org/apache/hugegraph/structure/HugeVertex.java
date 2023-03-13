@@ -36,12 +36,20 @@ import org.apache.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Cardinality;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -51,16 +59,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.type.define.Cardinality;
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.type.define.HugeKeys;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.util.E;
-import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyVertexProperty;
 
 import com.google.common.collect.ImmutableList;
@@ -383,11 +381,6 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Override
     public Iterator<Edge> edges(Direction tinkerpopDir, String... edgeLabels) {
         Directions direction = Directions.convert(tinkerpopDir);
-        // NOTE: get edges from memory if load all edges when loading vertex.
-        if (this.existsEdges()) {
-            return this.getEdges(direction, edgeLabels);
-        }
-
         Id[] edgeLabelIds = this.graph().mapElName2Id(edgeLabels);
         Query query = GraphTransaction.constructEdgesQuery(this.id(), direction,
                                                            edgeLabelIds);
