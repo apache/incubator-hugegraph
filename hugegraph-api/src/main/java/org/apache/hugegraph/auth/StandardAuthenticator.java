@@ -216,6 +216,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     private class TokenSaslAuthenticator implements SaslNegotiator {
+
         private static final byte NUL = 0;
         private String username;
         private String password;
@@ -261,16 +262,15 @@ public class StandardAuthenticator implements HugeAuthenticator {
             int end = bytes.length;
 
             for (int i = bytes.length - 1; i >= 0; i--) {
-                if (bytes[i] == NUL) {
-                    if (this.password == null) {
-                        password = new String(Arrays.copyOfRange(bytes, i + 1, end),
-                                              StandardCharsets.UTF_8);
-                    } else if (this.username == null) {
-                        username = new String(Arrays.copyOfRange(bytes, i + 1, end),
-                                              StandardCharsets.UTF_8);
-                    }
-                    end = i;
+                if (bytes[i] != NUL) continue;
+                if (this.password == null) {
+                    password = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                          StandardCharsets.UTF_8);
+                } else if (this.username == null) {
+                    username = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                          StandardCharsets.UTF_8);
                 }
+                end = i;
             }
 
             if (this.username == null) {
