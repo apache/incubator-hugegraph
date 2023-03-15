@@ -27,6 +27,10 @@ graphs: {
 }
 scriptEngines: {
   gremlin-groovy: {
+    staticImports: [
+        org.opencypher.gremlin.process.traversal.CustomPredicates.*',
+        org.opencypher.gremlin.traversal.CustomFunctions.*
+    ],
     plugins: {
       org.apache.hugegraph.plugin.HugeGraphGremlinPlugin: {},
       org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: {},
@@ -60,9 +64,15 @@ scriptEngines: {
           org.apache.hugegraph.traversal.optimize.ConditionP,
           org.apache.hugegraph.traversal.optimize.Text,
           org.apache.hugegraph.traversal.optimize.TraversalUtil,
-          org.apache.hugegraph.util.DateUtil
+          org.apache.hugegraph.util.DateUtil,
+          org.opencypher.gremlin.traversal.CustomFunctions,
+          org.opencypher.gremlin.traversal.CustomPredicate
         ],
-        methodImports: [java.lang.Math#*]
+        methodImports: [
+            java.lang.Math#*,
+            org.opencypher.gremlin.traversal.CustomPredicate#*,
+            org.opencypher.gremlin.traversal.CustomFunctions#*
+        ]
       },
       org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {
         files: [scripts/empty-sample.groovy]

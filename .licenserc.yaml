@@ -94,6 +94,8 @@ header: # `header` section is configurations for source codes license header.
     - '**/type/Nameable.java'
     - '**/define/Cardinality.java'
     - '**/util/StringEncoding.java'
+    - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
+    - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,

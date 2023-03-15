@@ -19,10 +19,12 @@ package org.apache.hugegraph.auth;
 
 import java.io.Console;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.config.CoreOptions;
@@ -33,6 +35,8 @@ import org.apache.hugegraph.rpc.RpcClientProviderWithAuth;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
+import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 public class StandardAuthenticator implements HugeAuthenticator {
@@ -194,7 +198,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     @Override
     public SaslNegotiator newSaslNegotiator(InetAddress remoteAddress) {
-        throw new NotImplementedException("SaslNegotiator is unsupported");
+        return new TokenSaslAuthenticator();
     }
 
     public static void initAdminUserIfNeeded(String confFile) throws Exception {
@@ -208,6 +212,80 @@ public class StandardAuthenticator implements HugeAuthenticator {
         auth.setup(config);
         if (auth.graph().backendStoreFeatures().supportsPersistence()) {
             auth.initAdminUser();
+        }
+    }
+
+    private class TokenSaslAuthenticator implements SaslNegotiator {
+
+        private static final byte NUL = 0;
+        private String username;
+        private String password;
+        private String token;
+
+        @Override
+        public byte[] evaluateResponse(final byte[] clientResponse) throws AuthenticationException {
+            decode(clientResponse);
+            return null;
+        }
+
+        @Override
+        public boolean isComplete() {
+            return this.username != null;
+        }
+
+        @Override
+        public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
+            if (!this.isComplete()) {
+                throw new AuthenticationException(
+                        "The SASL negotiation has not yet been completed.");
+            }
+
+            final Map<String, String> credentials = new HashMap<>(6, 1);
+            credentials.put(KEY_USERNAME, username);
+            credentials.put(KEY_PASSWORD, password);
+            credentials.put(KEY_TOKEN, token);
+
+            return authenticate(credentials);
+        }
+
+        /**
+         * SASL PLAIN mechanism specifies that credentials are encoded in a
+         * sequence of UTF-8 bytes, delimited by 0 (US-ASCII NUL).
+         * The form is : {code}authzId<NUL>authnId<NUL>password<NUL>{code}.
+         *
+         * @param bytes encoded credentials string sent by the client
+         */
+        private void decode(byte[] bytes) throws AuthenticationException {
+            this.username = null;
+            this.password = null;
+
+            int end = bytes.length;
+
+            for (int i = bytes.length - 1; i >= 0; i--) {
+                if (bytes[i] != NUL) {
+                    continue;
+                }
+                if (this.password == null) {
+                    password = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                          StandardCharsets.UTF_8);
+                } else if (this.username == null) {
+                    username = new String(Arrays.copyOfRange(bytes, i + 1, end),
+                                          StandardCharsets.UTF_8);
+                }
+                end = i;
+            }
+
+            if (this.username == null) {
+                throw new AuthenticationException("SASL authentication ID must not be null.");
+            }
+            if (this.password == null) {
+                throw new AuthenticationException("SASL password must not be null.");
+            }
+
+            /* The trick is here. >_*/
+            if (password.isEmpty()) {
+                token = username;
+            }
         }
     }
 }
