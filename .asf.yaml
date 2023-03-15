@@ -55,3 +55,5 @@ notifications:
   # TODO: change to "issues@hugegraph.apache.org" after we apply it
   pullrequests_comment: commits@hugegraph.apache.org
   issues: commits@hugegraph.apache.org
+  # TODO: Send depandabot PRs to xx@ instead
+  # pullrequests_bot_dependabot: commits@hugegraph.apache.org
