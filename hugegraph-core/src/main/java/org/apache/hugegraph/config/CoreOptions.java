@@ -145,6 +145,30 @@ public class CoreOptions extends OptionHolder {
                     4
             );
 
+    public static final ConfigOption<Boolean> RAFT_SNAPSHOT_PARALLEL_COMPRESS =
+        new ConfigOption<>(
+            "raft.snapshot_parallel_compress",
+            "Whether to enable parallel compress.",
+            disallowEmpty(),
+            false
+        );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_COMPRESS_THREADS =
+        new ConfigOption<>(
+            "raft.snapshot_compress_threads",
+            "The thread number used to do snapshot compress.",
+            rangeInt(0, Integer.MAX_VALUE),
+            4
+        );
+
+    public static final ConfigOption<Integer> RAFT_SNAPSHOT_DECOMPRESS_THREADS =
+        new ConfigOption<>(
+            "raft.snapshot_decompress_threads",
+            "The thread number used to do snapshot decompress.",
+            rangeInt(0, Integer.MAX_VALUE),
+            4
+        );
+
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
             new ConfigOption<>(
                     "raft.backend_threads",
