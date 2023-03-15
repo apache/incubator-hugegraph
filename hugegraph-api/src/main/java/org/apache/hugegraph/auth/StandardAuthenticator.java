@@ -262,7 +262,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
             int end = bytes.length;
 
             for (int i = bytes.length - 1; i >= 0; i--) {
-                if (bytes[i] != NUL) continue;
+                if (bytes[i] != NUL) {
+                    continue;
+                }
                 if (this.password == null) {
                     password = new String(Arrays.copyOfRange(bytes, i + 1, end),
                                           StandardCharsets.UTF_8);
