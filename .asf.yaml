@@ -47,6 +47,7 @@ github:
         require_code_owner_reviews: false
         required_approving_review_count: 2
 
+# refer https://cwiki.apache.org/confluence/display/INFRA/Git+-+.asf.yaml+features#Git.asf.yamlfeatures-Notificationsettingsforrepositories
 notifications:
   pullrequests_status: dev@hugegraph.apache.org
   discussions: dev@hugegraph.apache.org
