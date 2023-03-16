@@ -48,10 +48,12 @@ github:
         require_code_owner_reviews: false
         required_approving_review_count: 2
 
+# refer https://cwiki.apache.org/confluence/display/INFRA/Git+-+.asf.yaml+features#Git.asf.yamlfeatures-Notificationsettingsforrepositories
 notifications:
+  # use https://selfserve.apache.org to manage it
   pullrequests_status: dev@hugegraph.apache.org
-  # before use the config, we should ensure the "mail" address has set well (exist)
-  #pullrequests_comment: issues@hugegraph.apache.org
-  #issues: issues@hugegraph.apache.org
-  #discussions: issues@hugegraph.apache.org
-  
+  discussions: dev@hugegraph.apache.org
+  pullrequests_comment: issues@hugegraph.apache.org
+  issues: issues@hugegraph.apache.org
+  # TODO: Send depandabot PRs to xx@ instead
+  # pullrequests_bot_dependabot: issues@hugegraph.apache.org
