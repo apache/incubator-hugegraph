@@ -19,6 +19,7 @@ package org.apache.hugegraph.backend.store.hbase;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -418,7 +419,11 @@ public class HbaseSessions extends BackendSessionPool {
          */
         default R scan(String table, byte[] startRow, boolean inclusiveStart,
                        byte[] prefix) {
+            short value = (short) (((startRow[0] << 8) | (startRow[1] & 0xFF)) +1);
+            byte[] endRow = ByteBuffer.allocate(2).putShort(value).array();
+
             Scan scan = new Scan().withStartRow(startRow, inclusiveStart)
+                                  .withStopRow(endRow)
                                   .setFilter(new PrefixFilter(prefix));
             return this.scan(table, scan);
         }
