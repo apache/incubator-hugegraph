@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.function.BiFunction;
 
+import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.type.define.Action;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Status;
@@ -244,8 +246,12 @@ public class RaftBackendStore implements BackendStore {
 
     @Override
     public Number queryNumber(Query query) {
-        return (Number)
-            this.queryByRaft(query, (o, i) -> this.originStore(i).queryNumber(query));
+        List<Object> results = this.queryByRaft(query, (o, i) -> this.originStore(i).queryNumber(query));
+        long num = 0;
+        for (Object result : results) {
+            num += ((Number)result).longValue();
+        }
+        return num;
     }
 
     @Override
@@ -378,26 +384,20 @@ public class RaftBackendStore implements BackendStore {
             resultSet.add(result);
         }
 
-        // TODO how to build an empty BinaryEntryIterator
         if (localQuery.entrySet().size() == 0) {
-            RaftContext raftContext = contexts.entrySet().stream().findFirst().get().getValue();
-            Object result = this.queryByRaft(query, raftContext, func);
-            resultSet.add(result);
+            resultSet.add(QueryResults.emptyIterator());
         }
 
-        List<RaftClosure<RaftRequests.StoreCommandResponse>> raftClosures = new ArrayList<>();
         for (Map.Entry<Short, String> entry : forwardQuery.entrySet()) {
             PeerId peer = getRandomPeer(entry.getValue());
-            raftClosures.add(this.rpcForwarder.forwardToQuery(peer, query, entry.getKey(),
-                             this.getStoreType()));
-        }
-
-        for (RaftClosure<RaftRequests.StoreCommandResponse> raftClosure : raftClosures) {
+            RaftClosure<RaftRequests.StoreCommandResponse> raftClosure =
+                this.rpcForwarder.forwardToQuery(peer, query, entry.getKey(), this.getStoreType());
             try {
                 RaftRequests.StoreCommandResponse response = raftClosure.waitFinished();
                 if (response != null) {
                     byte[] byteArray = ZeroByteStringHelper.getByteArray(response.getData());
-                    ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(byteArray));
+                    ObjectInputStream inputStream = new ObjectInputStream(
+                        new ByteArrayInputStream(byteArray));
                     List<BackendEntry> r = (List<BackendEntry>) inputStream.readObject();
                     resultSet.add(r.iterator());
                 }
@@ -465,12 +465,15 @@ public class RaftBackendStore implements BackendStore {
         public void add(BackendMutation mutation, Integer shardNum) {
             Iterator<BackendAction> backendActionIterator = mutation.mutation();
             while (backendActionIterator.hasNext()) {
-                BinaryBackendEntry entry =
-                    (BinaryBackendEntry) backendActionIterator.next().entry();
+                BackendMutation backendMutation = new BackendMutation();
+                BackendAction backendAction = backendActionIterator.next();
+                BinaryBackendEntry entry = (BinaryBackendEntry) backendAction.entry();
                 short shardId = getShardId(entry.id(), shardNum);
+                Action action = backendAction.action();
+                backendMutation.add(entry, action);
                 List<BackendMutation> backendMutations = this.mutations
                     .getOrDefault(shardId, new ArrayList<>((int) Query.COMMIT_BATCH));
-                backendMutations.add(mutation);
+                backendMutations.add(backendMutation);
                 this.mutations.put(shardId, backendMutations);
             }
         }

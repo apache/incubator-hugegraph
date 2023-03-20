@@ -121,6 +121,14 @@ public final class StoreSerializer {
             // read ttl
             long ttl = buffer.readVLong();
 
+            // Refer to BinarySerializer$formatILDeletion, when fieldValues is null, id is equal
+            // indexLabelId and bytes length is 8,but RANGE_DOUBLE_INDEX's id length need to be
+            // 12, will cause BufferUnderflowException in BytesBuffer$readIndexId
+            // Any better ideas to improve it ?
+            if (idBytes.length == 8 && type.equals(HugeType.RANGE_DOUBLE_INDEX)){
+                type = HugeType.RANGE_FLOAT_INDEX;
+            }
+
             BinaryBackendEntry entry = new BinaryBackendEntry(type, idBytes);
             entry.subId(subId);
             entry.ttl(ttl);

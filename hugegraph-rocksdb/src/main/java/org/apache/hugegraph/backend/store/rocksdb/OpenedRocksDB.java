@@ -90,7 +90,6 @@ public class OpenedRocksDB implements AutoCloseable {
             cf.close();
         }
         this.cfHandles.clear();
-
         this.rocksdb.close();
     }
 

@@ -122,9 +122,9 @@ public class StandardAuthenticator implements HugeAuthenticator {
         }
 
         // Transfer `raft.group_peers` from server config to graph config
-        String raftGroupPeers = config.get(ServerOptions.RAFT_GROUP_PEERS);
-        graphConfig.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
-                                raftGroupPeers);
+        //String raftGroupPeers = config.get(ServerOptions.RAFT_GROUP_PEERS);
+        //graphConfig.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
+        //                        raftGroupPeers);
 
         this.graph = (HugeGraph) GraphFactory.open(graphConfig);
 

@@ -147,11 +147,15 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     public void initRaftContextByRouteTable() {
         HugeConfig config = this.params.configuration();
-        this.schemaStore.open(config);
-        this.schemaStore.init();
-        this.routeTable = this.schemaStore.readRoute();
-        if (this.routeTable.size() == 0) {
-            initRaftRouteTable();
+        try {
+            this.schemaStore.open(config);
+            this.schemaStore.init();
+            this.routeTable = this.schemaStore.readRoute();
+            if (this.routeTable.size() == 0) {
+                initRaftRouteTable();
+            }
+        } finally {
+            this.schemaStore.close();
         }
         LOG.info("routeTable: {}", this.routeTable);
         for (Map.Entry<Short, String> shard : this.routeTable.entrySet()) {
@@ -255,7 +259,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
         }
         try {
             // TODO improve: check if other nodes has been Started.
-            Thread.sleep(20000);
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -359,19 +363,12 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
 
     @Override
     public void createSnapshot() {
-        // TODO: snapshot for StoreType.ALL instead of StoreType.GRAPH
-        Map.Entry<Short, RaftContext> raftContext =
-            raftContexts.entrySet().stream().findFirst().get();
-        StoreCommand command = new StoreCommand(StoreType.GRAPH,
-                                                StoreAction.SNAPSHOT, null, raftContext.getKey());
-        RaftStoreClosure closure = new RaftStoreClosure(command);
-        RaftClosure<?> future = raftContext.getValue().node().submitAndWait(command, closure);
-        E.checkState(future != null, "The snapshot future can't be null");
-        try {
-            future.waitFinished();
-            LOG.debug("Graph '{}' has writed snapshot", this.graph());
-        } catch (Throwable e) {
-            throw new BackendException("Failed to create snapshot", e);
+        for (Map.Entry<Short, RaftContext> context : raftContexts.entrySet()) {
+            // TODO: snapshot for StoreType.ALL instead of StoreType.GRAPH
+            StoreCommand command = new StoreCommand(StoreType.GRAPH, StoreAction.SNAPSHOT,
+                                                    null, context.getKey());
+            RaftStoreClosure closure = new RaftStoreClosure(command);
+            context.getValue().node().submitAndWait(command, closure);
         }
     }
 

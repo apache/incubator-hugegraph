@@ -105,7 +105,7 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             results = this.listIterators.get(this.listIteratorsCursor);
         }
 
-        while (hasNext = results.hasNext()) {
+        while (results.hasNext()) {
             Elem elem = results.next();
             BackendEntry merged;
             if (isLocalResults) {
@@ -148,9 +148,9 @@ public class BinaryEntryIterator<Elem> extends BackendEntryIterator {
             }
         }
 
-        if (!hasNext && !isLocalResults) {
+        if (!results.hasNext() && !isLocalResults) {
             this.listIteratorsCursor -= 1;
-        } else if (!hasNext && isLocalResults) {
+        } else if (!results.hasNext() && isLocalResults) {
             this.binaryEntryIteratorsCursor -= 1;
         }
 

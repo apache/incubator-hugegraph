@@ -27,6 +27,7 @@ import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.dist.RegisterUtil;
@@ -46,6 +47,7 @@ public class InitStore {
     private static final long RETRY_INTERVAL = 5000;
 
     private static final MultiValueMap EXCEPTIONS = new MultiValueMap();
+    private static final List<HugeGraph> GRAPHS = new ArrayList<>();
 
     static {
         EXCEPTIONS.put("OperationTimedOutException",
@@ -72,25 +74,53 @@ public class InitStore {
         HugeConfig restServerConfig = new HugeConfig(restConf);
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         Map<String, String> graph2ConfigPaths = ConfigUtil.scanGraphsDir(graphsDir);
-
-        List<HugeGraph> graphs = new ArrayList<>(graph2ConfigPaths.size());
+        boolean initAdminUserByRaft = false;
         try {
             for (Map.Entry<String, String> entry : graph2ConfigPaths.entrySet()) {
-                graphs.add(initGraph(entry.getValue()));
+                LOG.info("Init graph with config file: {}", entry.getValue());
+                HugeConfig config = new HugeConfig(entry.getValue());
+                // Forced set RAFT_MODE to false when initializing backend
+                initAdminUserByRaft = config.get(CoreOptions.STORE)
+                                            .equals(config.get(ServerOptions.AUTH_GRAPH_STORE))
+                                      || initAdminUserByRaft;
+                GRAPHS.add(initGraph(config));
             }
-            StandardAuthenticator.initAdminUserIfNeeded(restConf);
+            if (!initAdminUserByRaft) {
+                StandardAuthenticator.initAdminUserIfNeeded(restConf);
+            }
         } finally {
-            for (HugeGraph graph : graphs) {
-                graph.close();
-            }
-            HugeFactory.shutdown(30L, true);
+            close();
         }
+
+        // In raft sharding mode, the cluster needs to be started and initialized
+        // before admin can be initialized, so the auth information here will be stored in
+        // a configured path by the standalone rocksDBStore.
+        if (initAdminUserByRaft) {
+            try {
+                for (Map.Entry<String, String> entry : graph2ConfigPaths.entrySet()) {
+                    HugeConfig config = new HugeConfig(entry.getValue());
+                    // Forced set RAFT_MODE to false when initializing backend
+                    config.setProperty(CoreOptions.RAFT_MODE.name(), "false");
+                    HugeGraph graph = (HugeGraph) GraphFactory.open(config);
+                    initBackend(graph);
+                    GRAPHS.add(graph);
+                }
+                StandardAuthenticator.initAdminUserIfNeeded(restConf);
+            } finally {
+                close();
+            }
+        }
+        HugeFactory.shutdown(30L, true);
     }
 
-    private static HugeGraph initGraph(String configPath) throws Exception {
-        LOG.info("Init graph with config file: {}", configPath);
-        HugeConfig config = new HugeConfig(configPath);
-        // Forced set RAFT_MODE to false when initializing backend
+    private static void close() throws Exception {
+        for (HugeGraph graph : GRAPHS) {
+            graph.close();
+        }
+        GRAPHS.clear();
+    }
+
+    private static HugeGraph initGraph(HugeConfig config) throws Exception {
         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
 
         try {

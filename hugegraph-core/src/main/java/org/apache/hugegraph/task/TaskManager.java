@@ -76,10 +76,10 @@ public final class TaskManager {
         this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
                                  1, TASK_SCHEDULER);
         // Start after 10x period time waiting for HugeGraphServer startup
-        //this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
-        //                                              10 * SCHEDULE_PERIOD,
-        //                                              SCHEDULE_PERIOD,
-        //                                              TimeUnit.MILLISECONDS);
+        this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
+                                                      10 * SCHEDULE_PERIOD,
+                                                      SCHEDULE_PERIOD,
+                                                      TimeUnit.MILLISECONDS);
     }
 
     public void addScheduler(HugeGraphParams graph) {
