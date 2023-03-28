@@ -691,6 +691,7 @@ public class GraphTransaction extends IndexableTransaction {
         this.addedVertices.remove(vertex.id());
 
         // Collect the removed vertex
+        vertex.forceLoad();
         this.removedVertices.put(vertex.id(), vertex);
 
         this.afterWrite();
