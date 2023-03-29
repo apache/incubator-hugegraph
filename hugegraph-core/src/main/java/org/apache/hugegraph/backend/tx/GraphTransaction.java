@@ -689,10 +689,12 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Override vertices in local `addedVertices`
         this.addedVertices.remove(vertex.id());
-
+        // Force load vertex to ensure all properties are loaded (refer to #2181)
+        if (vertex.schemaLabel().indexLabels().size() > 0)  {
+            vertex.forceLoad();
+        }
         // Collect the removed vertex
         this.removedVertices.put(vertex.id(), vertex);
-
         this.afterWrite();
     }
 
