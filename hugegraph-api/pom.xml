@@ -36,9 +36,19 @@
         </dependency>
 
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+            <version>1.47.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-rpc</artifactId>
             <exclusions>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-netty-shaded</artifactId>
+                </exclusion>
                 <!-- conflict with jraft -->
                 <exclusion>
                     <groupId>com.alipay.sofa</groupId>
