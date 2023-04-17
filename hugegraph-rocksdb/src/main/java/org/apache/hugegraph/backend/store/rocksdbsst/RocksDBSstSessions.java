@@ -31,11 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.rocksdb.EnvOptions;
-import org.rocksdb.Options;
-import org.rocksdb.RocksDBException;
-import org.rocksdb.SstFileWriter;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBIngester;
@@ -44,14 +39,17 @@ import org.apache.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.util.E;
+import org.rocksdb.EnvOptions;
+import org.rocksdb.Options;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.SstFileWriter;
 
 public class RocksDBSstSessions extends RocksDBSessions {
 
     private final String dataPath;
     private final Map<String, SstFileWriter> tables;
 
-    public RocksDBSstSessions(HugeConfig config, String database, String store,
-                              String dataPath) {
+    public RocksDBSstSessions(HugeConfig config, String database, String store, String dataPath) {
         super(config, database, store);
 
         this.dataPath = dataPath;
@@ -63,8 +61,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
     }
 
-    public RocksDBSstSessions(HugeConfig config, String dataPath,
-                              String database, String store,
+    public RocksDBSstSessions(HugeConfig config, String dataPath, String database, String store,
                               List<String> tableNames) throws RocksDBException {
         this(config, dataPath, database, store);
         for (String table : tableNames) {
@@ -126,17 +123,17 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public synchronized void dropTable(String... tables)
-                                       throws RocksDBException {
+    public synchronized void dropTable(String... tables) {
         for (String table : tables) {
             this.dropTable(table);
         }
     }
 
-    public void dropTable(String table) throws RocksDBException {
-        SstFileWriter sst = this.tables.remove(table);
-        assert sst == null || !sst.isOwningHandle() :
-               "Please close table before drop to ensure call sst.finish()";
+    public void dropTable(String table) {
+        try (SstFileWriter sst = this.tables.remove(table)) {
+            assert sst == null || !sst.isOwningHandle() : "Please close table before drop to " +
+                                                          "ensure call sst.finish()";
+        }
     }
 
     @Override
@@ -176,8 +173,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public String hardLinkSnapshot(String snapshotPath)
-                                   throws RocksDBException {
+    public String hardLinkSnapshot(String snapshotPath) {
         throw new UnsupportedOperationException("hardLinkSnapshot");
     }
 
@@ -264,7 +260,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         @Override
         public Integer commit() {
             int count = this.batch.size();
-            if (count <= 0) {
+            if (count == 0) {
                 return 0;
             }
 
@@ -277,9 +273,10 @@ public class RocksDBSstSessions extends RocksDBSessions {
                     }
 
                     // TODO: limit individual SST file size
-                    SstFileWriter sst = table(table.getKey());
-                    for (Pair<byte[], byte[]> change : table.getValue()) {
-                        sst.put(change.getKey(), change.getValue());
+                    try (SstFileWriter sst = table(table.getKey())) {
+                        for (Pair<byte[], byte[]> change : table.getValue()) {
+                            sst.put(change.getKey(), change.getValue());
+                        }
                     }
                 }
             } catch (RocksDBException e) {
@@ -344,7 +341,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         /**
          * Merge a record to an existing key to a table
          * For more details about merge-operator:
-         *  https://github.com/facebook/rocksdb/wiki/merge-operator
+         *  <a href="https://github.com/facebook/rocksdb/wiki/merge-operator">...</a>
          */
         @Override
         public void merge(String table, byte[] key, byte[] value) {
@@ -431,10 +428,8 @@ public class RocksDBSstSessions extends RocksDBSessions {
          * Scan records by key range from a table
          */
         @Override
-        public BackendColumnIterator scan(String table,
-                                          byte[] keyFrom,
-                                          byte[] keyTo,
-                                          int scanType) {
+        public BackendColumnIterator scan(String table, byte[] keyFrom,
+                                          byte[] keyTo, int scanType) {
             assert !this.hasChanges();
             return BackendColumnIterator.empty();
         }

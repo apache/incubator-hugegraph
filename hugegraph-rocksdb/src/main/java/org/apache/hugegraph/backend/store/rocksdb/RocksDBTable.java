@@ -25,9 +25,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.query.Aggregate;
@@ -52,6 +49,8 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
 
 public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendEntry> {
 
@@ -359,6 +358,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
         @Override
         public byte[] position(String position) {
+            // TODO: START & END is same & be empty now? remove one?
             if (START.equals(position) || END.equals(position)) {
                 return null;
             }

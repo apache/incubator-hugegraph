@@ -44,9 +44,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.rocksdb.RocksDBException;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -69,6 +66,9 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
+import org.rocksdb.RocksDBException;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.Session> {
@@ -725,7 +725,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         readLock.lock();
         try {
             Map<String, String> uniqueSnapshotDirMaps = new HashMap<>();
-            // Every rocksdb instance should create an snapshot
+            // Every rocksdb instance should create a snapshot
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
                 // Like: parent_path/rocksdb-data/*, * maybe g,m,s
                 Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();

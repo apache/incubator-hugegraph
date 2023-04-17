@@ -19,8 +19,6 @@ package org.apache.hugegraph.backend.store.rocksdbsst;
 
 import java.util.List;
 
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions;
@@ -28,6 +26,7 @@ import org.apache.hugegraph.backend.store.rocksdb.RocksDBStore;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBTables;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
+import org.rocksdb.RocksDBException;
 
 public abstract class RocksDBSstStore extends RocksDBStore {
 
@@ -42,8 +41,7 @@ public abstract class RocksDBSstStore extends RocksDBStore {
                                               List<String> tableNames)
                                               throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBSstSessions(config, this.database(),
-                                          this.store(), dataPath);
+            return new RocksDBSstSessions(config, this.database(), this.store(), dataPath);
         } else {
             return new RocksDBSstSessions(config, this.database(), this.store(),
                                           dataPath, tableNames);
@@ -95,20 +93,17 @@ public abstract class RocksDBSstStore extends RocksDBStore {
 
         @Override
         public Id nextId(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "RocksDBSstGraphStore.nextId()");
+            throw new UnsupportedOperationException("RocksDBSstGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
-            throw new UnsupportedOperationException(
-                      "RocksDBSstGraphStore.increaseCounter()");
+            throw new UnsupportedOperationException("RocksDBSstGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "RocksDBSstGraphStore.getCounter()");
+            throw new UnsupportedOperationException("RocksDBSstGraphStore.getCounter()");
         }
     }
 }

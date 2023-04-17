@@ -218,6 +218,7 @@ public class RocksDBTables {
         }
 
         @Override
+        // TODO: why this method is same as super.eliminate() in RocksDBTable, del it?
         public void eliminate(RocksDBSessions.Session session, BackendEntry entry) {
             assert entry.columns().size() == 1;
             super.delete(session, entry);

@@ -20,16 +20,15 @@ package org.apache.hugegraph.backend.store.rocksdb;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringEncoding;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.util.Log;
-import org.apache.hugegraph.util.StringEncoding;
 
 public final class RocksDBIteratorPool implements AutoCloseable {
 
@@ -149,6 +148,7 @@ public final class RocksDBIteratorPool implements AutoCloseable {
 
     protected final class ReusedRocksIterator {
 
+        // TODO: is the typo "EREUSING_ENABLED" right? or should be "REUSING_ENABLED"?
         private static final boolean EREUSING_ENABLED = false;
         private final RocksIterator iterator;
         private boolean closed;

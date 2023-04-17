@@ -27,16 +27,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBIteratorPool.ReusedRocksIterator;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDB;
 import org.rocksdb.SstFileManager;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.store.rocksdb.RocksDBIteratorPool.ReusedRocksIterator;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 
 public class OpenedRocksDB implements AutoCloseable {
 
@@ -118,8 +117,7 @@ public class OpenedRocksDB implements AutoCloseable {
                                                     tempFile, snapshotFile));
             }
         } catch (Exception e) {
-            throw new BackendException("Failed to create checkpoint at path %s",
-                                       e, targetPath);
+            throw new BackendException("Failed to create checkpoint at path %s", e, targetPath);
         }
     }
 
@@ -137,8 +135,7 @@ public class OpenedRocksDB implements AutoCloseable {
         }
 
         public synchronized ColumnFamilyHandle get() {
-            E.checkState(this.handle.isOwningHandle(),
-                         "It seems CF has been closed");
+            E.checkState(this.handle.isOwningHandle(), "It seems CF has been closed");
             assert this.refs.get() >= 1;
             return this.handle;
         }
@@ -163,7 +160,7 @@ public class OpenedRocksDB implements AutoCloseable {
 
         public synchronized ColumnFamilyHandle waitForDrop() {
             assert this.refs.get() >= 1;
-            // When entering this method, the refs won't increase any more
+            // When entering this method, the refs won't increase anymore
             final long timeout = TimeUnit.MINUTES.toMillis(30L);
             final long unit = 100L;
             for (long i = 1; this.refs.get() > 1; i++) {
@@ -173,8 +170,7 @@ public class OpenedRocksDB implements AutoCloseable {
                     // 30s rest api timeout may cause InterruptedException
                 }
                 if (i * unit > timeout) {
-                    throw new BackendException("Timeout after %sms to drop CF",
-                                               timeout);
+                    throw new BackendException("Timeout after %sms to drop CF", timeout);
                 }
             }
             assert this.refs.get() == 1;
