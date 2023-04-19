@@ -120,8 +120,7 @@ public class RocksDBTables {
              * `scanPrefix + delete`: session.delete(scanPrefix(prefix))
              */
             byte[] prefix = entry.id().asBytes();
-            try (BackendColumnIterator results = session.scan(this.table(),
-                                                              prefix)) {
+            try (BackendColumnIterator results = session.scan(this.table(), prefix)) {
                 while (results.hasNext()) {
                     byte[] column = results.next().name;
                     session.delete(this.table(), column);
@@ -292,10 +291,8 @@ public class RocksDBTables {
         protected BackendColumnIterator queryByCond(RocksDBSessions.Session session,
                                                     ConditionQuery query) {
             assert query.conditionsSize() > 0;
-
             List<Condition> conds = query.syspropConditions(HugeKeys.ID);
-            E.checkArgument(!conds.isEmpty(),
-                            "Please specify the index conditions");
+            E.checkArgument(!conds.isEmpty(), "Please specify the index conditions");
 
             Id prefix = null;
             Id min = null;
@@ -324,8 +321,7 @@ public class RocksDBTables {
                         max = (Id) r.value();
                         break;
                     default:
-                        E.checkArgument(false, "Unsupported relation '%s'",
-                                        r.relation());
+                        E.checkArgument(false, "Unsupported relation '%s'", r.relation());
                 }
             }
 
@@ -341,7 +337,8 @@ public class RocksDBTables {
                                     RocksDBSessions.Session.SCAN_PREFIX_END);
             } else {
                 byte[] end = max.asBytes();
-                int type = maxEq ? RocksDBSessions.Session.SCAN_LTE_END : RocksDBSessions.Session.SCAN_LT_END;
+                int type = maxEq ? RocksDBSessions.Session.SCAN_LTE_END
+                                 : RocksDBSessions.Session.SCAN_LT_END;
                 return session.scan(this.table(), begin, end, type);
             }
         }

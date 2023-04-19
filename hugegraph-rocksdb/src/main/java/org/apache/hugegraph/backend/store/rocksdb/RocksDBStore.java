@@ -359,8 +359,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             if (sessions == null) {
                 // Error after trying other ways
                 LOG.error("Failed to open RocksDB '{}'", dataPath, e);
-                throw new ConnectionException("Failed to open RocksDB '%s'",
-                                              e, dataPath);
+                throw new ConnectionException("Failed to open RocksDB '%s'", e, dataPath);
             }
         }
 
@@ -403,8 +402,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         for (Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             HugeType type = e.getKey();
             RocksDBSessions db = this.db(e.getValue());
-            String key = type != HugeType.OLAP ? this.table(type).table() :
-                                                 type.string();
+            String key = type != HugeType.OLAP ? this.table(type).table() : type.string();
             tableDBMap.put(key, db);
         }
         return tableDBMap;
@@ -488,8 +486,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                 table.updateIfAbsent(session, entry);
                 break;
             default:
-                throw new AssertionError(String.format(
-                          "Unsupported mutate action: %s", item.action()));
+                throw new AssertionError(String.format("Unsupported mutate action: %s",
+                                                       item.action()));
         }
     }
 
@@ -521,8 +519,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                     table = this.table(this.olapTableName(pk));
                     iterators.add(table.query(this.session(HugeType.OLAP), q));
                 }
-                entries = new MergeIterator<>(entries, iterators,
-                                              BackendEntry::mergeable);
+                entries = new MergeIterator<>(entries, iterators, BackendEntry::mergeable);
             }
             return entries;
         } finally {
@@ -553,8 +550,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             this.checkDbOpened();
 
             // Create tables with main disk
-            this.createTable(this.sessions,
-                             this.tableNames().toArray(new String[0]));
+            this.createTable(this.sessions, this.tableNames().toArray(new String[0]));
 
             // Create table with optimized disk
             Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
@@ -591,8 +587,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             this.checkDbOpened();
 
             // Drop tables with main disk
-            this.dropTable(this.sessions,
-                           this.tableNames().toArray(new String[0]));
+            this.dropTable(this.sessions, this.tableNames().toArray(new String[0]));
 
             // Drop tables with optimized disk
             Map<String, RocksDBSessions> tableDBMap = this.tableDBMapping();
@@ -742,8 +737,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
                 String snapshotDir = snapshotPath.getParent().toString();
                 // Find correspond data HugeType key
-                String diskTableKey = this.findDiskTableKeyByPath(
-                                      entry.getKey());
+                String diskTableKey = this.findDiskTableKeyByPath(entry.getKey());
                 uniqueSnapshotDirMaps.put(snapshotDir, diskTableKey);
             }
             LOG.info("The store '{}' create snapshot successfully", this);
@@ -818,8 +812,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     }
 
     private void closeSessions() {
-        Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet()
-                                                                    .iterator();
+        Iterator<Map.Entry<String, RocksDBSessions>> iter = this.dbs.entrySet().iterator();
         while (iter.hasNext()) {
             Map.Entry<String, RocksDBSessions> entry = iter.next();
             RocksDBSessions sessions = entry.getValue();
@@ -845,12 +838,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             E.checkArgument(!dataPath.equals(path), "Invalid disk path" +
                             "(can't be the same as data_path): '%s'", path);
             E.checkArgument(!name.isEmpty() && !path.isEmpty(),
-                            "Invalid disk format: '%s', expect `NAME:PATH`",
-                            disk);
+                            "Invalid disk format: '%s', expect `NAME:PATH`", disk);
             String[] pair = name.split("/", 2);
             E.checkArgument(pair.length == 2,
-                            "Invalid disk key format: '%s', " +
-                            "expect `STORE/TABLE`", name);
+                            "Invalid disk key format: '%s', expect `STORE/TABLE`", name);
             String store = pair[0].trim();
             HugeType table = HugeType.valueOf(pair[1].trim().toUpperCase());
             if (this.store.equals(store)) {
@@ -947,14 +938,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
             this.counters = new RocksDBTables.Counters(database);
 
-            registerTableManager(HugeType.VERTEX_LABEL,
-                                 new RocksDBTables.VertexLabel(database));
-            registerTableManager(HugeType.EDGE_LABEL,
-                                 new RocksDBTables.EdgeLabel(database));
-            registerTableManager(HugeType.PROPERTY_KEY,
-                                 new RocksDBTables.PropertyKey(database));
-            registerTableManager(HugeType.INDEX_LABEL,
-                                 new RocksDBTables.IndexLabel(database));
+            registerTableManager(HugeType.VERTEX_LABEL, new RocksDBTables.VertexLabel(database));
+            registerTableManager(HugeType.EDGE_LABEL, new RocksDBTables.EdgeLabel(database));
+            registerTableManager(HugeType.PROPERTY_KEY, new RocksDBTables.PropertyKey(database));
+            registerTableManager(HugeType.INDEX_LABEL, new RocksDBTables.IndexLabel(database));
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
         }
@@ -1004,13 +991,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                                  String database, String store) {
             super(provider, database, store);
 
-            registerTableManager(HugeType.VERTEX,
-                                 new RocksDBTables.Vertex(database));
+            registerTableManager(HugeType.VERTEX, new RocksDBTables.Vertex(database));
 
-            registerTableManager(HugeType.EDGE_OUT,
-                                 RocksDBTables.Edge.out(database));
-            registerTableManager(HugeType.EDGE_IN,
-                                 RocksDBTables.Edge.in(database));
+            registerTableManager(HugeType.EDGE_OUT, RocksDBTables.Edge.out(database));
+            registerTableManager(HugeType.EDGE_IN, RocksDBTables.Edge.in(database));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
@@ -1052,20 +1036,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
         @Override
         public Id nextId(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "RocksDBGraphStore.nextId()");
+            throw new UnsupportedOperationException("RocksDBGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
-            throw new UnsupportedOperationException(
-                      "RocksDBGraphStore.increaseCounter()");
+            throw new UnsupportedOperationException("RocksDBGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "RocksDBGraphStore.getCounter()");
+            throw new UnsupportedOperationException("RocksDBGraphStore.getCounter()");
         }
 
         /**
@@ -1116,10 +1097,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
         private final RocksDBTables.Meta meta;
 
-        public RocksDBSystemStore(BackendStoreProvider provider,
-                                  String database, String store) {
+        public RocksDBSystemStore(BackendStoreProvider provider, String database, String store) {
             super(provider, database, store);
-
             this.meta = new RocksDBTables.Meta(database);
         }
 

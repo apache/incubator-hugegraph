@@ -56,13 +56,10 @@ public abstract class RocksDBSstStore extends RocksDBStore {
                                     String database, String store) {
             super(provider, database, store);
 
-            registerTableManager(HugeType.VERTEX,
-                                 new RocksDBTables.Vertex(database));
+            registerTableManager(HugeType.VERTEX, new RocksDBTables.Vertex(database));
 
-            registerTableManager(HugeType.EDGE_OUT,
-                                 RocksDBTables.Edge.out(database));
-            registerTableManager(HugeType.EDGE_IN,
-                                 RocksDBTables.Edge.in(database));
+            registerTableManager(HugeType.EDGE_OUT, RocksDBTables.Edge.out(database));
+            registerTableManager(HugeType.EDGE_IN, RocksDBTables.Edge.in(database));
 
             registerTableManager(HugeType.SECONDARY_INDEX,
                                  new RocksDBTables.SecondaryIndex(database));
@@ -78,12 +75,9 @@ public abstract class RocksDBSstStore extends RocksDBStore {
                                  new RocksDBTables.RangeLongIndex(database));
             registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
                                  new RocksDBTables.RangeDoubleIndex(database));
-            registerTableManager(HugeType.SEARCH_INDEX,
-                                 new RocksDBTables.SearchIndex(database));
-            registerTableManager(HugeType.SHARD_INDEX,
-                                 new RocksDBTables.ShardIndex(database));
-            registerTableManager(HugeType.UNIQUE_INDEX,
-                                 new RocksDBTables.UniqueIndex(database));
+            registerTableManager(HugeType.SEARCH_INDEX, new RocksDBTables.SearchIndex(database));
+            registerTableManager(HugeType.SHARD_INDEX, new RocksDBTables.ShardIndex(database));
+            registerTableManager(HugeType.UNIQUE_INDEX, new RocksDBTables.UniqueIndex(database));
         }
 
         @Override

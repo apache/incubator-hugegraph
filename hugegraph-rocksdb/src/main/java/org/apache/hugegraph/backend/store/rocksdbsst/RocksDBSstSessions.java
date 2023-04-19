@@ -93,8 +93,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public synchronized void createTable(String... tables)
-                                         throws RocksDBException {
+    public synchronized void createTable(String... tables) throws RocksDBException {
         for (String table : tables) {
             this.createTable(table);
         }
@@ -102,8 +101,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
     private void createTable(String table) throws RocksDBException {
         String number = String.format("%04d", 1);
-        Path sstFile = Paths.get(this.dataPath, table,
-                                 number + RocksDBIngester.SST);
+        Path sstFile = Paths.get(this.dataPath, table, number + RocksDBIngester.SST);
         try {
             FileUtils.forceMkdir(sstFile.getParent().toFile());
         } catch (IOException e) {
@@ -113,8 +111,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
 
         EnvOptions env = new EnvOptions();
         Options options = new Options();
-        RocksDBStdSessions.initOptions(this.config(), options, options,
-                                       options, options);
+        RocksDBStdSessions.initOptions(this.config(), options, options, options, options);
         // NOTE: unset merge op due to SIGSEGV when cf.setMergeOperatorName()
         options.setMergeOperatorName("not-exist-merge-op");
         SstFileWriter sst = new SstFileWriter(env, options);
@@ -152,8 +149,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public RocksDBSessions copy(HugeConfig config,
-                                String database, String store) {
+    public RocksDBSessions copy(HugeConfig config, String database, String store) {
         return new RocksDBSstSessions(config, database, store, this);
     }
 

@@ -45,8 +45,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract void compactRange();
 
-    public abstract RocksDBSessions copy(HugeConfig config,
-                                         String database, String store);
+    public abstract RocksDBSessions copy(HugeConfig config, String database, String store);
 
     public abstract void createSnapshot(String snapshotPath);
 
@@ -54,8 +53,7 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
     public abstract String buildSnapshotPath(String snapshotPrefix);
 
-    public abstract String hardLinkSnapshot(String snapshotPath)
-                                            throws RocksDBException;
+    public abstract String hardLinkSnapshot(String snapshotPath) throws RocksDBException;
 
     public abstract void reloadRocksDB() throws RocksDBException;
 
@@ -104,22 +102,16 @@ public abstract class RocksDBSessions extends BackendSessionPool {
 
         public abstract byte[] get(String table, byte[] key);
 
-        public abstract BackendColumnIterator get(String table,
-                                                  List<byte[]> keys);
+        public abstract BackendColumnIterator get(String table, List<byte[]> keys);
 
         public abstract BackendColumnIterator scan(String table);
 
-        public abstract BackendColumnIterator scan(String table,
-                                                   byte[] prefix);
+        public abstract BackendColumnIterator scan(String table, byte[] prefix);
 
-        public abstract BackendColumnIterator scan(String table,
-                                                   byte[] keyFrom,
-                                                   byte[] keyTo,
-                                                   int scanType);
+        public abstract BackendColumnIterator scan(String table, byte[] keyFrom,
+                                                   byte[] keyTo, int scanType);
 
-        public BackendColumnIterator scan(String table,
-                                          byte[] keyFrom,
-                                          byte[] keyTo) {
+        public BackendColumnIterator scan(String table, byte[] keyFrom, byte[] keyTo) {
             return this.scan(table, keyFrom, keyTo, SCAN_LT_END);
         }
 

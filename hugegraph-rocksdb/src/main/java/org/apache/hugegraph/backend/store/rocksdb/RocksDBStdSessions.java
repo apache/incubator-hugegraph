@@ -83,14 +83,12 @@ public class RocksDBStdSessions extends RocksDBSessions {
     private final AtomicInteger refCount;
 
     public RocksDBStdSessions(HugeConfig config, String database, String store,
-                              String dataPath, String walPath)
-                              throws RocksDBException {
+                              String dataPath, String walPath) throws RocksDBException {
         super(config, database, store);
         this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
-        this.rocksdb = RocksDBStdSessions.openRocksDB(config, dataPath,
-                                                      walPath);
+        this.rocksdb = RocksDBStdSessions.openRocksDB(config, dataPath, walPath);
         this.refCount = new AtomicInteger(1);
     }
 
@@ -101,8 +99,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.config = config;
         this.dataPath = dataPath;
         this.walPath = walPath;
-        this.rocksdb = RocksDBStdSessions.openRocksDB(config, cfNames,
-                                                      dataPath, walPath);
+        this.rocksdb = RocksDBStdSessions.openRocksDB(config, cfNames, dataPath, walPath);
         this.refCount = new AtomicInteger(1);
 
         this.ingestExternalFile();
@@ -277,8 +274,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             }
             // Move snapshot directory to origin data directory
             FileUtils.moveDirectory(snapshotDir, originDataDir);
-            LOG.info("Move snapshot directory {} to {}",
-                     snapshotDir, originDataDir);
+            LOG.info("Move snapshot directory {} to {}", snapshotDir, originDataDir);
             // Reload rocksdb instance
             this.reloadRocksDB();
         } catch (Exception e) {
@@ -473,35 +469,28 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
             db.setInfoLogLevel(InfoLogLevel.valueOf(
-                    conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
+                conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
 
-            db.setMaxSubcompactions(
-                    conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
+            db.setMaxSubcompactions(conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
 
-            db.setAllowMmapWrites(
-                    conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
-            db.setAllowMmapReads(
-                    conf.get(RocksDBOptions.ALLOW_MMAP_READS));
+            db.setAllowMmapWrites(conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
+            db.setAllowMmapReads(conf.get(RocksDBOptions.ALLOW_MMAP_READS));
 
-            db.setUseDirectReads(
-                    conf.get(RocksDBOptions.USE_DIRECT_READS));
+            db.setUseDirectReads(conf.get(RocksDBOptions.USE_DIRECT_READS));
             db.setUseDirectIoForFlushAndCompaction(
-                    conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
+                conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
             db.setUseFsync(conf.get(RocksDBOptions.USE_FSYNC));
 
             db.setAtomicFlush(conf.get(RocksDBOptions.ATOMIC_FLUSH));
 
-            db.setMaxManifestFileSize(
-                    conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
+            db.setMaxManifestFileSize(conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
 
-            db.setSkipStatsUpdateOnDbOpen(
-                    conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
+            db.setSkipStatsUpdateOnDbOpen(conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
             db.setSkipCheckingSstFileSizesOnDbOpen(
-                    conf.get(RocksDBOptions.SKIP_CHECK_SIZE_ON_DB_OPEN));
+                conf.get(RocksDBOptions.SKIP_CHECK_SIZE_ON_DB_OPEN));
 
-            db.setMaxFileOpeningThreads(
-                    conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
+            db.setMaxFileOpeningThreads(conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
 
             db.setDbWriteBufferSize(conf.get(RocksDBOptions.DB_MEMTABLE_SIZE));
 
