@@ -51,6 +51,7 @@ disruptor-3.3.7.jar
 eclipse-collections-11.1.0.jar
 eclipse-collections-api-11.1.0.jar
 error_prone_annotations-2.1.3.jar
+error_prone_annotations-2.10.0.jar
 exp4j-0.4.8.jar
 expressions-9.0-9.0.20190305.jar
 fastparse_2.12-2.0.4.jar
@@ -78,11 +79,11 @@ groovy-jsr223-2.5.14-indy.jar
 groovy-swing-2.5.14.jar
 groovy-templates-2.5.14.jar
 groovy-xml-2.5.14.jar
-grpc-api-1.28.0.jar
-grpc-context-1.28.0.jar
-grpc-core-1.28.0.jar
-grpc-netty-shaded-1.28.0.jar
-gson-2.8.6.jar
+grpc-api-1.47.0.jar
+grpc-context-1.47.0.jar
+grpc-core-1.47.0.jar
+grpc-netty-shaded-1.47.0.jar
+gson-2.9.0.jar
 guava-25.1-jre.jar
 hamcrest-2.2.jar
 hamcrest-core-1.3.jar
@@ -219,7 +220,7 @@ osgi-resource-locator-1.0.3.jar
 parboiled-core-1.2.0.jar
 parboiled-scala_2.12-1.2.0.jar
 parser-9.0-9.0.20190305.jar
-perfmark-api-0.19.0.jar
+perfmark-api-0.25.0.jar
 picocli-4.3.2.jar
 postgresql-42.4.1.jar
 protobuf-java-3.21.7.jar

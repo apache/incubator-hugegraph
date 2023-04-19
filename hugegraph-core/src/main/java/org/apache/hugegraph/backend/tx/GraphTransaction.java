@@ -1725,7 +1725,12 @@ public class GraphTransaction extends IndexableTransaction {
                  * Both have correct and left index, wo should return true
                  * but also needs to cleaned up left index
                  */
-                this.indexTx.asyncRemoveIndexLeft(cq, elem);
+                try {
+                    this.indexTx.asyncRemoveIndexLeft(cq, elem);
+                } catch (Throwable e) {
+                    LOG.warn("Failed to remove left index for query '{}', " +
+                             "element '{}'", cq, elem, e);
+                }
             }
 
             /* Return true if:
@@ -1737,7 +1742,12 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         if (cq.optimized() == OptimizedType.INDEX) {
-            this.indexTx.asyncRemoveIndexLeft(cq, elem);
+            try {
+                this.indexTx.asyncRemoveIndexLeft(cq, elem);
+            } catch (Throwable e) {
+                LOG.warn("Failed to remove left index for query '{}', " +
+                         "element '{}'", cq, elem, e);
+            }
         }
         return false;
     }
