@@ -24,5 +24,5 @@ public class RpcVersion {
     public static final String NAME = "hugegraph-rpc";
 
     // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(RpcVersion.class, "1.0.0");
+    public static final Version VERSION = Version.of(RpcVersion.class, "1.0.1");
 }

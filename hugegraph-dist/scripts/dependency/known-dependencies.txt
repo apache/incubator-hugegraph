@@ -16,9 +16,9 @@ commons-text-1.9.jar
 disruptor-3.3.7.jar
 error_prone_annotations-2.3.4.jar
 failureaccess-1.0.1.jar
-grpc-api-1.28.0.jar
-grpc-context-1.28.0.jar
-grpc-core-1.28.0.jar
+grpc-api-1.28.1.jar
+grpc-context-1.28.1.jar
+grpc-core-1.28.1.jar
 grpc-netty-shaded-1.28.0.jar
 grpc-protobuf-1.28.0.jar
 grpc-protobuf-lite-1.28.0.jar

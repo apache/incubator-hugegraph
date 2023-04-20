@@ -24,5 +24,5 @@ public class CommonVersion {
     public static final String NAME = "hugegraph-common";
 
     // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class, "1.0.0");
+    public static final Version VERSION = Version.of(CommonVersion.class, "1.0.1");
 }
