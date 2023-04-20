@@ -369,8 +369,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                                              String walPath) throws RocksDBException {
         // Init options
         Options options = new Options();
-        RocksDBStdSessions.initOptions(config, options, options,
-                                       options, options);
+        RocksDBStdSessions.initOptions(config, options, options, options, options);
         options.setWalDir(walPath);
         SstFileManager sstFileManager = new SstFileManager(Env.getDefault());
         options.setSstFileManager(sstFileManager);

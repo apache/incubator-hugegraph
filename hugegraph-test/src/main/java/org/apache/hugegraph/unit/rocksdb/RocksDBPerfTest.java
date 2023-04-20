@@ -24,19 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.junit.Test;
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
+import org.junit.Test;
 
 public class RocksDBPerfTest extends BaseRocksDBUnitTest {
 
     private static final int TIMES = 10000 * 1000;
 
     @Test
-    public void testSeekExistKey() throws RocksDBException {
+    public void testSeekExistKey() {
         put("exist", "value");
 
         Session session = this.rocks.session();
@@ -49,7 +47,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testSeekNonExistKey() throws RocksDBException {
+    public void testSeekNonExistKey() {
         put("exist", "value");
 
         Session session = this.rocks.session();
@@ -62,7 +60,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testGetExistKey() throws RocksDBException {
+    public void testGetExistKey() {
         put("exist", "value");
 
         Session session = this.rocks.session();
@@ -73,7 +71,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testGetNonExistKey() throws RocksDBException {
+    public void testGetNonExistKey() {
         put("exist", "value");
 
         Session session = this.rocks.session();
@@ -84,14 +82,14 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testPut() throws RocksDBException {
+    public void testPut() {
         for (int i = 0; i < TIMES; i++) {
             put("person-" + i, "value-" + i);
         }
     }
 
     @Test
-    public void testGet3Keys() throws RocksDBException {
+    public void testGet3Keys() {
 
         put("person:1gname", "James");
         put("person:1gage", "19");
@@ -110,7 +108,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testMultiGet3Keys() throws RocksDBException {
+    public void testMultiGet3Keys() {
 
         put("person:1gname", "James");
         put("person:1gage", "19");
@@ -134,7 +132,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testGet1KeyWithMultiValues() throws RocksDBException {
+    public void testGet1KeyWithMultiValues() {
 
         put("person:1gname", "James");
         put("person:1gage", "19");
@@ -153,7 +151,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testScanByPrefix() throws RocksDBException {
+    public void testScanByPrefix() {
 
         put("person:1gname", "James");
         put("person:1gage", "19");
@@ -173,31 +171,31 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testGet3KeysWithData() throws RocksDBException {
+    public void testGet3KeysWithData() {
         testPut();
         testGet3Keys();
     }
 
     @Test
-    public void testMultiGet3KeysWithData() throws RocksDBException {
+    public void testMultiGet3KeysWithData() {
         testPut();
         testMultiGet3Keys();
     }
 
     @Test
-    public void testGet1KeyWithData() throws RocksDBException {
+    public void testGet1KeyWithData() {
         testPut();
         testGet1KeyWithMultiValues();
     }
 
     @Test
-    public void testScanByPrefixWithData() throws RocksDBException {
+    public void testScanByPrefixWithData() {
         testPut();
         testScanByPrefix();
     }
 
     @Test
-    public void testUpdate() throws RocksDBException {
+    public void testUpdate() {
         Session session = this.rocks.session();
 
         Random r = new Random();
@@ -231,7 +229,7 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testScanByPrefixAfterUpdate() throws RocksDBException {
+    public void testScanByPrefixAfterUpdate() {
         Session session = this.rocks.session();
 
         this.testUpdate();

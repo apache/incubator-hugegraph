@@ -17,17 +17,16 @@
 
 package org.apache.hugegraph.unit.serializer;
 
-import org.apache.hugegraph.config.HugeConfig;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.Test;
 
 public class BinarySerializerTest extends BaseUnitTest {
 

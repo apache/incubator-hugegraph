@@ -120,13 +120,13 @@ public class RocksDBSstSessions extends RocksDBSessions {
     }
 
     @Override
-    public synchronized void dropTable(String... tables) {
+    public synchronized void dropTable(String... tables) throws RocksDBException {
         for (String table : tables) {
             this.dropTable(table);
         }
     }
 
-    public void dropTable(String table) {
+    public void dropTable(String table) throws RocksDBException{
         try (SstFileWriter sst = this.tables.remove(table)) {
             assert sst == null || !sst.isOwningHandle() : "Please close table before drop to " +
                                                           "ensure call sst.finish()";

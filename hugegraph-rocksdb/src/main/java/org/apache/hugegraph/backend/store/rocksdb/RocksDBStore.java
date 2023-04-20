@@ -827,8 +827,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         return this.dbs.values();
     }
 
-    private void parseTableDiskMapping(Map<String, String> disks,
-                                       String dataPath) {
+    private void parseTableDiskMapping(Map<String, String> disks, String dataPath) {
 
         this.tableDiskMapping.clear();
         for (Map.Entry<String, String> disk : disks.entrySet()) {
