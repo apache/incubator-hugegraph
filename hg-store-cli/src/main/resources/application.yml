@@ -1,0 +1,23 @@
+net:
+  kv:
+    scanner:
+      buffer.size: 10000
+      page.size: 20000
+      chan.size: 1
+
+pd:
+  address: 10.14.139.71:8686
+
+scanner:
+  #graph: 'default/icbc_hstoregraph/g'
+  graph: 'DEFAULT/hugegraph/g'
+
+  table: 'g+ie'
+  #table: 'g+v'
+  max: 10_000_000
+  mod: 1_000_000
+
+committer:
+  graph: 'STORE_CLI'
+  table: 'benchmark'
+  amount: 1_000_000

@@ -1,0 +1,11 @@
+rocksdb:
+  # rocksdb 使用的总内存大小
+  total_memory_size: 32000000000
+  max_background_jobs: 8
+  max_subcompactions: 4
+  target_file_size_multiplier: 4
+  min_write_buffer_number_to_merge: 8
+  target_file_size_base: 512000000
+  bloom_filter_bits_per_key: 10
+  compression_per_level: "[zstd, zstd, zstd, zstd, zstd, zstd, zstd]"
+  bottommost_compression: "zstd"

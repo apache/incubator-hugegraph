@@ -1,0 +1,153 @@
+package client;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Test;
+
+import com.baidu.hugegraph.store.client.util.HgAssert;
+
+public class HgAssertTest {
+
+    @Test
+    public void testIsTrue1() {
+        // Setup
+        // Run the test
+        try{
+            HgAssert.isTrue(false, "message");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
+    }
+
+    @Test
+    public void testIsTrue2() {
+        try{
+            HgAssert.isTrue(false, () -> "message");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
+    }
+
+    @Test
+    public void testIsFalse1() {
+        try{
+            HgAssert.isFalse(true, "message");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
+    }
+
+    @Test
+    public void testIsFalse2() {
+        try{
+            HgAssert.isFalse(true, () -> "message");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
+    }
+
+    @Test
+    public void testIsArgumentValid1() {
+        // Setup
+        // Run the test
+        HgAssert.isArgumentValid("content".getBytes(), "parameter");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsArgumentValid2() {
+        // Setup
+        // Run the test
+        HgAssert.isArgumentValid("str", "parameter");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsArgumentValid3() {
+        // Setup
+        // Run the test
+        HgAssert.isArgumentValid(List.of("value"), "parameter");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsArgumentNotNull() {
+        // Setup
+        // Run the test
+        HgAssert.isArgumentNotNull("obj", "parameter");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIstValid() {
+        // Setup
+        // Run the test
+        HgAssert.istValid("content".getBytes(), "message");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsValid() {
+        // Setup
+        // Run the test
+        HgAssert.isValid("str", "message");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsNotNull() {
+        // Setup
+        // Run the test
+        HgAssert.isNotNull("obj", "message");
+
+        // Verify the results
+    }
+
+    @Test
+    public void testIsContains1() {
+        assertTrue(HgAssert.isContains(new Object[]{"obj"}, "obj"));
+    }
+
+    @Test
+    public void testIsInvalid1() {
+        assertFalse(HgAssert.isInvalid("strs"));
+    }
+
+    @Test
+    public void testIsInvalid2() {
+        assertFalse(HgAssert.isInvalid("content".getBytes()));
+    }
+
+    @Test
+    public void testIsInvalid3() {
+        // Setup
+        final Map<?, ?> map = Map.ofEntries(Map.entry("value", "value"));
+        // Verify the results
+        assertFalse(HgAssert.isInvalid(map));
+    }
+
+    @Test
+    public void testIsInvalid4() {
+        assertFalse(HgAssert.isInvalid(List.of("value")));
+    }
+
+    @Test
+    public void testIsContains2() {
+        assertTrue(HgAssert.isContains(List.of("item"), "item"));
+    }
+
+    @Test
+    public void testIsNull() {
+        assertFalse(HgAssert.isNull("objs"));
+    }
+}

@@ -1,0 +1,251 @@
+package com.baidu.hugegraph.store.node.grpc;
+
+
+import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import com.baidu.hugegraph.store.buffer.ByteBufferAllocator;
+import com.baidu.hugegraph.store.buffer.KVByteBuffer;
+import com.baidu.hugegraph.store.grpc.stream.KvStream;
+import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
+import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
+import com.baidu.hugegraph.store.node.util.HgGrpc;
+import com.baidu.hugegraph.store.node.util.PropertyUtil;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.baidu.hugegraph.store.node.grpc.ScanUtil.getParallelIterator;
+
+/**
+ * 批量查询处理器，批量查询数据，流式返回数据。
+ * 1、服务端流式发送数据给客户端
+ * 2、客户端每消费一批次数据，返回批次号给服务端
+ * 3、服务端根据批次号决定发送多少数据，保证传送数据的不间断，
+ */
+@Slf4j
+public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
+    private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
+    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //单位秒
+
+    static ByteBufferAllocator bfAllocator =
+            new ByteBufferAllocator(ParallelScanIterator.maxBodySize*3/2, 1000);
+    // 当前正在遍历的迭代器
+    private ScanIterator iterator;
+    // 下一次发送的序号
+    private volatile int nextSeqNo;
+    // Client已消费的序号
+    private volatile int clientSeqNo;
+    // 已经发送的条目数
+    private volatile long entriesCounter;
+    // 客户端要求返回的最大条目数
+    private volatile long clientLimit;             // 客户端要求的最大条目数
+    private ScanQueryRequest query;
+    // 上次读取数据时间
+    private long activeTime;
+    private volatile State state;
+    private final Object stateLock = new Object();
+    private ReentrantLock iteratorLock = new ReentrantLock();
+
+    private final StreamObserver<KvStream> sender;
+    private final HgStoreWrapperEx wrapper;
+    private final ThreadPoolExecutor executor;
+    private final long logId;
+
+    public ScanBatchResponse(StreamObserver<KvStream> response, HgStoreWrapperEx wrapper, ThreadPoolExecutor executor) {
+        this.sender = response;
+        this.wrapper = wrapper;
+        this.executor = executor;
+        this.iterator = null;
+        this.nextSeqNo = 1;
+        this.state = State.IDLE;
+        this.activeTime = System.currentTimeMillis();
+        this.logId = response.hashCode();
+    }
+
+    /**
+     * 接收客户端发送的消息
+     * 服务端另起线程处理消息，不阻塞网络
+     *
+     * @param request
+     */
+    @Override
+    public void onNext(ScanStreamBatchReq request) {
+        switch (request.getQueryCase()) {
+            case QUERY_REQUEST: // 查询条件
+                executor.execute(() -> {
+                    startQuery(request.getHeader().getGraph(), request.getQueryRequest());
+                });
+                break;
+            case RECEIPT_REQUEST:   // 消息异步应答
+                this.clientSeqNo = request.getReceiptRequest().getTimes();
+                if (nextSeqNo - clientSeqNo < maxInFlightCount) {
+                    synchronized (stateLock) {
+                        if (state == State.IDLE) {
+                            state = State.DOING;
+                            executor.execute(() -> {
+                                sendEntries();
+                            });
+                        } else if (state == State.DONE) {
+                            sendNoDataEntries();
+                        }
+                    }
+                }
+                break;
+            case CANCEL_REQUEST:    // 关闭流
+                closeQuery();
+                break;
+            default:
+                sender.onError(
+                        HgGrpc.toErr("Unsupported sub-request: [ " + request + " ]"));
+        }
+    }
+
+    @Override
+    public void onError(Throwable t) {
+        log.error("onError ", t);
+        closeQuery();
+    }
+
+    @Override
+    public void onCompleted() {
+        closeQuery();
+    }
+
+
+    /**
+     * 生成迭代器
+     *
+     * @param request
+     */
+    private void startQuery(String graphName, ScanQueryRequest request) {
+        this.query = request;
+
+        // log.info("Stream {} startQuery graphName is {}, query degree/keylimit/limit is " +
+        //                "{}/{}/{}, scanType is {}, orderType is {}",
+        //        this.logId, graphName, query.getSkipDegree(), query.getPerKeyLimit(), query.getLimit(),
+        //        query.getScanType(), query.getOrderType());
+
+        this.clientLimit = request.getLimit();
+        this.entriesCounter = 0;
+        this.iterator = getParallelIterator(graphName, request, this.wrapper, executor);
+        synchronized (stateLock) {
+            if (state == State.IDLE) {
+                state = State.DOING;
+                executor.execute(() -> {
+                    sendEntries();
+                });
+            }
+        }
+    }
+
+    /**
+     * 生成迭代器
+     */
+    private void closeQuery() {
+        setStateDone();
+        iteratorLock.lock();
+        try {
+            if (this.iterator != null) {
+                this.iterator.close();
+                this.iterator = null;
+            }
+            this.sender.onCompleted();
+        } catch (Exception e) {
+            log.error("exception ", e);
+        } finally {
+            iteratorLock.unlock();
+        }
+        int active = ScanBatchResponseFactory.getInstance().removeStreamObserver(this);
+        log.info("ScanBatchResponse closeQuery, active count is {}", active);
+    }
+
+    /**
+     * 发送数据
+     */
+    private void sendEntries() {
+        iteratorLock.lock();
+        try {
+            if ( state == State.DONE || iterator == null) {
+                setStateIdle();
+                return;
+            }
+            KvStream.Builder dataBuilder = KvStream.newBuilder()
+                    .setVersion(1);
+            while (iterator.hasNext()
+                    && (nextSeqNo - clientSeqNo < maxInFlightCount)
+                    && this.entriesCounter < clientLimit
+                    && state != State.DONE) {
+                KVByteBuffer buffer = new KVByteBuffer(bfAllocator.get());
+                List<ParallelScanIterator.KV> dataList = iterator.next();
+                dataList.forEach(kv -> {
+                    kv.write(buffer);
+                    this.entriesCounter++;
+                });
+                dataBuilder.setStream(buffer.flip().getBuffer());
+                dataBuilder.setSeqNo(nextSeqNo++);
+                dataBuilder.complete(e->{
+                    bfAllocator.release(buffer.getBuffer());
+                });
+                this.sender.onNext(dataBuilder.build());
+                this.activeTime = System.currentTimeMillis();
+            }
+            if (!iterator.hasNext() || this.entriesCounter >= clientLimit || state == State.DONE) {
+                this.sender.onNext(KvStream.newBuilder().setOver(true).build());
+                setStateDone();
+            } else {
+                setStateIdle();
+            }
+        }catch (Throwable e){
+            log.error("exception ", e);
+            setStateIdle();
+            if ( this.sender != null)
+                this.sender.onError(e);
+        }finally {
+            iteratorLock.unlock();
+        }
+    }
+
+    private void sendNoDataEntries() {
+        try {
+            this.sender.onNext(KvStream.newBuilder().setOver(true).build());
+        }catch (Exception e){
+        }
+    }
+
+    private State setStateDone() {
+        synchronized (this.stateLock) {
+            this.state = State.DONE;
+        }
+        return state;
+    }
+
+    private State setStateIdle() {
+        synchronized (this.stateLock) {
+            if (this.state != State.DONE)
+                this.state = State.IDLE;
+        }
+        return state;
+    }
+
+    /**
+     * 检查是否活跃，超过一定时间客户端没有请求数据，认为已经不活跃，关闭连接释放资源
+     */
+    public void checkActiveTimeout() {
+        if ((System.currentTimeMillis() - activeTime) > activeTimeout * 1000) {
+            log.warn("The stream is not closed, and the timeout is forced to close");
+            closeQuery();
+        }
+    }
+
+    /**
+     * 任务状态
+     */
+    private enum State {
+        IDLE,
+        DOING,
+        DONE,
+        ERROR
+    }
+}
