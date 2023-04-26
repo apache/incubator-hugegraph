@@ -46,9 +46,9 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     static int maxWaitCount = PropertyUtil.getInt("net.kv.scanner.wait.timeout", 60);
     protected final BlockingQueue<Supplier<HgKvIterator<HgKvEntry>>> queue =
             new LinkedBlockingQueue<>();
-    private Supplier<HgKvIterator<HgKvEntry>> current = null;
     private final KvBatchScanner.TaskSplitter taskSplitter;
     private final List<KvBatchScanner> scanners = new CopyOnWriteArrayList<>();
+    private Supplier<HgKvIterator<HgKvEntry>> current = null;
 
     public KvBatchScannerMerger(KvBatchScanner.TaskSplitter splitter) {
         this.taskSplitter = splitter;
@@ -225,13 +225,14 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
      */
     static class SortedScannerMerger extends KvBatchScannerMerger {
         // 每一个流对应一个接收队列
-        private final Map<KvBatchScanner, ScannerDataQueue> scannerQueues = new ConcurrentHashMap<>();
+        private final Map<KvBatchScanner, ScannerDataQueue> scannerQueues =
+                new ConcurrentHashMap<>();
 
         public SortedScannerMerger(KvBatchScanner.TaskSplitter splitter) {
             super(splitter);
             queue.add(() -> {
                 // 对store返回结果进行归并排序
-                return new HgKvIterator<HgKvEntry>() {
+                return new HgKvIterator<>() {
                     private ScannerDataQueue iterator;
                     private int currentSN = 0;
                     private HgKvEntry entry;
@@ -310,16 +311,19 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
             return current;
         }
 
+        @Override
         public void registerScanner(KvBatchScanner scanner) {
             super.registerScanner(scanner);
             scannerQueues.putIfAbsent(scanner, new ScannerDataQueue());
         }
 
+        @Override
         public int unregisterScanner(KvBatchScanner scanner) {
             dataArrived(scanner, KvBatchScanner.NO_DATA);
             return super.unregisterScanner(scanner);
         }
 
+        @Override
         public void dataArrived(KvBatchScanner scanner,
                                 Supplier<HgKvIterator<HgKvEntry>> supplier) {
             scannerQueues.putIfAbsent(scanner, new ScannerDataQueue());

@@ -64,7 +64,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
                         hgThread2DB.setGraphName(args[3]);
                     }
                     try {
-                        if (args[2].equals("order")) {
+                        if ("order".equals(args[2])) {
                             hgThread2DB.testOrder(args[4]);
                         } else {
                             hgThread2DB.startMultiprocessInsert(args[2]);

@@ -432,7 +432,7 @@ public class HgStoreTestUtil {
         CountDownLatch countDownLatch = new CountDownLatch(threadsAmount);
         ExecutorService pool = new ThreadPoolExecutor(threadsAmount, threadsAmount + 20,
                                                       200, TimeUnit.SECONDS,
-                                                      new ArrayBlockingQueue<Runnable>(1000));
+                                                      new ArrayBlockingQueue<>(1000));
         for (int i = 0; i < threadsAmount; i++) {
             pool.submit(
                     () -> {

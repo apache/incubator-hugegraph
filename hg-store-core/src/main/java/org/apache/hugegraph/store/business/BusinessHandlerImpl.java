@@ -254,6 +254,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
      * @return
      * @throws HgStoreException
      */
+    @Override
     public ScanIterator scan(String graph, String table, int codeFrom, int codeTo)
             throws HgStoreException {
 
@@ -400,7 +401,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             HgStoreMetric.Partition partMetric = new HgStoreMetric.Partition();
             partMetric.setPartitionId(partId);
 
-            List<HgStoreMetric.Table> tables = new ArrayList<HgStoreMetric.Table>(sizeMap.size());
+            List<HgStoreMetric.Table> tables = new ArrayList<>(sizeMap.size());
             for (String tableName : sizeMap.keySet()) {
                 HgStoreMetric.Table table = new HgStoreMetric.Table();
                 table.setTableName(tableName);
@@ -659,6 +660,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
         return true;
     }
 
+    @Override
     public boolean deletePartition(String graph, int partId) {
         try {
             deleteGraphDatabase(graph, partId);
@@ -763,6 +765,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     /**
      * 对rocksdb进行compaction
      */
+    @Override
     public boolean dbCompaction(String graphName, int partitionId) {
         return this.dbCompaction(graphName, partitionId, "");
     }
@@ -770,6 +773,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     /**
      * 对rocksdb进行compaction
      */
+    @Override
     public boolean dbCompaction(String graphName, int partitionId, String tableName) {
         try (RocksDBSession session = getSession(graphName, partitionId)) {
             SessionOperator op = session.sessionOp();
@@ -790,6 +794,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
      * @param graphName
      * @param partId
      */
+    @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
         // 每个图每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
         String dbName = getDbName(partId);

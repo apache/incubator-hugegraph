@@ -37,7 +37,7 @@ public class RocksdbDump {
         String dbPath =
                 "D:\\Workspaces\\baidu\\hugegraph\\hugegraph-store\\tmp\\8500\\db\\default" +
                 "\\hugegraph\\g";
-        List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<ColumnFamilyDescriptor>();
+        List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
         List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
         ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
         if (columnFamilyBytes.size() > 0) {

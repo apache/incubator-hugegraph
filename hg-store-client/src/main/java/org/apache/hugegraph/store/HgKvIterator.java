@@ -29,6 +29,7 @@ public interface HgKvIterator<E> extends Iterator<E>, HgSeekAble, Closeable {
 
     byte[] value();
 
+    @Override
     void close();
 
 }

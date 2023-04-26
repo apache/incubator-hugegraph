@@ -27,19 +27,17 @@ import org.apache.hugegraph.store.HgStoreSession;
 @ThreadSafe
 public final class MultiNodeSessionFactory {
     // TODO multi-instance ?
-    private final static MultiNodeSessionFactory instance = new MultiNodeSessionFactory();
+    private final static MultiNodeSessionFactory INSTANCE = new MultiNodeSessionFactory();
     // TODO multi-instance ?
     private final HgStoreNodeManager nodeManager = HgStoreNodeManager.getInstance();
     // TODO: to be a chain assigned to each graph
     //private HgStoreNodeDispatcher storeNodeDispatcher;
 
     private MultiNodeSessionFactory() {
-
-        //this.storeNodeDispatcher = new KeyHashStoreNodeDispatcher();
     }
 
     static MultiNodeSessionFactory getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     HgStoreSession createStoreSession(String graphName) {

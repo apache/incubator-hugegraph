@@ -31,25 +31,8 @@ import io.grpc.stub.StreamObserver;
  */
 
 abstract class GrpcClosure<V> implements RaftClosure {
-    private V result;
     private final Map<Integer, Long> leaderMap = new HashMap<>();
-
-    public V getResult() {
-        return result;
-    }
-
-    public Map<Integer, Long> getLeaderMap() {
-        return leaderMap;
-    }
-
-    @Override
-    public void onLeaderChanged(Integer partId, Long storeId) {
-        leaderMap.put(partId, storeId);
-    }
-
-    public void setResult(V result) {
-        this.result = result;
-    }
+    private V result;
 
     /**
      * 设置输出结果给raftClosure，对于Follower来说，raftClosure为空
@@ -62,11 +45,28 @@ abstract class GrpcClosure<V> implements RaftClosure {
     }
 
     public static <V> RaftClosure newRaftClosure(StreamObserver<V> observer) {
-        BatchGrpcClosure<V> wrap = new BatchGrpcClosure<V>(0);
+        BatchGrpcClosure<V> wrap = new BatchGrpcClosure<>(0);
         return wrap.newRaftClosure(s -> {
             wrap.waitFinish(observer, r -> {
                 return (V) wrap.selectError((List<FeedbackRes>) r);
             }, 0);
         });
+    }
+
+    public V getResult() {
+        return result;
+    }
+
+    public void setResult(V result) {
+        this.result = result;
+    }
+
+    public Map<Integer, Long> getLeaderMap() {
+        return leaderMap;
+    }
+
+    @Override
+    public void onLeaderChanged(Integer partId, Long storeId) {
+        leaderMap.put(partId, storeId);
     }
 }

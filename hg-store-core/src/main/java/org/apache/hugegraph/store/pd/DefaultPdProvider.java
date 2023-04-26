@@ -54,15 +54,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DefaultPdProvider implements PdProvider {
     private static final Logger LOG = Log.logger(DefaultPdProvider.class);
+    private static final ConcurrentMap<String, Boolean> quotas =
+            new ConcurrentHashMap<>();
     private final PDClient pdClient;
     private final String pdServerAddress;
     private List<PartitionInstructionListener> partitionCommandListeners =
             Collections.synchronizedList(new ArrayList());
-
     private PDPulse.Notifier<PartitionHeartbeatRequest.Builder> pdPulse;
-    private static final ConcurrentMap<String, Boolean> quotas =
-            new ConcurrentHashMap<>();
-
     private GraphManager graphManager = null;
     PDClient.PDEventListener listener = new PDClient.PDEventListener() {
         // 监听pd变更信息的listener
@@ -256,7 +254,7 @@ public class DefaultPdProvider implements PdProvider {
                 Partition partition = new Partition(instruction.getPartition());
 
                 // 消息消费应答，能够正确消费消息，调用accept返回状态码，否则不要调用accept
-                Consumer<Integer> consumer = new Consumer<Integer>() {
+                Consumer<Integer> consumer = new Consumer<>() {
                     @Override
                     public void accept(Integer integer) {
                         LOG.debug("Partition heartbeat accept instruction: {}", instruction);
@@ -419,10 +417,12 @@ public class DefaultPdProvider implements PdProvider {
     private void handleCommonException(Exception e) {
     }
 
+    @Override
     public GraphManager getGraphManager() {
         return graphManager;
     }
 
+    @Override
     public void setGraphManager(GraphManager graphManager) {
         this.graphManager = graphManager;
     }
@@ -432,6 +432,7 @@ public class DefaultPdProvider implements PdProvider {
         pdClient.deleteShardGroup(groupId);
     }
 
+    @Override
     public Metapb.ShardGroup getShardGroup(int partitionId) {
         try {
             return pdClient.getShardGroup(partitionId);

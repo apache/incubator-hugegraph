@@ -42,15 +42,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HgCmdClient {
+    private static final int MAX_RETRY_TIMES = 5;
     protected volatile RpcClient rpcClient;
     private RpcOptions rpcOptions;
     private PartitionAgent ptAgent;
-    private static final int MAX_RETRY_TIMES = 5;
-
-    public interface PartitionAgent {
-        Endpoint getPartitionLeader(String graph, int partitionId);
-    }
-
 
     public synchronized boolean init(final RpcOptions rpcOptions, PartitionAgent ptAgent) {
         this.ptAgent = ptAgent;
@@ -60,7 +55,6 @@ public class HgCmdClient {
                 factory.createRpcClient(factory.defaultJRaftClientConfigHelper(this.rpcOptions));
         return this.rpcClient.init(rpcOptions);
     }
-
 
     public <T> Future<T> createRaftNode(final String address, final List<Partition> partitions,
                                         final Closure done) {
@@ -98,7 +92,6 @@ public class HgCmdClient {
                  request.getPartitionId());
         return internalCallAsyncWithRpc(JRaftUtils.getEndPoint(peer), request, done);
     }
-
 
     public Store getStoreInfo(final String address) {
         GetStoreInfoRequest request = new GetStoreInfoRequest();
@@ -204,7 +197,7 @@ public class HgCmdClient {
                                                    final Closure done) {
         final InvokeContext invokeCtx = null;
         int[] retryCount = new int[]{0};
-        FutureClosureAdapter<V> response = new FutureClosureAdapter<V>() {
+        FutureClosureAdapter<V> response = new FutureClosureAdapter<>() {
             @Override
             public void run(Status status) {
                 done.run(status);
@@ -259,5 +252,9 @@ public class HgCmdClient {
             }
             tryWithTimes(endpoint, request, closure, invokeCtx, retryCount);
         }
+    }
+
+    public interface PartitionAgent {
+        Endpoint getPartitionLeader(String graph, int partitionId);
     }
 }

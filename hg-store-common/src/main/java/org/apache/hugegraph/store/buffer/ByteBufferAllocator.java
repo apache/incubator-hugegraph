@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.buffer;
 
-
 import java.nio.ByteBuffer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,10 +29,10 @@ public class ByteBufferAllocator {
     final int capacity;
     // buffer 最大个数
     final int maxCount;
-    // 当前数量
-    AtomicInteger totalCount;
     // 空闲队列
     final BlockingQueue<ByteBuffer> freeQueue = new LinkedBlockingQueue<>();
+    // 当前数量
+    AtomicInteger totalCount;
 
     public ByteBufferAllocator(int cap, int count) {
         this.capacity = cap;
@@ -62,5 +61,4 @@ public class ByteBufferAllocator {
             freeQueue.add(buffer);
         }
     }
-
 }

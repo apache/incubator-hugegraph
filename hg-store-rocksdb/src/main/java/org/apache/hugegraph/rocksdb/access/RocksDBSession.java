@@ -70,19 +70,19 @@ import lombok.extern.slf4j.Slf4j;
 public class RocksDBSession implements AutoCloseable, Cloneable {
 
     private static final int CPUS = Runtime.getRuntime().availableProcessors();
-    private transient String dbPath;
+    final Statistics rocksDbStats;
+    final WriteOptions writeOptions;
+    final AtomicInteger refCount;
+    final AtomicBoolean shutdown;
+    final String tempSuffix = "_temp_";
     private final transient String graphName;
     private final HugeConfig hugeConfig;
     private final ReentrantReadWriteLock cfHandleLock;
     private final Map<String, ColumnFamilyHandle> tables;
+    private transient String dbPath;
     private RocksDB rocksDB;
-    final Statistics rocksDbStats;
     private DBOptions dbOptions;
-    final WriteOptions writeOptions;
-    final AtomicInteger refCount;
-    final AtomicBoolean shutdown;
     private volatile boolean closed = false;
-    final String tempSuffix = "_temp_";
 
     public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName,
                           long version) {
@@ -112,351 +112,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         this.refCount.incrementAndGet();
     }
 
-    @Override
-    public RocksDBSession clone() {
-        return new RocksDBSession(this);
-    }
-
-    public RocksDB getDB() {
-        return this.rocksDB;
-    }
-
-    public HugeConfig getHugeConfig() {
-        return this.hugeConfig;
-    }
-
-    public String getGraphName() {
-        return this.graphName;
-    }
-
-    public WriteOptions getWriteOptions() {
-        return this.writeOptions;
-    }
-
-    public Map<String, ColumnFamilyHandle> getTables() {
-        return tables;
-    }
-
-    public ReentrantReadWriteLock.ReadLock getCfHandleReadLock() {
-        return this.cfHandleLock.readLock();
-    }
-
-
-    private String findLatestDBPath(String path, long version) {
-        File file = new File(path);
-        int strIndex = file.getName().indexOf("_");
-
-        String defaultName;
-        if (strIndex < 0) {
-            defaultName = file.getName();
-        } else {
-            defaultName = file.getName().substring(0, strIndex);
-        }
-        String prefix = defaultName + "_";
-        File parentFile = new File(file.getParent());
-        ArrayList<HgPair<Long, Long>> dbs = new ArrayList<>();
-        File[] files = parentFile.listFiles();
-        if (files != null) {
-            dbs.ensureCapacity(files.length);
-            // search all db path
-            for (final File sFile : files) {
-                final String name = sFile.getName();
-                if (!name.startsWith(prefix) && !name.equals(defaultName)) {
-                    continue;
-                }
-                if (name.endsWith(tempSuffix)) {
-                    continue;
-                }
-                long v1 = -1L;
-                long v2 = -1L;
-                if (name.length() > defaultName.length()) {
-                    String[] versions = name.substring(prefix.length()).split("_");
-                    if (versions.length == 1) {
-                        v1 = Long.parseLong(versions[0]);
-                    } else if (versions.length == 2) {
-                        v1 = Long.parseLong(versions[0]);
-                        v2 = Long.parseLong(versions[1]);
-                    } else {
-                        continue;
-                    }
-                }
-                dbs.add(new HgPair<>(v1, v2));
-            }
-        }
-
-        RocksDBFactory factory = RocksDBFactory.getInstance();
-        // get last index db path
-        String latestDBPath = "";
-        if (!dbs.isEmpty()) {
-
-            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ?
-                                 o1.getValue().compareTo(o2.getValue()) :
-                                 o1.getKey().compareTo(o2.getKey()));
-            final int dbCount = dbs.size();
-            for (int i = 0; i < dbCount; i++) {
-                final HgPair<Long, Long> pair = dbs.get(i);
-                String curDBName;
-                if (pair.getKey() == -1L) {
-                    curDBName = defaultName;
-                } else if (pair.getValue() == -1L) {
-                    curDBName = String.format("%s_%d", defaultName, pair.getKey());
-                } else {
-                    curDBName =
-                            String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
-                }
-                String curDBPath = Paths.get(parentFile.getPath(), curDBName).toString();
-                if (i == dbCount - 1) {
-                    latestDBPath = curDBPath;
-                } else {
-                    // delete old db，在删除队列的文件不要删除
-                    if (!factory.findPathInRemovedList(curDBPath)) {
-                        try {
-                            FileUtils.deleteDirectory(new File(curDBPath));
-                            log.info("delete old dbpath {}", curDBPath);
-                        } catch (IOException e) {
-                            log.error("fail to delete old dbpath {}", curDBPath, e);
-                        }
-                    }
-                }
-            }
-        } else {
-            latestDBPath = Paths.get(parentFile.getPath(), defaultName).toString();
-        }
-        if (factory.findPathInRemovedList(latestDBPath)) {
-            // 已经被删除，创建新的目录
-            latestDBPath =
-                    Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version))
-                         .toString();
-        }
-        //
-        log.info("{} latest db path {}", this.graphName, latestDBPath);
-        return latestDBPath;
-    }
-
-
-    public boolean setDisableWAL(final boolean flag) {
-        this.writeOptions.setSync(!flag);
-        return this.writeOptions.setDisableWAL(flag).disableWAL();
-    }
-
-    public void checkTable(String table) {
-        try {
-            ColumnFamilyHandle handle = tables.get(table);
-            if (handle == null) {
-                createTable(table);
-            }
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        }
-    }
-
-    public boolean tableIsExist(String table) {
-        return this.tables.containsKey(table);
-    }
-
-    private void openRocksDB(String dbDataPath, long version) {
-
-        if (dbDataPath.endsWith(File.separator)) {
-            this.dbPath = dbDataPath + this.graphName;
-        } else {
-            this.dbPath = dbDataPath + File.separator + this.graphName;
-        }
-
-        this.dbPath = findLatestDBPath(dbPath, version);
-
-        Asserts.isTrue((dbPath != null),
-                       () -> new DBStoreException("the data-path of RocksDB is null"));
-
-        //makedir for rocksdb
-        createDirectory(dbPath);
-
-        Options opts = new Options();
-        RocksDBSession.initOptions(hugeConfig, opts, opts, opts, opts);
-        dbOptions = new DBOptions(opts);
-        dbOptions.setStatistics(rocksDbStats);
-
-        try {
-            List<ColumnFamilyDescriptor> columnFamilyDescriptorList =
-                    new ArrayList<ColumnFamilyDescriptor>();
-            List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
-
-            ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
-            RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
-
-            if (columnFamilyBytes.size() > 0) {
-                for (byte[] columnFamilyByte : columnFamilyBytes) {
-                    columnFamilyDescriptorList.add(
-                            new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
-                }
-            } else {
-                columnFamilyDescriptorList.add(
-                        new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
-            }
-            List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
-            this.rocksDB = RocksDB.open(dbOptions, dbPath, columnFamilyDescriptorList,
-                                        columnFamilyHandleList);
-            Asserts.isTrue(columnFamilyHandleList.size() > 0, "must have column family");
-
-            for (ColumnFamilyHandle handle : columnFamilyHandleList) {
-                this.tables.put(new String(handle.getDescriptor().getName()), handle);
-            }
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        }
-    }
-
-    private ColumnFamilyHandle createTable(String table) throws RocksDBException {
-        cfHandleLock.writeLock().lock();
-        try {
-            ColumnFamilyHandle handle = tables.get(table);
-            if (handle == null) {
-                ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
-                RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
-                ColumnFamilyDescriptor cfDescriptor =
-                        new ColumnFamilyDescriptor(table.getBytes(), cfOptions);
-                handle = this.rocksDB.createColumnFamily(cfDescriptor);
-                tables.put(table, handle);
-            }
-            return handle;
-        } finally {
-            cfHandleLock.writeLock().unlock();
-        }
-    }
-
-    public ColumnFamilyHandle getCF(String table) {
-        ColumnFamilyHandle handle = this.tables.get(table);
-        try {
-            if (handle == null) {
-                getCfHandleReadLock().unlock();
-                handle = createTable(table);
-                getCfHandleReadLock().lock();
-            }
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        }
-        return handle;
-    }
-
-    public CFHandleLock getCFHandleLock(String table) {
-        this.cfHandleLock.readLock().lock();
-        ColumnFamilyHandle handle = this.tables.get(table);
-        try {
-            if (handle == null) {
-                this.cfHandleLock.readLock().unlock();
-                handle = createTable(table);
-                this.cfHandleLock.readLock().lock();
-                handle = this.tables.get(table);
-            }
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        }
-        return new CFHandleLock(handle, this.cfHandleLock);
-    }
-
-
-    public static class CFHandleLock implements Closeable {
-        private final ColumnFamilyHandle handle;
-        private final ReentrantReadWriteLock lock;
-
-        public CFHandleLock(ColumnFamilyHandle handle, ReentrantReadWriteLock lock) {
-            this.handle = handle;
-            this.lock = lock;
-        }
-
-        @Override
-        public void close() {
-            lock.readLock().unlock();
-        }
-
-        public ColumnFamilyHandle get() {
-            return handle;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "RocksDBSession";
-    }
-
-
-    /**
-     * Delete all data of table
-     *
-     * @param tables
-     * @throws DBStoreException
-     */
-    public void deleteTables(String... tables) throws DBStoreException {
-        // TODO: Is this right?
-        dropTables(tables);
-        createTables(tables);
-    }
-
-    public void createTables(String... tables) throws DBStoreException {
-        if (!this.rocksDB.isOwningHandle()) {
-            return;
-        }
-        cfHandleLock.writeLock().lock();
-        try {
-            List<ColumnFamilyDescriptor> cfList = new ArrayList<>();
-            for (String table : tables) {
-                if (this.tables.get(table) != null) {
-                    continue;
-                }
-
-                ColumnFamilyDescriptor cfDescriptor = new ColumnFamilyDescriptor(table.getBytes());
-                cfList.add(cfDescriptor);
-            }
-
-            if (cfList.size() > 0) {
-                List<ColumnFamilyHandle> cfHandles = this.rocksDB.createColumnFamilies(cfList);
-                for (ColumnFamilyHandle handle : cfHandles) {
-                    this.tables.put(new String(handle.getDescriptor().getName()), handle);
-                }
-            }
-
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        } finally {
-            cfHandleLock.writeLock().unlock();
-        }
-
-    }
-
-    public void dropTables(String... tables) throws DBStoreException {
-        if (!this.rocksDB.isOwningHandle()) {
-            return;
-        }
-
-        cfHandleLock.writeLock().lock();
-        try {
-            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
-            for (String table : tables) {
-                ColumnFamilyHandle handle = this.tables.get(table);
-                if (handle != null) {
-                    cfHandles.add(handle);
-                } else {
-                    this.tables.remove(table);
-                }
-            }
-
-            if (cfHandles.size() > 0) {
-                this.rocksDB.dropColumnFamilies(cfHandles);
-            }
-
-            for (ColumnFamilyHandle h : cfHandles) {
-                String tName = new String(h.getDescriptor().getName());
-                h.close();
-                log.info("drop table: {}", tName);
-                this.tables.remove(tName);
-            }
-
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        } finally {
-            cfHandleLock.writeLock().unlock();
-        }
-    }
-
     /**
      * create directory
      */
@@ -469,17 +124,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
 
         return true;
-    }
-
-
-    public synchronized void truncate() {
-        Set<String> tableNames = this.tables.keySet();
-        String defaultCF = new String(RocksDB.DEFAULT_COLUMN_FAMILY);
-        tableNames.remove(defaultCF);
-
-        log.info("truncate table: {}", String.join(",", tableNames));
-        this.dropTables(tableNames.toArray(new String[0]));
-        this.createTables(tableNames.toArray(new String[0]));
     }
 
     public static void initOptions(HugeConfig conf,
@@ -620,6 +264,338 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
     }
 
+    @Override
+    public RocksDBSession clone() {
+        return new RocksDBSession(this);
+    }
+
+    public RocksDB getDB() {
+        return this.rocksDB;
+    }
+
+    public HugeConfig getHugeConfig() {
+        return this.hugeConfig;
+    }
+
+    public String getGraphName() {
+        return this.graphName;
+    }
+
+    public WriteOptions getWriteOptions() {
+        return this.writeOptions;
+    }
+
+    public Map<String, ColumnFamilyHandle> getTables() {
+        return tables;
+    }
+
+    public ReentrantReadWriteLock.ReadLock getCfHandleReadLock() {
+        return this.cfHandleLock.readLock();
+    }
+
+    private String findLatestDBPath(String path, long version) {
+        File file = new File(path);
+        int strIndex = file.getName().indexOf("_");
+
+        String defaultName;
+        if (strIndex < 0) {
+            defaultName = file.getName();
+        } else {
+            defaultName = file.getName().substring(0, strIndex);
+        }
+        String prefix = defaultName + "_";
+        File parentFile = new File(file.getParent());
+        ArrayList<HgPair<Long, Long>> dbs = new ArrayList<>();
+        File[] files = parentFile.listFiles();
+        if (files != null) {
+            dbs.ensureCapacity(files.length);
+            // search all db path
+            for (final File sFile : files) {
+                final String name = sFile.getName();
+                if (!name.startsWith(prefix) && !name.equals(defaultName)) {
+                    continue;
+                }
+                if (name.endsWith(tempSuffix)) {
+                    continue;
+                }
+                long v1 = -1L;
+                long v2 = -1L;
+                if (name.length() > defaultName.length()) {
+                    String[] versions = name.substring(prefix.length()).split("_");
+                    if (versions.length == 1) {
+                        v1 = Long.parseLong(versions[0]);
+                    } else if (versions.length == 2) {
+                        v1 = Long.parseLong(versions[0]);
+                        v2 = Long.parseLong(versions[1]);
+                    } else {
+                        continue;
+                    }
+                }
+                dbs.add(new HgPair<>(v1, v2));
+            }
+        }
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        // get last index db path
+        String latestDBPath = "";
+        if (!dbs.isEmpty()) {
+
+            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ?
+                                 o1.getValue().compareTo(o2.getValue()) :
+                                 o1.getKey().compareTo(o2.getKey()));
+            final int dbCount = dbs.size();
+            for (int i = 0; i < dbCount; i++) {
+                final HgPair<Long, Long> pair = dbs.get(i);
+                String curDBName;
+                if (pair.getKey() == -1L) {
+                    curDBName = defaultName;
+                } else if (pair.getValue() == -1L) {
+                    curDBName = String.format("%s_%d", defaultName, pair.getKey());
+                } else {
+                    curDBName =
+                            String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
+                }
+                String curDBPath = Paths.get(parentFile.getPath(), curDBName).toString();
+                if (i == dbCount - 1) {
+                    latestDBPath = curDBPath;
+                } else {
+                    // delete old db，在删除队列的文件不要删除
+                    if (!factory.findPathInRemovedList(curDBPath)) {
+                        try {
+                            FileUtils.deleteDirectory(new File(curDBPath));
+                            log.info("delete old dbpath {}", curDBPath);
+                        } catch (IOException e) {
+                            log.error("fail to delete old dbpath {}", curDBPath, e);
+                        }
+                    }
+                }
+            }
+        } else {
+            latestDBPath = Paths.get(parentFile.getPath(), defaultName).toString();
+        }
+        if (factory.findPathInRemovedList(latestDBPath)) {
+            // 已经被删除，创建新的目录
+            latestDBPath =
+                    Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version))
+                         .toString();
+        }
+        //
+        log.info("{} latest db path {}", this.graphName, latestDBPath);
+        return latestDBPath;
+    }
+
+    public boolean setDisableWAL(final boolean flag) {
+        this.writeOptions.setSync(!flag);
+        return this.writeOptions.setDisableWAL(flag).disableWAL();
+    }
+
+    public void checkTable(String table) {
+        try {
+            ColumnFamilyHandle handle = tables.get(table);
+            if (handle == null) {
+                createTable(table);
+            }
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        }
+    }
+
+    public boolean tableIsExist(String table) {
+        return this.tables.containsKey(table);
+    }
+
+    private void openRocksDB(String dbDataPath, long version) {
+
+        if (dbDataPath.endsWith(File.separator)) {
+            this.dbPath = dbDataPath + this.graphName;
+        } else {
+            this.dbPath = dbDataPath + File.separator + this.graphName;
+        }
+
+        this.dbPath = findLatestDBPath(dbPath, version);
+
+        Asserts.isTrue((dbPath != null),
+                       () -> new DBStoreException("the data-path of RocksDB is null"));
+
+        //makedir for rocksdb
+        createDirectory(dbPath);
+
+        Options opts = new Options();
+        RocksDBSession.initOptions(hugeConfig, opts, opts, opts, opts);
+        dbOptions = new DBOptions(opts);
+        dbOptions.setStatistics(rocksDbStats);
+
+        try {
+            List<ColumnFamilyDescriptor> columnFamilyDescriptorList =
+                    new ArrayList<>();
+            List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
+
+            ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
+            RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
+
+            if (columnFamilyBytes.size() > 0) {
+                for (byte[] columnFamilyByte : columnFamilyBytes) {
+                    columnFamilyDescriptorList.add(
+                            new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
+                }
+            } else {
+                columnFamilyDescriptorList.add(
+                        new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+            }
+            List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
+            this.rocksDB = RocksDB.open(dbOptions, dbPath, columnFamilyDescriptorList,
+                                        columnFamilyHandleList);
+            Asserts.isTrue(columnFamilyHandleList.size() > 0, "must have column family");
+
+            for (ColumnFamilyHandle handle : columnFamilyHandleList) {
+                this.tables.put(new String(handle.getDescriptor().getName()), handle);
+            }
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        }
+    }
+
+    private ColumnFamilyHandle createTable(String table) throws RocksDBException {
+        cfHandleLock.writeLock().lock();
+        try {
+            ColumnFamilyHandle handle = tables.get(table);
+            if (handle == null) {
+                ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
+                RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
+                ColumnFamilyDescriptor cfDescriptor =
+                        new ColumnFamilyDescriptor(table.getBytes(), cfOptions);
+                handle = this.rocksDB.createColumnFamily(cfDescriptor);
+                tables.put(table, handle);
+            }
+            return handle;
+        } finally {
+            cfHandleLock.writeLock().unlock();
+        }
+    }
+
+    public ColumnFamilyHandle getCF(String table) {
+        ColumnFamilyHandle handle = this.tables.get(table);
+        try {
+            if (handle == null) {
+                getCfHandleReadLock().unlock();
+                handle = createTable(table);
+                getCfHandleReadLock().lock();
+            }
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        }
+        return handle;
+    }
+
+    public CFHandleLock getCFHandleLock(String table) {
+        this.cfHandleLock.readLock().lock();
+        ColumnFamilyHandle handle = this.tables.get(table);
+        try {
+            if (handle == null) {
+                this.cfHandleLock.readLock().unlock();
+                handle = createTable(table);
+                this.cfHandleLock.readLock().lock();
+                handle = this.tables.get(table);
+            }
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        }
+        return new CFHandleLock(handle, this.cfHandleLock);
+    }
+
+    @Override
+    public String toString() {
+        return "RocksDBSession";
+    }
+
+    /**
+     * Delete all data of table
+     *
+     * @param tables
+     * @throws DBStoreException
+     */
+    public void deleteTables(String... tables) throws DBStoreException {
+        // TODO: Is this right?
+        dropTables(tables);
+        createTables(tables);
+    }
+
+    public void createTables(String... tables) throws DBStoreException {
+        if (!this.rocksDB.isOwningHandle()) {
+            return;
+        }
+        cfHandleLock.writeLock().lock();
+        try {
+            List<ColumnFamilyDescriptor> cfList = new ArrayList<>();
+            for (String table : tables) {
+                if (this.tables.get(table) != null) {
+                    continue;
+                }
+
+                ColumnFamilyDescriptor cfDescriptor = new ColumnFamilyDescriptor(table.getBytes());
+                cfList.add(cfDescriptor);
+            }
+
+            if (cfList.size() > 0) {
+                List<ColumnFamilyHandle> cfHandles = this.rocksDB.createColumnFamilies(cfList);
+                for (ColumnFamilyHandle handle : cfHandles) {
+                    this.tables.put(new String(handle.getDescriptor().getName()), handle);
+                }
+            }
+
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        } finally {
+            cfHandleLock.writeLock().unlock();
+        }
+
+    }
+
+    public void dropTables(String... tables) throws DBStoreException {
+        if (!this.rocksDB.isOwningHandle()) {
+            return;
+        }
+
+        cfHandleLock.writeLock().lock();
+        try {
+            List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
+            for (String table : tables) {
+                ColumnFamilyHandle handle = this.tables.get(table);
+                if (handle != null) {
+                    cfHandles.add(handle);
+                } else {
+                    this.tables.remove(table);
+                }
+            }
+
+            if (cfHandles.size() > 0) {
+                this.rocksDB.dropColumnFamilies(cfHandles);
+            }
+
+            for (ColumnFamilyHandle h : cfHandles) {
+                String tName = new String(h.getDescriptor().getName());
+                h.close();
+                log.info("drop table: {}", tName);
+                this.tables.remove(tName);
+            }
+
+        } catch (RocksDBException e) {
+            throw new DBStoreException(e);
+        } finally {
+            cfHandleLock.writeLock().unlock();
+        }
+    }
+
+    public synchronized void truncate() {
+        Set<String> tableNames = this.tables.keySet();
+        String defaultCF = new String(RocksDB.DEFAULT_COLUMN_FAMILY);
+        tableNames.remove(defaultCF);
+
+        log.info("truncate table: {}", String.join(",", tableNames));
+        this.dropTables(tableNames.toArray(new String[0]));
+        this.createTables(tableNames.toArray(new String[0]));
+    }
+
     public void flush(boolean wait) {
         cfHandleLock.readLock().lock();
         try {
@@ -668,50 +644,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
     }
 
-
-    /**
-     * A wrapper for RocksIterator that convert RocksDB results to std Iterator
-     */
-
-    public static class BackendColumn implements Comparable<BackendColumn> {
-
-        public byte[] name;
-        public byte[] value;
-
-        public static BackendColumn of(byte[] name, byte[] value) {
-            BackendColumn col = new BackendColumn();
-            col.name = name;
-            col.value = value;
-            return col;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s=%s",
-                                 new String(name, StandardCharsets.UTF_8),
-                                 new String(value, StandardCharsets.UTF_8));
-        }
-
-        @Override
-        public int compareTo(BackendColumn other) {
-            if (other == null) {
-                return 1;
-            }
-            return Bytes.compare(this.name, other.name);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (!(obj instanceof BackendColumn)) {
-                return false;
-            }
-            BackendColumn other = (BackendColumn) obj;
-            return Bytes.equals(this.name, other.name) &&
-                   Bytes.equals(this.value, other.value);
-        }
-    }
-
-
     public SessionOperator sessionOp() {
         return new SessionOperatorImpl(this);
     }
@@ -723,7 +655,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     public Statistics getRocksDbStats() {
         return rocksDbStats;
     }
-
 
     public void saveSnapshot(String snapshotPath) throws DBStoreException {
         long startTime = System.currentTimeMillis();
@@ -755,7 +686,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         log.info("saved snapshot into {}, time cost {} ms", snapshotPath,
                  System.currentTimeMillis() - startTime);
     }
-
 
     private boolean verifySnapshot(String snapshotPath) {
         try {
@@ -1008,7 +938,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                  System.currentTimeMillis() - startTime);
     }
 
-
     public String getProperty(String property) {
         try {
             return rocksDB.getProperty(property);
@@ -1049,6 +978,67 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
     RefCounter getRefCounter() {
         return new RefCounter(this.refCount);
+    }
+
+    public static class CFHandleLock implements Closeable {
+        private final ColumnFamilyHandle handle;
+        private final ReentrantReadWriteLock lock;
+
+        public CFHandleLock(ColumnFamilyHandle handle, ReentrantReadWriteLock lock) {
+            this.handle = handle;
+            this.lock = lock;
+        }
+
+        @Override
+        public void close() {
+            lock.readLock().unlock();
+        }
+
+        public ColumnFamilyHandle get() {
+            return handle;
+        }
+    }
+
+    /**
+     * A wrapper for RocksIterator that convert RocksDB results to std Iterator
+     */
+
+    public static class BackendColumn implements Comparable<BackendColumn> {
+
+        public byte[] name;
+        public byte[] value;
+
+        public static BackendColumn of(byte[] name, byte[] value) {
+            BackendColumn col = new BackendColumn();
+            col.name = name;
+            col.value = value;
+            return col;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s=%s",
+                                 new String(name, StandardCharsets.UTF_8),
+                                 new String(value, StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public int compareTo(BackendColumn other) {
+            if (other == null) {
+                return 1;
+            }
+            return Bytes.compare(this.name, other.name);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof BackendColumn)) {
+                return false;
+            }
+            BackendColumn other = (BackendColumn) obj;
+            return Bytes.equals(this.name, other.name) &&
+                   Bytes.equals(this.value, other.value);
+        }
     }
 
     class RefCounter {

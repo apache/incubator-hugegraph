@@ -62,6 +62,20 @@ public class AppConfig {
     //内置pd模式，用于单机部署
     @Value("${app.fake-pd: false}")
     private boolean fakePd;
+    @Autowired
+    private Raft raft;
+    @Autowired
+    private ArthasConfig arthasConfig;
+    @Autowired
+    private FakePdConfig fakePdConfig;
+    @Autowired
+    private LabelConfig labelConfig;
+    @Autowired
+    private RocksdbConfig rocksdbConfig;
+    @Autowired
+    private ThreadPoolGrpc threadPoolGrpc;
+    @Autowired
+    private ThreadPoolScan threadPoolScan;
 
     public String getRaftPath() {
         if (raftPath == null || raftPath.length() == 0) {
@@ -70,26 +84,55 @@ public class AppConfig {
         return raftPath;
     }
 
-    @Autowired
-    private Raft raft;
+    @PostConstruct
+    public void init() {
+        Runtime rt = Runtime.getRuntime();
+        if (threadPoolScan.core == 0) {
+            threadPoolScan.core = rt.availableProcessors() * 4;
+        }
 
-    @Autowired
-    private ArthasConfig arthasConfig;
+        Map<String, String> rocksdb = rocksdbConfig.rocksdb;
+        if (!rocksdb.containsKey("total_memory_size")
+            || "0".equals(rocksdb.get("total_memory_size"))) {
+            rocksdb.put("total_memory_size", Long.toString(rt.maxMemory()));
+        }
+        long totalMemory = Long.parseLong(rocksdbConfig.rocksdb.get("total_memory_size"));
+        if (raft.getDisruptorBufferSize() == 0) {
+            int size = (int) (totalMemory / 1000 / 1000 / 1000);
+            size = (int) Math.pow(2, Math.round(Math.log(size) / Math.log(2))) * 32;
+            raft.setDisruptorBufferSize(size); // 每32M增加一个buffer
+        }
 
-    @Autowired
-    private FakePdConfig fakePdConfig;
+        if (!rocksdb.containsKey("write_buffer_size") ||
+            "0".equals(rocksdb.get("write_buffer_size"))) {
+            rocksdb.put("write_buffer_size", Long.toString(totalMemory / 1000));
+        }
+    }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("AppConfig \n")
+               .append("rocksdb:\n");
+        rocksdbConfig.rocksdb.forEach((k, v) -> builder.append("\t" + k + ":")
+                                                       .append(v)
+                                                       .append("\n"));
+        builder.append("raft:\n");
+        builder.append("\tdisruptorBufferSize: " + raft.disruptorBufferSize);
+        return builder.toString();
+    }
 
-    @Autowired
-    private LabelConfig labelConfig;
+    public String getStoreServerAddress() {
+        return String.format("%s:%d", host, grpcPort);
+    }
 
-    @Autowired
-    private RocksdbConfig rocksdbConfig;
-
-    @Autowired
-    private ThreadPoolGrpc threadPoolGrpc;
-    @Autowired
-    private ThreadPoolScan threadPoolScan;
+    public Map<String, Object> getRocksdbConfig() {
+        Map<String, Object> config = new HashMap<>();
+        rocksdbConfig.rocksdb.forEach((k, v) -> {
+            config.put("rocksdb." + k, v);
+        });
+        return config;
+    }
 
     @Data
     @Configuration
@@ -183,55 +226,6 @@ public class AppConfig {
     @ConfigurationProperties(prefix = "")
     public class RocksdbConfig {
         private final Map<String, String> rocksdb = new HashMap<>();
-    }
-
-    @PostConstruct
-    public void init() {
-        Runtime rt = Runtime.getRuntime();
-        if (threadPoolScan.core == 0) {
-            threadPoolScan.core = rt.availableProcessors() * 4;
-        }
-
-        Map<String, String> rocksdb = rocksdbConfig.rocksdb;
-        if (!rocksdb.containsKey("total_memory_size")
-            || rocksdb.get("total_memory_size").equals("0")) {
-            rocksdb.put("total_memory_size", Long.toString(rt.maxMemory()));
-        }
-        long totalMemory = Long.parseLong(rocksdbConfig.rocksdb.get("total_memory_size"));
-        if (raft.getDisruptorBufferSize() == 0) {
-            int size = (int) (totalMemory / 1000 / 1000 / 1000);
-            size = (int) Math.pow(2, Math.round(Math.log(size) / Math.log(2))) * 32;
-            raft.setDisruptorBufferSize(size); // 每32M增加一个buffer
-        }
-
-        if (!rocksdb.containsKey("write_buffer_size") ||
-            rocksdb.get("write_buffer_size").equals("0")) {
-            rocksdb.put("write_buffer_size", Long.toString(totalMemory / 1000));
-        }
-    }
-
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("AppConfig \n")
-               .append("rocksdb:\n");
-        rocksdbConfig.rocksdb.forEach((k, v) -> builder.append("\t" + k + ":")
-                                                       .append(v)
-                                                       .append("\n"));
-        builder.append("raft:\n");
-        builder.append("\tdisruptorBufferSize: " + raft.disruptorBufferSize);
-        return builder.toString();
-    }
-
-    public String getStoreServerAddress() {
-        return String.format("%s:%d", host, grpcPort);
-    }
-
-    public Map<String, Object> getRocksdbConfig() {
-        Map<String, Object> config = new HashMap<>();
-        rocksdbConfig.rocksdb.forEach((k, v) -> {
-            config.put("rocksdb." + k, v);
-        });
-        return config;
     }
 
 }

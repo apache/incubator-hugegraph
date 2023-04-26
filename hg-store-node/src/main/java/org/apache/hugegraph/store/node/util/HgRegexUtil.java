@@ -73,7 +73,7 @@ public class HgRegexUtil {
         }
         Pattern p = Pattern.compile(regex, Pattern.MULTILINE);
         Matcher m = p.matcher(source);
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         while (m.find()) {
             list.add(m.group(0));
         }

@@ -46,8 +46,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FakePdServiceProvider implements PdProvider {
     private final Map<Long, Store> stores;
-    private int partitionCount = 0;
     private final int shardCount = 0;
+    private final Map<String, Metapb.Partition> partitions = new ConcurrentHashMap<>();
+    private int partitionCount = 0;
     private GraphManager graphManager = null;
 
     public FakePdServiceProvider(HgStoreEngineOptions.FakePdOptions options) {
@@ -64,6 +65,24 @@ public class FakePdServiceProvider implements PdProvider {
         this.partitionCount = options.getPartitionCount();
     }
 
+    public static long makeStoreId(String storeAddress) {
+        return storeAddress.hashCode();
+    }
+
+    /**
+     * For unit test
+     *
+     * @return
+     */
+    public static Store getDefaultStore() {
+        Store store = new Store();
+        store.setId(1);
+        store.setStoreAddress("127.0.0.1:8501");
+        store.setRaftAddress("127.0.0.1:8511");
+        store.setPartitionCount(1);
+        return store;
+    }
+
     private void addStore(String storeAddr, String raftAddr) {
         Store store = new Store() {{
             setId(makeStoreId(storeAddr));
@@ -75,10 +94,6 @@ public class FakePdServiceProvider implements PdProvider {
 
     public void addStore(Store store) {
         stores.put(store.getId(), store);
-    }
-
-    public static long makeStoreId(String storeAddress) {
-        return storeAddress.hashCode();
     }
 
     @Override
@@ -101,8 +116,6 @@ public class FakePdServiceProvider implements PdProvider {
 
         return store.getId();
     }
-
-    private final Map<String, Metapb.Partition> partitions = new ConcurrentHashMap<>();
 
     @Override
     public Partition getPartitionByID(String graph, int partId) {
@@ -214,7 +227,6 @@ public class FakePdServiceProvider implements PdProvider {
         return null;
     }
 
-
     @Override
     public Store getStoreByID(Long storeId) {
         return stores.get(storeId);
@@ -238,25 +250,12 @@ public class FakePdServiceProvider implements PdProvider {
 
     }
 
-    /**
-     * For unit test
-     *
-     * @return
-     */
-    public static Store getDefaultStore() {
-        Store store = new Store();
-        store.setId(1);
-        store.setStoreAddress("127.0.0.1:8501");
-        store.setRaftAddress("127.0.0.1:8511");
-        store.setPartitionCount(1);
-        return store;
-    }
-
-
+    @Override
     public GraphManager getGraphManager() {
         return graphManager;
     }
 
+    @Override
     public void setGraphManager(GraphManager graphManager) {
         this.graphManager = graphManager;
     }

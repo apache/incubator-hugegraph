@@ -49,6 +49,7 @@ public class Graph implements Cloneable {
         this.graph = protoObj;
     }
 
+    @Override
     public Graph clone() {
         try {
             return (Graph) super.clone();

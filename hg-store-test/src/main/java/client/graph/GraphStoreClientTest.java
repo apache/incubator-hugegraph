@@ -76,7 +76,7 @@ public class GraphStoreClientTest {
                     ScanPartitionRequest.newBuilder();
             ScanPartitionRequest.Request.Builder srb =
                     ScanPartitionRequest.Request.newBuilder();
-            ArrayList<Long> properties = new ArrayList<Long>() {{
+            ArrayList<Long> properties = new ArrayList<>() {{
                 add(2L);
                 add(3L);
             }};

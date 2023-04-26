@@ -36,8 +36,6 @@ public final class HgNodePartition {
 
     HgNodePartition(Long nodeId, Integer keyCode) {
         this.nodeId = nodeId;
-
-
         this.keyCode = keyCode;
         this.startKey = this.endKey = keyCode;
     }

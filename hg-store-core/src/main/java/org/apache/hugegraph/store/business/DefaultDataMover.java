@@ -47,6 +47,15 @@ public class DefaultDataMover implements DataMover {
     private BusinessHandler businessHandler;
     private HgCmdClient client;
 
+    private static Metapb.Partition findPartition(List<Metapb.Partition> partitions, int code) {
+        for (Metapb.Partition partition : partitions) {
+            if (code >= partition.getStartKey() && code < partition.getEndKey()) {
+                return partition;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void setBusinessHandler(BusinessHandler handler) {
         this.businessHandler = handler;
@@ -165,6 +174,7 @@ public class DefaultDataMover implements DataMover {
         return status;
     }
 
+    @Override
     public UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
                                                         Metapb.PartitionState state) {
         // 分区分裂时，主动需要查找leader进行同步信息
@@ -175,6 +185,7 @@ public class DefaultDataMover implements DataMover {
         return client.raftUpdatePartition(request);
     }
 
+    @Override
     public UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
                                                         int endKey) {
         // 分区分裂时，主动需要查找leader进行同步信息
@@ -220,15 +231,6 @@ public class DefaultDataMover implements DataMover {
         businessHandler.cleanPartition(request.getGraphName(), request.getPartitionId(),
                                        request.getKeyStart(), request.getKeyEnd(),
                                        request.getCleanType());
-    }
-
-    private static Metapb.Partition findPartition(List<Metapb.Partition> partitions, int code) {
-        for (Metapb.Partition partition : partitions) {
-            if (code >= partition.getStartKey() && code < partition.getEndKey()) {
-                return partition;
-            }
-        }
-        return null;
     }
 
     class WriteBatch {

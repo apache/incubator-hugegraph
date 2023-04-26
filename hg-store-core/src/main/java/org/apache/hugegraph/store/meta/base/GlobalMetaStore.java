@@ -40,6 +40,7 @@ public class GlobalMetaStore extends MetaStoreBase {
         return options;
     }
 
+    @Override
     protected RocksDBSession getRocksDBSession() {
         RocksDBFactory rocksDBFactory = RocksDBFactory.getInstance();
         RocksDBSession dbSession = rocksDBFactory.queryGraphDB(HSTORE_METADATA_GRAPH_NAME);

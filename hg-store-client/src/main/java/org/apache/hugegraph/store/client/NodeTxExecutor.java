@@ -308,7 +308,7 @@ final class NodeTxExecutor {
                              .entrySet()
                              .stream()
                              .map(
-                                     e -> new SessionData<List<HgOwnerKey>>
+                                     e -> new SessionData<>
                                              (
                                                      openNodeSession(
                                                              nodeFunction.apply(e.getKey())),

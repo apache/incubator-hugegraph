@@ -104,10 +104,12 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
 
     }
 
+    @Override
     public String getGraphName() {
         return graphName;
     }
 
+    @Override
     public HgStoreNode getStoreNode() {
         return storeNode;
     }

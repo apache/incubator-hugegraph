@@ -57,23 +57,22 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class HgThread2DB {
-    private static PDClient pdClient;
-    public String graphName = "hugegraphtest";
     /*正在进行和在排队的任务的总数*/
     private static final AtomicInteger taskTotal = new AtomicInteger(0);
     private static final AtomicInteger queryTaskTotal = new AtomicInteger(0);
-    private static ThreadPoolExecutor threadPool = null;
-    private static ThreadPoolExecutor queryThreadPool = null;
     private static final AtomicLong insertDataCount = new AtomicLong();
     private static final AtomicLong queryCount = new AtomicLong();
     private static final AtomicLong totalQueryCount = new AtomicLong();
-    volatile long startTime = System.currentTimeMillis();
+    private static final AtomicLong longId = new AtomicLong();
+    private static final CountDownLatch countDownLatch = null;
+    private static PDClient pdClient;
+    private static ThreadPoolExecutor threadPool = null;
+    private static ThreadPoolExecutor queryThreadPool = null;
     private static int limitScanBatchCount = 100;
     private static ArrayBlockingQueue listQueue = null;
-    private static final AtomicLong longId = new AtomicLong();
-
-    private static final CountDownLatch countDownLatch = null;
     private final HgStoreClient storeClient;
+    public String graphName = "hugegraphtest";
+    volatile long startTime = System.currentTimeMillis();
 
     public HgThread2DB(String pdAddr) {
         int threadCount = Runtime.getRuntime().availableProcessors();
@@ -81,10 +80,10 @@ public class HgThread2DB {
         listQueue = new ArrayBlockingQueue<List<HgOwnerKey>>(100000000);
         queryThreadPool = new ThreadPoolExecutor(500, 1000,
                                                  200, TimeUnit.SECONDS,
-                                                 new ArrayBlockingQueue<Runnable>(1000));
+                                                 new ArrayBlockingQueue<>(1000));
         threadPool = new ThreadPoolExecutor(threadCount * 2, threadCount * 3,
                                             200, TimeUnit.SECONDS,
-                                            new ArrayBlockingQueue<Runnable>(threadCount + 100));
+                                            new ArrayBlockingQueue<>(threadCount + 100));
         storeClient = HgStoreClient.create(PDConfig.of(pdAddr)
                                                    .setEnableCache(true));
         pdClient = storeClient.getPdClient();
@@ -243,6 +242,7 @@ public class HgThread2DB {
                     if (dataCount % maxlist == 0) {
                         List<String> finalKeys = keys;
                         Runnable task = new Runnable() {
+                            @Override
                             public void run() {
                                 try {
                                     if (!finalKeys.isEmpty()) {
@@ -279,6 +279,7 @@ public class HgThread2DB {
             if (!keys.isEmpty()) {
                 List<String> finalKeys1 = keys;
                 Runnable task = new Runnable() {
+                    @Override
                     public void run() {
                         try {
                             boolean ret = singlePut(tableName, finalKeys1);
@@ -343,6 +344,7 @@ public class HgThread2DB {
             metrics = MetricX.ofStart();
             try {
                 Runnable task = new Runnable() {
+                    @Override
                     public void run() {
                         try {
                             boolean ret = singlePut(tableName);
@@ -405,7 +407,7 @@ public class HgThread2DB {
     private void queryAnd2Queue() {
         try {
             HgStoreSession session = storeClient.openSession(graphName);
-            HashSet<String> hashSet = new HashSet<String>();
+            HashSet<String> hashSet = new HashSet<>();
             while (!listQueue.isEmpty()) {
 
                 log.info(" ====== start scanBatch2 count:{} list:{}=============",

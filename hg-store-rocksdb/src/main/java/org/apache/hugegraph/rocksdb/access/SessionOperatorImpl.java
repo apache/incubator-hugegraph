@@ -72,6 +72,7 @@ public class SessionOperatorImpl implements SessionOperator {
         return db;
     }
 
+    @Override
     public RocksDBSession getDBSession() {
         return session;
     }
@@ -268,6 +269,7 @@ public class SessionOperatorImpl implements SessionOperator {
         }
     }
 
+    @Override
     public ScanIterator scan(String tableName, byte[] prefix) {
         return scan(tableName, prefix, 0);
     }
@@ -302,6 +304,7 @@ public class SessionOperatorImpl implements SessionOperator {
     /**
      * 遍历所有cf指定范围的数据
      */
+    @Override
     public ScanIterator scanRaw(byte[] keyFrom, byte[] keyTo, long startSeqNum) {
         int kNumInternalBytes = 8;      //internal key 增加的8个字节后缀
         Snapshot snapshot = rocksdb().getSnapshot();
@@ -382,6 +385,7 @@ public class SessionOperatorImpl implements SessionOperator {
                 rocksdb().releaseSnapshot(snapshot);
             }
 
+            @Override
             public byte[] position() {
                 return cfName.getBytes(StandardCharsets.UTF_8);
 
