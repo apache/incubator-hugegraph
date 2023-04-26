@@ -70,16 +70,15 @@ import org.junit.Test;
 import util.HgStoreTestUtil;
 
 public class HgSessionManagerRaftPDTest {
-    private static PDClient pdClient;
-    private static final String PD_ADDRESS = "localhost:8686";
     public static final String GRAPH_NAME_X = "default/hugegraph/x";
     public static final String GRAPH_NAME_Y = "default/hugegraph/y";
     public static final String GRAPH_NAME_Z = "default/hugegraph/z";
     public static final String TABLE_NAME_1 = "table1";
     public static final String TABLE_NAME_2 = "table2";
     public static final String TABLE_NAME_3 = "table3";
-
+    private static final String PD_ADDRESS = "localhost:8686";
     public static HgStoreClient storeClient;
+    private static PDClient pdClient;
 
     @BeforeClass
     public static void init() {

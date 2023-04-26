@@ -24,11 +24,11 @@ public class Result<T> {
     private Err err;
     private T t;
 
-    public static Result of() {
-        return new Result();
+    private Result() {
     }
 
-    private Result() {
+    public static Result of() {
+        return new Result();
     }
 
     public T get() {

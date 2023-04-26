@@ -51,12 +51,12 @@ public enum HgRaftError {
         this.msg = msg;
     }
 
-    public final int getNumber() {
-        return this.value;
-    }
-
     public static HgRaftError forNumber(final int value) {
         return RAFT_ERROR_MAP.getOrDefault(value, UNKNOWN);
+    }
+
+    public final int getNumber() {
+        return this.value;
     }
 
     public final String getMsg() {

@@ -18,9 +18,6 @@
 package core.store.meta;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
 
 import org.apache.hugegraph.store.meta.MetadataKeyHelper;
 import org.junit.Test;

@@ -34,6 +34,10 @@ public final class HgNodePartitionerBuilder {
 
     private Set<HgNodePartition> partitions = null;
 
+    static HgNodePartitionerBuilder resetAndGet() {
+        return new HgNodePartitionerBuilder();
+    }
+
     /**
      * @param nodeId
      * @param keyCode
@@ -53,17 +57,13 @@ public final class HgNodePartitionerBuilder {
         return this;
     }
 
-    public void setPartitions(Set<HgNodePartition> partitions) {
-        isFalse(partitions == null, "The argument is invalid: partitions");
-        this.partitions = partitions;
-    }
-
     Collection<HgNodePartition> getPartitions() {
         return this.partitions;
     }
 
-    static HgNodePartitionerBuilder resetAndGet() {
-        return new HgNodePartitionerBuilder();
+    public void setPartitions(Set<HgNodePartition> partitions) {
+        isFalse(partitions == null, "The argument is invalid: partitions");
+        this.partitions = partitions;
     }
 
 }

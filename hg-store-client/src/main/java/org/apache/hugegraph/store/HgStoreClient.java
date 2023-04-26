@@ -70,17 +70,6 @@ public final class HgStoreClient {
         setPdClient(pdClient);
     }
 
-    public void setPdClient(PDClient client) {
-        this.pdClient = client;
-        HgStoreNodeManager nodeManager =
-                HgStoreNodeManager.getInstance();
-
-        HgStoreNodePartitionerImpl p = new HgStoreNodePartitionerImpl(pdClient, nodeManager);
-        nodeManager.setNodeProvider(p);
-        nodeManager.setNodePartitioner(p);
-        nodeManager.setNodeNotifier(p);
-    }
-
     /**
      * Retrieve or create a HgStoreSession.
      *
@@ -93,6 +82,17 @@ public final class HgStoreClient {
 
     public PDClient getPdClient() {
         return pdClient;
+    }
+
+    public void setPdClient(PDClient client) {
+        this.pdClient = client;
+        HgStoreNodeManager nodeManager =
+                HgStoreNodeManager.getInstance();
+
+        HgStoreNodePartitionerImpl p = new HgStoreNodePartitionerImpl(pdClient, nodeManager);
+        nodeManager.setNodeProvider(p);
+        nodeManager.setNodePartitioner(p);
+        nodeManager.setNodeNotifier(p);
     }
 
 }

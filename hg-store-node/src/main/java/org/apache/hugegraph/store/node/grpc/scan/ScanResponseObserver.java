@@ -48,22 +48,16 @@ import lombok.extern.slf4j.Slf4j;
 public class ScanResponseObserver<T> implements
                                      StreamObserver<ScanPartitionRequest> {
 
-    private StreamObserver<ScanResponse> sender;
-    private final BusinessHandler handler;
     private static final int BATCH_SIZE = 100000;
     private static final int MAX_PAGE = 8; //
-    private final AtomicInteger nextSeqNo = new AtomicInteger(0);
-    private final AtomicInteger cltSeqNo = new AtomicInteger(0);
-    private final ThreadPoolExecutor executor;
-    private ScanPartitionRequest scanReq;
-    private GraphStoreIterator iter;
     private static final Error ok = Error.newBuilder().setType(ErrorType.OK).build();
     private static final ResponseHeader okHeader =
             ResponseHeader.newBuilder().setError(ok).build();
-    private volatile long leftCount;
+    private final BusinessHandler handler;
+    private final AtomicInteger nextSeqNo = new AtomicInteger(0);
+    private final AtomicInteger cltSeqNo = new AtomicInteger(0);
+    private final ThreadPoolExecutor executor;
     private final AtomicBoolean readOver = new AtomicBoolean(false);
-    private volatile Future<?> sendTask;
-    private volatile Future<?> readTask;
     private final LinkedBlockingQueue<ScanResponse> packages =
             new LinkedBlockingQueue(MAX_PAGE * 2);
     private final Descriptors.FieldDescriptor vertexField =
@@ -72,6 +66,12 @@ public class ScanResponseObserver<T> implements
             ScanResponse.getDescriptor().findFieldByNumber(4);
     private final ReentrantLock readLock = new ReentrantLock();
     private final ReentrantLock sendLock = new ReentrantLock();
+    private StreamObserver<ScanResponse> sender;
+    private ScanPartitionRequest scanReq;
+    private GraphStoreIterator iter;
+    private volatile long leftCount;
+    private volatile Future<?> sendTask;
+    private volatile Future<?> readTask;
 
     /*
      * 2022年11月1日
@@ -95,7 +95,9 @@ public class ScanResponseObserver<T> implements
         this.executor = executor;
     }
 
-    Runnable rr = new Runnable() {
+    private boolean readCondition() {
+        return packages.remainingCapacity() != 0 && !readOver.get();
+    }    Runnable rr = new Runnable() {
         @Override
         public void run() {
             try {
@@ -139,7 +141,9 @@ public class ScanResponseObserver<T> implements
         }
     };
 
-    Runnable sr = () -> {
+    private boolean readTaskCondition() {
+        return readCondition() && (readTask == null || readTask.isDone());
+    }    Runnable sr = () -> {
         while (sendCondition()) {
             ScanResponse response;
             try {
@@ -167,14 +171,6 @@ public class ScanResponseObserver<T> implements
             }
         }
     };
-
-    private boolean readCondition() {
-        return packages.remainingCapacity() != 0 && !readOver.get();
-    }
-
-    private boolean readTaskCondition() {
-        return readCondition() && (readTask == null || readTask.isDone());
-    }
 
     private boolean sendCondition() {
         return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
@@ -265,4 +261,8 @@ public class ScanResponseObserver<T> implements
             log.warn("on Complete with error:", e);
         }
     }
+
+
+
+
 }

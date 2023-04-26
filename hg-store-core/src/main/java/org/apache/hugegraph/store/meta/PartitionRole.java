@@ -42,6 +42,23 @@ public enum PartitionRole {
         this.name = name;
     }
 
+    public static PartitionRole fromShardRole(Metapb.ShardRole shard) {
+        PartitionRole role = PartitionRole.FOLLOWER;
+        switch (shard) {
+            case Leader:
+                role = PartitionRole.LEADER;
+                break;
+            case Follower:
+                role = PartitionRole.FOLLOWER;
+                break;
+            case Learner:
+                role = PartitionRole.LEARNER;
+                break;
+        }
+        return role;
+
+    }
+
     @Override
     public String toString() {
         return this.ordinal() + "_" + this.name;
@@ -65,22 +82,5 @@ public enum PartitionRole {
                 break;
         }
         return shardRole;
-    }
-
-    public static PartitionRole fromShardRole(Metapb.ShardRole shard) {
-        PartitionRole role = PartitionRole.FOLLOWER;
-        switch (shard) {
-            case Leader:
-                role = PartitionRole.LEADER;
-                break;
-            case Follower:
-                role = PartitionRole.FOLLOWER;
-                break;
-            case Learner:
-                role = PartitionRole.LEARNER;
-                break;
-        }
-        return role;
-
     }
 }

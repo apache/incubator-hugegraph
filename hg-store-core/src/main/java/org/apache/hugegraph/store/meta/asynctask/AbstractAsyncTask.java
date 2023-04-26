@@ -34,13 +34,12 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
     private final int partitionId;
 
     private final String graphName;
-
-    private AsyncTaskState state;
     private final String type;
     /**
      * 任务额外需要的参数
      */
     private final Object extra;
+    private AsyncTaskState state;
 
     public AbstractAsyncTask(int partitionId, String graphName, AsyncTaskState state,
                              Object extra) {
@@ -50,6 +49,26 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
         this.state = state;
         this.type = getType();
         this.extra = extra;
+    }
+
+    private static String getNextId() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    public static AsyncTask fromBytes(byte[] bytes) {
+        AsyncTask obj = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            SafeObjectInputStream ois = new SafeObjectInputStream(bis);
+            obj = (AsyncTask) ois.readObject("*");
+            ois.close();
+            bis.close();
+        } catch (IOException e) {
+            log.error("AsyncTask deserialized failed,{}", e.getMessage());
+        } catch (ClassNotFoundException e) {
+            log.error("AsyncTask deserialized failed,{}", e.getMessage());
+        }
+        return obj;
     }
 
     @Override
@@ -62,13 +81,13 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
         return this.partitionId;
     }
 
+    public AsyncTaskState getState() {
+        return this.state;
+    }
+
     @Override
     public void setState(AsyncTaskState newState) {
         this.state = newState;
-    }
-
-    public AsyncTaskState getState() {
-        return this.state;
     }
 
     @Override
@@ -81,10 +100,6 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
     }
 
     public abstract String getType();
-
-    private static String getNextId() {
-        return UUID.randomUUID().toString().replace("-", "");
-    }
 
     @Override
     public byte[] toBytes() {
@@ -102,22 +117,6 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
             e.printStackTrace();
         }
         return bytes;
-    }
-
-    public static AsyncTask fromBytes(byte[] bytes) {
-        AsyncTask obj = null;
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            SafeObjectInputStream ois = new SafeObjectInputStream(bis);
-            obj = (AsyncTask) ois.readObject("*");
-            ois.close();
-            bis.close();
-        } catch (IOException e) {
-            log.error("AsyncTask deserialized failed,{}", e.getMessage());
-        } catch (ClassNotFoundException e) {
-            log.error("AsyncTask deserialized failed,{}", e.getMessage());
-        }
-        return obj;
     }
 
     @Override

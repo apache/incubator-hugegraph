@@ -24,13 +24,12 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.term.Bits;
 
 public class InnerKeyFilter<T extends BackendColumn> implements ScanIterator {
-    ScanIterator iterator;
     final int codeFrom;
     final int codeTo;
-    T current = null;
-
     //是否进行code过滤，启动该选项，返回key的尾部包含code
     final boolean codeFilter;
+    ScanIterator iterator;
+    T current = null;
 
     public InnerKeyFilter(ScanIterator iterator) {
         this.iterator = iterator;

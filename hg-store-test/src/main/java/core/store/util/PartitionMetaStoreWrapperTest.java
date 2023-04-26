@@ -34,6 +34,11 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
 
     private Metapb.Partition partition;
 
+    public static void putToDb(Metapb.Partition partition, PartitionMetaStoreWrapper wrapper) {
+        byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
+        wrapper.put(partition.getId(), key, partition.toByteArray());
+    }
+
     @Before
     public void setup() {
         wrapper = new PartitionMetaStoreWrapper();
@@ -43,11 +48,6 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
                                     .setStartKey(0L)
                                     .setEndKey(65535L)
                                     .build();
-    }
-
-    public static void putToDb(Metapb.Partition partition, PartitionMetaStoreWrapper wrapper) {
-        byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
-        wrapper.put(partition.getId(), key, partition.toByteArray());
     }
 
     @Test

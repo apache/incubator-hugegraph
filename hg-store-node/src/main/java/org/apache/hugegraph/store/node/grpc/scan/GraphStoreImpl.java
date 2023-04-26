@@ -40,16 +40,15 @@ import lombok.extern.slf4j.Slf4j;
 @GRpcService
 public class GraphStoreImpl extends GraphStoreImplBase {
 
-    @Autowired
-    private HgStoreNodeService storeService;
-    @Autowired
-    private HgStoreStreamImpl storeStream;
-    BusinessHandler handler;
-
     private final ResponseHeader okHeader =
             ResponseHeader.newBuilder().setError(
                                   Graphpb.Error.newBuilder().setType(Graphpb.ErrorType.OK))
                           .build();
+    BusinessHandler handler;
+    @Autowired
+    private HgStoreNodeService storeService;
+    @Autowired
+    private HgStoreStreamImpl storeStream;
 
     public BusinessHandler getHandler() {
         if (this.handler == null) {

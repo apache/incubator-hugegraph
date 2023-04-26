@@ -22,18 +22,6 @@ package org.apache.hugegraph.store.client.type;
  */
 public class HgStoreClientException extends RuntimeException {
 
-    public static HgStoreClientException of(String msg) {
-        return new HgStoreClientException(msg);
-    }
-
-    public static HgStoreClientException of(String msg, Throwable cause) {
-        return new HgStoreClientException(msg, cause);
-    }
-
-    public static HgStoreClientException of(Throwable cause) {
-        return new HgStoreClientException(cause);
-    }
-
     public HgStoreClientException(String msg) {
         super(msg);
     }
@@ -44,5 +32,17 @@ public class HgStoreClientException extends RuntimeException {
 
     public HgStoreClientException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public static HgStoreClientException of(String msg) {
+        return new HgStoreClientException(msg);
+    }
+
+    public static HgStoreClientException of(String msg, Throwable cause) {
+        return new HgStoreClientException(msg, cause);
+    }
+
+    public static HgStoreClientException of(Throwable cause) {
+        return new HgStoreClientException(cause);
     }
 }

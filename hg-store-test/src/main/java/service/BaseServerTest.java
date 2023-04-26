@@ -22,7 +22,7 @@ import org.junit.BeforeClass;
 
 public class BaseServerTest {
     @BeforeClass
-    public static void init()  {
+    public static void init() {
 
     }
 

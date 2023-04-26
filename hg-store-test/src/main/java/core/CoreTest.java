@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CoreTest {
 
-     @Test
+    @Test
     public void testDemo() {
         String s = "i am core";
         log.info("UT:{}", s);

@@ -347,17 +347,6 @@ public class PartitionManager extends GlobalMetaStore {
         }
     }
 
-    // 注册会修改StoreId，需要重置
-    public void setStore(Store store) {
-        Lock writeLock = readWriteLock.writeLock();
-        writeLock.lock();
-        try {
-            storeMetadata.save(store);
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
     public Partition changeState(Partition partition, Metapb.PartitionState state) {
         Lock writeLock = readWriteLock.writeLock();
         writeLock.lock();
@@ -440,7 +429,6 @@ public class PartitionManager extends GlobalMetaStore {
         }
         return partition;
     }
-
 
     /**
      * 查找属于本机的Partiton，优先从本地查找，本地未找到，询问pd。
@@ -541,7 +529,6 @@ public class PartitionManager extends GlobalMetaStore {
     public boolean isLocalPartition(int partId) {
         return pdProvider.isLocalPartition(storeMetadata.getStore().getId(), partId);
     }
-
 
     /**
      * 存储partition信息,同步保存到内存和rocksdb
@@ -669,10 +656,20 @@ public class PartitionManager extends GlobalMetaStore {
         return pdProvider.delPartition(graphName, partId);
     }
 
-
     // 获取本地Store信息
     public Store getStore() {
         return storeMetadata.getStore();
+    }
+
+    // 注册会修改StoreId，需要重置
+    public void setStore(Store store) {
+        Lock writeLock = readWriteLock.writeLock();
+        writeLock.lock();
+        try {
+            storeMetadata.save(store);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     public Store getStore(Long storeId) {
@@ -902,15 +899,6 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Partition对象被修改消息
-     */
-    public interface PartitionChangedListener {
-        void onChanged(Partition partition);
-
-        UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request);
-    }
-
-    /**
      * 修改partion的state状态
      */
     public List<Metapb.Partition> changePartitionToOnLine(List<Metapb.Partition> partitions) {
@@ -923,6 +911,15 @@ public class PartitionManager extends GlobalMetaStore {
 
     public PartitionMetaStoreWrapper getWrapper() {
         return wrapper;
+    }
+
+    /**
+     * Partition对象被修改消息
+     */
+    public interface PartitionChangedListener {
+        void onChanged(Partition partition);
+
+        UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request);
     }
 
 }

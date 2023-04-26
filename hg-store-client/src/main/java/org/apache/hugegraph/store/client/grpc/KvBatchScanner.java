@@ -56,16 +56,16 @@ import lombok.extern.slf4j.Slf4j;
 @NotThreadSafe
 public class KvBatchScanner implements Closeable {
 
+    static final Supplier<HgKvIterator<HgKvEntry>> NO_DATA = () -> null;
     static int maxTaskSizePerStore = PropertyUtil.getInt("net.kv.scanner.task.size", 8);
-    volatile int currentSeqNo = 0;
     private final StreamObserver<ScanStreamBatchReq> sender; // 命令发送器
     private final KvBatchScannerMerger notifier; // 数据通知
     private final String graphName; // 图名
-    private volatile boolean running;
     private final HgScanQuery scanQuery;
-    static final Supplier<HgKvIterator<HgKvEntry>> NO_DATA = () -> null;
     private final ScanReceiptRequest.Builder responseBuilder = ScanReceiptRequest.newBuilder();
     private final KvBatchReceiver receiver;
+    volatile int currentSeqNo = 0;
+    private volatile boolean running;
 
     public KvBatchScanner(
             HgStoreStreamGrpc.HgStoreStreamStub stub,

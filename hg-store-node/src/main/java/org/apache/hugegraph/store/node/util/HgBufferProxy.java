@@ -42,16 +42,16 @@ public final class HgBufferProxy<T> {
     private final Runnable applier;
     private final Executor executor;
 
-    public static HgBufferProxy of(Executor executor, Runnable applier) {
-        HgAssert.isArgumentNotNull(applier, "applier");
-        HgAssert.isArgumentNotNull(executor, "executor");
-        return new HgBufferProxy(executor, applier);
-    }
-
     private HgBufferProxy(Executor executor, Runnable applier) {
         this.executor = executor;
         this.applier = applier;
         this.queue = new LinkedBlockingQueue<>();
+    }
+
+    public static HgBufferProxy of(Executor executor, Runnable applier) {
+        HgAssert.isArgumentNotNull(applier, "applier");
+        HgAssert.isArgumentNotNull(executor, "executor");
+        return new HgBufferProxy(executor, applier);
     }
 
     public void send(T t) {

@@ -1,14 +1,20 @@
 # HStore存储部署说明
+
 ##安装etcd
+
 - 配置etcd时需要确保其他服务器可以访问，注意配置文件中以下修改
+
 ````
   name: etcd-1 #节点名称
   data-dir: default.etcd/ #节点数据存储目录
   listen-client-urls: http://0.0.0.0:2379  #监听etcd客户发送信息的地址
   advertise-client-urls: http://0.0.0.0:2379  #客户与本节点交互信息所用地址
 ````
+
 ## PD配置
+
 - 配置文件在application.yml
+
 ````
   grpc:
     port: 9000 #内部grpc通信用端口，如心跳等使用
@@ -25,7 +31,9 @@
     default-total-count: 12 #默认分区总数
     default-shard-count: 3 #默认每个分区副本数
 ````
+
 ## StoreNode配置
+
 ```` 
   grpc:
     port: 9080    
@@ -45,15 +53,22 @@
   pdserver:
     address: localhost:9000 #PD的grpc地址
 ````
-  StoreNode在启动后，如果在PD的日志中打印出其注册信息，则代表注册成功，如：Store register, id = **** address = ****
+
+StoreNode在启动后，如果在PD的日志中打印出其注册信息，则代表注册成功，如：Store register, id = ****
+address = ****
+
 ## Hugegraph配置
+
 - 配置文件在properties文件，如hugegraph.properties
+
 ````
   backend=hstore #后端分布式存储类型，固定为hstore
   serializer=binary #序列化器，固定为binary
   pd.peers=localhost:9000 #PD的grpc地址
 ````
+
 ## RESTFUL API
+
 - pd提供了一些restful API可以获取分区、存储节点等一系列信息
 
 ###图相关
@@ -61,6 +76,7 @@
 #### 获取图的partition、shard信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:9001/v1/graphs
 ```
@@ -110,9 +126,11 @@ GET http://localhost:9001/v1/graphs
   ]
 }
 ```
+
 #### 获取指定图的partition、shard信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:9001/v1/graph/default/hugegraph/g
 ```
@@ -135,12 +153,15 @@ GET http://localhost:9001/v1/graph/default/hugegraph/g
   }
 }
 ```
+
 #### 修改指定图的partition、shard信息
 
 ###### Method & Url
+
 ```
 POST http://localhost:9001/v1/graph/default/hugegraph/g
 ```
+
 ###### Request Body
 
 ```json
@@ -170,10 +191,13 @@ POST http://localhost:9001/v1/graph/default/hugegraph/g
   }
 }
 ```
+
 ### 分区相关
+
 #### 获取分区信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:9001/v1/partitions
 ```
@@ -226,10 +250,13 @@ GET http://localhost:9001/v1/partitions
   "status": 0
 }
 ```
+
 ###存储节点相关
+
 #### 获取存储节点信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:9001/v1/stores
 ```
@@ -295,9 +322,11 @@ GET http://localhost:9001/v1/stores
   ]
 }
 ```
+
 #### 删除存储节点
 
 ###### Method & Url
+
 ```
 DELETE http://localhost:9001/v1/store/2549332866463202176
 ```
@@ -309,15 +338,19 @@ DELETE http://localhost:9001/v1/store/2549332866463202176
 ```
 
 ###### Response Body
+
 ````
 OK
 ````
+
 #### 服务注册
 
 ###### Method & Url
+
 ```
 post http://127.0.0.1:8620/v1/registry
 ```
+
 ###### Request Body
 
 ```json
@@ -331,6 +364,7 @@ post http://127.0.0.1:8620/v1/registry
   }
 }
 ```
+
 ```` 
 appName：所属服务名
 version：所属服务版本号
@@ -338,6 +372,7 @@ address：服务实例地址+端口
 interval：实例心跳间隔，字符串，最大9223372036854775807
 labels: 自定义标签
 ```` 
+
 ###### Response Status
 
 ```json
@@ -345,6 +380,7 @@ labels: 自定义标签
 ```
 
 ###### Response Body
+
 ```json
 {
 	"errorType": "OK",
@@ -352,17 +388,21 @@ labels: 自定义标签
 	"data": null
 }
 ````
+
 ```` 
 errorType：状态码
 message：状态码为错误时的具体出错信息
 data：无返回数据
 ```` 
+
 #### 服务实例获取
 
 ###### Method & Url
+
 ```
 post http://127.0.0.1:8620/v1/registryInfo
 ```
+
 ###### Request Body
 
 ```json
@@ -374,12 +414,14 @@ post http://127.0.0.1:8620/v1/registryInfo
   }
 }
 ```
+
 ```` 
 以下三项可全部为空，则获取所有服务节点的信息
     appName：过滤所属服务名的条件
     version：过滤所属服务版本号的条件，此项有值，则appName不能为空
     labels: 过滤自定义标签的条件
 ```` 
+
 ###### Response Status
 
 ```json
@@ -387,6 +429,7 @@ post http://127.0.0.1:8620/v1/registryInfo
 ```
 
 ###### Response Body
+
 ```json
 {
     "errorType": "OK",
@@ -405,17 +448,21 @@ post http://127.0.0.1:8620/v1/registryInfo
     ]
 }
 ```
+
 ```` 
 errorType：状态码
 message：状态码为错误时的具体出错信息
 data：获取的服务节点信息
 ```` 
+
 #### 服务注册
 
 ###### Method & Url
+
 ```
 post http://127.0.0.1:8620/v1/registry
 ```
+
 ###### Request Body
 
 ```json
@@ -429,6 +476,7 @@ post http://127.0.0.1:8620/v1/registry
   }
 }
 ```
+
 ```` 
 appName：所属服务名
 version：所属服务版本号
@@ -436,6 +484,7 @@ address：服务实例地址+端口
 interval：实例心跳间隔，字符串，最大9223372036854775807
 labels: 自定义标签
 ```` 
+
 ###### Response Status
 
 ```json
@@ -443,6 +492,7 @@ labels: 自定义标签
 ```
 
 ###### Response Body
+
 ```json
 {
 	"errorType": "OK",
@@ -450,17 +500,21 @@ labels: 自定义标签
 	"data": null
 }
 ````
+
 ```` 
 errorType：状态码
 message：状态码为错误时的具体出错信息
 data：无返回数据
 ```` 
+
 #### 获取pd成员
 
 ###### Method & Url
+
 ```
 GET http://127.0.0.1:8620/v1/members
 ```
+
 ###### Response Status
 
 ```json
@@ -468,6 +522,7 @@ GET http://127.0.0.1:8620/v1/members
 ```
 
 ###### Response Body
+
 ```json
 {
   "status": 0,
@@ -508,13 +563,16 @@ GET http://127.0.0.1:8620/v1/members
   }
 }
 ```
+
 ```` 
 clusterId：pd集群ID
 raftUrl、grpcUrl、restUrl：pd节点的地址信息
 dataPath：pd数据存储目录
 state: 节点当前状态
 ```` 
+
 #### Store Mertics 地址
+
 ```
 GET http://127.0.0.1:8520/actuator/prometheus
 

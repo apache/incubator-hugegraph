@@ -33,6 +33,11 @@ import org.apache.hugegraph.store.pd.PdProvider;
 
 public class UnitTestBase {
 
+    public final static RocksDBFactory factory = RocksDBFactory.getInstance();
+    private String dbPath;
+
+    private BusinessHandler handler;
+
     public static boolean deleteDir(File dir) {
         if (dir.isDirectory()) {
             for (File file : dir.listFiles()) {
@@ -41,11 +46,6 @@ public class UnitTestBase {
         }
         return dir.delete();
     }
-
-    private String dbPath;
-
-    private BusinessHandler handler;
-    public final static RocksDBFactory factory = RocksDBFactory.getInstance();
 
     public void initDB(String dbPath) {
         this.dbPath = dbPath;

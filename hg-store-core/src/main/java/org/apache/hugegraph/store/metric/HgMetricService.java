@@ -38,23 +38,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgMetricService implements Lifecycle<Void> {
     private final static HgMetricService instance = new HgMetricService();
-
-    public static HgMetricService getInstance() {
-        return instance;
-    }
-
     private final static AtomicLong bytesWritten = new AtomicLong();
     private final static AtomicLong bytesRead = new AtomicLong();
     private final static AtomicLong keysWritten = new AtomicLong();
     private final static AtomicLong keysRead = new AtomicLong();
-    private HgStoreEngine storeEngine;
     private final static long startTime = Instant.now().getEpochSecond();
-
     private static long lastQueryTime = 0;
-    private Map<String, Long> systemMetrics = new HashMap<>();
     private final SystemMetricService systemMetricService = new SystemMetricService();
-
+    private HgStoreEngine storeEngine;
+    private Map<String, Long> systemMetrics = new HashMap<>();
     private HgMetricService() {
+    }
+
+    public static HgMetricService getInstance() {
+        return instance;
     }
 
     @Override

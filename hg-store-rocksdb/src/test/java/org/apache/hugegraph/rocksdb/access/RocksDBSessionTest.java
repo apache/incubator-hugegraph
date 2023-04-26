@@ -49,6 +49,33 @@ public class RocksDBSessionTest {
         rFactory.setHugeConfig(hConfig);
     }
 
+    private static byte[] intToBytesForPartId(int v) {
+        short s = (short) v;
+        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES).order(ByteOrder.BIG_ENDIAN);
+        buffer.putShort(s);
+        return buffer.array();
+    }
+
+    public static byte[] byteCompose(byte[] b1, byte[] b2) {
+        byte[] b3 = new byte[b1.length + b2.length];
+        System.arraycopy(b1, 0, b3, 0, b1.length);
+        System.arraycopy(b2, 0, b3, b1.length, b2.length);
+        return b3;
+    }
+
+    private static byte[] keyAppendPartId(int partId, byte[] key) {
+        byte[] partBytes = intToBytesForPartId(partId);
+        byte[] targetKey = byteCompose(partBytes, key);
+        return targetKey;
+    }
+
+    private static byte[] getPartStartKey(int partId) {
+        return intToBytesForPartId(partId);
+    }
+
+    private static byte[] getPartEndKey(int partId) {
+        return intToBytesForPartId(partId + 1);
+    }
 
     //    @Test
     public void put() {
@@ -445,34 +472,6 @@ public class RocksDBSessionTest {
         buf.put(a);
         buf.flip();
         return buf.getLong();
-    }
-
-    private static byte[] intToBytesForPartId(int v) {
-        short s = (short) v;
-        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES).order(ByteOrder.BIG_ENDIAN);
-        buffer.putShort(s);
-        return buffer.array();
-    }
-
-    public static byte[] byteCompose(byte[] b1, byte[] b2) {
-        byte[] b3 = new byte[b1.length + b2.length];
-        System.arraycopy(b1, 0, b3, 0, b1.length);
-        System.arraycopy(b2, 0, b3, b1.length, b2.length);
-        return b3;
-    }
-
-    private static byte[] keyAppendPartId(int partId, byte[] key) {
-        byte[] partBytes = intToBytesForPartId(partId);
-        byte[] targetKey = byteCompose(partBytes, key);
-        return targetKey;
-    }
-
-    private static byte[] getPartStartKey(int partId) {
-        return intToBytesForPartId(partId);
-    }
-
-    private static byte[] getPartEndKey(int partId) {
-        return intToBytesForPartId(partId + 1);
     }
 
 

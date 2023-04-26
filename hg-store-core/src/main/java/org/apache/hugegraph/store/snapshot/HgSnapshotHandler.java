@@ -55,6 +55,32 @@ public class HgSnapshotHandler {
         this.businessHandler = partitionEngine.getStoreEngine().getBusinessHandler();
     }
 
+    public static String trimStartPath(String str, String prefix) {
+        if (!prefix.endsWith(File.separator)) {
+            prefix = prefix + File.separator;
+        }
+        if (str.startsWith(prefix)) {
+            return (str.substring(prefix.length()));
+        }
+        return str;
+    }
+
+    public static void findFileList(File dir, File rootDir, List<String> files) {
+        if (!dir.exists() || !dir.isDirectory()) {
+            return;
+        }
+        File[] fs = dir.listFiles();
+        if (fs != null) {
+            for (File f : fs) {
+                if (f.isFile()) {
+                    files.add(trimStartPath(dir.getPath(), rootDir.getPath()) + File.separator +
+                              f.getName());
+                } else {
+                    findFileList(f, rootDir, files);
+                }
+            }
+        }
+    }
 
     public Map<String, Partition> getPartitions() {
         return partitionEngine.getPartitions();
@@ -94,7 +120,6 @@ public class HgSnapshotHandler {
             markShouldNotLoad(writer, true);
         }
     }
-
 
     private String calculateChecksum(String path) {
         // only calculate .sst and .log(wal file) file
@@ -174,33 +199,6 @@ public class HgSnapshotHandler {
 
         // mark snapshot has been loaded
         markShouldNotLoad(reader, false);
-    }
-
-    public static String trimStartPath(String str, String prefix) {
-        if (!prefix.endsWith(File.separator)) {
-            prefix = prefix + File.separator;
-        }
-        if (str.startsWith(prefix)) {
-            return (str.substring(prefix.length()));
-        }
-        return str;
-    }
-
-    public static void findFileList(File dir, File rootDir, List<String> files) {
-        if (!dir.exists() || !dir.isDirectory()) {
-            return;
-        }
-        File[] fs = dir.listFiles();
-        if (fs != null) {
-            for (File f : fs) {
-                if (f.isFile()) {
-                    files.add(trimStartPath(dir.getPath(), rootDir.getPath()) + File.separator +
-                              f.getName());
-                } else {
-                    findFileList(f, rootDir, files);
-                }
-            }
-        }
     }
 
     private boolean shouldNotLoad(final Snapshot snapshot) {

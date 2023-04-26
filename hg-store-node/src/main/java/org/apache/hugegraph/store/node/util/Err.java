@@ -23,12 +23,12 @@ package org.apache.hugegraph.store.node.util;
 class Err {
     private final String msg;
 
-    public static Err of(String msg) {
-        return new Err(msg);
-    }
-
     private Err(String msg) {
         this.msg = msg;
+    }
+
+    public static Err of(String msg) {
+        return new Err(msg);
     }
 
     @Override

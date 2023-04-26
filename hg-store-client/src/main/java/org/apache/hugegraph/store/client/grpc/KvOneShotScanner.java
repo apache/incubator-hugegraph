@@ -50,9 +50,6 @@ class KvOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAbl
     private final HgStoreNodeSession session;
     private final HgStoreStreamBlockingStub stub;
     private final ScanStreamReq.Builder reqBuilder = ScanStreamReq.newBuilder();
-    private ScanStreamReq req;
-    private Iterator<Kv> iterator;
-    private List<Kv> list = null;
     private final String table;
     private final HgOwnerKey startKey;
     private final HgOwnerKey endKey;
@@ -63,8 +60,32 @@ class KvOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAbl
     private final int scanType;
     private final byte[] query;
     private final int pageSize;
+    private ScanStreamReq req;
+    private Iterator<Kv> iterator;
+    private List<Kv> list = null;
     private boolean in = true;
     private byte[] nodePosition = HgStoreClientConst.EMPTY_BYTES;
+
+    private KvOneShotScanner(ScanMethod scanMethod, HgStoreNodeSession session,
+                             HgStoreStreamBlockingStub stub,
+                             String table, HgOwnerKey prefix, HgOwnerKey startKey,
+                             HgOwnerKey endKey, long limit,
+                             int partition, int scanType, byte[] query) {
+        this.scanMethod = scanMethod;
+        this.session = session;
+        this.stub = stub;
+        this.table = table;
+        this.startKey = toOk(startKey);
+        this.endKey = toOk(endKey);
+        this.prefix = toOk(prefix);
+        this.partition = partition;
+        this.scanType = scanType;
+        this.query = query != null ? query : HgStoreClientConst.EMPTY_BYTES;
+        this.limit = limit <= HgStoreClientConst.NO_LIMIT ? Integer.MAX_VALUE :
+                     limit; // <=0 means no limit
+        this.pageSize = storeClientConfig.getNetKvScannerPageSize();
+
+    }
 
     public static KvCloseableIterator<Kv> scanAll(HgStoreNodeSession session,
                                                   HgStoreStreamBlockingStub stub,
@@ -93,26 +114,12 @@ class KvOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAbl
                                     startKey.getKeyCode(), scanType, query);
     }
 
+    static HgOwnerKey toOk(HgOwnerKey key) {
+        return key == null ? HgStoreClientConst.EMPTY_OWNER_KEY : key;
+    }
 
-    private KvOneShotScanner(ScanMethod scanMethod, HgStoreNodeSession session,
-                             HgStoreStreamBlockingStub stub,
-                             String table, HgOwnerKey prefix, HgOwnerKey startKey,
-                             HgOwnerKey endKey, long limit,
-                             int partition, int scanType, byte[] query) {
-        this.scanMethod = scanMethod;
-        this.session = session;
-        this.stub = stub;
-        this.table = table;
-        this.startKey = toOk(startKey);
-        this.endKey = toOk(endKey);
-        this.prefix = toOk(prefix);
-        this.partition = partition;
-        this.scanType = scanType;
-        this.query = query != null ? query : HgStoreClientConst.EMPTY_BYTES;
-        this.limit = limit <= HgStoreClientConst.NO_LIMIT ? Integer.MAX_VALUE :
-                     limit; // <=0 means no limit
-        this.pageSize = storeClientConfig.getNetKvScannerPageSize();
-
+    static ByteString toBs(byte[] bytes) {
+        return ByteString.copyFrom((bytes != null) ? bytes : HgStoreClientConst.EMPTY_BYTES);
     }
 
     private Header getHeader(HgStoreNodeSession nodeSession) {
@@ -196,14 +203,6 @@ class KvOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAbl
         } else {
             this.nodePosition = HgStoreClientConst.EMPTY_BYTES;
         }
-    }
-
-    static HgOwnerKey toOk(HgOwnerKey key) {
-        return key == null ? HgStoreClientConst.EMPTY_OWNER_KEY : key;
-    }
-
-    static ByteString toBs(byte[] bytes) {
-        return ByteString.copyFrom((bytes != null) ? bytes : HgStoreClientConst.EMPTY_BYTES);
     }
 
     @Override

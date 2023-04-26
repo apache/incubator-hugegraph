@@ -31,13 +31,11 @@ import lombok.extern.slf4j.Slf4j;
 public class InnerKeyCreator {
 
     final BusinessHandler businessHandler;
+    private final Map<Integer, GraphIdManager> graphIdCache = new ConcurrentHashMap<>();
 
     public InnerKeyCreator(BusinessHandler businessHandler) {
         this.businessHandler = businessHandler;
     }
-
-    private final Map<Integer, GraphIdManager> graphIdCache = new ConcurrentHashMap<>();
-
 
     public int getGraphId(Integer partId, String graphName) throws HgStoreException {
         try {

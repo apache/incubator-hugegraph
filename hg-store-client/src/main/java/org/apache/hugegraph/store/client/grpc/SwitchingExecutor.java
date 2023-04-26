@@ -28,11 +28,11 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 final class SwitchingExecutor {
 
-    static SwitchingExecutor of() {
-        return new SwitchingExecutor();
+    private SwitchingExecutor() {
     }
 
-    private SwitchingExecutor() {
+    static SwitchingExecutor of() {
+        return new SwitchingExecutor();
     }
 
     <T> Optional<T> invoke(Supplier<Boolean> switcher, Supplier<T> trueSupplier,

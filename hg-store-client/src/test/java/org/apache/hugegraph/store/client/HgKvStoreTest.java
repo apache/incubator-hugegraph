@@ -41,9 +41,9 @@ public class HgKvStoreTest {
 //    @Autowired
 //    private AppConfig appConfig;
 
+    private final String tableName0 = "cli-table0";
     private HgStoreClient storeClient;
     private PDClient pdClient;
-    private final String tableName0 = "cli-table0";
 
     @Before
     public void init() {

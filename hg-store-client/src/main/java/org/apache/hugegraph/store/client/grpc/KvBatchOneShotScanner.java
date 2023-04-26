@@ -49,13 +49,6 @@ class KvBatchOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSe
     private Iterator<Kv> iterator;
     private List<Kv> list = null;
 
-    public static KvCloseableIterator scan(HgStoreNodeSession nodeSession,
-                                           HgStoreStreamGrpc.HgStoreStreamBlockingStub stub,
-                                           HgScanQuery scanQuery) {
-
-        return new KvBatchOneShotScanner(nodeSession, stub, scanQuery);
-    }
-
     private KvBatchOneShotScanner(HgStoreNodeSession nodeSession,
                                   HgStoreStreamGrpc.HgStoreStreamBlockingStub stub,
                                   HgScanQuery scanQuery) {
@@ -63,6 +56,13 @@ class KvBatchOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSe
         this.nodeSession = nodeSession;
         this.stub = stub;
         this.scanQuery = scanQuery;
+    }
+
+    public static KvCloseableIterator scan(HgStoreNodeSession nodeSession,
+                                           HgStoreStreamGrpc.HgStoreStreamBlockingStub stub,
+                                           HgScanQuery scanQuery) {
+
+        return new KvBatchOneShotScanner(nodeSession, stub, scanQuery);
     }
 
     private ScanStreamBatchReq createReq() {

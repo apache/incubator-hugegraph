@@ -40,6 +40,13 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProcessor<T> {
+    private final Class<?> requestClass;
+    private final HgStoreEngine engine;
+    public HgCmdProcessor(Class<?> requestClass, HgStoreEngine engine) {
+        this.requestClass = requestClass;
+        this.engine = engine;
+    }
+
     public static void registerProcessor(final RpcServer rpcServer, final HgStoreEngine engine) {
         rpcServer.registerProcessor(new HgCmdProcessor<>(GetStoreInfoRequest.class, engine));
         rpcServer.registerProcessor(new HgCmdProcessor<>(BatchPutRequest.class, engine));
@@ -48,15 +55,6 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
         rpcServer.registerProcessor(new HgCmdProcessor<>(CreateRaftRequest.class, engine));
         rpcServer.registerProcessor(new HgCmdProcessor<>(DestroyRaftRequest.class, engine));
     }
-
-    private final Class<?> requestClass;
-    private final HgStoreEngine engine;
-
-    public HgCmdProcessor(Class<?> requestClass, HgStoreEngine engine) {
-        this.requestClass = requestClass;
-        this.engine = engine;
-    }
-
 
     @Override
     public void handleRequest(RpcContext rpcCtx, T request) {

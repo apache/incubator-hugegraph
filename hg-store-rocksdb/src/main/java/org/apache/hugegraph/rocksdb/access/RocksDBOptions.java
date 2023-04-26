@@ -33,22 +33,32 @@ import org.rocksdb.CompressionType;
 
 public class RocksDBOptions extends OptionHolder {
 
-    private RocksDBOptions() {
-        super();
-    }
+    public static final ConfigOption<Long> TOTAL_MEMORY_SIZE =
+            new ConfigOption<>(
+                    "rocksdb.total_memory_size",
+                    "Limit total memory of memtables for all dbs",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    48L * Bytes.GB
+            );
+    public static final ConfigOption<Double> WRITE_BUFFER_RATIO =
+            new ConfigOption<>(
+                    "rocksdb.write_buffer_ratio",
+                    "write buffer ratio",
+                    rangeDouble(0.0, 1.0),
+                    0.66
+            );
+    public static final ConfigOption<Boolean> WRITE_BUFFER_ALLOW_STALL =
+            new ConfigOption<>(
+                    "rocksdb.write_buffer_allow_stall",
+                    " if set true, it will enable stalling of writes when memory_usage() exceeds " +
+                    "buffer_size." +
+                    " It will wait for flush to complete and memory usage to drop down",
+                    disallowEmpty(),
+                    false
+            );
 
-    private static volatile RocksDBOptions instance;
 
-    public static synchronized RocksDBOptions instance() {
-        if (instance == null) {
-            instance = new RocksDBOptions();
-            instance.registerOptions();
-        }
-        return instance;
-    }
-
-
-//    public static final ConfigListOption<String> DATA_DISKS =
+    //    public static final ConfigListOption<String> DATA_DISKS =
 //            new ConfigListOption<>(
 //                    "rocksdb.data_disks",
 //                    false,
@@ -64,32 +74,29 @@ public class RocksDBOptions extends OptionHolder {
 //                    String.class,
 //                    ImmutableList.of()
 //            );
-
-    public static final ConfigOption<Long> TOTAL_MEMORY_SIZE =
+    public static final ConfigOption<String> SST_PATH =
             new ConfigOption<>(
-                    "rocksdb.total_memory_size",
-                    "Limit total memory of memtables for all dbs",
-                    rangeInt(0L, Long.MAX_VALUE),
-                    48L * Bytes.GB
+                    "rocksdb.sst_path",
+                    "The path for ingesting SST file into RocksDB.",
+                    null,
+                    ""
             );
-    public static final ConfigOption<Double> WRITE_BUFFER_RATIO =
+    // TODO: support ConfigOption<InfoLogLevel>
+    public static final ConfigOption<String> LOG_LEVEL =
             new ConfigOption<>(
-                    "rocksdb.write_buffer_ratio",
-                    "write buffer ratio",
-                    rangeDouble(0.0, 1.0),
-                    0.66
+                    "rocksdb.log_level",
+                    "The info log level of RocksDB.",
+                    allowValues("DEBUG", "INFO", "WARN", "ERROR", "FATAL", "HEADER"),
+                    "INFO"
             );
-
-    public static final ConfigOption<Boolean> WRITE_BUFFER_ALLOW_STALL =
+    public static final ConfigOption<Integer> NUM_LEVELS =
             new ConfigOption<>(
-                    "rocksdb.write_buffer_allow_stall",
-                    " if set true, it will enable stalling of writes when memory_usage() exceeds " +
-                    "buffer_size." +
-                    " It will wait for flush to complete and memory usage to drop down",
-                    disallowEmpty(),
-                    false
+                    "rocksdb.num_levels",
+                    "Set the number of levels for this database.",
+                    rangeInt(1, Integer.MAX_VALUE),
+                    7
             );
-//    public static final ConfigOption<Long> BLOCK_CACHE_CAPACITY =
+    //    public static final ConfigOption<Long> BLOCK_CACHE_CAPACITY =
 //            new ConfigOption<>(
 //                    "rocksdb.block_cache_capacity",
 //                    "The amount of block cache in bytes that will be used by all RocksDBs",
@@ -103,32 +110,6 @@ public class RocksDBOptions extends OptionHolder {
 //                    disallowEmpty(),
 //                    "rocksdb-snapshot"
 //            );
-
-    public static final ConfigOption<String> SST_PATH =
-            new ConfigOption<>(
-                    "rocksdb.sst_path",
-                    "The path for ingesting SST file into RocksDB.",
-                    null,
-                    ""
-            );
-
-    // TODO: support ConfigOption<InfoLogLevel>
-    public static final ConfigOption<String> LOG_LEVEL =
-            new ConfigOption<>(
-                    "rocksdb.log_level",
-                    "The info log level of RocksDB.",
-                    allowValues("DEBUG", "INFO", "WARN", "ERROR", "FATAL", "HEADER"),
-                    "INFO"
-            );
-
-    public static final ConfigOption<Integer> NUM_LEVELS =
-            new ConfigOption<>(
-                    "rocksdb.num_levels",
-                    "Set the number of levels for this database.",
-                    rangeInt(1, Integer.MAX_VALUE),
-                    7
-            );
-
     public static final ConfigConvOption<String, CompactionStyle> COMPACTION_STYLE =
             new ConfigConvOption<>(
                     "rocksdb.compaction_style",
@@ -137,7 +118,6 @@ public class RocksDBOptions extends OptionHolder {
                     CompactionStyle::valueOf,
                     "LEVEL"
             );
-
     public static final ConfigOption<Boolean> OPTIMIZE_MODE =
             new ConfigOption<>(
                     "rocksdb.optimize_mode",
@@ -145,7 +125,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
-
     public static final ConfigListConvOption<String, CompressionType> LEVELS_COMPRESSIONS =
             new ConfigListConvOption<>(
                     "rocksdb.compression_per_level",
@@ -155,7 +134,6 @@ public class RocksDBOptions extends OptionHolder {
                     CompressionType::getCompressionType,
                     "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
             );
-
     public static final ConfigConvOption<String, CompressionType> BOTTOMMOST_COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.bottommost_compression",
@@ -165,7 +143,6 @@ public class RocksDBOptions extends OptionHolder {
                     CompressionType::getCompressionType,
                     "none"
             );
-
     public static final ConfigConvOption<String, CompressionType> COMPRESSION =
             new ConfigConvOption<>(
                     "rocksdb.compression",
@@ -175,7 +152,6 @@ public class RocksDBOptions extends OptionHolder {
                     CompressionType::getCompressionType,
                     "snappy"
             );
-
     public static final ConfigOption<Integer> MAX_BG_JOBS =
             new ConfigOption<>(
                     "rocksdb.max_background_jobs",
@@ -184,7 +160,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     8
             );
-
     public static final ConfigOption<Integer> MAX_SUB_COMPACTIONS =
             new ConfigOption<>(
                     "rocksdb.max_subcompactions",
@@ -192,7 +167,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     4
             );
-
     public static final ConfigOption<Long> DELAYED_WRITE_RATE =
             new ConfigOption<>(
                     "rocksdb.delayed_write_rate",
@@ -201,7 +175,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1L, Long.MAX_VALUE),
                     64L * Bytes.MB
             );
-
     public static final ConfigOption<Integer> MAX_OPEN_FILES =
             new ConfigOption<>(
                     "rocksdb.max_open_files",
@@ -210,7 +183,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
-
     public static final ConfigOption<Long> MAX_MANIFEST_FILE_SIZE =
             new ConfigOption<>(
                     "rocksdb.max_manifest_file_size",
@@ -218,7 +190,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1L, Long.MAX_VALUE),
                     100L * Bytes.MB
             );
-
     public static final ConfigOption<Boolean> SKIP_STATS_UPDATE_ON_DB_OPEN =
             new ConfigOption<>(
                     "rocksdb.skip_stats_update_on_db_open",
@@ -227,7 +198,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Integer> MAX_FILE_OPENING_THREADS =
             new ConfigOption<>(
                     "rocksdb.max_file_opening_threads",
@@ -235,7 +205,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     16
             );
-
     public static final ConfigOption<Long> MAX_TOTAL_WAL_SIZE =
             new ConfigOption<>(
                     "rocksdb.max_total_wal_size",
@@ -245,7 +214,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(0L, Long.MAX_VALUE),
                     0L
             );
-
     public static final ConfigOption<Long> DB_MEMTABLE_SIZE =
             new ConfigOption<>(
                     "rocksdb.db_write_buffer_size",
@@ -254,8 +222,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(0L, Long.MAX_VALUE),
                     0L
             );
-
-
     public static final ConfigOption<Long> DELETE_OBSOLETE_FILE_PERIOD =
             new ConfigOption<>(
                     "rocksdb.delete_obsolete_files_period",
@@ -264,7 +230,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(0L, Long.MAX_VALUE),
                     6L * 60 * 60
             );
-
     public static final ConfigOption<Long> MEMTABLE_SIZE =
             new ConfigOption<>(
                     "rocksdb.write_buffer_size",
@@ -272,7 +237,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
                     32L * Bytes.MB
             );
-
     public static final ConfigOption<Integer> MAX_MEMTABLES =
             new ConfigOption<>(
                     "rocksdb.max_write_buffer_number",
@@ -280,7 +244,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     32
             );
-
     public static final ConfigOption<Integer> MIN_MEMTABLES_TO_MERGE =
             new ConfigOption<>(
                     "rocksdb.min_write_buffer_number_to_merge",
@@ -288,7 +251,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     16
             );
-
     public static final ConfigOption<Integer> MAX_MEMTABLES_TO_MAINTAIN =
             new ConfigOption<>(
                     "rocksdb.max_write_buffer_number_to_maintain",
@@ -296,7 +258,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(0, Integer.MAX_VALUE),
                     0
             );
-
     public static final ConfigOption<Boolean> DYNAMIC_LEVEL_BYTES =
             new ConfigOption<>(
                     "rocksdb.level_compaction_dynamic_level_bytes",
@@ -310,7 +271,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Long> MAX_LEVEL1_BYTES =
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_base",
@@ -318,7 +278,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
                     10L * Bytes.GB
             );
-
     public static final ConfigOption<Double> MAX_LEVEL_BYTES_MULTIPLIER =
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_multiplier",
@@ -327,7 +286,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeDouble(1.0, Double.MAX_VALUE),
                     10.0
             );
-
     public static final ConfigOption<Long> TARGET_FILE_SIZE_BASE =
             new ConfigOption<>(
                     "rocksdb.target_file_size_base",
@@ -335,7 +293,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(Bytes.MB, Long.MAX_VALUE),
                     256L * Bytes.MB
             );
-
     public static final ConfigOption<Integer> TARGET_FILE_SIZE_MULTIPLIER =
             new ConfigOption<>(
                     "rocksdb.target_file_size_multiplier",
@@ -343,7 +300,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(1, Integer.MAX_VALUE),
                     2
             );
-
     public static final ConfigOption<Integer> LEVEL0_COMPACTION_TRIGGER =
             new ConfigOption<>(
                     "rocksdb.level0_file_num_compaction_trigger",
@@ -351,7 +307,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(0, Integer.MAX_VALUE),
                     10
             );
-
     public static final ConfigOption<Integer> LEVEL0_SLOWDOWN_WRITES_TRIGGER =
             new ConfigOption<>(
                     "rocksdb.level0_slowdown_writes_trigger",
@@ -359,7 +314,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     256
             );
-
     public static final ConfigOption<Integer> LEVEL0_STOP_WRITES_TRIGGER =
             new ConfigOption<>(
                     "rocksdb.level0_stop_writes_trigger",
@@ -367,7 +321,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     1024
             );
-
     public static final ConfigOption<Long> SOFT_PENDING_COMPACTION_LIMIT =
             new ConfigOption<>(
                     "rocksdb.soft_pending_compaction_bytes_limit",
@@ -375,7 +328,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(Bytes.GB, Long.MAX_VALUE),
                     1024L * Bytes.GB
             );
-
     public static final ConfigOption<Long> HARD_PENDING_COMPACTION_LIMIT =
             new ConfigOption<>(
                     "rocksdb.hard_pending_compaction_bytes_limit",
@@ -383,7 +335,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(Bytes.GB, Long.MAX_VALUE),
                     2048L * Bytes.GB
             );
-
     public static final ConfigOption<Boolean> ALLOW_MMAP_WRITES =
             new ConfigOption<>(
                     "rocksdb.allow_mmap_writes",
@@ -391,7 +342,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Boolean> ALLOW_MMAP_READS =
             new ConfigOption<>(
                     "rocksdb.allow_mmap_reads",
@@ -399,7 +349,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Boolean> USE_DIRECT_READS =
             new ConfigOption<>(
                     "rocksdb.use_direct_reads",
@@ -407,7 +356,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Boolean> USE_DIRECT_READS_WRITES_FC =
             new ConfigOption<>(
                     "rocksdb.use_direct_io_for_flush_and_compaction",
@@ -415,8 +363,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
-
     public static final ConfigOption<Boolean> PIN_L0_FILTER_AND_INDEX_IN_CACHE =
             new ConfigOption<>(
                     "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
@@ -424,7 +370,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
-
     public static final ConfigOption<Boolean> PUT_FILTER_AND_INDEX_IN_CACHE =
             new ConfigOption<>(
                     "rocksdb.cache_index_and_filter_blocks",
@@ -432,7 +377,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
-
     public static final ConfigOption<Integer> BLOOM_FILTER_BITS_PER_KEY =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_bits_per_key",
@@ -442,7 +386,6 @@ public class RocksDBOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
-
     public static final ConfigOption<Boolean> BLOOM_FILTER_MODE =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_block_based_mode",
@@ -450,7 +393,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final ConfigOption<Boolean> BLOOM_FILTER_WHOLE_KEY =
             new ConfigOption<>(
                     "rocksdb.bloom_filter_whole_key_filtering",
@@ -459,7 +401,6 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
-
     public static final ConfigOption<Boolean> BLOOM_FILTERS_SKIP_LAST_LEVEL =
             new ConfigOption<>(
                     "rocksdb.optimize_filters_for_hits",
@@ -467,10 +408,22 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     false
             );
-
     public static final String BLOCK_TABLE_CONFIG = "rocksdb.block_table_config";
     public static final String WRITE_BUFFER_MANAGER = "rocksdb.write_buffer_manager";
     public static final String BLOCK_CACHE = "rocksdb.block_cache";
     public static final String WRITE_CACHE = "rocksdb.write_cache";
     public static final String ENV = "rocksdb.env";
+    private static volatile RocksDBOptions instance;
+
+    private RocksDBOptions() {
+        super();
+    }
+
+    public static synchronized RocksDBOptions instance() {
+        if (instance == null) {
+            instance = new RocksDBOptions();
+            instance.registerOptions();
+        }
+        return instance;
+    }
 }

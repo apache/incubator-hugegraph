@@ -8,18 +8,18 @@ grpc:
   netty-server:
     max-inbound-message-size: 1000MB
 raft:
- # enable: false
+  # enable: false
   address: 127.0.0.1:8514
 
   # 快照生成时间间隔，单位秒
   snapshotInterval: 300
 server:
   # rest 服务地址
-  port : 8524
+  port: 8524
 
 app:
   data-path: tmp/8504
- # fake-pd: true
+  # fake-pd: true
   label:
     label-key: label-value
 spring:

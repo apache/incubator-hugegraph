@@ -36,11 +36,6 @@ public class CleanDataRequest extends HgCmdBase.BaseRequest {
 
     private long taskId;
 
-    @Override
-    public byte magic() {
-        return HgCmdBase.CLEAN_DATA;
-    }
-
     public static CleanDataRequest fromCleanPartitionTask(CleanPartition task, Partition partition,
                                                           long taskId) {
         return fromCleanPartitionTask(partition.getGraphName(), partition.getId(), taskId, task);
@@ -67,5 +62,10 @@ public class CleanDataRequest extends HgCmdBase.BaseRequest {
                              .setDeletePartition(request.deletePartition)
                              .setCleanType(request.cleanType)
                              .build();
+    }
+
+    @Override
+    public byte magic() {
+        return HgCmdBase.CLEAN_DATA;
     }
 }

@@ -37,9 +37,9 @@ public class RocksDBScanIterator<T> implements ScanIterator {
     private final int scanType;
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final RocksDBSession.RefCounter iterReference;
     private byte[] key;
     private boolean matched;
-    private final RocksDBSession.RefCounter iterReference;
 
     public RocksDBScanIterator(RocksIterator rawIt, byte[] keyBegin, byte[] keyEnd,
                                int scanType, RocksDBSession.RefCounter iterReference) {

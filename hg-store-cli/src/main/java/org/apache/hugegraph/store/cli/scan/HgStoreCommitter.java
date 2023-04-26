@@ -33,12 +33,12 @@ public class HgStoreCommitter {
     private final String graph;
 
 
-    public static HgStoreCommitter of(String graph) {
-        return new HgStoreCommitter(graph);
-    }
-
     private HgStoreCommitter(String graph) {
         this.graph = graph;
+    }
+
+    public static HgStoreCommitter of(String graph) {
+        return new HgStoreCommitter(graph);
     }
 
     protected HgStoreSession getStoreSession() {

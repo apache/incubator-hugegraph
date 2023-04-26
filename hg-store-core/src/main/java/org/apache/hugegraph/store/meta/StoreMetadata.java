@@ -34,10 +34,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StoreMetadata extends GlobalMetaStore {
     protected final static int Store_DataFmt_Version = 1;
-    private Store store = null;
     private final List<String> dataLocations;
-
     private final List<String> raftLocations;
+    private Store store = null;
+
+    public StoreMetadata(MetadataOptions options) {
+        super(options);
+        dataLocations = Arrays.asList(options.getDataPath().split(","));
+        raftLocations = Arrays.asList(options.getRaftPath().split(","));
+    }
 
     public List<String> getDataLocations() {
         return dataLocations;
@@ -45,12 +50,6 @@ public class StoreMetadata extends GlobalMetaStore {
 
     public List<String> getRaftLocations() {
         return raftLocations;
-    }
-
-    public StoreMetadata(MetadataOptions options) {
-        super(options);
-        dataLocations = Arrays.asList(options.getDataPath().split(","));
-        raftLocations = Arrays.asList(options.getRaftPath().split(","));
     }
 
     public Store load() {

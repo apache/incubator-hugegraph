@@ -38,6 +38,13 @@ class ScanQuery implements QueryCondition {
     byte[] position;
     int serialNo;
 
+    private ScanQuery() {
+    }
+
+    static ScanQuery of() {
+        return new ScanQuery();
+    }
+
     @Override
     public byte[] getStart() {
         return this.start;
@@ -76,13 +83,6 @@ class ScanQuery implements QueryCondition {
     @Override
     public int getSerialNo() {
         return this.serialNo;
-    }
-
-    static ScanQuery of() {
-        return new ScanQuery();
-    }
-
-    private ScanQuery() {
     }
 
     @Override

@@ -47,10 +47,17 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScanStreamResponse implements StreamObserver<ScanStreamReq> {
+    private static final String msg =
+            "to wait for client taking data exceeded max time: [{}] seconds,stop scanning.";
     private final StreamObserver<KvPageRes> responseObserver;
     private final HgStoreWrapperEx wrapper;
     private final AtomicBoolean finishFlag = new AtomicBoolean();
     private final ThreadPoolExecutor executor;
+    private final AtomicBoolean isStarted = new AtomicBoolean();
+    private final AtomicBoolean isStop = new AtomicBoolean(false);
+    private final AppConfig config;
+    private final int waitTime;
+    private final HgChannel<KvPageRes.Builder> channel;
     private ScanIterator iterator;
     private long limit = 0;
     private int times = 0;
@@ -58,22 +65,6 @@ public class ScanStreamResponse implements StreamObserver<ScanStreamReq> {
     private int total = 0;
     private String graph;
     private String table;
-    private final AtomicBoolean isStarted = new AtomicBoolean();
-    private final AtomicBoolean isStop = new AtomicBoolean(false);
-    private final AppConfig config;
-    private final int waitTime;
-    private final HgChannel<KvPageRes.Builder> channel;
-    private static final String msg =
-            "to wait for client taking data exceeded max time: [{}] seconds,stop scanning.";
-
-    public static ScanStreamResponse of(StreamObserver<KvPageRes> responseObserver,
-                                        HgStoreWrapperEx wrapper,
-                                        ThreadPoolExecutor executor, AppConfig appConfig) {
-        HgAssert.isArgumentNotNull(responseObserver, "responseObserver");
-        HgAssert.isArgumentNotNull(wrapper, "wrapper");
-        HgAssert.isArgumentNotNull(executor, "executor");
-        return new ScanStreamResponse(responseObserver, wrapper, executor, appConfig);
-    }
 
     ScanStreamResponse(StreamObserver<KvPageRes> responseObserver,
                        HgStoreWrapperEx wrapper,
@@ -84,6 +75,15 @@ public class ScanStreamResponse implements StreamObserver<ScanStreamReq> {
         this.config = appConfig;
         this.waitTime = this.config.getServerWaitTime();
         this.channel = HgChannel.of(waitTime);
+    }
+
+    public static ScanStreamResponse of(StreamObserver<KvPageRes> responseObserver,
+                                        HgStoreWrapperEx wrapper,
+                                        ThreadPoolExecutor executor, AppConfig appConfig) {
+        HgAssert.isArgumentNotNull(responseObserver, "responseObserver");
+        HgAssert.isArgumentNotNull(wrapper, "wrapper");
+        HgAssert.isArgumentNotNull(executor, "executor");
+        return new ScanStreamResponse(responseObserver, wrapper, executor, appConfig);
     }
 
     @Override

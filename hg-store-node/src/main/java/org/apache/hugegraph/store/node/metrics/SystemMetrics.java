@@ -34,6 +34,20 @@ public class SystemMetrics {
 
     private static final long MB = Bytes.MB;
 
+    private static long totalNonHeapMemory() {
+        try {
+            return ManagementFactory.getMemoryMXBean()
+                                    .getNonHeapMemoryUsage()
+                                    .getCommitted();
+        } catch (Throwable ignored) {
+            return 0;
+        }
+    }
+
+    private static String formatName(String name) {
+        return StringUtils.replace(name, " ", "_").toLowerCase();
+    }
+
     public Map<String, Map<String, Object>> metrics() {
         Map<String, Map<String, Object>> metrics = new LinkedHashMap<>();
         metrics.put("basic", this.getBasicMetrics());
@@ -66,16 +80,6 @@ public class SystemMetrics {
                     ManagementFactory.getOperatingSystemMXBean()
                                      .getSystemLoadAverage());
         return metrics;
-    }
-
-    private static long totalNonHeapMemory() {
-        try {
-            return ManagementFactory.getMemoryMXBean()
-                                    .getNonHeapMemoryUsage()
-                                    .getCommitted();
-        } catch (Throwable ignored) {
-            return 0;
-        }
     }
 
     private Map<String, Object> getHeapMetrics() {
@@ -131,10 +135,6 @@ public class SystemMetrics {
         }
         metrics.put("time_unit", "ms");
         return metrics;
-    }
-
-    private static String formatName(String name) {
-        return StringUtils.replace(name, " ", "_").toLowerCase();
     }
 
 }

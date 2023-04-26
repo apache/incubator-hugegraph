@@ -29,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientTest {
 
-     @Test
+    @Test
     public void testDemo() {
         String s = "i am client";
         log.info("UT:{}", s);

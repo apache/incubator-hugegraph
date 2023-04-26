@@ -30,9 +30,11 @@ import java.util.zip.Checksum;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -75,10 +77,11 @@ public final class ZipUtils {
     // }
 
     public static void compress(final String rootDir, final String sourceDir,
-            final String outputFile, final Checksum checksum) throws IOException {
+                                final String outputFile, final Checksum checksum) throws
+                                                                                  IOException {
         try (final FileOutputStream fos = new FileOutputStream(outputFile);
-                final CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
-                final ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(cos))) {
+             final CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
+             final ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(cos))) {
             ZipUtils.compressDirectoryToZipFile(rootDir, sourceDir, zos);
             zos.flush();
             fos.getFD().sync();
@@ -86,7 +89,7 @@ public final class ZipUtils {
     }
 
     private static void compressDirectoryToZipFile(final String rootDir, final String sourceDir,
-            final ZipOutputStream zos) throws IOException {
+                                                   final ZipOutputStream zos) throws IOException {
         final String dir = Paths.get(rootDir, sourceDir).toString();
         final File[] files = new File(dir).listFiles();
         for (final File file : files) {
@@ -96,7 +99,7 @@ public final class ZipUtils {
             } else {
                 zos.putNextEntry(new ZipEntry(child));
                 try (final FileInputStream fis = new FileInputStream(file);
-                        final BufferedInputStream bis = new BufferedInputStream(fis)) {
+                     final BufferedInputStream bis = new BufferedInputStream(fis)) {
                     IOUtils.copy(bis, zos);
                 }
             }
@@ -104,17 +107,17 @@ public final class ZipUtils {
     }
 
     public static void decompress(final String sourceFile, final String outputDir,
-            final Checksum checksum) throws IOException {
+                                  final Checksum checksum) throws IOException {
         try (final FileInputStream fis = new FileInputStream(sourceFile);
-                final CheckedInputStream cis = new CheckedInputStream(fis, checksum);
-                final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(cis))) {
+             final CheckedInputStream cis = new CheckedInputStream(fis, checksum);
+             final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(cis))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 final String fileName = entry.getName();
                 final File entryFile = new File(Paths.get(outputDir, fileName).toString());
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (final FileOutputStream fos = new FileOutputStream(entryFile);
-                        final BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+                     final BufferedOutputStream bos = new BufferedOutputStream(fos)) {
                     IOUtils.copy(zis, bos);
                     bos.flush();
                     fos.getFD().sync();

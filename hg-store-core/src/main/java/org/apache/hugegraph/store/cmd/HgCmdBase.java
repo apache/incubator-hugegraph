@@ -43,8 +43,16 @@ public class HgCmdBase {
 
     @Data
     public abstract static class BaseResponse implements Serializable {
-        private HgCmdProcessor.Status status;
         List<PartitionLeader> partitionLeaders;
+        private HgCmdProcessor.Status status;
+
+        public synchronized BaseResponse addPartitionLeader(PartitionLeader ptLeader) {
+            if (partitionLeaders == null) {
+                partitionLeaders = new ArrayList<>();
+            }
+            partitionLeaders.add(ptLeader);
+            return this;
+        }
 
         public static class PartitionLeader implements Serializable {
             private final Integer partId;
@@ -62,14 +70,6 @@ public class HgCmdBase {
             public Integer getPartId() {
                 return partId;
             }
-        }
-
-        public synchronized BaseResponse addPartitionLeader(PartitionLeader ptLeader) {
-            if (partitionLeaders == null) {
-                partitionLeaders = new ArrayList<>();
-            }
-            partitionLeaders.add(ptLeader);
-            return this;
         }
     }
 }

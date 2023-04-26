@@ -29,6 +29,32 @@ import org.apache.hugegraph.store.grpc.common.ScanOrderType;
  * @version 0.5.0
  */
 public interface HgScanQuery {
+    static HgScanQuery tableOf(String table) {
+        return ScanBuilder.tableOf(table).build();
+    }
+
+    static HgScanQuery rangeOf(String table, List<HgOwnerKey> startList, List<HgOwnerKey> endList) {
+        return ScanBuilder.rangeOf(table, startList, endList).build();
+    }
+
+    static HgScanQuery prefixOf(String table, List<HgOwnerKey> prefixList) {
+        return ScanBuilder.prefixOf(table, prefixList).build();
+    }
+
+    static HgScanQuery prefixOf(String table, List<HgOwnerKey> prefixList,
+                                ScanOrderType orderType) {
+        return ScanBuilder.prefixOf(table, prefixList).setOrderType(orderType).build();
+    }
+
+    static HgScanQuery prefixIteratorOf(String table, Iterator<HgOwnerKey> prefixItr) {
+        return ScanBuilder.prefixIteratorOf(table, prefixItr).build();
+    }
+
+    static HgScanQuery prefixIteratorOf(String table, Iterator<HgOwnerKey> prefixItr,
+                                        ScanOrderType orderType) {
+        return ScanBuilder.prefixIteratorOf(table, prefixItr).setOrderType(orderType).build();
+    }
+
     String getTable();
 
     HgScanQuery.ScanMethod getScanMethod();
@@ -57,6 +83,8 @@ public interface HgScanQuery {
 
     byte[] getQuery();
 
+    ScanBuilder builder();
+
     enum ScanMethod {
         ALL,
         PREFIX,
@@ -67,35 +95,6 @@ public interface HgScanQuery {
         UNSORTED,
         SORT_BY_EDGE,
         SORT_BY_VERTEX
-    }
-
-
-    ScanBuilder builder();
-
-    static HgScanQuery tableOf(String table) {
-        return ScanBuilder.tableOf(table).build();
-    }
-
-    static HgScanQuery rangeOf(String table, List<HgOwnerKey> startList, List<HgOwnerKey> endList) {
-        return ScanBuilder.rangeOf(table, startList, endList).build();
-    }
-
-    static HgScanQuery prefixOf(String table, List<HgOwnerKey> prefixList) {
-        return ScanBuilder.prefixOf(table, prefixList).build();
-    }
-
-    static HgScanQuery prefixOf(String table, List<HgOwnerKey> prefixList,
-                                ScanOrderType orderType) {
-        return ScanBuilder.prefixOf(table, prefixList).setOrderType(orderType).build();
-    }
-
-    static HgScanQuery prefixIteratorOf(String table, Iterator<HgOwnerKey> prefixItr) {
-        return ScanBuilder.prefixIteratorOf(table, prefixItr).build();
-    }
-
-    static HgScanQuery prefixIteratorOf(String table, Iterator<HgOwnerKey> prefixItr,
-                                        ScanOrderType orderType) {
-        return ScanBuilder.prefixIteratorOf(table, prefixItr).setOrderType(orderType).build();
     }
 
     class ScanBuilder {
@@ -115,6 +114,12 @@ public interface HgScanQuery {
         private List<HgOwnerKey> startList;
         private List<HgOwnerKey> endList;
         private Iterator<HgOwnerKey> prefixItr;
+
+        ScanBuilder(HgScanQuery.ScanMethod sanMethod, String table) {
+            this.table = table;
+            this.sanMethod = sanMethod;
+            this.orderType = ScanOrderType.ORDER_NONE;
+        }
 
         public static ScanBuilder rangeOf(String table, List<HgOwnerKey> startList,
                                           List<HgOwnerKey> endList) {
@@ -154,12 +159,6 @@ public interface HgScanQuery {
             HgAssert.isArgumentValid(table, "table");
 
             return new ScanBuilder(HgScanQuery.ScanMethod.ALL, table);
-        }
-
-        ScanBuilder(HgScanQuery.ScanMethod sanMethod, String table) {
-            this.table = table;
-            this.sanMethod = sanMethod;
-            this.orderType = ScanOrderType.ORDER_NONE;
         }
 
         public ScanBuilder setLimit(long limit) {

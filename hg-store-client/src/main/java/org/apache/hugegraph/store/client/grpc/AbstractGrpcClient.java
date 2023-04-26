@@ -42,11 +42,11 @@ public abstract class AbstractGrpcClient {
     private static final int concurrency = 1 << n;
     private static final AtomicLong counter = new AtomicLong(0);
     private static final long limit = Long.MAX_VALUE >> 1;
+    private static final HgStoreClientConfig config = HgStoreClientConfig.of();
     private final Map<String, HgPair<ManagedChannel, AbstractBlockingStub>[]> blockingStubs =
             new ConcurrentHashMap<>();
     private final Map<String, HgPair<ManagedChannel, AbstractAsyncStub>[]> asyncStubs =
             new ConcurrentHashMap<>();
-    private static final HgStoreClientConfig config = HgStoreClientConfig.of();
 
     public AbstractGrpcClient() {
 

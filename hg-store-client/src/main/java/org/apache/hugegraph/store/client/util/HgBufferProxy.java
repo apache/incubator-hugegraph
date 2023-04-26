@@ -43,14 +43,14 @@ public final class HgBufferProxy<T> {
     private final Runnable task;
     private Throwable err;
 
-    public static HgBufferProxy of(Runnable task) {
-        HgAssert.isArgumentNotNull(task, "task");
-        return new HgBufferProxy(task);
-    }
-
     private HgBufferProxy(Runnable task) {
         this.task = task;
         this.queue = new LinkedBlockingQueue<>();
+    }
+
+    public static HgBufferProxy of(Runnable task) {
+        HgAssert.isArgumentNotNull(task, "task");
+        return new HgBufferProxy(task);
     }
 
     public void send(T t) {

@@ -17,22 +17,22 @@
 
 package raftcore;
 
-import com.google.protobuf.ZeroByteStringHelper;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+
+import com.google.protobuf.ZeroByteStringHelper;
 
 public class ZeroByteStringHelperTest {
 
     private static final String STR = "hello word!";
 
     @Test
-    public void testWrap(){
+    public void testWrap() {
         byte[] b1 = new byte[]{10, 20, 30};
         byte[] b2 = new byte[]{40, 50};
 
@@ -49,7 +49,7 @@ public class ZeroByteStringHelperTest {
     }
 
     @Test
-    public void testConcatenate(){
+    public void testConcatenate() {
         byte[] b1 = new byte[]{10, 20, 30};
         byte[] b2 = new byte[]{40, 50};
         ByteBuffer buffer1 = ByteBuffer.allocate(5);

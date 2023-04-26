@@ -8,7 +8,7 @@ grpc:
   netty-server:
     max-inbound-message-size: 1000MB
 raft:
- # enable: false
+  # enable: false
   address: 127.0.0.1:8510
   data-path: ${app.data-path}/raft
   # 快照生成时间间隔，单位秒
@@ -16,7 +16,7 @@ raft:
   max-log-file-size: 60000000
 server:
   # rest 服务地址
-  port : 8520
+  port: 8520
 
 app:
   data-path: tmp/8500

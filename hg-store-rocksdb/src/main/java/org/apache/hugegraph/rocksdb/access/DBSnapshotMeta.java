@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.HashMap;
 
 import lombok.Data;
-import lombok.NonNull;
 
 /**
  * metadata of a Rocksdb snapshot

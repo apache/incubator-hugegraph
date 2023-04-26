@@ -31,6 +31,7 @@ import lombok.Data;
  */
 @Data
 public class ShardGroup {
+    private final List<Shard> shards = new CopyOnWriteArrayList<>();
     private int id;
     /**
      * Leader任期，leader切换后递增 = raftNode.leader_term
@@ -41,13 +42,6 @@ public class ShardGroup {
      * shards版本号，每次改变后递增
      */
     private long confVersion;
-
-    private final List<Shard> shards = new CopyOnWriteArrayList<>();
-
-    public ShardGroup addShard(Shard shard) {
-        this.shards.add(shard);
-        return this;
-    }
 
     public static ShardGroup from(Metapb.ShardGroup meta) {
         if (meta == null) {
@@ -60,6 +54,11 @@ public class ShardGroup {
         shardGroup.setShards(meta.getShardsList().stream().map(Shard::fromMetaPbShard)
                                  .collect(Collectors.toList()));
         return shardGroup;
+    }
+
+    public ShardGroup addShard(Shard shard) {
+        this.shards.add(shard);
+        return this;
     }
 
     public synchronized ShardGroup changeLeader(long storeId) {

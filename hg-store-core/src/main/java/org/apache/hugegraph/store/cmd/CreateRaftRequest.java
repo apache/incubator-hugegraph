@@ -29,6 +29,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CreateRaftRequest extends HgCmdBase.BaseRequest {
+    List<byte[]> values = new ArrayList<>();
+    String peers;
+
     public List<Metapb.Partition> getPartitions() {
         try {
             List<Metapb.Partition> partitions = new ArrayList<>();
@@ -46,12 +49,6 @@ public class CreateRaftRequest extends HgCmdBase.BaseRequest {
         values.add(partition.toByteArray());
     }
 
-    public void setConf(Configuration conf) {
-        if (conf != null) {
-            this.peers = conf.toString();
-        }
-    }
-
     public Configuration getConf() {
         Configuration conf = null;
         if (peers != null) {
@@ -61,8 +58,11 @@ public class CreateRaftRequest extends HgCmdBase.BaseRequest {
         return conf;
     }
 
-    List<byte[]> values = new ArrayList<>();
-    String peers;
+    public void setConf(Configuration conf) {
+        if (conf != null) {
+            this.peers = conf.toString();
+        }
+    }
 
     @Override
     public byte magic() {

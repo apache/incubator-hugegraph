@@ -28,10 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 public class GetStoreInfoResponse extends HgCmdBase.BaseResponse {
     private byte[] store;
 
-    public void setStore(Store store) {
-        this.store = store.getProtoObj().toByteArray();
-    }
-
     public Store getStore() {
         try {
             return new Store(Metapb.Store.parseFrom(this.store));
@@ -39,5 +35,9 @@ public class GetStoreInfoResponse extends HgCmdBase.BaseResponse {
             log.error("GetStoreResponse parse exception {}", e);
         }
         return null;
+    }
+
+    public void setStore(Store store) {
+        this.store = store.getProtoObj().toByteArray();
     }
 }

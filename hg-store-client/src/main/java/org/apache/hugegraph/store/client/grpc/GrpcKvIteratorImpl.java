@@ -41,9 +41,16 @@ class GrpcKvIteratorImpl implements HgKvPagingIterator<HgKvEntry>, HgKvOrderedIt
 
     private final byte[] emptyBytes = HgStoreClientConst.EMPTY_BYTES;
     private final KvCloseableIterator<Kv> iterator;
-    private HgKvEntry element;
     private final HgPageSize pageLimiter;
     private final HgStoreNodeSession session;
+    private HgKvEntry element;
+
+    private GrpcKvIteratorImpl(HgStoreNodeSession session, KvCloseableIterator<Kv> iterator,
+                               HgPageSize pageLimiter) {
+        this.iterator = iterator;
+        this.pageLimiter = pageLimiter;
+        this.session = session;
+    }
 
     public static HgKvIterator<HgKvEntry> of(HgStoreNodeSession nodeSession,
                                              KvCloseableIterator<Kv> iterator) {
@@ -62,13 +69,6 @@ class GrpcKvIteratorImpl implements HgKvPagingIterator<HgKvEntry>, HgKvOrderedIt
     public static HgKvIterator<HgKvEntry> of(HgStoreNodeSession nodeSession, List<Kv> kvList) {
         int pageSize = kvList.size();
         return new GrpcKvIteratorImpl(nodeSession, new KvListIterator<Kv>(kvList), () -> pageSize);
-    }
-
-    private GrpcKvIteratorImpl(HgStoreNodeSession session, KvCloseableIterator<Kv> iterator,
-                               HgPageSize pageLimiter) {
-        this.iterator = iterator;
-        this.pageLimiter = pageLimiter;
-        this.session = session;
     }
 
     @Override

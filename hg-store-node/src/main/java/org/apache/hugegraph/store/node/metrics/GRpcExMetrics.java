@@ -30,8 +30,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  */
 public class GRpcExMetrics {
     public final static String PREFIX = "grpc";
-    private static MeterRegistry registry;
     private final static ExecutorWrapper wrapper = new ExecutorWrapper();
+    private static MeterRegistry registry;
 
     private GRpcExMetrics() {
     }

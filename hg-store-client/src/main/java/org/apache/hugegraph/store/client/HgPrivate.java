@@ -23,12 +23,12 @@ package org.apache.hugegraph.store.client;
 public class HgPrivate {
     private final static HgPrivate instance = new HgPrivate();
 
-    static HgPrivate getInstance() {
-        return instance;
-    }
-
     private HgPrivate() {
 
+    }
+
+    static HgPrivate getInstance() {
+        return instance;
     }
 
 }

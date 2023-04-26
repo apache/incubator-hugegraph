@@ -52,6 +52,13 @@ public class IndexAPI {
         return info;
     }
 
+    public Map<String, Object> okMap(String k, Object v) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("status", 0);
+        map.put(k, v);
+        return map;
+    }
+
     @Data
     class StoreInfo {
         private int leaderCount;
@@ -60,6 +67,7 @@ public class IndexAPI {
 
     @Data
     public class Raft {
+        private final List<PartitionInfo> partitions = new ArrayList<>();
         private int groupId;
         private String role;
         private String conf;
@@ -67,7 +75,6 @@ public class IndexAPI {
         private long logIndex;
         private List<PeerId> peers;
         private List<PeerId> learners;
-        private final List<PartitionInfo> partitions = new ArrayList<>();
     }
 
     @Data
@@ -77,10 +84,9 @@ public class IndexAPI {
         // Region key range [startKey, endKey)
         private final long startKey;
         private final long endKey;
-        private HgStoreMetric.Partition metric;
         private final String version;
         private final Metapb.PartitionState workState;
-
+        private HgStoreMetric.Partition metric;
         private String leader;
 
 
@@ -94,13 +100,6 @@ public class IndexAPI {
             version = String.valueOf(pt.getVersion());
 
         }
-    }
-
-    public Map<String, Object> okMap(String k, Object v) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("status", 0);
-        map.put(k, v);
-        return map;
     }
 }
 

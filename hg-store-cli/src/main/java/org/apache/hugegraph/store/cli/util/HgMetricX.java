@@ -27,12 +27,12 @@ public class HgMetricX {
     private long waitStart = System.currentTimeMillis();
     private long waitTotal;
 
-    public static HgMetricX ofStart() {
-        return new HgMetricX(System.currentTimeMillis());
-    }
-
     private HgMetricX(long start) {
         this.start = start;
+    }
+
+    public static HgMetricX ofStart() {
+        return new HgMetricX(System.currentTimeMillis());
     }
 
     public long start() {

@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.util;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 

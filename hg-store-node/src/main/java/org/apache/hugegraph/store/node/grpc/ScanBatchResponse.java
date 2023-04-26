@@ -42,11 +42,16 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
-    private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
-    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //单位秒
-
     static ByteBufferAllocator bfAllocator =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
+    private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
+    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //单位秒
+    private final Object stateLock = new Object();
+    private final ReentrantLock iteratorLock = new ReentrantLock();
+    private final StreamObserver<KvStream> sender;
+    private final HgStoreWrapperEx wrapper;
+    private final ThreadPoolExecutor executor;
+    private final long logId;
     // 当前正在遍历的迭代器
     private ScanIterator iterator;
     // 下一次发送的序号
@@ -61,13 +66,6 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     // 上次读取数据时间
     private long activeTime;
     private volatile State state;
-    private final Object stateLock = new Object();
-    private final ReentrantLock iteratorLock = new ReentrantLock();
-
-    private final StreamObserver<KvStream> sender;
-    private final HgStoreWrapperEx wrapper;
-    private final ThreadPoolExecutor executor;
-    private final long logId;
 
     public ScanBatchResponse(StreamObserver<KvStream> response, HgStoreWrapperEx wrapper,
                              ThreadPoolExecutor executor) {

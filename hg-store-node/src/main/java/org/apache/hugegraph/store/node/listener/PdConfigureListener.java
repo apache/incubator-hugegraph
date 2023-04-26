@@ -55,16 +55,16 @@ public class PdConfigureListener implements
 
     private static final String CONFIG_PREFIX = "S:";
     private static final String CONFIG_FIX_PREFIX = "S:FS";
-    private ConfigurableApplicationContext context;
     private static final String TIMESTAMP_KEY = "S:Timestamp";
     private static final String PD_CONFIG_FILE_NAME = "application-pd.yml";
     private final String workDir = System.getProperty("user.dir");
     private final String fileSeparator = System.getProperty("file.separator");
-    private File pdConfFile;
     private final String configFilePath =
             workDir + fileSeparator + "conf" + fileSeparator + PD_CONFIG_FILE_NAME;
     private final String restartShellPath = workDir + fileSeparator + "bin" + fileSeparator
                                             + "restart-hugegraph-store.sh";
+    private ConfigurableApplicationContext context;
+    private File pdConfFile;
     // private String restartPath = workDir + fileSeparator + "lib" + fileSeparator;
 
     @Override

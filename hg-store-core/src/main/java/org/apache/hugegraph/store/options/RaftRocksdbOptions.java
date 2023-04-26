@@ -42,84 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftRocksdbOptions {
-    static class RocksdbConfig {
-        private final Env env;
-        private final LRUCache blockCache;
-        private final LRUCache writeCache;
-        private final WriteBufferManager bufferManager;
-        private final BlockBasedTableConfig tableConfig;
-        private final long blockCacheCapacity;
-        private final long writeCacheCapacity;
-
-        public Env getEnv() {
-            return env;
-        }
-
-        public LRUCache getBlockCache() {
-            return blockCache;
-        }
-
-        public LRUCache getWriteCache() {
-            return writeCache;
-        }
-
-        public WriteBufferManager getBufferManager() {
-            return bufferManager;
-        }
-
-        public BlockBasedTableConfig getTableConfig() {
-            return tableConfig;
-        }
-
-        public long getBlockCacheCapacity() {
-            return blockCacheCapacity;
-        }
-
-        public long getWriteCacheCapacity() {
-            return writeCacheCapacity;
-        }
-
-        public RocksdbConfig(HugeConfig options) {
-            RocksDB.loadLibrary();
-            this.env = Env.getDefault();
-            double writeBufferRatio = options.get(RocksDBOptions.WRITE_BUFFER_RATIO);
-            this.writeCacheCapacity =
-                    (long) (options.get(RocksDBOptions.TOTAL_MEMORY_SIZE) * writeBufferRatio);
-            this.blockCacheCapacity =
-                    options.get(RocksDBOptions.TOTAL_MEMORY_SIZE) - writeCacheCapacity;
-            this.writeCache = new LRUCache(writeCacheCapacity);
-            this.blockCache = new LRUCache(blockCacheCapacity);
-            this.bufferManager = new WriteBufferManager(writeCacheCapacity, writeCache,
-                                                        options.get(
-                                                                RocksDBOptions.WRITE_BUFFER_ALLOW_STALL));
-            this.tableConfig = new BlockBasedTableConfig() //
-                                                           .setIndexType(
-                                                                   IndexType.kTwoLevelIndexSearch) //
-                                                           .setPartitionFilters(true) //
-                                                           .setMetadataBlockSize(8 * SizeUnit.KB) //
-                                                           .setCacheIndexAndFilterBlocks(
-                                                                   options.get(
-                                                                           RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE)) //
-                                                           .setCacheIndexAndFilterBlocksWithHighPriority(
-                                                                   true) //
-                                                           .setPinL0FilterAndIndexBlocksInCache(
-                                                                   options.get(
-                                                                           RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE)) //
-                                                           .setBlockSize(4 * SizeUnit.KB)//
-                                                           .setBlockCache(blockCache);
-
-            int bitsPerKey = options.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
-            if (bitsPerKey >= 0) {
-                tableConfig.setFilterPolicy(new BloomFilter(bitsPerKey,
-                                                            options.get(
-                                                                    RocksDBOptions.BLOOM_FILTER_MODE)));
-            }
-            tableConfig.setWholeKeyFiltering(
-                    options.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
-            log.info("RocksdbConfig {}", options.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY));
-        }
-    }
-
     private static RocksdbConfig rocksdbConfig = null;
 
     private static RocksdbConfig getRocksdbConfig(HugeConfig options) {
@@ -177,7 +99,6 @@ public class RaftRocksdbOptions {
                                                                  cfOptions);
     }
 
-
     public static void initRocksdbGlobalConfig(Map<String, Object> config) {
         HugeConfig hugeConfig = BusinessHandlerImpl.initRocksdb(config, null);
         RocksdbConfig rocksdbConfig = getRocksdbConfig(hugeConfig);
@@ -211,5 +132,83 @@ public class RaftRocksdbOptions {
 
     public static long getBlockCacheCapacity() {
         return rocksdbConfig.getBlockCacheCapacity();
+    }
+
+    static class RocksdbConfig {
+        private final Env env;
+        private final LRUCache blockCache;
+        private final LRUCache writeCache;
+        private final WriteBufferManager bufferManager;
+        private final BlockBasedTableConfig tableConfig;
+        private final long blockCacheCapacity;
+        private final long writeCacheCapacity;
+
+        public RocksdbConfig(HugeConfig options) {
+            RocksDB.loadLibrary();
+            this.env = Env.getDefault();
+            double writeBufferRatio = options.get(RocksDBOptions.WRITE_BUFFER_RATIO);
+            this.writeCacheCapacity =
+                    (long) (options.get(RocksDBOptions.TOTAL_MEMORY_SIZE) * writeBufferRatio);
+            this.blockCacheCapacity =
+                    options.get(RocksDBOptions.TOTAL_MEMORY_SIZE) - writeCacheCapacity;
+            this.writeCache = new LRUCache(writeCacheCapacity);
+            this.blockCache = new LRUCache(blockCacheCapacity);
+            this.bufferManager = new WriteBufferManager(writeCacheCapacity, writeCache,
+                                                        options.get(
+                                                                RocksDBOptions.WRITE_BUFFER_ALLOW_STALL));
+            this.tableConfig = new BlockBasedTableConfig() //
+                                                           .setIndexType(
+                                                                   IndexType.kTwoLevelIndexSearch) //
+                                                           .setPartitionFilters(true) //
+                                                           .setMetadataBlockSize(8 * SizeUnit.KB) //
+                                                           .setCacheIndexAndFilterBlocks(
+                                                                   options.get(
+                                                                           RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE)) //
+                                                           .setCacheIndexAndFilterBlocksWithHighPriority(
+                                                                   true) //
+                                                           .setPinL0FilterAndIndexBlocksInCache(
+                                                                   options.get(
+                                                                           RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE)) //
+                                                           .setBlockSize(4 * SizeUnit.KB)//
+                                                           .setBlockCache(blockCache);
+
+            int bitsPerKey = options.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY);
+            if (bitsPerKey >= 0) {
+                tableConfig.setFilterPolicy(new BloomFilter(bitsPerKey,
+                                                            options.get(
+                                                                    RocksDBOptions.BLOOM_FILTER_MODE)));
+            }
+            tableConfig.setWholeKeyFiltering(
+                    options.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
+            log.info("RocksdbConfig {}", options.get(RocksDBOptions.BLOOM_FILTER_BITS_PER_KEY));
+        }
+
+        public Env getEnv() {
+            return env;
+        }
+
+        public LRUCache getBlockCache() {
+            return blockCache;
+        }
+
+        public LRUCache getWriteCache() {
+            return writeCache;
+        }
+
+        public WriteBufferManager getBufferManager() {
+            return bufferManager;
+        }
+
+        public BlockBasedTableConfig getTableConfig() {
+            return tableConfig;
+        }
+
+        public long getBlockCacheCapacity() {
+            return blockCacheCapacity;
+        }
+
+        public long getWriteCacheCapacity() {
+            return writeCacheCapacity;
+        }
     }
 }

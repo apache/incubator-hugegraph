@@ -36,11 +36,11 @@ import lombok.Data;
  */
 @Data
 public class Store {
+    private final String version;
     private long id = 0;
     private String storeAddress;
     private String pdAddress;
     private String raftAddress;
-    private final String version;
     private String deployPath;
     private String dataPath; // 数据存储路径
     private int dataVersion;

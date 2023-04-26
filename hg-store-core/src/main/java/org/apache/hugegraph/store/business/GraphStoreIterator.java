@@ -68,15 +68,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GraphStoreIterator<T> extends AbstractSelectIterator
         implements ScanIterator {
+    private static final Descriptors.FieldDescriptor propertiesDesEdge =
+            Edge.getDescriptor().findFieldByNumber(6);
+    private static final Descriptors.FieldDescriptor propertiesDesVertex =
+            Vertex.getDescriptor().findFieldByNumber(3);
     private final ScanPartitionRequest scanRequest;
     private final ScanIterator iter;
     private final Request request;
     private final boolean isVertex;
+    private final HugeType type;
+    private final Set properties;
     private Vertex.Builder vertex;
     private Edge.Builder edge;
-    private final HugeType type;
     private ArrayList<BackendColumn> data;
-    private final Set properties;
     private GroovyScriptEngineImpl engine;
     private CompiledScript script;
     private HugeElement current;
@@ -306,11 +310,6 @@ public class GraphStoreIterator<T> extends AbstractSelectIterator
 
         }
     }
-
-    private static final Descriptors.FieldDescriptor propertiesDesEdge =
-            Edge.getDescriptor().findFieldByNumber(6);
-    private static final Descriptors.FieldDescriptor propertiesDesVertex =
-            Vertex.getDescriptor().findFieldByNumber(3);
 
     private Edge parseEdge(HugeElement element) {
         HugeEdge e = (HugeEdge) element;

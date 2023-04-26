@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 public class RaftOperation {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RaftOperation.class);
     public static final byte SYNC_PARTITION_TASK = 0x60;
     public static final byte SYNC_PARTITION = 0x61;
     public static final byte BLANK_TASK = 0x62;
@@ -43,13 +42,10 @@ public class RaftOperation {
     // 集群内部数据迁移操作
     public static final byte IN_WRITE_OP = 0x64;
     public static final byte IN_CLEAN_OP = 0x65;
-
     public static final byte RAFT_UPDATE_PARTITION = 0x66;
-
     public static final byte DB_COMPACTION = 0x67;
-
     final static byte[] EMPTY_Bytes = new byte[0];
-
+    private static final Logger LOG = LoggerFactory.getLogger(RaftOperation.class);
     private byte[] values;     // req序列化的结果，用于传输给其他raft node
     private Object req;        // 原始对象，用于本机处理，减少一次反序列化操作
     private byte op;         // 操作类型

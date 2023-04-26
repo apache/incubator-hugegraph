@@ -33,18 +33,40 @@ import com.google.protobuf.Int64Value;
  */
 public class GraphIdManager extends PartitionMetaStore {
 
+    protected static final String GRAPH_ID_PREFIX = "@GRAPH_ID@";
+    protected static int maxGraphID = 65535;
+    static Object graphIdLock = new Object();
+    static Object cidLock = new Object();
     final DBSessionBuilder sessionBuilder;
     final int partitionId;
+    // public long getGraphId(String graphName) {
+    //    if (!graphIdCache.containsKey(graphName)) {
+    //        synchronized (graphIdLock) {
+    //            if (!graphIdCache.containsKey(graphName)) {
+    //                byte[] key = MetadataKeyHelper.getGraphIDKey(graphName);
+    //                Int64Value id = get(Int64Value.parser(), key);
+    //                if (id == null) {
+    //                    id = Int64Value.of(getCId(GRAPH_ID_PREFIX, maxGraphID));
+    //                    if (id.getValue() == -1) {
+    //                        throw new HgStoreException(HgStoreException.EC_FAIL,
+    //                                "The number of graphs exceeds the maximum 65535");
+    //                    }
+    //                    put(key, id);
+    //                    flush();
+    //                }
+    //                graphIdCache.put(graphName, id.getValue());
+    //            }
+    //        }
+    //    }
+    //    return graphIdCache.get(graphName);
+    // }
+    private final Map<String, Long> graphIdCache = new ConcurrentHashMap<>();
 
     public GraphIdManager(DBSessionBuilder sessionBuilder, int partitionId) {
         super(sessionBuilder, partitionId);
         this.sessionBuilder = sessionBuilder;
         this.partitionId = partitionId;
     }
-
-    private final Map<String, Long> graphIdCache = new ConcurrentHashMap<>();
-
-    static Object graphIdLock = new Object();
 
     /**
      * 获取一个图的id
@@ -73,27 +95,6 @@ public class GraphIdManager extends PartitionMetaStore {
         }
         return l;
     }
-    // public long getGraphId(String graphName) {
-    //    if (!graphIdCache.containsKey(graphName)) {
-    //        synchronized (graphIdLock) {
-    //            if (!graphIdCache.containsKey(graphName)) {
-    //                byte[] key = MetadataKeyHelper.getGraphIDKey(graphName);
-    //                Int64Value id = get(Int64Value.parser(), key);
-    //                if (id == null) {
-    //                    id = Int64Value.of(getCId(GRAPH_ID_PREFIX, maxGraphID));
-    //                    if (id.getValue() == -1) {
-    //                        throw new HgStoreException(HgStoreException.EC_FAIL,
-    //                                "The number of graphs exceeds the maximum 65535");
-    //                    }
-    //                    put(key, id);
-    //                    flush();
-    //                }
-    //                graphIdCache.put(graphName, id.getValue());
-    //            }
-    //        }
-    //    }
-    //    return graphIdCache.get(graphName);
-    // }
 
     /**
      * 释放一个图id
@@ -109,11 +110,6 @@ public class GraphIdManager extends PartitionMetaStore {
         }
         return gid;
     }
-
-    static Object cidLock = new Object();
-    protected static final String GRAPH_ID_PREFIX = "@GRAPH_ID@";
-
-    protected static int maxGraphID = 65535;
 
     /**
      * 获取自增循环不重复id, 达到上限后从0开始自增

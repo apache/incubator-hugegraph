@@ -54,8 +54,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SystemMetricService {
 
     private static final long MIB = 1024 * 1024;
-    HgStoreEngine storeEngine;
     private final Deque<Map<String, List<Long>>> deque = new LinkedList<>();
+    HgStoreEngine storeEngine;
 
     public void setStoreEngine(HgStoreEngine hgStoreEngine) {
         this.storeEngine = hgStoreEngine;

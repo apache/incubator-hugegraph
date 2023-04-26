@@ -28,12 +28,19 @@ import io.grpc.stub.StreamObserver;
 
 public class ScanBatchResponseFactory {
     private final static ScanBatchResponseFactory instance = new ScanBatchResponseFactory();
+    private final Set<StreamObserver> streamObservers = new ConcurrentHashSet<>();
 
     public static ScanBatchResponseFactory getInstance() {
         return instance;
     }
 
-    private final Set<StreamObserver> streamObservers = new ConcurrentHashSet<>();
+    public static StreamObserver of(StreamObserver<KvStream> responseObserver,
+                                    HgStoreWrapperEx wrapper, ThreadPoolExecutor executor) {
+        StreamObserver observer = new ScanBatchResponse(responseObserver, wrapper, executor);
+        getInstance().addStreamObserver(observer);
+        getInstance().checkStreamActive();
+        return observer;
+    }
 
     public int addStreamObserver(StreamObserver observer) {
         streamObservers.add(observer);
@@ -52,13 +59,5 @@ public class ScanBatchResponseFactory {
         streamObservers.forEach(streamObserver -> {
             ((ScanBatchResponse) streamObserver).checkActiveTimeout();
         });
-    }
-
-    public static StreamObserver of(StreamObserver<KvStream> responseObserver,
-                                    HgStoreWrapperEx wrapper, ThreadPoolExecutor executor) {
-        StreamObserver observer = new ScanBatchResponse(responseObserver, wrapper, executor);
-        getInstance().addStreamObserver(observer);
-        getInstance().checkStreamActive();
-        return observer;
     }
 }

@@ -60,12 +60,10 @@ public class HgStoreNodeService implements RaftTaskHandler {
 
 
     public static final byte MAX_OP = 0x59;
+    private final AppConfig appConfig;
     @Autowired
     HgStoreSessionImpl hgStoreSession;
-
     private HgStoreEngine storeEngine;
-
-    private final AppConfig appConfig;
 
     public HgStoreNodeService(@Autowired AppConfig appConfig) {
         this.appConfig = appConfig;

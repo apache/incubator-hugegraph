@@ -140,30 +140,6 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     TxBuilder txBuilder(String graph, int partId);
 
-    @NotThreadSafe
-    interface TxBuilder {
-        TxBuilder put(int code, String table, byte[] key, byte[] value) throws HgStoreException;
-
-        TxBuilder del(int code, String table, byte[] key) throws HgStoreException;
-
-        TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException;
-
-        TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException;
-
-        TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
-                                                                             HgStoreException;
-
-        TxBuilder merge(int code, String table, byte[] key, byte[] value) throws HgStoreException;
-
-        Tx build();
-    }
-
-    interface Tx {
-        void commit() throws HgStoreException;
-
-        void rollback() throws HgStoreException;
-    }
-
     default void doBatch(String graph, int partId, List<BatchEntry> entryList) {
         BusinessHandler.TxBuilder builder = txBuilder(graph, partId);
         try {
@@ -222,5 +198,29 @@ public interface BusinessHandler extends DBSessionBuilder {
     boolean dbCompaction(String graphName, int partitionId, String tableName);
 
     void destroyGraphDB(String graphName, int partId) throws HgStoreException;
+
+    @NotThreadSafe
+    interface TxBuilder {
+        TxBuilder put(int code, String table, byte[] key, byte[] value) throws HgStoreException;
+
+        TxBuilder del(int code, String table, byte[] key) throws HgStoreException;
+
+        TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException;
+
+        TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException;
+
+        TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
+                                                                             HgStoreException;
+
+        TxBuilder merge(int code, String table, byte[] key, byte[] value) throws HgStoreException;
+
+        Tx build();
+    }
+
+    interface Tx {
+        void commit() throws HgStoreException;
+
+        void rollback() throws HgStoreException;
+    }
 
 }

@@ -44,10 +44,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgStoreScanner {
 
+    public static final byte[] EMPTY_BYTES = new byte[0];
     private final HgStoreClient storeClient;
     private final String graphName;
     private long modNumber = 1_000_000;
     private int max = 10_000_000;
+
+    private HgStoreScanner(HgStoreClient storeClient, String graph) {
+        this.storeClient = storeClient;
+        this.graphName = graph;
+    }
+
+    public static HgStoreScanner of(HgStoreClient storeClient, String graph) {
+        return new HgStoreScanner(storeClient, graph);
+    }
 
     public long getModNumber() {
         return modNumber;
@@ -69,15 +79,6 @@ public class HgStoreScanner {
             return;
         }
         this.max = max;
-    }
-
-    public static HgStoreScanner of(HgStoreClient storeClient, String graph) {
-        return new HgStoreScanner(storeClient, graph);
-    }
-
-    private HgStoreScanner(HgStoreClient storeClient, String graph) {
-        this.storeClient = storeClient;
-        this.graphName = graph;
     }
 
     protected HgStoreSession getStoreSession() {
@@ -182,8 +183,6 @@ public class HgStoreScanner {
         log.info("Page: {}", HgStoreClientConfig.of().getNetKvScannerPageSize());
         log.info("*************************************************");
     }
-
-    public static final byte[] EMPTY_BYTES = new byte[0];
 
     public void scanTable2(String tableName) throws PDException {
         // java -jar hg-store-cli-3.6.0-SNAPSHOT.jar -scan 10.45.30.212:8989 "DEFAULT/case_112/g"

@@ -56,16 +56,15 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class HgSessionManagerRaftPDTest {
-    private static PDClient pdClient;
-    private static final String pdAddress = "localhost:8686";
     public final static String GRAPH_NAME_X = "default/hugegraph/x";
     public final static String GRAPH_NAME_Y = "default/hugegraph/y";
     public final static String GRAPH_NAME_Z = "default/hugegraph/z";
     public final static String TABLE_NAME_1 = "table1";
     public final static String TABLE_NAME_2 = "table2";
     public final static String TABLE_NAME_3 = "table3";
-
+    private static final String pdAddress = "localhost:8686";
     public static HgStoreClient storeClient;
+    private static PDClient pdClient;
 
     // @BeforeClass
     public static void init() {

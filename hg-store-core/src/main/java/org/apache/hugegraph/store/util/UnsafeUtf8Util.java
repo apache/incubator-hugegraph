@@ -233,6 +233,10 @@ public class UnsafeUtf8Util {
         return UnsafeUtil.moveToString(resultArr);
     }
 
+    static IllegalStateException invalidUtf8() {
+        return new IllegalStateException("Message had invalid UTF-8.");
+    }
+
     private static class DecodeUtil {
 
         /**
@@ -329,9 +333,5 @@ public class UnsafeUtf8Util {
         private static char lowSurrogate(int codePoint) {
             return (char) (MIN_LOW_SURROGATE + (codePoint & 0x3ff));
         }
-    }
-
-    static IllegalStateException invalidUtf8() {
-        return new IllegalStateException("Message had invalid UTF-8.");
     }
 }

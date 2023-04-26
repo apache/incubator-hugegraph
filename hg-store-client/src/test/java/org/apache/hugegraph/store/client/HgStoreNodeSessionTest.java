@@ -39,12 +39,12 @@ public class HgStoreNodeSessionTest {
                                               .build());
     }
 
-    private HgStoreNode getOneNode() {
-        return node;
-    }
-
     private static HgStoreSession getStoreSession() {
         return node.openSession(GRAPH_NAME);
+    }
+
+    private HgStoreNode getOneNode() {
+        return node;
     }
 
     // @Test

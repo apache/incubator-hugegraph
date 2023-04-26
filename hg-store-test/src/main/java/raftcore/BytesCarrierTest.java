@@ -17,22 +17,23 @@
 
 package raftcore;
 
-import com.google.protobuf.BytesCarrier;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+import org.junit.Test;
+
+import com.google.protobuf.BytesCarrier;
+
 public class BytesCarrierTest {
 
     @Test
     public void testWrite() throws IOException {
-        byte[] bytes = new byte[]{10, 20,30};
+        byte[] bytes = new byte[]{10, 20, 30};
         BytesCarrier carrier = new BytesCarrier();
 
         // not valid

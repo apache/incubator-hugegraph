@@ -26,8 +26,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ManualResetEvent {
 
-    private volatile CountDownLatch event;
     private static final Object mutex = new Object();
+    private volatile CountDownLatch event;
 
     /**
      * Initializes a new instance of the System.Threading.ManualResetEvent class

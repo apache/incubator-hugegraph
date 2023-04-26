@@ -28,23 +28,15 @@ import java.util.Objects;
 
 class ProcfsReader {
 
-    private static final Map<String, ProcfsReader> instances = new HashMap<>();
-
-    private static final Object instancesLock = new Object();
-
-    private static final Map<Path, List<String>> data = new HashMap<>();
-
-    private static final Object dataLock = new Object();
-
-    private static final Path BASE = Paths.get("/proc", "self");
-
     /* default */ static final long CACHE_DURATION_MS = 100;
-
-    /* default */ long lastReadTime = -1;
-
+    private static final Map<String, ProcfsReader> instances = new HashMap<>();
+    private static final Object instancesLock = new Object();
+    private static final Map<Path, List<String>> data = new HashMap<>();
+    private static final Object dataLock = new Object();
+    private static final Path BASE = Paths.get("/proc", "self");
     private final Path entryPath;
-
     private final boolean osSupport;
+    /* default */ long lastReadTime = -1;
 
     private ProcfsReader(String entry) {
         this(BASE, entry, false);
@@ -63,6 +55,20 @@ class ProcfsReader {
         this.osSupport = forceOSSupport
                          || System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
                                   .startsWith("linux");
+    }
+
+    /* default */
+    static ProcfsReader getInstance(String entry) {
+        Objects.requireNonNull(entry);
+
+        synchronized (instancesLock) {
+            ProcfsReader reader = instances.get(entry);
+            if (reader == null) {
+                reader = new ProcfsReader(entry);
+                instances.put(entry, reader);
+            }
+            return reader;
+        }
     }
 
     /* default */ Path getEntryPath() {
@@ -108,20 +114,6 @@ class ProcfsReader {
 
     /* default */ long currentTime() {
         return System.currentTimeMillis();
-    }
-
-    /* default */
-    static ProcfsReader getInstance(String entry) {
-        Objects.requireNonNull(entry);
-
-        synchronized (instancesLock) {
-            ProcfsReader reader = instances.get(entry);
-            if (reader == null) {
-                reader = new ProcfsReader(entry);
-                instances.put(entry, reader);
-            }
-            return reader;
-        }
     }
 
     /* default */ static class ReadResult {

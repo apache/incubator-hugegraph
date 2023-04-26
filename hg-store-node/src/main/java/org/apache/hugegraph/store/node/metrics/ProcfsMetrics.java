@@ -27,10 +27,9 @@ import io.micrometer.core.instrument.MeterRegistry;
  */
 public class ProcfsMetrics {
 
-    private static MeterRegistry registry;
     public final static String PREFIX = "process_memory";
-
     private final static ProcfsSmaps smaps = new ProcfsSmaps();
+    private static MeterRegistry registry;
 
     private ProcfsMetrics() {
 

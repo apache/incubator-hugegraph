@@ -33,10 +33,9 @@ public class GrpcStoreNodeBuilder implements HgStoreNodeBuilder {
     private static final GrpcStoreSessionClient sessionClient = new GrpcStoreSessionClient();
     private static final GrpcStoreStreamClient streamClient = new GrpcStoreStreamClient();
     private static final AtomicLong ids = new AtomicLong(0);
-
+    private final HgStoreNodeManager nodeManager;
     private Long nodeId;
     private String address;
-    private final HgStoreNodeManager nodeManager;
 
     public GrpcStoreNodeBuilder(HgStoreNodeManager nodeManager, HgPrivate hgPrivate) {
         HgAssert.isArgumentNotNull(hgPrivate, "hgPrivate");

@@ -41,17 +41,17 @@ public final class HgChannel<T> {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final long timeoutSeconds;
 
+    private HgChannel(long timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+        this.queue = new SynchronousQueue();
+    }
+
     public static HgChannel of() {
         return new HgChannel(Long.MAX_VALUE);
     }
 
     public static HgChannel of(long timeoutSeconds) {
         return new HgChannel(timeoutSeconds);
-    }
-
-    private HgChannel(long timeoutSeconds) {
-        this.timeoutSeconds = timeoutSeconds;
-        this.queue = new SynchronousQueue();
     }
 
     /**

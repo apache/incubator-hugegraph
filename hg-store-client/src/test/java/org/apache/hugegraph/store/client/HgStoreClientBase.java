@@ -25,11 +25,10 @@ import org.junit.Before;
 
 public class HgStoreClientBase {
 
-    protected HgStoreClient storeClient;
-    protected PDClient pdClient;
-
     protected static String Graph_Name = "testGraphName";
     protected static String Table_Name = "testTableName";
+    protected HgStoreClient storeClient;
+    protected PDClient pdClient;
 
     @Before
     public void init() {

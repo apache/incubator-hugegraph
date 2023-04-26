@@ -73,22 +73,6 @@ public class UnsafeUtilTest {
         UnsafeUtf8Util.encodedLength(content);
     }
 
-
-    @Data
-    private class TestObject {
-        private Object o;
-        private byte b;
-
-        public TestObject() {
-
-        }
-
-        public TestObject(Object o, byte b) {
-            this.o = o;
-            this.b = b;
-        }
-    }
-
     @Test
     public void testUnsafeAccessor() {
         Unsafe unsafe = null;
@@ -170,6 +154,21 @@ public class UnsafeUtilTest {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Data
+    private class TestObject {
+        private Object o;
+        private byte b;
+
+        public TestObject() {
+
+        }
+
+        public TestObject(Object o, byte b) {
+            this.o = o;
+            this.b = b;
         }
     }
 

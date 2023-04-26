@@ -38,11 +38,11 @@ import org.junit.Test;
 
 public class HgStoreClientTest {
 
-    private HgStoreClient storeClient;
-    private PDClient pdClient;
     public final static byte[] EMPTY_BYTES = new byte[0];
     private static final String Graph_Name = "testGraphName";
     private static String Table_Name = "testTableName";
+    private HgStoreClient storeClient;
+    private PDClient pdClient;
 
     @Before
     public void init() {

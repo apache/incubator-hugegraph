@@ -32,19 +32,19 @@ class SeekAbleIterator<E> implements Iterator, HgSeekAble {
     private final Consumer<byte[]> seeker;
     private final Supplier<byte[]> positioner;
 
+    private SeekAbleIterator(Iterator<E> iterator, Supplier<byte[]> positioner,
+                             Consumer<byte[]> seeker) {
+        this.iterator = iterator;
+        this.positioner = positioner;
+        this.seeker = seeker;
+    }
+
     public static <E> SeekAbleIterator of(Iterator<E> iterator, Supplier<byte[]> positioner,
                                           Consumer<byte[]> seeker) {
         HgAssert.isArgumentNotNull(iterator, "iterator");
         HgAssert.isArgumentNotNull(positioner, "positioner");
         HgAssert.isArgumentNotNull(seeker, "seeker");
         return new SeekAbleIterator(iterator, positioner, seeker);
-    }
-
-    private SeekAbleIterator(Iterator<E> iterator, Supplier<byte[]> positioner,
-                             Consumer<byte[]> seeker) {
-        this.iterator = iterator;
-        this.positioner = positioner;
-        this.seeker = seeker;
     }
 
     @Override

@@ -27,15 +27,10 @@ package org.apache.hugegraph.store.util;
  * @version: 1.0
  */
 public class HgStoreException extends RuntimeException {
-    private static final long serialVersionUID = 5193624480997934335L;
-
     public final static int EC_NOEXCEPT = 0;
-
     public final static int EC_FAIL = 1000;
     //存储的数据格式不支持
     public final static int EC_DATAFMT_NOT_SUPPORTED = 1001;
-
-
     public final static int EC_RKDB_CREATE_FAIL = 1201;
     public final static int EC_RKDB_DOPUT_FAIL = 1202;
     public final static int EC_RKDB_DODEL_FAIL = 1203;
@@ -49,10 +44,8 @@ public class HgStoreException extends RuntimeException {
     public final static int EC_RKDB_EXPORT_SNAPSHOT_FAIL = 1214;
     public final static int EC_RKDB_IMPORT_SNAPSHOT_FAIL = 1215;
     public final static int EC_RKDB_TRANSFER_SNAPSHOT_FAIL = 1216;
-
-
     public final static int EC_METRIC_FAIL = 1401;
-
+    private static final long serialVersionUID = 5193624480997934335L;
     private final int code;
 
     public HgStoreException() {
@@ -85,11 +78,11 @@ public class HgStoreException extends RuntimeException {
         this.code = EC_FAIL;
     }
 
-    public int getCode() {
-        return this.code;
-    }
-
     public static String codeToMsg(int code) {
         return "errorCode = " + code;
+    }
+
+    public int getCode() {
+        return this.code;
     }
 }

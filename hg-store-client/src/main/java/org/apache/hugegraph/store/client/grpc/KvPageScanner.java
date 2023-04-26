@@ -62,14 +62,14 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
     private static final int nextTimeout = clientConfig.getNetKvScannerHaveNextTimeout();
     private final HgStoreNodeSession session;
     private final HgStoreStreamStub stub;
-    private int pageSize = clientConfig.getNetKvScannerPageSize();
     private final AtomicBoolean completed = new AtomicBoolean(false);
+    private final SelectParam.Builder selectBuilder = SelectParam.newBuilder();
+    private final BlockingQueue<ScanStreamReq> reqQueue = new LinkedBlockingQueue<>();
+    private int pageSize = clientConfig.getNetKvScannerPageSize();
     private HgBufferProxy<List<Kv>> proxy;
     private Iterator<Kv> iterator;
     private StreamObserver<ScanStreamReq> observer;
     private ScanStreamReq.Builder reqBuilder = ScanStreamReq.newBuilder();
-    private final SelectParam.Builder selectBuilder = SelectParam.newBuilder();
-    private final BlockingQueue<ScanStreamReq> reqQueue = new LinkedBlockingQueue<>();
     private boolean in = true;
     private byte[] nodePosition = HgStoreClientConst.EMPTY_BYTES;
 
@@ -132,6 +132,14 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
                                  startKey.getKeyCode(), scanType, query);
     }
 
+    static HgOwnerKey toOk(HgOwnerKey key) {
+        return key == null ? HgStoreClientConst.EMPTY_OWNER_KEY : key;
+    }
+
+    static ByteString toBs(byte[] bytes) {
+        return ByteString.copyFrom((bytes != null) ? bytes : HgStoreClientConst.EMPTY_BYTES);
+    }
+
     private ScanStreamReq createScanReq() {
         return this.reqBuilder.setPosition(toBs(this.nodePosition)).build();
     }
@@ -144,41 +152,6 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
         this.proxy = HgBufferProxy.of(() -> this.serverScan());
         this.observer = this.stub.scan(new ServeObserverImpl());
 
-    }
-
-    /*** Server event Start ***/
-    private class ServeObserverImpl implements StreamObserver<KvPageRes> {
-
-        @Override
-        public void onNext(KvPageRes value) {
-            if (value.getOver()) {
-                completed.set(true);
-                observer.onCompleted();
-            }
-            proxy.send(value.getDataList());
-            if (completed.get()) {
-                proxy.close();
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            completed.set(true);
-            try {
-                observer.onCompleted();
-            } catch (Exception e) {
-                log.warn("failed to invoke requestObserver.onCompleted(), reason:", e.getMessage());
-            }
-            proxy.close();
-            proxy.setError(t);
-            log.error("failed to complete scan of session: " + session, t);
-        }
-
-        @Override
-        public void onCompleted() {
-            completed.set(true);
-            proxy.close();
-        }
     }
 
     /*** Server Event End ***/
@@ -297,12 +270,39 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
         return Header.newBuilder().setGraph(nodeSession.getGraphName()).build();
     }
 
-    static HgOwnerKey toOk(HgOwnerKey key) {
-        return key == null ? HgStoreClientConst.EMPTY_OWNER_KEY : key;
-    }
+    /*** Server event Start ***/
+    private class ServeObserverImpl implements StreamObserver<KvPageRes> {
 
-    static ByteString toBs(byte[] bytes) {
-        return ByteString.copyFrom((bytes != null) ? bytes : HgStoreClientConst.EMPTY_BYTES);
+        @Override
+        public void onNext(KvPageRes value) {
+            if (value.getOver()) {
+                completed.set(true);
+                observer.onCompleted();
+            }
+            proxy.send(value.getDataList());
+            if (completed.get()) {
+                proxy.close();
+            }
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            completed.set(true);
+            try {
+                observer.onCompleted();
+            } catch (Exception e) {
+                log.warn("failed to invoke requestObserver.onCompleted(), reason:", e.getMessage());
+            }
+            proxy.close();
+            proxy.setError(t);
+            log.error("failed to complete scan of session: " + session, t);
+        }
+
+        @Override
+        public void onCompleted() {
+            completed.set(true);
+            proxy.close();
+        }
     }
 
 }

@@ -36,12 +36,17 @@ import org.apache.hugegraph.store.node.util.HgStoreConst;
 public final class BatchScanIterator implements ScanIterator {
     private final Supplier<KVPair<QueryCondition, ScanIterator>> batchSupplier;
     private final Supplier<Long> limitSupplier;
-
+    private final AtomicBoolean closed = new AtomicBoolean();
     private ScanIterator iterator;
     private boolean hasNext = false;
     private long curCount;
     private long curLimit;
-    private final AtomicBoolean closed = new AtomicBoolean();
+
+    private BatchScanIterator(Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
+                              Supplier<Long> limitSupplier) {
+        this.batchSupplier = iteratorSupplier;
+        this.limitSupplier = limitSupplier;
+    }
 
     public static BatchScanIterator of(
             Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
@@ -49,12 +54,6 @@ public final class BatchScanIterator implements ScanIterator {
         HgAssert.isArgumentNotNull(iteratorSupplier, "iteratorSupplier");
         HgAssert.isArgumentNotNull(limitSupplier, "limitSupplier");
         return new BatchScanIterator(iteratorSupplier, limitSupplier);
-    }
-
-    private BatchScanIterator(Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
-                              Supplier<Long> limitSupplier) {
-        this.batchSupplier = iteratorSupplier;
-        this.limitSupplier = limitSupplier;
     }
 
     private ScanIterator getIterator() {

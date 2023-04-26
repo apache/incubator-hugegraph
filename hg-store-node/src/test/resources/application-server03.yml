@@ -8,7 +8,7 @@ grpc:
   netty-server:
     max-inbound-message-size: 1000MB
 raft:
-#  enable: false
+  #  enable: false
   address: 127.0.0.1:8513
   snapshotLogIndexMargin: 1024
   useRocksDBSegmentLogStorage: false
@@ -17,11 +17,11 @@ raft:
   disruptorBufferSize: 128
 server:
   # rest 服务地址
-  port : 8523
+  port: 8523
 
 app:
   data-path: tmp/8503
- # fake-pd: true
+  # fake-pd: true
   label:
     label-key: label-value
 spring:

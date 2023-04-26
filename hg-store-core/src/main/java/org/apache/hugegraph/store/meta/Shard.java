@@ -29,14 +29,14 @@ public class Shard {
     private long storeId;
     private Metapb.ShardRole role;
 
-    public Metapb.Shard toMetaPbShard() {
-        return Metapb.Shard.newBuilder().setStoreId(storeId).setRole(role).build();
-    }
-
     public static Shard fromMetaPbShard(Metapb.Shard shard) {
         Shard s = new Shard();
         s.setRole(shard.getRole());
         s.setStoreId(shard.getStoreId());
         return s;
+    }
+
+    public Metapb.Shard toMetaPbShard() {
+        return Metapb.Shard.newBuilder().setStoreId(storeId).setRole(role).build();
     }
 }

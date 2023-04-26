@@ -57,14 +57,58 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HgCmdClientTest {
+    private static AtomicLong id;
+    private final String pdAddress = "127.0.0.1:8686";
+    private final String graphName = "hugegraph";
+    private final String tableName = "table-1";
     private PdProvider pdProvider;
     private HgCmdClient hgCmdClient;
     private HgStoreClient storeClient;
     private PDClient pdClient;
-    private final String pdAddress = "127.0.0.1:8686";
-    private final String graphName = "hugegraph";
-    private final String tableName = "table-1";
-    private static AtomicLong id;
+
+    public static String getMd5(String txt) {
+        String rs = "";
+        String[] hexDigits =
+                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"};
+        try {
+            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+            byte[] b = messageDigest.digest(txt.getBytes());
+            StringBuffer resultSb = new StringBuffer();
+            for (int i = 0; i < b.length; i++) {
+                int n = b[i];
+                if (n < 0) {
+                    n = 256 + n;
+                }
+                int d1 = n / 16;
+                int d2 = n % 16;
+                resultSb.append(hexDigits[d1] + hexDigits[d2]);
+            }
+            rs = resultSb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return rs;
+    }
+
+    public static Long getId() {
+        // 如果需要更长 或者更大冗余空间, 只需要 time * 10^n   即可
+        // 当前可保证1毫秒 生成 10000条不重复
+        Long time = Long.valueOf(new SimpleDateFormat("HHmmssSSS").format(new Date())) * 10000 +
+                    (long) (Math.random() * 100);
+//        Long time = Long.valueOf(new SimpleDateFormat("MMddhhmmssSSS").format(new Date())
+//        .toString());
+//        System.out.println(time);
+        if (id == null) {
+            id = new AtomicLong(time);
+            return id.get();
+        }
+        if (time <= id.get()) {
+            id.addAndGet(1);
+        } else {
+            id = new AtomicLong(time);
+        }
+        return id.get();
+    }
 
     @Test
     public void testGetStoreInfo() {
@@ -309,50 +353,5 @@ public class HgCmdClientTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-
-    public static String getMd5(String txt) {
-        String rs = "";
-        String[] hexDigits =
-                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"};
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            byte[] b = messageDigest.digest(txt.getBytes());
-            StringBuffer resultSb = new StringBuffer();
-            for (int i = 0; i < b.length; i++) {
-                int n = b[i];
-                if (n < 0) {
-                    n = 256 + n;
-                }
-                int d1 = n / 16;
-                int d2 = n % 16;
-                resultSb.append(hexDigits[d1] + hexDigits[d2]);
-            }
-            rs = resultSb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return rs;
-    }
-
-    public static Long getId() {
-        // 如果需要更长 或者更大冗余空间, 只需要 time * 10^n   即可
-        // 当前可保证1毫秒 生成 10000条不重复
-        Long time = Long.valueOf(new SimpleDateFormat("HHmmssSSS").format(new Date())) * 10000 +
-                    (long) (Math.random() * 100);
-//        Long time = Long.valueOf(new SimpleDateFormat("MMddhhmmssSSS").format(new Date())
-//        .toString());
-//        System.out.println(time);
-        if (id == null) {
-            id = new AtomicLong(time);
-            return id.get();
-        }
-        if (time <= id.get()) {
-            id.addAndGet(1);
-        } else {
-            id = new AtomicLong(time);
-        }
-        return id.get();
     }
 }

@@ -45,19 +45,18 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class RocksDBFactory {
+    private static final List<RocksdbChangedListener> rocksdbChangedListeners = new ArrayList<>();
+    private static RocksDBFactory dbFactory;
+
     static {
         RocksDB.loadLibrary();
     }
 
-    private static RocksDBFactory dbFactory;
-    private static final List<RocksdbChangedListener> rocksdbChangedListeners = new ArrayList<>();
     private final Map<String, RocksDBSession> dbSessionMap = new ConcurrentHashMap<>();
     private final List<DBSessionWatcher> destroyGraphDBs = new CopyOnWriteArrayList<>();
-
-    ScheduledExecutorService scheduledExecutor;
-
-    private HugeConfig hugeConfig;
     private final ReentrantReadWriteLock operateLock;
+    ScheduledExecutorService scheduledExecutor;
+    private HugeConfig hugeConfig;
 
     private RocksDBFactory() {
         this.operateLock = new ReentrantReadWriteLock();
@@ -98,22 +97,6 @@ public final class RocksDBFactory {
         }, 60, 60, TimeUnit.SECONDS);
     }
 
-    public int getSessionSize() {
-        return dbSessionMap.size();
-    }
-
-    public Set<String> getGraphNames() {
-        return dbSessionMap.keySet();
-    }
-
-    public void setHugeConfig(HugeConfig nodeConfig) {
-        this.hugeConfig = nodeConfig;
-    }
-
-    public HugeConfig getHugeConfig() {
-        return this.hugeConfig;
-    }
-
     public static RocksDBFactory getInstance() {
         if (dbFactory == null) {
             synchronized (RocksDBFactory.class) {
@@ -123,6 +106,22 @@ public final class RocksDBFactory {
             }
         }
         return dbFactory;
+    }
+
+    public int getSessionSize() {
+        return dbSessionMap.size();
+    }
+
+    public Set<String> getGraphNames() {
+        return dbSessionMap.keySet();
+    }
+
+    public HugeConfig getHugeConfig() {
+        return this.hugeConfig;
+    }
+
+    public void setHugeConfig(HugeConfig nodeConfig) {
+        this.hugeConfig = nodeConfig;
     }
 
     public boolean findPathInRemovedList(String path) {
@@ -145,21 +144,6 @@ public final class RocksDBFactory {
             operateLock.readLock().unlock();
         }
         return null;
-    }
-
-    class RocksdbEventListener extends AbstractEventListener {
-        @Override
-        public void onCompactionCompleted(RocksDB db, CompactionJobInfo compactionJobInfo) {
-            super.onCompactionCompleted(db, compactionJobInfo);
-            rocksdbChangedListeners.forEach(listener -> {
-                listener.onCompacted(db.getName());
-            });
-        }
-
-        @Override
-        public void onCompactionBegin(final RocksDB db, final CompactionJobInfo compactionJobInfo) {
-            log.info("RocksdbEventListener onCompactionBegin");
-        }
     }
 
     public RocksDBSession createGraphDB(String dbPath, String dbName) {
@@ -227,7 +211,6 @@ public final class RocksDBFactory {
         return false;
     }
 
-
     /**
      * 销毁图，并删除数据文件
      *
@@ -245,7 +228,6 @@ public final class RocksDBFactory {
             });
         }
     }
-
 
     public void releaseAllGraphDB() {
         log.info("close all rocksdb.");
@@ -305,6 +287,21 @@ public final class RocksDBFactory {
         }
 
         default void onDBSessionReleased(RocksDBSession dbSession) {
+        }
+    }
+
+    class RocksdbEventListener extends AbstractEventListener {
+        @Override
+        public void onCompactionCompleted(RocksDB db, CompactionJobInfo compactionJobInfo) {
+            super.onCompactionCompleted(db, compactionJobInfo);
+            rocksdbChangedListeners.forEach(listener -> {
+                listener.onCompacted(db.getName());
+            });
+        }
+
+        @Override
+        public void onCompactionBegin(final RocksDB db, final CompactionJobInfo compactionJobInfo) {
+            log.info("RocksdbEventListener onCompactionBegin");
         }
     }
 

@@ -36,7 +36,7 @@ public final class HgStoreClientConst {
     public final static List EMPTY_LIST = Collections.EMPTY_LIST;
 
     public final static byte[] ALL_PARTITION_OWNER = new byte[0];
-            // means to dispatch to all partitions.
+    // means to dispatch to all partitions.
     public final static HgOwnerKey EMPTY_OWNER_KEY = HgOwnerKey.of(EMPTY_BYTES, EMPTY_BYTES);
     public final static HgOwnerKey ALL_PARTITION_OWNER_KEY =
             HgOwnerKey.of(ALL_PARTITION_OWNER, ALL_PARTITION_OWNER);

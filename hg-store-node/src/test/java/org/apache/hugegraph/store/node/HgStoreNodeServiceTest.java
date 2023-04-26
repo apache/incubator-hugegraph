@@ -35,16 +35,16 @@ import java.util.concurrent.TimeUnit;
  */
 public class HgStoreNodeServiceTest {
 
-    // @Test
-    public void testRaft() {
-
-    }
-
     String yml =
             "rocksdb:\n" + "  # rocksdb 使用的总内存大小\n" + "  total_memory_size: 32000000000\n" +
             "  max_background_jobs: 8\n" + "  max_subcompactions: 4\n" +
             "  target_file_size_multiplier: 4\n" + "  min_write_buffer_number_to_merge: 8\n" +
             "  target_file_size_base: 512000000";
+
+    // @Test
+    public void testRaft() {
+
+    }
 
     // @Test
     public void testYaml() throws InterruptedException, IOException {

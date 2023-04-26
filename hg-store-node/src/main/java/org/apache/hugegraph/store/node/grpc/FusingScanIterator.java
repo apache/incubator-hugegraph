@@ -36,15 +36,15 @@ final class FusingScanIterator implements ScanIterator {
     private ScanIterator iterator;
     private byte[] position = EMPTY_BYTES;
 
+    private FusingScanIterator() {
+    }
+
     public static FusingScanIterator maxOf(long maxThreshold,
                                            Supplier<ScanIterator> iteratorSupplier) {
         FusingScanIterator res = new FusingScanIterator();
         res.max = maxThreshold;
         res.supplier = iteratorSupplier;
         return res;
-    }
-
-    private FusingScanIterator() {
     }
 
     private ScanIterator getIterator() {

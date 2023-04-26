@@ -43,10 +43,6 @@ public class DBStoreException extends RuntimeException {
         this("Exception in DBStore " + cause.getMessage(), cause);
     }
 
-    public Throwable rootCause() {
-        return rootCause(this);
-    }
-
     public static Throwable rootCause(Throwable e) {
         Throwable cause = e;
         while (cause.getCause() != null) {
@@ -58,6 +54,10 @@ public class DBStoreException extends RuntimeException {
     public static boolean isInterrupted(Throwable e) {
         Throwable rootCause = DBStoreException.rootCause(e);
         return rootCause instanceof InterruptedException ||
-                rootCause instanceof InterruptedIOException;
+               rootCause instanceof InterruptedIOException;
+    }
+
+    public Throwable rootCause() {
+        return rootCause(this);
     }
 }

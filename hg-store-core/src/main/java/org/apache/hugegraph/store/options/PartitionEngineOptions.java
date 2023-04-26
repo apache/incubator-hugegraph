@@ -30,6 +30,11 @@ import lombok.Data;
  */
 @Data
 public class PartitionEngineOptions {
+    // 异步任务执行时间间隔, 单位秒
+    private final int taskScheduleTime = 60;
+    // 分裂过程，等待数据对齐超时时间
+    private final long splitPartitionTimeout = 30 * 60 * 1000;
+    HgStoreEngineOptions.RaftOptions raftOptions;
     // raft存储路径
     private String raftDataPath;
     private String raftSnapShotPath;
@@ -37,12 +42,6 @@ public class PartitionEngineOptions {
     private String raftAddress;
     private List<String> peerList;
     private Configuration conf;
-    // 异步任务执行时间间隔, 单位秒
-    private final int taskScheduleTime = 60;
-    // 分裂过程，等待数据对齐超时时间
-    private final long splitPartitionTimeout = 30 * 60 * 1000;
     // raft 任务处理器
     private RaftTaskHandler taskHandler;
-
-    HgStoreEngineOptions.RaftOptions raftOptions;
 }

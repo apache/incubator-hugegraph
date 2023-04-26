@@ -27,7 +27,7 @@ raft:
   snapshotInterval: 1800
 server:
   # rest 服务地址
-  port : 8520
+  port: 8520
 
 app:
   # 存储路径，支持多个路径，逗号分割

@@ -48,37 +48,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ParallelScanIterator implements ScanIterator {
 
-    private final int batchSize = PropertyUtil.getInt("app.scan.stream.entries.size", 20000);
+    private static final int waitDataMaxTryTimes = 600;
     protected static int maxBodySize =
             PropertyUtil.getInt("app.scan.stream.body.size", 1024 * 1024);
-    private static final int waitDataMaxTryTimes = 600;
-    private int maxWorkThreads = Utils.cpus() / 8;
-    private int maxInQueue = maxWorkThreads * 2;
+    private final int batchSize = PropertyUtil.getInt("app.scan.stream.entries.size", 20000);
     private final Supplier<KVPair<QueryCondition, ScanIterator>> batchSupplier;
     private final Supplier<Long> limitSupplier;
-
-    private volatile boolean finished;
     private final BlockingQueue<List<KV>> queue;
     private final ReentrantLock queueLock = new ReentrantLock();
     final private ThreadPoolExecutor executor;
-    private List<KV> current = null;
-
     private final ScanQueryRequest query;
     private final Queue<KVScanner> scanners = new LinkedList<>();
     private final Queue<KVScanner> pauseScanners = new LinkedList<>();
     final private List<KV> NO_DATA = new ArrayList<>();
     private final boolean orderVertex;
     private final boolean orderEdge;
-
-    public static ParallelScanIterator of(
-            Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
-            Supplier<Long> limitSupplier,
-            ScanQueryRequest query,
-            ThreadPoolExecutor executor) {
-        HgAssert.isArgumentNotNull(iteratorSupplier, "iteratorSupplier");
-        HgAssert.isArgumentNotNull(limitSupplier, "limitSupplier");
-        return new ParallelScanIterator(iteratorSupplier, limitSupplier, query, executor);
-    }
+    private int maxWorkThreads = Utils.cpus() / 8;
+    private int maxInQueue = maxWorkThreads * 2;
+    private volatile boolean finished;
+    private List<KV> current = null;
 
     private ParallelScanIterator(Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
                                  Supplier<Long> limitSupplier,
@@ -101,6 +89,16 @@ public class ParallelScanIterator implements ScanIterator {
         // 边有序需要更大的队列
         queue = new LinkedBlockingQueue<>(maxInQueue * 2);
         createScanner();
+    }
+
+    public static ParallelScanIterator of(
+            Supplier<KVPair<QueryCondition, ScanIterator>> iteratorSupplier,
+            Supplier<Long> limitSupplier,
+            ScanQueryRequest query,
+            ThreadPoolExecutor executor) {
+        HgAssert.isArgumentNotNull(iteratorSupplier, "iteratorSupplier");
+        HgAssert.isArgumentNotNull(limitSupplier, "limitSupplier");
+        return new ParallelScanIterator(iteratorSupplier, limitSupplier, query, executor);
     }
 
     @Override
@@ -256,14 +254,54 @@ public class ParallelScanIterator implements ScanIterator {
         return limit;
     }
 
+    static class KV {
+        public int sn;
+        public byte[] key;
+        public byte[] value;
+
+        public boolean hasSN = false;
+
+        public static KV of(RocksDBSession.BackendColumn col) {
+            KV kv = new KV();
+            kv.key = col.name;
+            kv.value = col.value;
+            return kv;
+        }
+
+        public static KV ofSeparator(int value) {
+            KV kv = new KV();
+            kv.key = new byte[4];
+            Bits.putInt(kv.key, 0, value);
+            return kv;
+        }
+
+        public KV setNo(int sn) {
+            this.sn = sn;
+            hasSN = true;
+            return this;
+        }
+
+        public void write(KVByteBuffer buffer) {
+            if (hasSN) {
+                buffer.putInt(sn);
+            }
+            buffer.put(key);
+            buffer.put(value);
+        }
+
+        public int size() {
+            return this.key.length + this.value.length + 1;
+        }
+    }
+
     class KVScanner {
 
+        private final ReentrantLock iteratorLock = new ReentrantLock();
         private ScanIterator iterator = null;
         private QueryCondition query = null;
         private long limit;
         private long counter;
         private volatile boolean closed = false;
-        private final ReentrantLock iteratorLock = new ReentrantLock();
 
         private ScanIterator getIterator() {
             // 迭代器没有数据，或该点以达到limit，切换新的迭代器
@@ -343,46 +381,6 @@ public class ParallelScanIterator implements ScanIterator {
             } finally {
                 iteratorLock.unlock();
             }
-        }
-    }
-
-    static class KV {
-        public int sn;
-        public byte[] key;
-        public byte[] value;
-
-        public boolean hasSN = false;
-
-        public static KV of(RocksDBSession.BackendColumn col) {
-            KV kv = new KV();
-            kv.key = col.name;
-            kv.value = col.value;
-            return kv;
-        }
-
-        public static KV ofSeparator(int value) {
-            KV kv = new KV();
-            kv.key = new byte[4];
-            Bits.putInt(kv.key, 0, value);
-            return kv;
-        }
-
-        public KV setNo(int sn) {
-            this.sn = sn;
-            hasSN = true;
-            return this;
-        }
-
-        public void write(KVByteBuffer buffer) {
-            if (hasSN) {
-                buffer.putInt(sn);
-            }
-            buffer.put(key);
-            buffer.put(value);
-        }
-
-        public int size() {
-            return this.key.length + this.value.length + 1;
         }
     }
 }

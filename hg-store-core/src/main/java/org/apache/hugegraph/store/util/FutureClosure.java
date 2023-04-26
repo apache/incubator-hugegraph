@@ -42,18 +42,18 @@ public class FutureClosure implements Closure, Future<Status> {
         this.latch = new CountDownLatch(count);
     }
 
-    @Override
-    public void run(Status status) {
-        this.status = status;
-        latch.countDown();
-    }
-
     public static void waitLatch(CountDownLatch latch) {
         try {
             latch.await();
         } catch (InterruptedException e) {
             LOG.error("{}", e);
         }
+    }
+
+    @Override
+    public void run(Status status) {
+        this.status = status;
+        latch.countDown();
     }
 
     @Override

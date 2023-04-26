@@ -36,6 +36,12 @@ public class HgStoreNotice {
     private Map<Integer, Long> partitionLeaders;
     private List<Integer> partitionIds;
 
+    private HgStoreNotice(Long nodeId, HgNodeStatus nodeStatus, String message) {
+        this.nodeId = nodeId;
+        this.nodeStatus = nodeStatus;
+        this.message = message;
+    }
+
     public static HgStoreNotice of(Long nodeId, HgNodeStatus nodeStatus) {
         HgAssert.isArgumentNotNull(nodeId, "nodeId");
         HgAssert.isArgumentNotNull(nodeStatus, "nodeStatus");
@@ -48,12 +54,6 @@ public class HgStoreNotice {
         HgAssert.isArgumentNotNull(message, "message");
 
         return new HgStoreNotice(nodeId, nodeStatus, message);
-    }
-
-    private HgStoreNotice(Long nodeId, HgNodeStatus nodeStatus, String message) {
-        this.nodeId = nodeId;
-        this.nodeStatus = nodeStatus;
-        this.message = message;
     }
 
     public Long getNodeId() {

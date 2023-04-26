@@ -35,18 +35,6 @@ public class HgStoreEngineOptions {
     public static String Raft_Path_Prefix = "raft";
     public static String DB_Path_Prefix = "db";
     public static String Snapshot_Path_Prefix = "snapshot";
-    // pd 服务器地址
-    private String pdAddress;
-    // 对外服务地址
-    private String grpcAddress;
-    // Raft 对外服务地址
-    private String raftAddress;
-    // 存储路径，支持多个位置，逗号分割
-    private String dataPath;
-
-    private String raftPath;
-
-    private Map<String, Object> rocksdbConfig;
     // store心跳间隔，单位秒
     private final int storeHBInterval = 30;
     // 分区心跳间隔，单位秒
@@ -55,14 +43,22 @@ public class HgStoreEngineOptions {
     private final int waitLeaderTimeout = 30;
     // 没有PD模式，用于开发调试使用
     private final boolean fakePD = false;
-
     private final int raftRpcThreadPoolSize = Utils.cpus() * 6;
-    // 自定义的标签，传给pd
-    private Map<String, String> labels;
     // fakePd配置项
     private final FakePdOptions fakePdOptions = new FakePdOptions();
     private final RaftOptions raftOptions = new RaftOptions();
-
+    // pd 服务器地址
+    private String pdAddress;
+    // 对外服务地址
+    private String grpcAddress;
+    // Raft 对外服务地址
+    private String raftAddress;
+    // 存储路径，支持多个位置，逗号分割
+    private String dataPath;
+    private String raftPath;
+    private Map<String, Object> rocksdbConfig;
+    // 自定义的标签，传给pd
+    private Map<String, String> labels;
     // Raft任务处理器
     private RaftTaskHandler taskHandler;
 
@@ -73,10 +69,10 @@ public class HgStoreEngineOptions {
 
     @Data
     public static class FakePdOptions {
-        private String storeList;
-        private String peersList;
         private final int partitionCount = 0;
         private final int shardCount = 0;
+        private String storeList;
+        private String peersList;
     }
 
     @Data

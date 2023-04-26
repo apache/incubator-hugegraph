@@ -31,8 +31,8 @@ import org.apache.hugegraph.store.client.HgStoreSessionProvider;
 
 @ThreadSafe
 public final class HgSessionManager {
-    private final HgSessionProvider sessionProvider;
     private final static HgSessionManager INSTANCE = new HgSessionManager();
+    private final HgSessionProvider sessionProvider;
 
     private HgSessionManager() {
         // TODO: constructed by SPI

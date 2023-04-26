@@ -17,6 +17,9 @@
 
 package core;
 
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+
 import core.raft.RaftOperationTest;
 import core.raft.RaftUtilsTest;
 import core.snapshot.HgSnapshotHandlerTest;
@@ -33,8 +36,6 @@ import core.store.util.ZipUtilsTest;
 import lombok.extern.slf4j.Slf4j;
 import util.CopyOnWriteCacheTest;
 import util.UnsafeUtilTest;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
