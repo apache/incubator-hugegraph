@@ -37,14 +37,14 @@ import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
 import org.apache.hugegraph.store.client.util.MetricX;
+import org.apache.hugegraph.store.grpc.common.Header;
+import org.apache.hugegraph.store.grpc.common.Kv;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc.HgStoreStreamStub;
+import org.apache.hugegraph.store.grpc.stream.KvPageRes;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
+import org.apache.hugegraph.store.grpc.stream.SelectParam;
 
-import com.baidu.hugegraph.store.grpc.common.Header;
-import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
-import com.baidu.hugegraph.store.grpc.stream.KvPageRes;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
-import com.baidu.hugegraph.store.grpc.stream.SelectParam;
 import com.google.protobuf.ByteString;
 
 import io.grpc.stub.StreamObserver;

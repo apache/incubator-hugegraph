@@ -20,6 +20,9 @@ package org.apache.hugegraph.store.cli.scan;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgKvStore;
@@ -32,10 +35,6 @@ import org.apache.hugegraph.store.cli.util.HgMetricX;
 import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
 import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
 import org.apache.hugegraph.store.client.util.MetricX;
-
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

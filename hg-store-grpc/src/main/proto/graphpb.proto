@@ -1,7 +1,7 @@
 syntax = "proto3";
 package graph_pb;
 
-option java_package = "com.baidu.hugegraph.store.grpc";
+option java_package = "org.apache.hugegraph.store.grpc";
 
 service GraphStore {
   rpc ScanPartition(stream ScanPartitionRequest) returns (stream ScanResponse){}
@@ -9,19 +9,19 @@ service GraphStore {
 
 message ScanPartitionRequest{
   enum ScanType{
-    SCAN_UNKNOWN  = 0;
-    SCAN_VERTEX   = 1;
-    SCAN_EDGE     = 2;
+    SCAN_UNKNOWN = 0;
+    SCAN_VERTEX = 1;
+    SCAN_EDGE = 2;
   }
   // 请求参数
   message Request{
-    ScanType scan_type  = 1;
-    string graph_name   = 2;
+    ScanType scan_type = 1;
+    string graph_name = 2;
     uint32 partition_id = 3;
-    uint32 start_code   = 4;
-    uint32 end_code     = 5;
+    uint32 start_code = 4;
+    uint32 end_code = 5;
     // 过滤条件
-    string condition    = 6;
+    string condition = 6;
     string table = 7;
     int64 limit = 8;
     int32 boundary = 9;

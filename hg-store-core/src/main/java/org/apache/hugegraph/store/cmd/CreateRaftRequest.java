@@ -20,8 +20,9 @@ package org.apache.hugegraph.store.cmd;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
+
 import com.alipay.sofa.jraft.conf.Configuration;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import lombok.extern.slf4j.Slf4j;

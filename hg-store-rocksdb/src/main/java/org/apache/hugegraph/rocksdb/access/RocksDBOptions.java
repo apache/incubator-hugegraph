@@ -17,21 +17,19 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import static com.baidu.hugegraph.config.OptionChecker.allowValues;
-import static com.baidu.hugegraph.config.OptionChecker.disallowEmpty;
-import static com.baidu.hugegraph.config.OptionChecker.inValues;
-import static com.baidu.hugegraph.config.OptionChecker.rangeDouble;
-import static com.baidu.hugegraph.config.OptionChecker.rangeInt;
+import static org.apache.hugegraph.config.OptionChecker.allowValues;
+import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
+import static org.apache.hugegraph.config.OptionChecker.inValues;
+import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
+import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
+import org.apache.hugegraph.config.ConfigConvOption;
+import org.apache.hugegraph.config.ConfigListConvOption;
+import org.apache.hugegraph.config.ConfigOption;
+import org.apache.hugegraph.config.OptionHolder;
+import org.apache.hugegraph.util.Bytes;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
-
-import com.baidu.hugegraph.config.ConfigConvOption;
-import com.baidu.hugegraph.config.ConfigListConvOption;
-import com.baidu.hugegraph.config.ConfigListOption;
-import com.baidu.hugegraph.config.ConfigOption;
-import com.baidu.hugegraph.config.OptionHolder;
-import com.baidu.hugegraph.util.Bytes;
 
 public class RocksDBOptions extends OptionHolder {
 
@@ -85,8 +83,9 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Boolean> WRITE_BUFFER_ALLOW_STALL =
             new ConfigOption<>(
                     "rocksdb.write_buffer_allow_stall",
-                    " if set true, it will enable stalling of writes when memory_usage() exceeds buffer_size." +
-                            " It will wait for flush to complete and memory usage to drop down",
+                    " if set true, it will enable stalling of writes when memory_usage() exceeds " +
+                    "buffer_size." +
+                    " It will wait for flush to complete and memory usage to drop down",
                     disallowEmpty(),
                     false
             );
@@ -104,7 +103,7 @@ public class RocksDBOptions extends OptionHolder {
 //                    disallowEmpty(),
 //                    "rocksdb-snapshot"
 //            );
- 
+
     public static final ConfigOption<String> SST_PATH =
             new ConfigOption<>(
                     "rocksdb.sst_path",
@@ -151,7 +150,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigListConvOption<>(
                     "rocksdb.compression_per_level",
                     "The compression algorithms for different levels of RocksDB, " +
-                            "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
                     inValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
                     "none", "none", "snappy", "snappy", "snappy", "snappy", "snappy"
@@ -161,7 +160,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigConvOption<>(
                     "rocksdb.bottommost_compression",
                     "The compression algorithm for the bottommost level of RocksDB, " +
-                            "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
                     allowValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
                     "none"
@@ -171,7 +170,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigConvOption<>(
                     "rocksdb.compression",
                     "The compression algorithm for compressing blocks of RocksDB, " +
-                            "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
+                    "allowed values are none/snappy/z/bzip2/lz4/lz4hc/xpress/zstd.",
                     allowValues("none", "snappy", "z", "bzip2", "lz4", "lz4hc", "xpress", "zstd"),
                     CompressionType::getCompressionType,
                     "snappy"
@@ -180,7 +179,8 @@ public class RocksDBOptions extends OptionHolder {
     public static final ConfigOption<Integer> MAX_BG_JOBS =
             new ConfigOption<>(
                     "rocksdb.max_background_jobs",
-                    "Maximum number of concurrent background jobs, including flushes and compactions.",
+                    "Maximum number of concurrent background jobs, including flushes and " +
+                    "compactions.",
                     rangeInt(1, Integer.MAX_VALUE),
                     8
             );
@@ -197,7 +197,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.delayed_write_rate",
                     "The rate limit in bytes/s of user write requests " +
-                            "when need to slow down if the compaction gets behind.",
+                    "when need to slow down if the compaction gets behind.",
                     rangeInt(1L, Long.MAX_VALUE),
                     64L * Bytes.MB
             );
@@ -206,7 +206,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.max_open_files",
                     "The maximum number of open files that can be cached by RocksDB, " +
-                            "-1 means no limit.",
+                    "-1 means no limit.",
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
@@ -223,7 +223,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.skip_stats_update_on_db_open",
                     "Whether to skip statistics update when opening the database, " +
-                            "setting this flag true allows us to not update statistics.",
+                    "setting this flag true allows us to not update statistics.",
                     disallowEmpty(),
                     false
             );
@@ -240,8 +240,8 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.max_total_wal_size",
                     "Total size of WAL files in bytes. Once WALs exceed this size, " +
-                            "we will start forcing the flush of column families related, " +
-                            "0 means no limit.",
+                    "we will start forcing the flush of column families related, " +
+                    "0 means no limit.",
                     rangeInt(0L, Long.MAX_VALUE),
                     0L
             );
@@ -250,18 +250,17 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.db_write_buffer_size",
                     "Total size of write buffers in bytes across all column families, " +
-                            "0 means no limit.",
+                    "0 means no limit.",
                     rangeInt(0L, Long.MAX_VALUE),
                     0L
             );
-
 
 
     public static final ConfigOption<Long> DELETE_OBSOLETE_FILE_PERIOD =
             new ConfigOption<>(
                     "rocksdb.delete_obsolete_files_period",
                     "The periodicity in seconds when obsolete files get deleted, " +
-                            "0 means always do full purge.",
+                    "0 means always do full purge.",
                     rangeInt(0L, Long.MAX_VALUE),
                     6L * 60 * 60
             );
@@ -302,12 +301,12 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.level_compaction_dynamic_level_bytes",
                     "Whether to enable level_compaction_dynamic_level_bytes, " +
-                            "if it's enabled we give max_bytes_for_level_multiplier a " +
-                            "priority against max_bytes_for_level_base, the bytes of " +
-                            "base level is dynamic for a more predictable LSM tree, " +
-                            "it is useful to limit worse case space amplification. " +
-                            "Turning this feature on/off for an existing DB can cause " +
-                            "unexpected LSM tree structure so it's not recommended.",
+                    "if it's enabled we give max_bytes_for_level_multiplier a " +
+                    "priority against max_bytes_for_level_base, the bytes of " +
+                    "base level is dynamic for a more predictable LSM tree, " +
+                    "it is useful to limit worse case space amplification. " +
+                    "Turning this feature on/off for an existing DB can cause " +
+                    "unexpected LSM tree structure so it's not recommended.",
                     disallowEmpty(),
                     false
             );
@@ -324,7 +323,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.max_bytes_for_level_multiplier",
                     "The ratio between the total size of level (L+1) files and " +
-                            "the total size of level L files for all L.",
+                    "the total size of level L files for all L.",
                     rangeDouble(1.0, Double.MAX_VALUE),
                     10.0
             );
@@ -418,7 +417,6 @@ public class RocksDBOptions extends OptionHolder {
             );
 
 
-
     public static final ConfigOption<Boolean> PIN_L0_FILTER_AND_INDEX_IN_CACHE =
             new ConfigOption<>(
                     "rocksdb.pin_l0_filter_and_index_blocks_in_cache",
@@ -439,8 +437,8 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.bloom_filter_bits_per_key",
                     "The bits per key in bloom filter, a good value is 10, " +
-                            "which yields a filter with ~ 1% false positive rate, " +
-                            "-1 means no bloom filter.",
+                    "which yields a filter with ~ 1% false positive rate, " +
+                    "-1 means no bloom filter.",
                     rangeInt(-1, Integer.MAX_VALUE),
                     -1
             );
@@ -457,7 +455,7 @@ public class RocksDBOptions extends OptionHolder {
             new ConfigOption<>(
                     "rocksdb.bloom_filter_whole_key_filtering",
                     "True if place whole keys in the bloom filter, " +
-                            "else place the prefix of keys.",
+                    "else place the prefix of keys.",
                     disallowEmpty(),
                     true
             );

@@ -19,14 +19,13 @@ package org.apache.hugegraph.store.meta;
 
 import java.io.File;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.hugegraph.store.meta.base.DBSessionBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.PDException;
 
 public class GraphIDManagerTest extends UnitTestBase {
     @Before

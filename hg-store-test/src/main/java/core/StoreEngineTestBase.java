@@ -20,6 +20,7 @@ package core;
 import java.io.File;
 import java.util.HashMap;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.business.DefaultDataMover;
@@ -32,7 +33,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import com.alipay.sofa.jraft.util.StorageOptionsFactory;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 import util.UnitTestBase;

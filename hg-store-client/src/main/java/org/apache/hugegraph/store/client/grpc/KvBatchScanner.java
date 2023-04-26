@@ -36,13 +36,12 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
 import org.apache.hugegraph.store.buffer.KVByteBuffer;
 import org.apache.hugegraph.store.client.util.PropertyUtil;
+import org.apache.hugegraph.store.grpc.common.Header;
+import org.apache.hugegraph.store.grpc.common.ScanOrderType;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 import org.apache.hugegraph.store.grpc.stream.KvStream;
-
-import com.baidu.hugegraph.store.grpc.common.Header;
-import com.baidu.hugegraph.store.grpc.common.ScanOrderType;
-import com.baidu.hugegraph.store.grpc.stream.ScanReceiptRequest;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
+import org.apache.hugegraph.store.grpc.stream.ScanReceiptRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -201,7 +200,7 @@ public class KvBatchScanner implements Closeable {
         private Iterator<HgOwnerKey> prefixItr;
         private int maxTaskSize = 0; // 最大并行任务数
         private int maxBatchSize = PropertyUtil.getInt("net.kv.scanner.batch.size", 1000);
-                // 每批次最大点数量
+        // 每批次最大点数量
         private volatile boolean finished = false;
         private volatile boolean splitting = false;
         private volatile int nextKeySerialNo = 1;

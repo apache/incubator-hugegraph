@@ -23,13 +23,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hugegraph.store.grpc.GraphStoreGrpc;
+import org.apache.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreStub;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Reply;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanResponse;
 import org.junit.Test;
 
-import com.baidu.hugegraph.store.grpc.GraphStoreGrpc;
-import com.baidu.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreStub;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Reply;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanResponse;
 import com.google.protobuf.util.JsonFormat;
 
 import io.grpc.ManagedChannel;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GraphStoreClientTest {
 
-    private AtomicInteger sum = new AtomicInteger();
+    private final AtomicInteger sum = new AtomicInteger();
     ConcurrentHashMap<Long, StreamObserver<ScanPartitionRequest>> observers =
             new ConcurrentHashMap<>();
 
@@ -152,8 +152,6 @@ public class GraphStoreClientTest {
             observer.onNext(builder.build());
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-
         }
     }
 

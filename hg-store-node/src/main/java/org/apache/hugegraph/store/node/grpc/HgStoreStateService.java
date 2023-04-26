@@ -18,13 +18,13 @@
 package org.apache.hugegraph.store.node.grpc;
 
 
+import org.apache.hugegraph.store.grpc.state.HgStoreStateGrpc;
+import org.apache.hugegraph.store.grpc.state.NodeStateRes;
+import org.apache.hugegraph.store.grpc.state.ScanState;
+import org.apache.hugegraph.store.grpc.state.SubStateReq;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.baidu.hugegraph.store.grpc.state.HgStoreStateGrpc;
-import com.baidu.hugegraph.store.grpc.state.NodeStateRes;
-import com.baidu.hugegraph.store.grpc.state.ScanState;
-import com.baidu.hugegraph.store.grpc.state.SubStateReq;
 import com.google.protobuf.Empty;
 
 import io.grpc.stub.StreamObserver;

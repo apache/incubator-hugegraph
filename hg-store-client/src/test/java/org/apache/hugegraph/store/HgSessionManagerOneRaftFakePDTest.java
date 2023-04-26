@@ -28,6 +28,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.pd.common.PartitionUtils;
 import org.apache.hugegraph.store.client.HgNodePartitionerBuilder;
 import org.apache.hugegraph.store.client.HgStoreNode;
 import org.apache.hugegraph.store.client.HgStoreNodeManager;
@@ -39,9 +40,6 @@ import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
 
-import com.baidu.hugegraph.pd.common.PartitionUtils;
-import com.baidu.hugegraph.store.client.*;
-
 /**
  * 使用fake-pd，支持raft的单元测试
  */
@@ -49,7 +47,8 @@ public class HgSessionManagerOneRaftFakePDTest {
     private static final Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
-    private static final int partitionCount = 3;  // 需要与store的application.yml的fake-pd.partition-count保持一致
+    private static final int partitionCount = 3;
+            // 需要与store的application.yml的fake-pd.partition-count保持一致
     private static final String[] storeAddress = {
             "127.0.0.1:8500"
     };

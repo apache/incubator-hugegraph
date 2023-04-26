@@ -33,14 +33,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.config.HugeConfig;
 import org.rocksdb.AbstractEventListener;
 import org.rocksdb.Cache;
 import org.rocksdb.CompactionJobInfo;
 import org.rocksdb.MemoryUsageType;
 import org.rocksdb.MemoryUtil;
 import org.rocksdb.RocksDB;
-
-import com.baidu.hugegraph.config.HugeConfig;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,14 +50,14 @@ public final class RocksDBFactory {
     }
 
     private static RocksDBFactory dbFactory;
-    private static List<RocksdbChangedListener> rocksdbChangedListeners = new ArrayList<>();
-    private Map<String, RocksDBSession> dbSessionMap = new ConcurrentHashMap<>();
-    private List<DBSessionWatcher> destroyGraphDBs = new CopyOnWriteArrayList<>();
+    private static final List<RocksdbChangedListener> rocksdbChangedListeners = new ArrayList<>();
+    private final Map<String, RocksDBSession> dbSessionMap = new ConcurrentHashMap<>();
+    private final List<DBSessionWatcher> destroyGraphDBs = new CopyOnWriteArrayList<>();
 
     ScheduledExecutorService scheduledExecutor;
 
     private HugeConfig hugeConfig;
-    private ReentrantReadWriteLock operateLock;
+    private final ReentrantReadWriteLock operateLock;
 
     private RocksDBFactory() {
         this.operateLock = new ReentrantReadWriteLock();
@@ -73,18 +72,20 @@ public final class RocksDBFactory {
                             watcher.dbSession.shutdown();
                             FileUtils.deleteDirectory(new File(watcher.dbSession.getDbPath()));
                             rocksdbChangedListeners.forEach(listener -> {
-                                listener.onDBDeleted(watcher.dbSession.getGraphName(), watcher.dbSession.getDbPath());
+                                listener.onDBDeleted(watcher.dbSession.getGraphName(),
+                                                     watcher.dbSession.getDbPath());
                             });
-                            log.info("removed db {} and delete files", watcher.dbSession.getDbPath());
+                            log.info("removed db {} and delete files",
+                                     watcher.dbSession.getDbPath());
                         } catch (Exception e) {
                             log.error("DestroyGraphDB exception {}", e);
                         }
                         destroyGraphDBs.remove(watcher);
                     } else if (watcher.timestamp < (System.currentTimeMillis() - 1800 * 1000)) {
                         log.warn("DB {}  has not been deleted refCount is {}, time is {} seconds",
-                                watcher.dbSession.getDbPath(),
-                                watcher.dbSession.getRefCount(),
-                                (System.currentTimeMillis() - watcher.timestamp) / 1000);
+                                 watcher.dbSession.getDbPath(),
+                                 watcher.dbSession.getRefCount(),
+                                 (System.currentTimeMillis() - watcher.timestamp) / 1000);
                     } else {
                         // 超时强制删除 (30min)
                         watcher.dbSession.forceResetRefCount();
@@ -116,8 +117,9 @@ public final class RocksDBFactory {
     public static RocksDBFactory getInstance() {
         if (dbFactory == null) {
             synchronized (RocksDBFactory.class) {
-                if (dbFactory == null)
+                if (dbFactory == null) {
                     dbFactory = new RocksDBFactory();
+                }
             }
         }
         return dbFactory;
@@ -186,15 +188,17 @@ public final class RocksDBFactory {
      */
     public long getTotalSize() {
         long kbSize = dbSessionMap.entrySet()
-                .stream()
-                .map(e -> (Long) e.getValue().getApproximateDataSize())
-                .reduce(0L, Long::sum);
+                                  .stream()
+                                  .map(e -> e.getValue().getApproximateDataSize())
+                                  .reduce(0L, Long::sum);
         return kbSize;
     }
 
     public Map<String, Long> getTotalKey() {
         Map<String, Long> totalKeys = dbSessionMap.entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getEstimateNumKeys()));
+                                                  .collect(Collectors.toMap(e -> e.getKey(),
+                                                                            e -> e.getValue()
+                                                                                  .getEstimateNumKeys()));
         return totalKeys;
     }
 
@@ -256,11 +260,13 @@ public final class RocksDBFactory {
         }
     }
 
-    public Map<MemoryUsageType, Long> getApproximateMemoryUsageByType(List<RocksDB> dbs, List<Cache> caches) {
-        if (dbs == null)
+    public Map<MemoryUsageType, Long> getApproximateMemoryUsageByType(List<RocksDB> dbs,
+                                                                      List<Cache> caches) {
+        if (dbs == null) {
             dbs = new ArrayList<>();
-        else
+        } else {
             dbs = new ArrayList<>(dbs);
+        }
         List<RocksDBSession> sessions = new ArrayList<>();
         for (String dbName : getGraphNames()) {
             RocksDBSession session = this.queryGraphDB(dbName);
@@ -271,8 +277,9 @@ public final class RocksDBFactory {
         }
         try {
             HashSet<Cache> allCaches = new HashSet<>();
-            if (caches != null)
+            if (caches != null) {
                 allCaches.addAll(caches);
+            }
             allCaches.add((Cache) hugeConfig.getProperty(RocksDBOptions.WRITE_CACHE));
             allCaches.add((Cache) hugeConfig.getProperty(RocksDBOptions.BLOCK_CACHE));
             return MemoryUtil.getApproximateMemoryUsageByType(dbs, allCaches);

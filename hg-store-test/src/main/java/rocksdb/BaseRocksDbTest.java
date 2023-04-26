@@ -17,29 +17,29 @@
 
 package rocksdb;
 
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class BaseRocksDbTest {
     @BeforeClass
     public static void init() {
         OptionSpace.register("rocksdb",
-                "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
+                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
 
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("rocksdb.write_buffer_size", "1048576");
         configMap.put("rocksdb.bloom_filter_bits_per_key", "10");
 
-        HugeConfig hConfig  = new HugeConfig(configMap);
-        RocksDBFactory rFactory  = RocksDBFactory.getInstance();
+        HugeConfig hConfig = new HugeConfig(configMap);
+        RocksDBFactory rFactory = RocksDBFactory.getInstance();
         rFactory.setHugeConfig(hConfig);
 
     }

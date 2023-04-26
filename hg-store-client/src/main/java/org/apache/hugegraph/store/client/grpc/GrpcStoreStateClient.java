@@ -23,13 +23,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.grpc.state.HgStoreStateGrpc;
-import com.baidu.hugegraph.store.grpc.state.HgStoreStateGrpc.HgStoreStateBlockingStub;
-import com.baidu.hugegraph.store.grpc.state.ScanState;
-import com.baidu.hugegraph.store.grpc.state.SubStateReq;
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.grpc.state.HgStoreStateGrpc;
+import org.apache.hugegraph.store.grpc.state.HgStoreStateGrpc.HgStoreStateBlockingStub;
+import org.apache.hugegraph.store.grpc.state.ScanState;
+import org.apache.hugegraph.store.grpc.state.SubStateReq;
 
 import io.grpc.ManagedChannel;
 import io.grpc.stub.AbstractBlockingStub;

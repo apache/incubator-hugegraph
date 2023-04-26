@@ -19,7 +19,7 @@ package org.apache.hugegraph.store.node.grpc;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.store.grpc.state.NodeStateType;
+import org.apache.hugegraph.store.grpc.state.NodeStateType;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/3

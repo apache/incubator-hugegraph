@@ -24,7 +24,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.UUID;
 
-import com.baidu.scan.safesdk.SafeObjectInputStream;
+import org.apache.scan.safesdk.SafeObjectInputStream;
 
 import lombok.extern.slf4j.Slf4j;
 

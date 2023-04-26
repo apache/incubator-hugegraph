@@ -20,15 +20,14 @@ package org.apache.hugegraph.store.pd;
 
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionKeyRange;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 import org.apache.hugegraph.store.meta.Partition;
-
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.DbCompaction;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionKeyRange;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
 
 public interface PartitionInstructionListener {
     void onChangeShard(long taskId, Partition partition, ChangeShard changeShard,

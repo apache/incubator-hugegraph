@@ -17,15 +17,14 @@
 
 package org.apache.hugegraph.store.business;
 
+import org.apache.hugegraph.backend.serializer.AbstractSerializer;
+import org.apache.hugegraph.backend.serializer.BinarySerializer;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.util.Bytes;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-
-import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
-import com.baidu.hugegraph.backend.serializer.BinarySerializer;
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.iterator.CIter;
-import com.baidu.hugegraph.structure.HugeElement;
-import com.baidu.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
 

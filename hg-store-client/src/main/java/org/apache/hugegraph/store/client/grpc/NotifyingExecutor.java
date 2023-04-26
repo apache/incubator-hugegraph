@@ -30,12 +30,12 @@ import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.HgStoreNotice;
 import org.apache.hugegraph.store.client.type.HgNodeStatus;
 import org.apache.hugegraph.store.client.type.HgStoreClientException;
+import org.apache.hugegraph.store.grpc.common.ResStatus;
+import org.apache.hugegraph.store.grpc.session.FeedbackRes;
+import org.apache.hugegraph.store.grpc.session.PartitionFaultResponse;
+import org.apache.hugegraph.store.grpc.session.PartitionFaultType;
+import org.apache.hugegraph.store.grpc.session.PartitionLeader;
 
-import com.baidu.hugegraph.store.grpc.common.ResStatus;
-import com.baidu.hugegraph.store.grpc.session.FeedbackRes;
-import com.baidu.hugegraph.store.grpc.session.PartitionFaultResponse;
-import com.baidu.hugegraph.store.grpc.session.PartitionFaultType;
-import com.baidu.hugegraph.store.grpc.session.PartitionLeader;
 import com.google.protobuf.util.JsonFormat;
 
 import lombok.extern.slf4j.Slf4j;

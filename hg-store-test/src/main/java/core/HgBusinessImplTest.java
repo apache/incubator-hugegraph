@@ -24,10 +24,9 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
 

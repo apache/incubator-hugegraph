@@ -17,15 +17,14 @@
 
 package org.apache.hugegraph.store.test;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.client.HgStoreClientBase;
 import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 // import org.junit.Test;
 
 /**

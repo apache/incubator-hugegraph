@@ -25,11 +25,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.baidu.hugegraph.store.grpc.GraphStoreGrpc;
-import com.baidu.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreStub;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Reply;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanResponse;
+import org.apache.hugegraph.store.grpc.GraphStoreGrpc;
+import org.apache.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreStub;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Reply;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanResponse;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;

@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.options;
 
 import java.util.Map;
 
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import org.apache.hugegraph.store.business.BusinessHandlerImpl;
 import org.rocksdb.BlockBasedTableConfig;
@@ -36,7 +37,6 @@ import org.rocksdb.util.SizeUnit;
 
 import com.alipay.sofa.jraft.storage.impl.RocksDBLogStorage;
 import com.alipay.sofa.jraft.util.StorageOptionsFactory;
-import com.baidu.hugegraph.config.HugeConfig;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -24,11 +24,10 @@ import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
+import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc.HgStoreStreamBlockingStub;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc.HgStoreStreamStub;
-
-import com.baidu.hugegraph.store.grpc.common.Kv;
 
 import io.grpc.ManagedChannel;
 import io.grpc.stub.AbstractAsyncStub;

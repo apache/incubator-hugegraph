@@ -4,7 +4,7 @@ import "google/protobuf/empty.proto";
 import "store_common.proto";
 
 option java_multiple_files = true;
-option java_package = "com.baidu.hugegraph.store.grpc.state";
+option java_package = "org.apache.hugegraph.store.grpc.state";
 option java_outer_classname = "HgStoreStateProto";
 
 service HgStoreState {

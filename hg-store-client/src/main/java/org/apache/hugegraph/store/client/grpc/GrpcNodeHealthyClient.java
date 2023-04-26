@@ -22,8 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.store.grpc.HealthyGrpc;
-import com.baidu.hugegraph.store.grpc.HealthyOuterClass;
+import org.apache.hugegraph.store.grpc.HealthyGrpc;
+import org.apache.hugegraph.store.grpc.HealthyOuterClass;
+
 import com.google.protobuf.Empty;
 
 import io.grpc.ManagedChannel;

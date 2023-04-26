@@ -23,20 +23,19 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
-
-import com.baidu.hugegraph.store.grpc.common.GraphMethod;
-import com.baidu.hugegraph.store.grpc.common.TableMethod;
-import com.baidu.hugegraph.store.grpc.session.BatchEntry;
-import com.baidu.hugegraph.store.grpc.session.BatchGetReq;
-import com.baidu.hugegraph.store.grpc.session.BatchReq;
-import com.baidu.hugegraph.store.grpc.session.BatchWriteReq;
-import com.baidu.hugegraph.store.grpc.session.CleanReq;
-import com.baidu.hugegraph.store.grpc.session.FeedbackRes;
-import com.baidu.hugegraph.store.grpc.session.GetReq;
-import com.baidu.hugegraph.store.grpc.session.GraphReq;
-import com.baidu.hugegraph.store.grpc.session.HgStoreSessionGrpc;
-import com.baidu.hugegraph.store.grpc.session.HgStoreSessionGrpc.HgStoreSessionBlockingStub;
-import com.baidu.hugegraph.store.grpc.session.TableReq;
+import org.apache.hugegraph.store.grpc.common.GraphMethod;
+import org.apache.hugegraph.store.grpc.common.TableMethod;
+import org.apache.hugegraph.store.grpc.session.BatchEntry;
+import org.apache.hugegraph.store.grpc.session.BatchGetReq;
+import org.apache.hugegraph.store.grpc.session.BatchReq;
+import org.apache.hugegraph.store.grpc.session.BatchWriteReq;
+import org.apache.hugegraph.store.grpc.session.CleanReq;
+import org.apache.hugegraph.store.grpc.session.FeedbackRes;
+import org.apache.hugegraph.store.grpc.session.GetReq;
+import org.apache.hugegraph.store.grpc.session.GraphReq;
+import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc;
+import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc.HgStoreSessionBlockingStub;
+import org.apache.hugegraph.store.grpc.session.TableReq;
 
 import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;

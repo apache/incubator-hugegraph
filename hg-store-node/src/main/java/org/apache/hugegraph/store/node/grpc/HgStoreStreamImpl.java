@@ -20,17 +20,16 @@ package org.apache.hugegraph.store.node.grpc;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.hugegraph.store.grpc.state.ScanState;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
+import org.apache.hugegraph.store.grpc.stream.KvPageRes;
 import org.apache.hugegraph.store.grpc.stream.KvStream;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.node.util.HgExecutorUtil;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.baidu.hugegraph.store.grpc.state.ScanState;
-import com.baidu.hugegraph.store.grpc.stream.KvPageRes;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

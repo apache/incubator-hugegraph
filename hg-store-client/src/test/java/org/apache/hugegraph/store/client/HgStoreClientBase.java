@@ -17,12 +17,11 @@
 
 package org.apache.hugegraph.store.client;
 
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Before;
-
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
 
 public class HgStoreClientBase {
 

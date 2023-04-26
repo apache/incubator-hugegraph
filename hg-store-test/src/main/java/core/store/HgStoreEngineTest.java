@@ -20,16 +20,14 @@ package core.store;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.pd.FakePdServiceProvider;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.testutil.Assert;
 
 import core.StoreEngineTestBase;
 

@@ -26,11 +26,10 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.buffer.ByteBufferAllocator;
 import org.apache.hugegraph.store.buffer.KVByteBuffer;
 import org.apache.hugegraph.store.grpc.stream.KvStream;
+import org.apache.hugegraph.store.grpc.stream.ScanQueryRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 import org.apache.hugegraph.store.node.util.HgGrpc;
 import org.apache.hugegraph.store.node.util.PropertyUtil;
-
-import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

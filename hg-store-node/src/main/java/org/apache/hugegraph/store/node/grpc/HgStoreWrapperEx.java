@@ -24,17 +24,16 @@ import java.util.function.Supplier;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.business.FilterIterator;
+import org.apache.hugegraph.store.grpc.common.GraphMethod;
+import org.apache.hugegraph.store.grpc.common.TableMethod;
+import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.term.HgPair;
-
-import com.baidu.hugegraph.store.grpc.common.GraphMethod;
-import com.baidu.hugegraph.store.grpc.common.TableMethod;
-import com.baidu.hugegraph.store.grpc.session.BatchEntry;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.grpc.boot.service
+ * @package: org.apache.hugegraph.store.grpc.boot.service
  * @className: HgStoreWrapperEx
  * @author: tyzer
  * @description: TODO

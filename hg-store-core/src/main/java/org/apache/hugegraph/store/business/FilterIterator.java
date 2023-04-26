@@ -18,13 +18,12 @@
 package org.apache.hugegraph.store.business;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-
-import com.baidu.hugegraph.backend.query.ConditionQuery;
-import com.baidu.hugegraph.backend.serializer.BinaryBackendEntry;
-import com.baidu.hugegraph.backend.store.BackendEntry;
-import com.baidu.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeElement;
 
 import lombok.extern.slf4j.Slf4j;
 

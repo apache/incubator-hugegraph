@@ -20,8 +20,7 @@ package org.apache.hugegraph.store;
 import java.util.List;
 
 import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
-
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 
 /**
  * @author lynn.bond@hotmail.com

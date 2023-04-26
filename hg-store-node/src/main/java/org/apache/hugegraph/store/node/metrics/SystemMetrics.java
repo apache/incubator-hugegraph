@@ -27,8 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.baidu.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.Bytes;
 
 @Deprecated
 public class SystemMetrics {

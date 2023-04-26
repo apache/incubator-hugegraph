@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.meta;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 import lombok.Data;
 

@@ -17,9 +17,9 @@
 
 package org.apache.hugegraph.store.cmd;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.Store;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import lombok.extern.slf4j.Slf4j;

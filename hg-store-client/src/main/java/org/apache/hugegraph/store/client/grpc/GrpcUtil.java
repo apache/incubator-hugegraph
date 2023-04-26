@@ -25,14 +25,14 @@ import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.grpc.common.Header;
+import org.apache.hugegraph.store.grpc.common.Key;
+import org.apache.hugegraph.store.grpc.common.Kv;
+import org.apache.hugegraph.store.grpc.common.Tk;
+import org.apache.hugegraph.store.grpc.common.Tkv;
+import org.apache.hugegraph.store.grpc.common.Tp;
+import org.apache.hugegraph.store.grpc.common.Tse;
 
-import com.baidu.hugegraph.store.grpc.common.Header;
-import com.baidu.hugegraph.store.grpc.common.Key;
-import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.common.Tk;
-import com.baidu.hugegraph.store.grpc.common.Tkv;
-import com.baidu.hugegraph.store.grpc.common.Tp;
-import com.baidu.hugegraph.store.grpc.common.Tse;
 import com.google.protobuf.ByteString;
 
 import io.grpc.Status;

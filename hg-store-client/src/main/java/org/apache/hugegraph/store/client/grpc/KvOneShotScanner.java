@@ -30,12 +30,12 @@ import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
+import org.apache.hugegraph.store.grpc.common.Header;
+import org.apache.hugegraph.store.grpc.common.Kv;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc.HgStoreStreamBlockingStub;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 
-import com.baidu.hugegraph.store.grpc.common.Header;
-import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
 import com.google.protobuf.ByteString;
 
 import lombok.extern.slf4j.Slf4j;

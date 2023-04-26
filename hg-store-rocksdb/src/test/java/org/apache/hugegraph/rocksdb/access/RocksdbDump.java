@@ -17,19 +17,26 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import com.baidu.hugegraph.util.Bytes;
-// import org.junit.Test;
-import org.rocksdb.*;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
+import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
 
 public class RocksdbDump {
 
     // @Test
     public void dump() throws RocksDBException {
-        String dbPath = "D:\\Workspaces\\baidu\\hugegraph\\hugegraph-store\\tmp\\8500\\db\\default\\hugegraph\\g";
+        String dbPath =
+                "D:\\Workspaces\\baidu\\hugegraph\\hugegraph-store\\tmp\\8500\\db\\default" +
+                "\\hugegraph\\g";
         List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<ColumnFamilyDescriptor>();
         List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
         ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();

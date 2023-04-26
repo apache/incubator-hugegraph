@@ -50,10 +50,9 @@ import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
 import org.apache.hugegraph.store.client.util.HgAssert;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq.Builder;
 import org.apache.hugegraph.store.term.HgPair;
 import org.apache.hugegraph.store.term.HgTriple;
-
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq.Builder;
 
 import lombok.extern.slf4j.Slf4j;
 

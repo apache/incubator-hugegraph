@@ -19,7 +19,7 @@ package org.apache.hugegraph.store.node.grpc;
 
 import java.util.Arrays;
 
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/28

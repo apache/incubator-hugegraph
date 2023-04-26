@@ -21,10 +21,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.hugegraph.store.grpc.state.NodeStateRes;
+import org.apache.hugegraph.store.grpc.state.NodeStateType;
 import org.apache.hugegraph.store.node.util.HgAssert;
-
-import com.baidu.hugegraph.store.grpc.state.NodeStateRes;
-import com.baidu.hugegraph.store.grpc.state.NodeStateType;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

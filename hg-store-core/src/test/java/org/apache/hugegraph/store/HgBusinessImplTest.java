@@ -34,9 +34,8 @@ import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.RaftRocksdbOptions;
 import org.apache.hugegraph.store.pd.FakePdServiceProvider;
 import org.apache.hugegraph.store.pd.PdProvider;
+import org.apache.hugegraph.util.Bytes;
 import org.junit.Assert;
-
-import com.baidu.hugegraph.util.Bytes;
 
 public class HgBusinessImplTest {
     static String GRAPH_NAME = "graph_test";

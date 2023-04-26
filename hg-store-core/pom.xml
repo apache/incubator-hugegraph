@@ -129,7 +129,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.baidu.scan</groupId>
+            <groupId>org.apache.scan</groupId>
             <artifactId>safesdk-java</artifactId>
             <version>3.0.2</version>
         </dependency>

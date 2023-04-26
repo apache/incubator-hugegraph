@@ -29,7 +29,7 @@ import java.util.Arrays;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.util
+ * @package: org.apache.hugegraph.store.util
  * @className: UnsafeUtf8Util
  * @author: jraft
  * @description:

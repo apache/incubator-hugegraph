@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
 import org.apache.hugegraph.store.meta.Partition;
 import org.junit.Assert;
 
 import com.alipay.sofa.jraft.option.RpcOptions;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class PartitionEngineTest {
 

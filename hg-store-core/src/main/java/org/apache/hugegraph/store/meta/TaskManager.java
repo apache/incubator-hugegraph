@@ -20,13 +20,12 @@ package org.apache.hugegraph.store.meta;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.store.meta.asynctask.AbstractAsyncTask;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTask;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
 import org.apache.hugegraph.store.meta.base.DBSessionBuilder;
 import org.apache.hugegraph.store.meta.base.PartitionMetaStore;
-
-import com.baidu.hugegraph.pd.grpc.MetaTask;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -17,16 +17,15 @@
 
 package org.apache.hugegraph.store.meta;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.Data;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.partitions
+ * @package: org.apache.hugegraph.store.partitions
  * @className: Partition
  * @author: tyzer
  * @description: TODO

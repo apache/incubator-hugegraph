@@ -26,6 +26,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionKeyRange;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
 import org.apache.hugegraph.store.cmd.DbCompactionRequest;
 import org.apache.hugegraph.store.meta.MetadataKeyHelper;
@@ -33,21 +43,11 @@ import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.pd.PartitionInstructionListener;
 import org.apache.hugegraph.store.raft.RaftClosure;
 import org.apache.hugegraph.store.raft.RaftOperation;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.util.Utils;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.DbCompaction;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionKeyRange;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
-import com.baidu.hugegraph.util.Log;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**

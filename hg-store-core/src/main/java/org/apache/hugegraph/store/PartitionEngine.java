@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.store;
 
-import static com.baidu.hugegraph.pd.grpc.MetaTask.TaskType.Clean_Partition;
+import static org.apache.hugegraph.pd.grpc.MetaTask.TaskType.Clean_Partition;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.collections.ListUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.cmd.BatchPutRequest;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
 import org.apache.hugegraph.store.cmd.DbCompactionRequest;
@@ -79,9 +82,6 @@ import com.alipay.sofa.jraft.storage.log.RocksDBSegmentLogStorage;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.Utils;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.CodedInputStream;
 
 import lombok.extern.slf4j.Slf4j;

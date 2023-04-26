@@ -25,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
 import org.apache.hugegraph.store.meta.Graph;
 import org.apache.hugegraph.store.meta.GraphManager;
@@ -32,9 +34,6 @@ import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.pd.FakePdServiceProvider;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import core.StoreEngineTestBase;
 

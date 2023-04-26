@@ -37,10 +37,8 @@ import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.type.HgStoreClientException;
 import org.apache.hugegraph.store.client.util.Base58;
 import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
+import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
-
-import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.stream.*;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

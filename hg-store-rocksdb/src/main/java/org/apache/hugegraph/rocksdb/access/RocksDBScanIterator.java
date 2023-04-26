@@ -17,15 +17,16 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
-import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.E;
-import lombok.extern.slf4j.Slf4j;
-import org.rocksdb.RocksIterator;
-
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
+import org.rocksdb.RocksIterator;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RocksDBScanIterator<T> implements ScanIterator {
@@ -35,7 +36,7 @@ public class RocksDBScanIterator<T> implements ScanIterator {
     private final byte[] keyEnd;
     private final int scanType;
 
-    private AtomicBoolean closed = new AtomicBoolean(false);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private byte[] key;
     private boolean matched;
     private final RocksDBSession.RefCounter iterReference;
@@ -55,44 +56,44 @@ public class RocksDBScanIterator<T> implements ScanIterator {
 
     private void checkArguments() {
         E.checkArgument(!(this.match(ScanIterator.Trait.SCAN_PREFIX_BEGIN) &&
-                        this.match(ScanIterator.Trait.SCAN_PREFIX_END)),
-                "Can't set SCAN_PREFIX_WITH_BEGIN and " +
+                          this.match(ScanIterator.Trait.SCAN_PREFIX_END)),
+                        "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                         "SCAN_PREFIX_WITH_END at the same time");
 
         E.checkArgument(!(this.match(ScanIterator.Trait.SCAN_PREFIX_BEGIN) &&
-                        this.match(ScanIterator.Trait.SCAN_GT_BEGIN)),
-                "Can't set SCAN_PREFIX_WITH_BEGIN and " +
+                          this.match(ScanIterator.Trait.SCAN_GT_BEGIN)),
+                        "Can't set SCAN_PREFIX_WITH_BEGIN and " +
                         "SCAN_GT_BEGIN/SCAN_GTE_BEGIN at the same time");
 
         E.checkArgument(!(this.match(ScanIterator.Trait.SCAN_PREFIX_END) &&
-                        this.match(ScanIterator.Trait.SCAN_LT_END)),
-                "Can't set SCAN_PREFIX_WITH_END and " +
+                          this.match(ScanIterator.Trait.SCAN_LT_END)),
+                        "Can't set SCAN_PREFIX_WITH_END and " +
                         "SCAN_LT_END/SCAN_LTE_END at the same time");
 
         if (this.match(ScanIterator.Trait.SCAN_PREFIX_BEGIN)) {
             E.checkArgument(this.keyBegin != null,
-                    "Parameter `keyBegin` can't be null " +
+                            "Parameter `keyBegin` can't be null " +
                             "if set SCAN_PREFIX_WITH_BEGIN");
             E.checkArgument(this.keyEnd == null,
-                    "Parameter `keyEnd` must be null " +
+                            "Parameter `keyEnd` must be null " +
                             "if set SCAN_PREFIX_WITH_BEGIN");
         }
 
         if (this.match(ScanIterator.Trait.SCAN_PREFIX_END)) {
             E.checkArgument(this.keyEnd != null,
-                    "Parameter `keyEnd` can't be null " +
+                            "Parameter `keyEnd` can't be null " +
                             "if set SCAN_PREFIX_WITH_END");
         }
 
         if (this.match(ScanIterator.Trait.SCAN_GT_BEGIN)) {
             E.checkArgument(this.keyBegin != null,
-                    "Parameter `keyBegin` can't be null " +
+                            "Parameter `keyBegin` can't be null " +
                             "if set SCAN_GT_BEGIN or SCAN_GTE_BEGIN");
         }
 
         if (this.match(ScanIterator.Trait.SCAN_LT_END)) {
             E.checkArgument(this.keyEnd != null,
-                    "Parameter `keyEnd` can't be null " +
+                            "Parameter `keyEnd` can't be null " +
                             "if set SCAN_LT_END or SCAN_LTE_END");
         }
     }
@@ -143,9 +144,9 @@ public class RocksDBScanIterator<T> implements ScanIterator {
 
             // Skip `keyBegin` if set SCAN_GT_BEGIN (key > 'xx')
             if (this.match(ScanIterator.Trait.SCAN_GT_BEGIN) &&
-                    !this.match(ScanIterator.Trait.SCAN_GTE_BEGIN)) {
+                !this.match(ScanIterator.Trait.SCAN_GTE_BEGIN)) {
                 while (this.rawIt.isValid() &&
-                        Bytes.equals(this.rawIt.key(), this.keyBegin)) {
+                       Bytes.equals(this.rawIt.key(), this.keyBegin)) {
                     this.rawIt.next();
                 }
             }
@@ -170,7 +171,8 @@ public class RocksDBScanIterator<T> implements ScanIterator {
         }
 
         BackendColumn col = BackendColumn.of(this.key,
-                this.match(Trait.SCAN_KEYONLY) ? EMPTY_VALUE : this.rawIt.value());
+                                             this.match(Trait.SCAN_KEYONLY) ? EMPTY_VALUE :
+                                             this.rawIt.value());
 
         this.rawIt.next();
         this.matched = false;
@@ -219,7 +221,7 @@ public class RocksDBScanIterator<T> implements ScanIterator {
 
     @Override
     public void close() {
-        if (this.closed.getAndSet(true) == false) {
+        if (!this.closed.getAndSet(true)) {
             if (this.rawIt.isOwningHandle()) {
                 this.rawIt.close();
             }

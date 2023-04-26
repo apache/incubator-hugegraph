@@ -17,11 +17,11 @@
 
 package core.raft;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.raft.RaftOperation;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.GeneratedMessageV3;
 
 public class RaftOperationTest {

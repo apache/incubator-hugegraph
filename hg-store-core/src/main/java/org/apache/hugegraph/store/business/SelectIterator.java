@@ -21,13 +21,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-
-import com.baidu.hugegraph.backend.id.Id;
-import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.type.define.DataType;
-import com.baidu.hugegraph.type.define.SerialEnum;
+import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.type.define.SerialEnum;
 
 /**
  * @author zhangyingjie

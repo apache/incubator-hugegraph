@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
-// import org.junit.BeforeClass;
-// import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -29,16 +28,17 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
 
 public class RocksDBSessionTest {
 
     private final String graphName = "testDummy";
 
-//    @BeforeClass
+    //    @BeforeClass
     public static void init() {
         OptionSpace.register("rocksdb",
-                "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
+                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("rocksdb.write_buffer_size", "1048576");
@@ -50,8 +50,7 @@ public class RocksDBSessionTest {
     }
 
 
-
-//    @Test
+    //    @Test
     public void put() {
         System.out.println("RocksDBSessionTest::put test");
 
@@ -82,7 +81,7 @@ public class RocksDBSessionTest {
         String tName = "t2";
         rSession.checkTable(tName);
 
-        assertEquals(true, rSession.tableIsExist(tName));
+        assertTrue(rSession.tableIsExist(tName));
 
     }
 
@@ -158,9 +157,9 @@ public class RocksDBSessionTest {
         sessionOp.put("fly3", "cat3".getBytes(), "hit3".getBytes());
         sessionOp.commit();
 
-        assertEquals(true, rSession.tableIsExist("fly1"));
-        assertEquals(true, rSession.tableIsExist("fly2"));
-        assertEquals(true, rSession.tableIsExist("fly3"));
+        assertTrue(rSession.tableIsExist("fly1"));
+        assertTrue(rSession.tableIsExist("fly2"));
+        assertTrue(rSession.tableIsExist("fly3"));
 
     }
 
@@ -174,11 +173,11 @@ public class RocksDBSessionTest {
 
         rSession.createTables("dummy1");
 
-        assertEquals(true, rSession.tableIsExist("dummy1"));
+        assertTrue(rSession.tableIsExist("dummy1"));
 
         rSession.dropTables("dummy1");
 
-        assertEquals(false, rSession.tableIsExist("dummy1"));
+        assertFalse(rSession.tableIsExist("dummy1"));
 
     }
 
@@ -280,7 +279,8 @@ public class RocksDBSessionTest {
 
         //range scan
         ScanIterator it = sessionOp.scan(tName, "box2".getBytes(), "box5".getBytes(),
-                ScanIterator.Trait.SCAN_GTE_BEGIN | ScanIterator.Trait.SCAN_LTE_END);
+                                         ScanIterator.Trait.SCAN_GTE_BEGIN |
+                                         ScanIterator.Trait.SCAN_LTE_END);
         while (it.hasNext()) {
             RocksDBSession.BackendColumn col = it.next();
             System.out.println(new String(col.name) + " : " + new String(col.value));
@@ -316,12 +316,16 @@ public class RocksDBSessionTest {
         sessionOp.commit();
 
 
-//        assertEquals(3, rSession.sessionOp().keyCount(tName, getPartStartKey(part1), getPartEndKey(part1)));
-//        assertEquals(4, rSession.sessionOp().keyCount(tName, getPartStartKey(part2), getPartEndKey(part2)));
-//        assertEquals(5, rSession.sessionOp().keyCount(tName, getPartStartKey(part3), getPartEndKey(part3)));
+//        assertEquals(3, rSession.sessionOp().keyCount(tName, getPartStartKey(part1),
+//        getPartEndKey(part1)));
+//        assertEquals(4, rSession.sessionOp().keyCount(tName, getPartStartKey(part2),
+//        getPartEndKey(part2)));
+//        assertEquals(5, rSession.sessionOp().keyCount(tName, getPartStartKey(part3),
+//        getPartEndKey(part3)));
 
         assertEquals(12, rSession.sessionOp().keyCount("\0".getBytes(StandardCharsets.UTF_8),
-                "\255".getBytes(StandardCharsets.UTF_8), tName));
+                                                       "\255".getBytes(StandardCharsets.UTF_8),
+                                                       tName));
         assertEquals(12, rSession.sessionOp().estimatedKeyCount(tName));
     }
 
@@ -419,7 +423,7 @@ public class RocksDBSessionTest {
             }
 
         } catch (DBStoreException e) {
-            System.out.println(e.toString());
+            System.out.println(e);
         }
 
     }
@@ -444,7 +448,7 @@ public class RocksDBSessionTest {
     }
 
     private static byte[] intToBytesForPartId(int v) {
-        short s = (short)v;
+        short s = (short) v;
         ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES).order(ByteOrder.BIG_ENDIAN);
         buffer.putShort(s);
         return buffer.array();
@@ -462,12 +466,13 @@ public class RocksDBSessionTest {
         byte[] targetKey = byteCompose(partBytes, key);
         return targetKey;
     }
+
     private static byte[] getPartStartKey(int partId) {
         return intToBytesForPartId(partId);
     }
 
     private static byte[] getPartEndKey(int partId) {
-        return intToBytesForPartId(partId+1);
+        return intToBytesForPartId(partId + 1);
     }
 
 

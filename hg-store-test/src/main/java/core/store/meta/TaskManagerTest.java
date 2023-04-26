@@ -22,14 +22,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.TaskManager;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
 import org.apache.hugegraph.store.meta.asynctask.CleanTask;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import core.StoreEngineTestBase;
 

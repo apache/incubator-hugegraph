@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.store.meta.asynctask;
 
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
-
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
 
 import lombok.extern.slf4j.Slf4j;
 

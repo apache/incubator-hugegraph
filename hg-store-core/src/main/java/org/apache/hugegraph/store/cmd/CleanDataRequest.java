@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.store.cmd;
 
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.store.meta.Partition;
-
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
 
 import lombok.Data;
 

@@ -40,8 +40,6 @@ import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.MetricX;
 
-import com.baidu.hugegraph.store.*;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**

@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.cmd.BatchPutRequest;
@@ -36,8 +38,6 @@ import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
 import org.apache.hugegraph.store.term.Bits;
 
 import com.alipay.sofa.jraft.Status;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
 
 import lombok.extern.slf4j.Slf4j;
 

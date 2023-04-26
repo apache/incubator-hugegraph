@@ -24,11 +24,10 @@ import java.util.NoSuchElementException;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
+import org.apache.hugegraph.store.grpc.stream.ScanCondition;
+import org.apache.hugegraph.store.grpc.stream.ScanQueryRequest;
 import org.apache.hugegraph.store.node.util.HgAssert;
-
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
-import com.baidu.hugegraph.store.grpc.stream.ScanCondition;
-import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -19,13 +19,13 @@ package org.apache.hugegraph.store.business;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.cmd.BatchPutRequest;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
 import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
 
 import com.alipay.sofa.jraft.Status;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 /**
  * 数据转移接口，实现分区分裂和合并，支持跨机器转移数据

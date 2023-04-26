@@ -37,6 +37,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.DBStoreException;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
@@ -46,6 +49,9 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Request;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.ScanType;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
@@ -59,18 +65,12 @@ import org.rocksdb.Cache;
 import org.rocksdb.MemoryUsageType;
 
 import com.alipay.sofa.jraft.util.Utils;
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Request;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.ScanType;
 
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.business
+ * @package: org.apache.hugegraph.store.business
  * @className: HgBusinessImpl
  * @author: tyzer
  * @description: TODO

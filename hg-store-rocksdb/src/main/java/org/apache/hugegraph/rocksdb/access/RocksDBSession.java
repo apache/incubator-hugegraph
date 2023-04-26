@@ -20,12 +20,10 @@ package org.apache.hugegraph.rocksdb.access;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,8 +34,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rocksdb.access.util.Asserts;
 import org.apache.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -62,10 +63,6 @@ import org.rocksdb.Slice;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBufferManager;
 import org.rocksdb.WriteOptions;
-
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.util.Bytes;
-import com.baidu.hugegraph.util.E;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -996,7 +993,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 try (CFHandleLock cfHandle = this.getCFHandleLock(cfName)) {
                     try (final IngestExternalFileOptions ingestOptions =
                                  new IngestExternalFileOptions()
-                            .setMoveFiles(true)) {
+                                         .setMoveFiles(true)) {
                         this.rocksDB.ingestExternalFile(cfHandle.get(), entry.getValue(),
                                                         ingestOptions);
                         log.info("Rocksdb {} ingestSstFile cf:{}, sst: {}", this.graphName, cfName,

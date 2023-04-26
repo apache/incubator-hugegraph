@@ -20,12 +20,11 @@ package core.store.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.MetadataKeyHelper;
 import org.apache.hugegraph.store.util.PartitionMetaStoreWrapper;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import core.StoreEngineTestBase;
 

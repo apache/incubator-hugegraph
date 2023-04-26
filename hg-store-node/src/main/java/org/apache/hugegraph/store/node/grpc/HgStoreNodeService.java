@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
-import static com.baidu.hugegraph.store.grpc.common.GraphMethod.GRAPH_METHOD_DELETE;
+import static org.apache.hugegraph.store.grpc.common.GraphMethod.GRAPH_METHOD_DELETE;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +28,7 @@ import javax.annotation.PreDestroy;
 
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.business.DefaultDataMover;
+import org.apache.hugegraph.store.grpc.session.*;
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.RaftRocksdbOptions;
@@ -41,7 +42,6 @@ import org.springframework.stereotype.Service;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.core.NodeMetrics;
-import com.baidu.hugegraph.store.grpc.session.*;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 

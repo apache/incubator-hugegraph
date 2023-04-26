@@ -39,14 +39,14 @@ import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
 import org.apache.hugegraph.store.client.util.HgUuid;
+import org.apache.hugegraph.store.grpc.common.GraphMethod;
+import org.apache.hugegraph.store.grpc.common.Key;
+import org.apache.hugegraph.store.grpc.common.OpType;
+import org.apache.hugegraph.store.grpc.common.TableMethod;
+import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc.HgStoreStreamStub;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 
-import com.baidu.hugegraph.store.grpc.common.GraphMethod;
-import com.baidu.hugegraph.store.grpc.common.Key;
-import com.baidu.hugegraph.store.grpc.common.OpType;
-import com.baidu.hugegraph.store.grpc.common.TableMethod;
-import com.baidu.hugegraph.store.grpc.session.BatchEntry;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.UnsafeByteOperations;
 

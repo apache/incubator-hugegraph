@@ -20,16 +20,15 @@ package org.apache.hugegraph.store.node.grpc.scan;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreImplBase;
+import org.apache.hugegraph.store.grpc.Graphpb;
+import org.apache.hugegraph.store.grpc.Graphpb.ResponseHeader;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanResponse;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.baidu.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreImplBase;
-import com.baidu.hugegraph.store.grpc.Graphpb;
-import com.baidu.hugegraph.store.grpc.Graphpb.ResponseHeader;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanResponse;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

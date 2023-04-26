@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.node.controller;
 
 import java.io.Serializable;
 
+import org.apache.hugegraph.store.grpc.state.ScanState;
 import org.apache.hugegraph.store.node.entry.RestResult;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeState;
 import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
@@ -31,7 +32,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.baidu.hugegraph.store.grpc.state.ScanState;
 import com.google.protobuf.util.JsonFormat;
 
 /**

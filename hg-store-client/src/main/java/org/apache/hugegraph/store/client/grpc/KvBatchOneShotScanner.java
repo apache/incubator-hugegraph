@@ -30,10 +30,9 @@ import org.apache.hugegraph.store.HgPageSize;
 import org.apache.hugegraph.store.HgScanQuery;
 import org.apache.hugegraph.store.HgSeekAble;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
+import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
-
-import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
 import lombok.extern.slf4j.Slf4j;
 

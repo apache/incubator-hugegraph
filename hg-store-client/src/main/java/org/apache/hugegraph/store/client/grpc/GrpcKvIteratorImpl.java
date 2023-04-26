@@ -28,8 +28,7 @@ import org.apache.hugegraph.store.HgSeekAble;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
-
-import com.baidu.hugegraph.store.grpc.common.Kv;
+import org.apache.hugegraph.store.grpc.common.Kv;
 
 import lombok.extern.slf4j.Slf4j;
 

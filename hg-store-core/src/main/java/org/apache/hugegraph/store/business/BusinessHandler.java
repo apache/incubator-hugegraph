@@ -24,7 +24,12 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.grpc.Graphpb;
+import org.apache.hugegraph.store.grpc.common.Key;
+import org.apache.hugegraph.store.grpc.common.OpType;
+import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.meta.base.DBSessionBuilder;
 import org.apache.hugegraph.store.metric.HgStoreMetric;
 import org.apache.hugegraph.store.raft.HgStoreStateMachine;
@@ -35,15 +40,9 @@ import org.rocksdb.MemoryUsageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
-import com.baidu.hugegraph.store.grpc.Graphpb;
-import com.baidu.hugegraph.store.grpc.common.Key;
-import com.baidu.hugegraph.store.grpc.common.OpType;
-import com.baidu.hugegraph.store.grpc.session.BatchEntry;
-
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.business
+ * @package: org.apache.hugegraph.store.business
  * @className: HgBusinessHandler
  * @author: tyzer
  * @description:

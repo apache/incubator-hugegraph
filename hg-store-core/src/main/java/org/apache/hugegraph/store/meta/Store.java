@@ -19,16 +19,15 @@ package org.apache.hugegraph.store.meta;
 
 import java.util.Map;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.util.Asserts;
 import org.apache.hugegraph.store.util.Version;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.Data;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.core
+ * @package: org.apache.hugegraph.store.core
  * @className: HgStoreNode
  * @author: tyzer
  * @description: TODO

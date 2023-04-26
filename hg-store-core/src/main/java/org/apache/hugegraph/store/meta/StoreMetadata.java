@@ -24,11 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.base.GlobalMetaStore;
 import org.apache.hugegraph.store.options.MetadataOptions;
 import org.apache.hugegraph.store.util.HgStoreException;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

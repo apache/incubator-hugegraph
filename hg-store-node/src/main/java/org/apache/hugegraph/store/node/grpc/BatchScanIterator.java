@@ -23,11 +23,10 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.node.util.HgAssert;
 import org.apache.hugegraph.store.node.util.HgStoreConst;
-
-import com.baidu.hugegraph.pd.common.KVPair;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/28

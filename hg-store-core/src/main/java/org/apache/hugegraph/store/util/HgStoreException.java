@@ -19,7 +19,7 @@ package org.apache.hugegraph.store.util;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store
+ * @package: org.apache.hugegraph.store
  * @className: HgCoreServiceException
  * @author: tyzer
  * @description: TODO

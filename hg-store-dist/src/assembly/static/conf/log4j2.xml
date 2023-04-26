@@ -129,7 +129,7 @@
             <appender-ref ref="file"/>
         </logger>
         <!-- Use mixed async way to output logs -->
-        <AsyncLogger name="com.baidu.hugegraph" level="INFO" additivity="false">
+        <AsyncLogger name="org.apache.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="file"/>
         </AsyncLogger>
     </loggers>

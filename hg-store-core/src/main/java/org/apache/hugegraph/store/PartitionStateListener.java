@@ -19,10 +19,9 @@ package org.apache.hugegraph.store;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.PartitionRole;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public interface PartitionStateListener {
     // 分区角色发生改变

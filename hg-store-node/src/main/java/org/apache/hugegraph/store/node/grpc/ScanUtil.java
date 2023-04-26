@@ -31,14 +31,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.business.SelectIterator;
-
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
-import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
-import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
-import com.baidu.hugegraph.store.grpc.stream.SelectParam;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
+import org.apache.hugegraph.store.grpc.stream.ScanQueryRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
+import org.apache.hugegraph.store.grpc.stream.SelectParam;
 
 import lombok.extern.slf4j.Slf4j;
 

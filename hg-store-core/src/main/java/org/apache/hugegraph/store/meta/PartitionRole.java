@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.store.meta;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.partitions
+ * @package: org.apache.hugegraph.store.partitions
  * @className: PartitionRole
  * @author: tyzer
  * @description: TODO

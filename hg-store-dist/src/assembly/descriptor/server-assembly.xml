@@ -51,7 +51,7 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <includes>
-                <include>com.baidu.hugegraph:hugegraph-store:jar:*</include>
+                <include>org.apache.hugegraph:hugegraph-store:jar:*</include>
             </includes>
         </dependencySet>
     </dependencySets>

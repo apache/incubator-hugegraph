@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * @projectName: hugegraph-store
- * @package: com.baidu.hugegraph.store.util
+ * @package: org.apache.hugegraph.store.util
  * @className:
  * @author: jraft
  * @description:

@@ -19,13 +19,12 @@ package core;
 
 import java.util.Map;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.metric.HgMetricService;
 import org.apache.hugegraph.store.metric.SystemMetricService;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class MetricServiceTest {
 

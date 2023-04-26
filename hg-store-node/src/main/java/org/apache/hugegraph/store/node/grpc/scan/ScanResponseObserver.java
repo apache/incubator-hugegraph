@@ -28,13 +28,13 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.business.GraphStoreIterator;
+import org.apache.hugegraph.store.grpc.Graphpb.ErrorType;
+import org.apache.hugegraph.store.grpc.Graphpb.ResponseHeader;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Request;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.ScanType;
+import org.apache.hugegraph.store.grpc.Graphpb.ScanResponse;
 
-import com.baidu.hugegraph.store.grpc.Graphpb.ErrorType;
-import com.baidu.hugegraph.store.grpc.Graphpb.ResponseHeader;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Request;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.ScanType;
-import com.baidu.hugegraph.store.grpc.Graphpb.ScanResponse;
 import com.google.protobuf.Descriptors;
 
 import io.grpc.stub.StreamObserver;

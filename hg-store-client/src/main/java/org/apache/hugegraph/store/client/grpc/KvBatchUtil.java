@@ -25,10 +25,9 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.grpc.common.Header;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
 
-import com.baidu.hugegraph.store.grpc.common.Header;
-import com.baidu.hugegraph.store.grpc.common.ScanMethod;
-import com.baidu.hugegraph.store.grpc.stream.*;
 import com.google.protobuf.ByteString;
 
 import lombok.extern.slf4j.Slf4j;

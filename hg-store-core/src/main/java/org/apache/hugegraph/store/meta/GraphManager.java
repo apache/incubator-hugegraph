@@ -21,11 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.base.GlobalMetaStore;
 import org.apache.hugegraph.store.options.MetadataOptions;
 import org.apache.hugegraph.store.pd.PdProvider;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class GraphManager extends GlobalMetaStore {
     private final PdProvider pdProvider;

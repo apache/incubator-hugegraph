@@ -17,9 +17,8 @@
 
 package org.apache.hugegraph.store;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.Store;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public interface HgStoreStateListener {
     void stateChanged(Store store, Metapb.StoreState oldState, Metapb.StoreState newState);

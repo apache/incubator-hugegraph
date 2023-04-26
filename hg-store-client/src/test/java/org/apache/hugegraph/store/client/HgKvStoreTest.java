@@ -22,6 +22,8 @@ import static org.apache.hugegraph.store.client.util.HgStoreClientUtil.toOwnerKe
 import static org.apache.hugegraph.store.client.util.HgStoreClientUtil.toStr;
 import static org.apache.hugegraph.store.util.HgStoreTestUtil.TABLE_NAME;
 
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgOwnerKey;
@@ -30,9 +32,6 @@ import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
 
 import lombok.extern.slf4j.Slf4j;
 

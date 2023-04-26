@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession.CFHandleLock;
 import org.apache.hugegraph.rocksdb.access.util.Asserts;
 import org.apache.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.util.Bytes;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -31,8 +32,6 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.Slice;
 import org.rocksdb.Snapshot;
 import org.rocksdb.WriteBatch;
-
-import com.baidu.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
 

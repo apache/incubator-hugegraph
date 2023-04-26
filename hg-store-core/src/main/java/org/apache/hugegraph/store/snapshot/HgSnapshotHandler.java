@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.meta.Partition;
@@ -37,7 +38,6 @@ import com.alipay.sofa.jraft.storage.snapshot.Snapshot;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 
