@@ -1,4 +1,21 @@
-package com.baidu.hugegraph.store.grpc.stream;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.hugegraph.store.grpc.stream;
 
 import static io.grpc.MethodDescriptor.generateFullMethodName;
 
@@ -112,28 +129,28 @@ public final class HgStoreStreamGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvStream> getScanBatch2Method;
+          KvStream> getScanBatch2Method;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "ScanBatch2",
       requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
-      responseType = com.baidu.hugegraph.store.grpc.stream.KvStream.class,
+      responseType = KvStream.class,
       methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
   public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvStream> getScanBatch2Method() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvStream> getScanBatch2Method;
+          KvStream> getScanBatch2Method() {
+    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream> getScanBatch2Method;
     if ((getScanBatch2Method = HgStoreStreamGrpc.getScanBatch2Method) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanBatch2Method = HgStoreStreamGrpc.getScanBatch2Method) == null) {
           HgStoreStreamGrpc.getScanBatch2Method = getScanBatch2Method =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvStream>newBuilder()
+              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ScanBatch2"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.KvStream.getDefaultInstance()))
+                      KvStream.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("ScanBatch2"))
               .build();
         }
@@ -249,7 +266,7 @@ public final class HgStoreStreamGrpc {
     /**
      */
     public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvStream> responseObserver) {
+        io.grpc.stub.StreamObserver<KvStream> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getScanBatch2Method(), responseObserver);
     }
 
@@ -288,7 +305,7 @@ public final class HgStoreStreamGrpc {
             io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
               new MethodHandlers<
                 com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-                com.baidu.hugegraph.store.grpc.stream.KvStream>(
+                      KvStream>(
                   this, METHODID_SCAN_BATCH2)))
           .addMethod(
             getScanBatchOneShotMethod(),
@@ -346,7 +363,7 @@ public final class HgStoreStreamGrpc {
     /**
      */
     public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvStream> responseObserver) {
+        io.grpc.stub.StreamObserver<KvStream> responseObserver) {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getScanBatch2Method(), getCallOptions()), responseObserver);
     }
@@ -477,7 +494,7 @@ public final class HgStoreStreamGrpc {
               (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
         case METHODID_SCAN_BATCH2:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.scanBatch2(
-              (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvStream>) responseObserver);
+              (io.grpc.stub.StreamObserver<KvStream>) responseObserver);
         default:
           throw new AssertionError();
       }
@@ -490,7 +507,7 @@ public final class HgStoreStreamGrpc {
 
     @java.lang.Override
     public com.google.protobuf.Descriptors.FileDescriptor getFileDescriptor() {
-      return com.baidu.hugegraph.store.grpc.stream.HgStoreStreamProto.getDescriptor();
+      return HgStoreStreamProto.getDescriptor();
     }
 
     @java.lang.Override

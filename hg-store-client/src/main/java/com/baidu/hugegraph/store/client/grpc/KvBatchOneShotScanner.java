@@ -1,19 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.store.client.grpc;
+
+import static com.baidu.hugegraph.store.client.grpc.KvBatchUtil.EMPTY_POSITION;
+import static com.baidu.hugegraph.store.client.grpc.KvBatchUtil.createQueryReq;
+import static com.baidu.hugegraph.store.client.grpc.KvBatchUtil.getHeader;
+
+import java.util.Iterator;
+import java.util.List;
+
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 
 import com.baidu.hugegraph.store.HgPageSize;
 import com.baidu.hugegraph.store.HgScanQuery;
 import com.baidu.hugegraph.store.HgSeekAble;
 import com.baidu.hugegraph.store.client.HgStoreNodeSession;
 import com.baidu.hugegraph.store.grpc.common.Kv;
-import com.baidu.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
+
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.concurrent.NotThreadSafe;
-import java.util.Iterator;
-import java.util.List;
-
-import static com.baidu.hugegraph.store.client.grpc.KvBatchUtil.*;
 
 /**
  * @author lynn.bond@hotmail.com created on 2022/04/08
