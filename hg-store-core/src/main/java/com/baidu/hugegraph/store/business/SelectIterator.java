@@ -6,8 +6,8 @@ import java.util.Set;
 
 import com.baidu.hugegraph.backend.id.Id;
 import com.baidu.hugegraph.backend.serializer.BytesBuffer;
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import com.baidu.hugegraph.type.define.DataType;
 import com.baidu.hugegraph.type.define.SerialEnum;
 

@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.store.meta.base;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 
 /**
  * 元数据存储在分区的default cf中

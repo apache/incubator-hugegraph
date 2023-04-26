@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.store.meta;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import com.baidu.hugegraph.store.meta.base.GlobalMetaStore;
 import com.baidu.hugegraph.store.options.MetadataOptions;
 import lombok.extern.slf4j.Slf4j;

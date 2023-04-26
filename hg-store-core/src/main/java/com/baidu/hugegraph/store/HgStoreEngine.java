@@ -11,7 +11,7 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.rocksdb.access.RocksDBFactory;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import com.baidu.hugegraph.store.business.DataMover;
 import com.baidu.hugegraph.store.business.BusinessHandler;
 import com.baidu.hugegraph.store.business.BusinessHandlerImpl;

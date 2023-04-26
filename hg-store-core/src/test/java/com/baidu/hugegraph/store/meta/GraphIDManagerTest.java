@@ -1,7 +1,7 @@
 package com.baidu.hugegraph.store.meta;
 
 import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import com.baidu.hugegraph.store.UnitTestBase;
 import com.baidu.hugegraph.store.meta.base.DBSessionBuilder;
 import org.junit.Assert;

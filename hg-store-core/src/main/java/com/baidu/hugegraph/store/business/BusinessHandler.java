@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import com.baidu.hugegraph.store.grpc.Graphpb;
 import com.baidu.hugegraph.store.grpc.common.Key;
 import com.baidu.hugegraph.store.grpc.common.OpType;

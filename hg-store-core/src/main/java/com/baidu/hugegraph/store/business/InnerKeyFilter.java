@@ -1,7 +1,7 @@
 package com.baidu.hugegraph.store.business;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import com.baidu.hugegraph.store.term.Bits;
 
 import java.util.Arrays;

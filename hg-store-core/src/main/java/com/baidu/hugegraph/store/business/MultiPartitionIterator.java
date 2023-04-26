@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.store.business;
 
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 
 import java.nio.ByteBuffer;
 import java.util.*;

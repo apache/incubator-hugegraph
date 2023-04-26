@@ -1,8 +1,8 @@
 package com.baidu.hugegraph.store.meta.base;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
-import com.baidu.hugegraph.rocksdb.access.SessionOperator;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import com.baidu.hugegraph.store.util.HgStoreException;
 import com.baidu.hugegraph.store.util.Asserts;
 import com.google.protobuf.GeneratedMessageV3;

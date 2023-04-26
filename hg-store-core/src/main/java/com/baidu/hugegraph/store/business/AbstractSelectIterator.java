@@ -6,7 +6,7 @@ import com.baidu.hugegraph.backend.serializer.AbstractSerializer;
 import com.baidu.hugegraph.backend.serializer.BinarySerializer;
 import com.baidu.hugegraph.backend.store.BackendEntry;
 import com.baidu.hugegraph.iterator.CIter;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import com.baidu.hugegraph.structure.HugeElement;
 import com.baidu.hugegraph.util.Bytes;
 

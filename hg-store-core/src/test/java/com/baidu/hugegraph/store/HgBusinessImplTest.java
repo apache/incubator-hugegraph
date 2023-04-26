@@ -1,8 +1,8 @@
 package com.baidu.hugegraph.store;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBFactory;
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import com.baidu.hugegraph.store.business.BusinessHandler;
 import com.baidu.hugegraph.store.business.BusinessHandlerImpl;
 import com.baidu.hugegraph.store.options.HgStoreEngineOptions;

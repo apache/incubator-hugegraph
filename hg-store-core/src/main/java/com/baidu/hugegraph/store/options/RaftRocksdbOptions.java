@@ -3,7 +3,7 @@ package com.baidu.hugegraph.store.options;
 import com.alipay.sofa.jraft.storage.impl.RocksDBLogStorage;
 import com.alipay.sofa.jraft.util.StorageOptionsFactory;
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.rocksdb.access.RocksDBOptions;
+import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import com.baidu.hugegraph.store.business.BusinessHandlerImpl;
 
 import lombok.extern.slf4j.Slf4j;

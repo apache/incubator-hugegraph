@@ -27,13 +27,13 @@ import com.alipay.sofa.jraft.util.Utils;
 import com.baidu.hugegraph.config.HugeConfig;
 import com.baidu.hugegraph.config.OptionSpace;
 import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
-import com.baidu.hugegraph.rocksdb.access.DBStoreException;
-import com.baidu.hugegraph.rocksdb.access.RocksDBFactory;
-import com.baidu.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
-import com.baidu.hugegraph.rocksdb.access.RocksDBOptions;
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
-import com.baidu.hugegraph.rocksdb.access.ScanIterator;
-import com.baidu.hugegraph.rocksdb.access.SessionOperator;
+import org.apache.hugegraph.rocksdb.access.DBStoreException;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
+import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import com.baidu.hugegraph.store.HgStoreEngine;
 import com.baidu.hugegraph.store.cmd.CleanDataRequest;
 import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
@@ -89,7 +89,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig, RocksdbChangedListener listener) {
         // 注册rocksdb配置
         OptionSpace.register("rocksdb",
-                             "com.baidu.hugegraph.rocksdb.access.RocksDBOptions");
+                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
         HugeConfig hConfig = new HugeConfig(rocksdbConfig);
         factory.setHugeConfig(hConfig);

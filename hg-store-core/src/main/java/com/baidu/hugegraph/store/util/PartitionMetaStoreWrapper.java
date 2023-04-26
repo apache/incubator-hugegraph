@@ -1,6 +1,6 @@
 package com.baidu.hugegraph.store.util;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import com.baidu.hugegraph.store.HgStoreEngine;
 import com.baidu.hugegraph.store.meta.base.MetaStoreBase;
 

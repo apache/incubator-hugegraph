@@ -1,7 +1,7 @@
 package com.baidu.hugegraph.store.meta.base;
 
-import com.baidu.hugegraph.rocksdb.access.RocksDBFactory;
-import com.baidu.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import com.baidu.hugegraph.store.options.MetadataOptions;
 
 import java.util.Arrays;
