@@ -24,7 +24,7 @@ import org.apache.hugegraph.store.client.HgStoreNode;
 import org.apache.hugegraph.store.client.HgStoreNodeManager;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/11
+ * created on 2021/10/11
  */
 class GrpcStoreNodeImpl implements HgStoreNode {
     private final GrpcStoreSessionClient sessionClient;

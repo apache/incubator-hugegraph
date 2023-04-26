@@ -62,7 +62,6 @@ import com.google.protobuf.Descriptors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/10/26
  **/
 @Slf4j

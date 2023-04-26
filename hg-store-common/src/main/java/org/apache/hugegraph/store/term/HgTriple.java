@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.term;
 import java.util.Objects;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/19
+ * created on 2021/10/19
  */
 public class HgTriple<X, Y, Z> {
     private final X x;

@@ -35,7 +35,6 @@ import lombok.extern.slf4j.Slf4j;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.grpc.boot.service
  * @className: HgStoreWrapperEx
- * @author: tyzer
  * @description: TODO
  * @date: 2021/10/25 18:35
  * @version: 1.0

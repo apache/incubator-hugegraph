@@ -29,7 +29,6 @@ import lombok.Data;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.core
  * @className: HgStoreNode
- * @author: tyzer
  * @description: TODO
  * @date: 2021/10/19 19:44
  * @version: 1.0

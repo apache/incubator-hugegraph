@@ -17,9 +17,6 @@
 
 package org.apache.hugegraph.store.util;
 
-/**
- * @author YanJinbing
- */
 public interface Lifecycle<T> {
 
     /**

@@ -22,7 +22,7 @@ import java.util.Arrays;
 import org.apache.hugegraph.store.grpc.common.ScanMethod;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/28
+ * 2022/2/28
  */
 class ScanQuery implements QueryCondition {
     String graph;

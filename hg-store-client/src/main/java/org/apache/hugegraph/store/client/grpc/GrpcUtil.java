@@ -39,7 +39,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/1/19
+ * 2022/1/19
  */
 final class GrpcUtil {
 

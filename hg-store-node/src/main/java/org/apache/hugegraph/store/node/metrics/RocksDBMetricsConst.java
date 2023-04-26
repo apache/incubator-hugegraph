@@ -21,7 +21,7 @@ import org.rocksdb.HistogramType;
 import org.rocksdb.TickerType;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/12/30
+ * 2021/12/30
  */
 public final class RocksDBMetricsConst {
     public static final String PREFIX = "rocks.stats";

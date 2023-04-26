@@ -55,24 +55,17 @@ public class RaftRocksdbOptions {
 
     private static void registerRaftRocksdbConfig(HugeConfig options) {
         Cache blockCache = new LRUCache(SizeUnit.GB);
-        BlockBasedTableConfig tableConfig = new BlockBasedTableConfig() //
-                                                                        .setIndexType(
-                                                                                IndexType.kTwoLevelIndexSearch) //
-                                                                        .setPartitionFilters(
-                                                                                true) //
-                                                                        .setMetadataBlockSize(
-                                                                                8 * SizeUnit.KB) //
-                                                                        .setCacheIndexAndFilterBlocks(
-                                                                                options.get(
-                                                                                        RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE)) //
-                                                                        .setCacheIndexAndFilterBlocksWithHighPriority(
-                                                                                true) //
-                                                                        .setPinL0FilterAndIndexBlocksInCache(
-                                                                                options.get(
-                                                                                        RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE)) //
-                                                                        .setBlockSize(
-                                                                                4 * SizeUnit.KB)//
-                                                                        .setBlockCache(blockCache);
+        BlockBasedTableConfig tableConfig = new BlockBasedTableConfig()
+                .setIndexType(IndexType.kTwoLevelIndexSearch)
+                .setPartitionFilters(true) //
+                .setMetadataBlockSize(8 * SizeUnit.KB) //
+                .setCacheIndexAndFilterBlocks(
+                        options.get(RocksDBOptions.PUT_FILTER_AND_INDEX_IN_CACHE))
+                .setCacheIndexAndFilterBlocksWithHighPriority(true)
+                .setPinL0FilterAndIndexBlocksInCache(
+                        options.get(RocksDBOptions.PIN_L0_FILTER_AND_INDEX_IN_CACHE))
+                .setBlockSize(4 * SizeUnit.KB)
+                .setBlockCache(blockCache);
 
         StorageOptionsFactory.registerRocksDBTableFormatConfig(RocksDBLogStorage.class,
                                                                tableConfig);

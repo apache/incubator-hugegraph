@@ -33,7 +33,7 @@ import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/14
+ * 2022/2/14
  */
 public class HgCliUtil {
 

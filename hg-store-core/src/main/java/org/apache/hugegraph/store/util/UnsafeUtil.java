@@ -25,7 +25,6 @@ import lombok.extern.slf4j.Slf4j;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.util
  * @className:
- * @author: jraft
  * @description:
  * @date: 2021/10/21 11:44
  * @version: 1.0

@@ -17,18 +17,16 @@
 
 package org.apache.hugegraph.store;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public final class HgPrivate {
 
-    private static final HgPrivate instance = new HgPrivate();
+    private static final HgPrivate INSTANCE = new HgPrivate();
 
     private HgPrivate() {
     }
 
     static HgPrivate of() {
-        return instance;
+        return INSTANCE;
     }
 
 }

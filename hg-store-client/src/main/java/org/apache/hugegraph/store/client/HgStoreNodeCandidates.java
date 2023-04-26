@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.client;
 import java.util.List;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 public final class HgStoreNodeCandidates {
 

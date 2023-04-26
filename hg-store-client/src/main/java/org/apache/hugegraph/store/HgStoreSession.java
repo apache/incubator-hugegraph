@@ -19,9 +19,7 @@ package org.apache.hugegraph.store;
 
 import org.apache.hugegraph.store.client.type.HgStoreClientException;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public interface HgStoreSession extends HgKvStore {
 
     void beginTx();

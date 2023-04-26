@@ -23,7 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/03/07
+ * created on 2022/03/07
  */
 public class HgRegexUtil {
 

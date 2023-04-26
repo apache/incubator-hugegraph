@@ -21,9 +21,7 @@ import java.util.Arrays;
 
 import org.apache.hugegraph.store.HgKvEntry;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 class GrpcKvEntryImpl implements HgKvEntry {
     private final byte[] key;
     private final byte[] value;

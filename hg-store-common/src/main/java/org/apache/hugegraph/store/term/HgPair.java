@@ -22,8 +22,8 @@ import java.util.Objects;
 
 /**
  * Copy from javafx.util:Pair
- *
- * @author lynn.bond@hotmail.com created on 2021/10/15
+ * <p>
+ * created on 2021/10/15
  */
 public class HgPair<K, V> implements Serializable {
 

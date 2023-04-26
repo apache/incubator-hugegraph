@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.node;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 
 /**
- * @author lynn.bond@hotmail.com copy from web
+ * copy from web
  */
 public class AppShutdownHook extends Thread {
 

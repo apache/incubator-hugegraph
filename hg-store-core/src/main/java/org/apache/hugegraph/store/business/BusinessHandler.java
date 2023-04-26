@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.business
  * @className: HgBusinessHandler
- * @author: tyzer
  * @description:
  * @date: 2021/10/19 19:07
  * @version: 1.0

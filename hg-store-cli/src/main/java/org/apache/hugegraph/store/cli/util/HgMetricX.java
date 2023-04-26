@@ -18,7 +18,7 @@
 package org.apache.hugegraph.store.cli.util;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/1/29
+ * 2022/1/29
  */
 public class HgMetricX {
     private long start;

@@ -37,7 +37,7 @@ import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/04/08
+ * created on 2022/04/08
  */
 @Slf4j
 @NotThreadSafe

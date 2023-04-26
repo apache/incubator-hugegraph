@@ -41,7 +41,8 @@ import com.google.protobuf.util.JsonFormat;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/18
+ * 2021/11/18
+ *
  * @version 0.3.0 on 2022/01/27
  */
 @Slf4j

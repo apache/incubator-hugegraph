@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Configuration;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/24
+ * 2021/11/24
  */
 @Configuration
 public class MetricsConfig {

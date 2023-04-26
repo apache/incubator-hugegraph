@@ -46,7 +46,6 @@ import com.google.common.base.Charsets;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/7/5
  **/
 @Slf4j

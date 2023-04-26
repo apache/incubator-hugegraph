@@ -18,7 +18,7 @@
 package org.apache.hugegraph.store.node.grpc;
 
 /**
- * @author lynn.bond@hotmail.com on 2023/2/8
+ * 2023/2/8
  */
 public interface QueryCondition {
     byte[] getStart();

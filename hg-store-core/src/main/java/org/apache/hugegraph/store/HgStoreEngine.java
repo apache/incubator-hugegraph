@@ -64,8 +64,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * The core class of the storage engine, initializing PD client and raft client
- *
- * @author YanJinbing
  */
 @Slf4j
 public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreStateListener {

@@ -21,7 +21,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author dominicwilliams
  * Updated by RoshanF on 12/28/2015.
  */
 public class ManualResetEvent {

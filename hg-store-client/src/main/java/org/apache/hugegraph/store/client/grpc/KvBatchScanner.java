@@ -48,8 +48,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 批量流式查询客户端实现类
+ * <p>
+ * created on 2022/07/23
  *
- * @author YanJinbing created on 2022/07/23
  * @version 3.0.0
  */
 @Slf4j

@@ -29,7 +29,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/3
+ * created on 2021/11/3
  */
 @Slf4j
 public final class HgStoreStateSubject {

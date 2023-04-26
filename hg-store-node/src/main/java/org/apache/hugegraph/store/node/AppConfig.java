@@ -30,9 +30,6 @@ import org.springframework.stereotype.Component;
 
 import lombok.Data;
 
-/**
- * @author lynn.bond@hotmail.com
- */
 @Data
 @Component
 public class AppConfig {

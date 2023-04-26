@@ -43,7 +43,7 @@ import org.apache.hugegraph.store.client.util.MetricX;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 @Slf4j
 public class HgStoreTestUtil {

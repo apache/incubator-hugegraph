@@ -23,7 +23,6 @@ import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 
 /**
- * @author lynn.bond@hotmail.com
  * @version 0.2.0
  */
 public interface HgKvStore {

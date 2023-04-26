@@ -29,7 +29,8 @@ import org.apache.hugegraph.store.HgKvPagingIterator;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/24
+ * created on 2021/10/24
+ *
  * @version 0.1.1
  */
 @Slf4j

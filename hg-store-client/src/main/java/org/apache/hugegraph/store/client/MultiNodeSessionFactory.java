@@ -22,7 +22,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.hugegraph.store.HgStoreSession;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 @ThreadSafe
 public final class MultiNodeSessionFactory {

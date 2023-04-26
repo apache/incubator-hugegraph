@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.node.grpc;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/29
+ * 2021/11/29
  */
 final class EmptyIterator implements ScanIterator {
 

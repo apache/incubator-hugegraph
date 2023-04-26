@@ -52,7 +52,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/12/30
+ * 2021/12/30
+ *
  * @version 1.2.0 on 2022/03/22 added auto meter removing when graph has been closed.
  */
 @Slf4j

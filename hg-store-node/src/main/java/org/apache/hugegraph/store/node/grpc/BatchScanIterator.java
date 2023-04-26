@@ -29,7 +29,8 @@ import org.apache.hugegraph.store.node.util.HgAssert;
 import org.apache.hugegraph.store.node.util.HgStoreConst;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/28
+ * 2022/2/28
+ *
  * @version 0.3.0 added limit support
  */
 @NotThreadSafe

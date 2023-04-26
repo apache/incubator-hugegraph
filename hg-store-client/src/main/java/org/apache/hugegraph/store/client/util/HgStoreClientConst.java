@@ -23,9 +23,7 @@ import java.util.List;
 import org.apache.hugegraph.store.HgKvStore;
 import org.apache.hugegraph.store.HgOwnerKey;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public final class HgStoreClientConst {
     public final static String DEFAULT_NODE_CLUSTER_ID = "default-node-cluster";
 

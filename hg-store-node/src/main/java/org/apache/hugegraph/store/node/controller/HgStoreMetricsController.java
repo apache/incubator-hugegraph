@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alipay.sofa.jraft.core.NodeMetrics;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/23
+ * 2021/11/23
  */
 @RestController
 @RequestMapping(value = "/metrics", method = RequestMethod.GET)

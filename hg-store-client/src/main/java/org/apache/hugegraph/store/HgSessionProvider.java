@@ -20,7 +20,7 @@ package org.apache.hugegraph.store;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 @ThreadSafe
 public interface HgSessionProvider {

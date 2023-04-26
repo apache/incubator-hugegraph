@@ -24,7 +24,7 @@ import org.apache.hugegraph.store.cli.util.HgCliUtil;
 import org.apache.hugegraph.store.client.HgStoreNodeManager;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/28
+ * 2022/2/28
  */
 public class HgStoreCommitter {
 

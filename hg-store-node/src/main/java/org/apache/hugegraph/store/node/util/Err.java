@@ -17,9 +17,7 @@
 
 package org.apache.hugegraph.store.node.util;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 class Err {
     private final String msg;
 

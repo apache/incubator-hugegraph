@@ -33,7 +33,8 @@ import org.apache.hugegraph.store.grpc.common.Kv;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/20
+ * created on 2021/10/20
+ *
  * @version 0.2.1
  */
 @Slf4j

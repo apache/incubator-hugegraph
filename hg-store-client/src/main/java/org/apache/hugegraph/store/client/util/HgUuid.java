@@ -20,9 +20,7 @@ package org.apache.hugegraph.store.client.util;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public final class HgUuid {
 
     private static String encode(UUID uuid) {

@@ -33,7 +33,7 @@ import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/04/23
+ * created on 2022/04/23
  */
 @Slf4j
 @NotThreadSafe

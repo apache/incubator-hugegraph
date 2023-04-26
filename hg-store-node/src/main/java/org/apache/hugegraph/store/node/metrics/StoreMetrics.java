@@ -30,7 +30,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/12/28
+ * 2021/12/28
  */
 public final class StoreMetrics {
     public final static String PREFIX = "hg";

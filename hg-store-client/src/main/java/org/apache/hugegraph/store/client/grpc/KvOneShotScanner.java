@@ -41,7 +41,7 @@ import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/12/1
+ * created on 2021/12/1
  */
 @Slf4j
 @NotThreadSafe

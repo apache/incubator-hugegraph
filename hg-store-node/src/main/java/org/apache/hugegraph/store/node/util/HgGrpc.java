@@ -33,9 +33,6 @@ import io.grpc.StatusRuntimeException;
 import jline.internal.Log;
 
 
-/**
- * @author lynn.bond@hotmail.com
- */
 public abstract class HgGrpc {
     private static final ResCode OK = ResCode.RES_CODE_OK;
 

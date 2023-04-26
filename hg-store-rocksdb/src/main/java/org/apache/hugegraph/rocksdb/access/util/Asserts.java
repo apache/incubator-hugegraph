@@ -19,9 +19,7 @@ package org.apache.hugegraph.rocksdb.access.util;
 
 import java.util.function.Supplier;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public final class Asserts {
 
     public static void isTrue(boolean expression, String message) {

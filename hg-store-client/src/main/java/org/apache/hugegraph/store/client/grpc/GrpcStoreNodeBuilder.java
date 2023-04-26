@@ -26,7 +26,7 @@ import org.apache.hugegraph.store.client.HgStoreNodeManager;
 import org.apache.hugegraph.store.client.util.HgAssert;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 public class GrpcStoreNodeBuilder implements HgStoreNodeBuilder {
 

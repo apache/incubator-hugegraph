@@ -22,7 +22,7 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.hugegraph.store.grpc.state.NodeStateType;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/3
+ * created on 2021/11/3
  */
 @ThreadSafe
 public final class HgStoreNodeState {

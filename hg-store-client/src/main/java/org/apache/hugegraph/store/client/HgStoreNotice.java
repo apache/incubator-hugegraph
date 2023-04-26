@@ -26,7 +26,7 @@ import org.apache.hugegraph.store.client.type.HgNodeStatus;
 import org.apache.hugegraph.store.client.util.HgAssert;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/16
+ * 2021/11/16
  */
 @NotThreadSafe
 public class HgStoreNotice {

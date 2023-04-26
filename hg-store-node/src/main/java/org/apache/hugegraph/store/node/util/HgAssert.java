@@ -21,9 +21,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public final class HgAssert {
     @Deprecated
     public static void isTrue(boolean expression, String message) {

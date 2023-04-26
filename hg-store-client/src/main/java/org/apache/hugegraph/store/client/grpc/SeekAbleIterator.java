@@ -25,7 +25,7 @@ import org.apache.hugegraph.store.HgSeekAble;
 import org.apache.hugegraph.store.client.util.HgAssert;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/11
+ * 2022/3/11
  */
 class SeekAbleIterator<E> implements Iterator, HgSeekAble {
     private final Iterator<E> iterator;

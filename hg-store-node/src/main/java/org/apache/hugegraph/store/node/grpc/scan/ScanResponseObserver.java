@@ -41,7 +41,6 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/10/26
  **/
 @Slf4j
@@ -97,6 +96,10 @@ public class ScanResponseObserver<T> implements
 
     private boolean readCondition() {
         return packages.remainingCapacity() != 0 && !readOver.get();
+    }
+
+    private boolean readTaskCondition() {
+        return readCondition() && (readTask == null || readTask.isDone());
     }    Runnable rr = new Runnable() {
         @Override
         public void run() {
@@ -141,8 +144,12 @@ public class ScanResponseObserver<T> implements
         }
     };
 
-    private boolean readTaskCondition() {
-        return readCondition() && (readTask == null || readTask.isDone());
+    private boolean sendCondition() {
+        return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
+    }
+
+    private boolean sendTaskCondition() {
+        return sendCondition() && (sendTask == null || sendTask.isDone());
     }    Runnable sr = () -> {
         while (sendCondition()) {
             ScanResponse response;
@@ -171,14 +178,6 @@ public class ScanResponseObserver<T> implements
             }
         }
     };
-
-    private boolean sendCondition() {
-        return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
-    }
-
-    private boolean sendTaskCondition() {
-        return sendCondition() && (sendTask == null || sendTask.isDone());
-    }
 
     private void offer(Iterable<T> data, boolean isVertex) {
         ScanResponse.Builder builder = ScanResponse.newBuilder();
@@ -261,6 +260,8 @@ public class ScanResponseObserver<T> implements
             log.warn("on Complete with error:", e);
         }
     }
+
+
 
 
 

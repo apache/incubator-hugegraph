@@ -30,8 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Golang style channel without buffering
+ * <p>
+ * 2022/2/28
  *
- * @author lynn.bond@hotmail.com on 2022/2/28
  * @version 1.1 on 2022/04/02
  */
 @Slf4j

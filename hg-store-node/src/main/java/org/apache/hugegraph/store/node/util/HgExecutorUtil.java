@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/03/04
+ * 2022/03/04
  */
 @Slf4j
 public final class HgExecutorUtil {

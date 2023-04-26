@@ -35,7 +35,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/19
+ * created on 2021/10/19
  */
 @Slf4j
 @GRpcService

@@ -41,7 +41,7 @@ import io.micrometer.core.instrument.Tag;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/1/4
+ * 2022/1/4
  */
 @Slf4j
 public class JRaftMetrics {

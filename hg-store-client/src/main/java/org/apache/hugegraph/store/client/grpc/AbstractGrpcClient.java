@@ -32,7 +32,6 @@ import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.AbstractBlockingStub;
 
 /**
- * @author zhangyingjie
  * @date 2023/3/28
  **/
 public abstract class AbstractGrpcClient {

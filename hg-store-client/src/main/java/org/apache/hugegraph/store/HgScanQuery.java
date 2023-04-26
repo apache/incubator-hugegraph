@@ -25,7 +25,8 @@ import org.apache.hugegraph.store.client.util.HgAssert;
 import org.apache.hugegraph.store.grpc.common.ScanOrderType;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/4
+ * 2022/3/4
+ *
  * @version 0.5.0
  */
 public interface HgScanQuery {

@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.protobuf.util.JsonFormat;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/1
+ * created on 2021/11/1
  */
 @RestController
 public class HgStoreStatusController {

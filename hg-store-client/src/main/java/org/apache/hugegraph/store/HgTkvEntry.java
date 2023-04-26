@@ -17,9 +17,7 @@
 
 package org.apache.hugegraph.store;
 
-/**
- * @author lynn.bond@hotmail.com
- */
+
 public interface HgTkvEntry {
     String table();
 

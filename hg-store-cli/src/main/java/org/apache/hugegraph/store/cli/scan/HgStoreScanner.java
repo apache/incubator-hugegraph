@@ -39,7 +39,7 @@ import org.apache.hugegraph.store.client.util.MetricX;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/14
+ * 2022/2/14
  */
 @Slf4j
 public class HgStoreScanner {

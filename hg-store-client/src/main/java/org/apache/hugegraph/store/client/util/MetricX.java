@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.client.util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/1/29
+ * 2022/1/29
  */
 public class MetricX {
     public static AtomicLong iteratorSum = new AtomicLong();

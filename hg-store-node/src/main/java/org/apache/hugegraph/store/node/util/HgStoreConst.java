@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/22
+ * created on 2021/10/22
  */
 public final class HgStoreConst {
 

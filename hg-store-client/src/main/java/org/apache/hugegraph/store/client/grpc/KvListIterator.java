@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/4/6
+ * 2022/4/6
  */
 class KvListIterator<T> implements KvCloseableIterator {
 

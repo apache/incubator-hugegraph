@@ -40,8 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 内置PD服务，用于单机部署或开发调试
- *
- * @author liyan75
  */
 @Slf4j
 public class FakePdServiceProvider implements PdProvider {

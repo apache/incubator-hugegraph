@@ -23,7 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/23
+ * 2021/11/23
  */
 @Deprecated
 public class DriveMetrics {

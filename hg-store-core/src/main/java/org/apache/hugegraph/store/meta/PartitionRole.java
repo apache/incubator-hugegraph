@@ -23,7 +23,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.partitions
  * @className: PartitionRole
- * @author: tyzer
  * @description: TODO
  * @date: 2021/10/19 18:18
  * @version: 1.0

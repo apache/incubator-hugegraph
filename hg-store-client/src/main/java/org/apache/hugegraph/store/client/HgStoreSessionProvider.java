@@ -23,7 +23,7 @@ import org.apache.hugegraph.store.HgSessionProvider;
 import org.apache.hugegraph.store.HgStoreSession;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 @ThreadSafe
 public class HgStoreSessionProvider implements HgSessionProvider {

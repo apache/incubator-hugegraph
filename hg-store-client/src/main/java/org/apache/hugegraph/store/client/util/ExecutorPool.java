@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/22
+ * 2021/11/22
  */
 @Slf4j
 public final class ExecutorPool {

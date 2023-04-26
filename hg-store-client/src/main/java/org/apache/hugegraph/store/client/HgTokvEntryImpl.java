@@ -24,7 +24,7 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgTokvEntry;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/14
+ * created on 2021/10/14
  */
 class HgTokvEntryImpl implements HgTokvEntry {
 

@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 import io.grpc.ServerBuilder;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/4
+ * 2022/3/4
  */
 @Component
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {

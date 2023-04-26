@@ -26,7 +26,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/8
+ * 2022/3/8
  */
 public class GRpcExMetrics {
     public final static String PREFIX = "grpc";

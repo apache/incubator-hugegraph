@@ -41,7 +41,8 @@ import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/18
+ * created on 2021/11/18
+ *
  * @version 0.5.0
  */
 @Slf4j

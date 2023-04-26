@@ -22,9 +22,6 @@ import org.springframework.stereotype.Component;
 
 import lombok.Data;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/15
- */
 @Data
 @Component
 public class AppConfig {

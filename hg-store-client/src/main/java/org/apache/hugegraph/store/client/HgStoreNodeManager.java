@@ -36,8 +36,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * // TODO: Mapping to Store-Node-Cluster, one to one.
+ * <p>
+ * created on 2021/10/11
  *
- * @author lynn.bond@hotmail.com created on 2021/10/11
  * @version 0.2.0
  */
 @ThreadSafe

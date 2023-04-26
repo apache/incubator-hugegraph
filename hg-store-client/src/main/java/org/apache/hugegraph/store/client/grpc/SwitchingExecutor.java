@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/12/1
+ * 2021/12/1
  */
 @ThreadSafe
 final class SwitchingExecutor {

@@ -19,8 +19,8 @@ package org.apache.hugegraph.store;
 
 /**
  * Return the amount of records returned by one query in pageable-query.
- *
- * @author lynn.bond@hotmail.com created on 2021/10/24
+ * <p>
+ * created on 2021/10/24
  */
 public interface HgPageSize {
     long getPageSize();

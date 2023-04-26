@@ -32,7 +32,8 @@ import org.apache.hugegraph.store.client.type.HgStoreClientException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/15
+ * 2022/3/15
+ *
  * @version 0.1.0
  */
 @Slf4j

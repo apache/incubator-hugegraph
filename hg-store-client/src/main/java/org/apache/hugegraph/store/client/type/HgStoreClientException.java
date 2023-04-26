@@ -18,7 +18,7 @@
 package org.apache.hugegraph.store.client.type;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/27
+ * created on 2021/10/27
  */
 public class HgStoreClientException extends RuntimeException {
 

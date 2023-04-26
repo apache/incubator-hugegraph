@@ -21,8 +21,8 @@ import java.util.Objects;
 
 /**
  * Immutable Object Pattern
- *
- * @author lynn.bond@hotmail.com created on 2021/10/26
+ * <p>
+ * created on 2021/10/26
  */
 public final class HgNodePartition {
     private final Long nodeId;

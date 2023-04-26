@@ -43,7 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/02/22
+ * created on 2022/02/22
+ *
  * @version 1.0.0
  */
 @Slf4j

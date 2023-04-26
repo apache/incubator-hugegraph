@@ -42,8 +42,6 @@ import com.alipay.sofa.jraft.util.Utils;
 
 /**
  * Raft 状态机
- *
- * @author Yanjinbing
  */
 
 public class HgStoreStateMachine extends StateMachineAdapter {

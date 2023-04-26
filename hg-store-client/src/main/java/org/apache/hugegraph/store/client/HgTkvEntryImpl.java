@@ -23,7 +23,7 @@ import java.util.Objects;
 import org.apache.hugegraph.store.HgTkvEntry;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/14
+ * created on 2021/10/14
  */
 class HgTkvEntryImpl implements HgTkvEntry {
     private final String table;

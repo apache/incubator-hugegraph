@@ -35,7 +35,8 @@ import io.grpc.stub.AbstractBlockingStub;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/19
+ * created on 2021/10/19
+ *
  * @version 1.1.1 added synchronized in getChannel.
  */
 @Slf4j

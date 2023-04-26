@@ -21,7 +21,6 @@ package org.apache.hugegraph.store.util;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store
  * @className: HgCoreServiceException
- * @author: tyzer
  * @description: TODO
  * @date: 2021/10/22 9:44
  * @version: 1.0

@@ -53,7 +53,8 @@ import com.google.protobuf.UnsafeByteOperations;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/01/19
+ * created on 2022/01/19
+ *
  * @version 0.6.0 added batch get on 2022/04/06
  */
 @Slf4j

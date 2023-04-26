@@ -34,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Buffering the data of ScanQueryRequest and generating ScanQuery.
  * It will not hold the reference of ScanQueryRequest.
- *
- * @author lynn.bond@hotmail.com on 2023/2/8
+ * <p>
+ * 2023/2/8
  */
 @NotThreadSafe
 @Slf4j

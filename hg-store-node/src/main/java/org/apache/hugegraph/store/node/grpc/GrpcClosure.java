@@ -27,7 +27,7 @@ import org.apache.hugegraph.store.raft.RaftClosure;
 import io.grpc.stub.StreamObserver;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/1/27
+ * 2022/1/27
  */
 
 abstract class GrpcClosure<V> implements RaftClosure {

@@ -57,7 +57,8 @@ import org.apache.hugegraph.store.term.HgTriple;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2022/01/19
+ * created on 2022/01/19
+ *
  * @version 0.6.0 added batch scan on 2022/03/03
  */
 @Slf4j

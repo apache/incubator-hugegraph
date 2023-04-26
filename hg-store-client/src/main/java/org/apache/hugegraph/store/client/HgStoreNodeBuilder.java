@@ -18,7 +18,7 @@
 package org.apache.hugegraph.store.client;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/11
+ * created on 2021/10/11
  */
 public interface HgStoreNodeBuilder {
 

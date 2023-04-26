@@ -30,7 +30,8 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/2
+ * created on 2021/11/2
+ *
  * @version 1.1.0 implements position method to pass partition-id on 2022/03/10
  */
 @Slf4j

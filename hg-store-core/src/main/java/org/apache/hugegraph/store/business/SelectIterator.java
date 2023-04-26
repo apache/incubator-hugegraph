@@ -29,7 +29,6 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.SerialEnum;
 
 /**
- * @author zhangyingjie
  * @date 2022/9/23
  **/
 public class SelectIterator implements ScanIterator {

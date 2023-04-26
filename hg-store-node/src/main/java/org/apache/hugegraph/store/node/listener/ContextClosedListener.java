@@ -27,7 +27,6 @@ import org.springframework.context.event.ContextClosedEvent;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2023/2/17
  **/
 @Slf4j

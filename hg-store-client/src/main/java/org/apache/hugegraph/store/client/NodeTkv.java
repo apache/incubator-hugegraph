@@ -25,7 +25,7 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgStoreSession;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/26
+ * created on 2021/10/26
  */
 @ThreadSafe
 class NodeTkv {

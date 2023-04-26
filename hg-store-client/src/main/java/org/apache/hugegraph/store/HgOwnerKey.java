@@ -26,7 +26,8 @@ import java.util.Arrays;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/14
+ * created on 2021/10/14
+ *
  * @version 1.3.0 add canceled assert
  */
 public class HgOwnerKey implements Serializable {

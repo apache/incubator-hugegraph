@@ -20,7 +20,8 @@ package org.apache.hugegraph.store.client;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
+ *
  * @version 1.0.0
  */
 public interface HgStoreNodePartitioner {

@@ -20,7 +20,8 @@ package org.apache.hugegraph.store.client;
 import org.apache.hugegraph.store.HgStoreSession;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/11
+ * created on 2021/10/11
+ *
  * @version 0.2.0
  */
 public interface HgStoreNode {

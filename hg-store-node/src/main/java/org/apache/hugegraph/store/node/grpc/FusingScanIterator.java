@@ -25,8 +25,8 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 /**
  * This is a wrapper of the ScanIterator that provides a mechanism
  * to set a threshold value in order to abort the iterating operation.
- *
- * @author lynn.bond@hotmail.com on 2023/2/8
+ * <p>
+ * 2023/2/8
  */
 final class FusingScanIterator implements ScanIterator {
     public static final byte[] EMPTY_BYTES = new byte[0];

@@ -26,7 +26,7 @@ import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Assert;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/12
+ * created on 2021/10/12
  */
 public class HgStoreNodeSessionTest {
     private static final HgStoreNodeManager nodeManager = HgStoreNodeManager.getInstance();

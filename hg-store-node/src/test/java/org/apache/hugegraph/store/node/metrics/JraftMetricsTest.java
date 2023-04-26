@@ -25,7 +25,7 @@ import org.junit.Test;
 
 
 /**
- * @author lynn.bond@hotmail.com on 2022/3/7
+ * 2022/3/7
  */
 public class JraftMetricsTest {
 

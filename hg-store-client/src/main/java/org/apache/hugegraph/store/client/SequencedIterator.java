@@ -31,8 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Proxy iterator orderly, to switch next one will happen when the current one is empty.
+ * <p>
+ * created on 2022/03/10
  *
- * @author lynn.bond@hotmail.com created on 2022/03/10
  * @version 0.1.0
  */
 @Slf4j

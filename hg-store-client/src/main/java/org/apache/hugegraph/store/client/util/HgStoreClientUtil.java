@@ -29,7 +29,7 @@ import org.apache.hugegraph.store.client.type.HgStoreClientException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/14
+ * created on 2021/10/14
  */
 @Slf4j
 public final class HgStoreClientUtil {

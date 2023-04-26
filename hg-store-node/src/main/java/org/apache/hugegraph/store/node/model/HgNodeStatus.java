@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.node.model;
 import java.util.Objects;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/11/1
+ * created on 2021/11/1
  */
 public class HgNodeStatus {
     private int status;

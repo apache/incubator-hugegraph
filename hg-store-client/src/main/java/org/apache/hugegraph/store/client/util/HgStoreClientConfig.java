@@ -22,7 +22,7 @@ import java.util.PropertyResourceBundle;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2021/11/29
+ * 2021/11/29
  */
 @Slf4j
 public final class HgStoreClientConfig {

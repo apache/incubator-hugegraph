@@ -31,7 +31,6 @@ import java.util.Arrays;
  * @projectName: hugegraph-store
  * @package: org.apache.hugegraph.store.util
  * @className: UnsafeUtf8Util
- * @author: jraft
  * @description:
  * @date: 2021/10/21 11:48
  * @version: 1.0

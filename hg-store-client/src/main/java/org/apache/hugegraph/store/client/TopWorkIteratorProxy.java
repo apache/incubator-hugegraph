@@ -26,7 +26,8 @@ import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 
 /**
- * @author lynn.bond@hotmail.com created on 2021/10/21
+ * created on 2021/10/21
+ *
  * @version 0.1.0
  */
 class TopWorkIteratorProxy implements HgKvIterator {
