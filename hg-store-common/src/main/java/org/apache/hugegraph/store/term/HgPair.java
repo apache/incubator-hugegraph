@@ -31,6 +31,25 @@ public class HgPair<K, V> implements Serializable {
      * Key of this <code>Pair</code>.
      */
     private K key;
+    /**
+     * Value of this this <code>Pair</code>.
+     */
+    private V value;
+
+    public HgPair() {
+
+    }
+
+    /**
+     * Creates a new pair
+     *
+     * @param key   The key for this pair
+     * @param value The value to use for this pair
+     */
+    public HgPair(K key, V value) {
+        this.key = key;
+        this.value = value;
+    }
 
     /**
      * Gets the key for this pair.
@@ -46,11 +65,6 @@ public class HgPair<K, V> implements Serializable {
     }
 
     /**
-     * Value of this this <code>Pair</code>.
-     */
-    private V value;
-
-    /**
      * Gets the value for this pair.
      *
      * @return value for this pair
@@ -60,21 +74,6 @@ public class HgPair<K, V> implements Serializable {
     }
 
     public void setValue(V value) {
-        this.value = value;
-    }
-
-    public HgPair() {
-
-    }
-
-    /**
-     * Creates a new pair
-     *
-     * @param key   The key for this pair
-     * @param value The value to use for this pair
-     */
-    public HgPair(K key, V value) {
-        this.key = key;
         this.value = value;
     }
 
@@ -127,10 +126,14 @@ public class HgPair<K, V> implements Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (this == o) {
+            return true;
+        }
         if (o instanceof HgPair) {
             HgPair pair = (HgPair) o;
-            if (!Objects.equals(key, pair.key)) return false;
+            if (!Objects.equals(key, pair.key)) {
+                return false;
+            }
             return Objects.equals(value, pair.value);
         }
         return false;

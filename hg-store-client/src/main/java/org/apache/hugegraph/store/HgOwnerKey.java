@@ -30,34 +30,10 @@ import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
  * @version 1.3.0 add canceled assert
  */
 public class HgOwnerKey implements Serializable {
-    private int keyCode = 0;// TODO: Be here OK?
     private final byte[] owner;
+    private int keyCode = 0;// TODO: Be here OK?
     private byte[] key;
     private int serialNo;   //顺序号，用于批量查询保证返回结果的顺序性
-
-    public static HgOwnerKey emptyOf() {
-        return EMPTY_OWNER_KEY;
-    }
-
-    public static HgOwnerKey newEmpty() {
-        return HgOwnerKey.of(EMPTY_BYTES, EMPTY_BYTES);
-    }
-
-    public static HgOwnerKey ownerOf(byte[] owner) {
-        return new HgOwnerKey(owner, EMPTY_BYTES);
-    }
-
-    public static HgOwnerKey codeOf(int code) {
-        return HgOwnerKey.of(EMPTY_BYTES, EMPTY_BYTES).setKeyCode(code);
-    }
-
-    public static HgOwnerKey of(byte[] owner, byte[] key) {
-        return new HgOwnerKey(owner, key);
-    }
-
-    public static HgOwnerKey of(int keyCode, byte[] key) {
-        return new HgOwnerKey(keyCode, key);
-    }
 
     /**
      * @param owner
@@ -85,6 +61,30 @@ public class HgOwnerKey implements Serializable {
         this.keyCode = code;
     }
 
+    public static HgOwnerKey emptyOf() {
+        return EMPTY_OWNER_KEY;
+    }
+
+    public static HgOwnerKey newEmpty() {
+        return HgOwnerKey.of(EMPTY_BYTES, EMPTY_BYTES);
+    }
+
+    public static HgOwnerKey ownerOf(byte[] owner) {
+        return new HgOwnerKey(owner, EMPTY_BYTES);
+    }
+
+    public static HgOwnerKey codeOf(int code) {
+        return HgOwnerKey.of(EMPTY_BYTES, EMPTY_BYTES).setKeyCode(code);
+    }
+
+    public static HgOwnerKey of(byte[] owner, byte[] key) {
+        return new HgOwnerKey(owner, key);
+    }
+
+    public static HgOwnerKey of(int keyCode, byte[] key) {
+        return new HgOwnerKey(keyCode, key);
+    }
+
     public byte[] getOwner() {
         return owner;
     }
@@ -108,19 +108,23 @@ public class HgOwnerKey implements Serializable {
         return this;
     }
 
+    public int getSerialNo() {
+        return this.serialNo;
+    }
+
     public HgOwnerKey setSerialNo(int serialNo) {
         this.serialNo = serialNo;
         return this;
     }
 
-    public int getSerialNo() {
-        return this.serialNo;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HgOwnerKey that = (HgOwnerKey) o;
         return Arrays.equals(owner, that.owner) && Arrays.equals(key, that.key);
     }

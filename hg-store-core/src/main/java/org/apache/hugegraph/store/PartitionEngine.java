@@ -92,28 +92,22 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftStateListener {
+    private static ThreadPoolExecutor raftLogWriteExecutor = null;
     public final String raftPrefix = "hg_";
-
-
-    private boolean started;
-
     private final HgStoreEngine storeEngine;
+    private final PartitionManager partitionManager;
+    private final List<PartitionStateListener> stateListeners;
+    private final ShardGroup shardGroup;
+    private final AtomicBoolean changingPeer;
+    private final AtomicBoolean snapshotFlag;
+    private final Object leaderChangedEvent = "leaderChangedEvent";
+    private boolean started;
     private PartitionEngineOptions options;
     private HgStoreStateMachine stateMachine;
     private RaftGroupService raftGroupService;
-    private final PartitionManager partitionManager;
     private TaskManager taskManager;
-
     private HgSnapshotHandler snapshotHandler;
-    private final List<PartitionStateListener> stateListeners;
     private Node raftNode;
-    private final ShardGroup shardGroup;
-
-    private final AtomicBoolean changingPeer;
-
-    private final AtomicBoolean snapshotFlag;
-    private final Object leaderChangedEvent = "leaderChangedEvent";
-
 
     public PartitionEngine(HgStoreEngine storeEngine, ShardGroup shardGroup) {
         this.storeEngine = storeEngine;
@@ -122,6 +116,17 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         this.snapshotFlag = new AtomicBoolean(false);
         partitionManager = storeEngine.getPartitionManager();
         stateListeners = Collections.synchronizedList(new ArrayList());
+    }
+
+    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
+        if (raftLogWriteExecutor == null) {
+            synchronized (PartitionEngine.class) {
+                if (raftLogWriteExecutor == null) {
+                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
+                }
+            }
+        }
+        return raftLogWriteExecutor;
     }
 
     /**
@@ -146,20 +151,6 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
     public Integer getGroupId() {
         return options.getGroupId();
-    }
-
-
-    private static ThreadPoolExecutor raftLogWriteExecutor = null;
-
-    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
-        if (raftLogWriteExecutor == null) {
-            synchronized (PartitionEngine.class) {
-                if (raftLogWriteExecutor == null) {
-                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
-                }
-            }
-        }
-        return raftLogWriteExecutor;
     }
 
     /**
@@ -844,7 +835,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             });
         } else {
             // 返回消息是否被处理
-            if (done != null) done.run(Status.OK());
+            if (done != null) {
+                done.run(Status.OK());
+            }
         }
     }
 

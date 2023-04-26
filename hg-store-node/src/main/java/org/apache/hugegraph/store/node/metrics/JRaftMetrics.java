@@ -53,15 +53,13 @@ public class JRaftMetrics {
     public static final String LABEL_98 = "0.98";
     public static final String LABEL_99 = "0.99";
     public static final String LABEL_999 = "0.999";
-
-    private static MeterRegistry registry;
     private final static HgStoreEngine storeEngine = HgStoreEngine.getInstance();
     private final static AtomicInteger groups = new AtomicInteger(0);
     private final static Tag handleDataTag = Tag.of("handle", "data");
     // private final static Tag handleTxTag = Tag.of("handle", "tx"); //reservation
     private final static Set<String> groupSet = new HashSet<>();
-
     private final static String REGEX_REFINE_REPLICATOR = "(replicator)(.+?:\\d+)(.*)";
+    private static MeterRegistry registry;
 
     private JRaftMetrics() {
     }
@@ -109,7 +107,9 @@ public class JRaftMetrics {
 
         synchronized (groupSet) {
             map.forEach((group, metrics) -> {
-                if (!groupSet.add(group)) return;
+                if (!groupSet.add(group)) {
+                    return;
+                }
 
                 metrics.getMetricRegistry().getGauges()
                        .forEach((k, v) -> registerGauge(group, k, v));
@@ -126,32 +126,14 @@ public class JRaftMetrics {
 
     }
 
-    private static class HistogramWrapper {
-        private final com.codahale.metrics.Histogram histogram;
-
-        private Snapshot snapshot;
-        private long ts = System.currentTimeMillis();
-
-        HistogramWrapper(com.codahale.metrics.Histogram histogram) {
-            this.histogram = histogram;
-            this.snapshot = this.histogram.getSnapshot();
-        }
-
-        Snapshot getSnapshot() {
-            if (System.currentTimeMillis() - this.ts > 30_000) {
-                this.snapshot = this.histogram.getSnapshot();
-                this.ts = System.currentTimeMillis();
-            }
-            return this.snapshot;
-        }
-    }
-
     private static HistogramWrapper toWrapper(com.codahale.metrics.Histogram histogram) {
         return new HistogramWrapper(histogram);
     }
 
     private static String refineMetrics(String name, List<Tag> tags) {
-        if (name == null || name.isEmpty()) return name;
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
 
         List<String> buf = HgRegexUtil.toGroupValues(REGEX_REFINE_REPLICATOR, name);
         String res = null;
@@ -177,7 +159,9 @@ public class JRaftMetrics {
 
     private static void registerHistogram(String group, String name,
                                           com.codahale.metrics.Histogram histogram) {
-        if (histogram == null) return;
+        if (histogram == null) {
+            return;
+        }
 
         List<Tag> tags = new LinkedList<>();
         tags.add(handleDataTag);
@@ -305,6 +289,26 @@ public class JRaftMetrics {
                  .tag("str.gauge", String.valueOf(gauge.getValue())).register(registry);
         }
 
+    }
+
+    private static class HistogramWrapper {
+        private final com.codahale.metrics.Histogram histogram;
+
+        private Snapshot snapshot;
+        private long ts = System.currentTimeMillis();
+
+        HistogramWrapper(com.codahale.metrics.Histogram histogram) {
+            this.histogram = histogram;
+            this.snapshot = this.histogram.getSnapshot();
+        }
+
+        Snapshot getSnapshot() {
+            if (System.currentTimeMillis() - this.ts > 30_000) {
+                this.snapshot = this.histogram.getSnapshot();
+                this.ts = System.currentTimeMillis();
+            }
+            return this.snapshot;
+        }
     }
 
 }

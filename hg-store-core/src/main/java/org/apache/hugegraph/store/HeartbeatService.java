@@ -50,17 +50,15 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;     // 心跳重试次数
     private static final int REGISTER_RETRY_INTERVAL = 1;   //注册重试时间间隔，单位秒
-
+    private final HgStoreEngine storeEngine;
+    private final List<HgStoreStateListener> stateListeners;
+    private final Object partitionThreadLock = new Object();
+    private final Object storeThreadLock = new Object();
     private HgStoreEngineOptions options;
     private PdProvider pdProvider;
     private Store storeInfo;
     private Metapb.ClusterStats clusterStats;
     private StoreMetadata storeMetadata;
-    private final HgStoreEngine storeEngine;
-
-    private final List<HgStoreStateListener> stateListeners;
-    private final Object partitionThreadLock = new Object();
-    private final Object storeThreadLock = new Object();
     // 心跳失败次数
     private int heartbeatFailCount = 0;
     private int reportErrCount = 0;
@@ -283,7 +281,9 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
 
     protected void partitionHeartbeat() {
-        if (storeEngine == null) return;
+        if (storeEngine == null) {
+            return;
+        }
 
         List<PartitionEngine> partitions = storeEngine.getLeaderPartition();
         final List<Metapb.PartitionStats> statsList = new ArrayList<>(partitions.size());

@@ -31,10 +31,10 @@ import org.apache.hugegraph.store.HgKvIterator;
  */
 class TopWorkIteratorProxy implements HgKvIterator {
     private static final byte[] EMPTY_BYTES = new byte[0];
-    private HgKvIterator<HgKvEntry> iterator;
     private final Queue<HgKvIterator> queue;
-    private HgKvEntry entry;
     private final long limit;
+    private HgKvIterator<HgKvEntry> iterator;
+    private HgKvEntry entry;
     private int count;
 
     TopWorkIteratorProxy(List<HgKvIterator> iterators, long limit) {
@@ -43,7 +43,9 @@ class TopWorkIteratorProxy implements HgKvIterator {
     }
 
     private HgKvIterator getIterator() {
-        if (this.queue.isEmpty()) return null;
+        if (this.queue.isEmpty()) {
+            return null;
+        }
 
         HgKvIterator buf = null;
 
@@ -63,7 +65,9 @@ class TopWorkIteratorProxy implements HgKvIterator {
     }
 
     private void closeIterators() {
-        if (this.queue.isEmpty()) return;
+        if (this.queue.isEmpty()) {
+            return;
+        }
 
         HgKvIterator buf;
 
@@ -100,7 +104,9 @@ class TopWorkIteratorProxy implements HgKvIterator {
 
     @Override
     public void seek(byte[] position) {
-        if (this.iterator != null) this.iterator.seek(position);
+        if (this.iterator != null) {
+            this.iterator.seek(position);
+        }
     }
 
     @Override
@@ -131,7 +137,9 @@ class TopWorkIteratorProxy implements HgKvIterator {
 
     @Override
     public void close() {
-        if (this.iterator != null) this.iterator.close();
+        if (this.iterator != null) {
+            this.iterator.close();
+        }
         this.closeIterators();
     }
 }

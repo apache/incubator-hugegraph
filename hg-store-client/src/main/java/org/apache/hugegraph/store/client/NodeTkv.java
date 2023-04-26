@@ -85,8 +85,12 @@ class NodeTkv {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NodeTkv nptKv = (NodeTkv) o;
         return Objects.equals(nodePartition, nptKv.nodePartition) &&
                Objects.equals(table, nptKv.table)

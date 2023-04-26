@@ -94,13 +94,17 @@ public class HgCliUtil {
     }
 
     public static void printNum(List<HgKvEntry> list, String title) {
-        if (list == null) return;
+        if (list == null) {
+            return;
+        }
 
         println(title + " size: " + list.size());
     }
 
     public static void println(Iterator<HgKvEntry> iterator) {
-        if (iterator == null) return;
+        if (iterator == null) {
+            return;
+        }
         while (iterator.hasNext()) {
             println(iterator.next());
         }
@@ -108,7 +112,9 @@ public class HgCliUtil {
     }
 
     public static void printOwner(List<HgOwnerKey> list) {
-        if (list == null) return;
+        if (list == null) {
+            return;
+        }
 
         for (HgOwnerKey entry : list) {
             println(entry);
@@ -116,7 +122,9 @@ public class HgCliUtil {
     }
 
     public static void println(List<HgKvEntry> list) {
-        if (list == null) return;
+        if (list == null) {
+            return;
+        }
 
         for (HgKvEntry entry : list) {
             println(entry);
@@ -124,7 +132,9 @@ public class HgCliUtil {
     }
 
     public static void println(List<HgKvEntry> list, int mod) {
-        if (list == null) return;
+        if (list == null) {
+            return;
+        }
 
         for (int i = 0; i < list.size(); i++) {
             if (i % mod == 0) {
@@ -178,13 +188,19 @@ public class HgCliUtil {
     }
 
     public static String toStr(byte[] b) {
-        if (b == null) return "";
-        if (b.length == 0) return "";
+        if (b == null) {
+            return "";
+        }
+        if (b.length == 0) {
+            return "";
+        }
         return new String(b, StandardCharsets.UTF_8);
     }
 
     public static byte[] toBytes(String str) {
-        if (str == null) return null;
+        if (str == null) {
+            return null;
+        }
         return str.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -230,7 +246,9 @@ public class HgCliUtil {
     }
 
     public static int amountOf(Iterator iterator) {
-        if (iterator == null) return 0;
+        if (iterator == null) {
+            return 0;
+        }
         int count = 0;
         while (iterator.hasNext()) {
             iterator.next();

@@ -27,7 +27,9 @@ import java.util.function.Supplier;
 public final class HgAssert {
     @Deprecated
     public static void isTrue(boolean expression, String message) {
-        if (message == null) throw new IllegalArgumentException("message is null");
+        if (message == null) {
+            throw new IllegalArgumentException("message is null");
+        }
         if (!expression) {
             throw new IllegalArgumentException(message);
         }
@@ -44,7 +46,9 @@ public final class HgAssert {
 
     @Deprecated
     public static void isTrue(boolean expression, RuntimeException e) {
-        if (e == null) throw new IllegalArgumentException("e is null");
+        if (e == null) {
+            throw new IllegalArgumentException("e is null");
+        }
         if (!expression) {
             throw e;
         }
@@ -87,15 +91,21 @@ public final class HgAssert {
     }
 
     public static boolean isContains(Object[] objs, Object obj) {
-        if (objs == null || objs.length == 0 || obj == null) return false;
+        if (objs == null || objs.length == 0 || obj == null) {
+            return false;
+        }
         for (Object item : objs) {
-            if (obj.equals(item)) return true;
+            if (obj.equals(item)) {
+                return true;
+            }
         }
         return false;
     }
 
     public static boolean isInvalid(String... strs) {
-        if (strs == null || strs.length == 0) return true;
+        if (strs == null || strs.length == 0) {
+            return true;
+        }
         for (String item : strs) {
             if (item == null || "".equals(item.trim())) {
                 return true;
@@ -117,12 +127,16 @@ public final class HgAssert {
     }
 
     public static <T> boolean isContains(Collection<T> list, T item) {
-        if (list == null || item == null) return false;
+        if (list == null || item == null) {
+            return false;
+        }
         return list.contains(item);
     }
 
     public static boolean isNull(Object... objs) {
-        if (objs == null) return true;
+        if (objs == null) {
+            return true;
+        }
         for (Object item : objs) {
             if (item == null) {
                 return true;

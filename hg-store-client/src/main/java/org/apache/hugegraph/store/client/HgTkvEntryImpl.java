@@ -53,8 +53,12 @@ class HgTkvEntryImpl implements HgTkvEntry {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HgTkvEntryImpl that = (HgTkvEntryImpl) o;
         return Objects.equals(table, that.table) && Arrays.equals(key, that.key) &&
                Arrays.equals(value, that.value);

@@ -77,9 +77,8 @@ public class ScanBatchResponse3 {
         private final StreamObserver<KvPageRes> responseObserver;
         private final HgStoreWrapperEx wrapper;
         private final ThreadPoolExecutor executor;
-        private String graph;
-
         private final OrderManager manager = new OrderManager();
+        private String graph;
 
         Broker(StreamObserver<KvPageRes> responseObserver, HgStoreWrapperEx wrapper,
                ThreadPoolExecutor executor) {
@@ -159,7 +158,9 @@ public class ScanBatchResponse3 {
         OrderDeliverer deliverer;
 
         synchronized void deal(OrderWorker worker, OrderDeliverer deliverer) {
-            if (log.isDebugEnabled()) log.debug("Receiving query request.");
+            if (log.isDebugEnabled()) {
+                log.debug("Receiving query request.");
+            }
             if (this.state == OrderState.NEW) {
                 this.worker = worker;
                 this.deliverer = deliverer;
@@ -169,12 +170,16 @@ public class ScanBatchResponse3 {
         }
 
         synchronized void receipt(int receiptTimes) {
-            if (log.isDebugEnabled()) log.debug("Receiving receipt request.");
+            if (log.isDebugEnabled()) {
+                log.debug("Receiving receipt request.");
+            }
             this.worker.setReceipt(receiptTimes);
         }
 
         synchronized void finished() {
-            if (log.isDebugEnabled()) log.debug("Receiving finished request.");
+            if (log.isDebugEnabled()) {
+                log.debug("Receiving finished request.");
+            }
 /*            if (this.state.value > OrderState.NEW.value
                     && this.state.value < OrderState.COMPLETE.value) {
                 this.state = OrderState.COMPLETE;
@@ -206,7 +211,9 @@ public class ScanBatchResponse3 {
             }
             count.addAndGet(dataBuilder.getDataCount());
             this.responseObserver.onNext(dataBuilder.setOver(isOver).setTimes(times).build());
-            if (log.isDebugEnabled()) log.debug("deliver times : {}, over: {}", times, isOver);
+            if (log.isDebugEnabled()) {
+                log.debug("deliver times : {}, over: {}", times, isOver);
+            }
 
             if (isOver) {
                 if (log.isDebugEnabled()) {

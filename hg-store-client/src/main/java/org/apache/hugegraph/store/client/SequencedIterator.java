@@ -38,10 +38,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SequencedIterator implements HgKvIterator {
     private static final byte[] EMPTY_BYTES = new byte[0];
-    private HgKvOrderedIterator<HgKvEntry> iterator;
     private final Queue<HgKvOrderedIterator> queue;
-    private HgKvEntry entry;
     private final long limit;
+    private HgKvOrderedIterator<HgKvEntry> iterator;
+    private HgKvEntry entry;
     private int count;
     private byte[] position = EMPTY_BYTES;
     private byte[] position4Seeking = EMPTY_BYTES;
@@ -53,7 +53,9 @@ public class SequencedIterator implements HgKvIterator {
     }
 
     private HgKvOrderedIterator getIterator() {
-        if (this.queue.isEmpty()) return null;
+        if (this.queue.isEmpty()) {
+            return null;
+        }
         HgKvOrderedIterator buf;
         while ((buf = this.queue.poll()) != null) {
             buf.seek(this.position4Seeking);
@@ -65,7 +67,9 @@ public class SequencedIterator implements HgKvIterator {
     }
 
     private void closeIterators() {
-        if (this.queue.isEmpty()) return;
+        if (this.queue.isEmpty()) {
+            return;
+        }
         HgKvOrderedIterator buf;
         while ((buf = this.queue.poll()) != null) {
             buf.close();

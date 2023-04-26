@@ -29,13 +29,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class HgStoreNodeUtil {
     public static String toStr(byte[] b) {
-        if (b == null) return "";
-        if (b.length == 0) return "";
+        if (b == null) {
+            return "";
+        }
+        if (b.length == 0) {
+            return "";
+        }
         return new String(b, StandardCharsets.UTF_8);
     }
 
     public static byte[] toBytes(String str) {
-        if (str == null) return null;
+        if (str == null) {
+            return null;
+        }
         return str.getBytes(StandardCharsets.UTF_8);
     }
 

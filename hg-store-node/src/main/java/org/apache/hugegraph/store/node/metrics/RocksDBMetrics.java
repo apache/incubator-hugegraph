@@ -57,7 +57,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class RocksDBMetrics {
-    private static MeterRegistry registry;
     private final static RocksDBFactory rocksDBFactory = RocksDBFactory.getInstance();
     private final static AtomicInteger rocks = new AtomicInteger(0);
     private final static Set<String> graphSet = new HashSet<>();
@@ -66,6 +65,7 @@ public class RocksDBMetrics {
     private final static Map<String, StatisticsWrapper> statisticsHolder = new HashMap<>();
     private final static Map<HistogramDataWrapper, HistogramType> histogramHolder = new HashMap<>();
     private final static Map<String, Set<Meter>> graphMeterMap = new ConcurrentHashMap<>();
+    private static MeterRegistry registry;
 
     private RocksDBMetrics() {
     }
@@ -236,6 +236,13 @@ public class RocksDBMetrics {
 
     }
 
+    private static <S, T> T getValue(S stat, Function<S, T> fun, T defaultValue) {
+        if (stat == null) {
+            return defaultValue;
+        }
+        return fun.apply(stat);
+    }
+
     private static class SessionWrapper {
 
         private final String graphName;
@@ -302,10 +309,10 @@ public class RocksDBMetrics {
     private static class StatisticsWrapper {
 
         private final String graphName;
-        long lastTime = 0;
         private final Map<TickerType, Long> tickerCounteMap = new ConcurrentHashMap<>();
         private final Map<HistogramType, HistogramData> histogramDataMap =
                 new ConcurrentHashMap<>();
+        long lastTime = 0;
 
         StatisticsWrapper(String graph) {
 
@@ -315,7 +322,9 @@ public class RocksDBMetrics {
         }
 
         private void loadData() {
-            if (System.currentTimeMillis() - lastTime < 30000) return;
+            if (System.currentTimeMillis() - lastTime < 30000) {
+                return;
+            }
             lastTime = System.currentTimeMillis();
             try (RocksDBSession session = getRocksDBSession(graphName)) {
                 if (session == null) {
@@ -347,16 +356,11 @@ public class RocksDBMetrics {
 
     }
 
-    private static <S, T> T getValue(S stat, Function<S, T> fun, T defaultValue) {
-        if (stat == null) return defaultValue;
-        return fun.apply(stat);
-    }
-
     private static class HistogramDataWrapper {
-        private HistogramData data = new HistogramData(0d, 0d, 0d, 0d, 0d);
-        private long ts = System.currentTimeMillis() - 30_000;
         private final Supplier<HistogramData> supplier;
         private final HistogramType histogramType;
+        private HistogramData data = new HistogramData(0d, 0d, 0d, 0d, 0d);
+        private long ts = System.currentTimeMillis() - 30_000;
 
         HistogramDataWrapper(HistogramType histogramType, Supplier<HistogramData> supplier) {
             this.supplier = supplier;

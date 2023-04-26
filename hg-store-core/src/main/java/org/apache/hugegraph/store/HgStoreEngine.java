@@ -70,28 +70,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreStateListener {
     private final static HgStoreEngine instance = new HgStoreEngine();
-
-    public static HgStoreEngine getInstance() {
-        return instance;
-    }
-
-    private RpcServer rpcServer;
-    private HgStoreEngineOptions options;
     // 分区raft引擎，key为GraphName_PartitionID
     private final Map<Integer, PartitionEngine> partitionEngines = new ConcurrentHashMap<>();
-
+    private RpcServer rpcServer;
+    private HgStoreEngineOptions options;
     private PdProvider pdProvider;
     private HgCmdClient hgCmdClient;
     private PartitionManager partitionManager;
     private HeartbeatService heartbeatService;
     private BusinessHandler businessHandler;
     private HgMetricService metricService;
-
     private DataMover dataMover;
-
 
     private HgStoreEngine() {
 
+    }
+
+    public static HgStoreEngine getInstance() {
+        return instance;
     }
 
     /**
@@ -507,7 +503,9 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
 
     public long getCommittedIndex(int groupId) {
         PartitionEngine engine = this.partitionEngines.get(groupId);
-        if (engine != null) return engine.getCommittedIndex();
+        if (engine != null) {
+            return engine.getCommittedIndex();
+        }
         return 0;
     }
 
@@ -518,6 +516,11 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
 
     public PartitionManager getPartitionManager() {
         return partitionManager;
+    }
+
+    // For test
+    public void setPartitionManager(PartitionManager ptm) {
+        this.partitionManager = ptm;
     }
 
     public DataMover getDataMover() {
@@ -543,7 +546,6 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     public boolean isClusterReady() {
         return heartbeatService.isClusterReady();
     }
-
 
     public List<String> getDataLocations() {
         return partitionManager.getStoreMetadata().getDataLocations();
@@ -616,7 +618,6 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         }
     }
 
-
     public PartitionEngine getPartitionEngine(Integer partitionId) {
         PartitionEngine engine = partitionEngines.get(partitionId);
         return engine;
@@ -672,11 +673,6 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 }
             }
         };
-    }
-
-    // For test
-    public void setPartitionManager(PartitionManager ptm) {
-        this.partitionManager = ptm;
     }
 
     class PartitionChangedListener implements PartitionManager.PartitionChangedListener {

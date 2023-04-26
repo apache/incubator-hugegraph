@@ -43,6 +43,14 @@ public class FilterIterator<T extends BackendColumn> extends
         //         query.toString());
     }
 
+    public static ScanIterator of(ScanIterator it, byte[] conditionQuery) {
+        if (ArrayUtils.isEmpty(conditionQuery)) {
+            return it;
+        }
+        ConditionQuery query = ConditionQuery.fromBytes(conditionQuery);
+        return new FilterIterator(it, query);
+    }
+
     @Override
     public boolean hasNext() {
         boolean match = false;
@@ -70,7 +78,9 @@ public class FilterIterator<T extends BackendColumn> extends
                                                       this.query.resultType()
                                                                 .isVertex());
                 match = query.test(element);
-                if (match) break;
+                if (match) {
+                    break;
+                }
             }
         } else {
             boolean has = iterator.hasNext();
@@ -110,11 +120,5 @@ public class FilterIterator<T extends BackendColumn> extends
     @Override
     public void close() {
         iterator.close();
-    }
-
-    public static ScanIterator of(ScanIterator it, byte[] conditionQuery) {
-        if (ArrayUtils.isEmpty(conditionQuery)) return it;
-        ConditionQuery query = ConditionQuery.fromBytes(conditionQuery);
-        return new FilterIterator(it, query);
     }
 }

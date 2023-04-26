@@ -56,6 +56,12 @@ class KvBatchScanner5 {
     private final static int HAVE_NEXT_TIMEOUT_SECONDS = 60;
     private final static long PAGE_SIZE = storeClientConfig.getNetKvScannerPageSize();
 
+    public static KvCloseableIterator scan(HgStoreNodeSession nodeSession,
+                                           HgStoreStreamGrpc.HgStoreStreamStub stub,
+                                           HgScanQuery scanQuery) {
+        return new OrderConsumer(new OrderBroker(stub, scanQuery, nodeSession));
+    }
+
     private enum OrderState {
         NEW(0),
         WORKING(1),
@@ -68,35 +74,25 @@ class KvBatchScanner5 {
         }
     }
 
-    public static KvCloseableIterator scan(HgStoreNodeSession nodeSession,
-                                           HgStoreStreamGrpc.HgStoreStreamStub stub,
-                                           HgScanQuery scanQuery) {
-        return new OrderConsumer(new OrderBroker(stub, scanQuery, nodeSession));
-    }
-
     /*** Broker ***/
     private static class OrderBroker {
+        public final OrderKeeper keeper = new OrderKeeper();
         private final HgScanQuery scanQuery;
         private final StreamObserver<ScanStreamBatchReq> requestObserver;
         private final ScanStreamBatchReq.Builder reqBuilder;
         private final ReentrantLock senderLock = new ReentrantLock();
         private final AtomicBoolean serverFinished = new AtomicBoolean();
         private final AtomicBoolean clientFinished = new AtomicBoolean();
-
         private final ScanReceiptRequest.Builder receiptReqBuilder =
                 ScanReceiptRequest.newBuilder();
         private final ScanCancelRequest cancelReq = ScanCancelRequest.newBuilder().build();
         private final HgStoreNodeSession nodeSession;
         private final OrderAgent agent;
-
-        public final OrderKeeper keeper = new OrderKeeper();
-
-        private OrderState state = OrderState.NEW;
-
         private final AtomicLong receivedCount = new AtomicLong();
         private final AtomicInteger receivedLastTimes = new AtomicInteger();
         private final BlockingQueue<Integer> timesQueue = new LinkedBlockingQueue();
         String brokerId = "";
+        private OrderState state = OrderState.NEW;
 
         OrderBroker(HgStoreStreamGrpc.HgStoreStreamStub stub,
                     HgScanQuery scanQuery,
@@ -259,7 +255,9 @@ class KvBatchScanner5 {
 
             @Override
             public void onCompleted() {
-                if (log.isDebugEnabled()) log.debug("received sever completed event.");
+                if (log.isDebugEnabled()) {
+                    log.debug("received sever completed event.");
+                }
                 serverFinished.set(true);
 
             }
@@ -359,9 +357,9 @@ class KvBatchScanner5 {
     /* iterator */
     private static class OrderConsumer implements KvCloseableIterator<Kv>, HgPageSize {
         private final OrderBroker broker;
+        private final String consumerId;
         private Iterator<Kv> dataIterator;
         private long tookCount = 0;
-        private final String consumerId;
 
         OrderConsumer(OrderBroker broker) {
             this.broker = broker;

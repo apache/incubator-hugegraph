@@ -39,12 +39,33 @@ import lombok.extern.slf4j.Slf4j;
 public class SessionOperatorImpl implements SessionOperator {
 
     private final RocksDB db;
-    private WriteBatch batch;
     private final RocksDBSession session;
+    private WriteBatch batch;
 
     public SessionOperatorImpl(RocksDBSession session) {
         this.session = session;
         this.db = session.getDB();
+    }
+
+    public static final byte[] increaseOne(byte[] bytes) {
+        final byte BYTE_MAX_VALUE = (byte) 0xff;
+        assert bytes.length > 0;
+        byte last = bytes[bytes.length - 1];
+        if (last != BYTE_MAX_VALUE) {
+            bytes[bytes.length - 1] += 0x01;
+        } else {
+            // Process overflow (like [1, 255] => [2, 0])
+            int i = bytes.length - 1;
+            for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
+                bytes[i] += 0x01;
+            }
+            if (bytes[i] == BYTE_MAX_VALUE) {
+                assert i == 0;
+                throw new DBStoreException("Unable to increase bytes: %s", Bytes.toHex(bytes));
+            }
+            bytes[i] += 0x01;
+        }
+        return bytes;
     }
 
     public RocksDB rocksdb() {
@@ -196,7 +217,6 @@ public class SessionOperatorImpl implements SessionOperator {
         this.session.getCfHandleReadLock().lock();
     }
 
-
     /**
      * commit抛出异常后一定要调用rollback，否则会造成cfHandleReadLock未释放
      */
@@ -319,7 +339,9 @@ public class SessionOperatorImpl implements SessionOperator {
                         iterator.seekToFirst();
                     }
                 }
-                if (iterator == null) return null;
+                if (iterator == null) {
+                    return null;
+                }
                 RocksIterator finalIterator = iterator;
                 return (T) new ScanIterator() {
                     private final ReadOptions holdReadOptions = readOptions;
@@ -381,27 +403,6 @@ public class SessionOperatorImpl implements SessionOperator {
         } catch (RocksDBException e) {
             throw new DBStoreException(e);
         }
-    }
-
-    public static final byte[] increaseOne(byte[] bytes) {
-        final byte BYTE_MAX_VALUE = (byte) 0xff;
-        assert bytes.length > 0;
-        byte last = bytes[bytes.length - 1];
-        if (last != BYTE_MAX_VALUE) {
-            bytes[bytes.length - 1] += 0x01;
-        } else {
-            // Process overflow (like [1, 255] => [2, 0])
-            int i = bytes.length - 1;
-            for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
-                bytes[i] += 0x01;
-            }
-            if (bytes[i] == BYTE_MAX_VALUE) {
-                assert i == 0;
-                throw new DBStoreException("Unable to increase bytes: %s", Bytes.toHex(bytes));
-            }
-            bytes[i] += 0x01;
-        }
-        return bytes;
     }
 
     private WriteBatch getBatch() {

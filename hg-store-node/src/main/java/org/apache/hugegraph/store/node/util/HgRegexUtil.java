@@ -28,7 +28,9 @@ import java.util.regex.Pattern;
 public class HgRegexUtil {
 
     public static String getGroupValue(String regex, String source, int groupId) {
-        if (regex == null || "".equals(regex) || source == null || "".equals(source)) return null;
+        if (regex == null || "".equals(regex) || source == null || "".equals(source)) {
+            return null;
+        }
 
         String value = "";
 
@@ -46,7 +48,9 @@ public class HgRegexUtil {
     }
 
     public static List<String> toGroupValues(String regex, String source) {
-        if (regex == null || "".equals(regex) || source == null || "".equals(source)) return null;
+        if (regex == null || "".equals(regex) || source == null || "".equals(source)) {
+            return null;
+        }
 
         Pattern p = Pattern.compile(regex);
         Matcher m = p.matcher(source);
@@ -64,7 +68,9 @@ public class HgRegexUtil {
     }
 
     public static List<String> getMatchList(String regex, String source) {
-        if (regex == null || "".equals(regex) || source == null || "".equals(source)) return null;
+        if (regex == null || "".equals(regex) || source == null || "".equals(source)) {
+            return null;
+        }
         Pattern p = Pattern.compile(regex, Pattern.MULTILINE);
         Matcher m = p.matcher(source);
         List<String> list = new ArrayList<String>();

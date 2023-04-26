@@ -40,24 +40,24 @@ class GrpcStoreNodeImpl implements HgStoreNode {
         this.streamClient = streamClient;
     }
 
-    GrpcStoreNodeImpl setNodeId(Long nodeId) {
-        this.nodeId = nodeId;
-        return this;
-    }
-
-    GrpcStoreNodeImpl setAddress(String address) {
-        this.address = address;
-        return this;
-    }
-
     @Override
     public Long getNodeId() {
         return this.nodeId;
     }
 
+    GrpcStoreNodeImpl setNodeId(Long nodeId) {
+        this.nodeId = nodeId;
+        return this;
+    }
+
     @Override
     public String getAddress() {
         return this.address;
+    }
+
+    GrpcStoreNodeImpl setAddress(String address) {
+        this.address = address;
+        return this;
     }
 
     @Override
@@ -72,8 +72,12 @@ class GrpcStoreNodeImpl implements HgStoreNode {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GrpcStoreNodeImpl that = (GrpcStoreNodeImpl) o;
         return Objects.equals(address, that.address) && Objects.equals(nodeId, that.nodeId);
     }

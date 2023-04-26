@@ -81,9 +81,6 @@ import lombok.extern.slf4j.Slf4j;
 public class BusinessHandlerImpl implements BusinessHandler {
 
     private static final int batchSize = 10000;
-    private final PartitionManager partitionManager;
-    private final PdProvider provider;
-    private final InnerKeyCreator keyCreator;
     private static final RocksDBFactory factory = RocksDBFactory.getInstance();
     private static final HashMap<ScanType, String> tableMapping = new HashMap<>() {{
         put(ScanType.SCAN_VERTEX, "vertex");
@@ -102,20 +99,10 @@ public class BusinessHandlerImpl implements BusinessHandler {
         log.debug("init table code:{}", code);
     }
 
+    private final PartitionManager partitionManager;
+    private final PdProvider provider;
+    private final InnerKeyCreator keyCreator;
 
-    public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
-                                         RocksdbChangedListener listener) {
-        // 注册rocksdb配置
-        OptionSpace.register("rocksdb",
-                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
-        RocksDBOptions.instance();
-        HugeConfig hConfig = new HugeConfig(rocksdbConfig);
-        factory.setHugeConfig(hConfig);
-        if (listener != null) {
-            factory.addRocksdbChangedListener(listener);
-        }
-        return hConfig;
-    }
 
     public BusinessHandlerImpl(PartitionManager partitionManager) {
         this.partitionManager = partitionManager;
@@ -138,6 +125,30 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
             }
         });
+    }
+
+    public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
+                                         RocksdbChangedListener listener) {
+        // 注册rocksdb配置
+        OptionSpace.register("rocksdb",
+                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
+        RocksDBOptions.instance();
+        HugeConfig hConfig = new HugeConfig(rocksdbConfig);
+        factory.setHugeConfig(hConfig);
+        if (listener != null) {
+            factory.addRocksdbChangedListener(listener);
+        }
+        return hConfig;
+    }
+
+    public static String getDbName(int partId) {
+        String dbName = dbNames.get(partId);
+        if (dbName == null) {
+            dbName = String.format("%05d", partId);
+            dbNames.put(partId, dbName);
+        }
+        // 每个分区对应一个rocksdb实例，因此rocksdb实例名为partId
+        return dbName;
     }
 
     @Override
@@ -364,7 +375,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     private byte[] toPosition(byte[] start, byte[] position) {
-        if (position == null || position.length == 0) return start;
+        if (position == null || position.length == 0) {
+            return start;
+        }
         return position;
     }
 
@@ -415,7 +428,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
         }
     }
 
-
     @Override
     public void batchGet(String graph, String table, Supplier<HgPair<Integer, byte[]>> s,
                          Consumer<HgPair<byte[], byte[]>> c) throws HgStoreException {
@@ -443,7 +455,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
         }
     }
-
 
     /**
      * 清空图数据
@@ -611,7 +622,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
                     int keyCode = keyCreator.parseKeyCode(col.name);
                     // if (keyCode < partition.getStartKey() || keyCode >= partition.getEndKey()) {
                     if (!belongsFunction.apply(keyCode)) {
-                        if (counter == 0) op.prepare();
+                        if (counter == 0) {
+                            op.prepare();
+                        }
                         op.delete(table, col.name); // 删除旧数据
                         if (++counter > batchSize) {
                             op.commit();
@@ -654,7 +667,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
         }
         return true;
     }
-
 
     @Override
     public List<String> getTableNames(String graph, int partId) {
@@ -699,16 +711,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
         return dbSession;
     }
 
-    public static String getDbName(int partId) {
-        String dbName = dbNames.get(partId);
-        if (dbName == null) {
-            dbName = String.format("%05d", partId);
-            dbNames.put(partId, dbName);
-        }
-        // 每个分区对应一个rocksdb实例，因此rocksdb实例名为partId
-        return dbName;
-    }
-
     private void deleteGraphDatabase(String graph, int partId) throws IOException {
         truncate(graph, partId);
 
@@ -721,6 +723,79 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public TxBuilder txBuilder(String graph, int partId) throws HgStoreException {
         return new TxBuilderImpl(graph, partId, getSession(graph, partId));
+    }
+
+    @Override
+    public boolean existsTable(String graph, int partId, String table) {
+        try (RocksDBSession session = getSession(graph, partId)) {
+            return session.tableIsExist(table);
+        }
+    }
+
+    @Override
+    public void createTable(String graph, int partId, String table) {
+        try (RocksDBSession session = getSession(graph, partId)) {
+            session.checkTable(table);
+        }
+    }
+
+    @Override
+    public void deleteTable(String graph, int partId, String table) {
+        dropTable(graph, partId, table);
+        // todo 检查表是否为空，为空则真实删除表
+//        try (RocksDBSession session = getOrCreateGraphDB(graph, partId)) {
+//            session.deleteTables(table);
+//        }
+    }
+
+    @Override
+    public void dropTable(String graph, int partId, String table) {
+        try (RocksDBSession session = getSession(graph, partId)) {
+//            session.dropTables(table);
+            session.sessionOp().deleteRange(
+                    table,
+                    keyCreator.getStartKey(partId, graph),
+                    keyCreator.getEndKey(partId, graph)
+            );
+        }
+    }
+
+    /**
+     * 对rocksdb进行compaction
+     */
+    public boolean dbCompaction(String graphName, int partitionId) {
+        return this.dbCompaction(graphName, partitionId, "");
+    }
+
+    /**
+     * 对rocksdb进行compaction
+     */
+    public boolean dbCompaction(String graphName, int partitionId, String tableName) {
+        try (RocksDBSession session = getSession(graphName, partitionId)) {
+            SessionOperator op = session.sessionOp();
+            if (tableName.isEmpty()) {
+                op.compactRange();
+            } else {
+                op.compactRange(tableName);
+            }
+        }
+
+        log.info("Partition {}-{} dbCompaction end", graphName, partitionId);
+        return true;
+    }
+
+    /**
+     * 销毁图，并删除数据文件
+     *
+     * @param graphName
+     * @param partId
+     */
+    public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
+        // 每个图每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
+        String dbName = getDbName(partId);
+
+        factory.destroyGraphDB(dbName);
+        keyCreator.clearCache(partId);
     }
 
     @NotThreadSafe
@@ -835,78 +910,5 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 }
             };
         }
-    }
-
-    @Override
-    public boolean existsTable(String graph, int partId, String table) {
-        try (RocksDBSession session = getSession(graph, partId)) {
-            return session.tableIsExist(table);
-        }
-    }
-
-    @Override
-    public void createTable(String graph, int partId, String table) {
-        try (RocksDBSession session = getSession(graph, partId)) {
-            session.checkTable(table);
-        }
-    }
-
-    @Override
-    public void deleteTable(String graph, int partId, String table) {
-        dropTable(graph, partId, table);
-        // todo 检查表是否为空，为空则真实删除表
-//        try (RocksDBSession session = getOrCreateGraphDB(graph, partId)) {
-//            session.deleteTables(table);
-//        }
-    }
-
-    @Override
-    public void dropTable(String graph, int partId, String table) {
-        try (RocksDBSession session = getSession(graph, partId)) {
-//            session.dropTables(table);
-            session.sessionOp().deleteRange(
-                    table,
-                    keyCreator.getStartKey(partId, graph),
-                    keyCreator.getEndKey(partId, graph)
-            );
-        }
-    }
-
-    /**
-     * 对rocksdb进行compaction
-     */
-    public boolean dbCompaction(String graphName, int partitionId) {
-        return this.dbCompaction(graphName, partitionId, "");
-    }
-
-    /**
-     * 对rocksdb进行compaction
-     */
-    public boolean dbCompaction(String graphName, int partitionId, String tableName) {
-        try (RocksDBSession session = getSession(graphName, partitionId)) {
-            SessionOperator op = session.sessionOp();
-            if (tableName.isEmpty()) {
-                op.compactRange();
-            } else {
-                op.compactRange(tableName);
-            }
-        }
-
-        log.info("Partition {}-{} dbCompaction end", graphName, partitionId);
-        return true;
-    }
-
-    /**
-     * 销毁图，并删除数据文件
-     *
-     * @param graphName
-     * @param partId
-     */
-    public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // 每个图每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
-        String dbName = getDbName(partId);
-
-        factory.destroyGraphDB(dbName);
-        keyCreator.clearCache(partId);
     }
 }

@@ -23,10 +23,10 @@ import java.util.Objects;
  * @author lynn.bond@hotmail.com created on 2021/10/19
  */
 public class HgTriple<X, Y, Z> {
-    private int hash = -1;
     private final X x;
     private final Y y;
     private final Z z;
+    private int hash = -1;
 
     public HgTriple(X x, Y y, Z z) {
         this.x = x;
@@ -48,8 +48,12 @@ public class HgTriple<X, Y, Z> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HgTriple<?, ?, ?> hgTriple = (HgTriple<?, ?, ?>) o;
         return Objects.equals(x, hgTriple.x) && Objects.equals(y, hgTriple.y) &&
                Objects.equals(z, hgTriple.z);

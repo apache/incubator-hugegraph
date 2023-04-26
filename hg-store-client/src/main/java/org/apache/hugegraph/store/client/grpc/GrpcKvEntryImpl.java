@@ -52,8 +52,12 @@ class GrpcKvEntryImpl implements HgKvEntry {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GrpcKvEntryImpl hgKvEntry = (GrpcKvEntryImpl) o;
         return Arrays.equals(key, hgKvEntry.key) && Arrays.equals(value, hgKvEntry.value);
     }

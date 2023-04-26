@@ -22,7 +22,9 @@ package org.apache.hugegraph.store.util;
  */
 public final class Asserts {
     public static void isTrue(boolean expression, String message) {
-        if (message == null) throw new IllegalArgumentException("message is null");
+        if (message == null) {
+            throw new IllegalArgumentException("message is null");
+        }
         if (!expression) {
             throw new IllegalArgumentException(message);
         }
@@ -34,7 +36,9 @@ public final class Asserts {
 
 
     public static boolean isInvalid(String... strs) {
-        if (strs == null || strs.length == 0) return true;
+        if (strs == null || strs.length == 0) {
+            return true;
+        }
         for (String item : strs) {
             if (item == null || "".equals(item.trim())) {
                 return true;

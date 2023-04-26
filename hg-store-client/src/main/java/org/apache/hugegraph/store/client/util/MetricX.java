@@ -32,24 +32,12 @@ public class MetricX {
     private long start;
     private long end;
 
-    public static MetricX ofStart() {
-        return new MetricX(System.currentTimeMillis());
-    }
-
     private MetricX(long start) {
         this.start = start;
     }
 
-    public long start() {
-        return this.start = System.currentTimeMillis();
-    }
-
-    public long end() {
-        return this.end = System.currentTimeMillis();
-    }
-
-    public long past() {
-        return this.end - this.start;
+    public static MetricX ofStart() {
+        return new MetricX(System.currentTimeMillis());
     }
 
     public static void plusIteratorWait(long nanoSeconds) {
@@ -75,7 +63,9 @@ public class MetricX {
      * @return millisecond
      */
     public static long getIteratorWaitAvg() {
-        if (iteratorCount.get() == 0) return -1;
+        if (iteratorCount.get() == 0) {
+            return -1;
+        }
         return getIteratorWait() / iteratorCount.get();
     }
 
@@ -90,6 +80,18 @@ public class MetricX {
 
     public static long getIteratorCount() {
         return iteratorCount.get();
+    }
+
+    public long start() {
+        return this.start = System.currentTimeMillis();
+    }
+
+    public long end() {
+        return this.end = System.currentTimeMillis();
+    }
+
+    public long past() {
+        return this.end - this.start;
     }
 
     public void countFail() {

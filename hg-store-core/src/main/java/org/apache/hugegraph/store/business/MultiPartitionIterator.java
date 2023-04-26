@@ -43,11 +43,6 @@ public class MultiPartitionIterator implements ScanIterator {
     private Integer positionPartitionId;
     private byte[] positionKey;
 
-    public static MultiPartitionIterator of(List<Integer> partitionIdList,
-                                            BiFunction<Integer, byte[], ScanIterator> supplier) {
-        return new MultiPartitionIterator(partitionIdList, supplier);
-    }
-
     private MultiPartitionIterator(List<Integer> partitionIds,
                                    BiFunction<Integer, byte[], ScanIterator> supplier) {
         /*****************************************************************************
@@ -56,6 +51,24 @@ public class MultiPartitionIterator implements ScanIterator {
         Collections.sort(partitionIds);
         this.partitions = new LinkedList<>(partitionIds);
         this.supplier = supplier;
+    }
+
+    public static MultiPartitionIterator of(List<Integer> partitionIdList,
+                                            BiFunction<Integer, byte[], ScanIterator> supplier) {
+        return new MultiPartitionIterator(partitionIdList, supplier);
+    }
+
+    private static byte[] toBytes(final int i) {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.putInt(i);
+        return buffer.array();
+    }
+
+    public static int toInt(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        buffer.put(bytes);
+        buffer.flip();//need flip
+        return buffer.getInt();
     }
 
     private ScanIterator getIterator() {
@@ -143,7 +156,9 @@ public class MultiPartitionIterator implements ScanIterator {
 
     @Override
     public void seek(byte[] position) {
-        if (position == null || position.length < Integer.BYTES) return;
+        if (position == null || position.length < Integer.BYTES) {
+            return;
+        }
         byte[] buf = new byte[Integer.BYTES];
         System.arraycopy(position, 0, buf, 0, Integer.BYTES);
         this.positionPartitionId = toInt(buf);
@@ -160,32 +175,25 @@ public class MultiPartitionIterator implements ScanIterator {
     }
 
     private boolean inPosition(int partitionId) {
-        if (this.positionPartitionId == null) return true;
+        if (this.positionPartitionId == null) {
+            return true;
+        }
         return partitionId >= this.positionPartitionId;
     }
 
     private byte[] getPositionKey(int partitionId) {
-        if (this.positionKey == null || this.positionKey.length == 0) return null;
-        if (this.positionPartitionId == null) return null;
+        if (this.positionKey == null || this.positionKey.length == 0) {
+            return null;
+        }
+        if (this.positionPartitionId == null) {
+            return null;
+        }
         if (this.positionPartitionId.intValue() == partitionId) {
             return this.positionKey;
         } else {
             return null;
         }
 
-    }
-
-    private static byte[] toBytes(final int i) {
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        buffer.putInt(i);
-        return buffer.array();
-    }
-
-    public static int toInt(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        buffer.put(bytes);
-        buffer.flip();//need flip
-        return buffer.getInt();
     }
 
 }

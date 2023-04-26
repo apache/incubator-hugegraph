@@ -55,32 +55,34 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 final class NodeTxExecutor {
-    private final String graphName;
-    private Map<Long, HgStoreSession> sessions = new HashMap<>(TX_SESSIONS_MAP_CAPACITY, 1);
-    private boolean isTx;
-    NodeTxSessionProxy proxy;
-    private List<HgPair<HgTriple<String, HgOwnerKey, Object>,
-            Function<NodeTkv, Boolean>>> entries = new LinkedList<>();
-    Collector<NodeTkv, ?, Map<Long, List<HgOwnerKey>>> collector = Collectors.groupingBy(
-            nkv -> nkv.getNodeId(), Collectors.mapping(NodeTkv::getKey, Collectors.toList()));
     private static final String maxTryMsg =
             "the number of retries reached the upper limit : " + NODE_MAX_RETRYING_TIMES +
             ",caused by:";
-    private static final String msg = "Not all tx-data delivered to real-node-session successfully.";
+    private static final String msg =
+            "Not all tx-data delivered to real-node-session successfully.";
 
     static {
         System.setProperty("java.util.concurrent.ForkJoinPool.common.parallelism",
                            String.valueOf(Runtime.getRuntime().availableProcessors() * 2));
     }
 
+    private final String graphName;
+    NodeTxSessionProxy proxy;
+    Collector<NodeTkv, ?, Map<Long, List<HgOwnerKey>>> collector = Collectors.groupingBy(
+            nkv -> nkv.getNodeId(), Collectors.mapping(NodeTkv::getKey, Collectors.toList()));
+    private Map<Long, HgStoreSession> sessions = new HashMap<>(TX_SESSIONS_MAP_CAPACITY, 1);
+    private boolean isTx;
+    private List<HgPair<HgTriple<String, HgOwnerKey, Object>,
+            Function<NodeTkv, Boolean>>> entries = new LinkedList<>();
 
-    static NodeTxExecutor graphOf(String graphName, NodeTxSessionProxy proxy) {
-        return new NodeTxExecutor(graphName, proxy);
-    }
 
     private NodeTxExecutor(String graphName, NodeTxSessionProxy proxy) {
         this.graphName = graphName;
         this.proxy = proxy;
+    }
+
+    static NodeTxExecutor graphOf(String graphName, NodeTxSessionProxy proxy) {
+        return new NodeTxExecutor(graphName, proxy);
     }
 
     public boolean isTx() {
@@ -405,7 +407,9 @@ final class NodeTxExecutor {
     }
 
     private boolean isValid(Object obj) {
-        if (obj == null) return false;
+        if (obj == null) {
+            return false;
+        }
 
         if (HgStoreClientConst.EMPTY_BYTES.equals(obj)) {
             return false;

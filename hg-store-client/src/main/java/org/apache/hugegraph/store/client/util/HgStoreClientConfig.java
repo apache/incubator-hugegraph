@@ -33,19 +33,18 @@ public final class HgStoreClientConfig {
 
     private static final int NET_KV_SCANNER_PAGE_SIZE = 10_000;
     private static final int NET_KV_SCANNER_HAVE_NEXT_TIMEOUT = 30 * 60;
-
+    private static final String fileName = "hg-store-client";
+    private static PropertyResourceBundle prb = null;
+    private static HgStoreClientConfig defaultInstance;
     private Integer grpcTimeoutSeconds = GRPC_DEFAULT_TIMEOUT_SECONDS;
     private Integer grpcMaxInboundMessageSize = GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE;
     private Integer grpcMaxOutboundMessageSize = GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE;
-
     private Integer netKvScannerPageSize = NET_KV_SCANNER_PAGE_SIZE;
     private Integer netKvScannerHaveNextTimeout = NET_KV_SCANNER_HAVE_NEXT_TIMEOUT;
 
-    private static PropertyResourceBundle prb = null;
-    private static final String fileName = "hg-store-client";
 
-    private static HgStoreClientConfig defaultInstance;
-
+    private HgStoreClientConfig() {
+    }
 
     public synchronized static HgStoreClientConfig of() {
 
@@ -87,27 +86,8 @@ public final class HgStoreClientConfig {
         log.info("net.kv.scanner.have.next.timeout = {}", config.netKvScannerHaveNextTimeout);
     }
 
-    private HgStoreClientConfig() {
-    }
-
     public Integer getGrpcTimeoutSeconds() {
         return grpcTimeoutSeconds;
-    }
-
-    public Integer getGrpcMaxInboundMessageSize() {
-        return grpcMaxInboundMessageSize;
-    }
-
-    public Integer getGrpcMaxOutboundMessageSize() {
-        return grpcMaxOutboundMessageSize;
-    }
-
-    public Integer getNetKvScannerPageSize() {
-        return netKvScannerPageSize;
-    }
-
-    public Integer getNetKvScannerHaveNextTimeout() {
-        return netKvScannerHaveNextTimeout;
     }
 
     public HgStoreClientConfig setGrpcTimeoutSeconds(Integer grpcTimeoutSeconds) {
@@ -115,9 +95,17 @@ public final class HgStoreClientConfig {
         return this;
     }
 
+    public Integer getGrpcMaxInboundMessageSize() {
+        return grpcMaxInboundMessageSize;
+    }
+
     public HgStoreClientConfig setGrpcMaxInboundMessageSize(Integer grpcMaxInboundMessageSize) {
         this.grpcMaxInboundMessageSize = grpcMaxInboundMessageSize;
         return this;
+    }
+
+    public Integer getGrpcMaxOutboundMessageSize() {
+        return grpcMaxOutboundMessageSize;
     }
 
     public HgStoreClientConfig setGrpcMaxOutboundMessageSize(Integer grpcMaxOutboundMessageSize) {
@@ -125,9 +113,17 @@ public final class HgStoreClientConfig {
         return this;
     }
 
+    public Integer getNetKvScannerPageSize() {
+        return netKvScannerPageSize;
+    }
+
     public HgStoreClientConfig setNetKvScannerPageSize(Integer netKvScannerPageSize) {
         this.netKvScannerPageSize = netKvScannerPageSize;
         return this;
+    }
+
+    public Integer getNetKvScannerHaveNextTimeout() {
+        return netKvScannerHaveNextTimeout;
     }
 
     public HgStoreClientConfig setNetKvScannerHaveNextTimeout(Integer netKvScannerHaveNextTimeout) {
@@ -145,7 +141,9 @@ public final class HgStoreClientConfig {
         Integer getInt(String key, Integer defaultValue) {
 
             String buf = this.getStr(key);
-            if (buf == null || buf.isEmpty()) return defaultValue;
+            if (buf == null || buf.isEmpty()) {
+                return defaultValue;
+            }
 
             Integer res = null;
             try {

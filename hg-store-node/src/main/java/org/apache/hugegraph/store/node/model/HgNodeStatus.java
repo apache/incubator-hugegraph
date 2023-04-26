@@ -51,8 +51,12 @@ public class HgNodeStatus {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         HgNodeStatus that = (HgNodeStatus) o;
         return status == that.status && Objects.equals(text, that.text);
     }

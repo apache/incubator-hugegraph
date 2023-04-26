@@ -55,25 +55,39 @@ public final class HgStoreClientUtil {
     }
 
     public static boolean isValid(HgOwnerKey key) {
-        if (key == null) return false;
-        if (key.getKey() == null) return false;
+        if (key == null) {
+            return false;
+        }
+        if (key.getKey() == null) {
+            return false;
+        }
         return key.getKey().length != 0;
     }
 
     public static String toStr(byte[] b) {
-        if (b == null) return "";
-        if (b.length == 0) return "";
+        if (b == null) {
+            return "";
+        }
+        if (b.length == 0) {
+            return "";
+        }
         return new String(b, StandardCharsets.UTF_8);
     }
 
     public static String toByteStr(byte[] b) {
-        if (b == null) return "";
-        if (b.length == 0) return "";
+        if (b == null) {
+            return "";
+        }
+        if (b.length == 0) {
+            return "";
+        }
         return Arrays.toString(b);
     }
 
     public static String toStr(HgOwnerKey ownerKey) {
-        if (ownerKey == null) return "";
+        if (ownerKey == null) {
+            return "";
+        }
         return "{ " +
                "owner: " + Arrays.toString(ownerKey.getOwner()) +
                ", key: " + toStr(ownerKey.getKey()) +
@@ -81,7 +95,9 @@ public final class HgStoreClientUtil {
     }
 
     public static byte[] toBytes(String str) {
-        if (str == null) return null;
+        if (str == null) {
+            return null;
+        }
         return str.getBytes(StandardCharsets.UTF_8);
     }
 

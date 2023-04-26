@@ -109,7 +109,9 @@ public class HgStoreStateMachine extends StateMachineAdapter {
                 listener.onDataCommitted(committedIndex);
             });
             // 清理数据
-            if (done != null) done.clear();
+            if (done != null) {
+                done.clear();
+            }
             // 遍历下一条
             inter.next();
         }
@@ -244,8 +246,8 @@ public class HgStoreStateMachine extends StateMachineAdapter {
     }
 
     public static class RaftClosureAdapter implements RaftClosure {
-        private RaftOperation op;
         private final RaftClosure closure;
+        private RaftOperation op;
 
         public RaftClosureAdapter(RaftOperation op, RaftClosure closure) {
             this.op = op;

@@ -90,7 +90,9 @@ class ScanUtil {
     }
 
     static ScanIterator getIterator(ScanQuery sq, HgStoreWrapperEx wrapper) {
-        if (log.isDebugEnabled()) log.debug("{}", sq);
+        if (log.isDebugEnabled()) {
+            log.debug("{}", sq);
+        }
 
         ScanIterator iter = null;
         switch (sq.method) {
@@ -133,7 +135,9 @@ class ScanUtil {
         res.query = request.getQuery().toByteArray();
         res.position = request.getPosition().toByteArray();
 
-        if (log.isDebugEnabled()) log.debug("{}", res);
+        if (log.isDebugEnabled()) {
+            log.debug("{}", res);
+        }
         //TODO: removed below.
 
         return res;
@@ -162,11 +166,10 @@ class ScanUtil {
         private final AtomicBoolean isEmpty = new AtomicBoolean();
 
         private final String graph;
-        private long perKeyLimit;
         private final long perKeyMax;
         private final long skipDegree;
         private final HgStoreWrapperEx wrapper;
-
+        private long perKeyLimit;
         private List<ScanQuery> sqs = new LinkedList<>();
         private Iterator<ScanQuery> sqIterator;
 
@@ -193,8 +196,12 @@ class ScanUtil {
         private void init(ScanQueryRequest request) {
             this.sqs = Arrays.stream(request.getTable().split(","))
                              .map(table -> {
-                                      if (table == null) return null;
-                                      if (table.isEmpty()) return null;
+                                      if (table == null) {
+                                          return null;
+                                      }
+                                      if (table.isEmpty()) {
+                                          return null;
+                                      }
 
                                       List<ScanQuery> list = request.getConditionList()
                                                                     .stream()
@@ -312,7 +319,9 @@ class ScanUtil {
 
             @Override
             public ScanIterator get() {
-                if (index + 1 > queries.length) return null;
+                if (index + 1 > queries.length) {
+                    return null;
+                }
                 return getIterator(queries[index++], wrapper);
             }
         }

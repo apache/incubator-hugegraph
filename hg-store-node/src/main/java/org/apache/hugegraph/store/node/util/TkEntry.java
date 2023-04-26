@@ -42,8 +42,12 @@ public class TkEntry {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof TkEntry)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TkEntry)) {
+            return false;
+        }
         TkEntry tk = (TkEntry) o;
         return Objects.equals(table, tk.table) && Arrays.equals(key, tk.key);
     }

@@ -35,10 +35,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ShiftWorkIteratorProxy implements HgKvIterator {
     private static final byte[] EMPTY_BYTES = new byte[0];
+    private final int limit;
     private HgKvPagingIterator<HgKvEntry> iterator;
     private Queue<HgKvPagingIterator> queue = new LinkedList<>();
     private HgKvEntry entry;
-    private final int limit;
     private int count;
     private int shiftCount;
 
@@ -48,7 +48,9 @@ public class ShiftWorkIteratorProxy implements HgKvIterator {
     }
 
     private HgKvPagingIterator getIterator() {
-        if (this.queue.isEmpty()) return null;
+        if (this.queue.isEmpty()) {
+            return null;
+        }
 
         HgKvPagingIterator buf = null;
 
@@ -68,7 +70,9 @@ public class ShiftWorkIteratorProxy implements HgKvIterator {
     }
 
     private void closeIterators() {
-        if (this.queue.isEmpty()) return;
+        if (this.queue.isEmpty()) {
+            return;
+        }
 
         HgKvPagingIterator buf;
 

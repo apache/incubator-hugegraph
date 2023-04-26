@@ -60,6 +60,15 @@ import lombok.extern.slf4j.Slf4j;
 @NotThreadSafe
 class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
     private static final HgStoreClientConfig hgStoreClientConfig = HgStoreClientConfig.of();
+    private static final ConcurrentHashMap<String, Integer> tables = new ConcurrentHashMap() {{
+        put("unknown", 0);
+        put("vertex", 1);
+        put("out_edge", 2);
+        put("in_edge", 3);
+        put("index", 4);
+        put("task", 5);
+        put("olap", 6);
+    }};
     private final HgStoreNode storeNode;
     private final String graphName;
     private final GrpcStoreSessionClient storeSessionClient;
@@ -72,15 +81,6 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
     private boolean isAutoCommit = true;
     private String batchId;
     private LinkedList<BatchEntry> batchEntries = new LinkedList<>();
-    private static final ConcurrentHashMap<String, Integer> tables = new ConcurrentHashMap() {{
-        put("unknown", 0);
-        put("vertex", 1);
-        put("out_edge", 2);
-        put("in_edge", 3);
-        put("index", 4);
-        put("task", 5);
-        put("olap", 6);
-    }};
 
     GrpcStoreNodeSessionImpl(HgStoreNode storeNode, String graphName,
                              HgStoreNodeManager nodeManager,
@@ -150,7 +150,9 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
 
     @Override
     public void rollback() {
-        if (this.isAutoCommit) throw new IllegalStateException("It's not in tx state");
+        if (this.isAutoCommit) {
+            throw new IllegalStateException("It's not in tx state");
+        }
         this.resetTx();
     }
 
@@ -491,7 +493,9 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
     public HgKvIterator<HgKvEntry> scanIterator(String table, int codeFrom, int codeTo,
                                                 int scanType, byte[] query) {
         //TODO: Should be changed when start using hashcode as partitionId.
-        if (log.isDebugEnabled()) log.debug("scanIterator-scanType: {}", scanType);
+        if (log.isDebugEnabled()) {
+            log.debug("scanIterator-scanType: {}", scanType);
+        }
         return GrpcKvIteratorImpl.of(this,
                                      this.storeStreamClient.doScan(this, table
                                              , HgOwnerKey.newEmpty().codeToKey(codeFrom)
