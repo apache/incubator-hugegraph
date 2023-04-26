@@ -30,15 +30,15 @@ import java.util.function.Supplier;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.buffer.KVByteBuffer;
 import org.apache.hugegraph.store.node.util.HgAssert;
 import org.apache.hugegraph.store.node.util.PropertyUtil;
+import org.apache.hugegraph.store.term.Bits;
 
 import com.alipay.sofa.jraft.util.Utils;
 import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.store.buffer.KVByteBuffer;
 import com.baidu.hugegraph.store.grpc.common.ScanOrderType;
 import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
-import com.baidu.hugegraph.store.term.Bits;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -17,19 +17,24 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import com.baidu.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.store.term.HgPair;
 
 public interface SessionOperator {
 
     HgPair<byte[], byte[]> keyRange(String table);
 
     void compactRange(String table) throws DBStoreException;
+
     void compactRange() throws DBStoreException;
+
     void put(String table, byte[] key, byte[] value) throws DBStoreException;
 
     ScanIterator scan(String tableName);
+
     ScanIterator scan(String tableName, byte[] prefix);
+
     ScanIterator scan(String tableName, byte[] prefix, int scanType);
+
     ScanIterator scan(String tableName, byte[] keyFrom, byte[] keyTo, int scanType);
 
     /**
@@ -55,14 +60,19 @@ public interface SessionOperator {
     void deletePrefix(String table, byte[] key) throws DBStoreException;
 
     void deleteRange(String table, byte[] keyFrom, byte[] keyTo) throws DBStoreException;
+
     /**
      * 删除所有cf指定范围的数据
      */
     void deleteRange(byte[] keyFrom, byte[] keyTo) throws DBStoreException;
+
     byte[] get(String table, byte[] key) throws DBStoreException;
 
     void prepare();
+
     Integer commit() throws DBStoreException;
+
     void rollback();
+
     RocksDBSession getDBSession();
 }

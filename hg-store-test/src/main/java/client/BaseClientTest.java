@@ -17,13 +17,14 @@
 
 package client;
 
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.store.HgStoreClient;
+import org.apache.hugegraph.store.HgStoreClient;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import com.baidu.hugegraph.pd.client.PDClient;
+import com.baidu.hugegraph.pd.client.PDConfig;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BaseClientTest {
@@ -37,7 +38,7 @@ public class BaseClientTest {
     @BeforeClass
     public static void beforeClass() {
         storeClient = HgStoreClient.create(PDConfig.of("127.0.0.1:8686")
-                .setEnableCache(true));
+                                                   .setEnableCache(true));
         pdClient = storeClient.getPdClient();
     }
 

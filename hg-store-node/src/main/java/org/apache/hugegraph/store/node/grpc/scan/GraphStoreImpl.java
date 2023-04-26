@@ -19,12 +19,12 @@ package org.apache.hugegraph.store.node.grpc.scan;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.baidu.hugegraph.store.business.BusinessHandler;
 import com.baidu.hugegraph.store.grpc.GraphStoreGrpc.GraphStoreImplBase;
 import com.baidu.hugegraph.store.grpc.Graphpb;
 import com.baidu.hugegraph.store.grpc.Graphpb.ResponseHeader;

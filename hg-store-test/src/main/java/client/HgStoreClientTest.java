@@ -17,24 +17,26 @@
 
 package client;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgKvStore;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgStoreSession;
-import util.HgStoreTestUtil;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.apache.hugegraph.store.client.util.HgStoreClientConst.ALL_PARTITION_OWNER;
 
 import java.util.List;
 
-import static com.baidu.hugegraph.store.client.util.HgStoreClientConst.ALL_PARTITION_OWNER;
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgKvIterator;
+import org.apache.hugegraph.store.HgKvStore;
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgStoreSession;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class HgStoreClientTest extends BaseClientTest{
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
+import util.HgStoreTestUtil;
+
+public class HgStoreClientTest extends BaseClientTest {
     public static final byte[] EMPTY_BYTES = new byte[0];
-    private static String graphName = "testGraphName";
+    private static final String graphName = "testGraphName";
     private static String tableName = "testTableName";
 
     @Test
@@ -50,6 +52,7 @@ public class HgStoreClientTest extends BaseClientTest{
             Assert.assertEquals(loop, HgStoreTestUtil.amountOf(iterator));
         }
     }
+
     @Test
     public void testPutData2() {
         String graphName = "testGraphName2";
@@ -64,6 +67,7 @@ public class HgStoreClientTest extends BaseClientTest{
             Assert.assertEquals(loop, HgStoreTestUtil.amountOf(iterator));
         }
     }
+
     @Test
     public void testScan() throws PDException {
 
@@ -99,8 +103,12 @@ public class HgStoreClientTest extends BaseClientTest{
         byte[] start = new byte[]{0x0};
         byte[] end = new byte[]{-1};
         try (HgKvIterator<HgKvEntry> iterator = session.scanIterator(tableName,
-                HgOwnerKey.of(ALL_PARTITION_OWNER, start),
-                HgOwnerKey.of(ALL_PARTITION_OWNER, end))) {
+                                                                     HgOwnerKey.of(
+                                                                             ALL_PARTITION_OWNER,
+                                                                             start),
+                                                                     HgOwnerKey.of(
+                                                                             ALL_PARTITION_OWNER,
+                                                                             end))) {
             iterator.seek(position);
             while (iterator.hasNext()) {
                 iterator.next();
@@ -127,8 +135,8 @@ public class HgStoreClientTest extends BaseClientTest{
         HgStoreSession session = storeClient.openSession(graphName);
         int ownerCode = 1;
         HgStoreTestUtil.batchPut(session, tableName, "T", 10, (key) -> {
-                    return HgStoreTestUtil.toOwnerKey(ownerCode, key);
-                }
+                                     return HgStoreTestUtil.toOwnerKey(ownerCode, key);
+                                 }
         );
         try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)) {
 //            while (iterators.hasNext()){
@@ -191,10 +199,13 @@ public class HgStoreClientTest extends BaseClientTest{
         HgStoreSession session = storeClient.openSession("DEFAULT/hugegraph/g");
         for (Metapb.Partition partition : partitions) {
             try (HgKvIterator<HgKvEntry> iterators = session.scanIterator("g+v",
-                    (int) (partition.getStartKey()), (int) (partition.getEndKey()),
-                    HgKvStore.SCAN_HASHCODE, EMPTY_BYTES)) {
+                                                                          (int) (partition.getStartKey()),
+                                                                          (int) (partition.getEndKey()),
+                                                                          HgKvStore.SCAN_HASHCODE,
+                                                                          EMPTY_BYTES)) {
 
-                System.out.println(" " + partition.getId() + " " + HgStoreTestUtil.amountOf(iterators));
+                System.out.println(
+                        " " + partition.getId() + " " + HgStoreTestUtil.amountOf(iterators));
             }
         }
     }

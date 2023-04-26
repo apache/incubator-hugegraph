@@ -17,14 +17,15 @@
 
 package client;
 
-import com.baidu.hugegraph.store.client.HgStoreNodeManager;
-import org.junit.Test;
-
-import java.util.concurrent.atomic.AtomicInteger;
 import static util.HgStoreTestUtil.GRAPH_NAME;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.hugegraph.store.client.HgStoreNodeManager;
+import org.junit.Test;
+
 public class HgStoreNodeStateTest {
-    private static final  HgStoreNodeManager NODE_MANAGER = HgStoreNodeManager.getInstance();
+    private static final HgStoreNodeManager NODE_MANAGER = HgStoreNodeManager.getInstance();
     static int nodeNumber = 0;
 
     static {
@@ -34,7 +35,9 @@ public class HgStoreNodeStateTest {
     }
 
     private static void registerNode(String graphName, Long nodeId, String address) {
-        NODE_MANAGER.addNode(graphName, NODE_MANAGER.getNodeBuilder().setNodeId(nodeId).setAddress(address).build());
+        NODE_MANAGER.addNode(graphName,
+                             NODE_MANAGER.getNodeBuilder().setNodeId(nodeId).setAddress(address)
+                                         .build());
     }
 
 
@@ -44,13 +47,13 @@ public class HgStoreNodeStateTest {
 
         for (int i = 0; i < 100; i++) {
             NODE_MANAGER.getStoreNodes(GRAPH_NAME)
-                    .stream().map(
-                            node -> {
-                                System.out.println(node.getNodeId() + " " + node.getAddress()
-                                        + "is healthy: " + node.isHealthy());
-                                return node.isHealthy();
-                            }
-                    ).count();
+                        .stream().map(
+                                node -> {
+                                    System.out.println(node.getNodeId() + " " + node.getAddress()
+                                                       + "is healthy: " + node.isHealthy());
+                                    return node.isHealthy();
+                                }
+                        ).count();
 
             Thread.yield();
         }

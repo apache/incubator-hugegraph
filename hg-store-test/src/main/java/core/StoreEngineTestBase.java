@@ -17,46 +17,49 @@
 
 package core;
 
-import com.alipay.sofa.jraft.util.StorageOptionsFactory;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.PartitionEngine;
-import com.baidu.hugegraph.store.business.DefaultDataMover;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.meta.ShardGroup;
-import com.baidu.hugegraph.store.options.HgStoreEngineOptions;
-import com.baidu.hugegraph.store.options.RaftRocksdbOptions;
-import com.baidu.hugegraph.store.pd.FakePdServiceProvider;
-import lombok.extern.slf4j.Slf4j;
+import java.io.File;
+import java.util.HashMap;
+
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.business.DefaultDataMover;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.meta.ShardGroup;
+import org.apache.hugegraph.store.options.HgStoreEngineOptions;
+import org.apache.hugegraph.store.options.RaftRocksdbOptions;
+import org.apache.hugegraph.store.pd.FakePdServiceProvider;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import util.UnitTestBase;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.alipay.sofa.jraft.util.StorageOptionsFactory;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
+import lombok.extern.slf4j.Slf4j;
+import util.UnitTestBase;
 
 /**
  * 使用FakePd 和 FakePdOptions，初始化HgStoreEngine，该类的各项get函数可用
  */
 @Slf4j
 public class StoreEngineTestBase {
-    private static final String DB_PATH="/tmp/junit";
+    private static final String DB_PATH = "/tmp/junit";
 
     @BeforeClass
-    public static void initEngine(){
+    public static void initEngine() {
         UnitTestBase.deleteDir(new File(DB_PATH));
 
         HgStoreEngineOptions options = new HgStoreEngineOptions();
         options.setDataPath(DB_PATH);
         options.setRaftPath(DB_PATH);
         options.setFakePD(true);
-        options.setRocksdbConfig(new HashMap<>(){{put("rocksdb.write_buffer_size", "1048576");}});
+        options.setRocksdbConfig(new HashMap<>() {{
+            put("rocksdb.write_buffer_size", "1048576");
+        }});
         options.setGrpcAddress("127.0.0.1:6511");
         options.setRaftAddress("127.0.0.1:6510");
         options.setDataTransfer(new DefaultDataMover());
 
-        options.setFakePdOptions(new HgStoreEngineOptions.FakePdOptions(){{
+        options.setFakePdOptions(new HgStoreEngineOptions.FakePdOptions() {{
             setStoreList("127.0.0.1");
             setPeersList("127.0.0.1");
             setPartitionCount(1);
@@ -69,11 +72,11 @@ public class StoreEngineTestBase {
         HgStoreEngine.getInstance().init(options);
     }
 
-    public static Partition getPartition(int partitionId){
+    public static Partition getPartition(int partitionId) {
         return getPartition(partitionId, "graph0");
     }
 
-    public static Partition getPartition(int partitionId, String graphName){
+    public static Partition getPartition(int partitionId, String graphName) {
         Partition partition = new Partition();
         partition.setId(partitionId);
         partition.setGraphName(graphName);
@@ -86,43 +89,46 @@ public class StoreEngineTestBase {
 
     /**
      * 创建 分区为0的partition engine. 该分区1个shard，为leader, graph name: graph0
+     *
      * @return
      */
-    public static PartitionEngine createPartitionEngine(int partitionId){
+    public static PartitionEngine createPartitionEngine(int partitionId) {
         return createPartitionEngine(partitionId, "graph0");
     }
 
 
-    public static PartitionEngine createPartitionEngine(int partitionId, String graphName){
+    public static PartitionEngine createPartitionEngine(int partitionId, String graphName) {
         Metapb.Shard shard = Metapb.Shard.newBuilder()
-                .setStoreId(FakePdServiceProvider.makeStoreId("127.0.0.1:6511"))
-                .setRole(Metapb.ShardRole.Leader)
-                .build();
+                                         .setStoreId(FakePdServiceProvider.makeStoreId(
+                                                 "127.0.0.1:6511"))
+                                         .setRole(Metapb.ShardRole.Leader)
+                                         .build();
 
         Metapb.ShardGroup shardGroup = Metapb.ShardGroup.newBuilder()
-                .setId(partitionId)
-                .setConfVer(1)
-                .setVersion(1)
-                .setState(Metapb.PartitionState.PState_Normal)
-                .addShards(shard)
-                .build();
+                                                        .setId(partitionId)
+                                                        .setConfVer(1)
+                                                        .setVersion(1)
+                                                        .setState(
+                                                                Metapb.PartitionState.PState_Normal)
+                                                        .addShards(shard)
+                                                        .build();
 
         getStoreEngine().getPartitionManager().updateShardGroup(ShardGroup.from(shardGroup));
 
-        var engine =  getStoreEngine().createPartitionEngine(getPartition(partitionId, graphName));
+        var engine = getStoreEngine().createPartitionEngine(getPartition(partitionId, graphName));
         engine.waitForLeader(2000);
         return engine;
     }
 
-    public static HgStoreEngine getStoreEngine(){
+    public static HgStoreEngine getStoreEngine() {
         return HgStoreEngine.getInstance();
     }
 
     @AfterClass
-    public static void shutDownEngine(){
+    public static void shutDownEngine() {
         try {
             HgStoreEngine.getInstance().shutdown();
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("shut down engine error: {}", e.getMessage());
         }
     }

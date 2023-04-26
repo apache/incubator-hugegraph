@@ -23,10 +23,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hugegraph.store.util.CopyOnWriteCache;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.store.util.CopyOnWriteCache;
 
 public class CopyOnWriteCacheTest {
 
@@ -43,7 +42,8 @@ public class CopyOnWriteCacheTest {
         // Run the test
         writeCache.put("k", "v");
         final boolean result = writeCache.containsKey("k");
-        Map<? extends String, ? extends String> allKeys = Map.ofEntries(Map.entry("key1", "value1"));
+        Map<? extends String, ? extends String> allKeys =
+                Map.ofEntries(Map.entry("key1", "value1"));
         writeCache.putAll(allKeys);
         // Verify the results
         assertTrue(result);

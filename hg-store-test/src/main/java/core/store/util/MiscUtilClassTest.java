@@ -17,33 +17,32 @@
 
 package core.store.util;
 
-import com.alipay.sofa.jraft.Status;
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.util.Asserts;
-import com.baidu.hugegraph.store.util.HgRaftError;
-import com.baidu.hugegraph.store.util.HgStoreException;
-import com.baidu.hugegraph.store.util.ManualResetEvent;
-import org.apache.kafka.common.metrics.Stat;
-import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.concurrent.TimeUnit;
+
+import org.apache.hugegraph.store.util.Asserts;
+import org.apache.hugegraph.store.util.HgRaftError;
+import org.apache.hugegraph.store.util.HgStoreException;
+import org.apache.hugegraph.store.util.ManualResetEvent;
+import org.junit.Test;
+
+import com.alipay.sofa.jraft.Status;
+
 public class MiscUtilClassTest {
 
     @Test
-    public void testHgRaftError(){
+    public void testHgRaftError() {
         HgRaftError error = HgRaftError.forNumber(0);
         assertEquals(0, error.getNumber());
         assertEquals("OK", error.getMsg());
         assertEquals(Status.OK().getCode(), error.toStatus().getCode());
     }
 
-    @Test (expected = NullPointerException.class)
-    public void testAsserts(){
+    @Test(expected = NullPointerException.class)
+    public void testAsserts() {
         assertTrue(Asserts.isInvalid(null));
         assertTrue(Asserts.isInvalid());
         assertTrue(Asserts.isInvalid(null));
@@ -54,15 +53,15 @@ public class MiscUtilClassTest {
         Asserts.isNonNull(null, "msg");
     }
 
-    @Test (expected = IllegalArgumentException.class)
-    public void testAsserts2(){
+    @Test(expected = IllegalArgumentException.class)
+    public void testAsserts2() {
         Asserts.isTrue(false, "");
         Asserts.isFalse(true, "");
         Asserts.isTrue(true, null);
     }
 
     @Test
-    public void testHgStoreException(){
+    public void testHgStoreException() {
         var exception = new HgStoreException();
         assertEquals(0, exception.getCode());
         exception = new HgStoreException("invalid");
@@ -89,7 +88,6 @@ public class MiscUtilClassTest {
         event.waitOne();
         assertTrue(event.isSignalled());
     }
-
 
 
 }

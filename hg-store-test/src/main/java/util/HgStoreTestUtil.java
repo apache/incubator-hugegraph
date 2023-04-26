@@ -17,13 +17,6 @@
 
 package util;
 
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgStoreSession;
-import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
-import com.baidu.hugegraph.store.client.util.MetricX;
-
 import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -42,8 +35,15 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgKvIterator;
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.client.util.MetricX;
+
 public class HgStoreTestUtil {
-    public static final  String GRAPH_NAME = "default/hugegraph/g";
+    public static final String GRAPH_NAME = "default/hugegraph/g";
     public static final String GRAPH_NAME2 = "default/hugegraph2/g";
     public static final String TABLE_NAME = "unit-table";
     public static final String TABLE_NAME2 = "unit-table-2";
@@ -52,37 +52,40 @@ public class HgStoreTestUtil {
         return batchPut(session, keyPrefix, 100);
     }
 
-    public static Map<HgOwnerKey, byte[]> batchPut(HgStoreSession session, String keyPrefix, int loop) {
+    public static Map<HgOwnerKey, byte[]> batchPut(HgStoreSession session, String keyPrefix,
+                                                   int loop) {
         return batchPut(session, TABLE_NAME, keyPrefix, loop);
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session, String tableName, String keyPrefix, int loop) {
+            HgStoreSession session, String tableName, String keyPrefix, int loop) {
         return batchPut(session, tableName, keyPrefix, loop, 1, key -> toOwnerKey(key));
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session, String tableName, byte[] keyPrefix, int loop) {
-        return batchPut(session, tableName, keyPrefix, loop, 1, (prefix, key) -> toOwnerKey(prefix, key));
+            HgStoreSession session, String tableName, byte[] keyPrefix, int loop) {
+        return batchPut(session, tableName, keyPrefix, loop, 1,
+                        (prefix, key) -> toOwnerKey(prefix, key));
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session, String tableName, String keyPrefix, int loop, int start) {
+            HgStoreSession session, String tableName, String keyPrefix, int loop, int start) {
         return batchPut(session, tableName, keyPrefix, loop, start, key -> toOwnerKey(key));
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session, String tableName, String keyPrefix, int loop, Function<String, HgOwnerKey> f) {
+            HgStoreSession session, String tableName, String keyPrefix, int loop,
+            Function<String, HgOwnerKey> f) {
         return batchPut(session, tableName, keyPrefix, loop, 1, f);
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session,
-        String tableName,
-        String keyPrefix,
-        int loop,
-        int start,
-        Function<String, HgOwnerKey> f) {
+            HgStoreSession session,
+            String tableName,
+            String keyPrefix,
+            int loop,
+            int start,
+            Function<String, HgOwnerKey> f) {
 
         Map<HgOwnerKey, byte[]> res = new LinkedHashMap<>();
 
@@ -111,12 +114,12 @@ public class HgStoreTestUtil {
     }
 
     public static Map<HgOwnerKey, byte[]> batchPut(
-        HgStoreSession session,
-        String tableName,
-        byte[] keyPrefix,
-        int loop,
-        int start,
-        BiFunction<byte[], String, HgOwnerKey> f) {
+            HgStoreSession session,
+            String tableName,
+            byte[] keyPrefix,
+            int loop,
+            int start,
+            BiFunction<byte[], String, HgOwnerKey> f) {
 
         Map<HgOwnerKey, byte[]> res = new LinkedHashMap<>();
 
@@ -400,7 +403,7 @@ public class HgStoreTestUtil {
                 break;
             }
         }
-        if (Closeable.class.isInstance(iterator)) {
+        if (iterator instanceof Closeable) {
             try {
                 ((Closeable) iterator).close();
             } catch (Exception e) {
@@ -423,21 +426,23 @@ public class HgStoreTestUtil {
         }
     }
 
-    public static void parallelTest(int threads, Runnable runner, Consumer<Throwable> throwableConsumer) {
+    public static void parallelTest(int threads, Runnable runner,
+                                    Consumer<Throwable> throwableConsumer) {
         int threadsAmount = threads;
         CountDownLatch countDownLatch = new CountDownLatch(threadsAmount);
         ExecutorService pool = new ThreadPoolExecutor(threadsAmount, threadsAmount + 20,
-                200, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>( 1000));
+                                                      200, TimeUnit.SECONDS,
+                                                      new ArrayBlockingQueue<Runnable>(1000));
         for (int i = 0; i < threadsAmount; i++) {
             pool.submit(
-                () -> {
-                    try {
-                        runner.run();
-                    } catch (Throwable t) {
-                        throwableConsumer.accept(t);
-                    }
-                    countDownLatch.countDown();
-                });
+                    () -> {
+                        try {
+                            runner.run();
+                        } catch (Throwable t) {
+                            throwableConsumer.accept(t);
+                        }
+                        countDownLatch.countDown();
+                    });
         }
 
         try {

@@ -17,20 +17,21 @@
 
 package core.store.meta;
 
-import com.baidu.hugegraph.store.meta.MetadataKeyHelper;
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.hugegraph.store.meta.MetadataKeyHelper;
+import org.junit.Test;
 
 public class MetadataKeyHelperTest {
 
     @Test
-    public void testKey(){
-        assertTrue(Arrays.equals("HUGEGRAPH/TASK/".getBytes(), MetadataKeyHelper.getTaskPrefix()));
-        assertTrue(Arrays.equals("HUGEGRAPH/TASK/0/".getBytes(), MetadataKeyHelper.getTaskPrefix(0)));
-        assertTrue(Arrays.equals("HUGEGRAPH/TASK_DONE/0000000000000000".getBytes(),
-                MetadataKeyHelper.getDoneTaskKey(0)));
+    public void testKey() {
+        assertArrayEquals("HUGEGRAPH/TASK/".getBytes(), MetadataKeyHelper.getTaskPrefix());
+        assertArrayEquals("HUGEGRAPH/TASK/0/".getBytes(), MetadataKeyHelper.getTaskPrefix(0));
+        assertArrayEquals("HUGEGRAPH/TASK_DONE/0000000000000000".getBytes(),
+                          MetadataKeyHelper.getDoneTaskKey(0));
     }
 }

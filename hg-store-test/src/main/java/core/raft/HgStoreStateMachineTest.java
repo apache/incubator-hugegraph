@@ -17,6 +17,26 @@
 
 package core.raft;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.hugegraph.store.raft.HgStoreStateMachine;
+import org.apache.hugegraph.store.raft.RaftClosure;
+import org.apache.hugegraph.store.raft.RaftOperation;
+import org.apache.hugegraph.store.raft.RaftStateListener;
+import org.apache.hugegraph.store.raft.RaftTaskHandler;
+import org.apache.hugegraph.store.snapshot.HgSnapshotHandler;
+import org.apache.hugegraph.store.util.HgStoreException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
@@ -26,25 +46,6 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
-import com.baidu.hugegraph.store.raft.HgStoreStateMachine;
-import com.baidu.hugegraph.store.raft.RaftClosure;
-import com.baidu.hugegraph.store.raft.RaftOperation;
-import com.baidu.hugegraph.store.raft.RaftStateListener;
-import com.baidu.hugegraph.store.raft.RaftTaskHandler;
-import com.baidu.hugegraph.store.snapshot.HgSnapshotHandler;
-import com.baidu.hugegraph.store.util.HgStoreException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HgStoreStateMachineTest {
@@ -64,7 +65,8 @@ public class HgStoreStateMachineTest {
         // Setup
         final RaftTaskHandler handler = new RaftTaskHandler() {
             @Override
-            public boolean invoke(int groupId, byte[] request, RaftClosure response) throws HgStoreException {
+            public boolean invoke(int groupId, byte[] request, RaftClosure response) throws
+                                                                                     HgStoreException {
                 return false;
             }
 
@@ -117,7 +119,7 @@ public class HgStoreStateMachineTest {
         RaftOperation op = RaftOperation.create((byte) 0b0);
         final Task task = new Task();
         task.setData(ByteBuffer.wrap(op.getValues()));
-        task.setDone(new HgStoreStateMachine.RaftClosureAdapter(op, closure->{
+        task.setDone(new HgStoreStateMachine.RaftClosureAdapter(op, closure -> {
 
         }));
 
@@ -125,8 +127,9 @@ public class HgStoreStateMachineTest {
         tasks.add(task);
         // Setup
         final Iterator inter = new Iterator() {
-            java.util.Iterator<Task> iterator = tasks.iterator();
+            final java.util.Iterator<Task> iterator = tasks.iterator();
             Task task;
+
             @Override
             public ByteBuffer getData() {
                 return task.getData();
@@ -204,8 +207,9 @@ public class HgStoreStateMachineTest {
     @Test
     public void testOnStartFollowing() {
         // Setup
-        final LeaderChangeContext ctx = new LeaderChangeContext(new PeerId("ip", 0, 0, 0), "groupId", 0L,
-                new Status(RaftError.UNKNOWN, "fmt", "args"));
+        final LeaderChangeContext ctx =
+                new LeaderChangeContext(new PeerId("ip", 0, 0, 0), "groupId", 0L,
+                                        new Status(RaftError.UNKNOWN, "fmt", "args"));
 
         // Run the test
         hgStoreStateMachineUnderTest.onStartFollowing(ctx);
@@ -216,8 +220,9 @@ public class HgStoreStateMachineTest {
     @Test
     public void testOnStopFollowing() {
         // Setup
-        final LeaderChangeContext ctx = new LeaderChangeContext(new PeerId("ip", 0, 0, 0), "groupId", 0L,
-                new Status(RaftError.UNKNOWN, "fmt", "args"));
+        final LeaderChangeContext ctx =
+                new LeaderChangeContext(new PeerId("ip", 0, 0, 0), "groupId", 0L,
+                                        new Status(RaftError.UNKNOWN, "fmt", "args"));
 
         // Run the test
         hgStoreStateMachineUnderTest.onStopFollowing(ctx);
@@ -229,7 +234,7 @@ public class HgStoreStateMachineTest {
     public void testOnConfigurationCommitted() {
         // Setup
         final Configuration conf = new Configuration(List.of(new PeerId("ip", 0, 0, 0)),
-                List.of(new PeerId("ip", 0, 0, 0)));
+                                                     List.of(new PeerId("ip", 0, 0, 0)));
 
         // Run the test
         hgStoreStateMachineUnderTest.onConfigurationCommitted(conf);

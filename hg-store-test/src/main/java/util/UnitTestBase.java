@@ -23,13 +23,13 @@ import java.util.Map;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
-import com.baidu.hugegraph.store.business.BusinessHandler;
-import com.baidu.hugegraph.store.business.BusinessHandlerImpl;
-import com.baidu.hugegraph.store.meta.PartitionManager;
-import com.baidu.hugegraph.store.options.HgStoreEngineOptions;
-import com.baidu.hugegraph.store.options.RaftRocksdbOptions;
-import com.baidu.hugegraph.store.pd.FakePdServiceProvider;
-import com.baidu.hugegraph.store.pd.PdProvider;
+import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.business.BusinessHandlerImpl;
+import org.apache.hugegraph.store.meta.PartitionManager;
+import org.apache.hugegraph.store.options.HgStoreEngineOptions;
+import org.apache.hugegraph.store.options.RaftRocksdbOptions;
+import org.apache.hugegraph.store.pd.FakePdServiceProvider;
+import org.apache.hugegraph.store.pd.PdProvider;
 
 public class UnitTestBase {
     public static boolean deleteDir(File dir) {

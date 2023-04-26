@@ -21,8 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.store.raft.RaftClosure;
+
 import com.baidu.hugegraph.store.grpc.session.FeedbackRes;
-import com.baidu.hugegraph.store.raft.RaftClosure;
 
 import io.grpc.stub.StreamObserver;
 

@@ -17,64 +17,63 @@
 
 package core.store.meta;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.cmd.UpdatePartitionRequest;
-import com.baidu.hugegraph.store.meta.Graph;
-import com.baidu.hugegraph.store.meta.GraphManager;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.meta.PartitionManager;
-import com.baidu.hugegraph.store.pd.FakePdServiceProvider;
-import core.StoreEngineTestBase;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
+import org.apache.hugegraph.store.meta.Graph;
+import org.apache.hugegraph.store.meta.GraphManager;
+import org.apache.hugegraph.store.meta.PartitionManager;
+import org.apache.hugegraph.store.pd.FakePdServiceProvider;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
+import core.StoreEngineTestBase;
 
 public class PartitionManagerTest extends StoreEngineTestBase {
 
     private PartitionManager manager;
 
     @Before
-    public void setup(){
+    public void setup() {
         manager = getStoreEngine().getPartitionManager();
     }
 
     @Test
-    public void testGetDeletedFileManager(){
+    public void testGetDeletedFileManager() {
         assertNotNull(manager.getDeletedFileManager());
     }
 
     @Test
-    public void testGetPdProvider(){
+    public void testGetPdProvider() {
         assertEquals(manager.getPdProvider().getClass(), FakePdServiceProvider.class);
     }
 
     @Test
-    public void testGetStoreMetadata(){
+    public void testGetStoreMetadata() {
         assertNotNull(manager.getStoreMetadata());
     }
 
     @Test
-    public void testSetStore(){
+    public void testSetStore() {
         var storeId = FakePdServiceProvider.makeStoreId("127.0.0.1:6511");
         var store = manager.getStore(storeId);
         manager.setStore(store);
         var store2 = manager.getStoreMetadata().getStore();
 
-        assertTrue(store.getId() == store2.getId());
+        assertSame(store.getId(), store2.getId());
     }
 
     @Test
-    public void testUpdatePartition(){
+    public void testUpdatePartition() {
         var partition = getPartition(5);
         manager.updatePartition(partition.getProtoObj(), true);
 
@@ -86,7 +85,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testChangeState(){
+    public void testChangeState() {
         createPartitionEngine(4);
         var partition = getPartition(4);
         manager.changeState(partition, Metapb.PartitionState.PState_Offline);
@@ -95,7 +94,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testChangeKeyRange(){
+    public void testChangeKeyRange() {
         createPartitionEngine(4);
         var partition = getPartition(4);
         manager.changeKeyRange(partition, 1000, 2000);
@@ -107,7 +106,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
 
 
     @Test
-    public void testUpdatePartitionRangeOrState(){
+    public void testUpdatePartitionRangeOrState() {
         createPartitionEngine(4);
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setPartitionId(4);
@@ -124,7 +123,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testGetLeaderPartitionIds(){
+    public void testGetLeaderPartitionIds() {
         createPartitionEngine(0);
         createPartitionEngine(4);
         createPartitionEngine(5);
@@ -133,7 +132,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testisLocal(){
+    public void testisLocal() {
         createPartitionEngine(0);
         assertTrue(manager.isLocalPartition(0));
         assertTrue(manager.isLocalPartition(getPartition(0)));
@@ -152,35 +151,35 @@ public class PartitionManagerTest extends StoreEngineTestBase {
         manager.reportTask(null);
 
         var partitions = manager.changePartitionToOnLine(list);
-        assertTrue(partitions.get(0).getState() == Metapb.PartitionState.PState_Normal);
+        assertSame(partitions.get(0).getState(), Metapb.PartitionState.PState_Normal);
         // fake pd
-        assertNotNull(manager.findPartition("graph0",1000));
+        assertNotNull(manager.findPartition("graph0", 1000));
 
     }
 
     @Test
-    public void testShards2Peers(){
+    public void testShards2Peers() {
         var storeId = FakePdServiceProvider.makeStoreId("127.0.0.1:6511");
         Metapb.Shard shard = Metapb.Shard.newBuilder()
-                .setStoreId(storeId)
-                .setRole(Metapb.ShardRole.Leader)
-                .build();
+                                         .setStoreId(storeId)
+                                         .setRole(Metapb.ShardRole.Leader)
+                                         .build();
 
         List<Metapb.Shard> list = new ArrayList<>();
         list.add(shard);
 
         var peers = manager.shards2Peers(list);
-        assertEquals("127.0.0.1:6510" , peers.get(0));
+        assertEquals("127.0.0.1:6510", peers.get(0));
     }
 
     @Test
-    public void testLoad(){
+    public void testLoad() {
         createPartitionEngine(0);
         var graphManager = new GraphManager(manager.getOptions(), manager.getPdProvider());
         var graph = Metapb.Graph.newBuilder()
-                        .setGraphName("graph0")
-                        .setPartitionCount(12)
-                        .build();
+                                .setGraphName("graph0")
+                                .setPartitionCount(12)
+                                .build();
         graphManager.updateGraph(new Graph(graph));
 
         manager.load();
@@ -191,7 +190,8 @@ public class PartitionManagerTest extends StoreEngineTestBase {
     public void testSyncPartitionsFromPD() throws PDException {
         createPartitionEngine(0);
         // from fake pd
-        manager.syncPartitionsFromPD(partition -> { });
+        manager.syncPartitionsFromPD(partition -> {
+        });
 
         assertTrue(manager.getPartitions().isEmpty());
     }

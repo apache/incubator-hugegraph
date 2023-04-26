@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.metric.HgStoreMetric;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,8 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.metric.HgStoreMetric;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

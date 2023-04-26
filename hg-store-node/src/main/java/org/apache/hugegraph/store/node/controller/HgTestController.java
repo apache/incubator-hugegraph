@@ -20,6 +20,9 @@ package org.apache.hugegraph.store.node.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.meta.Store;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -27,10 +30,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.baidu.hugegraph.store.PartitionEngine;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.meta.Store;
 
 import lombok.extern.slf4j.Slf4j;
 

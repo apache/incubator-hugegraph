@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.meta.Partition;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;

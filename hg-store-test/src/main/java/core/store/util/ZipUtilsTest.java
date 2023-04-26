@@ -17,11 +17,7 @@
 
 package core.store.util;
 
-import com.baidu.hugegraph.store.util.ZipUtils;
-import org.apache.logging.log4j.core.util.FileUtils;
-import org.junit.Before;
-import org.junit.Test;
-import util.UnitTestBase;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +25,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.CRC32;
 
-import static org.junit.Assert.assertTrue;
+import org.apache.hugegraph.store.util.ZipUtils;
+import org.apache.logging.log4j.core.util.FileUtils;
+import org.junit.Before;
+import org.junit.Test;
+
+import util.UnitTestBase;
 
 public class ZipUtilsTest {
     private static final String ZIP_TEST_PATH = "/tmp/zip_util_test";

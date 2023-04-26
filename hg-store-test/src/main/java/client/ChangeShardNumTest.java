@@ -17,26 +17,28 @@
 
 package client;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgKvIterator;
+import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
 import util.HgStoreTestUtil;
 
 /**
  * 测试修改副本数
  */
-public class ChangeShardNumTest extends BaseClientTest{
+public class ChangeShardNumTest extends BaseClientTest {
     @Test
     public void test3To1() throws PDException {
         int number = 10000;
         HgStoreSession session = storeClient.openSession(graphName);
         HgStoreTestUtil.batchPut(session, tableName, "testKey", number);
 
-        try(HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)){
+        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)) {
 //            Assert.assertEquals(number, HgStoreTestUtil.amountOf(iterators));
         }
 
@@ -47,13 +49,13 @@ public class ChangeShardNumTest extends BaseClientTest{
         pdClient.balancePartition();
     }
 
-//    @Test
+    //    @Test
     public void test1To3() throws PDException {
         int number = 10000;
         HgStoreSession session = storeClient.openSession(graphName);
         HgStoreTestUtil.batchPut(session, tableName, "testKey", number);
 
-        try(HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)){
+        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)) {
             Assert.assertEquals(number, HgStoreTestUtil.amountOf(iterators));
         }
 

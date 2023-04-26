@@ -22,16 +22,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.baidu.hugegraph</groupId>
+        <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-store-root</artifactId>
-        <version>3.6.3-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>hg-store-rocksdb</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>1.8.12</version>
             <exclusions>
@@ -50,8 +50,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-common</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>

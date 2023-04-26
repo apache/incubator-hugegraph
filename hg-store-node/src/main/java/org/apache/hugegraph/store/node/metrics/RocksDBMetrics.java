@@ -38,14 +38,13 @@ import java.util.stream.Collectors;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.node.util.HgAssert;
 import org.rocksdb.HistogramData;
 import org.rocksdb.HistogramType;
 import org.rocksdb.MemoryUsageType;
 import org.rocksdb.Statistics;
 import org.rocksdb.TickerType;
-
-import com.baidu.hugegraph.store.HgStoreEngine;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
@@ -305,7 +304,8 @@ public class RocksDBMetrics {
         private final String graphName;
         long lastTime = 0;
         private final Map<TickerType, Long> tickerCounteMap = new ConcurrentHashMap<>();
-        private final Map<HistogramType, HistogramData> histogramDataMap = new ConcurrentHashMap<>();
+        private final Map<HistogramType, HistogramData> histogramDataMap =
+                new ConcurrentHashMap<>();
 
         StatisticsWrapper(String graph) {
 

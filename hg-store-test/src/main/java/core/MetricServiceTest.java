@@ -19,13 +19,13 @@ package core;
 
 import java.util.Map;
 
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.metric.HgMetricService;
+import org.apache.hugegraph.store.metric.SystemMetricService;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.metric.HgMetricService;
-import com.baidu.hugegraph.store.metric.SystemMetricService;
 
 public class MetricServiceTest {
 
@@ -47,7 +47,7 @@ public class MetricServiceTest {
 
     @Test
     public void testGetSystemMetrics() {
-        try{
+        try {
             Map<String, Long> systemMetrics = service.getSystemMetrics();
             Thread.sleep(1000);
             systemMetrics = service.getSystemMetrics();

@@ -17,13 +17,14 @@
 
 package org.apache.hugegraph.store.node.util;
 
+import org.apache.hugegraph.store.term.HgPair;
+
 import com.baidu.hugegraph.store.grpc.common.Key;
 import com.baidu.hugegraph.store.grpc.common.Kv;
 import com.baidu.hugegraph.store.grpc.common.ResCode;
 import com.baidu.hugegraph.store.grpc.common.ResStatus;
 import com.baidu.hugegraph.store.grpc.common.Tk;
 import com.baidu.hugegraph.store.grpc.common.Tse;
-import com.baidu.hugegraph.store.term.HgPair;
 import com.google.common.base.Throwables;
 import com.google.protobuf.ByteString;
 

@@ -17,18 +17,18 @@
 
 package client;
 
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgStoreSession;
+import static org.apache.hugegraph.store.client.util.HgStoreClientUtil.toBytes;
+import static org.apache.hugegraph.store.client.util.HgStoreClientUtil.toOwnerKey;
+import static org.apache.hugegraph.store.client.util.HgStoreClientUtil.toStr;
+
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgKvIterator;
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static com.baidu.hugegraph.store.client.util.HgStoreClientUtil.toBytes;
-import static com.baidu.hugegraph.store.client.util.HgStoreClientUtil.toOwnerKey;
-import static com.baidu.hugegraph.store.client.util.HgStoreClientUtil.toStr;
-
-public class HgKvStoreTest extends BaseClientTest{
+public class HgKvStoreTest extends BaseClientTest {
     public static final String TABLE_NAME = "unit-table";
 
     @Test
@@ -40,7 +40,7 @@ public class HgKvStoreTest extends BaseClientTest{
         graph0.truncate();
         graph1.truncate();
 
-        for (int i=0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             HgOwnerKey key = toOwnerKey("owner-" + i, "ownerKey-" + i);
             byte[] value0 = toBytes("g0 owner-" + i + ";ownerKey-" + i);
             graph0.put(TABLE_NAME, key, value0);
@@ -51,14 +51,14 @@ public class HgKvStoreTest extends BaseClientTest{
 
         HgKvIterator<HgKvEntry> iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
 //            log.info("key:{} value:{}", toStr(entry.key()), toStr(entry.value()));
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g0"));
         }
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
 //            log.info("key:{} value:{}", toStr(entry.key()), toStr(entry.value()));
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
@@ -70,7 +70,7 @@ public class HgKvStoreTest extends BaseClientTest{
 
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             // System.out.println("key:" + toStr(entry.key()) + " value:" + toStr(entry.value()));
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
@@ -85,7 +85,7 @@ public class HgKvStoreTest extends BaseClientTest{
         graph0.truncate();
         graph1.truncate();
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             HgOwnerKey key = toOwnerKey("owner-" + i, "ownerKey-" + i);
             byte[] value0 = toBytes("g0 owner-" + i + ";ownerKey-" + i);
             graph0.put(TABLE_NAME, key, value0);
@@ -96,13 +96,13 @@ public class HgKvStoreTest extends BaseClientTest{
 
         HgKvIterator<HgKvEntry> iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g0"));
         }
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
         }
@@ -111,13 +111,13 @@ public class HgKvStoreTest extends BaseClientTest{
         Assert.assertTrue(graph0.existsTable(TABLE_NAME));
         iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertFalse(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
         }
 
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
         }
@@ -131,7 +131,7 @@ public class HgKvStoreTest extends BaseClientTest{
         graph0.truncate();
         graph1.truncate();
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             HgOwnerKey key = toOwnerKey("owner-" + i, "ownerKey-" + i);
             byte[] value0 = toBytes("g0 owner-" + i + ";ownerKey-" + i);
             graph0.put(TABLE_NAME, key, value0);
@@ -142,13 +142,13 @@ public class HgKvStoreTest extends BaseClientTest{
 
         HgKvIterator<HgKvEntry> iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g0"));
         }
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
         }
@@ -157,13 +157,13 @@ public class HgKvStoreTest extends BaseClientTest{
         Assert.assertTrue(graph0.existsTable(TABLE_NAME));
         iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertFalse(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
         }
 
         iterator = graph1.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g1"));
         }
@@ -175,7 +175,7 @@ public class HgKvStoreTest extends BaseClientTest{
         HgStoreSession graph0 = storeClient.openSession("hugegraph0");
         graph0.truncate();
 
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             HgOwnerKey key = toOwnerKey("owner-" + i, "ownerKey-" + i);
             byte[] value0 = toBytes("g0 owner-" + i + ";ownerKey-" + i);
             graph0.put(TABLE_NAME, key, value0);
@@ -183,7 +183,7 @@ public class HgKvStoreTest extends BaseClientTest{
 
         HgKvIterator<HgKvEntry> iterator = graph0.scanIterator(TABLE_NAME);
         Assert.assertTrue(iterator.hasNext());
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
             Assert.assertEquals(0, toStr(entry.value()).indexOf("g0"));
         }

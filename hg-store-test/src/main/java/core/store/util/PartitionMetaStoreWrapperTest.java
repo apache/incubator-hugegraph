@@ -17,17 +17,17 @@
 
 package core.store.util;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.meta.MetadataKeyHelper;
-import com.baidu.hugegraph.store.util.PartitionMetaStoreWrapper;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import core.StoreEngineTestBase;
-import org.junit.Assert;
+import org.apache.hugegraph.store.meta.MetadataKeyHelper;
+import org.apache.hugegraph.store.util.PartitionMetaStoreWrapper;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
+import core.StoreEngineTestBase;
 
 public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
 
@@ -36,23 +36,23 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
     private Metapb.Partition partition;
 
     @Before
-    public void setup(){
+    public void setup() {
         wrapper = new PartitionMetaStoreWrapper();
         partition = Metapb.Partition.newBuilder()
-                .setId(1)
-                .setGraphName("graph0")
-                .setStartKey(0L)
-                .setEndKey(65535L)
-                .build();
+                                    .setId(1)
+                                    .setGraphName("graph0")
+                                    .setStartKey(0L)
+                                    .setEndKey(65535L)
+                                    .build();
     }
 
-    public static void putToDb(Metapb.Partition partition, PartitionMetaStoreWrapper wrapper){
+    public static void putToDb(Metapb.Partition partition, PartitionMetaStoreWrapper wrapper) {
         byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
         wrapper.put(partition.getId(), key, partition.toByteArray());
     }
 
     @Test
-    public void testGet(){
+    public void testGet() {
         putToDb(partition, wrapper);
         byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
         assertEquals(partition, wrapper.get(1, key, Metapb.Partition.parser()));
@@ -61,7 +61,7 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testPut(){
+    public void testPut() {
         putToDb(partition, wrapper);
         byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
         var list = wrapper.scan(partition.getId(), Metapb.Partition.parser(), key);
@@ -70,7 +70,7 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testDelete(){
+    public void testDelete() {
         putToDb(partition, wrapper);
         byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
         wrapper.delete(partition.getId(), key);
@@ -79,7 +79,7 @@ public class PartitionMetaStoreWrapperTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testScan(){
+    public void testScan() {
         putToDb(partition, wrapper);
         byte[] key = MetadataKeyHelper.getPartitionKey(partition.getGraphName(), partition.getId());
         var list = wrapper.scan(partition.getId(), Metapb.Partition.parser(), key);

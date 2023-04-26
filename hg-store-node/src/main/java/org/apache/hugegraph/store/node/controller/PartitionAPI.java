@@ -25,6 +25,12 @@ import java.util.Map;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.business.InnerKeyCreator;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.metric.HgStoreMetric;
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,12 +45,6 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.PartitionEngine;
-import com.baidu.hugegraph.store.business.BusinessHandler;
-import com.baidu.hugegraph.store.business.InnerKeyCreator;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.metric.HgStoreMetric;
 import com.baidu.hugegraph.util.Bytes;
 import com.taobao.arthas.agent.attach.ArthasAgent;
 
@@ -227,7 +227,7 @@ public class PartitionAPI {
         private String leader;
 
 
-        public PartitionInfo(com.baidu.hugegraph.store.meta.Partition pt) {
+        public PartitionInfo(Partition pt) {
             id = pt.getId();
             graphName = pt.getGraphName();
             startKey = pt.getStartKey();

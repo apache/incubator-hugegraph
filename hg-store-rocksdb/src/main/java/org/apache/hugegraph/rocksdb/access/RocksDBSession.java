@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.rocksdb.access.util.Asserts;
+import org.apache.hugegraph.store.term.HgPair;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -63,7 +64,6 @@ import org.rocksdb.WriteBufferManager;
 import org.rocksdb.WriteOptions;
 
 import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.store.term.HgPair;
 import com.baidu.hugegraph.util.Bytes;
 import com.baidu.hugegraph.util.E;
 
@@ -87,7 +87,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     private volatile boolean closed = false;
     final String tempSuffix = "_temp_";
 
-    public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName, long version) {
+    public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName,
+                          long version) {
         this.hugeConfig = hugeConfig;
         this.graphName = graphName;
         this.cfHandleLock = new ReentrantReadWriteLock();
@@ -191,7 +192,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         String latestDBPath = "";
         if (!dbs.isEmpty()) {
 
-            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ? o1.getValue().compareTo(o2.getValue()) :
+            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ?
+                                 o1.getValue().compareTo(o2.getValue()) :
                                  o1.getKey().compareTo(o2.getKey()));
             final int dbCount = dbs.size();
             for (int i = 0; i < dbCount; i++) {
@@ -202,7 +204,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 } else if (pair.getValue() == -1L) {
                     curDBName = String.format("%s_%d", defaultName, pair.getKey());
                 } else {
-                    curDBName = String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
+                    curDBName =
+                            String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
                 }
                 String curDBPath = Paths.get(parentFile.getPath(), curDBName).toString();
                 if (i == dbCount - 1) {
@@ -224,7 +227,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
         if (factory.findPathInRemovedList(latestDBPath)) {
             // 已经被删除，创建新的目录
-            latestDBPath = Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version)).toString();
+            latestDBPath =
+                    Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version))
+                         .toString();
         }
         //
         log.info("{} latest db path {}", this.graphName, latestDBPath);
@@ -249,7 +254,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     }
 
     public boolean tableIsExist(String table) {
-        return this.tables.keySet().contains(table);
+        return this.tables.containsKey(table);
     }
 
     private void openRocksDB(String dbDataPath, long version) {
@@ -262,7 +267,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
         this.dbPath = findLatestDBPath(dbPath, version);
 
-        Asserts.isTrue((dbPath != null), () -> new DBStoreException("the data-path of RocksDB is null"));
+        Asserts.isTrue((dbPath != null),
+                       () -> new DBStoreException("the data-path of RocksDB is null"));
 
         //makedir for rocksdb
         createDirectory(dbPath);
@@ -273,7 +279,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         dbOptions.setStatistics(rocksDbStats);
 
         try {
-            List<ColumnFamilyDescriptor> columnFamilyDescriptorList = new ArrayList<ColumnFamilyDescriptor>();
+            List<ColumnFamilyDescriptor> columnFamilyDescriptorList =
+                    new ArrayList<ColumnFamilyDescriptor>();
             List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
 
             ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
@@ -281,13 +288,16 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
             if (columnFamilyBytes.size() > 0) {
                 for (byte[] columnFamilyByte : columnFamilyBytes) {
-                    columnFamilyDescriptorList.add(new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
+                    columnFamilyDescriptorList.add(
+                            new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
                 }
             } else {
-                columnFamilyDescriptorList.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+                columnFamilyDescriptorList.add(
+                        new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
             }
             List<ColumnFamilyHandle> columnFamilyHandleList = new ArrayList<>();
-            this.rocksDB = RocksDB.open(dbOptions, dbPath, columnFamilyDescriptorList, columnFamilyHandleList);
+            this.rocksDB = RocksDB.open(dbOptions, dbPath, columnFamilyDescriptorList,
+                                        columnFamilyHandleList);
             Asserts.isTrue(columnFamilyHandleList.size() > 0, "must have column family");
 
             for (ColumnFamilyHandle handle : columnFamilyHandleList) {
@@ -305,7 +315,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             if (handle == null) {
                 ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
                 RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
-                ColumnFamilyDescriptor cfDescriptor = new ColumnFamilyDescriptor(table.getBytes(), cfOptions);
+                ColumnFamilyDescriptor cfDescriptor =
+                        new ColumnFamilyDescriptor(table.getBytes(), cfOptions);
                 handle = this.rocksDB.createColumnFamily(cfDescriptor);
                 tables.put(table, handle);
             }
@@ -347,8 +358,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
 
     public static class CFHandleLock implements Closeable {
-        private ColumnFamilyHandle handle;
-        private ReentrantReadWriteLock lock;
+        private final ColumnFamilyHandle handle;
+        private final ReentrantReadWriteLock lock;
 
         public CFHandleLock(ColumnFamilyHandle handle, ReentrantReadWriteLock lock) {
             this.handle = handle;
@@ -497,7 +508,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             db.setAllowMmapWrites(conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(conf.get(RocksDBOptions.ALLOW_MMAP_READS));
             db.setUseDirectReads(conf.get(RocksDBOptions.USE_DIRECT_READS));
-            db.setUseDirectIoForFlushAndCompaction(conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
+            db.setUseDirectIoForFlushAndCompaction(
+                    conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
             db.setMaxManifestFileSize(conf.get(RocksDBOptions.MAX_MANIFEST_FILE_SIZE));
             db.setSkipStatsUpdateOnDbOpen(conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
             db.setMaxFileOpeningThreads(conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
@@ -524,7 +536,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             mdb.setDelayedWriteRate(conf.get(RocksDBOptions.DELAYED_WRITE_RATE));
             mdb.setMaxOpenFiles(conf.get(RocksDBOptions.MAX_OPEN_FILES));
             mdb.setMaxTotalWalSize(conf.get(RocksDBOptions.MAX_TOTAL_WAL_SIZE));
-            mdb.setDeleteObsoleteFilesPeriodMicros(1000000 * conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
+            mdb.setDeleteObsoleteFilesPeriodMicros(
+                    1000000 * conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
         }
 
         if (cf != null) {
@@ -677,14 +690,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
         @Override
         public String toString() {
-            try {
-                return String.format("%s=%s",
-                                     new String(name, "utf-8"),
-                                     new String(value, "utf-8"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-            return "";
+            return String.format("%s=%s",
+                                 new String(name, StandardCharsets.UTF_8),
+                                 new String(value, StandardCharsets.UTF_8));
         }
 
         @Override
@@ -735,17 +743,20 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 FileUtils.moveDirectory(tempFile, snapshotFile);
             } catch (IOException e) {
                 log.error("Fail to rename {} to {}", tempPath, snapshotPath, e);
-                throw new DBStoreException(String.format("Fail to rename %s to %s", tempPath, snapshotPath));
+                throw new DBStoreException(
+                        String.format("Fail to rename %s to %s", tempPath, snapshotPath));
             }
         } catch (final DBStoreException e) {
             throw e;
         } catch (final Exception e) {
             log.error("Fail to write snapshot at path: {}", snapshotPath, e);
-            throw new DBStoreException(String.format("Fail to write snapshot at path %s", snapshotPath));
+            throw new DBStoreException(
+                    String.format("Fail to write snapshot at path %s", snapshotPath));
         } finally {
             cfHandleLock.readLock().unlock();
         }
-        log.info("saved snapshot into {}, time cost {} ms", snapshotPath, System.currentTimeMillis() - startTime);
+        log.info("saved snapshot into {}, time cost {} ms", snapshotPath,
+                 System.currentTimeMillis() - startTime);
     }
 
 
@@ -758,7 +769,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
                 if (columnFamilyBytes.size() > 0) {
                     for (byte[] columnFamilyByte : columnFamilyBytes) {
-                        columnFamilyDescriptorList.add(new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
+                        columnFamilyDescriptorList.add(
+                                new ColumnFamilyDescriptor(columnFamilyByte, cfOptions));
                     }
                 } else {
                     columnFamilyDescriptorList.add(
@@ -768,10 +780,12 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
                 try (final DBOptions dbOptions = new DBOptions();
                      final RocksDB db = RocksDB.openReadOnly(dbOptions, snapshotPath,
-                                                             columnFamilyDescriptorList, columnFamilyHandleList)) {
+                                                             columnFamilyDescriptorList,
+                                                             columnFamilyHandleList)) {
                     for (ColumnFamilyHandle handle : columnFamilyHandleList) {
                         if (handle == null) {
-                            log.error("verifySnapshot some ColumnFamilyHandle is null in {}", snapshotPath);
+                            log.error("verifySnapshot some ColumnFamilyHandle is null in {}",
+                                      snapshotPath);
                             return false;
                         }
                     }
@@ -793,7 +807,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             final File snapshotFile = new File(snapshotPath);
             if (!snapshotFile.exists()) {
                 log.error("Snapshot file {} not exists.", snapshotPath);
-                throw new DBStoreException(String.format("Snapshot file %s not exists", snapshotPath));
+                throw new DBStoreException(
+                        String.format("Snapshot file %s not exists", snapshotPath));
             }
 
             // replace rocksdb data with snapshot data
@@ -816,11 +831,11 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                         // create hard link
                         try {
                             Files.createLink(target.toPath(), f.toPath());
-                        }catch (IOException e) {
+                        } catch (IOException e) {
                             log.error("link failed, {} -> {}, error:{}",
-                                    f.getAbsolutePath(),
-                                    target.getAbsolutePath(),
-                                    e.getMessage());
+                                      f.getAbsolutePath(),
+                                      target.getAbsolutePath(),
+                                      e.getMessage());
                             // diff disk
                             Files.copy(f.toPath(), target.toPath());
                         }
@@ -833,11 +848,13 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 } catch (IOException e2) {
                     log.error("Fail to delete directory {}. {}", tempDBPath, e2.toString());
                 }
-                throw new DBStoreException(String.format("Fail to copy %s to %s", snapshotPath, tempDBPath));
+                throw new DBStoreException(
+                        String.format("Fail to copy %s to %s", snapshotPath, tempDBPath));
             }
             // verify temp path
             if (!verifySnapshot(tempDBPath)) {
-                throw new DBStoreException(String.format("failed to verify snapshot %s", tempDBPath));
+                throw new DBStoreException(
+                        String.format("failed to verify snapshot %s", tempDBPath));
             }
 
             // move temp to newDBPath
@@ -846,17 +863,20 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 FileUtils.moveDirectory(new File(tempDBPath), new File(newDBPath));
             } catch (IOException e) {
                 log.error("Fail to copy {} to {}. {}", snapshotPath, tempDBPath, e.toString());
-                throw new DBStoreException(String.format("Fail to move %s to %s", tempDBPath, newDBPath));
+                throw new DBStoreException(
+                        String.format("Fail to move %s to %s", tempDBPath, newDBPath));
             }
         } catch (final DBStoreException e) {
             throw e;
         } catch (final Exception e) {
             log.error("failed to load snapshot from {}", snapshotPath);
-            throw new DBStoreException(String.format("Fail to write snapshot at path %s", snapshotPath));
+            throw new DBStoreException(
+                    String.format("Fail to write snapshot at path %s", snapshotPath));
         } finally {
             cfHandleLock.writeLock().unlock();
         }
-        log.info("loaded snapshot from {}, time cost {} ms", snapshotPath, System.currentTimeMillis() - startTime);
+        log.info("loaded snapshot from {}, time cost {} ms", snapshotPath,
+                 System.currentTimeMillis() - startTime);
     }
 
     /**
@@ -899,7 +919,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             for (ColumnFamilyHandle h : this.tables.values()) {
                 long[] sizes = this.rocksDB.getApproximateSizes(
                         h,
-                        Arrays.asList(r1),
+                        List.of(r1),
                         SizeApproximationFlag.INCLUDE_FILES,
                         SizeApproximationFlag.INCLUDE_MEMTABLES);
 
@@ -924,7 +944,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             for (ColumnFamilyHandle h : this.tables.values()) {
                 long[] sizes = this.rocksDB.getApproximateSizes(
                         h,
-                        Arrays.asList(r1),
+                        List.of(r1),
                         SizeApproximationFlag.INCLUDE_FILES,
                         SizeApproximationFlag.INCLUDE_MEMTABLES);
                 String name = new String(h.getDescriptor().getName());
@@ -939,7 +959,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         return map;
     }
 
-    public Map<String, Long> getKeyCountPerCF(byte[] start, byte[] end, boolean accurate) throws DBStoreException {
+    public Map<String, Long> getKeyCountPerCF(byte[] start, byte[] end, boolean accurate) throws
+                                                                                          DBStoreException {
         ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>(this.tables.size());
         cfHandleLock.readLock().lock();
         try {
@@ -973,10 +994,13 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             for (Map.Entry<byte[], List<String>> entry : sstFiles.entrySet()) {
                 String cfName = new String(entry.getKey());
                 try (CFHandleLock cfHandle = this.getCFHandleLock(cfName)) {
-                    try (final IngestExternalFileOptions ingestOptions = new IngestExternalFileOptions()
+                    try (final IngestExternalFileOptions ingestOptions =
+                                 new IngestExternalFileOptions()
                             .setMoveFiles(true)) {
-                        this.rocksDB.ingestExternalFile(cfHandle.get(), entry.getValue(), ingestOptions);
-                        log.info("Rocksdb {} ingestSstFile cf:{}, sst: {}", this.graphName, cfName, entry.getValue());
+                        this.rocksDB.ingestExternalFile(cfHandle.get(), entry.getValue(),
+                                                        ingestOptions);
+                        log.info("Rocksdb {} ingestSstFile cf:{}, sst: {}", this.graphName, cfName,
+                                 entry.getValue());
                     }
                 }
             }

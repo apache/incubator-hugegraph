@@ -17,19 +17,20 @@
 
 package core.store.meta.asynctask;
 
-import com.baidu.hugegraph.store.meta.asynctask.AbstractAsyncTask;
-import com.baidu.hugegraph.store.meta.asynctask.AsyncTask;
-import com.baidu.hugegraph.store.meta.asynctask.AsyncTaskState;
-import com.baidu.hugegraph.store.meta.asynctask.CleanTask;
-import core.StoreEngineTestBase;
+import static org.junit.Assert.assertEquals;
+
+import org.apache.hugegraph.store.meta.asynctask.AbstractAsyncTask;
+import org.apache.hugegraph.store.meta.asynctask.AsyncTask;
+import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
+import org.apache.hugegraph.store.meta.asynctask.CleanTask;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import core.StoreEngineTestBase;
 
 public class CleanTaskTest extends StoreEngineTestBase {
 
     @Test
-    public void testSerialize(){
+    public void testSerialize() {
         CleanTask task = new CleanTask(0, "graph0", AsyncTaskState.SUCCESS, null);
         byte[] bytes = task.toBytes();
 

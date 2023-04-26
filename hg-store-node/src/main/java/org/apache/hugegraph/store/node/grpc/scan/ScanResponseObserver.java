@@ -26,8 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.baidu.hugegraph.store.business.BusinessHandler;
-import com.baidu.hugegraph.store.business.GraphStoreIterator;
+import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.business.GraphStoreIterator;
+
 import com.baidu.hugegraph.store.grpc.Graphpb.ErrorType;
 import com.baidu.hugegraph.store.grpc.Graphpb.ResponseHeader;
 import com.baidu.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;

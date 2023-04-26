@@ -33,6 +33,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.hugegraph.store.raft.RaftClosure;
+import org.apache.hugegraph.store.util.HgRaftError;
 
 import com.alipay.sofa.jraft.Status;
 import com.baidu.hugegraph.store.grpc.common.ResCode;
@@ -41,8 +43,6 @@ import com.baidu.hugegraph.store.grpc.session.FeedbackRes;
 import com.baidu.hugegraph.store.grpc.session.PartitionFaultResponse;
 import com.baidu.hugegraph.store.grpc.session.PartitionFaultType;
 import com.baidu.hugegraph.store.grpc.session.PartitionLeader;
-import com.baidu.hugegraph.store.raft.RaftClosure;
-import com.baidu.hugegraph.store.util.HgRaftError;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

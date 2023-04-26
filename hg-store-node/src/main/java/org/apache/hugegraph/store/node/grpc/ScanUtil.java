@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.business.SelectIterator;
 
 import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.store.business.SelectIterator;
 import com.baidu.hugegraph.store.grpc.common.ScanMethod;
 import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
 import com.baidu.hugegraph.store.grpc.stream.ScanStreamReq;
@@ -210,7 +210,7 @@ class ScanUtil {
                                                                                 request.getScanType();
                                                                         sq.query =
                                                                                 request.getQuery()
-                                                                                          .toByteArray();
+                                                                                       .toByteArray();
                                                                         sq.position =
                                                                                 request.getPosition()
                                                                                        .toByteArray();
@@ -219,12 +219,12 @@ class ScanUtil {
                                                                                 condition.getCode();
                                                                         sq.start =
                                                                                 condition.getStart()
-                                                                                            .toByteArray();
+                                                                                         .toByteArray();
                                                                         sq.end = condition.getEnd()
                                                                                           .toByteArray();
                                                                         sq.prefix =
                                                                                 condition.getPrefix()
-                                                                                             .toByteArray();
+                                                                                         .toByteArray();
                                                                         sq.serialNo =
                                                                                 condition.getSerialNo();
                                                                         return sq;

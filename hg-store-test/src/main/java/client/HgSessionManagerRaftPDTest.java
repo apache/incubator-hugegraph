@@ -17,25 +17,19 @@
 
 package client;
 
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgKvIterator;
-import com.baidu.hugegraph.store.HgKvStore;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgScanQuery;
-import com.baidu.hugegraph.store.HgStoreClient;
-import com.baidu.hugegraph.store.HgStoreSession;
-import com.baidu.hugegraph.store.client.grpc.KvCloseableIterator;
-import com.baidu.hugegraph.store.client.util.HgStoreClientConfig;
-import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
-import com.baidu.hugegraph.store.client.util.MetricX;
-import com.baidu.hugegraph.store.grpc.common.ScanOrderType;
-import org.apache.commons.io.FileUtils;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import util.HgStoreTestUtil;
+import static client.HgKvStoreTest.TABLE_NAME;
+import static org.apache.hugegraph.store.client.util.HgStoreClientConst.EMPTY_BYTES;
+import static util.HgStoreTestUtil.GRAPH_NAME;
+import static util.HgStoreTestUtil.amountOf;
+import static util.HgStoreTestUtil.batchPut;
+import static util.HgStoreTestUtil.padLeftZeros;
+import static util.HgStoreTestUtil.println;
+import static util.HgStoreTestUtil.toAllPartitionKey;
+import static util.HgStoreTestUtil.toBytes;
+import static util.HgStoreTestUtil.toLong;
+import static util.HgStoreTestUtil.toOwnerKey;
+import static util.HgStoreTestUtil.toStr;
+import static util.HgStoreTestUtil.toSuffix;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -54,19 +48,27 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
-import static client.HgKvStoreTest.TABLE_NAME;
-import static com.baidu.hugegraph.store.client.util.HgStoreClientConst.EMPTY_BYTES;
-import static util.HgStoreTestUtil.GRAPH_NAME;
-import static util.HgStoreTestUtil.amountOf;
-import static util.HgStoreTestUtil.batchPut;
-import static util.HgStoreTestUtil.padLeftZeros;
-import static util.HgStoreTestUtil.println;
-import static util.HgStoreTestUtil.toAllPartitionKey;
-import static util.HgStoreTestUtil.toBytes;
-import static util.HgStoreTestUtil.toLong;
-import static util.HgStoreTestUtil.toOwnerKey;
-import static util.HgStoreTestUtil.toStr;
-import static util.HgStoreTestUtil.toSuffix;
+import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgKvIterator;
+import org.apache.hugegraph.store.HgKvStore;
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgScanQuery;
+import org.apache.hugegraph.store.HgStoreClient;
+import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
+import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
+import org.apache.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.client.util.MetricX;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.baidu.hugegraph.pd.client.PDClient;
+import com.baidu.hugegraph.pd.client.PDConfig;
+import com.baidu.hugegraph.store.grpc.common.ScanOrderType;
+
+import util.HgStoreTestUtil;
 
 public class HgSessionManagerRaftPDTest {
     private static PDClient pdClient;
@@ -125,7 +127,8 @@ public class HgSessionManagerRaftPDTest {
 
         HgStoreSession session = getStoreSession();
 
-        Iterator iterator = session.scanIterator(TABLE_NAME, 0, 65535, HgKvStore.SCAN_HASHCODE, EMPTY_BYTES);
+        Iterator iterator =
+                session.scanIterator(TABLE_NAME, 0, 65535, HgKvStore.SCAN_HASHCODE, EMPTY_BYTES);
         System.out.println(amountOf(iterator));
     }
 
@@ -201,11 +204,13 @@ public class HgSessionManagerRaftPDTest {
         System.out.printf("%d entries get from %s\n", map.size(), outputFile.getPath());
 
         HgStoreSession session = getStoreSession();
-        List<HgOwnerKey> keyList = map.entrySet().stream().map(e -> e.getKey()).collect(Collectors.toList());
+        List<HgOwnerKey> keyList =
+                map.entrySet().stream().map(e -> e.getKey()).collect(Collectors.toList());
         List<HgKvEntry> resList = session.batchGetOwner(TABLE_NAME, keyList);
 
         Assert.assertTrue(
-            (resList.stream().map(e -> map.containsKey(toOwnerKey(e.key()))).allMatch(Boolean::booleanValue)));
+                (resList.stream().map(e -> map.containsKey(toOwnerKey(e.key())))
+                        .allMatch(Boolean::booleanValue)));
     }
 
     @Test
@@ -297,7 +302,7 @@ public class HgSessionManagerRaftPDTest {
         session.delete(TABLE_NAME, key);
         value = session.get(TABLE_NAME, key);
         println("- get " + delKey + ": " + toStr(value));
-        Assert.assertTrue(EMPTY_BYTES.equals(value));
+        Assert.assertEquals(EMPTY_BYTES, value);
     }
 
     @Test
@@ -329,24 +334,26 @@ public class HgSessionManagerRaftPDTest {
         String rangePrefix = "DEL-RANGE-KEY";
         String owner = "batch-delete-owner";
         Map<HgOwnerKey, byte[]> map =
-            batchPut(
-                session,
-                TABLE_NAME,
-                rangePrefix,
-                10,
-                key -> {
-                    return toOwnerKey(owner, key);
-                });
+                batchPut(
+                        session,
+                        TABLE_NAME,
+                        rangePrefix,
+                        10,
+                        key -> {
+                            return toOwnerKey(owner, key);
+                        });
 
         HgOwnerKey startKey = toOwnerKey(owner, rangePrefix + "-00");
         HgOwnerKey endKey = toOwnerKey(owner, rangePrefix + "-05");
 
         Assert.assertTrue(session.deleteRange(TABLE_NAME, startKey, endKey));
 
-        println("- after delete range from [" + toStr(startKey.getKey()) + "] to [" + toStr(endKey.getKey()) + "]");
+        println("- after delete range from [" + toStr(startKey.getKey()) + "] to [" +
+                toStr(endKey.getKey()) + "]");
 
         for (int i = 0; i < 10; i++) {
-            HgOwnerKey key = toOwnerKey(owner, rangePrefix + "-" + padLeftZeros(String.valueOf(i), 2));
+            HgOwnerKey key =
+                    toOwnerKey(owner, rangePrefix + "-" + padLeftZeros(String.valueOf(i), 2));
             String value = toStr(session.get(TABLE_NAME, key));
 
             // TODO: [start,end)?
@@ -367,14 +374,14 @@ public class HgSessionManagerRaftPDTest {
         String prefixStr = "DEL-PREFIX-KEY";
         String owner = "batch-delete-owner";
         Map<HgOwnerKey, byte[]> map =
-            batchPut(
-                session,
-                TABLE_NAME,
-                prefixStr,
-                10,
-                key -> {
-                    return toOwnerKey(owner, key);
-                });
+                batchPut(
+                        session,
+                        TABLE_NAME,
+                        prefixStr,
+                        10,
+                        key -> {
+                            return toOwnerKey(owner, key);
+                        });
 
         // printOwner(map.entrySet().stream().map(e -> e.getKey()).collect(Collectors.toList()));
 
@@ -406,21 +413,23 @@ public class HgSessionManagerRaftPDTest {
         HgKvIterator<HgKvEntry> iterator = null;
 
         println("-- test 0 element --");
-        iterator = session.scanIterator(tableName, toAllPartitionKey("__SCAN-001"), toAllPartitionKey("__SCAN-100"), 0);
+        iterator = session.scanIterator(tableName, toAllPartitionKey("__SCAN-001"),
+                                        toAllPartitionKey("__SCAN-100"), 0);
         Assert.assertFalse(iterator.hasNext());
         try {
             iterator.next();
-            Assert.assertTrue(false);
+            Assert.fail();
         } catch (Throwable t) {
             println("-- test NoSuchElementException --");
-            Assert.assertTrue(NoSuchElementException.class.isInstance(t));
+            Assert.assertTrue(t instanceof NoSuchElementException);
         }
 
         for (int i = 1; i <= 10; i++) {
             limit = i;
             iterator =
-                session.scanIterator(
-                    tableName, toAllPartitionKey(keyName + "-0"), toAllPartitionKey(keyName + "-1"), limit);
+                    session.scanIterator(
+                            tableName, toAllPartitionKey(keyName + "-0"),
+                            toAllPartitionKey(keyName + "-1"), limit);
             count = 0;
             while (iterator.hasNext()) {
                 count++;
@@ -432,8 +441,9 @@ public class HgSessionManagerRaftPDTest {
         for (int i = 1; i <= 10; i++) {
             limit = i;
             iterator =
-                session.scanIterator(
-                    tableName, toAllPartitionKey(keyName + "-00001"), toAllPartitionKey(keyName + "-00005"), limit);
+                    session.scanIterator(
+                            tableName, toAllPartitionKey(keyName + "-00001"),
+                            toAllPartitionKey(keyName + "-00005"), limit);
             count = 0;
             while (iterator.hasNext()) {
                 count++;
@@ -448,8 +458,9 @@ public class HgSessionManagerRaftPDTest {
 
         limit = 0;
         iterator =
-            session.scanIterator(
-                tableName, toAllPartitionKey(keyName + "-0"), toAllPartitionKey(keyName + "-1"), limit);
+                session.scanIterator(
+                        tableName, toAllPartitionKey(keyName + "-0"),
+                        toAllPartitionKey(keyName + "-1"), limit);
 
         count = 0;
         while (iterator.hasNext()) {
@@ -501,13 +512,13 @@ public class HgSessionManagerRaftPDTest {
         count = 0;
 
         iterator =
-            session.scanIterator(
-                tableName,
-                toAllPartitionKey(keyName + "-000"),
-                HgStoreClientConst.EMPTY_OWNER_KEY,
-                0,
-                HgKvStore.SCAN_ANY,
-                EMPTY_BYTES);
+                session.scanIterator(
+                        tableName,
+                        toAllPartitionKey(keyName + "-000"),
+                        HgStoreClientConst.EMPTY_OWNER_KEY,
+                        0,
+                        HgKvStore.SCAN_ANY,
+                        EMPTY_BYTES);
         List<byte[]> positionList = new LinkedList<>();
         while (iterator.hasNext()) {
             HgKvEntry entry = iterator.next();
@@ -618,11 +629,12 @@ public class HgSessionManagerRaftPDTest {
         List<HgOwnerKey> keys = new ArrayList<>();
         data.forEach((k, v) -> keys.add(k));
         KvCloseableIterator<HgKvIterator<HgKvEntry>> iterators =
-            session.scanBatch2(
-                HgScanQuery.prefixIteratorOf(tableName, keys.iterator(), ScanOrderType.ORDER_NONE)
-                    .builder()
-                    .setScanType(0x40)
-                    .build());
+                session.scanBatch2(
+                        HgScanQuery.prefixIteratorOf(tableName, keys.iterator(),
+                                                     ScanOrderType.ORDER_NONE)
+                                   .builder()
+                                   .setScanType(0x40)
+                                   .build());
         while (iterators.hasNext()) {
             HgKvIterator<HgKvEntry> iterator = iterators.next();
             count += amountOf(iterator);
@@ -640,14 +652,14 @@ public class HgSessionManagerRaftPDTest {
         int keyAmt = 300;
         byte[] owner = "Owner".getBytes();
         Map<HgOwnerKey, byte[]> data =
-            batchPut(
-                session,
-                tableName,
-                keyName,
-                keyAmt,
-                key -> {
-                    return toOwnerKey(owner, key);
-                });
+                batchPut(
+                        session,
+                        tableName,
+                        keyName,
+                        keyAmt,
+                        key -> {
+                            return toOwnerKey(owner, key);
+                        });
         println("-- Starting scan --");
         MetricX metrics = MetricX.ofStart();
         long t = System.currentTimeMillis();
@@ -657,12 +669,13 @@ public class HgSessionManagerRaftPDTest {
         keys.add(toOwnerKey(owner, keyName));
 
         KvCloseableIterator<HgKvIterator<HgKvEntry>> iterators =
-            session.scanBatch2(
-                HgScanQuery.prefixIteratorOf(tableName, keys.iterator(), ScanOrderType.ORDER_NONE)
-                    .builder()
-                    .setScanType(0x40)
-                    .setSkipDegree(1)
-                    .build());
+                session.scanBatch2(
+                        HgScanQuery.prefixIteratorOf(tableName, keys.iterator(),
+                                                     ScanOrderType.ORDER_NONE)
+                                   .builder()
+                                   .setScanType(0x40)
+                                   .setSkipDegree(1)
+                                   .build());
         while (iterators.hasNext()) {
             HgKvIterator<HgKvEntry> iterator = iterators.next();
             count += amountOf(iterator);

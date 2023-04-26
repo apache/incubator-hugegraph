@@ -23,12 +23,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.buffer.ByteBufferAllocator;
+import org.apache.hugegraph.store.buffer.KVByteBuffer;
 import org.apache.hugegraph.store.grpc.stream.KvStream;
 import org.apache.hugegraph.store.node.util.HgGrpc;
 import org.apache.hugegraph.store.node.util.PropertyUtil;
 
-import com.baidu.hugegraph.store.buffer.ByteBufferAllocator;
-import com.baidu.hugegraph.store.buffer.KVByteBuffer;
 import com.baidu.hugegraph.store.grpc.stream.ScanQueryRequest;
 import com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 

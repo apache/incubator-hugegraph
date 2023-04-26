@@ -17,16 +17,7 @@
 
 package core.snapshot;
 
-import com.alipay.sofa.jraft.entity.RaftOutter;
-import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
-import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
-import com.baidu.hugegraph.store.meta.Partition;
-import com.baidu.hugegraph.store.snapshot.HgSnapshotHandler;
-import com.google.protobuf.Message;
-import core.StoreEngineTestBase;
-import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +25,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.snapshot.HgSnapshotHandler;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.alipay.sofa.jraft.entity.RaftOutter;
+import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
+import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
+import com.google.protobuf.Message;
+
+import core.StoreEngineTestBase;
 
 
 public class HgSnapshotHandlerTest extends StoreEngineTestBase {
@@ -119,7 +121,8 @@ public class HgSnapshotHandlerTest extends StoreEngineTestBase {
 
         // Setup
         final SnapshotReader reader = new SnapshotReader() {
-            String path = "/tmp/snapshot";
+            final String path = "/tmp/snapshot";
+
             @Override
             public RaftOutter.SnapshotMeta load() {
                 return null;
@@ -164,7 +167,6 @@ public class HgSnapshotHandlerTest extends StoreEngineTestBase {
         // Run the test
         hgSnapshotHandlerUnderTest.onSnapshotLoad(reader, 0L);
     }
-
 
 
     @Test

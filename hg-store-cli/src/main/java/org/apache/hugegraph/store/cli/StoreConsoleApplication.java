@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.cli;
 
 import java.io.IOException;
 
+import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.cli.loader.HgThread2DB;
 import org.apache.hugegraph.store.cli.scan.GrpcShardScanner;
 import org.apache.hugegraph.store.cli.scan.HgStoreCommitter;
@@ -30,7 +31,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.baidu.hugegraph.pd.client.PDConfig;
 import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.store.HgStoreClient;
 
 import lombok.extern.slf4j.Slf4j;
 

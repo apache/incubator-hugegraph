@@ -21,7 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import org.apache.hugegraph.rocksdb.access.RocksDBSession.CFHandleLock;
 import org.apache.hugegraph.rocksdb.access.util.Asserts;
+import org.apache.hugegraph.store.term.HgPair;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -30,9 +32,6 @@ import org.rocksdb.Slice;
 import org.rocksdb.Snapshot;
 import org.rocksdb.WriteBatch;
 
-import org.apache.hugegraph.rocksdb.access.RocksDBSession.CFHandleLock;
-
-import com.baidu.hugegraph.store.term.HgPair;
 import com.baidu.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SessionOperatorImpl implements SessionOperator {
 
-    private RocksDB db;
+    private final RocksDB db;
     private WriteBatch batch;
-    private RocksDBSession session;
+    private final RocksDBSession session;
 
     public SessionOperatorImpl(RocksDBSession session) {
         this.session = session;
@@ -105,6 +104,7 @@ public class SessionOperatorImpl implements SessionOperator {
             throw new DBStoreException(e);
         }
     }
+
     /*
      * only support 'long data' operator
      */
@@ -148,7 +148,7 @@ public class SessionOperatorImpl implements SessionOperator {
     public void deletePrefix(String table, byte[] key) throws DBStoreException {
         byte[] keyFrom = key;
         byte[] keyTo = Arrays.copyOf(key, key.length);
-        keyTo = this.increaseOne(keyTo);
+        keyTo = increaseOne(keyTo);
         try {
             this.getBatch().deleteRange(session.getCF(table), keyFrom, keyTo);
         } catch (RocksDBException e) {
@@ -323,7 +323,7 @@ public class SessionOperatorImpl implements SessionOperator {
                 if (iterator == null) return null;
                 RocksIterator finalIterator = iterator;
                 return (T) new ScanIterator() {
-                    private ReadOptions holdReadOptions = readOptions;
+                    private final ReadOptions holdReadOptions = readOptions;
 
                     @Override
                     public boolean hasNext() {
@@ -377,7 +377,8 @@ public class SessionOperatorImpl implements SessionOperator {
     @Override
     public long estimatedKeyCount(String tableName) throws DBStoreException {
         try {
-            return this.rocksdb().getLongProperty(session.getCF(tableName), "rocksdb.estimate-num-keys");
+            return this.rocksdb()
+                       .getLongProperty(session.getCF(tableName), "rocksdb.estimate-num-keys");
         } catch (RocksDBException e) {
             throw new DBStoreException(e);
         }

@@ -23,9 +23,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.store.client.util.HgAssert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.store.client.util.HgAssert;
 
 public class HgAssertTest {
 
@@ -33,7 +32,7 @@ public class HgAssertTest {
     public void testIsTrue1() {
         // Setup
         // Run the test
-        try{
+        try {
             HgAssert.isTrue(false, "message");
         } catch (Exception e) {
             assertTrue(e instanceof IllegalArgumentException);
@@ -42,7 +41,7 @@ public class HgAssertTest {
 
     @Test
     public void testIsTrue2() {
-        try{
+        try {
             HgAssert.isTrue(false, () -> "message");
         } catch (Exception e) {
             assertTrue(e instanceof IllegalArgumentException);
@@ -51,7 +50,7 @@ public class HgAssertTest {
 
     @Test
     public void testIsFalse1() {
-        try{
+        try {
             HgAssert.isFalse(true, "message");
         } catch (Exception e) {
             assertTrue(e instanceof IllegalArgumentException);
@@ -60,7 +59,7 @@ public class HgAssertTest {
 
     @Test
     public void testIsFalse2() {
-        try{
+        try {
             HgAssert.isFalse(true, () -> "message");
         } catch (Exception e) {
             assertTrue(e instanceof IllegalArgumentException);

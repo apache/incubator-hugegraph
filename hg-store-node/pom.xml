@@ -22,9 +22,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.baidu.hugegraph</groupId>
+        <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-store-root</artifactId>
-        <version>3.6.3-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>hugegraph-store</artifactId>
@@ -90,7 +90,7 @@
         <!-- generic end-->
         <!-- module -->
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-common</artifactId>
         </dependency>
         <dependency>
@@ -99,13 +99,13 @@
             <version>3.17.2</version>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-grpc</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-client</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
             <exclusions>
                 <exclusion>
                     <groupId>io.grpc</groupId>
@@ -114,11 +114,11 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
             <version>${hugegraph.server.version}</version>
             <exclusions>

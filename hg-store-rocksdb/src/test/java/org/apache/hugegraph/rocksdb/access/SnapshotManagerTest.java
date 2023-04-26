@@ -17,17 +17,14 @@
 
 package org.apache.hugegraph.rocksdb.access;
 
-import static org.junit.Assert.assertEquals;
-
 import java.io.File;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.baidu.hugegraph.config.HugeConfig;
-import com.baidu.hugegraph.config.OptionSpace;
-import com.baidu.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.store.term.HgPair;
+
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 // import org.junit.BeforeClass;
 // import org.junit.Test;
 
@@ -38,7 +35,9 @@ public class SnapshotManagerTest {
 
     // @Test
     public void testRetrieveIndex() throws DBStoreException {
-        String snapshotPath = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\raft\\1/snapshot\\snapshot_40\\graph_1_p1";
+        String snapshotPath =
+                "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\raft\\1/snapshot" +
+                "\\snapshot_40\\graph_1_p1";
         long lastIndex = 0L;
         File file = new File(snapshotPath);
         File parentFile = new File(file.getParent());
@@ -53,10 +52,13 @@ public class SnapshotManagerTest {
     }
 
     // @Test
-    public void testFoundMaxDir () {
-//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8503\\db\\default\\hugegraph\\g\\0_123";
-//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8503\\db\\default\\hugegraph\\g\\0";
-//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db\\default\\hugegraph\\g\\0";
+    public void testFoundMaxDir() {
+//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8503\\db\\default
+//        \\hugegraph\\g\\0_123";
+//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8503\\db\\default
+//        \\hugegraph\\g\\0";
+//        String path = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db\\default
+//        \\hugegraph\\g\\0";
 //        String path = "D:\\tmp\\db\\0";
 //        String path = "D:\\tmp\\db\\0_111";
         String path = "D:\\tmp\\db\\0_111_22222";
@@ -64,10 +66,11 @@ public class SnapshotManagerTest {
         int strIndex = file.getName().indexOf("_");
 
         String defaultName;
-        if(strIndex < 0)
+        if (strIndex < 0) {
             defaultName = file.getName();
-        else
+        } else {
             defaultName = file.getName().substring(0, strIndex);
+        }
         String prefix = defaultName + "_";
         File parentFile = new File(file.getParent());
         final List<HgPair<Long, Long>> dbs = new ArrayList<>();
@@ -79,16 +82,16 @@ public class SnapshotManagerTest {
                 if (!name.startsWith(prefix) && !name.equals(defaultName)) {
                     continue;
                 }
-                if(name.endsWith(tempSuffix)) {
+                if (name.endsWith(tempSuffix)) {
                     continue;
                 }
                 long v1 = -1L;
                 long v2 = -1L;
-                if(name.length() > defaultName.length()) {
+                if (name.length() > defaultName.length()) {
                     String[] versions = name.substring(prefix.length()).split("_");
-                    if(versions.length == 1) {
+                    if (versions.length == 1) {
                         v1 = Long.parseLong(versions[0]);
-                    } else if(versions.length == 2) {
+                    } else if (versions.length == 2) {
                         v1 = Long.parseLong(versions[0]);
                         v2 = Long.parseLong(versions[1]);
                     } else {
@@ -102,22 +105,25 @@ public class SnapshotManagerTest {
         // get last index db path
         String latestDBPath = "";
         if (!dbs.isEmpty()) {
-            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ? o1.getValue().compareTo(o2.getValue()) : o1.getKey().compareTo(o2.getKey()));
+            dbs.sort((o1, o2) -> o1.getKey().equals(o2.getKey()) ?
+                                 o1.getValue().compareTo(o2.getValue()) :
+                                 o1.getKey().compareTo(o2.getKey()));
             final int dbCount = dbs.size();
 
             // delete old db
             for (int i = 0; i < dbCount; i++) {
                 final HgPair<Long, Long> pair = dbs.get(i);
                 String curDBName;
-                if(pair.getKey() == -1L) {
+                if (pair.getKey() == -1L) {
                     curDBName = defaultName;
-                } else if (pair.getValue() == -1L){
+                } else if (pair.getValue() == -1L) {
                     curDBName = String.format("%s_%d", defaultName, pair.getKey());
                 } else {
-                    curDBName = String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
+                    curDBName =
+                            String.format("%s_%d_%d", defaultName, pair.getKey(), pair.getValue());
                 }
                 String curDBPath = Paths.get(parentFile.getPath(), curDBName).toString();
-                if(i == dbCount-1) {
+                if (i == dbCount - 1) {
                     latestDBPath = curDBPath;
                 } else {
                     log.info("delete old dbpath {}", curDBPath);
@@ -134,8 +140,11 @@ public class SnapshotManagerTest {
 
     // @Test
     public void testDefaultPath() {
-//        String latestDBPath = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db\\default\\hugegraph\\g\\0_123";
-        String latestDBPath = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db\\default\\hugegraph\\g\\0";
+//        String latestDBPath = "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db
+//        \\default\\hugegraph\\g\\0_123";
+        String latestDBPath =
+                "D:\\Code\\baidu\\starhugegraph\\hugegraph-store\\tmp\\8501\\db\\default" +
+                "\\hugegraph\\g\\0";
         File file = new File(latestDBPath);
         String parent = file.getParent();
         String defaultName = file.getName().split("_")[0];
@@ -351,7 +360,8 @@ public class SnapshotManagerTest {
 //        String endKey = String.format("%d_%08d", partition_1, 100);
 //
 //        session.importSnapshot(importDir, partition_1);
-//        long keyCount = session.sessionOp().keyCount(table, startKey.getBytes(), endKey.getBytes());
+//        long keyCount = session.sessionOp().keyCount(table, startKey.getBytes(), endKey
+//        .getBytes());
 //        System.out.printf("key count of %s is %d\n", graphName, keyCount);
 //
 //
@@ -376,7 +386,8 @@ public class SnapshotManagerTest {
 //        String startKey = String.format("%d_%08d", partition_1, index - 200);
 //        String endKey = String.format("%d_%08d", partition_1, index - 100);
 //
-//        ScanIterator cfIterator = session.sessionOp().scanRaw(startKey.getBytes(), endKey.getBytes(), seqNum);
+//        ScanIterator cfIterator = session.sessionOp().scanRaw(startKey.getBytes(), endKey
+//        .getBytes(), seqNum);
 //        while (cfIterator.hasNext()) {
 //            ScanIterator iterator = cfIterator.next();
 //            System.out.println("cf name is " + new String(cfIterator.position()));

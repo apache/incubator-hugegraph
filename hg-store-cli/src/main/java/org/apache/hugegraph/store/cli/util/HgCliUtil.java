@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.store.HgKvEntry;
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgStoreSession;
-import com.baidu.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.HgKvEntry;
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 
 
 /**

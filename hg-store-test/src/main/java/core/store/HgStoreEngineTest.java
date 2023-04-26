@@ -17,30 +17,33 @@
 
 package core.store;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.store.HgStoreEngine;
-import com.baidu.hugegraph.store.pd.FakePdServiceProvider;
-import com.baidu.hugegraph.testutil.Assert;
-import core.StoreEngineTestBase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.pd.FakePdServiceProvider;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.testutil.Assert;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
+import core.StoreEngineTestBase;
 
 public class HgStoreEngineTest extends StoreEngineTestBase {
 
     private HgStoreEngine engine;
 
     @Before
-    public void setup(){
+    public void setup() {
         engine = HgStoreEngine.getInstance();
     }
 
     @Test
-    public void testGetInstance(){
+    public void testGetInstance() {
         assertNotNull(HgStoreEngine.getInstance());
     }
 
@@ -54,26 +57,26 @@ public class HgStoreEngineTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testCreatePartitionEngine(){
+    public void testCreatePartitionEngine() {
         var partition = getPartition(0);
         assertNotNull(engine.createPartitionEngine(partition));
     }
 
     @Test
-    public void testCreatePartitionGroups(){
+    public void testCreatePartitionGroups() {
         var partition = getPartition(0);
         engine.createPartitionGroups(partition);
     }
 
     @Test
-    public void testDestroyPartitionEngine(){
+    public void testDestroyPartitionEngine() {
         createPartitionEngine(16);
-        engine.destroyPartitionEngine(16, Arrays.asList("graph0"));
+        engine.destroyPartitionEngine(16, List.of("graph0"));
         // assertEquals(engine.getPartitionEngines().size(), 0);
     }
 
     @Test
-    public void testDeletePartition(){
+    public void testDeletePartition() {
         createPartitionEngine(0);
         engine.deletePartition(0, "graph0");
         // TODO: check logic
@@ -93,7 +96,7 @@ public class HgStoreEngineTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testGetLeaderTerm(){
+    public void testGetLeaderTerm() {
         createPartitionEngine(0);
         // no vote
         assertEquals(engine.getLeaderTerm(0), -1);
@@ -107,32 +110,32 @@ public class HgStoreEngineTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testGetRaftRpcServer(){
+    public void testGetRaftRpcServer() {
         assertNotNull(engine.getRaftRpcServer());
     }
 
     @Test
-    public void testGetPartitionManager(){
+    public void testGetPartitionManager() {
         assertNotNull(engine.getPartitionManager());
     }
 
     @Test
-    public void testGetDataMover(){
+    public void testGetDataMover() {
         assertNotNull(engine.getDataMover());
     }
 
     @Test
-    public void testGetPdProvider(){
+    public void testGetPdProvider() {
         assertNotNull(engine.getPdProvider());
     }
 
     @Test
-    public void testGetCmdClient(){
+    public void testGetCmdClient() {
         assertNotNull(engine.getHgCmdClient());
     }
 
     @Test
-    public void testGetHeartbeatService(){
+    public void testGetHeartbeatService() {
         assertNotNull(engine.getHeartbeatService());
     }
 
@@ -144,29 +147,29 @@ public class HgStoreEngineTest extends StoreEngineTestBase {
     }
 
     @Test
-    public void testGetDataLocations(){
+    public void testGetDataLocations() {
         assertEquals(engine.getDataLocations().size(), 1);
     }
 
     @Test
-    public void testGetPartitionEngine(){
+    public void testGetPartitionEngine() {
         createPartitionEngine(0);
         assertNotNull(engine.getPartitionEngine(0));
     }
 
     @Test
-    public void testGetPartitionEngines(){
+    public void testGetPartitionEngines() {
         createPartitionEngine(0);
         assertEquals(engine.getPartitionEngines().size(), 1);
     }
 
     @Test
-    public void testGetNodeMetrics(){
+    public void testGetNodeMetrics() {
         assertNotNull(engine.getNodeMetrics());
     }
 
     @Test
-    public void testGetRaftGroupCount(){
+    public void testGetRaftGroupCount() {
         createPartitionEngine(0);
         assertEquals(engine.getRaftGroupCount(), 1);
     }

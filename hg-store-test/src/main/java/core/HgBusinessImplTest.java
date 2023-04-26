@@ -17,22 +17,23 @@
 
 package core;
 
-import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-import com.baidu.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.business.BusinessHandler;
+import org.junit.Assert;
+import org.junit.Test;
+
 import com.baidu.hugegraph.util.Bytes;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
-public class HgBusinessImplTest extends StoreEngineTestBase{
+public class HgBusinessImplTest extends StoreEngineTestBase {
 
     public BusinessHandler getBusinessHandler() {
         return getStoreEngine().getBusinessHandler();
@@ -84,7 +85,8 @@ public class HgBusinessImplTest extends StoreEngineTestBase{
 
         Assert.assertEquals(4, count);
         System.out.println("--------------------dump scan range key1 key4 -------");
-        iterator = handler.scan(graph1, 0, table, "key1".getBytes(), "key4".getBytes(), ScanIterator.Trait.SCAN_LT_END);
+        iterator = handler.scan(graph1, 0, table, "key1".getBytes(), "key4".getBytes(),
+                                ScanIterator.Trait.SCAN_LT_END);
         count = 0;
         while (iterator.hasNext()) {
             RocksDBSession.BackendColumn entry = iterator.next();
@@ -131,27 +133,30 @@ public class HgBusinessImplTest extends StoreEngineTestBase{
         }
 
         CountDownLatch latch = new CountDownLatch(1);
-        RocksDBFactory.getInstance().addRocksdbChangedListener(new RocksDBFactory.RocksdbChangedListener() {
-            @Override
-            public void onCompacted(String dbName) {
-                RocksDBFactory.RocksdbChangedListener.super.onCompacted(dbName);
-            }
+        RocksDBFactory.getInstance()
+                      .addRocksdbChangedListener(new RocksDBFactory.RocksdbChangedListener() {
+                          @Override
+                          public void onCompacted(String dbName) {
+                              RocksDBFactory.RocksdbChangedListener.super.onCompacted(dbName);
+                          }
 
-            @Override
-            public void onDBDeleteBegin(String dbName, String filePath) {
-                RocksDBFactory.RocksdbChangedListener.super.onDBDeleteBegin(dbName, filePath);
-            }
+                          @Override
+                          public void onDBDeleteBegin(String dbName, String filePath) {
+                              RocksDBFactory.RocksdbChangedListener.super.onDBDeleteBegin(dbName,
+                                                                                          filePath);
+                          }
 
-            @Override
-            public void onDBDeleted(String dbName, String filePath) {
-                latch.countDown();
-            }
+                          @Override
+                          public void onDBDeleted(String dbName, String filePath) {
+                              latch.countDown();
+                          }
 
-            @Override
-            public void onDBSessionReleased(RocksDBSession dbSession) {
-                RocksDBFactory.RocksdbChangedListener.super.onDBSessionReleased(dbSession);
-            }
-        });
+                          @Override
+                          public void onDBSessionReleased(RocksDBSession dbSession) {
+                              RocksDBFactory.RocksdbChangedListener.super.onDBSessionReleased(
+                                      dbSession);
+                          }
+                      });
 
         latch.await(1, TimeUnit.SECONDS);
 

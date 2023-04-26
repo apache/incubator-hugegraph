@@ -17,12 +17,11 @@
 
 package org.apache.hugegraph.store.cli.scan;
 
+import org.apache.hugegraph.store.HgOwnerKey;
+import org.apache.hugegraph.store.HgSessionManager;
+import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.cli.util.HgCliUtil;
-
-import com.baidu.hugegraph.store.HgOwnerKey;
-import com.baidu.hugegraph.store.HgSessionManager;
-import com.baidu.hugegraph.store.HgStoreSession;
-import com.baidu.hugegraph.store.client.HgStoreNodeManager;
+import org.apache.hugegraph.store.client.HgStoreNodeManager;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/28

@@ -17,6 +17,17 @@
 
 package core.raft;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.hugegraph.store.raft.util.RaftUtils;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.NodeManager;
 import com.alipay.sofa.jraft.conf.Configuration;
@@ -24,17 +35,8 @@ import com.alipay.sofa.jraft.core.NodeImpl;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.util.Endpoint;
-import com.baidu.hugegraph.store.raft.util.RaftUtils;
-import org.junit.Before;
-import org.junit.Test;
+
 import util.UnitTestBase;
-
-import java.io.File;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class RaftUtilsTest {
     final String ip = "127.0.0.1";
@@ -42,7 +44,7 @@ public class RaftUtilsTest {
     final String dataPath = "tmp/raftUtils";
 
     @Before
-    public void setUp(){
+    public void setUp() {
 
         UnitTestBase.deleteDir(new File(dataPath));
         new File(dataPath).mkdirs();
@@ -113,7 +115,7 @@ public class RaftUtilsTest {
     public void testGetPeerEndpoints2() {
         // Setup
         final Configuration conf = new Configuration(List.of(new PeerId("ip", 0, 0, 0)),
-                List.of(new PeerId("ip", 0, 0, 0)));
+                                                     List.of(new PeerId("ip", 0, 0, 0)));
 
         // Run the test
         final List<String> result = RaftUtils.getPeerEndpoints(conf);
@@ -135,7 +137,7 @@ public class RaftUtilsTest {
         nodeOptions.setRaftMetaUri(this.dataPath + File.separator + "meta");
         nodeOptions.setSnapshotUri(this.dataPath + File.separator + "snapshot");
         nodeOptions.setInitialConf(new Configuration(Collections.singletonList(peer),
-                Collections.singletonList(peer2)));
+                                                     Collections.singletonList(peer2)));
         final Node node = new NodeImpl("unittest", new PeerId(addr, 0));
         assertTrue(node.init(nodeOptions));
         node.isLeader(true);
@@ -152,7 +154,7 @@ public class RaftUtilsTest {
     public void testGetLearnerEndpoints2() {
         // Setup
         final Configuration conf = new Configuration(List.of(new PeerId("ip", 0, 0, 0)),
-                List.of(new PeerId("ip", 0, 0, 0)));
+                                                     List.of(new PeerId("ip", 0, 0, 0)));
 
         // Run the test
         final List<String> result = RaftUtils.getLearnerEndpoints(conf);
@@ -165,9 +167,9 @@ public class RaftUtilsTest {
     public void testConfigurationEquals() {
         // Setup
         final Configuration oldConf = new Configuration(List.of(new PeerId("ip", 0, 0, 0)),
-                List.of(new PeerId("ip", 0, 0, 0)));
+                                                        List.of(new PeerId("ip", 0, 0, 0)));
         final Configuration newConf = new Configuration(List.of(new PeerId("ip", 0, 0, 0)),
-                List.of(new PeerId("ip", 0, 0, 0)));
+                                                        List.of(new PeerId("ip", 0, 0, 0)));
 
         // Run the test
         final boolean result = RaftUtils.configurationEquals(oldConf, newConf);

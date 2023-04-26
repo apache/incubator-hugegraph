@@ -17,12 +17,13 @@
 
 package common;
 
-import com.baidu.hugegraph.store.buffer.ByteBufferAllocator;
-import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.CountDownLatch;
+
+import org.apache.hugegraph.store.buffer.ByteBufferAllocator;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.concurrent.CountDownLatch;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ByteBufferAllocatorTest extends BaseCommonTest {
