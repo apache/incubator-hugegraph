@@ -188,10 +188,10 @@ public final class KvStream extends
    * <code>.KvStreamType type = 6;</code>
    * @return The type.
    */
-  @java.lang.Override public com.baidu.hugegraph.store.grpc.stream.KvStreamType getType() {
+  @java.lang.Override public org.apache.hugegraph.store.grpc.stream.KvStreamType getType() {
     @SuppressWarnings("deprecation")
-    com.baidu.hugegraph.store.grpc.stream.KvStreamType result = com.baidu.hugegraph.store.grpc.stream.KvStreamType.valueOf(type_);
-    return result == null ? com.baidu.hugegraph.store.grpc.stream.KvStreamType.UNRECOGNIZED : result;
+    org.apache.hugegraph.store.grpc.stream.KvStreamType result = org.apache.hugegraph.store.grpc.stream.KvStreamType.valueOf(type_);
+    return result == null ? org.apache.hugegraph.store.grpc.stream.KvStreamType.UNRECOGNIZED : result;
   }
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
@@ -219,7 +219,7 @@ public final class KvStream extends
     if (stream_.limit() > 0) {
       output.writeByteArray(5, stream_.array(), 0, stream_.limit());
     }
-    if (type_ != com.baidu.hugegraph.store.grpc.stream.KvStreamType.STREAM_TYPE_NONE.getNumber()) {
+    if (type_ != org.apache.hugegraph.store.grpc.stream.KvStreamType.STREAM_TYPE_NONE.getNumber()) {
       output.writeEnum(6, type_);
     }
     unknownFields.writeTo(output);
@@ -252,7 +252,7 @@ public final class KvStream extends
                       .computeUInt32SizeNoTag(stream_.limit())
               + stream_.limit();
     }
-    if (type_ != com.baidu.hugegraph.store.grpc.stream.KvStreamType.STREAM_TYPE_NONE.getNumber()) {
+    if (type_ != org.apache.hugegraph.store.grpc.stream.KvStreamType.STREAM_TYPE_NONE.getNumber()) {
       size += com.google.protobuf.CodedOutputStream
               .computeEnumSize(6, type_);
     }
@@ -738,17 +738,17 @@ public final class KvStream extends
      * @return The type.
      */
     @java.lang.Override
-    public com.baidu.hugegraph.store.grpc.stream.KvStreamType getType() {
+    public org.apache.hugegraph.store.grpc.stream.KvStreamType getType() {
       @SuppressWarnings("deprecation")
-      com.baidu.hugegraph.store.grpc.stream.KvStreamType result = com.baidu.hugegraph.store.grpc.stream.KvStreamType.valueOf(type_);
-      return result == null ? com.baidu.hugegraph.store.grpc.stream.KvStreamType.UNRECOGNIZED : result;
+      org.apache.hugegraph.store.grpc.stream.KvStreamType result = org.apache.hugegraph.store.grpc.stream.KvStreamType.valueOf(type_);
+      return result == null ? org.apache.hugegraph.store.grpc.stream.KvStreamType.UNRECOGNIZED : result;
     }
     /**
      * <code>.KvStreamType type = 6;</code>
      * @param value The type to set.
      * @return This builder for chaining.
      */
-    public Builder setType(com.baidu.hugegraph.store.grpc.stream.KvStreamType value) {
+    public Builder setType(org.apache.hugegraph.store.grpc.stream.KvStreamType value) {
       if (value == null) {
         throw new NullPointerException();
       }

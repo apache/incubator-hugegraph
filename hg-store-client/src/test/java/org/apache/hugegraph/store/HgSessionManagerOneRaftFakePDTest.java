@@ -29,13 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.hugegraph.pd.common.PartitionUtils;
-import org.apache.hugegraph.store.client.HgNodePartitionerBuilder;
-import org.apache.hugegraph.store.client.HgStoreNode;
 import org.apache.hugegraph.store.client.HgStoreNodeManager;
-import org.apache.hugegraph.store.client.HgStoreNodeNotifier;
-import org.apache.hugegraph.store.client.HgStoreNodePartitioner;
-import org.apache.hugegraph.store.client.HgStoreNodeProvider;
-import org.apache.hugegraph.store.client.HgStoreNotice;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
@@ -48,7 +42,7 @@ public class HgSessionManagerOneRaftFakePDTest {
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
     private static final int partitionCount = 3;
-            // 需要与store的application.yml的fake-pd.partition-count保持一致
+    // 需要与store的application.yml的fake-pd.partition-count保持一致
     private static final String[] storeAddress = {
             "127.0.0.1:8500"
     };
@@ -63,50 +57,40 @@ public class HgSessionManagerOneRaftFakePDTest {
         }
 
         HgStoreNodeManager nodeManager = HgStoreNodeManager.getInstance();
-        nodeManager.setNodePartitioner(new HgStoreNodePartitioner() {
-            @Override
-            public int partition(HgNodePartitionerBuilder builder, String graphName,
-                                 byte[] startKey, byte[] endKey) {
-                int startCode = PartitionUtils.calcHashcode(startKey);
-                int endCode = PartitionUtils.calcHashcode(endKey);
-                if (ALL_PARTITION_OWNER == startKey) {
-                    storeMap.forEach((k, v) -> {
-                        builder.add(k, -1);
-                    });
-                } else if (endKey == HgStoreClientConst.EMPTY_BYTES || startKey == endKey ||
-                           Arrays.equals(startKey, endKey)) {
-                    builder.add(leaderMap.get(startCode % partitionCount), startCode);
-                } else {
-                    Assert.fail("OwnerKey转成HashCode后已经无序了， 按照OwnerKey范围查询没意义");
-                    builder.add(leaderMap.get(startCode % partitionCount), startCode);
-                    builder.add(leaderMap.get(endCode % partitionCount), endCode);
-                }
-                return 0;
+        nodeManager.setNodePartitioner((builder, graphName, startKey, endKey) -> {
+            int startCode = PartitionUtils.calcHashcode(startKey);
+            int endCode = PartitionUtils.calcHashcode(endKey);
+            if (ALL_PARTITION_OWNER == startKey) {
+                storeMap.forEach((k, v) -> {
+                    builder.add(k, -1);
+                });
+            } else if (endKey == HgStoreClientConst.EMPTY_BYTES || startKey == endKey ||
+                       Arrays.equals(startKey, endKey)) {
+                builder.add(leaderMap.get(startCode % partitionCount), startCode);
+            } else {
+                Assert.fail("OwnerKey转成HashCode后已经无序了， 按照OwnerKey范围查询没意义");
+                builder.add(leaderMap.get(startCode % partitionCount), startCode);
+                builder.add(leaderMap.get(endCode % partitionCount), endCode);
             }
+            return 0;
         });
-        nodeManager.setNodeProvider(new HgStoreNodeProvider() {
-            @Override
-            public HgStoreNode apply(String graphName, Long nodeId) {
-                System.out.println("HgStoreNodeProvider apply " + graphName + " " + nodeId + " " +
-                                   storeMap.get(nodeId));
-                return nodeManager.getNodeBuilder().setNodeId(nodeId)
-                                  .setAddress(storeMap.get(nodeId)).build();
-            }
+        nodeManager.setNodeProvider((graphName, nodeId) -> {
+            System.out.println("HgStoreNodeProvider apply " + graphName + " " + nodeId + " " +
+                               storeMap.get(nodeId));
+            return nodeManager.getNodeBuilder().setNodeId(nodeId)
+                              .setAddress(storeMap.get(nodeId)).build();
         });
-        nodeManager.setNodeNotifier(new HgStoreNodeNotifier() {
-            @Override
-            public int notice(String graphName, HgStoreNotice storeNotice) {
-                System.out.println("recv node notifier " + storeNotice);
-                if (storeNotice.getPartitionLeaders().size() > 0) {
-                    leaderMap.putAll(storeNotice.getPartitionLeaders());
-                    System.out.println("leader changed ");
-                    leaderMap.forEach((k, v) -> {
-                        System.out.print("   " + k + " " + v + ",");
-                    });
-                    System.out.println();
-                }
-                return 0;
+        nodeManager.setNodeNotifier((graphName, storeNotice) -> {
+            System.out.println("recv node notifier " + storeNotice);
+            if (storeNotice.getPartitionLeaders().size() > 0) {
+                leaderMap.putAll(storeNotice.getPartitionLeaders());
+                System.out.println("leader changed ");
+                leaderMap.forEach((k, v) -> {
+                    System.out.print("   " + k + " " + v + ",");
+                });
+                System.out.println();
             }
+            return 0;
         });
     }
 

@@ -35,29 +35,29 @@ public final class HgStoreStreamGrpc {
   public static final String SERVICE_NAME = "HgStoreStream";
 
   // Static method descriptors that strictly reflect the proto.
-  private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanMethod;
+  private static volatile io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "Scan",
-      requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamReq.class,
-      responseType = com.baidu.hugegraph.store.grpc.stream.KvPageRes.class,
+      requestType = org.apache.hugegraph.store.grpc.stream.ScanStreamReq.class,
+      responseType = org.apache.hugegraph.store.grpc.stream.KvPageRes.class,
       methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
-  public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanMethod() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanMethod;
+  public static io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanMethod() {
+    io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq, org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanMethod;
     if ((getScanMethod = HgStoreStreamGrpc.getScanMethod) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanMethod = HgStoreStreamGrpc.getScanMethod) == null) {
           HgStoreStreamGrpc.getScanMethod = getScanMethod =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
+              io.grpc.MethodDescriptor.<org.apache.hugegraph.store.grpc.stream.ScanStreamReq, org.apache.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "Scan"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.ScanStreamReq.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.ScanStreamReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("Scan"))
               .build();
         }
@@ -66,29 +66,29 @@ public final class HgStoreStreamGrpc {
     return getScanMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod;
+  private static volatile io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "ScanOneShot",
-      requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamReq.class,
-      responseType = com.baidu.hugegraph.store.grpc.stream.KvPageRes.class,
+      requestType = org.apache.hugegraph.store.grpc.stream.ScanStreamReq.class,
+      responseType = org.apache.hugegraph.store.grpc.stream.KvPageRes.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod;
+  public static io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod() {
+    io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamReq, org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanOneShotMethod;
     if ((getScanOneShotMethod = HgStoreStreamGrpc.getScanOneShotMethod) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanOneShotMethod = HgStoreStreamGrpc.getScanOneShotMethod) == null) {
           HgStoreStreamGrpc.getScanOneShotMethod = getScanOneShotMethod =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
+              io.grpc.MethodDescriptor.<org.apache.hugegraph.store.grpc.stream.ScanStreamReq, org.apache.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ScanOneShot"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.ScanStreamReq.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.ScanStreamReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("ScanOneShot"))
               .build();
         }
@@ -97,29 +97,29 @@ public final class HgStoreStreamGrpc {
     return getScanOneShotMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod;
+  private static volatile io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "ScanBatch",
-      requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
-      responseType = com.baidu.hugegraph.store.grpc.stream.KvPageRes.class,
+      requestType = org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
+      responseType = org.apache.hugegraph.store.grpc.stream.KvPageRes.class,
       methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
-  public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod;
+  public static io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod() {
+    io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchMethod;
     if ((getScanBatchMethod = HgStoreStreamGrpc.getScanBatchMethod) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanBatchMethod = HgStoreStreamGrpc.getScanBatchMethod) == null) {
           HgStoreStreamGrpc.getScanBatchMethod = getScanBatchMethod =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
+              io.grpc.MethodDescriptor.<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, org.apache.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ScanBatch"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("ScanBatch"))
               .build();
         }
@@ -128,27 +128,27 @@ public final class HgStoreStreamGrpc {
     return getScanBatchMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+  private static volatile io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
           KvStream> getScanBatch2Method;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "ScanBatch2",
-      requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
+      requestType = org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
       responseType = KvStream.class,
       methodType = io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
-  public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+  public static io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
           KvStream> getScanBatch2Method() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream> getScanBatch2Method;
+    io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream> getScanBatch2Method;
     if ((getScanBatch2Method = HgStoreStreamGrpc.getScanBatch2Method) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanBatch2Method = HgStoreStreamGrpc.getScanBatch2Method) == null) {
           HgStoreStreamGrpc.getScanBatch2Method = getScanBatch2Method =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream>newBuilder()
+              io.grpc.MethodDescriptor.<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, KvStream>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.BIDI_STREAMING)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ScanBatch2"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                       KvStream.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("ScanBatch2"))
@@ -159,29 +159,29 @@ public final class HgStoreStreamGrpc {
     return getScanBatch2Method;
   }
 
-  private static volatile io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod;
+  private static volatile io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "ScanBatchOneShot",
-      requestType = com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
-      responseType = com.baidu.hugegraph.store.grpc.stream.KvPageRes.class,
+      requestType = org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.class,
+      responseType = org.apache.hugegraph.store.grpc.stream.KvPageRes.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-      com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod() {
-    io.grpc.MethodDescriptor<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod;
+  public static io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+      org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod() {
+    io.grpc.MethodDescriptor<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, org.apache.hugegraph.store.grpc.stream.KvPageRes> getScanBatchOneShotMethod;
     if ((getScanBatchOneShotMethod = HgStoreStreamGrpc.getScanBatchOneShotMethod) == null) {
       synchronized (HgStoreStreamGrpc.class) {
         if ((getScanBatchOneShotMethod = HgStoreStreamGrpc.getScanBatchOneShotMethod) == null) {
           HgStoreStreamGrpc.getScanBatchOneShotMethod = getScanBatchOneShotMethod =
-              io.grpc.MethodDescriptor.<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq, com.baidu.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
+              io.grpc.MethodDescriptor.<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq, org.apache.hugegraph.store.grpc.stream.KvPageRes>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ScanBatchOneShot"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  com.baidu.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
+                  org.apache.hugegraph.store.grpc.stream.KvPageRes.getDefaultInstance()))
               .setSchemaDescriptor(new HgStoreStreamMethodDescriptorSupplier("ScanBatchOneShot"))
               .build();
         }
@@ -244,36 +244,36 @@ public final class HgStoreStreamGrpc {
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq> scan(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamReq> scan(
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getScanMethod(), responseObserver);
     }
 
     /**
      */
-    public void scanOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamReq request,
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public void scanOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamReq request,
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getScanOneShotMethod(), responseObserver);
     }
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch(
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getScanBatchMethod(), responseObserver);
     }
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
         io.grpc.stub.StreamObserver<KvStream> responseObserver) {
       return io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall(getScanBatch2Method(), responseObserver);
     }
 
     /**
      */
-    public void scanBatchOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq request,
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public void scanBatchOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq request,
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getScanBatchOneShotMethod(), responseObserver);
     }
 
@@ -283,36 +283,36 @@ public final class HgStoreStreamGrpc {
             getScanMethod(),
             io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
               new MethodHandlers<
-                com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-                com.baidu.hugegraph.store.grpc.stream.KvPageRes>(
+                org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+                org.apache.hugegraph.store.grpc.stream.KvPageRes>(
                   this, METHODID_SCAN)))
           .addMethod(
             getScanOneShotMethod(),
             io.grpc.stub.ServerCalls.asyncUnaryCall(
               new MethodHandlers<
-                com.baidu.hugegraph.store.grpc.stream.ScanStreamReq,
-                com.baidu.hugegraph.store.grpc.stream.KvPageRes>(
+                org.apache.hugegraph.store.grpc.stream.ScanStreamReq,
+                org.apache.hugegraph.store.grpc.stream.KvPageRes>(
                   this, METHODID_SCAN_ONE_SHOT)))
           .addMethod(
             getScanBatchMethod(),
             io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
               new MethodHandlers<
-                com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-                com.baidu.hugegraph.store.grpc.stream.KvPageRes>(
+                org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+                org.apache.hugegraph.store.grpc.stream.KvPageRes>(
                   this, METHODID_SCAN_BATCH)))
           .addMethod(
             getScanBatch2Method(),
             io.grpc.stub.ServerCalls.asyncBidiStreamingCall(
               new MethodHandlers<
-                com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+                org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
                       KvStream>(
                   this, METHODID_SCAN_BATCH2)))
           .addMethod(
             getScanBatchOneShotMethod(),
             io.grpc.stub.ServerCalls.asyncUnaryCall(
               new MethodHandlers<
-                com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq,
-                com.baidu.hugegraph.store.grpc.stream.KvPageRes>(
+                org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq,
+                org.apache.hugegraph.store.grpc.stream.KvPageRes>(
                   this, METHODID_SCAN_BATCH_ONE_SHOT)))
           .build();
     }
@@ -338,31 +338,31 @@ public final class HgStoreStreamGrpc {
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamReq> scan(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamReq> scan(
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getScanMethod(), getCallOptions()), responseObserver);
     }
 
     /**
      */
-    public void scanOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamReq request,
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public void scanOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamReq request,
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getScanOneShotMethod(), getCallOptions()), request, responseObserver);
     }
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch(
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch(
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getScanBatchMethod(), getCallOptions()), responseObserver);
     }
 
     /**
      */
-    public io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
+    public io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq> scanBatch2(
         io.grpc.stub.StreamObserver<KvStream> responseObserver) {
       return io.grpc.stub.ClientCalls.asyncBidiStreamingCall(
           getChannel().newCall(getScanBatch2Method(), getCallOptions()), responseObserver);
@@ -370,8 +370,8 @@ public final class HgStoreStreamGrpc {
 
     /**
      */
-    public void scanBatchOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq request,
-        io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
+    public void scanBatchOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq request,
+        io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getScanBatchOneShotMethod(), getCallOptions()), request, responseObserver);
     }
@@ -397,14 +397,14 @@ public final class HgStoreStreamGrpc {
 
     /**
      */
-    public com.baidu.hugegraph.store.grpc.stream.KvPageRes scanOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamReq request) {
+    public org.apache.hugegraph.store.grpc.stream.KvPageRes scanOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamReq request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getScanOneShotMethod(), getCallOptions(), request);
     }
 
     /**
      */
-    public com.baidu.hugegraph.store.grpc.stream.KvPageRes scanBatchOneShot(com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq request) {
+    public org.apache.hugegraph.store.grpc.stream.KvPageRes scanBatchOneShot(org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getScanBatchOneShotMethod(), getCallOptions(), request);
     }
@@ -430,16 +430,16 @@ public final class HgStoreStreamGrpc {
 
     /**
      */
-    public com.google.common.util.concurrent.ListenableFuture<com.baidu.hugegraph.store.grpc.stream.KvPageRes> scanOneShot(
-        com.baidu.hugegraph.store.grpc.stream.ScanStreamReq request) {
+    public com.google.common.util.concurrent.ListenableFuture<org.apache.hugegraph.store.grpc.stream.KvPageRes> scanOneShot(
+        org.apache.hugegraph.store.grpc.stream.ScanStreamReq request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getScanOneShotMethod(), getCallOptions()), request);
     }
 
     /**
      */
-    public com.google.common.util.concurrent.ListenableFuture<com.baidu.hugegraph.store.grpc.stream.KvPageRes> scanBatchOneShot(
-        com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq request) {
+    public com.google.common.util.concurrent.ListenableFuture<org.apache.hugegraph.store.grpc.stream.KvPageRes> scanBatchOneShot(
+        org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getScanBatchOneShotMethod(), getCallOptions()), request);
     }
@@ -469,12 +469,12 @@ public final class HgStoreStreamGrpc {
     public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
       switch (methodId) {
         case METHODID_SCAN_ONE_SHOT:
-          serviceImpl.scanOneShot((com.baidu.hugegraph.store.grpc.stream.ScanStreamReq) request,
-              (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
+          serviceImpl.scanOneShot((org.apache.hugegraph.store.grpc.stream.ScanStreamReq) request,
+              (io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
           break;
         case METHODID_SCAN_BATCH_ONE_SHOT:
-          serviceImpl.scanBatchOneShot((com.baidu.hugegraph.store.grpc.stream.ScanStreamBatchReq) request,
-              (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
+          serviceImpl.scanBatchOneShot((org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq) request,
+              (io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -488,10 +488,10 @@ public final class HgStoreStreamGrpc {
       switch (methodId) {
         case METHODID_SCAN:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.scan(
-              (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
+              (io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
         case METHODID_SCAN_BATCH:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.scanBatch(
-              (io.grpc.stub.StreamObserver<com.baidu.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
+              (io.grpc.stub.StreamObserver<org.apache.hugegraph.store.grpc.stream.KvPageRes>) responseObserver);
         case METHODID_SCAN_BATCH2:
           return (io.grpc.stub.StreamObserver<Req>) serviceImpl.scanBatch2(
               (io.grpc.stub.StreamObserver<KvStream>) responseObserver);

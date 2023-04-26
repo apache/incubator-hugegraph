@@ -66,5 +66,5 @@ public interface KvStreamOrBuilder extends
    * <code>.KvStreamType type = 6;</code>
    * @return The type.
    */
-  com.baidu.hugegraph.store.grpc.stream.KvStreamType getType();
+  org.apache.hugegraph.store.grpc.stream.KvStreamType getType();
 }

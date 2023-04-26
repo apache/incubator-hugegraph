@@ -3,7 +3,7 @@ syntax = "proto3";
 import "store_common.proto";
 import "store_stream_meta.proto";
 option java_multiple_files = true;
-option java_package = "com.baidu.hugegraph.store.grpc.stream";
+option java_package = "org.apache.hugegraph.store.grpc.stream";
 option java_outer_classname = "HgStoreStreamProto";
 
 /**

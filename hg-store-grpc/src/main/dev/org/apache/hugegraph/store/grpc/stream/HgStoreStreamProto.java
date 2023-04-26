@@ -55,14 +55,14 @@ public final class HgStoreStreamProto {
       "\n.KvPageRes\"\000(\0010\001\0222\n\nScanBatch2\022\023.ScanSt" +
       "reamBatchReq\032\t.KvStream\"\000(\0010\001\0225\n\020ScanBat" +
       "chOneShot\022\023.ScanStreamBatchReq\032\n.KvPageR" +
-      "es\"\000B=\n%com.baidu.hugegraph.store.grpc.s" +
+      "es\"\000B=\n%org.apache.hugegraph.store.grpc.s" +
       "treamB\022HgStoreStreamProtoP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          com.baidu.hugegraph.store.grpc.common.HgStoreCommonProto.getDescriptor(),
-          com.baidu.hugegraph.store.grpc.stream.HgStoreStreamMetaProto.getDescriptor(),
+          org.apache.hugegraph.store.grpc.common.HgStoreCommonProto.getDescriptor(),
+          org.apache.hugegraph.store.grpc.stream.HgStoreStreamMetaProto.getDescriptor(),
         });
     internal_static_KvStream_descriptor =
       getDescriptor().getMessageTypes().get(0);
@@ -70,8 +70,8 @@ public final class HgStoreStreamProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_KvStream_descriptor,
         new java.lang.String[] { "SeqNo", "Over", "Version", "Stream", });
-    com.baidu.hugegraph.store.grpc.common.HgStoreCommonProto.getDescriptor();
-    com.baidu.hugegraph.store.grpc.stream.HgStoreStreamMetaProto.getDescriptor();
+    org.apache.hugegraph.store.grpc.common.HgStoreCommonProto.getDescriptor();
+    org.apache.hugegraph.store.grpc.stream.HgStoreStreamMetaProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)
