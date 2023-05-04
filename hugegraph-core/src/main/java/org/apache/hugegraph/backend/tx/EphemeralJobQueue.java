@@ -61,11 +61,11 @@ public class EphemeralJobQueue {
 
         if (!pendingQueue.offer(job)) {
             LOG.warn("The pending queue of EphemeralJobQueue is full");
-            this.reSchedule();
+            this.reScheduleIfNeeded();
             return;
         }
 
-        this.reSchedule();
+        this.reScheduleIfNeeded();
     }
 
     protected Queue<EphemeralJob<?>> queue() {
@@ -76,7 +76,7 @@ public class EphemeralJobQueue {
         this.state.compareAndSet(State.EXECUTE, State.INIT);
     }
 
-    public void reSchedule() {
+    public void reScheduleIfNeeded() {
         if (this.state.compareAndSet(State.INIT, State.EXECUTE)) {
             try {
                 BatchEphemeralJob job = new BatchEphemeralJob(this);
@@ -139,7 +139,7 @@ public class EphemeralJobQueue {
                     queue.consumeComplete();
                     stop = true;
                     if (!queue.isEmpty()) {
-                        queue.reSchedule();
+                        queue.reScheduleIfNeeded();
                     }
                     continue;
                 }
@@ -197,7 +197,7 @@ public class EphemeralJobQueue {
                 }
 
                 if (queue != null && !queue.isEmpty()) {
-                    queue.reSchedule();
+                    queue.reScheduleIfNeeded();
                 }
                 throw e;
             }
