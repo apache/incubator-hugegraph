@@ -60,7 +60,8 @@ public class EphemeralJobQueue {
         }
 
         if (!pendingQueue.offer(job)) {
-            LOG.warn("The pending queue of EphemeralJobQueue is full");
+            LOG.warn("The pending queue of EphemeralJobQueue is full, {} job " +
+                     "will be ignored", job.type());
             this.reScheduleIfNeeded();
             return;
         }
