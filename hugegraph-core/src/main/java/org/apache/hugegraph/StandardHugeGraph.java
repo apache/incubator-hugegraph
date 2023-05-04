@@ -51,6 +51,7 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
+import org.apache.hugegraph.backend.tx.EphemeralJobQueue;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
@@ -60,6 +61,7 @@ import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.io.HugeGraphIoRegistry;
+import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
 import org.apache.hugegraph.masterelection.RoleElectionConfig;
@@ -1163,6 +1165,7 @@ public class StandardHugeGraph implements HugeGraph {
     private class StandardHugeGraphParams implements HugeGraphParams {
 
         private HugeGraph graph = StandardHugeGraph.this;
+        private final EphemeralJobQueue ephemeralJobQueue = new EphemeralJobQueue(this.graph);
 
         private void graph(HugeGraph graph) {
             this.graph = graph;
@@ -1303,6 +1306,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public RamTable ramtable() {
             return StandardHugeGraph.this.ramtable;
+        }
+
+        @Override
+        public <T> void submitEphemeralJob(EphemeralJob<T> job) {
+            this.ephemeralJobQueue.add(job);
         }
     }
 

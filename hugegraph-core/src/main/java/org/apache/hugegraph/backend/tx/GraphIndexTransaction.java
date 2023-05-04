@@ -27,23 +27,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import groovy.lang.Tuple2;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.backend.page.PageIds;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.util.Events;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -77,7 +69,6 @@ import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.hugegraph.job.EphemeralJob;
-import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.job.system.DeleteExpiredJob;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -111,7 +102,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private final Analyzer textAnalyzer;
     private final int indexIntersectThresh;
 
-    private RemoveLeftIndexJobHelper removeLeftIndexJobHelper;
 
     public GraphIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
@@ -122,13 +112,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         final HugeConfig conf = graph.configuration();
         this.indexIntersectThresh =
              conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
-        this.removeLeftIndexJobHelper = RemoveLeftIndexJobHelper.instance(graph);
     }
 
     protected void asyncRemoveIndexLeft(ConditionQuery query,
                                         HugeElement element) {
         LOG.info("Remove left index: {}, query: {}", element, query);
-        this.removeLeftIndexJobHelper.add(query, element);
+        RemoveLeftIndexJob job = new RemoveLeftIndexJob(query, element);
+        job.selfCommit(false);
+        this.params().submitEphemeralJob(job);
     }
 
     @Watched(prefix = "index")
@@ -1722,104 +1713,29 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    public static class RemoveLeftIndexJobHelper {
-
-        public static final int CAPACITY = 2000;
-
-        private final BlockingQueue<Tuple2<ConditionQuery, HugeElement>> pendingQueue =
-                                    new ArrayBlockingQueue<>(CAPACITY);
-
-        private AtomicReference<State> state;
-
-        private HugeGraph graph;
-
-        private static final Map<HugeGraph, RemoveLeftIndexJobHelper> graph2JobHelpers =
-                                            new ConcurrentHashMap<>();
-
-        public static RemoveLeftIndexJobHelper instance(HugeGraphParams params) {
-            RemoveLeftIndexJobHelper helper = graph2JobHelpers.computeIfAbsent(params.graph(), g -> {
-                params.graphEventHub().listen(Events.GRAPH_DROP, event -> {
-                    LOG.debug("RemoveLeftIndexJobHelper accepts event '{}'", event.name());
-                    event.checkArgs(HugeGraph.class);
-                    HugeGraph graph = (HugeGraph) event.args()[0];
-                    graph2JobHelpers.remove(graph);
-                    return null;
-                });
-
-                return new RemoveLeftIndexJobHelper(g);
-            });
-
-            return helper;
-        }
-
-        enum State {
-            INIT,
-            EXECUTE,
-        }
-
-        private RemoveLeftIndexJobHelper(HugeGraph graph) {
-            this.state = new AtomicReference<>(State.INIT);
-            this.graph = graph;
-        }
-
-        public void add(ConditionQuery query, HugeElement element) {
-            if (query == null || element == null) {
-                return;
-            }
-
-            if (!pendingQueue.offer(new Tuple2(query, element))) {
-                LOG.warn("The pending queue of RemoveLeftIndexJob is full");
-                this.reSchedule();
-                return;
-            }
-
-           this.reSchedule();
-        }
-
-        public void consumeComplete() {
-            this.state.compareAndSet(State.EXECUTE, State.INIT);
-        }
-
-        public void reSchedule() {
-            if (this.state.compareAndSet(State.INIT, State.EXECUTE)) {
-                try {
-                    RemoveLeftIndexJob job = new RemoveLeftIndexJob(pendingQueue, this::consumeComplete,
-                                                                    this::reSchedule);
-                    EphemeralJobBuilder.of(this.graph)
-                                       .name("batch-remove-left-index")
-                                       .job(job)
-                                       .schedule();
-                } catch (Throwable e) {
-                    // Maybe if it fails, consider clearing all the data in the pendingQueue,
-                    // or start a scheduled retry task to retry until success.
-                    LOG.warn("Failed to schedule RemoveLeftIndexJob", e);
-                    this.pendingQueue.clear();
-                    this.state.compareAndSet(State.EXECUTE, State.INIT);
-                }
-            }
-        }
-    }
-
     public static class RemoveLeftIndexJob extends EphemeralJob<Object> {
 
         private static final String REMOVE_LEFT_INDEX = "remove_left_index";
-        public static final int MAX_CONSUME_COUNT = 1000;
 
+        private final ConditionQuery query;
+        private final HugeElement element;
         private GraphIndexTransaction tx;
+        private Set<ConditionQuery.LeftIndex> leftIndexes;
 
-        private Queue<Tuple2<ConditionQuery, HugeElement>> queue;
-        private Runnable completeCallback;
-        private Runnable scheduler;
+        private boolean selfCommit;
 
-        private RemoveLeftIndexJob(Queue<Tuple2<ConditionQuery, HugeElement>> queue,
-                                   Runnable completeCallback,
-                                   Runnable scheduler) {
-            E.checkArgumentNotNull(queue, "The queue can't be null");
-            E.checkArgumentNotNull(completeCallback, "The callback can't be null");
-            E.checkArgumentNotNull(scheduler, "The scheduler can't be null");
-            this.queue = queue;
-            this.completeCallback = completeCallback;
-            this.scheduler = scheduler;
+        private RemoveLeftIndexJob(ConditionQuery query, HugeElement element) {
+            E.checkArgumentNotNull(query, "query");
+            E.checkArgumentNotNull(element, "element");
+            this.query = query;
+            this.element = element;
+            this.tx = null;
+            this.leftIndexes = query.getLeftIndexOfElement(element.id());
+            this.selfCommit = true;
+        }
+
+        public void selfCommit(boolean selfCommit) {
+            this.selfCommit = selfCommit;
         }
 
         @Override
@@ -1828,86 +1744,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         @Override
-        public Object execute() throws InterruptedException {
-            boolean stop = false;
-            List<Tuple2<ConditionQuery, HugeElement>> systemElements = new ArrayList<>();
-            List<Tuple2<ConditionQuery, HugeElement>> graphElements = new ArrayList<>();
-            final int pageSize = 100;
-            int count = 0;
-            int consumeCount = 0;
-            InterruptedException interruptedException = null;
-            while (!stop) {
-                if (interruptedException == null && Thread.currentThread().isInterrupted()) {
-                    interruptedException = new InterruptedException();
-                }
-
-                if (this.queue.isEmpty() || consumeCount > MAX_CONSUME_COUNT ||
-                    interruptedException != null) {
-                    this.completeCallback.run();
-                    stop = true;
-                    if (!this.queue.isEmpty()) {
-                        this.scheduler.run();
-                    }
-                    continue;
-                }
-
-                try {
-                    while (!this.queue.isEmpty() && (systemElements.size() + graphElements.size()) < pageSize) {
-                        Tuple2<ConditionQuery, HugeElement> query2Element = this.queue.poll();
-                        if (query2Element.getSecond().schemaLabel().system()) {
-                            systemElements.add(query2Element);
-                        } else {
-                            graphElements.add(query2Element);
-                        }
-
-                        consumeCount++;
-                    }
-
-                    if (!systemElements.isEmpty()) {
-                        count += this.removeIndexLefts(this.params().systemTransaction().indexTransaction(),
-                                                       systemElements);
-                    }
-
-                    if (!graphElements.isEmpty()) {
-                        count += this.removeIndexLefts(this.params().graphTransaction().indexTransaction(),
-                                                       graphElements);
-                    }
-                } catch (InterruptedException e) {
-                    interruptedException = e;
-                } finally {
-                    graphElements.clear();
-                    systemElements.clear();
-                }
-            }
-
-            if (interruptedException != null) {
-                Thread.currentThread().interrupt();
-                throw interruptedException;
-            }
-
-            return count;
-        }
-
-        private long removeIndexLefts(GraphIndexTransaction tx,
-                                      List<Tuple2<ConditionQuery, HugeElement>> query2Elements)
-                                      throws InterruptedException {
-            this.tx = tx;
-            long count = 0;
-            try {
-                for (Tuple2<ConditionQuery, HugeElement> query2Element : query2Elements) {
-                    count += this.removeIndexLeft(query2Element.getFirst(), query2Element.getSecond());
-                    if (Thread.currentThread().isInterrupted()) {
-                        throw new InterruptedException();
-                    }
-                }
-                this.tx.commit();
-            } catch (Throwable e) {
-                if (e instanceof InterruptedException) {
-                    throw e;
-                }
-                LOG.warn("Failed to remove left index for graph element", e);
-            }
-            return count;
+        public Object execute() {
+            this.tx = this.element.schemaLabel().system() ?
+                      this.params().systemTransaction().indexTransaction() :
+                      this.params().graphTransaction().indexTransaction();
+            return this.removeIndexLeft(this.query, this.element);
         }
 
         protected long removeIndexLeft(ConditionQuery query,
@@ -1938,25 +1779,26 @@ public class GraphIndexTransaction extends AbstractTransaction {
             long sCount = 0;
             for (ConditionQuery cq: ConditionQueryFlatten.flatten(query)) {
                 // Process range index
-                rCount += this.processRangeIndexLeft(query, cq, element);
+                rCount += this.processRangeIndexLeft(cq, element);
                 // Process secondary index or search index
                 sCount += this.processSecondaryOrSearchIndexLeft(cq, element);
+            }
+            if (this.selfCommit) {
+                this.tx.commit();
             }
             return rCount + sCount;
         }
 
         private long processRangeIndexLeft(ConditionQuery query,
-                                           ConditionQuery flattenQuery,
                                            HugeElement element) {
             long count = 0;
-            Set<ConditionQuery.LeftIndex> leftIndexes = query.getLeftIndexOfElement(element.id());
-            if (CollectionUtils.isEmpty(leftIndexes)) {
+            if (this.leftIndexes == null) {
                 return count;
             }
 
-            for (ConditionQuery.LeftIndex leftIndex : leftIndexes) {
+            for (ConditionQuery.LeftIndex leftIndex : this.leftIndexes) {
                 Set<Object> indexValues = leftIndex.indexFieldValues();
-                IndexLabel indexLabel = this.findMatchedIndexLabel(flattenQuery,
+                IndexLabel indexLabel = this.findMatchedIndexLabel(query,
                                                                    leftIndex);
                 assert indexLabel != null;
 
@@ -1970,8 +1812,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
             }
             // Remove LeftIndex after constructing remove job
-            query.removeElementLeftIndex(element.id());
-            this.tx.commit();
+            this.query.removeElementLeftIndex(element.id());
+            if (this.selfCommit) {
+                this.tx.commit();
+            }
             return count;
         }
 
@@ -2036,11 +1880,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                      */
                     this.tx.updateIndex(il.id(), element, false);
                 }
-                this.tx.commit();
+                if (this.selfCommit) {
+                    this.tx.commit();
+                }
                 if (this.deletedByError(element, incorrectIndexFields,
                                         incorrectPKs)) {
                     this.tx.updateIndex(il.id(), deletion, false);
-                    this.tx.commit();
+                    if (this.selfCommit) {
+                        this.tx.commit();
+                    }
                 } else {
                     count++;
                 }
