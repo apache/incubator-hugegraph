@@ -1711,6 +1711,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
     }
+
     public static class RemoveLeftIndexJob extends EphemeralJob<Long>
                                            implements EphemeralJobQueue.Reduce<Long> {
 
@@ -1961,7 +1962,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         @Override
-        public long reduce(long t1, Long t2) {
+        public Long reduce(Long t1, Long t2) {
+            if (t1 == null) {
+                return t2;
+            }
+
+            if (t2 == null) {
+                return t1;
+            }
+
             return t1 + t2;
         }
     }

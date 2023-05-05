@@ -33,14 +33,13 @@ import org.slf4j.Logger;
 
 public class EphemeralJobQueue {
 
-    protected static final Logger LOG = Log.logger(EphemeralJobQueue.class);
+    private static final Logger LOG = Log.logger(EphemeralJobQueue.class);
 
-    public static final int CAPACITY = 2000;
+    private static final int CAPACITY = 2000;
 
-    private final BlockingQueue<EphemeralJob<?>> pendingQueue =
-            new ArrayBlockingQueue<>(CAPACITY);
+    private final BlockingQueue<EphemeralJob<?>> pendingQueue;
 
-    private AtomicReference<State> state;
+    private final AtomicReference<State> state;
 
     private final HugeGraph graph;
 
@@ -52,6 +51,7 @@ public class EphemeralJobQueue {
     public EphemeralJobQueue(HugeGraph graph) {
         this.state = new AtomicReference<>(State.INIT);
         this.graph = graph;
+        this.pendingQueue = new ArrayBlockingQueue<>(CAPACITY);
     }
 
     public void add(EphemeralJob<?> job) {
@@ -103,9 +103,9 @@ public class EphemeralJobQueue {
 
         private static final int PAGE_SIZE = 100;
         private static final String BATCH_EPHEMERAL_JOB = "batch-ephemeral-job";
-        public static final int MAX_CONSUME_COUNT = EphemeralJobQueue.CAPACITY / 2;
+        private static final int MAX_CONSUME_COUNT = EphemeralJobQueue.CAPACITY / 2;
 
-        WeakReference<EphemeralJobQueue> queueWeakReference;
+        private WeakReference<EphemeralJobQueue> queueWeakReference;
 
         public BatchEphemeralJob(EphemeralJobQueue queue) {
             this.queueWeakReference = new WeakReference<>(queue);
@@ -119,7 +119,7 @@ public class EphemeralJobQueue {
         @Override
         public Object execute() throws Exception {
             boolean stop = false;
-            long count = 0;
+            Object ret = null;
             int consumeCount = 0;
             InterruptedException interruptedException = null;
             EphemeralJobQueue queue;
@@ -136,7 +136,7 @@ public class EphemeralJobQueue {
                 }
 
                 if (queue.isEmpty() || consumeCount > MAX_CONSUME_COUNT ||
-                          interruptedException != null) {
+                    interruptedException != null) {
                     queue.consumeComplete();
                     stop = true;
                     if (!queue.isEmpty()) {
@@ -156,7 +156,7 @@ public class EphemeralJobQueue {
                         continue;
                     }
 
-                    this.executeBatchJob(batchJobs);
+                    ret = this.executeBatchJob(batchJobs, ret);
 
                 } catch (InterruptedException e) {
                     interruptedException = e;
@@ -170,26 +170,24 @@ public class EphemeralJobQueue {
                 throw interruptedException;
             }
 
-            return count;
+            return ret;
         }
 
-        private long executeBatchJob(List<EphemeralJob<?>> jobs) throws Exception {
+        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prev) throws Exception {
             GraphIndexTransaction graphTx = this.params().systemTransaction().indexTransaction();
             GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
-            long count = 0;
+            Object ret = prev;
             for (EphemeralJob<?> job : jobs) {
                 Object obj = job.call();
                 if (job instanceof Reduce) {
-                    count = ((Reduce) job).reduce(count, obj);
-                } else {
-                    count ++;
+                    ret = ((Reduce) job).reduce(ret, obj);
                 }
             }
 
             graphTx.commit();
             systemTx.commit();
 
-            return count;
+            return ret;
         }
 
         @Override
@@ -216,6 +214,6 @@ public class EphemeralJobQueue {
     }
 
     public interface Reduce<T> {
-        long reduce(long t1,  T t2);
+        T reduce(T t1,  T t2);
     }
 }
