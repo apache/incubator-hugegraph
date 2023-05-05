@@ -37,6 +37,7 @@
     <!--        </server>-->
     <!--    </servers>-->
     <profiles>
+        <!-- TODO: remove thie repo / profile -->
         <profile>
             <id>baidu</id>
             <repositories>

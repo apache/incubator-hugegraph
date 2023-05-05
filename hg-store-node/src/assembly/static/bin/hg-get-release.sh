@@ -16,7 +16,7 @@
 # under the License.
 #
 
-#ver 0.1.0 liyan75 on 2021/12/17
+# TODO: remove thie repo
 readonly REPO_SNAPSHOT_PATH=http://10.14.139.8:8082/artifactory/star
 readonly REPO_FILE_PATH=http://10.14.139.8:8082/artifactory/star-file
 readonly REPO_BAIDU_LOCAL_PATH=http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local

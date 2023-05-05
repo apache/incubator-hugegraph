@@ -101,6 +101,7 @@
         </dependency>
     </dependencies>
 
+    <!-- TODO: remove thie repo  -->
     <distributionManagement>
         <repository>
             <id>Baidu_Local</id>

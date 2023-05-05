@@ -54,6 +54,7 @@ curl -i -X PUT -u "$artifactoryUser:$artifactoryPassword" \
 
 
  #------------------repo-client-----------------------
+ # TODO: remove thie repo
 readonly REPO_SNAPSHOT_PATH=http://10.14.139.8:8082/artifactory/star
 readonly REPO_FILE_PATH=http://10.14.139.8:8082/artifactory/star-file
 readonly REPO_BAIDU_LOCAL_PATH=http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local
