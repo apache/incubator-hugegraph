@@ -102,7 +102,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
     private final Analyzer textAnalyzer;
     private final int indexIntersectThresh;
 
-
     public GraphIndexTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
@@ -1712,8 +1711,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
     }
-
-    public static class RemoveLeftIndexJob extends EphemeralJob<Object> {
+    public static class RemoveLeftIndexJob extends EphemeralJob<Long>
+                                           implements EphemeralJobQueue.Reduce<Long> {
 
         private static final String REMOVE_LEFT_INDEX = "remove_left_index";
 
@@ -1744,7 +1743,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         @Override
-        public Object execute() {
+        public Long execute() {
             this.tx = this.element.schemaLabel().system() ?
                       this.params().systemTransaction().indexTransaction() :
                       this.params().graphTransaction().indexTransaction();
@@ -1959,6 +1958,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 Iterator<Edge> iter = this.graph().edges(element.id());
                 return (HugeEdge) QueryResults.one(iter);
             }
+        }
+
+        @Override
+        public long reduce(long t1, Long t2) {
+            return t1 + t2;
         }
     }
 }

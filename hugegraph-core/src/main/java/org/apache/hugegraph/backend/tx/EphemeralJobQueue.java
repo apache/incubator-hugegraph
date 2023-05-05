@@ -42,7 +42,7 @@ public class EphemeralJobQueue {
 
     private AtomicReference<State> state;
 
-    private HugeGraph graph;
+    private final HugeGraph graph;
 
     private enum State {
         INIT,
@@ -59,7 +59,7 @@ public class EphemeralJobQueue {
             return;
         }
 
-        if (!pendingQueue.offer(job)) {
+        if (!this.pendingQueue.offer(job)) {
             LOG.warn("The pending queue of EphemeralJobQueue is full, {} job " +
                      "will be ignored", job.type());
             this.reScheduleIfNeeded();
@@ -82,9 +82,9 @@ public class EphemeralJobQueue {
             try {
                 BatchEphemeralJob job = new BatchEphemeralJob(this);
                 EphemeralJobBuilder.of(this.graph)
-                        .name("batch-ephemeral-job")
-                        .job(job)
-                        .schedule();
+                                   .name("batch-ephemeral-job")
+                                   .job(job)
+                                   .schedule();
             } catch (Throwable e) {
                 // Maybe if it fails, consider clearing all the data in the pendingQueue,
                 // or start a scheduled retry task to retry until success.
@@ -101,6 +101,7 @@ public class EphemeralJobQueue {
 
     public static class BatchEphemeralJob extends EphemeralJob<Object> {
 
+        private static final int PAGE_SIZE = 100;
         private static final String BATCH_EPHEMERAL_JOB = "batch-ephemeral-job";
         public static final int MAX_CONSUME_COUNT = EphemeralJobQueue.CAPACITY / 2;
 
@@ -118,8 +119,7 @@ public class EphemeralJobQueue {
         @Override
         public Object execute() throws Exception {
             boolean stop = false;
-            final int pageSize = 100;
-            int count = 0;
+            long count = 0;
             int consumeCount = 0;
             InterruptedException interruptedException = null;
             EphemeralJobQueue queue;
@@ -146,7 +146,7 @@ public class EphemeralJobQueue {
                 }
 
                 try {
-                    while (!queue.isEmpty() && batchJobs.size() < pageSize) {
+                    while (!queue.isEmpty() && batchJobs.size() < PAGE_SIZE) {
                         EphemeralJob<?> job = queue.queue().poll();
                         batchJobs.add(job);
                         consumeCount++;
@@ -156,16 +156,7 @@ public class EphemeralJobQueue {
                         continue;
                     }
 
-                    GraphIndexTransaction graphTx = this.params().systemTransaction().indexTransaction();
-                    GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
-
-                    for (EphemeralJob<?> job : batchJobs) {
-                        Object obj = job.call();
-                        count += (Integer) obj;
-                    }
-
-                    graphTx.commit();
-                    systemTx.commit();
+                    this.executeBatchJob(batchJobs);
 
                 } catch (InterruptedException e) {
                     interruptedException = e;
@@ -178,6 +169,25 @@ public class EphemeralJobQueue {
                 Thread.currentThread().interrupt();
                 throw interruptedException;
             }
+
+            return count;
+        }
+
+        private long executeBatchJob(List<EphemeralJob<?>> jobs) throws Exception {
+            GraphIndexTransaction graphTx = this.params().systemTransaction().indexTransaction();
+            GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
+            long count = 0;
+            for (EphemeralJob<?> job : jobs) {
+                Object obj = job.call();
+                if (job instanceof Reduce) {
+                    count = ((Reduce) job).reduce(count, obj);
+                } else {
+                    count ++;
+                }
+            }
+
+            graphTx.commit();
+            systemTx.commit();
 
             return count;
         }
@@ -205,4 +215,7 @@ public class EphemeralJobQueue {
         }
     }
 
+    public interface Reduce<T> {
+        long reduce(long t1,  T t2);
+    }
 }
