@@ -148,6 +148,9 @@ public class EphemeralJobQueue {
                 try {
                     while (!queue.isEmpty() && batchJobs.size() < PAGE_SIZE) {
                         EphemeralJob<?> job = queue.queue().poll();
+                        if (job == null) {
+                            continue;
+                        }
                         batchJobs.add(job);
                         consumeCount++;
                     }
