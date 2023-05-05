@@ -61,6 +61,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+            <version>2.5.14</version>
             <exclusions>
                 <!-- Exclude the Tomcat dependency -->
                 <exclusion>

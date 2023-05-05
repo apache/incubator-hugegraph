@@ -22,12 +22,7 @@ import java.lang.reflect.Field;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store.util
- * @className:
- * @description:
- * @date: 2021/10/21 11:44
- * @version: 1.0
+ * TODO: refer license later, 76% match, maybe refer to jraft-core (1.2.6)
  */
 @Slf4j
 public class UnsafeUtil {

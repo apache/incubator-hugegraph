@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+//TODO: refer license later, 74% match, maybe refer to kafka (0.8.1)
 public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
 
     ScheduledExecutorService scheduledExecutor;

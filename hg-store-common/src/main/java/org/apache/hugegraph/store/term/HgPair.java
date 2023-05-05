@@ -22,6 +22,7 @@ import java.util.Objects;
 
 /**
  * Copy from javafx.util:Pair
+ * TODO: refer license later, ?% match, maybe refer to avafx.util:Pair
  * <p>
  * created on 2021/10/15
  */
@@ -32,7 +33,7 @@ public class HgPair<K, V> implements Serializable {
      */
     private K key;
     /**
-     * Value of this this <code>Pair</code>.
+     * Value of this <code>Pair</code>.
      */
     private V value;
 

@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+// TODO: refer license later, 90% match, maybe refer to metrics-jvm-extras (0.1.3) APL2.0
 class ProcfsReader {
 
     /* default */ static final long CACHE_DURATION_MS = 100;

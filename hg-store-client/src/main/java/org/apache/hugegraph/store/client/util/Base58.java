@@ -21,11 +21,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Created with IntelliJ IDEA.
- * User: noah
- * Date: 8/2/13
- * Time: 10:36 AM
- * To change this template use File | Settings | File Templates.
+ * TODO: refer license later, 78% match, maybe refer to google? ensure it later
  */
 public class Base58 {
 

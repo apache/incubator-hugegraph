@@ -37,6 +37,7 @@ import org.apache.commons.io.output.NullOutputStream;
 
 import lombok.extern.slf4j.Slf4j;
 
+//TODO: refer license later, 64% match, maybe refer to jraft-rheakv-core? ensure it later
 @Slf4j
 public final class ZipUtils {
 

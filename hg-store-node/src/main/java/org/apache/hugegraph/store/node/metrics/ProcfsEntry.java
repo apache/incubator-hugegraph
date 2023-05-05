@@ -25,6 +25,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: refer license later, 83% match, maybe refer to metrics-jvm-extras (0.1.3) APL2.0
 abstract class ProcfsEntry {
 
     private static final Logger log = LoggerFactory.getLogger(ProcfsEntry.class);

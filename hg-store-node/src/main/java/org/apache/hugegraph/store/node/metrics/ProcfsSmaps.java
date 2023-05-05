@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongUnaryOperator;
 
+// TODO: refer license later, 88% match, maybe refer to metrics-jvm-extras (0.1.0) APL2.0
 public class ProcfsSmaps extends ProcfsEntry {
 
     private static final int KILOBYTE = 1024;
