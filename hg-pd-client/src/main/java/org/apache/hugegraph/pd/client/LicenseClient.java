@@ -1,0 +1,54 @@
+package org.apache.hugegraph.pd.client;
+
+import com.baidu.hugegraph.pd.common.KVPair;
+import com.baidu.hugegraph.pd.grpc.PDGrpc;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.google.protobuf.ByteString;
+import io.grpc.stub.AbstractBlockingStub;
+import io.grpc.stub.AbstractStub;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * @author zhangyingjie
+ * @date 2022/8/3
+ **/
+@Slf4j
+public class LicenseClient extends AbstractClient {
+
+    public LicenseClient(PDConfig config) {
+        super(config);
+    }
+
+    @Override
+    protected AbstractStub createStub() {
+        return PDGrpc.newStub(channel);
+    }
+
+    @Override
+    protected AbstractBlockingStub createBlockingStub() {
+        return PDGrpc.newBlockingStub(channel);
+    }
+
+    public Pdpb.PutLicenseResponse putLicense(byte[] content) {
+        Pdpb.PutLicenseRequest request = Pdpb.PutLicenseRequest.newBuilder()
+                                                               .setContent(ByteString.copyFrom(content))
+                                                               .build();
+        try {
+            KVPair<Boolean, Pdpb.PutLicenseResponse> pair = concurrentBlockingUnaryCall(
+                    PDGrpc.getPutLicenseMethod(), request,
+                    (rs) -> rs.getHeader().getError().getType().equals(Pdpb.ErrorType.OK));
+            if (pair.getKey()) {
+                Pdpb.PutLicenseResponse.Builder builder = Pdpb.PutLicenseResponse.newBuilder();
+                builder.setHeader(okHeader);
+                return builder.build();
+            } else {
+                return pair.getValue();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.debug("put license with error:{} ", e);
+            Pdpb.ResponseHeader rh = newErrorHeader(Pdpb.ErrorType.LICENSE_ERROR_VALUE, e.getMessage());
+            return Pdpb.PutLicenseResponse.newBuilder().setHeader(rh).build();
+        }
+    }
+}

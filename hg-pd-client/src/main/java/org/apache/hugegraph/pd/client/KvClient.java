@@ -1,0 +1,293 @@
+package org.apache.hugegraph.pd.client;
+
+import java.io.Closeable;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.kv.K;
+import com.baidu.hugegraph.pd.grpc.kv.KResponse;
+import com.baidu.hugegraph.pd.grpc.kv.Kv;
+import com.baidu.hugegraph.pd.grpc.kv.KvResponse;
+import com.baidu.hugegraph.pd.grpc.kv.KvServiceGrpc;
+import com.baidu.hugegraph.pd.grpc.kv.LockRequest;
+import com.baidu.hugegraph.pd.grpc.kv.LockResponse;
+import com.baidu.hugegraph.pd.grpc.kv.ScanPrefixResponse;
+import com.baidu.hugegraph.pd.grpc.kv.TTLRequest;
+import com.baidu.hugegraph.pd.grpc.kv.TTLResponse;
+import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
+import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
+import com.baidu.hugegraph.pd.grpc.kv.WatchRequest;
+import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
+import com.baidu.hugegraph.pd.grpc.kv.WatchType;
+
+import io.grpc.stub.AbstractBlockingStub;
+import io.grpc.stub.AbstractStub;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * @author zhangyingjie
+ * @date 2022/6/20
+ **/
+@Slf4j
+public class KvClient<T extends WatchResponse> extends AbstractClient implements Closeable {
+
+    private AtomicLong clientId = new AtomicLong(0);
+    private Semaphore semaphore = new Semaphore(1);
+
+    public KvClient(PDConfig pdConfig) {
+        super(pdConfig);
+    }
+
+    @Override
+    protected AbstractStub createStub() {
+        return KvServiceGrpc.newStub(channel);
+    }
+
+    @Override
+    protected AbstractBlockingStub createBlockingStub() {
+        return KvServiceGrpc.newBlockingStub(channel);
+    }
+
+    public KvResponse put(String key, String value) throws PDException {
+        Kv kv = Kv.newBuilder().setKey(key).setValue(value).build();
+        KvResponse response = blockingUnaryCall(KvServiceGrpc.getPutMethod(), kv);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+
+    public KResponse get(String key) throws PDException {
+        K k = K.newBuilder().setKey(key).build();
+        KResponse response = blockingUnaryCall(KvServiceGrpc.getGetMethod(), k);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+
+    public KvResponse delete(String key) throws PDException {
+        K k = K.newBuilder().setKey(key).build();
+        KvResponse response = blockingUnaryCall(KvServiceGrpc.getDeleteMethod(), k);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+
+    public KvResponse deletePrefix(String prefix) throws PDException {
+        K k = K.newBuilder().setKey(prefix).build();
+        KvResponse response = blockingUnaryCall(KvServiceGrpc.getDeletePrefixMethod(), k);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+
+    public ScanPrefixResponse scanPrefix(String prefix) throws PDException {
+        K k = K.newBuilder().setKey(prefix).build();
+        ScanPrefixResponse response = blockingUnaryCall(KvServiceGrpc.getScanPrefixMethod(), k);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+    public TTLResponse keepTTLAlive(String key) throws PDException {
+        TTLRequest request = TTLRequest.newBuilder().setKey(key).build();
+        TTLResponse response = blockingUnaryCall(KvServiceGrpc.getKeepTTLAliveMethod(), request);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+    public TTLResponse putTTL(String key, String value, long ttl) throws PDException {
+        TTLRequest request = TTLRequest.newBuilder().setKey(key).setValue(value).setTtl(ttl).build();
+        TTLResponse response = blockingUnaryCall(KvServiceGrpc.getPutTTLMethod(), request);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+    private void onEvent(WatchResponse value, Consumer<T> consumer) {
+        log.info("receive message for {},event Count:{}", value, value.getEventsCount());
+        clientId.compareAndSet(0L, value.getClientId());
+        if (value.getEventsCount() != 0) consumer.accept((T) value);
+    }
+
+    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
+        try {
+            listen(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listen with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
+
+    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
+        try {
+            listenPrefix(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listenPrefix with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
+
+    private StreamObserver<WatchResponse> getObserver(String key, Consumer<T> consumer,
+                                                      BiConsumer<String, Consumer> listenWrapper) {
+        return new StreamObserver<WatchResponse>() {
+            @Override
+            public void onNext(WatchResponse value) {
+                switch (value.getState()) {
+                    case Starting:
+                        boolean b = clientId.compareAndSet(0, value.getClientId());
+                        if (b) {
+                            log.info("set watch client id to :{}", value.getClientId());
+                        }
+                        semaphore.release();
+                        break;
+                    case Started:
+                        onEvent(value, consumer);
+                        break;
+                    case Leader_Changed:
+                        listenWrapper.accept(key, consumer);
+                        break;
+                    case Alive:
+                        // only for check client is alive, do nothing
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                listenWrapper.accept(key, consumer);
+            }
+
+
+            @Override
+            public void onCompleted() {
+
+            }
+        };
+    }
+
+    public void listen(String key, Consumer<T> consumer) throws PDException {
+        StreamObserver<WatchResponse> observer = getObserver(key, consumer, listenWrapper);
+        acquire();
+        WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(key).build();
+        streamingCall(KvServiceGrpc.getWatchMethod(), k, observer, 1);
+    }
+
+    public void listenPrefix(String prefix, Consumer<T> consumer) throws PDException {
+        StreamObserver<WatchResponse> observer = getObserver(prefix, consumer, prefixListenWrapper);
+        acquire();
+        WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
+        streamingCall(KvServiceGrpc.getWatchPrefixMethod(), k, observer, 1);
+    }
+
+    private void acquire() {
+        if (clientId.get() == 0L) {
+            try {
+                semaphore.acquire();
+                if (clientId.get() != 0L) {
+                    semaphore.release();
+                }
+            } catch (InterruptedException e) {
+                log.error("get semaphore with error:", e);
+            }
+        }
+    }
+
+
+    public List<String> getWatchList(T response) {
+        List<String> values = new LinkedList<>();
+        List<WatchEvent> eventsList = response.getEventsList();
+        for (WatchEvent event : eventsList) {
+            if (event.getType() != WatchType.Put) {
+                return null;
+            }
+            String value = event.getCurrent().getValue();
+            values.add(value);
+        }
+        return values;
+    }
+
+
+    public Map<String, String> getWatchMap(T response) {
+        Map<String, String> values = new HashMap<>();
+        List<WatchEvent> eventsList = response.getEventsList();
+        for (WatchEvent event : eventsList) {
+            if (event.getType() != WatchType.Put) {
+                return null;
+            }
+            WatchKv current = event.getCurrent();
+            String key = current.getKey();
+            String value = current.getValue();
+            values.put(key, value);
+        }
+        return values;
+    }
+
+
+    public LockResponse lock(String key, long ttl) throws PDException {
+        acquire();
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl).build();
+        LockResponse response = blockingUnaryCall(KvServiceGrpc.getLockMethod(), k);
+        handleErrors(response.getHeader());
+        clientId.compareAndSet(0L, response.getClientId());
+        assert clientId.get() == response.getClientId();
+        return response;
+    }
+
+    public LockResponse lockWithoutReentrant(String key, long ttl) throws PDException {
+        acquire();
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl).build();
+        LockResponse response = blockingUnaryCall(KvServiceGrpc.getLockWithoutReentrantMethod(), k);
+        handleErrors(response.getHeader());
+        clientId.compareAndSet(0L, response.getClientId());
+        assert clientId.get() == response.getClientId();
+        return response;
+    }
+
+    public LockResponse isLocked(String key) throws PDException {
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).build();
+        LockResponse response = blockingUnaryCall(KvServiceGrpc.getIsLockedMethod(), k);
+        handleErrors(response.getHeader());
+        return response;
+    }
+
+
+    public LockResponse unlock(String key) throws PDException {
+        assert clientId.get() != 0;
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).build();
+        LockResponse response = blockingUnaryCall(KvServiceGrpc.getUnlockMethod(), k);
+        handleErrors(response.getHeader());
+        clientId.compareAndSet(0L, response.getClientId());
+        assert clientId.get() == response.getClientId();
+        return response;
+    }
+
+
+    public LockResponse keepAlive(String key) throws PDException {
+        assert clientId.get() != 0;
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).build();
+        LockResponse response = blockingUnaryCall(KvServiceGrpc.getKeepAliveMethod(), k);
+        handleErrors(response.getHeader());
+        clientId.compareAndSet(0L, response.getClientId());
+        assert clientId.get() == response.getClientId();
+        return response;
+    }
+
+    @Override
+    public void close() {
+        super.close();
+    }
+}

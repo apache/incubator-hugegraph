@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>hugegraph-pd-root</artifactId>
+        <groupId>com.baidu.hugegraph</groupId>
+        <version>3.6.5-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>hg-pd-dist</artifactId>
+
+    <properties>
+        <dist.dir>${project.parent.basedir}/dist</dist.dir>
+        <shell-executable>bash</shell-executable>
+        <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
+        <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
+        <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
+        <final.name>hugegraph-pd-${project.parent.version}</final.name>
+        <executable.jar.name>hugegraph-pd</executable.jar.name>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.baidu.hugegraph</groupId>
+            <artifactId>hugegraph-pd</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>assembly-hugegraph-pd</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <attach>false</attach>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <outputDirectory>${dist.dir}</outputDirectory>
+                            <descriptors>
+                                <descriptor>
+                                    ${assembly.descriptor.dir}/server-assembly.xml
+                                </descriptor>
+                            </descriptors>
+                            <finalName>${final.name}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${dist.dir}</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
+                                         classpathref="maven.plugin.classpath"/>
+                                <if>
+                                    <contains string="${os.name}" substring="Linux"/>
+                                    <then>
+                                        <echo file="${dist.dir}/dist.sh">
+                                            tar -zcvf \
+                                            ${dist.dir}/${final.name}.tar.gz \
+                                            ${final.name} || exit 1
+                                            rm -f ${dist.dir}/dist.sh
+                                            rm -rf ${dist.dir}/${final.name}
+                                            echo
+                                            echo "HugeGraph dist tar.gz available at:
+                                            ${dist.dir}/${final.name}.tar.gz"
+                                            echo
+                                        </echo>
+                                        <exec executable="${shell-executable}"
+                                              dir="${dist.dir}" failonerror="true">
+                                            <arg line="./dist.sh"/>
+                                        </exec>
+                                    </then>
+                                </if>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>ant-contrib</groupId>
+                        <artifactId>ant-contrib</artifactId>
+                        <version>1.0b3</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>ant</groupId>
+                                <artifactId>ant</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>

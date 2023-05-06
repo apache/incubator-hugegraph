@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!-- 修改这里更改本地缓存路径
+    <localRepository>
+        /path/to/cache/
+    </localRepository>
+    -->
+    <servers>
+        <server>
+            <id>star-local</id>
+            <username>superstar</username>
+            <password>Superstar12345</password>
+        </server>
+        <server>
+            <id>star-snapshot</id>
+            <username>superstar</username>
+            <password>Superstar12345</password>
+        </server>
+    </servers>
+    <profiles>
+        <profile>
+            <id>baidu</id>
+            <repositories>
+                <repository>
+                    <id>baidu-nexus</id>
+                    <url>http://maven.baidu-int.com/nexus/content/groups/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>baidu-nexus-snapshot</id>
+                    <url>http://maven.baidu-int.com/nexus/content/groups/public-snapshots</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+
+                <!-- 项目组自建仓库-->
+                <repository>
+                    <id>star</id>
+                    <url>http://10.14.139.8:8082/artifactory/star</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </snapshots>
+                </repository>
+                <!-- end -->
+
+                <repository>
+                    <id>Baidu_Local</id>
+                    <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>Baidu_Local_Snapshots</id>
+                    <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local_Snapshots</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories> <!-- plugin也需要从repository中获取 -->
+                <pluginRepository>
+                    <id>baidu-nexus</id>
+                    <url>http://maven.baidu-int.com/nexus/content/groups/public</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>baidu-nexus-snapshot</id>
+                    <url>http://maven.baidu-int.com/nexus/content/groups/public-snapshots</url>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>baidu</activeProfile> <!--别忘了激活配置 -->
+    </activeProfiles>
+</settings>
