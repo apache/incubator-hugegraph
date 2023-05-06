@@ -31,8 +31,11 @@ import java.util.concurrent.TimeoutException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.PeerRestRequest;
 import org.apache.hugegraph.pd.model.RestApiResponse;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.PDService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -42,10 +45,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.raft.RaftEngine;
 
 import io.grpc.stub.CallStreamObserver;
 import io.grpc.stub.StreamObserver;

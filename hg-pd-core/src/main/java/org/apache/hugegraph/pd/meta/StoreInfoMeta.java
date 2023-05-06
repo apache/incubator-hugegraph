@@ -21,10 +21,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

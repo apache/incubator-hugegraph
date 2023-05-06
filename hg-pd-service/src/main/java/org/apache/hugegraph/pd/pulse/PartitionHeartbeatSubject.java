@@ -19,7 +19,7 @@ package org.apache.hugegraph.pd.pulse;
 
 import java.util.function.Function;
 
-import com.baidu.hugegraph.pd.grpc.pulse.*;
+import org.apache.hugegraph.pd.grpc.pulse.*;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/9

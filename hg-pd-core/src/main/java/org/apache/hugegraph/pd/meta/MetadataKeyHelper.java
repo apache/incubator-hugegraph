@@ -20,8 +20,7 @@ package org.apache.hugegraph.pd.meta;
 import java.nio.charset.Charset;
 
 import org.apache.commons.lang3.StringUtils;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 public class MetadataKeyHelper {
 

@@ -19,29 +19,28 @@ package org.apache.hugegraph.pd.service;
 
 import java.io.File;
 
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.IdService;
+import org.apache.hugegraph.pd.PartitionInstructionListener;
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.PartitionStatusListener;
+import org.apache.hugegraph.pd.StoreMonitorDataService;
+import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.StoreStatusListener;
+import org.apache.hugegraph.pd.TaskScheduleService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionKeyRange;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.ConfigService;
-import com.baidu.hugegraph.pd.IdService;
-import com.baidu.hugegraph.pd.PartitionInstructionListener;
-import com.baidu.hugegraph.pd.PartitionService;
-import com.baidu.hugegraph.pd.PartitionStatusListener;
-import com.baidu.hugegraph.pd.StoreMonitorDataService;
-import com.baidu.hugegraph.pd.StoreNodeService;
-import com.baidu.hugegraph.pd.StoreStatusListener;
-import com.baidu.hugegraph.pd.TaskScheduleService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.DbCompaction;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionKeyRange;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
-import com.baidu.hugegraph.pd.raft.RaftEngine;
 
 public class PdTestBase {
     private static final String DATA_PATH = "/tmp/pd_data";

@@ -32,7 +32,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.discovery.RegisterInfo;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
@@ -42,9 +45,6 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.Slice;
 
 import com.alipay.sofa.jraft.util.Utils;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.primitives.Bytes;
 

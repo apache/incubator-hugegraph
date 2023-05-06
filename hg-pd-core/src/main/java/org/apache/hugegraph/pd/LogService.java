@@ -19,13 +19,13 @@ package org.apache.hugegraph.pd;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.LogMeta;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.springframework.stereotype.Service;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.Any;
 import com.google.protobuf.GeneratedMessageV3;
 

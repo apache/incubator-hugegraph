@@ -21,6 +21,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.hugegraph.pd.RegistryService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.meta.MetadataFactory;
+import org.apache.hugegraph.pd.meta.QueueStore;
 import org.apache.hugegraph.pd.pulse.PDPulseSubject;
 import org.apache.hugegraph.pd.watch.PDWatchSubject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,15 +41,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.baidu.hugegraph.pd.RegistryService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
-import com.baidu.hugegraph.pd.meta.MetadataFactory;
-import com.baidu.hugegraph.pd.meta.QueueStore;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
 

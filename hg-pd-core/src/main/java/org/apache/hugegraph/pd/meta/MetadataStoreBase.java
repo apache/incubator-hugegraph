@@ -23,10 +23,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.store.KV;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
 import com.google.protobuf.Parser;
 
 public abstract class MetadataStoreBase {

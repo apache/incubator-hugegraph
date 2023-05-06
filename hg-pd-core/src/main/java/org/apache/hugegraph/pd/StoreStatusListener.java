@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.pd;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 public interface StoreStatusListener {
 

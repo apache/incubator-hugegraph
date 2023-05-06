@@ -23,11 +23,10 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.kv.KResponse;
+import org.apache.hugegraph.pd.grpc.kv.KvResponse;
 import org.yaml.snakeyaml.Yaml;
-
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.kv.KResponse;
-import com.baidu.hugegraph.pd.grpc.kv.KvResponse;
 
 import lombok.extern.slf4j.Slf4j;
 

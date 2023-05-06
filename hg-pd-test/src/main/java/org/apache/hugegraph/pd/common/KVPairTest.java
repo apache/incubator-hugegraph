@@ -22,10 +22,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Objects;
 
+import org.apache.hugegraph.pd.common.KVPair;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.KVPair;
 
 public class KVPairTest {
 

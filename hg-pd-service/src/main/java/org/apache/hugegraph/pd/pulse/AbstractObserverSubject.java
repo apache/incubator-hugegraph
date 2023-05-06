@@ -25,10 +25,10 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseResponse;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseType;
-import com.baidu.hugegraph.pd.util.IdUtil;
+import org.apache.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseType;
+import org.apache.hugegraph.pd.util.IdUtil;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;

@@ -19,7 +19,7 @@ package org.apache.hugegraph.pd.model;
 
 import java.io.Serializable;
 
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 
 import lombok.Data;
 

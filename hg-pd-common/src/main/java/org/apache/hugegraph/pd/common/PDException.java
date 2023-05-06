@@ -18,7 +18,8 @@
 package org.apache.hugegraph.pd.common;
 
 public class PDException extends Exception {
-    private int errorCode = 0;
+
+    private final int errorCode;
 
     public PDException(int error) {
         super(String.format("Error code = %d", error));

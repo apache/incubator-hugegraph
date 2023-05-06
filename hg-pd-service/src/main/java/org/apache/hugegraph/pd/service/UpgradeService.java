@@ -15,15 +15,14 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd.service;
+package org.apache.hugegraph.pd.service;
 
+import org.apache.hugegraph.pd.KvService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.rest.API;
 import org.apache.hugegraph.pd.upgrade.VersionScriptFactory;
 import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
-
-import com.baidu.hugegraph.pd.KvService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.rest.API;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -17,11 +17,10 @@
 
 package org.apache.hugegraph.pd.service;
 
+import org.apache.hugegraph.pd.KvService;
+import org.apache.hugegraph.pd.config.PDConfig;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.KvService;
-import com.baidu.hugegraph.pd.config.PDConfig;
 
 public class KvServiceTest {
 

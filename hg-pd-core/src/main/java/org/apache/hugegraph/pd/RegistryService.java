@@ -17,14 +17,13 @@
 
 package org.apache.hugegraph.pd;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.meta.DiscoveryMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
 
 /**
  * @author zhangyingjie

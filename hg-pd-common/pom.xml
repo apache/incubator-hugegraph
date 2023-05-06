@@ -35,9 +35,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 </project>

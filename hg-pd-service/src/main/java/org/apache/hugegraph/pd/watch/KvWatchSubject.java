@@ -25,14 +25,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiPredicate;
 
-import com.baidu.hugegraph.pd.KvService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
-import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
-import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchState;
-import com.baidu.hugegraph.pd.grpc.kv.WatchType;
+import org.apache.hugegraph.pd.KvService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.kv.WatchEvent;
+import org.apache.hugegraph.pd.grpc.kv.WatchKv;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchState;
+import org.apache.hugegraph.pd.grpc.kv.WatchType;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.springframework.util.CollectionUtils;
 
 import com.alipay.sofa.jraft.Closure;
@@ -41,8 +43,6 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.CRC64;
 import com.alipay.sofa.jraft.util.Utils;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
 
 import lombok.extern.slf4j.Slf4j;
 

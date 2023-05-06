@@ -25,17 +25,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.IdService;
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.StoreStatusListener;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.ConfigService;
-import com.baidu.hugegraph.pd.IdService;
-import com.baidu.hugegraph.pd.PartitionService;
-import com.baidu.hugegraph.pd.StoreNodeService;
-import com.baidu.hugegraph.pd.StoreStatusListener;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class StoreServiceTest {
 

@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.pd.client;
 
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 
 /**
  * @author zhangyingjie

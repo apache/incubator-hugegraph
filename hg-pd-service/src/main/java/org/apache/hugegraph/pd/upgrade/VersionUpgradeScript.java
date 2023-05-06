@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.pd.upgrade;
 
-import com.baidu.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.config.PDConfig;
 
 public interface VersionUpgradeScript {
 

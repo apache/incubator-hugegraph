@@ -20,9 +20,8 @@ package org.apache.hugegraph.pd.store;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
-
-import com.baidu.hugegraph.pd.common.PDException;
 
 public interface HgKVStore {
     void init(PDConfig config);

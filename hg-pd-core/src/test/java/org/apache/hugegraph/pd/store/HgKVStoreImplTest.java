@@ -22,11 +22,10 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.common.PDException;
 
 public class HgKVStoreImplTest {
     static final String testPath = "tmp/test";

@@ -34,7 +34,7 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
             <exclusions>
                 <exclusion>
@@ -45,9 +45,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-core</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
         </dependency>
 
         <dependency>
@@ -110,7 +110,7 @@
             <version>3.17.2</version>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>1.8.12</version>
         </dependency>

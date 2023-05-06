@@ -24,6 +24,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.model.StoreRestRequest;
 import org.apache.hugegraph.pd.model.TimeRangeRequest;
@@ -40,9 +43,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
 import com.google.protobuf.util.JsonFormat;
 
 import lombok.Data;

@@ -20,8 +20,8 @@ package org.apache.hugegraph.pd.client;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterType;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
 /**
  * @author zhangyingjie

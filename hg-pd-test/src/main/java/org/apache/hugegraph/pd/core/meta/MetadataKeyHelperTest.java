@@ -21,9 +21,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
+import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.meta.MetadataKeyHelper;
 
 public class MetadataKeyHelperTest {
 

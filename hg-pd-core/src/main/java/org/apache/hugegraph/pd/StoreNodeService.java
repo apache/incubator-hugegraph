@@ -28,21 +28,20 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb.GraphMode;
+import org.apache.hugegraph.pd.grpc.Metapb.GraphModeReason;
+import org.apache.hugegraph.pd.grpc.Metapb.GraphState;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.pulse.ConfChangeType;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.apache.hugegraph.pd.meta.StoreInfoMeta;
 import org.apache.hugegraph.pd.meta.TaskInfoMeta;
 
-import com.baidu.hugegraph.pd.ShardGroupStatusListener;
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Metapb.GraphMode;
-import com.baidu.hugegraph.pd.grpc.Metapb.GraphModeReason;
-import com.baidu.hugegraph.pd.grpc.Metapb.GraphState;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.pulse.ConfChangeType;
 import com.google.gson.Gson;
 
 import lombok.extern.slf4j.Slf4j;

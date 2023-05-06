@@ -19,13 +19,12 @@ package org.apache.hugegraph.pd.upgrade.scripts;
 
 import java.util.HashSet;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
+import org.apache.hugegraph.pd.meta.MetadataRocksDBStore;
 import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.meta.MetadataKeyHelper;
-import com.baidu.hugegraph.pd.meta.MetadataRocksDBStore;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -23,18 +23,18 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.PartitionCache;
+import org.apache.hugegraph.pd.common.PartitionUtils;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.PDGrpc;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PartitionCache;
-import com.baidu.hugegraph.pd.common.PartitionUtils;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.PDGrpc;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 import com.google.protobuf.ByteString;
 
 import io.grpc.ManagedChannel;

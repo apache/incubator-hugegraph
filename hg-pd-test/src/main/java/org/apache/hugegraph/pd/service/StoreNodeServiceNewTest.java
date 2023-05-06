@@ -20,12 +20,11 @@ package org.apache.hugegraph.pd.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.StoreNodeService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class StoreNodeServiceNewTest extends PdTestBase {
     private StoreNodeService service;

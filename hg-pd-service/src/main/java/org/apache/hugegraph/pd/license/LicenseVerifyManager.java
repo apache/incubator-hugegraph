@@ -20,10 +20,11 @@ package org.apache.hugegraph.pd.license;
 import java.io.IOException;
 import java.util.List;
 
-import com.baidu.hugegraph.license.CommonLicenseManager;
-import com.baidu.hugegraph.license.ExtraParam;
-import com.baidu.hugegraph.pd.common.PDRuntimeException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.license.CommonLicenseManager;
+import org.apache.hugegraph.license.ExtraParam;
+import org.apache.hugegraph.pd.common.PDRuntimeException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

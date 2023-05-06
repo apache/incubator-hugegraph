@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 
 import lombok.extern.slf4j.Slf4j;
 

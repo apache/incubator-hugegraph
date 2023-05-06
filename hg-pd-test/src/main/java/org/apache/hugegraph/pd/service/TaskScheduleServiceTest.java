@@ -22,12 +22,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.pd.TaskScheduleService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.TaskScheduleService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class TaskScheduleServiceTest extends PdTestBase {
 

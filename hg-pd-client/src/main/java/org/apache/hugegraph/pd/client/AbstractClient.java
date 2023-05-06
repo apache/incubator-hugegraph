@@ -26,14 +26,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.PDGrpc;
-import com.baidu.hugegraph.pd.grpc.PDGrpc.PDBlockingStub;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.Pdpb.GetMembersRequest;
-import com.baidu.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.PDGrpc;
+import org.apache.hugegraph.pd.grpc.PDGrpc.PDBlockingStub;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetMembersRequest;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
 
 import io.grpc.Channel;
 import io.grpc.ClientCall;

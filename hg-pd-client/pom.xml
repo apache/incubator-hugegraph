@@ -41,14 +41,14 @@
             <version>2.17.0</version>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-common</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

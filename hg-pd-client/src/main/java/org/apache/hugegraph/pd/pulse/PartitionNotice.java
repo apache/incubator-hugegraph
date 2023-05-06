@@ -19,7 +19,7 @@ package org.apache.hugegraph.pd.pulse;
 
 import java.util.function.Consumer;
 
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 
 /**
  * @author lynn.bond@hotmail.com created on 2022/2/13

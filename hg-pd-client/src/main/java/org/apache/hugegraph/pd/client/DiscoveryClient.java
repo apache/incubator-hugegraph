@@ -27,12 +27,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.discovery.RegisterInfo;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;

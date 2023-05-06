@@ -20,10 +20,9 @@ package org.apache.hugegraph.pd.client;
 import java.io.Closeable;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
-
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/4

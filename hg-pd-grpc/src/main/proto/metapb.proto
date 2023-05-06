@@ -1,6 +1,6 @@
 syntax = "proto3";
 package metapb;
-option java_package = "com.baidu.hugegraph.pd.grpc";
+option java_package = "org.apache.hugegraph.pd.grpc";
 import "google/protobuf/any.proto";
 
 enum ClusterState{

@@ -20,13 +20,12 @@ package org.apache.hugegraph.pd.core;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.PartitionService;
-import com.baidu.hugegraph.pd.StoreNodeService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -20,16 +20,17 @@ package org.apache.hugegraph.pd.client;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.baidu.hugegraph.pd.grpc.pulse.HgPdPulseGrpc;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseAckRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseCreateRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseResponse;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseType;
-import com.baidu.hugegraph.pd.pulse.PartitionNotice;
+import org.apache.hugegraph.pd.grpc.pulse.HgPdPulseGrpc;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseAckRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseCreateRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseType;
+import org.apache.hugegraph.pd.pulse.PartitionNotice;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.grpc.ManagedChannel;

@@ -26,7 +26,7 @@ import com.alipay.remoting.util.StringUtils;
 /**
  * PD服务启动类
  */
-@ComponentScan(basePackages = {"com.baidu.hugegraph.pd"})
+@ComponentScan(basePackages = {"org.apache.hugegraph.pd"})
 @SpringBootApplication
 public class HugePDServer {
     public static void main(String[] args) {

@@ -19,13 +19,12 @@ package org.apache.hugegraph.pd.meta;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
 
 /**
  * 任务管理

@@ -23,15 +23,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.kv.Kv;
+import org.apache.hugegraph.pd.grpc.kv.V;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.apache.hugegraph.pd.meta.MetadataRocksDBStore;
 import org.apache.hugegraph.pd.store.KV;
 import org.springframework.stereotype.Service;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.kv.Kv;
-import com.baidu.hugegraph.pd.grpc.kv.V;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import lombok.extern.slf4j.Slf4j;

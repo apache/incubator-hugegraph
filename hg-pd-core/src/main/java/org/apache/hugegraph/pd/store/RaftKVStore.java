@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.raft.KVOperation;
 import org.apache.hugegraph.pd.raft.KVStoreClosure;
 import org.apache.hugegraph.pd.raft.RaftEngine;
@@ -32,8 +34,6 @@ import org.apache.hugegraph.pd.raft.RaftTaskHandler;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
 
 import lombok.extern.slf4j.Slf4j;
 

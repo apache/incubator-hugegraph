@@ -27,21 +27,20 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.pd.RegistryService;
+import org.apache.hugegraph.pd.common.HgAssert;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.model.PromTargetsModel;
 import org.apache.hugegraph.pd.rest.MemberAPI;
 import org.apache.hugegraph.pd.util.HgMapCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.baidu.hugegraph.pd.RegistryService;
-import com.baidu.hugegraph.pd.common.HgAssert;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -21,10 +21,9 @@ import java.io.File;
 import java.net.http.HttpClient;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.config.PDConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.config.PDConfig;
 
 
 public class BaseServerTest {

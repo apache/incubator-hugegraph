@@ -19,13 +19,13 @@ package org.apache.hugegraph.pd.service;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.LogService;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.baidu.hugegraph.pd.LogService;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.google.protobuf.Any;
 
 public class LogServiceTest {

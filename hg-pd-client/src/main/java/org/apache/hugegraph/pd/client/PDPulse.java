@@ -20,10 +20,9 @@ package org.apache.hugegraph.pd.client;
 import java.io.Closeable;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
-
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 
 /**
  * Bidirectional communication interface of pd-client and pd-server

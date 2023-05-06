@@ -3,7 +3,7 @@ syntax = "proto3";
 import "metapb.proto";
 
 option java_multiple_files = true;
-option java_package = "com.baidu.hugegraph.pd.grpc.watch";
+option java_package = "org.apache.hugegraph.pd.grpc.watch";
 option java_outer_classname = "HgPdWatchProto";
 
 service HgPdWatch {

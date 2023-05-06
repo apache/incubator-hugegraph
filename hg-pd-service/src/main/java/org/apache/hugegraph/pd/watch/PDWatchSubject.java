@@ -17,20 +17,20 @@
 
 package org.apache.hugegraph.pd.watch;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import static org.apache.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.watch.NodeEventType;
-import com.baidu.hugegraph.pd.grpc.watch.WatchChangeType;
-import com.baidu.hugegraph.pd.grpc.watch.WatchCreateRequest;
-import com.baidu.hugegraph.pd.grpc.watch.WatchRequest;
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchType;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
+import org.apache.hugegraph.pd.grpc.watch.WatchChangeType;
+import org.apache.hugegraph.pd.grpc.watch.WatchCreateRequest;
+import org.apache.hugegraph.pd.grpc.watch.WatchRequest;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchType;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
         subjectHolder.put(WatchType.WATCH_TYPE_STORE_NODE_CHANGE.name(), new NodeChangeSubject());
         subjectHolder.put(WatchType.WATCH_TYPE_GRAPH_CHANGE.name(), new NodeChangeSubject());
         subjectHolder.put(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name(),
-                          new com.baidu.hugegraph.pd.watch.ShardGroupChangeSubject());
+                          new org.apache.hugegraph.pd.watch.ShardGroupChangeSubject());
     }
 
     private final StreamObserver<WatchResponse> responseObserver;
@@ -82,7 +82,7 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
 
     public static void notifyShardGroupChange(ChangeType changeType, int groupId,
                                               Metapb.ShardGroup group) {
-        ((com.baidu.hugegraph.pd.watch.ShardGroupChangeSubject) subjectHolder.get(
+        ((org.apache.hugegraph.pd.watch.ShardGroupChangeSubject) subjectHolder.get(
                 WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name()))
                 .notifyWatcher(changeType.getGrpcType(), groupId, group);
     }

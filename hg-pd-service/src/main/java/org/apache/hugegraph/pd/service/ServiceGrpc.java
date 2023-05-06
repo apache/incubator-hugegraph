@@ -19,13 +19,12 @@ package org.apache.hugegraph.pd.service;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.pulse.PDPulseSubject;
+import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.raft.RaftStateListener;
 import org.apache.hugegraph.pd.watch.PDWatchSubject;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.raft.RaftEngine;
-import com.baidu.hugegraph.pd.raft.RaftStateListener;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;

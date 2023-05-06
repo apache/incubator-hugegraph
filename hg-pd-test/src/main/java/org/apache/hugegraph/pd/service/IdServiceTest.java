@@ -20,12 +20,11 @@ package org.apache.hugegraph.pd.service;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.IdService;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.meta.IdMetaStore;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.IdService;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.meta.IdMetaStore;
 
 public class IdServiceTest {
     @Test

@@ -27,22 +27,22 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.kv.K;
-import com.baidu.hugegraph.pd.grpc.kv.KResponse;
-import com.baidu.hugegraph.pd.grpc.kv.Kv;
-import com.baidu.hugegraph.pd.grpc.kv.KvResponse;
-import com.baidu.hugegraph.pd.grpc.kv.KvServiceGrpc;
-import com.baidu.hugegraph.pd.grpc.kv.LockRequest;
-import com.baidu.hugegraph.pd.grpc.kv.LockResponse;
-import com.baidu.hugegraph.pd.grpc.kv.ScanPrefixResponse;
-import com.baidu.hugegraph.pd.grpc.kv.TTLRequest;
-import com.baidu.hugegraph.pd.grpc.kv.TTLResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
-import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
-import com.baidu.hugegraph.pd.grpc.kv.WatchRequest;
-import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchType;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.kv.K;
+import org.apache.hugegraph.pd.grpc.kv.KResponse;
+import org.apache.hugegraph.pd.grpc.kv.Kv;
+import org.apache.hugegraph.pd.grpc.kv.KvResponse;
+import org.apache.hugegraph.pd.grpc.kv.KvServiceGrpc;
+import org.apache.hugegraph.pd.grpc.kv.LockRequest;
+import org.apache.hugegraph.pd.grpc.kv.LockResponse;
+import org.apache.hugegraph.pd.grpc.kv.ScanPrefixResponse;
+import org.apache.hugegraph.pd.grpc.kv.TTLRequest;
+import org.apache.hugegraph.pd.grpc.kv.TTLResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchEvent;
+import org.apache.hugegraph.pd.grpc.kv.WatchKv;
+import org.apache.hugegraph.pd.grpc.kv.WatchRequest;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchType;
 
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
@@ -186,17 +186,7 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         WatchRequest k =
                 WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
         streamingCall(KvServiceGrpc.getWatchPrefixMethod(), k, observer, 1);
-    }    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
-        try {
-            listen(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listen with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
+    }
 
     private void acquire() {
         if (clientId.get() == 0L) {
@@ -209,7 +199,17 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
                 log.error("get semaphore with error:", e);
             }
         }
-    }
+    }    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
+        try {
+            listen(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listen with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     public List<String> getWatchList(T response) {
         List<String> values = new LinkedList<>();
@@ -237,17 +237,7 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             values.put(key, value);
         }
         return values;
-    }    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
-        try {
-            listenPrefix(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listenPrefix with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
+    }
 
     public LockResponse lock(String key, long ttl) throws PDException {
         acquire();
@@ -269,7 +259,17 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         clientId.compareAndSet(0L, response.getClientId());
         assert clientId.get() == response.getClientId();
         return response;
-    }
+    }    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
+        try {
+            listenPrefix(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listenPrefix with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     public LockResponse isLocked(String key) throws PDException {
         LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).build();

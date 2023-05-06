@@ -21,37 +21,36 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.config.PDConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.ConfigService;
-import com.baidu.hugegraph.pd.config.PDConfig;
 
 
 public class BaseCoreTest {
 
-    static com.baidu.hugegraph.pd.config.PDConfig pdConfig;
+    static org.apache.hugegraph.pd.config.PDConfig pdConfig;
 
     @BeforeClass
     public static void init() throws Exception {
         String path = "tmp/unitTest";
         deleteDirectory(new File(path));
-        pdConfig = new com.baidu.hugegraph.pd.config.PDConfig() {{
+        pdConfig = new org.apache.hugegraph.pd.config.PDConfig() {{
             this.setClusterId(100);
             this.setInitialStoreList("127.0.0.1:8500,127.0.0.1:8501,127.0.0.1:8502," +
                                      "127.0.0.1:8503,127.0.0.1:8504,127.0.0.1:8505");
         }};
 
-        pdConfig.setStore(new com.baidu.hugegraph.pd.config.PDConfig().new Store() {{
+        pdConfig.setStore(new org.apache.hugegraph.pd.config.PDConfig().new Store() {{
             this.setMaxDownTime(3600);
             this.setKeepAliveTimeout(3600);
         }});
 
-        pdConfig.setPartition(new com.baidu.hugegraph.pd.config.PDConfig().new Partition() {{
+        pdConfig.setPartition(new org.apache.hugegraph.pd.config.PDConfig().new Partition() {{
             this.setShardCount(3);
             this.setMaxShardsPerStore(3);
         }});
-        pdConfig.setRaft(new com.baidu.hugegraph.pd.config.PDConfig().new Raft() {{
+        pdConfig.setRaft(new org.apache.hugegraph.pd.config.PDConfig().new Raft() {{
             this.setEnable(false);
         }});
         pdConfig.setDiscovery(new PDConfig().new Discovery());

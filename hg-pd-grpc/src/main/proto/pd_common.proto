@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "com.baidu.hugegraph.pd.grpc.common";
+option java_package = "org.apache.hugegraph.pd.grpc.common";
 option java_outer_classname = "HgPdCommonProto";
 
 message RequestHeader {

@@ -22,9 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PartitionCache;
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PartitionCache;
+import org.apache.hugegraph.pd.grpc.Metapb;
+
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;

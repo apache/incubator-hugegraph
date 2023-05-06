@@ -17,15 +17,15 @@
 
 package org.apache.hugegraph.pd;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.DbCompaction;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionKeyRange;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionKeyRange;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 
 /**
  * 分区命令监听

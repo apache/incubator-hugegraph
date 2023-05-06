@@ -50,7 +50,7 @@
             <version>6.29.5</version>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
         </dependency>
         <dependency>
@@ -58,7 +58,7 @@
             <artifactId>spring-context</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-common</artifactId>
         </dependency>
         <dependency>
@@ -81,9 +81,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.baidu.hugegraph</groupId>
+            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-grpc</artifactId>
-            <version>${project.version}</version>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 </project>

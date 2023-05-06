@@ -23,24 +23,23 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.RegistryService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.PDRuntimeException;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.discovery.RegisterInfo;
 import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.pulse.PDPulseSubject;
+import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.raft.RaftStateListener;
 import org.apache.hugegraph.pd.watch.PDWatchSubject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.baidu.hugegraph.pd.RegistryService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PDRuntimeException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
-import com.baidu.hugegraph.pd.raft.RaftEngine;
-import com.baidu.hugegraph.pd.raft.RaftStateListener;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;

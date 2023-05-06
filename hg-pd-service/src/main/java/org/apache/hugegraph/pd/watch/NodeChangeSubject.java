@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.pd.watch;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import static org.apache.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import com.baidu.hugegraph.pd.grpc.watch.NodeEventType;
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchType;
+import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchType;
 
 /**
  * The subject of partition change.

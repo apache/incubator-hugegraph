@@ -28,12 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.springframework.stereotype.Service;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -21,9 +21,8 @@ import java.text.ParseException;
 import java.util.Date;
 
 import org.apache.commons.lang3.time.DateUtils;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 
 /**
  * @author zhangyingjie

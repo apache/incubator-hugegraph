@@ -4,7 +4,7 @@ package pdpb;
 import "metapb.proto";
 import "metaTask.proto";
 
-option java_package = "com.baidu.hugegraph.pd.grpc";
+option java_package = "org.apache.hugegraph.pd.grpc";
 
 service PD {
   // 注册store，首次注册会生成新的store_id， store_id是store唯一标识

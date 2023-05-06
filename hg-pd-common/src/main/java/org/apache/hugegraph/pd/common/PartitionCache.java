@@ -27,7 +27,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
+
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;

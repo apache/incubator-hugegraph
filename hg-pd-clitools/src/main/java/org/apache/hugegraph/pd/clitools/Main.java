@@ -17,10 +17,10 @@
 
 package org.apache.hugegraph.pd.clitools;
 
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 public class Main {
 

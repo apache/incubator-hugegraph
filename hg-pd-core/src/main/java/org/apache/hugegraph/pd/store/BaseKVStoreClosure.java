@@ -17,9 +17,8 @@
 
 package org.apache.hugegraph.pd.store;
 
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.raft.KVStoreClosure;
-
-import com.baidu.hugegraph.pd.grpc.Pdpb;
 
 public abstract class BaseKVStoreClosure implements KVStoreClosure {
     private Pdpb.Error error;

@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.pd.common;
 
+import org.apache.hugegraph.pd.common.PartitionUtils;
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.PartitionUtils;
 
 import lombok.extern.slf4j.Slf4j;
 

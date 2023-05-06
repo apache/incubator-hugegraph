@@ -19,10 +19,9 @@ package org.apache.hugegraph.pd.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.meta.MetadataKeyHelper;
 
 public class MetadataKeyHelperTest {
 

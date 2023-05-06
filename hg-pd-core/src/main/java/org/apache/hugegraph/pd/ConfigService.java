@@ -19,13 +19,12 @@ package org.apache.hugegraph.pd;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.ConfigMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
 

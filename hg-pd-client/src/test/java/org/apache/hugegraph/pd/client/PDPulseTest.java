@@ -21,10 +21,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/8

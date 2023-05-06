@@ -21,15 +21,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.PartitionService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
 
 public class PartitionServiceTest extends PdTestBase {
 

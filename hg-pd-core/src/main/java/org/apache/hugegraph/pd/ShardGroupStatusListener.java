@@ -15,9 +15,9 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd;
+package org.apache.hugegraph.pd;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb;
 
 public interface ShardGroupStatusListener {
     void onShardListChanged(Metapb.ShardGroup shardGroup, Metapb.ShardGroup newShardGroup);

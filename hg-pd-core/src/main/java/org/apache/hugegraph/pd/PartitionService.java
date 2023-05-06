@@ -28,27 +28,26 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.PartitionUtils;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.MetaTask;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
+import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
+import org.apache.hugegraph.pd.grpc.pulse.CleanType;
+import org.apache.hugegraph.pd.grpc.pulse.ConfChangeType;
+import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
+import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionKeyRange;
+import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
+import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.meta.PartitionMeta;
 import org.apache.hugegraph.pd.meta.TaskInfoMeta;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
-
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PartitionUtils;
-import com.baidu.hugegraph.pd.grpc.MetaTask;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.pulse.ChangeShard;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.CleanType;
-import com.baidu.hugegraph.pd.grpc.pulse.ConfChangeType;
-import com.baidu.hugegraph.pd.grpc.pulse.DbCompaction;
-import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionKeyRange;
-import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
-import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
 
 import lombok.extern.slf4j.Slf4j;
 

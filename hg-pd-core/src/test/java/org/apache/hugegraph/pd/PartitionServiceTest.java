@@ -21,9 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class PartitionServiceTest {
     @Test

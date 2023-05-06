@@ -19,12 +19,11 @@ package org.apache.hugegraph.pd;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 // import org.junit.Test;
 

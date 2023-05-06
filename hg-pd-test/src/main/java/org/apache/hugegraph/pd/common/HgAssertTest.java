@@ -23,9 +23,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.hugegraph.pd.common.HgAssert;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.HgAssert;
 
 public class HgAssertTest {
 

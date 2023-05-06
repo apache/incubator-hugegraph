@@ -20,10 +20,9 @@ package org.apache.hugegraph.pd.clitools;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hugegraph.pd.clitools.Main;
+import org.apache.hugegraph.pd.common.PDException;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.clitools.Main;
-import com.baidu.hugegraph.pd.common.PDException;
 
 import lombok.extern.slf4j.Slf4j;
 

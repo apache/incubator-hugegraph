@@ -17,11 +17,10 @@
 
 package org.apache.hugegraph.pd;
 
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.IdMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
-
-import com.baidu.hugegraph.pd.common.PDException;
 
 public class IdService {
 

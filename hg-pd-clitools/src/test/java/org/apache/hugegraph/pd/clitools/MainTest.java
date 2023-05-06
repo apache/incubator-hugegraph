@@ -20,7 +20,7 @@ package org.apache.hugegraph.pd.clitools;
 import java.util.Arrays;
 import java.util.List;
 
-import com.baidu.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.PDException;
 
 public class MainTest {
     public static boolean test2sup(List<Integer> arrays, int tail, int res) {

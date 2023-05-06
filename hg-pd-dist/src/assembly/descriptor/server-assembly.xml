@@ -49,7 +49,7 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <includes>
-                <include>com.baidu.hugegraph:${executable.jar.name}:jar:*</include>
+                <include>org.apache.hugegraph:${executable.jar.name}:jar:*</include>
             </includes>
         </dependencySet>
     </dependencySets>

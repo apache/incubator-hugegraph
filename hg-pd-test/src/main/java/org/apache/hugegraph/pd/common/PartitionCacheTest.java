@@ -29,11 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.hugegraph.pd.common.PartitionCache;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.common.PartitionCache;
-import com.baidu.hugegraph.pd.grpc.Metapb;
 
 public class PartitionCacheTest {
 

@@ -26,6 +26,13 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.PDRuntimeException;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.model.RegistryQueryRestRequest;
 import org.apache.hugegraph.pd.model.RegistryRestRequest;
@@ -41,14 +48,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PDRuntimeException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
 
 import lombok.extern.slf4j.Slf4j;
 

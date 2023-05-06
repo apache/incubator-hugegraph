@@ -19,15 +19,15 @@ package org.apache.hugegraph.pd.client;
 
 import java.util.function.Supplier;
 
-import com.baidu.hugegraph.pd.grpc.watch.HgPdWatchGrpc;
-import com.baidu.hugegraph.pd.grpc.watch.WatchCreateRequest;
-import com.baidu.hugegraph.pd.grpc.watch.WatchNodeResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchPartitionResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchRequest;
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchType;
-import com.baidu.hugegraph.pd.watch.NodeEvent;
-import com.baidu.hugegraph.pd.watch.PartitionEvent;
+import org.apache.hugegraph.pd.grpc.watch.HgPdWatchGrpc;
+import org.apache.hugegraph.pd.grpc.watch.WatchCreateRequest;
+import org.apache.hugegraph.pd.grpc.watch.WatchNodeResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchPartitionResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchRequest;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchType;
+import org.apache.hugegraph.pd.watch.NodeEvent;
+import org.apache.hugegraph.pd.watch.PartitionEvent;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;

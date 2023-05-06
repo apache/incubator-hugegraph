@@ -23,18 +23,17 @@ import static org.mockito.Mockito.mock;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.grpc.kv.KResponse;
+import org.apache.hugegraph.pd.grpc.kv.ScanPrefixResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchEvent;
+import org.apache.hugegraph.pd.grpc.kv.WatchKv;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchState;
+import org.apache.hugegraph.pd.grpc.kv.WatchType;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.client.KvClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
-import com.baidu.hugegraph.pd.grpc.kv.KResponse;
-import com.baidu.hugegraph.pd.grpc.kv.ScanPrefixResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
-import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
-import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchState;
-import com.baidu.hugegraph.pd.grpc.kv.WatchType;
 
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;

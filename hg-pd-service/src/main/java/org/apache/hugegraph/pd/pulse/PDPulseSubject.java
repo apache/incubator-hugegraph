@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.pd.pulse;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import static org.apache.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.apache.hugegraph.pd.common.HgAssert;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.*;
 import org.apache.hugegraph.pd.notice.NoticeBroadcaster;
 import org.apache.hugegraph.pd.util.IdUtil;
 
-import com.baidu.hugegraph.pd.common.HgAssert;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.*;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
 

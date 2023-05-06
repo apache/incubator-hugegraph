@@ -21,12 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.client.DiscoveryClientImpl;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.baidu.hugegraph.pd.client.DiscoveryClientImpl;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
 
 public class DiscoveryClientTest {
 

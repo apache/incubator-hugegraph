@@ -17,9 +17,10 @@
 
 package org.apache.hugegraph.pd.client;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.grpc.PDGrpc;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.grpc.PDGrpc;
+import org.apache.hugegraph.pd.grpc.Pdpb;
+
 import com.google.protobuf.ByteString;
 
 import io.grpc.stub.AbstractBlockingStub;

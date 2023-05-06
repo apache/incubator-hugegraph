@@ -23,15 +23,14 @@ import java.util.List;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 
 public class StoreRegisterTest {
     private static PDClient pdClient;

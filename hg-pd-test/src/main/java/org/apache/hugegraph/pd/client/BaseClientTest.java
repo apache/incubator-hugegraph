@@ -17,13 +17,12 @@
 
 package org.apache.hugegraph.pd.client;
 
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import com.baidu.hugegraph.pd.client.PDClient;
-import com.baidu.hugegraph.pd.client.PDConfig;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BaseClientTest {

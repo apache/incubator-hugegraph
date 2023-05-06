@@ -21,7 +21,7 @@ package org.apache.hugegraph.pd.common;
 
 import java.nio.charset.StandardCharsets;
 
-import com.baidu.hugegraph.pd.common.PartitionUtils;
+import org.apache.hugegraph.pd.common.PartitionUtils;
 
 public class PartitionUtilsTest {
 

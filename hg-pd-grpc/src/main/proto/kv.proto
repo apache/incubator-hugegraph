@@ -3,7 +3,7 @@ package kv;
 import "pdpb.proto";
 import "metapb.proto";
 
-option java_package = "com.baidu.hugegraph.pd.grpc.kv";
+option java_package = "org.apache.hugegraph.pd.grpc.kv";
 option java_multiple_files = true;
 
 

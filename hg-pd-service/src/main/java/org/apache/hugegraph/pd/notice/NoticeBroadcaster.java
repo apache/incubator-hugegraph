@@ -20,7 +20,7 @@ package org.apache.hugegraph.pd.notice;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.baidu.hugegraph.pd.common.HgAssert;
+import org.apache.hugegraph.pd.common.HgAssert;
 
 import lombok.extern.slf4j.Slf4j;
 

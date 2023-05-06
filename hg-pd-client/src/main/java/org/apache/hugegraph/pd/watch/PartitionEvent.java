@@ -19,7 +19,7 @@ package org.apache.hugegraph.pd.watch;
 
 import java.util.Objects;
 
-import com.baidu.hugegraph.pd.grpc.watch.WatchChangeType;
+import org.apache.hugegraph.pd.grpc.watch.WatchChangeType;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/4

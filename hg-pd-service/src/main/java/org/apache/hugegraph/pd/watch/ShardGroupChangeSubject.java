@@ -15,16 +15,14 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd.watch;
+package org.apache.hugegraph.pd.watch;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import static org.apache.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 
-import org.apache.hugegraph.pd.watch.AbstractWatchSubject;
-
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.watch.WatchChangeType;
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.watch.WatchType;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.watch.WatchChangeType;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchType;
 
 public class ShardGroupChangeSubject extends AbstractWatchSubject {
 

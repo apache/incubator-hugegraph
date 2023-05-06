@@ -4,7 +4,7 @@ import "metapb.proto";
 import "pd_common.proto";
 
 option java_multiple_files = true;
-option java_package = "com.baidu.hugegraph.pd.grpc.pulse";
+option java_package = "org.apache.hugegraph.pd.grpc.pulse";
 option java_outer_classname = "HgPdPulseProto";
 
 service HgPdPulse {
