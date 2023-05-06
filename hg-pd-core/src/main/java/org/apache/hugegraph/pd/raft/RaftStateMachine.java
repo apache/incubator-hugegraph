@@ -1,4 +1,32 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.raft;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.Checksum;
+
+import org.apache.commons.io.FileUtils;
+import org.springframework.util.CollectionUtils;
 
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
@@ -15,38 +43,29 @@ import com.alipay.sofa.jraft.util.CRC64;
 import com.alipay.sofa.jraft.util.Utils;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
-import org.springframework.util.CollectionUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.Checksum;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftStateMachine extends StateMachineAdapter {
-    private List<RaftTaskHandler> taskHandlers;
-    private List<RaftStateListener> stateListeners;
-
     private static final String SNAPSHOT_DIR_NAME = "snapshot";
     private static final String SNAPSHOT_ARCHIVE_NAME = "snapshot.zip";
-
     private final AtomicLong leaderTerm = new AtomicLong(-1);
+    private final List<RaftTaskHandler> taskHandlers;
+    private final List<RaftStateListener> stateListeners;
 
     public RaftStateMachine() {
-         this.taskHandlers = new CopyOnWriteArrayList<>();
-         this.stateListeners = new CopyOnWriteArrayList<>();
+        this.taskHandlers = new CopyOnWriteArrayList<>();
+        this.stateListeners = new CopyOnWriteArrayList<>();
     }
 
     public void addTaskHandler(RaftTaskHandler handler) {
         taskHandlers.add(handler);
     }
 
-    public void addStateListener(RaftStateListener listener){ stateListeners.add(listener);}
+    public void addStateListener(RaftStateListener listener) {
+        stateListeners.add(listener);
+    }
 
     public boolean isLeader() {
         return this.leaderTerm.get() > 0;
@@ -66,12 +85,14 @@ public class RaftStateMachine extends StateMachineAdapter {
                 for (RaftTaskHandler taskHandler : taskHandlers) {
                     taskHandler.invoke(kvOp, done);
                 }
-                if ( done != null)
+                if (done != null) {
                     done.run(Status.OK());
+                }
             } catch (Throwable t) {
                 log.error("StateMachine meet critical error: {}.", t);
-                if (done != null)
+                if (done != null) {
                     done.run(new Status(RaftError.EINTERNAL, t.getMessage()));
+                }
             }
             iter.next();
         }
@@ -94,10 +115,11 @@ public class RaftStateMachine extends StateMachineAdapter {
 
         log.info("Raft becomes leader");
         Utils.runInThread(() -> {
-            if (!CollectionUtils.isEmpty(stateListeners))
+            if (!CollectionUtils.isEmpty(stateListeners)) {
                 stateListeners.forEach(listener -> {
                     listener.onRaftLeaderChanged();
                 });
+            }
         });
     }
 
@@ -112,10 +134,11 @@ public class RaftStateMachine extends StateMachineAdapter {
     public void onStartFollowing(final LeaderChangeContext ctx) {
         super.onStartFollowing(ctx);
         Utils.runInThread(() -> {
-            if (!CollectionUtils.isEmpty(stateListeners))
+            if (!CollectionUtils.isEmpty(stateListeners)) {
                 stateListeners.forEach(listener -> {
                     listener.onRaftLeaderChanged();
                 });
+            }
         });
     }
 
@@ -160,7 +183,7 @@ public class RaftStateMachine extends StateMachineAdapter {
         try {
             latch.await();
         } catch (InterruptedException e) {
-            log.error("Raft onSnapshotSave failed. {}",e.toString());
+            log.error("Raft onSnapshotSave failed. {}", e.toString());
             done.run(new Status(RaftError.EIO, e.toString()));
             return;
         }
@@ -188,7 +211,7 @@ public class RaftStateMachine extends StateMachineAdapter {
         // 2. decompress snapshot archive
         try {
             decompressSnapshot(reader);
-        }  catch (PDException e) {
+        } catch (PDException e) {
             log.error("Failed to delete snapshot directory {}, {}", snapshotDir, e.toString());
             return true;
         }
@@ -222,7 +245,8 @@ public class RaftStateMachine extends StateMachineAdapter {
                 FileUtils.forceDelete(file);
             }
         } catch (IOException e) {
-            log.error("Failed to delete snapshot directory {} and file {}", snapshotDir, snapshotArchive);
+            log.error("Failed to delete snapshot directory {} and file {}", snapshotDir,
+                      snapshotArchive);
             return false;
         }
 
@@ -231,13 +255,15 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     private void compressSnapshot(final SnapshotWriter writer) throws PDException {
         final Checksum checksum = new CRC64();
-        final String snapshotArchive = writer.getPath() + File.separator + SNAPSHOT_ARCHIVE_NAME;;
+        final String snapshotArchive = writer.getPath() + File.separator + SNAPSHOT_ARCHIVE_NAME;
         try {
             ZipUtils.compress(writer.getPath(), SNAPSHOT_DIR_NAME, snapshotArchive, checksum);
-            LocalFileMetaOutter.LocalFileMeta.Builder metaBuild = LocalFileMetaOutter.LocalFileMeta.newBuilder();
+            LocalFileMetaOutter.LocalFileMeta.Builder metaBuild =
+                    LocalFileMetaOutter.LocalFileMeta.newBuilder();
             metaBuild.setChecksum(Long.toHexString(checksum.getValue()));
             if (!writer.addFile(SNAPSHOT_ARCHIVE_NAME, metaBuild.build())) {
-                throw new PDException(Pdpb.ErrorType.ROCKSDB_SAVE_SNAPSHOT_ERROR_VALUE, "failed to add file to LocalFileMeta");
+                throw new PDException(Pdpb.ErrorType.ROCKSDB_SAVE_SNAPSHOT_ERROR_VALUE,
+                                      "failed to add file to LocalFileMeta");
             }
         } catch (IOException e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_SAVE_SNAPSHOT_ERROR_VALUE, e);
@@ -245,14 +271,16 @@ public class RaftStateMachine extends StateMachineAdapter {
     }
 
     private void decompressSnapshot(final SnapshotReader reader) throws PDException {
-        final LocalFileMetaOutter.LocalFileMeta meta = (LocalFileMetaOutter.LocalFileMeta) reader.getFileMeta(SNAPSHOT_ARCHIVE_NAME);
+        final LocalFileMetaOutter.LocalFileMeta meta =
+                (LocalFileMetaOutter.LocalFileMeta) reader.getFileMeta(SNAPSHOT_ARCHIVE_NAME);
         final Checksum checksum = new CRC64();
-        final String snapshotArchive = reader.getPath() + File.separator + SNAPSHOT_ARCHIVE_NAME;;
+        final String snapshotArchive = reader.getPath() + File.separator + SNAPSHOT_ARCHIVE_NAME;
         try {
             ZipUtils.decompress(snapshotArchive, reader.getPath(), checksum);
             if (meta.hasChecksum()) {
                 if (!meta.getChecksum().equals(Long.toHexString(checksum.getValue()))) {
-                    throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE, "Snapshot checksum failed");
+                    throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE,
+                                          "Snapshot checksum failed");
                 }
             }
         } catch (IOException e) {
@@ -262,8 +290,8 @@ public class RaftStateMachine extends StateMachineAdapter {
 
 
     public static class RaftClosureAdapter implements KVStoreClosure {
-        private KVOperation op;
-        private KVStoreClosure closure;
+        private final KVOperation op;
+        private final KVStoreClosure closure;
 
         public RaftClosureAdapter(KVOperation op, KVStoreClosure closure) {
             this.op = op;

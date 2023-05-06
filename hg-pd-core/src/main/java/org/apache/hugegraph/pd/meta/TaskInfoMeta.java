@@ -1,20 +1,36 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.meta;
 
-import com.baidu.hugegraph.pd.common.PDException;
+import java.util.List;
 
 import org.apache.hugegraph.pd.config.PDConfig;
 
+import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.MetaTask;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.pulse.MovePartition;
 import com.baidu.hugegraph.pd.grpc.pulse.SplitPartition;
 
-import java.util.List;
-
 /**
  * 任务管理
  */
-public class TaskInfoMeta extends MetadataRocksDBStore{
+public class TaskInfoMeta extends MetadataRocksDBStore {
     public TaskInfoMeta(PDConfig pdConfig) {
         super(pdConfig);
     }
@@ -26,12 +42,12 @@ public class TaskInfoMeta extends MetadataRocksDBStore{
             throws PDException {
         byte[] key = MetadataKeyHelper.getSplitTaskKey(partition.getGraphName(), groupID);
         MetaTask.Task task = MetaTask.Task.newBuilder()
-                .setType(MetaTask.TaskType.Split_Partition)
-                .setState(MetaTask.TaskState.Task_Doing)
-                .setStartTimestamp(System.currentTimeMillis())
-                .setPartition(partition)
-                .setSplitPartition(splitPartition)
-                .build();
+                                          .setType(MetaTask.TaskType.Split_Partition)
+                                          .setState(MetaTask.TaskState.Task_Doing)
+                                          .setStartTimestamp(System.currentTimeMillis())
+                                          .setPartition(partition)
+                                          .setSplitPartition(splitPartition)
+                                          .build();
         put(key, task.toByteString().toByteArray());
     }
 
@@ -64,15 +80,16 @@ public class TaskInfoMeta extends MetadataRocksDBStore{
     public void addMovePartitionTask(Metapb.Partition partition, MovePartition movePartition)
             throws PDException {
         byte[] key = MetadataKeyHelper.getMoveTaskKey(partition.getGraphName(),
-                movePartition.getTargetPartition().getId(), partition.getId());
+                                                      movePartition.getTargetPartition().getId(),
+                                                      partition.getId());
 
         MetaTask.Task task = MetaTask.Task.newBuilder()
-                .setType(MetaTask.TaskType.Move_Partition)
-                .setState(MetaTask.TaskState.Task_Doing)
-                .setStartTimestamp(System.currentTimeMillis())
-                .setPartition(partition)
-                .setMovePartition(movePartition)
-                .build();
+                                          .setType(MetaTask.TaskType.Move_Partition)
+                                          .setState(MetaTask.TaskState.Task_Doing)
+                                          .setStartTimestamp(System.currentTimeMillis())
+                                          .setPartition(partition)
+                                          .setMovePartition(movePartition)
+                                          .build();
         put(key, task.toByteArray());
     }
 
@@ -80,12 +97,14 @@ public class TaskInfoMeta extends MetadataRocksDBStore{
             throws PDException {
 
         byte[] key = MetadataKeyHelper.getMoveTaskKey(task.getPartition().getGraphName(),
-                task.getMovePartition().getTargetPartition().getId(),
-                task.getPartition().getId());
+                                                      task.getMovePartition().getTargetPartition()
+                                                          .getId(),
+                                                      task.getPartition().getId());
         put(key, task.toByteArray());
     }
 
-    public MetaTask.Task getMovePartitionTask(String graphName, int targetId, int partId) throws PDException {
+    public MetaTask.Task getMovePartitionTask(String graphName, int targetId, int partId) throws
+                                                                                          PDException {
         byte[] key = MetadataKeyHelper.getMoveTaskKey(graphName, targetId, partId);
         return getOne(MetaTask.Task.parser(), key);
     }
@@ -97,6 +116,7 @@ public class TaskInfoMeta extends MetadataRocksDBStore{
 
     /**
      * 按照prefix删除迁移任务，一次分组的
+     *
      * @param graphName 图名称
      * @throws PDException io error
      */

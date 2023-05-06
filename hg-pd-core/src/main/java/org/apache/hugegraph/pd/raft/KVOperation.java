@@ -1,4 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.raft;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import com.alipay.sofa.jraft.util.BytesUtil;
 import com.alipay.sofa.jraft.util.Requires;
@@ -6,11 +28,6 @@ import com.caucho.hessian.io.Hessian2Input;
 import com.caucho.hessian.io.Hessian2Output;
 
 import lombok.Data;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 @Data
 public class KVOperation {
@@ -42,7 +59,7 @@ public class KVOperation {
     private Object arg;
     private byte op;
 
-    public KVOperation(){
+    public KVOperation() {
 
     }
 
@@ -52,24 +69,13 @@ public class KVOperation {
         this.attach = attach;
         this.op = op;
     }
+
     public KVOperation(byte[] key, byte[] value, Object attach, byte op, Object arg) {
         this.key = key;
         this.value = value;
         this.attach = attach;
         this.op = op;
         this.arg = arg;
-    }
-
-    public byte[] toByteArray() throws IOException {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            bos.write(op);
-            Hessian2Output output = new Hessian2Output(bos);
-            output.writeObject(key);
-            output.writeObject(value);
-            output.writeObject(arg);
-            output.flush();
-            return bos.toByteArray();
-        }
     }
 
     public static KVOperation fromByteArray(byte[] value) throws IOException {
@@ -103,12 +109,13 @@ public class KVOperation {
         return new KVOperation(key, value, value, PUT_WITH_TTL,
                                ttl);
     }
+
     public static KVOperation createPutWithTTL(byte[] key, byte[] value, long ttl,
                                                TimeUnit timeUnit) {
         Requires.requireNonNull(key, "key");
         Requires.requireNonNull(value, "value");
         return new KVOperation(key, value, value, PUT_WITH_TTL_UNIT,
-                               new Object[] { ttl, timeUnit});
+                               new Object[]{ttl, timeUnit});
     }
 
     public static KVOperation createRemoveWithTTL(byte[] key) {
@@ -138,5 +145,17 @@ public class KVOperation {
     public static KVOperation createLoadSnapshot(String snapshotPath) {
         Requires.requireNonNull(snapshotPath, "snapshotPath");
         return new KVOperation(null, null, snapshotPath, LOAD_SNAPSHOT);
+    }
+
+    public byte[] toByteArray() throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            bos.write(op);
+            Hessian2Output output = new Hessian2Output(bos);
+            output.writeObject(key);
+            output.writeObject(value);
+            output.writeObject(arg);
+            output.flush();
+            return bos.toByteArray();
+        }
     }
 }

@@ -1,14 +1,21 @@
-package org.apache.hugegraph.pd.client;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import lombok.extern.slf4j.Slf4j;
+package org.apache.hugegraph.pd.client;
 
 import java.io.Closeable;
 import java.util.LinkedList;
@@ -20,6 +27,17 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
+import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
+import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
+import com.baidu.hugegraph.pd.grpc.discovery.Query;
+import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
+
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * @author zhangyingjie
  * @date 2021/12/20
@@ -28,11 +46,11 @@ import java.util.function.Function;
 public abstract class DiscoveryClient implements Closeable, Discoverable {
 
     protected int period; //心跳周期
-    private Timer timer = new Timer("serverHeartbeat", true);
-    private volatile int currentIndex; // 当前在用pd地址位置
     LinkedList<String> pdAddresses = new LinkedList<>();
     ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private volatile AtomicBoolean requireResetStub = new AtomicBoolean(false);
+    private final Timer timer = new Timer("serverHeartbeat", true);
+    private volatile int currentIndex; // 当前在用pd地址位置
+    private final AtomicBoolean requireResetStub = new AtomicBoolean(false);
     private int maxTime = 6;
     private ManagedChannel channel = null;
     private DiscoveryServiceGrpc.DiscoveryServiceBlockingStub registerStub;
@@ -66,8 +84,9 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
                 ex = e;
             }
         }
-        if (ex != null)
+        if (ex != null) {
             log.error("Try discovery method with error: {}", ex.getMessage());
+        }
         return null;
     }
 

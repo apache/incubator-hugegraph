@@ -1,19 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.store;
-
-import com.alipay.sofa.jraft.util.Utils;
-import com.baidu.hugegraph.pd.common.PDException;
-
-import org.apache.hugegraph.pd.config.PDConfig;
-
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.primitives.Bytes;
-
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.io.FileUtils;
-import org.rocksdb.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,15 +31,34 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.rocksdb.Checkpoint;
+import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
+import org.rocksdb.Slice;
+
+import com.alipay.sofa.jraft.util.Utils;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.baidu.hugegraph.pd.grpc.discovery.RegisterInfo;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.primitives.Bytes;
+
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public class HgKVStoreImpl implements HgKVStore {
-    private RocksDB db;
-    private String dbPath;
     private static final ConcurrentHashMap<String,
             ConcurrentMap<String, Object>> CACHE = new ConcurrentHashMap();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-
+    private RocksDB db;
+    private String dbPath;
     private Options dbOptions;
+
     @Override
     public void init(PDConfig config) {
         dbOptions = new Options().setCreateIfMissing(true);
@@ -133,8 +154,9 @@ public class HgKVStoreImpl implements HgKVStore {
             while (iterator.isValid()) {
                 if (0 == Bytes.indexOf(iterator.key(), prefix)) {
                     db.delete(iterator.key());
-                } else
+                } else {
                     break;
+                }
                 iterator.next();
             }
         } catch (Exception e) {
@@ -179,17 +201,18 @@ public class HgKVStoreImpl implements HgKVStore {
     public void removeWithTTL(byte[] key) throws PDException {
         ConcurrentMap map;
         String storeKey = new String(key, Charset.defaultCharset());
-        if ((map = CACHE.get(storeKey)) == null) return ;
+        if ((map = CACHE.get(storeKey)) == null) return;
         map.remove(storeKey);
     }
 
     @Override
     public void putWithTTL(byte[] key, byte[] value, long ttl) throws PDException {
-        this.putWithTTL(key,value,ttl,TimeUnit.SECONDS);
+        this.putWithTTL(key, value, ttl, TimeUnit.SECONDS);
     }
 
     @Override
-    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws PDException {
+    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws
+                                                                                  PDException {
         try {
             ConcurrentMap spaceNode = CacheBuilder.newBuilder().initialCapacity(200)
                                                   .expireAfterWrite(ttl,
@@ -221,7 +244,8 @@ public class HgKVStoreImpl implements HgKVStore {
             if (!Utils.atomicMoveFile(tempFile, snapshotFile, true)) {
                 log.error("Fail to rename {} to {}", tempPath, snapshotPath);
                 throw new PDException(Pdpb.ErrorType.ROCKSDB_SAVE_SNAPSHOT_ERROR_VALUE,
-                        String.format("Fail to rename %s to %s", tempPath, snapshotPath));
+                                      String.format("Fail to rename %s to %s", tempPath,
+                                                    snapshotPath));
             }
         } catch (final PDException e) {
             throw e;
@@ -253,7 +277,8 @@ public class HgKVStoreImpl implements HgKVStore {
             if (!Utils.atomicMoveFile(snapshotFile, dbFile, true)) {
                 log.error("Fail to rename {} to {}", snapshotPath, this.dbPath);
                 throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE,
-                        String.format("Fail to rename %s to %s", snapshotPath, this.dbPath));
+                                      String.format("Fail to rename %s to %s", snapshotPath,
+                                                    this.dbPath));
             }
             // reopen the db
             openRocksDB(this.dbPath);
@@ -272,7 +297,7 @@ public class HgKVStoreImpl implements HgKVStore {
     public List<KV> scanRange(byte[] start, byte[] end) {
         final Lock readLock = this.readWriteLock.readLock();
         readLock.lock();
-        try(ReadOptions options = new ReadOptions()
+        try (ReadOptions options = new ReadOptions()
                 .setIterateLowerBound(new Slice(start))
                 .setIterateUpperBound(new Slice(end))) {
             List<KV> kvs = new ArrayList<>();

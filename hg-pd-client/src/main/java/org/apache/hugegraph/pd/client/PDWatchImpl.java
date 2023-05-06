@@ -1,4 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
+
+import java.util.function.Supplier;
 
 import com.baidu.hugegraph.pd.grpc.watch.HgPdWatchGrpc;
 import com.baidu.hugegraph.pd.grpc.watch.WatchCreateRequest;
@@ -9,11 +28,10 @@ import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 import com.baidu.hugegraph.pd.grpc.watch.WatchType;
 import com.baidu.hugegraph.pd.watch.NodeEvent;
 import com.baidu.hugegraph.pd.watch.PartitionEvent;
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
-
-import java.util.function.Supplier;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/4
@@ -71,7 +89,7 @@ final class PDWatchImpl implements PDWatch {
                           .newBuilder()
                           .setWatchType(WatchType.WATCH_TYPE_GRAPH_CHANGE)
                           .build()
-                 );
+            );
         }
 
         @Override
@@ -84,10 +102,10 @@ final class PDWatchImpl implements PDWatch {
 
         private ShardGroupWatcher(Listener listener) {
             super(listener,
-                    () -> WatchCreateRequest
-                            .newBuilder()
-                            .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
-                            .build()
+                  () -> WatchCreateRequest
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
+                          .build()
             );
         }
 
@@ -101,10 +119,10 @@ final class PDWatchImpl implements PDWatch {
 
         private PartitionWatcher(Listener listener) {
             super(listener,
-                    () -> WatchCreateRequest
-                            .newBuilder()
-                            .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
-                            .build()
+                  () -> WatchCreateRequest
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
+                          .build()
             );
         }
 
@@ -112,7 +130,8 @@ final class PDWatchImpl implements PDWatch {
         public void onNext(WatchResponse watchResponse) {
             WatchPartitionResponse res = watchResponse.getPartitionResponse();
             PartitionEvent event = new PartitionEvent(res.getGraph(), res.getPartitionId(),
-                    PartitionEvent.ChangeType.grpcTypeOf(res.getChangeType()));
+                                                      PartitionEvent.ChangeType.grpcTypeOf(
+                                                              res.getChangeType()));
             this.listener.onNext(event);
         }
     }
@@ -120,10 +139,10 @@ final class PDWatchImpl implements PDWatch {
     private class NodeWatcher extends AbstractWatcher<NodeEvent> {
         private NodeWatcher(Listener listener) {
             super(listener,
-                    () -> WatchCreateRequest
-                            .newBuilder()
-                            .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
-                            .build()
+                  () -> WatchCreateRequest
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
+                          .build()
             );
         }
 
@@ -131,7 +150,7 @@ final class PDWatchImpl implements PDWatch {
         public void onNext(WatchResponse watchResponse) {
             WatchNodeResponse res = watchResponse.getNodeResponse();
             NodeEvent event = new NodeEvent(res.getGraph(), res.getNodeId(),
-                    NodeEvent.EventType.grpcTypeOf(res.getNodeEventType()));
+                                            NodeEvent.EventType.grpcTypeOf(res.getNodeEventType()));
             this.listener.onNext(event);
         }
     }
@@ -141,7 +160,8 @@ final class PDWatchImpl implements PDWatch {
         StreamObserver<WatchRequest> reqStream;
         Supplier<WatchCreateRequest> requestSupplier;
 
-        private AbstractWatcher(Listener<T> listener, Supplier<WatchCreateRequest> requestSupplier) {
+        private AbstractWatcher(Listener<T> listener,
+                                Supplier<WatchCreateRequest> requestSupplier) {
             this.listener = listener;
             this.requestSupplier = requestSupplier;
             this.init();

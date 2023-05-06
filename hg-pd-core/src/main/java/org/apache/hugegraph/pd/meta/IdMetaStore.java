@@ -1,13 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.meta;
-
-import com.baidu.hugegraph.pd.common.PDException;
-
-import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.store.KV;
-
-import com.caucho.hessian.io.Hessian2Input;
-import com.caucho.hessian.io.Hessian2Output;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,6 +25,15 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.store.KV;
+
+import com.baidu.hugegraph.pd.common.PDException;
+import com.caucho.hessian.io.Hessian2Input;
+import com.caucho.hessian.io.Hessian2Output;
+
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 自增id的实现类
  */
@@ -24,26 +41,34 @@ import java.util.concurrent.ConcurrentHashMap;
 public class IdMetaStore extends MetadataRocksDBStore {
 
 
+    private static final String ID_PREFIX = "@ID@";
+    private static final String CID_PREFIX = "@CID@";
+    private static final String CID_SLOT_PREFIX = "@CID_SLOT@";
+    private static final String CID_DEL_SLOT_PREFIX = "@CID_DEL_SLOT@";
+    private static final String SEPARATOR = "@";
+    private static final ConcurrentHashMap<String, Object> SEQUENCES = new ConcurrentHashMap<>();
+    public static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
     private final long clusterId;
-
     public IdMetaStore(PDConfig pdConfig) {
         super(pdConfig);
         this.clusterId = pdConfig.getClusterId();
     }
 
-    private static final String ID_PREFIX = "@ID@";
-    private static final String CID_PREFIX = "@CID@";
-    private static final String CID_SLOT_PREFIX = "@CID_SLOT@";
+    public static long bytesToLong(byte[] b) {
+        ByteBuffer buf = ByteBuffer.wrap(b);
+        return buf.getLong();
+    }
 
-    private static final String CID_DEL_SLOT_PREFIX = "@CID_DEL_SLOT@";
-
-    public static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
-
-    private static final String SEPARATOR = "@";
-    private static final ConcurrentHashMap<String, Object> SEQUENCES = new ConcurrentHashMap<>();
+    public static byte[] longToBytes(long l) {
+        ByteBuffer buf = ByteBuffer.wrap(new byte[Long.SIZE]);
+        buf.putLong(l);
+        buf.flip();
+        return buf.array();
+    }
 
     /**
      * 获取自增id
+     *
      * @param key
      * @param delta
      * @return
@@ -61,7 +86,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
         }
     }
 
-    private Object getLock(String key){
+    private Object getLock(String key) {
         Object probableLock = new Object();
         Object currentLock = SEQUENCES.putIfAbsent(key, probableLock);
         if (currentLock != null) {
@@ -69,7 +94,6 @@ public class IdMetaStore extends MetadataRocksDBStore {
         }
         return probableLock;
     }
-
 
     public void resetId(String key) throws PDException {
         Object probableLock = new Object();
@@ -86,18 +110,17 @@ public class IdMetaStore extends MetadataRocksDBStore {
     /**
      * 在删除name标识的cid的24小时内重复申请同一个name的cid保持同一值
      * 如此设计为了防止缓存的不一致，造成数据错误
+     *
      * @param key
-     * @param name  cid 标识
+     * @param name cid 标识
      * @param max
      * @return
      * @throws PDException
      */
     public long getCId(String key, String name, long max) throws PDException {
         // 检测是否有过期的cid，删除图的频率比较低，此处对性能影响不大
-        byte[] delKeyPrefix = new StringBuffer()
-                .append(CID_DEL_SLOT_PREFIX)
-                .append(key).append(SEPARATOR)
-                .toString().getBytes(Charset.defaultCharset());
+        byte[] delKeyPrefix = (CID_DEL_SLOT_PREFIX +
+                               key + SEPARATOR).getBytes(Charset.defaultCharset());
         synchronized (this) {
             scanPrefix(delKeyPrefix).forEach(kv -> {
                 long[] value = (long[]) deserialize(kv.getValue());
@@ -120,8 +143,9 @@ public class IdMetaStore extends MetadataRocksDBStore {
                 // 从延迟删除队列删除
                 remove(cidDelayKey);
                 return ((long[]) deserialize(value))[0];
-            } else
+            } else {
                 return getCId(key, max);
+            }
         }
     }
 
@@ -133,10 +157,12 @@ public class IdMetaStore extends MetadataRocksDBStore {
         put(delKey, serialize(new long[]{cid, System.currentTimeMillis()}));
         return cid;
     }
+
     /**
      * 获取自增循环不重复id, 达到上限后从0开始自增
+     *
      * @param key
-     * @param max  id上限，达到该值后，重新从0开始自增
+     * @param max id上限，达到该值后，重新从0开始自增
      * @return
      * @throws PDException
      */
@@ -150,20 +176,22 @@ public class IdMetaStore extends MetadataRocksDBStore {
             {   // 查找一个未使用的cid
                 List<KV> kvs = scanRange(genCIDSlotKey(key, current), genCIDSlotKey(key, max));
                 for (KV kv : kvs) {
-                    if (current == bytesToLong(kv.getValue()))
+                    if (current == bytesToLong(kv.getValue())) {
                         current++;
-                    else
+                    } else {
                         break;
+                    }
                 }
             }
             if (current == max) {
                 current = 0;
                 List<KV> kvs = scanRange(genCIDSlotKey(key, current), genCIDSlotKey(key, last));
                 for (KV kv : kvs) {
-                    if (current == bytesToLong(kv.getValue()))
+                    if (current == bytesToLong(kv.getValue())) {
                         current++;
-                    else
+                    } else {
                         break;
+                    }
                 }
             }
             if (current == last) return -1;
@@ -173,7 +201,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
         }
     }
 
-    private byte[] genCIDSlotKey(String key, long value){
+    private byte[] genCIDSlotKey(String key, long value) {
         byte[] keySlot = (CID_SLOT_PREFIX + key + SEPARATOR).getBytes(Charset.defaultCharset());
         ByteBuffer buf = ByteBuffer.allocate(keySlot.length + Long.SIZE);
         buf.put(keySlot);
@@ -181,17 +209,16 @@ public class IdMetaStore extends MetadataRocksDBStore {
         return buf.array();
     }
 
-    private byte[] getCIDDelayKey(String key, String name){
-        byte[] bsKey = new StringBuffer()
-                .append(CID_DEL_SLOT_PREFIX)
-                .append(key).append(SEPARATOR)
-                .append(name)
-                .toString().getBytes(Charset.defaultCharset());
+    private byte[] getCIDDelayKey(String key, String name) {
+        byte[] bsKey = (CID_DEL_SLOT_PREFIX +
+                        key + SEPARATOR +
+                        name).getBytes(Charset.defaultCharset());
         return bsKey;
     }
 
     /**
      * 删除一个循环id，释放id值
+     *
      * @param key
      * @param cid
      * @return
@@ -199,18 +226,6 @@ public class IdMetaStore extends MetadataRocksDBStore {
      */
     public long delCId(String key, long cid) throws PDException {
         return remove(genCIDSlotKey(key, cid));
-    }
-
-    public static long bytesToLong(byte[] b) {
-        ByteBuffer buf = ByteBuffer.wrap(b);
-        return buf.getLong();
-    }
-
-    public static byte[] longToBytes(long l) {
-        ByteBuffer buf = ByteBuffer.wrap(new byte[Long.SIZE]);
-        buf.putLong(l);
-        buf.flip();
-        return buf.array();
     }
 
     private byte[] serialize(Object obj) {

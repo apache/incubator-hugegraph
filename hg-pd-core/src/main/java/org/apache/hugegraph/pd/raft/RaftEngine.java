@@ -1,4 +1,31 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.raft;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.hugegraph.pd.config.PDConfig;
 
 import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Node;
@@ -16,39 +43,28 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
 import com.baidu.hugegraph.pd.common.PDException;
-
-import org.apache.hugegraph.pd.config.PDConfig;
-
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
-import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftEngine {
-    private volatile static RaftEngine instance = new RaftEngine();
-
-    public static RaftEngine getInstance() {
-        return instance;
-    }
-
-    private String groupId = "pd_raft";
+    private static final RaftEngine instance = new RaftEngine();
+    private final String groupId = "pd_raft";
+    private final RaftStateMachine stateMachine;
     private PDConfig.Raft config;
-    private RaftStateMachine stateMachine;
     private RaftGroupService raftGroupService;
     private RpcServer rpcServer;
     private Node raftNode;
     private RaftRpcClient raftRpcClient;
 
-    public RaftEngine(){
+    public RaftEngine() {
         this.stateMachine = new RaftStateMachine();
+    }
+
+    public static RaftEngine getInstance() {
+        return instance;
     }
 
     public boolean init(PDConfig.Raft config) {
@@ -98,9 +114,10 @@ public class RaftEngine {
         rpcServer = createRaftRpcServer(config.getAddress());
         // 构建raft组并启动raft
         this.raftGroupService = new RaftGroupService(groupId, serverId,
-                nodeOptions, rpcServer, true);
+                                                     nodeOptions, rpcServer, true);
         this.raftNode = raftGroupService.start(false);
-        log.info("RaftEngine start successfully: id = {}, peers list = {}", groupId, nodeOptions.getInitialConf().getPeers());
+        log.info("RaftEngine start successfully: id = {}, peers list = {}", groupId,
+                 nodeOptions.getInitialConf().getPeers());
         return this.raftNode != null;
     }
 
@@ -126,7 +143,7 @@ public class RaftEngine {
             }
             this.raftGroupService = null;
         }
-        if (this.rpcServer != null){
+        if (this.rpcServer != null) {
             this.rpcServer.shutdown();
             this.rpcServer = null;
         }
@@ -137,7 +154,7 @@ public class RaftEngine {
     }
 
     public boolean isLeader() {
-        return  this.raftNode.isLeader(true);
+        return this.raftNode.isLeader(true);
     }
 
     /**
@@ -153,18 +170,19 @@ public class RaftEngine {
         this.raftNode.apply(task);
     }
 
-    public void addStateListener(RaftStateListener listener){
+    public void addStateListener(RaftStateListener listener) {
         this.stateMachine.addStateListener(listener);
     }
 
-    public void addTaskHandler(RaftTaskHandler handler){
+    public void addTaskHandler(RaftTaskHandler handler) {
         this.stateMachine.addTaskHandler(handler);
     }
+
     public PDConfig.Raft getConfig() {
         return this.config;
     }
 
-    public PeerId getLeader(){
+    public PeerId getLeader() {
         return raftNode.getLeaderId();
     }
 
@@ -174,11 +192,11 @@ public class RaftEngine {
     public String getLeaderGrpcAddress() throws ExecutionException, InterruptedException {
         if (isLeader()) return config.getGrpcAddress();
         return raftRpcClient.getGrpcAddress(
-                        raftNode.getLeaderId().getEndpoint().toString())
-                .get().getGrpcAddress();
+                                    raftNode.getLeaderId().getEndpoint().toString())
+                            .get().getGrpcAddress();
     }
 
-    public Metapb.Member getLocalMember(){
+    public Metapb.Member getLocalMember() {
         Metapb.Member.Builder builder = Metapb.Member.newBuilder();
         builder.setClusterId(config.getClusterId());
         builder.setRaftUrl(config.getAddress());
@@ -192,7 +210,7 @@ public class RaftEngine {
         List<Metapb.Member> members = new ArrayList<>();
 
         List<PeerId> peers = raftNode.listPeers();
-        for(PeerId peerId : peers){
+        for (PeerId peerId : peers) {
             Metapb.Member.Builder builder = Metapb.Member.newBuilder();
             builder.setClusterId(config.getClusterId());
             CompletableFuture<RaftRpcProcessor.GetMemberResponse> future =
@@ -227,11 +245,11 @@ public class RaftEngine {
 
     public Status changePeerList(String peerList) {
         AtomicReference<Status> result = new AtomicReference<>();
-        try{
+        try {
             String[] peers = peerList.split(",", -1);
-            if ((peers.length & 1) != 1){
-                throw new PDException(-1,"the number of peer list must be odd.");
-            };
+            if ((peers.length & 1) != 1) {
+                throw new PDException(-1, "the number of peer list must be odd.");
+            }
             Configuration newPeers = new Configuration();
             newPeers.parse(peerList);
             CountDownLatch latch = new CountDownLatch(1);
@@ -247,9 +265,9 @@ public class RaftEngine {
         return result.get();
     }
 
-    public PeerId waitingForLeader(long timeOut){
+    public PeerId waitingForLeader(long timeOut) {
         PeerId leader = getLeader();
-        if ( leader != null ) {
+        if (leader != null) {
             return leader;
         }
 
@@ -264,7 +282,7 @@ public class RaftEngine {
                 }
                 leader = getLeader();
             }
-            return leader != null ? leader : null;
+            return leader;
         }
 
     }

@@ -1,13 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.config;
-
-import org.apache.hugegraph.pd.ConfigService;
-import org.apache.hugegraph.pd.IdService;
-import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,9 +23,19 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.IdService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+
+import lombok.Data;
+
 
 /**
  * PD配置文件
+ *
  * @author: yanjinbing
  * @date: 2021/10/20
  */
@@ -57,6 +75,8 @@ public class PDConfig {
     private Discovery discovery;
 
     private Map<String, String> initialStoreMap = null;
+    private ConfigService configService;
+    private IdService idService;
 
     public Map<String, String> getInitialStoreMap() {
         if (initialStoreMap == null) {
@@ -71,11 +91,28 @@ public class PDConfig {
     /**
      * 初始分区数量
      * Store数量 * 每Store最大副本数 /每分区副本数
-     *  @return
+     *
+     * @return
      */
-    public int getInitialPartitionCount(){
+    public int getInitialPartitionCount() {
         return getInitialStoreMap().size() * partition.getMaxShardsPerStore()
-                / partition.getShardCount();
+               / partition.getShardCount();
+    }
+
+    public ConfigService getConfigService() {
+        return configService;
+    }
+
+    public void setConfigService(ConfigService configService) {
+        this.configService = configService;
+    }
+
+    public IdService getIdService() {
+        return idService;
+    }
+
+    public void setIdService(IdService idService) {
+        this.idService = idService;
     }
 
     @Data
@@ -102,12 +139,15 @@ public class PDConfig {
         private long clusterId;   // 集群ID
         @Value("${grpc.port}")
         private int grpcPort;
-        public String getGrpcAddress(){ return host + ":" + grpcPort;}
+
+        public String getGrpcAddress() {
+            return host + ":" + grpcPort;
+        }
     }
 
     @Data
     @Configuration
-    public class Store{
+    public class Store {
         // store 心跳超时时间
         @Value("${store.keepAlive-timeout:300}")
         private long keepAliveTimeout = 300;
@@ -126,33 +166,35 @@ public class PDConfig {
         /**
          * interval -> seconds.
          * minimum value is 1 seconds.
+         *
          * @return the seconds of the interval
          */
-        public Long getMonitorInterval(){
+        public Long getMonitorInterval() {
             return parseTimeExpression(this.monitorDataInterval);
         }
 
         /**
-         *  the monitor data that saved in rocksdb, will be deleted
-         *  out of period
+         * the monitor data that saved in rocksdb, will be deleted
+         * out of period
          *
          * @return the period of the monitor data should keep
          */
-        public Long getRetentionPeriod(){
+        public Long getRetentionPeriod() {
             return parseTimeExpression(this.monitorDataRetention);
         }
 
         /**
          * parse time expression , support pattern:
-         *  [1-9][ ](second, minute, hour, day, month, year)
-         *  unit could not be null, the number part is 1 by default.
+         * [1-9][ ](second, minute, hour, day, month, year)
+         * unit could not be null, the number part is 1 by default.
          *
          * @param exp
          * @return seconds value of the expression. 1 will return by illegal expression
          */
-        private Long parseTimeExpression(String exp){
+        private Long parseTimeExpression(String exp) {
             if (exp != null) {
-                Pattern pattern = Pattern.compile("(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
+                Pattern pattern = Pattern.compile(
+                        "(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
                 Matcher matcher = pattern.matcher(exp.trim());
                 if (matcher.find()) {
                     String n = matcher.group("n");
@@ -194,7 +236,7 @@ public class PDConfig {
 
     @Data
     @Configuration
-    public class Partition{
+    public class Partition {
         private int totalCount = 0;
 
         // 每个Store最大副本数
@@ -205,40 +247,24 @@ public class PDConfig {
         @Value("${partition.default-shard-count:3}")
         private int shardCount = 3;
 
-        public void setTotalCount(int totalCount){
-            this.totalCount = totalCount;
-        }
         public int getTotalCount() {
-            if ( totalCount == 0 ) {
+            if (totalCount == 0) {
                 totalCount = getInitialPartitionCount();
             }
             return totalCount;
+        }
+
+        public void setTotalCount(int totalCount) {
+            this.totalCount = totalCount;
         }
     }
 
     @Data
     @Configuration
-    public class Discovery{
+    public class Discovery {
         // 客户端注册后，无心跳最长次数，超过后，之前的注册信息会被删除
         @Value("${discovery.heartbeat-try-count:3}")
         private int heartbeatOutTimes = 3;
-    }
-
-    private ConfigService configService;
-
-    private IdService   idService;
-
-    public void setConfigService(ConfigService configService) {
-        this.configService = configService;
-    }
-    public ConfigService getConfigService(){ return configService; }
-
-    public IdService getIdService() {
-        return idService;
-    }
-
-    public void setIdService(IdService idService) {
-        this.idService = idService;
     }
 
 }

@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.meta;
 
 import java.util.LinkedList;
@@ -23,12 +40,12 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
 
     PDConfig pdConfig;
 
-    public MetadataRocksDBStore(PDConfig pdConfig){
+    public MetadataRocksDBStore(PDConfig pdConfig) {
         store = MetadataFactory.getStore(pdConfig);
         this.pdConfig = pdConfig;
     }
 
-    private HgKVStore getStore(){
+    private HgKVStore getStore() {
         if (store == null) {
             store = MetadataFactory.getStore(pdConfig);
         }
@@ -40,7 +57,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
         try {
             byte[] bytes = store.get(key);
             return bytes;
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);
         }
     }
@@ -51,7 +68,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
             byte[] bytes = store.get(key);
             if (ArrayUtils.isEmpty(bytes)) return null;
             return parser.parseFrom(bytes);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);
         }
     }
@@ -60,19 +77,20 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
     public void put(byte[] key, byte[] value) throws PDException {
         try {
             getStore().put(key, value);
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_WRITE_ERROR_VALUE, e);
         }
     }
 
     @Override
     public void putWithTTL(byte[] key, byte[] value, long ttl) throws PDException {
-       this.store.putWithTTL(key,value,ttl);
+        this.store.putWithTTL(key, value, ttl);
     }
 
     @Override
-    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws PDException {
-        this.store.putWithTTL(key,value,ttl,timeUnit);
+    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws
+                                                                                  PDException {
+        this.store.putWithTTL(key, value, ttl, timeUnit);
     }
 
     @Override
@@ -82,7 +100,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
 
     @Override
     public List getListWithTTL(byte[] key) throws PDException {
-      return this.store.getListWithTTL(key);
+        return this.store.getListWithTTL(key);
     }
 
     @Override
@@ -94,7 +112,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
     public List<KV> scanPrefix(byte[] prefix) throws PDException {
         //TODO 使用rocksdb 前缀查询
         try {
-            return  this.store.scanPrefix(prefix);
+            return this.store.scanPrefix(prefix);
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);
         }
@@ -102,16 +120,16 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
 
     @Override
     public List<KV> scanRange(byte[] start, byte[] end) throws PDException {
-        return this.store.scanRange(start,end);
+        return this.store.scanRange(start, end);
     }
 
     @Override
-    public <E> List<E>  scanRange(Parser<E> parser,byte[] start,byte[] end) throws PDException {
+    public <E> List<E> scanRange(Parser<E> parser, byte[] start, byte[] end) throws PDException {
         List<E> stores = new LinkedList<>();
         try {
             List<KV> kvs = this.scanRange(start, end);
             for (KV keyValue : kvs) {
-                stores.add(parser.parseFrom((byte[])keyValue.getValue()));
+                stores.add(parser.parseFrom((byte[]) keyValue.getValue()));
             }
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);
@@ -125,7 +143,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
         try {
             List<KV> kvs = this.scanPrefix(prefix);
             for (KV keyValue : kvs) {
-                stores.add(parser.parseFrom((byte[])keyValue.getValue()));
+                stores.add(parser.parseFrom((byte[]) keyValue.getValue()));
             }
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);

@@ -1,25 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd;
 
-import com.baidu.hugegraph.pd.common.PDException;
+import java.util.List;
 
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.ConfigMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
 
+import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
 
 @Slf4j
 public class ConfigService implements RaftStateListener {
 
     private PDConfig pdConfig;
-    private ConfigMetaStore meta;
+    private final ConfigMetaStore meta;
 
-    public ConfigService(PDConfig config){
+    public ConfigService(PDConfig config) {
         this.pdConfig = config;
         config.setConfigService(this);
         meta = MetadataFactory.newConfigMeta(config);
@@ -29,6 +45,7 @@ public class ConfigService implements RaftStateListener {
     public Metapb.PDConfig getPDConfig(long version) throws PDException {
         return this.meta.getPdConfig(version);
     }
+
     public Metapb.PDConfig getPDConfig() throws PDException {
         return this.meta.getPdConfig(0);
     }
@@ -36,9 +53,9 @@ public class ConfigService implements RaftStateListener {
     public Metapb.PDConfig setPDConfig(Metapb.PDConfig mConfig) throws PDException {
         Metapb.PDConfig oldCfg = getPDConfig();
         Metapb.PDConfig.Builder builder = oldCfg.toBuilder().mergeFrom(mConfig)
-                .setVersion(oldCfg.getVersion() + 1)
-                .setTimestamp(System.currentTimeMillis());
-        mConfig =  this.meta.setPdConfig(builder.build());
+                                                .setVersion(oldCfg.getVersion() + 1)
+                                                .setTimestamp(System.currentTimeMillis());
+        mConfig = this.meta.setPdConfig(builder.build());
         log.info("PDConfig has been modified, new PDConfig is {}", mConfig);
         updatePDConfig(mConfig);
         return mConfig;
@@ -50,26 +67,27 @@ public class ConfigService implements RaftStateListener {
 
     public Metapb.GraphSpace setGraphSpace(Metapb.GraphSpace graphSpace) throws PDException {
         return this.meta.setGraphSpace(graphSpace.toBuilder()
-                .setTimestamp(System.currentTimeMillis())
-                .build());
+                                                 .setTimestamp(System.currentTimeMillis())
+                                                 .build());
     }
 
     /**
      * 从存储中读取配置项，并覆盖全局的PDConfig对象
-
+     *
      * @return
      */
     public PDConfig loadConfig() {
         try {
             Metapb.PDConfig mConfig = this.meta.getPdConfig(0);
-            if ( mConfig == null ){
+            if (mConfig == null) {
                 mConfig = Metapb.PDConfig.newBuilder()
-                        .setPartitionCount(pdConfig.getInitialPartitionCount())
-                        .setShardCount(pdConfig.getPartition().getShardCount())
-                        .setVersion(1)
-                        .setTimestamp(System.currentTimeMillis())
-                        .setMaxShardsPerStore(pdConfig.getPartition().getMaxShardsPerStore())
-                        .build();
+                                         .setPartitionCount(pdConfig.getInitialPartitionCount())
+                                         .setShardCount(pdConfig.getPartition().getShardCount())
+                                         .setVersion(1)
+                                         .setTimestamp(System.currentTimeMillis())
+                                         .setMaxShardsPerStore(
+                                                 pdConfig.getPartition().getMaxShardsPerStore())
+                                         .build();
                 this.meta.setPdConfig(mConfig);
             }
             pdConfig = updatePDConfig(mConfig);
@@ -79,7 +97,7 @@ public class ConfigService implements RaftStateListener {
         return pdConfig;
     }
 
-    public synchronized PDConfig updatePDConfig(Metapb.PDConfig mConfig){
+    public synchronized PDConfig updatePDConfig(Metapb.PDConfig mConfig) {
         log.info("update pd config: mConfig:{}", mConfig);
         pdConfig.getPartition().setShardCount(mConfig.getShardCount());
         pdConfig.getPartition().setTotalCount(mConfig.getPartitionCount());
@@ -87,7 +105,7 @@ public class ConfigService implements RaftStateListener {
         return pdConfig;
     }
 
-    public synchronized PDConfig setPartitionCount(int count){
+    public synchronized PDConfig setPartitionCount(int count) {
         Metapb.PDConfig mConfig = null;
         try {
             mConfig = getPDConfig();

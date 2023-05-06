@@ -1,11 +1,29 @@
-package org.apache.hugegraph.pd.client;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
-import org.apache.hugegraph.pd.watch.NodeEvent;
-import org.apache.hugegraph.pd.watch.PartitionEvent;
+package org.apache.hugegraph.pd.client;
 
 import java.io.Closeable;
 import java.util.function.Consumer;
+
+import org.apache.hugegraph.pd.watch.NodeEvent;
+import org.apache.hugegraph.pd.watch.PartitionEvent;
+
+import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/4
@@ -30,19 +48,6 @@ public interface PDWatch {
     //PDWatcher watchNode(String graph, Listener<NodeEvent> listener);
 
 
-    /**
-     *
-     * @param listener
-     * @return
-     */
-    Watcher watchPartition(Listener<PartitionEvent> listener);
-
-    Watcher watchNode(Listener<NodeEvent> listener);
-
-    Watcher watchGraph(Listener<WatchResponse> listener);
-
-    Watcher watchShardGroup(Listener<WatchResponse> listener);
-
     /*** inner static methods ***/
     static <T> Listener<T> listener(Consumer<T> onNext) {
         return listener(onNext, t -> {
@@ -60,7 +65,8 @@ public interface PDWatch {
         }, onCompleted);
     }
 
-    static <T> Listener<T> listener(Consumer<T> onNext, Consumer<Throwable> onError, Runnable onCompleted) {
+    static <T> Listener<T> listener(Consumer<T> onNext, Consumer<Throwable> onError,
+                                    Runnable onCompleted) {
         return new Listener<T>() {
             @Override
             public void onNext(T response) {
@@ -78,6 +84,18 @@ public interface PDWatch {
             }
         };
     }
+
+    /**
+     * @param listener
+     * @return
+     */
+    Watcher watchPartition(Listener<PartitionEvent> listener);
+
+    Watcher watchNode(Listener<NodeEvent> listener);
+
+    Watcher watchGraph(Listener<WatchResponse> listener);
+
+    Watcher watchShardGroup(Listener<WatchResponse> listener);
 
 
     /**

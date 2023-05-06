@@ -1,27 +1,43 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.pulse.PulseServerNotice;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+
 import com.baidu.hugegraph.pd.common.KVPair;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
-import org.apache.hugegraph.pd.pulse.PulseServerNotice;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-// import org.junit.Test;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class StoreRegisterTest {
     private static PDClient pdClient;
-
-    private long storeId = 0;
     private final String storeAddr = "localhost";
     private final String graphName = "default/hugegraph/g";
+    private long storeId = 0;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -48,6 +64,7 @@ public class StoreRegisterTest {
         Assert.assertTrue(store.getAddress().equals(storeAddr));
         System.out.println(store);
     }
+
     // @Test
     public void testGetActiveStores() throws PDException {
         testRegisterStore();
@@ -63,8 +80,8 @@ public class StoreRegisterTest {
     public void testStoreHeartbeat() throws PDException {
         testRegisterStore();
         Metapb.StoreStats stats = Metapb.StoreStats.newBuilder()
-                .setStoreId(storeId)
-                .build();
+                                                   .setStoreId(storeId)
+                                                   .build();
         pdClient.storeHeartbeat(stats);
         List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
         boolean exist = false;
@@ -76,7 +93,6 @@ public class StoreRegisterTest {
         }
         Assert.assertTrue(exist);
     }
-
 
 
     // @Test
@@ -106,14 +122,20 @@ public class StoreRegisterTest {
 
                     }
                 });
-        KVPair<Metapb.Partition, Metapb.Shard> partShard = pdClient.getPartition("test", "1".getBytes(StandardCharsets.UTF_8));
+        KVPair<Metapb.Partition, Metapb.Shard> partShard =
+                pdClient.getPartition("test", "1".getBytes(StandardCharsets.UTF_8));
         notifier.notifyServer(PartitionHeartbeatRequest.newBuilder()
-                .setStates(
-                        Metapb.PartitionStats.newBuilder()
-                                .addGraphName("test")
-                                .setId(partShard.getKey().getId())
-                                .setLeader(Metapb.Shard.newBuilder()
-                                        .setStoreId(1).build())));
+                                                       .setStates(
+                                                               Metapb.PartitionStats.newBuilder()
+                                                                                    .addGraphName(
+                                                                                            "test")
+                                                                                    .setId(partShard.getKey()
+                                                                                                    .getId())
+                                                                                    .setLeader(
+                                                                                            Metapb.Shard.newBuilder()
+                                                                                                        .setStoreId(
+                                                                                                                1)
+                                                                                                        .build())));
 
 
         Thread.sleep(10000);

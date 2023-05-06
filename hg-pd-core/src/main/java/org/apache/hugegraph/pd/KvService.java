@@ -1,26 +1,40 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd;
-
-import com.baidu.hugegraph.pd.common.PDException;
-
-import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
-import org.apache.hugegraph.pd.store.KV;
-
-import com.baidu.hugegraph.pd.grpc.kv.Kv;
-import com.baidu.hugegraph.pd.grpc.kv.V;
-
-import org.apache.hugegraph.pd.meta.MetadataRocksDBStore;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.stereotype.Service;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
+import org.apache.hugegraph.pd.meta.MetadataRocksDBStore;
+import org.apache.hugegraph.pd.store.KV;
+import org.springframework.stereotype.Service;
+
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.kv.Kv;
+import com.baidu.hugegraph.pd.grpc.kv.V;
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author zhangyingjie
@@ -30,19 +44,45 @@ import java.util.Map;
 public class KvService {
 
 
-    private PDConfig pdConfig;
-    private MetadataRocksDBStore meta;
+    public static final char KV_DELIMITER = '@';
     // TODO 主前缀之后，增加类名做区分
     private static final String TTL_PREFIX = "T";
     private static final String KV_PREFIX = "K";
     private static final String LOCK_PREFIX = "L";
-    public static final char KV_DELIMITER = '@';
     private static final String KV_PREFIX_DELIMITER = KV_PREFIX + KV_DELIMITER;
     private static final byte[] EMPTY_VALUE = new byte[0];
+    private PDConfig pdConfig;
+    private final MetadataRocksDBStore meta;
 
     public KvService(PDConfig config) {
         this.pdConfig = config;
         meta = new MetadataRocksDBStore(config);
+    }
+
+    public static String getKey(Object... keys) {
+        StringBuilder builder = MetadataKeyHelper.getStringBuilderHelper();
+        builder.append(KV_PREFIX).append(KV_DELIMITER);
+        for (Object key : keys) {
+            builder.append(key == null ? "" : key).append(KV_DELIMITER);
+        }
+        return builder.substring(0, builder.length() - 1);
+    }
+
+    public static byte[] getKeyBytes(Object... keys) {
+        String key = getKey(keys);
+        return key.getBytes(Charset.defaultCharset());
+    }
+
+    public static String getKeyWithoutPrefix(Object... keys) {
+        StringBuilder builder = MetadataKeyHelper.getStringBuilderHelper();
+        for (Object key : keys) {
+            builder.append(key == null ? "" : key).append(KV_DELIMITER);
+        }
+        return builder.substring(0, builder.length() - 1);
+    }
+
+    public static String getDelimiter() {
+        return String.valueOf(KV_DELIMITER);
     }
 
     public PDConfig getPdConfig() {
@@ -153,7 +193,7 @@ public class KvService {
      * @return Records
      * @throws PDException
      */
-    public Map<String, String> scanRange(String keyStart, String keyEnd) throws PDException{
+    public Map<String, String> scanRange(String keyStart, String keyEnd) throws PDException {
         List<KV> list = meta.scanRange(getStoreKey(keyStart), getStoreKey(keyEnd));
         Map<String, String> map = new HashMap<>();
         for (KV kv : list) {
@@ -182,11 +222,7 @@ public class KvService {
     public boolean locked(String key) throws PDException {
         String lockKey = KvService.getKeyWithoutPrefix(KvService.LOCK_PREFIX, key);
         Map<String, String> allLock = scanWithPrefix(lockKey);
-        if (allLock == null || allLock.size() == 0) {
-            return false;
-        } else {
-            return true;
-        }
+        return allLock != null && allLock.size() != 0;
     }
 
     private boolean owned(String key, long clientId) throws PDException {
@@ -222,7 +258,6 @@ public class KvService {
             return true;
         }
     }
-
 
     public boolean unlock(String key, long clientId) throws PDException {
         synchronized (KvService.class) {
@@ -264,32 +299,6 @@ public class KvService {
         } catch (Exception e) {
             log.error("clear ttl data with error :", e);
         }
-    }
-
-    public static String getKey(Object... keys) {
-        StringBuilder builder = MetadataKeyHelper.getStringBuilderHelper();
-        builder.append(KV_PREFIX).append(KV_DELIMITER);
-        for (Object key : keys) {
-            builder.append(key == null ? "" : key).append(KV_DELIMITER);
-        }
-        return builder.substring(0, builder.length() - 1);
-    }
-
-    public static byte[] getKeyBytes(Object... keys) {
-        String key = getKey(keys);
-        return key.getBytes(Charset.defaultCharset());
-    }
-
-    public static String getKeyWithoutPrefix(Object... keys) {
-        StringBuilder builder = MetadataKeyHelper.getStringBuilderHelper();
-        for (Object key : keys) {
-            builder.append(key == null ? "" : key).append(KV_DELIMITER);
-        }
-        return builder.substring(0, builder.length() - 1);
-    }
-
-    public static String getDelimiter() {
-        return String.valueOf(KV_DELIMITER);
     }
 
 }

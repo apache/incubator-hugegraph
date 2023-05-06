@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
 
 import java.util.concurrent.ExecutorService;
@@ -14,6 +31,7 @@ import com.baidu.hugegraph.pd.grpc.pulse.PulseResponse;
 import com.baidu.hugegraph.pd.grpc.pulse.PulseType;
 import com.baidu.hugegraph.pd.pulse.PartitionNotice;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
@@ -27,12 +45,13 @@ final class PDPulseImpl implements PDPulse {
 
     private final HgPdPulseGrpc.HgPdPulseStub stub;
 
-    private ExecutorService threadPool ;
+    private final ExecutorService threadPool;
 
     // TODO: support several servers.
     public PDPulseImpl(String pdServerAddress) {
         this.stub = HgPdPulseGrpc.newStub(getChannel(pdServerAddress));
-        var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
+        var namedThreadFactory =
+                new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
         threadPool = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
@@ -41,13 +60,15 @@ final class PDPulseImpl implements PDPulse {
     }
 
     @Override
-    public Notifier<PartitionHeartbeatRequest.Builder> connectPartition(Listener<PartitionHeartbeatResponse> listener) {
+    public Notifier<PartitionHeartbeatRequest.Builder> connectPartition(
+            Listener<PartitionHeartbeatResponse> listener) {
         return new PartitionHeartbeat(listener);
     }
 
     /*** PartitionHeartbeat's implement  ***/
     private class PartitionHeartbeat extends
-                                     AbstractConnector<PartitionHeartbeatRequest.Builder, PartitionHeartbeatResponse> {
+                                     AbstractConnector<PartitionHeartbeatRequest.Builder,
+                                             PartitionHeartbeatResponse> {
         private long observerId = -1;
 
         PartitionHeartbeat(Listener listener) {
@@ -84,7 +105,8 @@ final class PDPulseImpl implements PDPulse {
 
     }
 
-    private abstract class AbstractConnector<N, L> implements Notifier<N>, StreamObserver<PulseResponse> {
+    private abstract class AbstractConnector<N, L> implements Notifier<N>,
+                                                              StreamObserver<PulseResponse> {
         Listener<L> listener;
         StreamObserver<PulseRequest> reqStream;
         PulseType pulseType;
@@ -99,7 +121,7 @@ final class PDPulseImpl implements PDPulse {
 
         void init() {
             PulseCreateRequest.Builder builder = PulseCreateRequest.newBuilder()
-                    .setPulseType(this.pulseType);
+                                                                   .setPulseType(this.pulseType);
 
             this.reqStream = PDPulseImpl.this.stub.pulse(this);
             this.reqStream.onNext(reqBuilder.clear().setCreateRequest(builder).build());
@@ -137,10 +159,12 @@ final class PDPulseImpl implements PDPulse {
             threadPool.execute(() -> {
                 // log.info("send ack: {}, ts: {}", noticeId, System.currentTimeMillis());
                 this.reqStream.onNext(reqBuilder.clear()
-                        .setAckRequest(
-                                this.ackBuilder.clear().setNoticeId(noticeId)
-                                        .setObserverId(observerId).build()
-                        ).build()
+                                                .setAckRequest(
+                                                        this.ackBuilder.clear()
+                                                                       .setNoticeId(noticeId)
+                                                                       .setObserverId(observerId)
+                                                                       .build()
+                                                ).build()
                 );
             });
         }

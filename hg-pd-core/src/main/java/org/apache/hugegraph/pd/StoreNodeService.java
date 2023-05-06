@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd;
 
 import java.util.ArrayList;
@@ -37,54 +54,65 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StoreNodeService {
 
-    // Store状态监听
-    private List<StoreStatusListener> statusListeners;
-    private List<ShardGroupStatusListener> shardGroupStatusListeners;
-
-    private PartitionService partitionService;
-    private StoreInfoMeta storeInfoMeta;
-    private TaskInfoMeta taskInfoMeta;
-    private Random random = new Random(System.currentTimeMillis());
-    private Metapb.ClusterStats clusterStats;
-    private KvService kvService;
-    private ConfigService configService;
-    private PDConfig pdConfig;
-
     private static final Long STORE_HEART_BEAT_INTERVAL = 30000L;
+    private static final String graphSpaceConfPrefix = "HUGEGRAPH/hg/GRAPHSPACE/CONF/";
+    // Store状态监听
+    private final List<StoreStatusListener> statusListeners;
+    private final List<ShardGroupStatusListener> shardGroupStatusListeners;
+    private PartitionService partitionService;
+    private final StoreInfoMeta storeInfoMeta;
+    private final TaskInfoMeta taskInfoMeta;
+    private final Random random = new Random(System.currentTimeMillis());
+    private Metapb.ClusterStats clusterStats;
+    private final KvService kvService;
+    private final ConfigService configService;
+    private final PDConfig pdConfig;
+    private final Runnable quotaChecker = () -> {
+        try {
+            getQuota();
+        } catch (Exception e) {
+            log.error(
+                    "obtaining and sending graph space quota information with error: ",
+                    e);
+        }
+    };
 
-    public StoreNodeService(PDConfig config){
+    public StoreNodeService(PDConfig config) {
         this.pdConfig = config;
         storeInfoMeta = MetadataFactory.newStoreInfoMeta(pdConfig);
         taskInfoMeta = MetadataFactory.newTaskInfoMeta(pdConfig);
         shardGroupStatusListeners = Collections.synchronizedList(new ArrayList<>());
         statusListeners = Collections.synchronizedList(new ArrayList<StoreStatusListener>());
         clusterStats = Metapb.ClusterStats.newBuilder()
-                .setState(Metapb.ClusterState.Cluster_Not_Ready)
-                .setTimestamp(System.currentTimeMillis())
-                .build();
+                                          .setState(Metapb.ClusterState.Cluster_Not_Ready)
+                                          .setTimestamp(System.currentTimeMillis())
+                                          .build();
         kvService = new KvService(pdConfig);
         configService = new ConfigService(pdConfig);
     }
 
-    public void init(PartitionService partitionService){
+    public void init(PartitionService partitionService) {
         this.partitionService = partitionService;
         partitionService.addStatusListener(new PartitionStatusListener() {
             @Override
             public void onPartitionChanged(Metapb.Partition old, Metapb.Partition partition) {
-                if (old != null && old.getState() != partition.getState()){
+                if (old != null && old.getState() != partition.getState()) {
                     // 状态改变，重置集群状态
                     try {
-                        List<Metapb.Partition> partitions = partitionService.getPartitionById(partition.getId());
+                        List<Metapb.Partition> partitions =
+                                partitionService.getPartitionById(partition.getId());
                         Metapb.PartitionState state = Metapb.PartitionState.PState_Normal;
-                        for(Metapb.Partition pt : partitions){
-                            if ( pt.getState().getNumber() > state.getNumber())
+                        for (Metapb.Partition pt : partitions) {
+                            if (pt.getState().getNumber() > state.getNumber()) {
                                 state = pt.getState();
+                            }
                         }
                         updateShardGroupState(partition.getId(), state);
 
-                        for(Metapb.ShardGroup group : getShardGroups()){
-                            if ( group.getState().getNumber() > state.getNumber())
+                        for (Metapb.ShardGroup group : getShardGroups()) {
+                            if (group.getState().getNumber() > state.getNumber()) {
                                 state = group.getState();
+                            }
                         }
                         updateClusterStatus(state);
                     } catch (PDException e) {
@@ -102,14 +130,17 @@ public class StoreNodeService {
 
     /**
      * 集群是否准备就绪
+     *
      * @return
      */
-    public boolean isOK(){
-        return this.clusterStats.getState().getNumber() < Metapb.ClusterState.Cluster_Offline.getNumber();
+    public boolean isOK() {
+        return this.clusterStats.getState().getNumber() <
+               Metapb.ClusterState.Cluster_Offline.getNumber();
     }
 
     /**
      * Store注册，记录Store的ip地址，首次注册需要生成store_ID
+     *
      * @param store
      */
     public Metapb.Store register(Metapb.Store store) throws PDException {
@@ -119,52 +150,55 @@ public class StoreNodeService {
         }
 
         if (!storeInfoMeta.storeExists(store.getId())) {
-            log.error("Store id {} does not belong to this PD, address = {}", store.getId(), store.getAddress());
+            log.error("Store id {} does not belong to this PD, address = {}", store.getId(),
+                      store.getAddress());
             // storeId不存在，抛出异常
             throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
-                    String.format("Store id %d doest not exist.", store.getId()));
+                                  String.format("Store id %d doest not exist.", store.getId()));
         }
 
         // 如果store状态为Tombstone拒绝注册。
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
         if (lastStore.getState() == Metapb.StoreState.Tombstone) {
             log.error("Store id {} has been removed, Please reinitialize, address = {}",
-                    store.getId(), store.getAddress());
+                      store.getId(), store.getAddress());
             // storeId不存在，抛出异常
             throw new PDException(Pdpb.ErrorType.STORE_HAS_BEEN_REMOVED_VALUE,
-                    String.format("Store id %d has been removed. %s", store.getId(), store.getAddress()));
+                                  String.format("Store id %d has been removed. %s", store.getId(),
+                                                store.getAddress()));
         }
 
         // offline或者up，或者在初始激活列表中，自动上线
         Metapb.StoreState storeState = lastStore.getState();
         if (storeState == Metapb.StoreState.Offline || storeState == Metapb.StoreState.Up
-                || inInitialStoreList(store)){
+            || inInitialStoreList(store)) {
             storeState = Metapb.StoreState.Up;
-        }
-        else {
+        } else {
             storeState = Metapb.StoreState.Pending;
         }
 
         store = Metapb.Store.newBuilder(lastStore)
-                .setAddress(store.getAddress())
-                .setRaftAddress(store.getRaftAddress())
-                .setDataVersion(store.getDataVersion())
-                .setDeployPath(store.getDeployPath())
-                .setVersion(store.getVersion())
-                .setDataPath(store.getDataPath())
-                .setState(storeState).setCores(store.getCores())
-                .clearLabels().addAllLabels(store.getLabelsList())
-                .setLastHeartbeat(System.currentTimeMillis()).build();
+                            .setAddress(store.getAddress())
+                            .setRaftAddress(store.getRaftAddress())
+                            .setDataVersion(store.getDataVersion())
+                            .setDeployPath(store.getDeployPath())
+                            .setVersion(store.getVersion())
+                            .setDataPath(store.getDataPath())
+                            .setState(storeState).setCores(store.getCores())
+                            .clearLabels().addAllLabels(store.getLabelsList())
+                            .setLastHeartbeat(System.currentTimeMillis()).build();
 
         long current = System.currentTimeMillis();
         boolean raftChanged = false;
         // 上线状态的Raft Address 发生了变更
-        if (!Objects.equals(lastStore.getRaftAddress(), store.getRaftAddress()) && storeState == Metapb.StoreState.Up) {
+        if (!Objects.equals(lastStore.getRaftAddress(), store.getRaftAddress()) &&
+            storeState == Metapb.StoreState.Up) {
             // 时间间隔太短，而且raft有变更，则认为是无效的store
-            if (current - lastStore.getLastHeartbeat() < STORE_HEART_BEAT_INTERVAL * 0.8){
+            if (current - lastStore.getLastHeartbeat() < STORE_HEART_BEAT_INTERVAL * 0.8) {
                 throw new PDException(Pdpb.ErrorType.STORE_PROHIBIT_DUPLICATE_VALUE,
-                        String.format("Store id %d may be duplicate. addr: %s", store.getId(), store.getAddress()));
-            } else if(current - lastStore.getLastHeartbeat() > STORE_HEART_BEAT_INTERVAL * 1.2 ) {
+                                      String.format("Store id %d may be duplicate. addr: %s",
+                                                    store.getId(), store.getAddress()));
+            } else if (current - lastStore.getLastHeartbeat() > STORE_HEART_BEAT_INTERVAL * 1.2) {
                 // 认为发生了变更
                 raftChanged = true;
             } else {
@@ -191,66 +225,73 @@ public class StoreNodeService {
         return store;
     }
 
-    private boolean inInitialStoreList(Metapb.Store store){
+    private boolean inInitialStoreList(Metapb.Store store) {
         return this.pdConfig.getInitialStoreMap().containsKey(store.getAddress());
     }
 
     /**
      * 产生一个新的store对象
+     *
      * @param store
      * @return
      * @throws PDException
      */
     private synchronized Metapb.Store newStoreNode(Metapb.Store store) throws PDException {
         long id = random.nextLong() & Long.MAX_VALUE;
-        while( id == 0 || storeInfoMeta.storeExists(id) )
+        while (id == 0 || storeInfoMeta.storeExists(id)) {
             id = random.nextLong() & Long.MAX_VALUE;
+        }
         store = Metapb.Store.newBuilder(store)
-                .setId(id)
-                .setState(Metapb.StoreState.Pending)
-                .setStartTimestamp(System.currentTimeMillis()).build();
+                            .setId(id)
+                            .setState(Metapb.StoreState.Pending)
+                            .setStartTimestamp(System.currentTimeMillis()).build();
         storeInfoMeta.updateStore(store);
         return store;
     }
 
     /**
      * 根据store_id返回Store信息
+     *
      * @param id
      * @return
      * @throws PDException
      */
     public Metapb.Store getStore(long id) throws PDException {
         Metapb.Store store = storeInfoMeta.getStore(id);
-        if ( store == null )
+        if (store == null) {
             throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
-                    String.format("Store id %x doest not exist.", id));
+                                  String.format("Store id %x doest not exist.", id));
+        }
         return store;
     }
 
     /**
      * 更新Store信息，检测Store状态的变化，通知到Hugestore
-     *
      */
     public synchronized Metapb.Store updateStore(Metapb.Store store) throws PDException {
-        log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(), store.getAddress(), store.getState());
+        log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(),
+                 store.getAddress(), store.getState());
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
         if (lastStore == null) return null;
-        Metapb.Store.Builder builder = Metapb.Store.newBuilder(lastStore).clearLabels().clearStats();
+        Metapb.Store.Builder builder =
+                Metapb.Store.newBuilder(lastStore).clearLabels().clearStats();
         store = builder.mergeFrom(store).build();
         if (store.getState() == Metapb.StoreState.Tombstone) {
             List<Metapb.Store> activeStores = getStores();
             if (lastStore.getState() == Metapb.StoreState.Up
-                    && activeStores.size() - 1 < pdConfig.getMinStoreCount()) {
+                && activeStores.size() - 1 < pdConfig.getMinStoreCount()) {
                 throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
-                        "The number of active stores is less then " + pdConfig.getMinStoreCount());
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
             }
         }
 
         storeInfoMeta.updateStore(store);
-        if (store.getState() != Metapb.StoreState.Unknown && store.getState() != lastStore.getState()){
+        if (store.getState() != Metapb.StoreState.Unknown &&
+            store.getState() != lastStore.getState()) {
             // 如果希望将store下线
             if (store.getState() == Metapb.StoreState.Exiting) {
-                if (lastStore.getState() == Metapb.StoreState.Exiting){
+                if (lastStore.getState() == Metapb.StoreState.Exiting) {
                     //如果已经是下线中的状态，则不作进一步处理
                     return lastStore;
                 }
@@ -285,6 +326,7 @@ public class StoreNodeService {
 
     /**
      * store被关机，重新分配shardGroup的shard
+     *
      * @param store
      * @throws PDException
      */
@@ -294,8 +336,9 @@ public class StoreNodeService {
             Metapb.ShardGroup.Builder builder = Metapb.ShardGroup.newBuilder(group);
             builder.clearShards();
             group.getShardsList().forEach(shard -> {
-                if (shard.getStoreId() != store.getId())
+                if (shard.getStoreId() != store.getId()) {
                     builder.addShards(shard);
+                }
             });
             reallocShards(builder.build());
         }
@@ -303,17 +346,18 @@ public class StoreNodeService {
 
     /**
      * 根据图名返回stores信息，如果graphName为空，返回所有store信息
+     *
      * @throws PDException
      */
-    public List<Metapb.Store> getStores() throws PDException{
+    public List<Metapb.Store> getStores() throws PDException {
         return storeInfoMeta.getStores(null);
     }
 
-    public List<Metapb.Store> getStores(String graphName) throws PDException{
+    public List<Metapb.Store> getStores(String graphName) throws PDException {
         return storeInfoMeta.getStores(graphName);
     }
 
-    public List<Metapb.Store> getStoreStatus(boolean isActive) throws PDException{
+    public List<Metapb.Store> getStoreStatus(boolean isActive) throws PDException {
         return storeInfoMeta.getStoreStatus(isActive);
     }
 
@@ -327,7 +371,7 @@ public class StoreNodeService {
 
     public List<Metapb.Shard> getShardList(int groupId) throws PDException {
         var shardGroup = getShardGroup(groupId);
-        if (shardGroup != null){
+        if (shardGroup != null) {
             return shardGroup.getShardsList();
         }
         return new ArrayList<>();
@@ -337,8 +381,9 @@ public class StoreNodeService {
         List<Metapb.ShardGroup> shardGroups = new ArrayList<>();
         storeInfoMeta.getShardGroups().forEach(shardGroup -> {
             shardGroup.getShardsList().forEach(shard -> {
-                if (shard.getStoreId() == storeId)
+                if (shard.getStoreId() == storeId) {
                     shardGroups.add(shardGroup);
+                }
             });
         });
         return shardGroups;
@@ -346,6 +391,7 @@ public class StoreNodeService {
 
     /**
      * 返回活跃的store
+     *
      * @param graphName
      * @return
      * @throws PDException
@@ -353,6 +399,7 @@ public class StoreNodeService {
     public List<Metapb.Store> getActiveStores(String graphName) throws PDException {
         return storeInfoMeta.getActiveStores(graphName);
     }
+
     public List<Metapb.Store> getActiveStores() throws PDException {
         return storeInfoMeta.getActiveStores();
     }
@@ -367,15 +414,16 @@ public class StoreNodeService {
         return stores;
     }
 
-
     public long removeStore(Long storeId) throws PDException {
         return storeInfoMeta.removeStore(storeId);
     }
+
     /**
      * 给partition分配store，根据图的配置，决定分配几个peer
      * 分配完所有的shards，保存ShardGroup对象（store不变动，只执行一次）
      */
-    public synchronized List<Metapb.Shard> allocShards(Metapb.Graph graph, int partId) throws PDException {
+    public synchronized List<Metapb.Shard> allocShards(Metapb.Graph graph, int partId) throws
+                                                                                       PDException {
         // 多图共用raft分组，因此分配shard只依赖partitionId.
         // 图根据数据大小可以设置分区的数量，但总数不能超过raft分组数量
         if (storeInfoMeta.getShardGroup(partId) == null) {
@@ -384,12 +432,14 @@ public class StoreNodeService {
             List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
 
             if (stores.size() == 0) {
-                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE, "There is no any online store");
+                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                      "There is no any online store");
             }
 
             if (stores.size() < pdConfig.getMinStoreCount()) {
                 throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
-                        "The number of active stores is less then " + pdConfig.getMinStoreCount());
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
             }
 
             int shardCount = pdConfig.getPartition().getShardCount();
@@ -402,21 +452,25 @@ public class StoreNodeService {
             }
 
             // 一次创建完所有的ShardGroup，保证初始的groupID有序，方便人工阅读
-            for (int groupId = 0; groupId < pdConfig.getConfigService().getPartitionCount(); groupId++) {
+            for (int groupId = 0; groupId < pdConfig.getConfigService().getPartitionCount();
+                 groupId++) {
                 int storeIdx = groupId % stores.size();  //store分配规则，简化为取模
                 List<Metapb.Shard> shards = new ArrayList<>();
                 for (int i = 0; i < shardCount; i++) {
-                    Metapb.Shard shard = Metapb.Shard.newBuilder().setStoreId(stores.get(storeIdx).getId())
-                            .setRole(i == 0 ? Metapb.ShardRole.Leader : Metapb.ShardRole.Follower) //
-                            .build();
+                    Metapb.Shard shard =
+                            Metapb.Shard.newBuilder().setStoreId(stores.get(storeIdx).getId())
+                                        .setRole(i == 0 ? Metapb.ShardRole.Leader :
+                                                 Metapb.ShardRole.Follower) //
+                                        .build();
                     shards.add(shard);
                     storeIdx = (storeIdx + 1) >= stores.size() ? 0 : ++storeIdx; // 顺序选择
                 }
 
                 Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder()
-                        .setId(groupId)
-                        .setState(Metapb.PartitionState.PState_Normal)
-                        .addAllShards(shards).build();
+                                                           .setId(groupId)
+                                                           .setState(
+                                                                   Metapb.PartitionState.PState_Normal)
+                                                           .addAllShards(shards).build();
 
                 // new group
                 storeInfoMeta.updateShardGroup(group);
@@ -432,16 +486,19 @@ public class StoreNodeService {
      * 根据graph的shard_count，重新分配shard
      * 发送变更change shard指令
      */
-    public synchronized List<Metapb.Shard> reallocShards(Metapb.ShardGroup shardGroup) throws PDException {
+    public synchronized List<Metapb.Shard> reallocShards(Metapb.ShardGroup shardGroup) throws
+                                                                                       PDException {
         List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
 
         if (stores.size() == 0) {
-            throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE, "There is no any online store");
+            throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                  "There is no any online store");
         }
 
         if (stores.size() < pdConfig.getMinStoreCount()) {
             throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
-                    "The number of active stores is less then " + pdConfig.getMinStoreCount());
+                                  "The number of active stores is less then " +
+                                  pdConfig.getMinStoreCount());
         }
 
         int shardCount = pdConfig.getPartition().getShardCount();
@@ -458,14 +515,14 @@ public class StoreNodeService {
         if (shardCount > shards.size()) {
             // 需要增加shard
             log.info("reallocShards ShardGroup {}, add shards from {} to {}",
-                    shardGroup.getId(), shards.size(), shardCount);
+                     shardGroup.getId(), shards.size(), shardCount);
             int storeIdx = (int) shardGroup.getId() % stores.size();  //store分配规则，简化为取模
             for (int addCount = shardCount - shards.size(); addCount > 0; ) {
                 // 检查是否已经存在
                 if (!isStoreInShards(shards, stores.get(storeIdx).getId())) {
                     Metapb.Shard shard = Metapb.Shard.newBuilder()
-                            .setStoreId(stores.get(storeIdx).getId())
-                            .build();
+                                                     .setStoreId(stores.get(storeIdx).getId())
+                                                     .build();
                     shards.add(shard);
                     addCount--;
                 }
@@ -474,7 +531,7 @@ public class StoreNodeService {
         } else if (shardCount < shards.size()) {
             // 需要减shard
             log.info("reallocShards ShardGroup {}, remove shards from {} to {}",
-                    shardGroup.getId(), shards.size(), shardCount);
+                     shardGroup.getId(), shards.size(), shardCount);
 
             int subCount = shards.size() - shardCount;
             Iterator<Metapb.Shard> iterator = shards.iterator();
@@ -489,8 +546,8 @@ public class StoreNodeService {
         }
 
         Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder(shardGroup)
-                .clearShards()
-                .addAllShards(shards).build();
+                                                   .clearShards()
+                                                   .addAllShards(shards).build();
         storeInfoMeta.updateShardGroup(group);
         partitionService.updateShardGroupCache(group);
         // change shard group
@@ -499,7 +556,8 @@ public class StoreNodeService {
         var partitions = partitionService.getPartitionById(shardGroup.getId());
         if (partitions.size() > 0) {
             // send one message, change shard is regardless with partition/graph
-            partitionService.fireChangeShard(partitions.get(0), shards, ConfChangeType.CONF_CHANGE_TYPE_ADJUST);
+            partitionService.fireChangeShard(partitions.get(0), shards,
+                                             ConfChangeType.CONF_CHANGE_TYPE_ADJUST);
         }
 
         log.info("reallocShards ShardGroup {}, shards: {}", group.getId(), group.getShardsList());
@@ -512,12 +570,13 @@ public class StoreNodeService {
      * @param groups list of (partition id, count)
      * @return total groups
      */
-    public synchronized int splitShardGroups(List<KVPair<Integer, Integer>> groups) throws PDException {
+    public synchronized int splitShardGroups(List<KVPair<Integer, Integer>> groups) throws
+                                                                                    PDException {
         int sum = groups.stream().map(pair -> pair.getValue()).reduce(0, Integer::sum);
         // shard group 太大
-        if (sum > getActiveStores().size() * pdConfig.getPartition().getMaxShardsPerStore()){
+        if (sum > getActiveStores().size() * pdConfig.getPartition().getMaxShardsPerStore()) {
             throw new PDException(Pdpb.ErrorType.Too_Many_Partitions_Per_Store_VALUE,
-                    "can't satisfy target shard group count");
+                                  "can't satisfy target shard group count");
         }
 
         partitionService.splitPartition(groups);
@@ -527,15 +586,17 @@ public class StoreNodeService {
 
     /**
      * 分配shard group，为分裂做准备
+     *
      * @param groups
      * @return true
      * @throws PDException
      */
-    private boolean isStoreInShards(List<Metapb.Shard> shards, long storeId){
+    private boolean isStoreInShards(List<Metapb.Shard> shards, long storeId) {
         AtomicBoolean exist = new AtomicBoolean(false);
-        shards.forEach(s->{
-            if ( s.getStoreId() == storeId )
+        shards.forEach(s -> {
+            if (s.getStoreId() == storeId) {
                 exist.set(true);
+            }
         });
         return exist.get();
     }
@@ -544,9 +605,9 @@ public class StoreNodeService {
      * update shard group and cache.
      * send shard group change message.
      *
-     * @param groupId : shard group
-     * @param shards : shard lists
-     * @param version: term version, ignored if less than 0
+     * @param groupId     : shard group
+     * @param shards      : shard lists
+     * @param version:    term version, ignored if less than 0
      * @param confVersion : conf version, ignored if less than 0
      * @return
      */
@@ -560,15 +621,15 @@ public class StoreNodeService {
             }
 
             var builder = Metapb.ShardGroup.newBuilder(group);
-            if (version >= 0){
+            if (version >= 0) {
                 builder.setVersion(version);
             }
 
-            if (confVersion >= 0){
+            if (confVersion >= 0) {
                 builder.setConfVer(confVersion);
             }
 
-            var newGroup = builder.clearShards() .addAllShards(shards) .build();
+            var newGroup = builder.clearShards().addAllShards(shards).build();
 
             storeInfoMeta.updateShardGroup(newGroup);
             partitionService.updateShardGroupCache(newGroup);
@@ -583,8 +644,9 @@ public class StoreNodeService {
 
     /**
      * 通知 store 进行shard group的重建操作
+     *
      * @param groupId raft group id
-     * @param shards shard list: 如果为空，则删除对应的partition engine
+     * @param shards  shard list: 如果为空，则删除对应的partition engine
      */
     public void shardGroupOp(int groupId, List<Metapb.Shard> shards) throws PDException {
 
@@ -608,6 +670,7 @@ public class StoreNodeService {
 
     /**
      * 删除 shard group
+     *
      * @param groupId shard group id
      */
     public synchronized void deleteShardGroup(int groupId) throws PDException {
@@ -622,60 +685,66 @@ public class StoreNodeService {
         var shardGroups = getShardGroups();
         if (shardGroups != null) {
             var count1 = pdConfig.getConfigService().getPDConfig().getPartitionCount();
-            var maxGroupId = getShardGroups().stream().map(Metapb.ShardGroup::getId).max(Integer::compareTo);
+            var maxGroupId =
+                    getShardGroups().stream().map(Metapb.ShardGroup::getId).max(Integer::compareTo);
             if (maxGroupId.get() < count1) {
                 pdConfig.getConfigService().setPartitionCount(maxGroupId.get() + 1);
             }
         }
     }
 
-    public synchronized void updateShardGroupState(int groupId, Metapb.PartitionState state) throws PDException {
+    public synchronized void updateShardGroupState(int groupId, Metapb.PartitionState state) throws
+                                                                                             PDException {
         Metapb.ShardGroup shardGroup = storeInfoMeta.getShardGroup(groupId)
-                .toBuilder()
-                .setState(state).build();
+                                                    .toBuilder()
+                                                    .setState(state).build();
         storeInfoMeta.updateShardGroup(shardGroup);
         partitionService.updateShardGroupCache(shardGroup);
     }
 
     /**
      * 接收Store的心跳
+     *
      * @param storeStats
      * @throws PDException
      */
     public Metapb.ClusterStats heartBeat(Metapb.StoreStats storeStats) throws PDException {
         this.storeInfoMeta.updateStoreStats(storeStats);
         Metapb.Store lastStore = this.getStore(storeStats.getStoreId());
-        if (lastStore == null){
+        if (lastStore == null) {
             //store不存在
             throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
-                    String.format("Store id %d does not exist.", storeStats.getStoreId()));
+                                  String.format("Store id %d does not exist.",
+                                                storeStats.getStoreId()));
         }
-        if (lastStore.getState() == Metapb.StoreState.Tombstone){
+        if (lastStore.getState() == Metapb.StoreState.Tombstone) {
             throw new PDException(Pdpb.ErrorType.STORE_HAS_BEEN_REMOVED_VALUE,
-                    String.format("Store id %d is useless since it's state is Tombstone",
-                            storeStats.getStoreId()));
+                                  String.format(
+                                          "Store id %d is useless since it's state is Tombstone",
+                                          storeStats.getStoreId()));
         }
         Metapb.Store nowStore;
         // 如果正在做store下线操作
-        if (lastStore.getState() == Metapb.StoreState.Exiting){
+        if (lastStore.getState() == Metapb.StoreState.Exiting) {
             List<Metapb.Store> activeStores = this.getActiveStores();
             Map<Long, Metapb.Store> storeMap = new HashMap<>();
             activeStores.forEach(store -> {
                 storeMap.put(store.getId(), store);
             });
             // 下线的store的分区为0，说明已经迁移完毕，可以下线，如果非0，则迁移还在进行，需要等待
-            if (storeStats.getPartitionCount() > 0 && storeMap.containsKey(storeStats.getStoreId())){
+            if (storeStats.getPartitionCount() > 0 &&
+                storeMap.containsKey(storeStats.getStoreId())) {
                 nowStore = Metapb.Store.newBuilder(lastStore)
-                        .setStats(storeStats)
-                        .setLastHeartbeat(System.currentTimeMillis())
-                        .setState(Metapb.StoreState.Exiting).build();
+                                       .setStats(storeStats)
+                                       .setLastHeartbeat(System.currentTimeMillis())
+                                       .setState(Metapb.StoreState.Exiting).build();
                 this.storeInfoMeta.updateStore(nowStore);
                 return this.clusterStats;
-            }else {
+            } else {
                 nowStore = Metapb.Store.newBuilder(lastStore)
-                        .setStats(storeStats)
-                        .setLastHeartbeat(System.currentTimeMillis())
-                        .setState(Metapb.StoreState.Tombstone).build();
+                                       .setStats(storeStats)
+                                       .setLastHeartbeat(System.currentTimeMillis())
+                                       .setState(Metapb.StoreState.Tombstone).build();
                 this.storeInfoMeta.updateStore(nowStore);
                 storeInfoMeta.removeActiveStore(nowStore);
                 return this.clusterStats;
@@ -684,19 +753,20 @@ public class StoreNodeService {
 
         if (lastStore.getState() == Metapb.StoreState.Pending) {
             nowStore = Metapb.Store.newBuilder(lastStore)
-                    .setStats(storeStats)
-                    .setLastHeartbeat(System.currentTimeMillis())
-                    .setState(Metapb.StoreState.Pending).build();
+                                   .setStats(storeStats)
+                                   .setLastHeartbeat(System.currentTimeMillis())
+                                   .setState(Metapb.StoreState.Pending).build();
             this.storeInfoMeta.updateStore(nowStore);
             return this.clusterStats;
         } else {
             if (lastStore.getState() == Metapb.StoreState.Offline) {
-                this.updateStore(Metapb.Store.newBuilder(lastStore).setState(Metapb.StoreState.Up).build());
+                this.updateStore(
+                        Metapb.Store.newBuilder(lastStore).setState(Metapb.StoreState.Up).build());
             }
             nowStore = Metapb.Store.newBuilder(lastStore)
-                    .setState(Metapb.StoreState.Up)
-                    .setStats(storeStats)
-                    .setLastHeartbeat(System.currentTimeMillis()).build();
+                                   .setState(Metapb.StoreState.Up)
+                                   .setStats(storeStats)
+                                   .setLastHeartbeat(System.currentTimeMillis()).build();
             this.storeInfoMeta.updateStore(nowStore);
             this.storeInfoMeta.keepStoreAlive(nowStore);
             this.checkStoreStatus();
@@ -704,14 +774,14 @@ public class StoreNodeService {
         }
     }
 
-    public synchronized Metapb.ClusterStats updateClusterStatus(Metapb.ClusterState state){
+    public synchronized Metapb.ClusterStats updateClusterStatus(Metapb.ClusterState state) {
         this.clusterStats = clusterStats.toBuilder().setState(state).build();
         return this.clusterStats;
     }
 
-    public Metapb.ClusterStats updateClusterStatus(Metapb.PartitionState state){
+    public Metapb.ClusterStats updateClusterStatus(Metapb.PartitionState state) {
         Metapb.ClusterState cstate = Metapb.ClusterState.Cluster_OK;
-        switch (state){
+        switch (state) {
             case PState_Normal:
                 cstate = Metapb.ClusterState.Cluster_OK;
                 break;
@@ -727,6 +797,7 @@ public class StoreNodeService {
         }
         return updateClusterStatus(cstate);
     }
+
     public Metapb.ClusterStats getClusterStats() {
         return this.clusterStats;
     }
@@ -738,13 +809,15 @@ public class StoreNodeService {
      */
     public synchronized void checkStoreStatus() {
         Metapb.ClusterStats.Builder builder = Metapb.ClusterStats.newBuilder()
-                .setState(Metapb.ClusterState.Cluster_OK);
+                                                                 .setState(
+                                                                         Metapb.ClusterState.Cluster_OK);
         try {
             List<Metapb.Store> activeStores = this.getActiveStores();
             if (activeStores.size() < pdConfig.getMinStoreCount()) {
                 builder.setState(Metapb.ClusterState.Cluster_Not_Ready);
                 builder.setMessage("The number of active stores is " + activeStores.size()
-                        + ", less than pd.initial-store-count:" + pdConfig.getMinStoreCount());
+                                   + ", less than pd.initial-store-count:" +
+                                   pdConfig.getMinStoreCount());
             }
             Map<Long, Metapb.Store> storeMap = new HashMap<>();
             activeStores.forEach(store -> {
@@ -760,7 +833,8 @@ public class StoreNodeService {
                     }
                     if (count * 2 < group.getShardsList().size()) {
                         builder.setState(Metapb.ClusterState.Cluster_Not_Ready);
-                        builder.setMessage("Less than half of active shard, partitionId is " + group.getId());
+                        builder.setMessage(
+                                "Less than half of active shard, partitionId is " + group.getId());
                         break;
                     }
                 }
@@ -770,39 +844,44 @@ public class StoreNodeService {
             log.error("StoreNodeService updateClusterStatus exception {}", e);
         }
         this.clusterStats = builder.setTimestamp(System.currentTimeMillis()).build();
-        if (this.clusterStats.getState() != Metapb.ClusterState.Cluster_OK)
+        if (this.clusterStats.getState() != Metapb.ClusterState.Cluster_OK) {
             log.error("The cluster is not ready, {}", this.clusterStats);
+        }
     }
-    public void addStatusListener(StoreStatusListener listener){
+
+    public void addStatusListener(StoreStatusListener listener) {
         statusListeners.add(listener);
     }
 
     protected void onStoreRaftAddressChanged(Metapb.Store store) {
-        log.info("onStoreRaftAddressChanged storeId = {}, new raft addr:", store.getId(), store.getRaftAddress());
+        log.info("onStoreRaftAddressChanged storeId = {}, new raft addr:", store.getId(),
+                 store.getRaftAddress());
         statusListeners.forEach(e -> {
             e.onStoreRaftChanged(store);
         });
     }
 
-    public void addShardGroupStatusListener(ShardGroupStatusListener listener){
+    public void addShardGroupStatusListener(ShardGroupStatusListener listener) {
         shardGroupStatusListeners.add(listener);
     }
 
-    protected void onStoreStatusChanged(Metapb.Store store, Metapb.StoreState old, Metapb.StoreState stats){
+    protected void onStoreStatusChanged(Metapb.Store store, Metapb.StoreState old,
+                                        Metapb.StoreState stats) {
         log.info("onStoreStatusChanged storeId = {} from {} to {}", store.getId(), old, stats);
-        statusListeners.forEach(e->{
+        statusListeners.forEach(e -> {
             e.onStoreStatusChanged(store, old, stats);
         });
     }
 
-    protected void onShardGroupStatusChanged(Metapb.ShardGroup group, Metapb.ShardGroup newGroup){
-        log.info("onShardGroupStatusChanged, groupId: {}, from {} to {}", group.getId(), group, newGroup);
-        shardGroupStatusListeners.forEach( e -> e.onShardListChanged(group, newGroup));
+    protected void onShardGroupStatusChanged(Metapb.ShardGroup group, Metapb.ShardGroup newGroup) {
+        log.info("onShardGroupStatusChanged, groupId: {}, from {} to {}", group.getId(), group,
+                 newGroup);
+        shardGroupStatusListeners.forEach(e -> e.onShardListChanged(group, newGroup));
     }
 
     protected void onShardGroupOp(Metapb.ShardGroup shardGroup) {
         log.info("onShardGroupOp, group id: {}, shard group:{}", shardGroup.getId(), shardGroup);
-        shardGroupStatusListeners.forEach( e -> e.onShardListOp(shardGroup));
+        shardGroupStatusListeners.forEach(e -> e.onShardListOp(shardGroup));
     }
 
     /**
@@ -846,18 +925,18 @@ public class StoreNodeService {
 
     /**
      * 对store上的对rocksdb进行compaction
+     *
      * @param groupId
      * @param tableName
      * @return
      */
-    public synchronized void shardGroupsDbCompaction(int groupId, String tableName) throws PDException {
+    public synchronized void shardGroupsDbCompaction(int groupId, String tableName) throws
+                                                                                    PDException {
 
         // 通知所有的store，对rocksdb进行compaction
         partitionService.fireDbCompaction(groupId, tableName);
         // TODO 异常怎么处理？
     }
-
-    private static String graphSpaceConfPrefix ="HUGEGRAPH/hg/GRAPHSPACE/CONF/";
 
     public Map getQuota() throws PDException {
         List<Metapb.Graph> graphs = partitionService.getGraphs();
@@ -949,22 +1028,11 @@ public class StoreNodeService {
         return limits;
     }
 
-
     public Runnable getQuotaChecker() {
         return quotaChecker;
     }
 
-    private Runnable quotaChecker = () -> {
-        try {
-            getQuota();
-        } catch (Exception e) {
-            log.error(
-                    "obtaining and sending graph space quota information with error: ",
-                    e);
-        }
-    };
-
-    public TaskInfoMeta getTaskInfoMeta(){
+    public TaskInfoMeta getTaskInfoMeta() {
         return taskInfoMeta;
     }
 
@@ -974,20 +1042,21 @@ public class StoreNodeService {
 
     /**
      * 获得分区的Leader
+     *
      * @param partition
      * @param initIdx
      * @return
      */
-    public Metapb.Shard getLeader(Metapb.Partition partition, int initIdx){
+    public Metapb.Shard getLeader(Metapb.Partition partition, int initIdx) {
         Metapb.Shard leader = null;
         try {
             var shardGroup = this.getShardGroup(partition.getId());
-            for(Metapb.Shard shard : shardGroup.getShardsList()){
+            for (Metapb.Shard shard : shardGroup.getShardsList()) {
                 if (shard.getRole() == Metapb.ShardRole.Leader) {
                     leader = shard;
                 }
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("get leader error: group id:{}, error:", partition.getId(), e.getMessage());
         }
         return leader;

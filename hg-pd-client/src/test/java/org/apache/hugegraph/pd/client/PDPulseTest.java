@@ -1,14 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
 
-import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.BeforeClass;
-// import org.junit.Test;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import com.baidu.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/8
@@ -16,9 +32,9 @@ import java.util.concurrent.TimeUnit;
 public class PDPulseTest {
     private static PDClient pdClient;
 
-    private long storeId = 0;
-    private String storeAddress = "localhost";
-    private String graphName = "graph1";
+    private final long storeId = 0;
+    private final String storeAddress = "localhost";
+    private final String graphName = "graph1";
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -34,9 +50,12 @@ public class PDPulseTest {
         PDPulse pulse = pdClient.getPulseClient();
         CountDownLatch latch = new CountDownLatch(60);
 
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier1 = pulse.connectPartition(new PulseListener(latch, "listener1"));
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier2 = pulse.connectPartition(new PulseListener(latch, "listener2"));
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier3 = pulse.connectPartition(new PulseListener(latch, "listener3"));
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier1 =
+                pulse.connectPartition(new PulseListener(latch, "listener1"));
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier2 =
+                pulse.connectPartition(new PulseListener(latch, "listener2"));
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier3 =
+                pulse.connectPartition(new PulseListener(latch, "listener3"));
 
         try {
             latch.await(120, TimeUnit.SECONDS);
@@ -60,7 +79,7 @@ public class PDPulseTest {
 
     private class PulseListener<T> implements PDPulse.Listener<T> {
         CountDownLatch latch = new CountDownLatch(10);
-        private String listenerName;
+        private final String listenerName;
 
         private PulseListener(CountDownLatch latch, String listenerName) {
             this.latch = latch;

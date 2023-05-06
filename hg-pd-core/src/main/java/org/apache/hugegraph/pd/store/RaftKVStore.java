@@ -1,25 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.store;
-
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.entity.Task;
-import com.alipay.sofa.jraft.error.RaftError;
-import com.baidu.hugegraph.pd.common.PDException;
-
-import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.raft.KVStoreClosure;
-import org.apache.hugegraph.pd.raft.RaftStateMachine;
-
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import org.apache.hugegraph.pd.raft.KVOperation;
-import org.apache.hugegraph.pd.raft.RaftEngine;
-import org.apache.hugegraph.pd.raft.RaftTaskHandler;
-
-import lombok.extern.slf4j.Slf4j;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.raft.KVOperation;
+import org.apache.hugegraph.pd.raft.KVStoreClosure;
+import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.raft.RaftStateMachine;
+import org.apache.hugegraph.pd.raft.RaftTaskHandler;
+
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.entity.Task;
+import com.alipay.sofa.jraft.error.RaftError;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+
+import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
@@ -45,7 +61,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
             public void run(Status status) {
                 if (!status.isOk()) {
                     log.error("An exception occurred while performing the RAFT,{}",
-                            status.getErrorMsg());
+                              status.getErrorMsg());
                 } else {
                     log.info("RAFT done!");
                 }
@@ -58,7 +74,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
         KVOperation operation = KVOperation.createPut(key, value);
         try {
             applyOperation(operation).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
     }
@@ -81,7 +97,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public long remove(byte[] bytes) throws PDException {
         try {
             applyOperation(KVOperation.createRemove(bytes)).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
         return 0;
@@ -92,7 +108,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public long removeByPrefix(byte[] bytes) throws PDException {
         try {
             applyOperation(KVOperation.createRemoveByPrefix(bytes)).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
         return 0;
@@ -102,7 +118,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public void clear() throws PDException {
         try {
             applyOperation(KVOperation.createClear()).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
     }
@@ -111,16 +127,17 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public void putWithTTL(byte[] key, byte[] value, long ttl) throws PDException {
         try {
             applyOperation(KVOperation.createPutWithTTL(key, value, ttl)).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
     }
 
     @Override
-    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws PDException {
+    public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws
+                                                                                  PDException {
         try {
             applyOperation(KVOperation.createPutWithTTL(key, value, ttl, timeUnit)).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
     }
@@ -139,7 +156,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public void removeWithTTL(byte[] key) throws PDException {
         try {
             applyOperation(KVOperation.createRemoveWithTTL(key)).get();
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, e.getMessage());
         }
     }
@@ -150,13 +167,13 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     }
 
     @Override
-    public void loadSnapshot(String snapshotPath) throws PDException{
+    public void loadSnapshot(String snapshotPath) throws PDException {
         store.loadSnapshot(snapshotPath);
     }
 
     @Override
     public List<KV> scanRange(byte[] start, byte[] end) {
-        return store.scanRange(start,end);
+        return store.scanRange(start, end);
     }
 
     @Override
@@ -183,6 +200,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     public void doRemoveWithTTL(byte[] key) throws PDException {
         this.store.removeWithTTL(key);
     }
+
     public void doClear() throws PDException {
         this.store.clear();
     }
@@ -191,7 +209,8 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
         this.store.putWithTTL(key, value, ttl);
     }
 
-    public void doPutWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws PDException {
+    public void doPutWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws
+                                                                                    PDException {
         this.store.putWithTTL(key, value, ttl, timeUnit);
     }
 
@@ -203,7 +222,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
         this.store.loadSnapshot(snapshotPath);
     }
 
-    private <T> CompletableFuture<T>  applyOperation(final KVOperation op) throws PDException {
+    private <T> CompletableFuture<T> applyOperation(final KVOperation op) throws PDException {
         CompletableFuture<T> future = new CompletableFuture<>();
         try {
             final Task task = new Task();
@@ -211,17 +230,26 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
             task.setDone(new RaftStateMachine.RaftClosureAdapter(op, new KVStoreClosure() {
                 Object data;
                 Pdpb.Error error;
-                @Override
-                public Pdpb.Error getError() { return error;}
 
                 @Override
-                public void setError(Pdpb.Error error) { this.error = error;}
+                public Pdpb.Error getError() {
+                    return error;
+                }
 
                 @Override
-                public Object getData() { return data; }
+                public void setError(Pdpb.Error error) {
+                    this.error = error;
+                }
 
                 @Override
-                public void setData(Object data) { this.data = data;}
+                public Object getData() {
+                    return data;
+                }
+
+                @Override
+                public void setData(Object data) {
+                    this.data = data;
+                }
 
                 @Override
                 public void run(Status status) {
@@ -271,7 +299,7 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
                 break;
             case KVOperation.PUT_WITH_TTL_UNIT:
                 Object[] arg = (Object[]) op.getArg();
-                doPutWithTTL(op.getKey(), op.getValue(), (long) arg[0] , (TimeUnit)arg[1]);
+                doPutWithTTL(op.getKey(), op.getValue(), (long) arg[0], (TimeUnit) arg[1]);
                 break;
             case KVOperation.REMOVE_BY_PREFIX:
                 doRemoveByPrefix(op.getKey());

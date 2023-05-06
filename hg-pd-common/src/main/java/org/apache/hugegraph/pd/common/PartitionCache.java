@@ -1,9 +1,21 @@
-package org.apache.hugegraph.pd.common;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.TreeRangeMap;
+package org.apache.hugegraph.pd.common;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +26,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.TreeRangeMap;
 
 public class PartitionCache {
 
@@ -28,7 +45,7 @@ public class PartitionCache {
 
     private volatile Map<String, Metapb.Graph> graphCache;
     // 读写锁对象
-    private ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     Lock writeLock = readWriteLock.writeLock();
 
     public PartitionCache() {
@@ -86,7 +103,7 @@ public class PartitionCache {
     public List<Metapb.Partition> getPartitions(String graphName) {
         List<Metapb.Partition> partitions = new ArrayList<>();
         // partitionCache key: graph name + partition id
-        partitionCache.forEach((k,v) -> {
+        partitionCache.forEach((k, v) -> {
             if (k.startsWith(graphName)) {
                 partitions.add(v);
             }
@@ -118,13 +135,14 @@ public class PartitionCache {
                 // 当确认老的 start, end 都是自己的时候，才可以删除老的. (即还没覆盖）
                 var graphRange = tmpKeyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
-                        Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
+                    Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
                 }
             }
 
             tmpKeyToPartIdCache.get(graphName)
-                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
+                               .put(Range.closedOpen(partition.getStartKey(),
+                                                     partition.getEndKey()), partId);
             partitionCache = tmpPartitionCache;
             keyToPartIdCache = tmpKeyToPartIdCache;
             return true;
@@ -151,14 +169,15 @@ public class PartitionCache {
             if (old != null) {
                 var graphRange = tmpKeyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
-                        Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
+                    Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
 
                 }
             }
 
             tmpKeyToPartIdCache.get(graphName)
-                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
+                               .put(Range.closedOpen(partition.getStartKey(),
+                                                     partition.getEndKey()), partId);
             partitionCache = tmpPartitionCache;
             keyToPartIdCache = tmpKeyToPartIdCache;
         } finally {
@@ -185,19 +204,21 @@ public class PartitionCache {
         try {
             Map<String, RangeMap<Long, Integer>> tmpKeyToPartIdCache = cloneKeyToPartIdCache();
             Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
-            Metapb.Partition partition = tmpPartitionCache.remove(makePartitionKey(graphName, partId));
+            Metapb.Partition partition =
+                    tmpPartitionCache.remove(makePartitionKey(graphName, partId));
             if (partition != null) {
                 var graphRange = tmpKeyToPartIdCache.get(graphName);
 
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
-                        Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
+                    Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
                 }
 
             }
             partitionCache = tmpPartitionCache;
             keyToPartIdCache = tmpKeyToPartIdCache;
-            // log.info("PartitionCache.removePartition : (after){}", debugCacheByGraphName(graphName));
+            // log.info("PartitionCache.removePartition : (after){}", debugCacheByGraphName
+            // (graphName));
         } finally {
             writeLock.unlock();
         }
@@ -205,6 +226,7 @@ public class PartitionCache {
 
     /**
      * remove partition id of graph name
+     *
      * @param graphName
      * @param id
      */
@@ -227,6 +249,7 @@ public class PartitionCache {
 
     /**
      * remove partition cache of graphName
+     *
      * @param graphName
      */
     public void removeAll(String graphName) {
@@ -236,8 +259,8 @@ public class PartitionCache {
             Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
             var itr = tmpPartitionCache.entrySet().iterator();
             while (itr.hasNext()) {
-               var entry = itr.next();
-               if (entry.getKey().startsWith(graphName)) {
+                var entry = itr.next();
+                if (entry.getKey().startsWith(graphName)) {
                     itr.remove();
                 }
             }
@@ -253,22 +276,20 @@ public class PartitionCache {
         return graphName + "/" + partId;
     }
 
-    public boolean updateShardGroup(Metapb.ShardGroup shardGroup){
+    public boolean updateShardGroup(Metapb.ShardGroup shardGroup) {
         Metapb.ShardGroup oldShardGroup = shardGroupCache.get(shardGroup.getId());
-        if (oldShardGroup != null && oldShardGroup.equals(shardGroup)){
+        if (oldShardGroup != null && oldShardGroup.equals(shardGroup)) {
             return false;
         }
         shardGroupCache.put(shardGroup.getId(), shardGroup);
         return true;
     }
 
-    public void deleteShardGroup(int shardGroupId){
-        if (shardGroupCache.containsKey(shardGroupId)) {
-            shardGroupCache.remove(shardGroupId);
-        }
+    public void deleteShardGroup(int shardGroupId) {
+        shardGroupCache.remove(shardGroupId);
     }
 
-    public Metapb.ShardGroup getShardGroup(int groupId){
+    public Metapb.ShardGroup getShardGroup(int groupId) {
         return shardGroupCache.get(groupId);
     }
 
@@ -342,7 +363,7 @@ public class PartitionCache {
         }
     }
 
-    public void clear(){
+    public void clear() {
         reset();
     }
 
@@ -350,7 +371,7 @@ public class PartitionCache {
         StringBuilder builder = new StringBuilder();
         builder.append("Graph:").append(graphName).append(", cache info: range info: {");
         var rangeMap = keyToPartIdCache.get(graphName);
-        builder.append( rangeMap == null ? "" : rangeMap).append("}");
+        builder.append(rangeMap == null ? "" : rangeMap).append("}");
 
         if (rangeMap != null) {
             builder.append(", partition info : {");
@@ -359,8 +380,8 @@ public class PartitionCache {
                 builder.append("[part_id:").append(v);
                 if (partition != null) {
                     builder.append(", start_key:").append(partition.getStartKey())
-                            .append(", end_key:").append(partition.getEndKey())
-                            .append(", state:").append(partition.getState().name());
+                           .append(", end_key:").append(partition.getEndKey())
+                           .append(", state:").append(partition.getState().name());
                 }
                 builder.append("], ");
             });
@@ -368,16 +389,16 @@ public class PartitionCache {
         }
 
         builder.append(", graph info:{");
-        var graph =  graphCache.get(graphName);
+        var graph = graphCache.get(graphName);
         if (graph != null) {
             builder.append("partition_count:").append(graph.getPartitionCount())
-                    .append(", state:").append(graph.getState().name());
+                   .append(", state:").append(graph.getState().name());
         }
         builder.append("}]");
         return builder.toString();
     }
 
-    public Metapb.Shard getLeaderShard(int partitionId){
+    public Metapb.Shard getLeaderShard(int partitionId) {
         var shardGroup = shardGroupCache.get(partitionId);
         if (shardGroup != null) {
             for (Metapb.Shard shard : shardGroup.getShardsList()) {
@@ -390,18 +411,19 @@ public class PartitionCache {
         return null;
     }
 
-    public void updateShardGroupLeader(int partitionId, Metapb.Shard leader){
+    public void updateShardGroupLeader(int partitionId, Metapb.Shard leader) {
         if (shardGroupCache.containsKey(partitionId) && leader != null) {
-            if (! Objects.equals(getLeaderShard(partitionId), leader)) {
+            if (!Objects.equals(getLeaderShard(partitionId), leader)) {
                 var shardGroup = shardGroupCache.get(partitionId);
                 var builder = Metapb.ShardGroup.newBuilder(shardGroup).clearShards();
                 for (var shard : shardGroup.getShardsList()) {
                     builder.addShards(
                             Metapb.Shard.newBuilder()
-                                    .setStoreId(shard.getStoreId())
-                                    .setRole(shard.getStoreId() == leader.getStoreId() ?
-                                            Metapb.ShardRole.Leader : Metapb.ShardRole.Follower)
-                                    .build()
+                                        .setStoreId(shard.getStoreId())
+                                        .setRole(shard.getStoreId() == leader.getStoreId() ?
+                                                 Metapb.ShardRole.Leader :
+                                                 Metapb.ShardRole.Follower)
+                                        .build()
                     );
                 }
                 shardGroupCache.put(partitionId, builder.build());
@@ -409,22 +431,22 @@ public class PartitionCache {
         }
     }
 
-    public String debugShardGroup(){
+    public String debugShardGroup() {
         StringBuilder builder = new StringBuilder();
         builder.append("shard group cache:{");
-        shardGroupCache.forEach((partitionId,shardGroup) ->{
+        shardGroupCache.forEach((partitionId, shardGroup) -> {
             builder.append(partitionId).append("::{")
-                    .append("version:").append(shardGroup.getVersion())
-                    .append(", conf_version:").append(shardGroup.getConfVer())
-                    .append(", state:").append(shardGroup.getState().name())
-                    .append(", shards:[");
+                   .append("version:").append(shardGroup.getVersion())
+                   .append(", conf_version:").append(shardGroup.getConfVer())
+                   .append(", state:").append(shardGroup.getState().name())
+                   .append(", shards:[");
 
-                for (var shard : shardGroup.getShardsList()) {
-                    builder.append("{store_id:").append(shard.getStoreId())
-                            .append(", role:").append(shard.getRole().name())
-                            .append("},");
-                }
-                builder.append("], ");
+            for (var shard : shardGroup.getShardsList()) {
+                builder.append("{store_id:").append(shard.getStoreId())
+                       .append(", role:").append(shard.getRole().name())
+                       .append("},");
+            }
+            builder.append("], ");
         });
         builder.append("}");
         return builder.toString();

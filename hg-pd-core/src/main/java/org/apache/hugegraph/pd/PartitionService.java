@@ -1,15 +1,42 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PartitionUtils;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.meta.PartitionMeta;
 import org.apache.hugegraph.pd.meta.TaskInfoMeta;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
 
+import com.baidu.hugegraph.pd.common.KVPair;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.common.PartitionUtils;
 import com.baidu.hugegraph.pd.grpc.MetaTask;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
@@ -25,18 +52,6 @@ import com.baidu.hugegraph.pd.grpc.pulse.TransferLeader;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * 分区管理
  */
@@ -44,30 +59,31 @@ import java.util.stream.Collectors;
 public class PartitionService implements RaftStateListener {
 
     private final long Partition_Version_Skip = 0x0F;
-    private PartitionMeta partitionMeta;
     private final StoreNodeService storeService;
-
-    private PDConfig pdConfig;
+    private final PartitionMeta partitionMeta;
+    private final PDConfig pdConfig;
     // 分区命令监听
-    private List<PartitionInstructionListener> instructionListeners;
+    private final List<PartitionInstructionListener> instructionListeners;
 
     // 分区状态监听
-    private List<PartitionStatusListener> statusListeners;
+    private final List<PartitionStatusListener> statusListeners;
 
     public PartitionService(PDConfig config, StoreNodeService storeService) {
         this.pdConfig = config;
         this.storeService = storeService;
         partitionMeta = MetadataFactory.newPartitionMeta(config);
-        instructionListeners = Collections.synchronizedList(new ArrayList<PartitionInstructionListener>());
+        instructionListeners =
+                Collections.synchronizedList(new ArrayList<PartitionInstructionListener>());
         statusListeners = Collections.synchronizedList(new ArrayList<PartitionStatusListener>());
     }
 
-    public void init() throws PDException{
+    public void init() throws PDException {
         partitionMeta.init();
         storeService.addStatusListener(new StoreStatusListener() {
             @Override
-            public void onStoreStatusChanged(Metapb.Store store, Metapb.StoreState old, Metapb.StoreState status) {
-                if ( status == Metapb.StoreState.Tombstone){
+            public void onStoreStatusChanged(Metapb.Store store, Metapb.StoreState old,
+                                             Metapb.StoreState status) {
+                if (status == Metapb.StoreState.Tombstone) {
                     // Store被停机，通知所有该store所有分区，迁移数据
                     storeOffline(store);
                 }
@@ -94,7 +110,8 @@ public class PartitionService implements RaftStateListener {
      * @param key
      * @return
      */
-    public Metapb.PartitionShard getPartitionShard(String graphName, byte[] key) throws PDException {
+    public Metapb.PartitionShard getPartitionShard(String graphName, byte[] key) throws
+                                                                                 PDException {
         long code = PartitionUtils.calcHashcode(key);
         return getPartitionByCode(graphName, code);
     }
@@ -106,8 +123,9 @@ public class PartitionService implements RaftStateListener {
      * @param code
      * @return
      */
-    public Metapb.PartitionShard getPartitionByCode(String graphName, long code) throws PDException {
-        if ( code < 0 || code >= PartitionUtils.MAX_VALUE) {
+    public Metapb.PartitionShard getPartitionByCode(String graphName, long code) throws
+                                                                                 PDException {
+        if (code < 0 || code >= PartitionUtils.MAX_VALUE) {
             throw new PDException(Pdpb.ErrorType.NOT_FOUND_VALUE, "code error");
         }
         // 根据Code查找分区id，如果没有找到，创建新的分区
@@ -122,11 +140,14 @@ public class PartitionService implements RaftStateListener {
         }
 
         Metapb.PartitionShard partShard = Metapb.PartitionShard.newBuilder()
-                .setPartition(partition)
-                .setLeader(storeService.getLeader(partition, 0))
-                .build();
-        log.debug("{} Partition get code = {}, partition id  = {}, start = {}, end = {}， leader = {}",
-                graphName, (code), partition.getId(), partition.getStartKey(), partition.getEndKey(), partShard.getLeader());
+                                                               .setPartition(partition)
+                                                               .setLeader(storeService.getLeader(
+                                                                       partition, 0))
+                                                               .build();
+        log.debug(
+                "{} Partition get code = {}, partition id  = {}, start = {}, end = {}， leader = {}",
+                graphName, (code), partition.getId(), partition.getStartKey(),
+                partition.getEndKey(), partShard.getLeader());
 
         return partShard;
     }
@@ -139,17 +160,19 @@ public class PartitionService implements RaftStateListener {
      * @return
      * @throws PDException
      */
-    public Metapb.PartitionShard getPartitionShardById(String graphName, int partId) throws PDException {
+    public Metapb.PartitionShard getPartitionShardById(String graphName, int partId) throws
+                                                                                     PDException {
         Metapb.Partition partition = partitionMeta.getPartitionById(graphName, partId);
         if (partition == null) {
             return null;
         }
 
         Metapb.PartitionShard partShard = Metapb.PartitionShard.newBuilder()
-                .setPartition(partition)
-                // 此处需要返回正确的leader，暂时默认取第一个
-                .setLeader(storeService.getLeader(partition, 0))
-                .build();
+                                                               .setPartition(partition)
+                                                               // 此处需要返回正确的leader，暂时默认取第一个
+                                                               .setLeader(storeService.getLeader(
+                                                                       partition, 0))
+                                                               .build();
 
         return partShard;
     }
@@ -169,8 +192,8 @@ public class PartitionService implements RaftStateListener {
         return partitionMeta.getPartitions();
     }
 
-    public List<Metapb.Partition> getPartitions(String graphName){
-        if ( StringUtils.isAllEmpty(graphName)) {
+    public List<Metapb.Partition> getPartitions(String graphName) {
+        if (StringUtils.isAllEmpty(graphName)) {
             return partitionMeta.getPartitions();
         }
         return partitionMeta.getPartitions(graphName);
@@ -178,6 +201,7 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 查找在store上的所有分区
+     *
      * @param store
      * @return
      */
@@ -187,7 +211,7 @@ public class PartitionService implements RaftStateListener {
             getPartitions(graph.getGraphName()).forEach(partition -> {
                 try {
                     storeService.getShardGroup(partition.getId()).getShardsList().forEach(shard -> {
-                        if (shard.getStoreId() == store.getId()){
+                        if (shard.getStoreId() == store.getId()) {
                             partitions.add(partition);
                         }
                     });
@@ -196,7 +220,7 @@ public class PartitionService implements RaftStateListener {
                 }
             });
         });
-        return  partitions;
+        return partitions;
     }
 
     /**
@@ -213,9 +237,9 @@ public class PartitionService implements RaftStateListener {
             partitionSize++;
         }
 
-        int partitionId     = (int) (code / partitionSize);
-        long startKey       = (long) partitionSize * partitionId;
-        long endKey         = (long) partitionSize * (partitionId + 1);
+        int partitionId = (int) (code / partitionSize);
+        long startKey = (long) partitionSize * partitionId;
+        long endKey = (long) partitionSize * (partitionId + 1);
 
         // 检查本地
         Metapb.Partition partition = partitionMeta.getPartitionById(graphName, partitionId);
@@ -224,13 +248,13 @@ public class PartitionService implements RaftStateListener {
 
             // 分配store
             partition = Metapb.Partition.newBuilder()
-                    .setId(partitionId)
-                    .setVersion(0)
-                    .setState(Metapb.PartitionState.PState_Normal)
-                    .setStartKey(startKey)
-                    .setEndKey(endKey)
-                    .setGraphName(graphName)
-                    .build();
+                                        .setId(partitionId)
+                                        .setVersion(0)
+                                        .setState(Metapb.PartitionState.PState_Normal)
+                                        .setStartKey(startKey)
+                                        .setEndKey(endKey)
+                                        .setGraphName(graphName)
+                                        .build();
 
             log.info("Create newPartition {}", partition);
         }
@@ -261,7 +285,8 @@ public class PartitionService implements RaftStateListener {
      * @param startKey
      * @param endKey
      */
-    public List<Metapb.PartitionShard> scanPartitions(String graphName, byte[] startKey, byte[] endKey)
+    public List<Metapb.PartitionShard> scanPartitions(String graphName, byte[] startKey,
+                                                      byte[] endKey)
             throws PDException {
         int startPartId = getPartitionId(graphName, startKey);
         int endPartId = getPartitionId(graphName, endKey);
@@ -271,10 +296,10 @@ public class PartitionService implements RaftStateListener {
             Metapb.Partition partition = partitionMeta.getPartitionById(graphName, id);
             partShards.add(
                     Metapb.PartitionShard.newBuilder()
-                            .setPartition(partition)
-                            // 此处需要返回正确的leader，暂时默认取第一个
-                            .setLeader(storeService.getLeader(partition, 0))
-                            .build()
+                                         .setPartition(partition)
+                                         // 此处需要返回正确的leader，暂时默认取第一个
+                                         .setLeader(storeService.getLeader(partition, 0))
+                                         .build()
             );
         }
         return partShards;
@@ -291,27 +316,31 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 更新分区以及图的状态
+     *
      * @param graph
      * @param partId
      * @param state
      * @throws PDException
      */
-    public synchronized void updatePartitionState(String graph, int partId, Metapb.PartitionState state) throws PDException {
+    public synchronized void updatePartitionState(String graph, int partId,
+                                                  Metapb.PartitionState state) throws PDException {
         Metapb.Partition partition = getPartitionById(graph, partId);
-        
-        if ( partition.getState() != state) {
+
+        if (partition.getState() != state) {
             Metapb.Partition newPartition = partitionMeta.updatePartition(partition.toBuilder()
-                    .setState(state).build());
+                                                                                   .setState(state)
+                                                                                   .build());
 
             onPartitionChanged(partition, newPartition);
         }
     }
 
-    public synchronized void updateGraphState(String graphName, Metapb.PartitionState state) throws PDException {
+    public synchronized void updateGraphState(String graphName, Metapb.PartitionState state) throws
+                                                                                             PDException {
         Metapb.Graph graph = getGraph(graphName);
         if (graph != null) {
             partitionMeta.updateGraph(graph.toBuilder()
-                    .setState(state).build());
+                                           .setState(state).build());
         }
     }
 
@@ -333,21 +362,22 @@ public class PartitionService implements RaftStateListener {
             updateGraphState(partition.getGraphName(), state);
 
             state = Metapb.PartitionState.PState_Normal;
-            for(Metapb.ShardGroup group : storeService.getShardGroups()){
-                if ( group.getState().getNumber() > state.getNumber()) {
+            for (Metapb.ShardGroup group : storeService.getShardGroups()) {
+                if (group.getState().getNumber() > state.getNumber()) {
                     state = group.getState();
                 }
             }
             storeService.updateClusterStatus(state);
 
-        }catch ( PDException e){
+        } catch (PDException e) {
             log.error("onPartitionChanged", e);
         }
 
         return ret;
     }
 
-    public Metapb.PartitionStats getPartitionStats(String graphName, int partitionId) throws  PDException {
+    public Metapb.PartitionStats getPartitionStats(String graphName, int partitionId) throws
+                                                                                      PDException {
         return partitionMeta.getPartitionStats(graphName, partitionId);
     }
 
@@ -391,7 +421,8 @@ public class PartitionService implements RaftStateListener {
         Metapb.Graph lastGraph = partitionMeta.getAndCreateGraph(graph.getGraphName());
         log.info("updateGraph graph: {}, last: {}", graph, lastGraph);
 
-        int partCount = (graph.getGraphName().endsWith("/s") || graph.getGraphName().endsWith("/m")) ?
+        int partCount =
+                (graph.getGraphName().endsWith("/s") || graph.getGraphName().endsWith("/m")) ?
                 1 : pdConfig.getPartition().getTotalCount();
 
         // set the partition count to specified if legal.
@@ -400,19 +431,20 @@ public class PartitionService implements RaftStateListener {
         }
 
         if (partCount == 0) {
-            throw new PDException(10010 ,"update graph error, partition count = 0");
+            throw new PDException(10010, "update graph error, partition count = 0");
         }
 
         graph = lastGraph.toBuilder()
-                .mergeFrom(graph)
-                .setPartitionCount(partCount)
-                .build();
+                         .mergeFrom(graph)
+                         .setPartitionCount(partCount)
+                         .build();
         partitionMeta.updateGraph(graph);
 
         // 分区数发生改变
         if (lastGraph.getPartitionCount() != graph.getPartitionCount()) {
             log.info("updateGraph graph: {}, partition count changed from {} to {}",
-                    graph.getGraphName(), lastGraph.getPartitionCount(), graph.getPartitionCount());
+                     graph.getGraphName(), lastGraph.getPartitionCount(),
+                     graph.getPartitionCount());
             // TODO 修改图的分区数，需要进行数据迁移。
         }
         return graph;
@@ -438,12 +470,13 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 存储被下线，迁移分区数据
+     *
      * @param store
      */
     public void storeOffline(Metapb.Store store) {
         try {
             log.info("storeOffline store id: {}, address: {}, state: {}",
-                    store.getId(), store.getAddress(), store.getState());
+                     store.getId(), store.getAddress(), store.getState());
             List<Metapb.Partition> partitions = getPartitionByStore(store);
             var partIds = new HashSet<Integer>();
             for (Metapb.Partition p : partitions) {
@@ -464,7 +497,7 @@ public class PartitionService implements RaftStateListener {
     public synchronized void shardOffline(Metapb.Partition partition, long storeId) {
         try {
             log.info("shardOffline Partition {} - {} shardOffline store : {}",
-                    partition.getGraphName(), partition.getId(), storeId);
+                     partition.getGraphName(), partition.getId(), storeId);
             // partition = getPartitionById(partition.getGraphName(), partition.getId());
             // Metapb.Partition.Builder builder = Metapb.Partition.newBuilder(partition);
             // builder.clearShards();
@@ -481,13 +514,15 @@ public class PartitionService implements RaftStateListener {
         }
     }
 
-    private boolean isShardListEquals(List<Metapb.Shard> list1, List<Metapb.Shard> list2){
+    private boolean isShardListEquals(List<Metapb.Shard> list1, List<Metapb.Shard> list2) {
         if (list1 == list2) {
             return true;
-        }else if (list1 != null && list2 != null) {
+        } else if (list1 != null && list2 != null) {
 
-            var s1 = list1.stream().map(Metapb.Shard::getStoreId).sorted(Long::compare).collect(Collectors.toList());
-            var s2 = list2.stream().map(Metapb.Shard::getStoreId).sorted(Long::compare).collect(Collectors.toList());
+            var s1 = list1.stream().map(Metapb.Shard::getStoreId).sorted(Long::compare)
+                          .collect(Collectors.toList());
+            var s2 = list2.stream().map(Metapb.Shard::getStoreId).sorted(Long::compare)
+                          .collect(Collectors.toList());
 
             if (s1.size() == s2.size()) {
                 for (int i = 0; i < s1.size(); i++) {
@@ -504,11 +539,13 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 重新分配shard
+     *
      * @param graph
      * @param partition
      * @throws PDException
      */
-    public void reallocPartitionShards(Metapb.Graph graph, Metapb.Partition partition) throws PDException {
+    public void reallocPartitionShards(Metapb.Graph graph, Metapb.Partition partition) throws
+                                                                                       PDException {
         if (partition == null) {
             return;
         }
@@ -528,19 +565,23 @@ public class PartitionService implements RaftStateListener {
         }
     }
 
-    public synchronized void reallocPartitionShards(String graphName, int partitionId) throws PDException {
+    public synchronized void reallocPartitionShards(String graphName, int partitionId) throws
+                                                                                       PDException {
         reallocPartitionShards(partitionMeta.getGraph(graphName),
-                partitionMeta.getPartitionById(graphName, partitionId));
+                               partitionMeta.getPartitionById(graphName, partitionId));
     }
 
     /**
      * 迁移分区副本
      */
-    public synchronized void movePartitionsShard(Integer partitionId, long fromStore, long toStore) {
+    public synchronized void movePartitionsShard(Integer partitionId, long fromStore,
+                                                 long toStore) {
         try {
-            log.info("movePartitionsShard partitionId {} from store {} to store {}", partitionId, fromStore, toStore);
+            log.info("movePartitionsShard partitionId {} from store {} to store {}", partitionId,
+                     fromStore, toStore);
             for (Metapb.Graph graph : getGraphs()) {
-                Metapb.Partition partition = this.getPartitionById(graph.getGraphName(), partitionId);
+                Metapb.Partition partition =
+                        this.getPartitionById(graph.getGraphName(), partitionId);
                 if (partition == null) {
                     continue;
                 }
@@ -553,7 +594,8 @@ public class PartitionService implements RaftStateListener {
                     }
                 });
 
-                shards.add(Metapb.Shard.newBuilder().setStoreId(toStore).setRole(Metapb.ShardRole.Follower).build());
+                shards.add(Metapb.Shard.newBuilder().setStoreId(toStore)
+                                       .setRole(Metapb.ShardRole.Follower).build());
 
                 // storeService.updateShardGroup(partitionId, shards, -1, -1);
                 // storeService.onShardGroupStatusChanged(shardGroup, newShardGroup);
@@ -568,13 +610,15 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 把集群中所有的分区，拆成split
+     *
      * @param splits 拆分分区
      */
-    public synchronized void splitPartition(List<KVPair<Integer, Integer>> splits) throws PDException {
+    public synchronized void splitPartition(List<KVPair<Integer, Integer>> splits) throws
+                                                                                   PDException {
         var tasks = new HashMap<String, List<KVPair<Integer, Integer>>>();
 
-        for (var pair : splits){
-            for (var partition : getPartitionById(pair.getKey())){
+        for (var pair : splits) {
+            for (var partition : getPartitionById(pair.getKey())) {
                 if (!tasks.containsKey(partition.getGraphName())) {
                     tasks.put(partition.getGraphName(), new ArrayList<>());
                 }
@@ -589,38 +633,42 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 分区分裂， 把一个图拆分到N 个
-     * @param graph graph
+     *
+     * @param graph   graph
      * @param toCount target count
      * @throws PDException
      */
 
-    public synchronized void splitPartition(Metapb.Graph graph, int toCount) throws PDException{
+    public synchronized void splitPartition(Metapb.Graph graph, int toCount) throws PDException {
 
         var partitionCount = getPartitions(graph.getGraphName()).size();
         var maxShardsPerStore = pdConfig.getPartition().getMaxShardsPerStore();
         var shardCount = pdConfig.getPartition().getShardCount();
 
-        if ( shardCount * toCount > storeService.getActiveStores().size() * maxShardsPerStore){
+        if (shardCount * toCount > storeService.getActiveStores().size() * maxShardsPerStore) {
             throw new PDException(Pdpb.ErrorType.Too_Many_Partitions_Per_Store_VALUE,
-                    "can't satisfy target shard group count, reached the upper limit of the cluster");
+                                  "can't satisfy target shard group count, reached the upper " +
+                                  "limit of the cluster");
         }
 
         if (toCount % partitionCount != 0 || toCount <= partitionCount) {
             throw new PDException(Pdpb.ErrorType.Invalid_Split_Partition_Count_VALUE,
-                    "invalid split partition count, make sure to count is N time of current partition count");
+                                  "invalid split partition count, make sure to count is N time of" +
+                                  " current partition count");
         }
 
         // 由于是整数倍数，扩充因子为 toCount / current count
         var splitCount = toCount / partitionCount;
         var list = new ArrayList<KVPair<Integer, Integer>>();
-        for (int i = 0 ; i < partitionCount; i ++) {
+        for (int i = 0; i < partitionCount; i++) {
             list.add(new KVPair<>(i, splitCount));
         }
 
         splitPartition(graph, list);
     }
 
-    private synchronized void splitPartition(Metapb.Graph graph, List<KVPair<Integer, Integer>> splits)
+    private synchronized void splitPartition(Metapb.Graph graph,
+                                             List<KVPair<Integer, Integer>> splits)
             throws PDException {
         var taskInfoMeta = storeService.getTaskInfoMeta();
         if (taskInfoMeta.scanSplitTask(graph.getGraphName()).size() > 0) {
@@ -634,7 +682,8 @@ public class PartitionService implements RaftStateListener {
         var i = getPartitions(graph.getGraphName()).size();
 
         for (var pair : splits) {
-            Metapb.Partition partition = partitionMeta.getPartitionById(graph.getGraphName(), pair.getKey());
+            Metapb.Partition partition =
+                    partitionMeta.getPartitionById(graph.getGraphName(), pair.getKey());
             if (partition != null) {
                 var splitCount = pair.getValue();
                 long splitLen = (partition.getEndKey() - partition.getStartKey()) / splitCount;
@@ -642,34 +691,35 @@ public class PartitionService implements RaftStateListener {
                 List<Metapb.Partition> newPartitions = new ArrayList<>();
                 // 第一个分区也就是原分区
                 newPartitions.add(partition.toBuilder()
-                        .setStartKey(partition.getStartKey())
-                        .setEndKey(partition.getStartKey() + splitLen)
-                        .setId(partition.getId())
-                        .setState(Metapb.PartitionState.PState_Offline)
-                        .build());
+                                           .setStartKey(partition.getStartKey())
+                                           .setEndKey(partition.getStartKey() + splitLen)
+                                           .setId(partition.getId())
+                                           .setState(Metapb.PartitionState.PState_Offline)
+                                           .build());
 
                 int idx = 0;
 
                 for (; idx < splitCount - 2; idx++) {
                     newPartitions.add(partition.toBuilder()
-                            .setStartKey(newPartitions.get(idx).getEndKey())
-                            .setEndKey(newPartitions.get(idx).getEndKey() + splitLen)
-                            .setId(i)
-                            .setState(Metapb.PartitionState.PState_Offline)
-                            .build());
+                                               .setStartKey(newPartitions.get(idx).getEndKey())
+                                               .setEndKey(newPartitions.get(idx).getEndKey() +
+                                                          splitLen)
+                                               .setId(i)
+                                               .setState(Metapb.PartitionState.PState_Offline)
+                                               .build());
                     i += 1;
                 }
 
                 newPartitions.add(partition.toBuilder()
-                        .setStartKey(newPartitions.get(idx).getEndKey())
-                        .setEndKey(partition.getEndKey())
-                        .setId(i)
-                        .setState(Metapb.PartitionState.PState_Offline)
-                        .build());
+                                           .setStartKey(newPartitions.get(idx).getEndKey())
+                                           .setEndKey(partition.getEndKey())
+                                           .setId(i)
+                                           .setState(Metapb.PartitionState.PState_Offline)
+                                           .build());
                 i += 1;
 
                 // try to save new partitions, and repair shard group
-                for (int j = 0; j < newPartitions.size(); j ++) {
+                for (int j = 0; j < newPartitions.size(); j++) {
                     var newPartition = newPartitions.get(j);
 
                     if (j != 0) {
@@ -680,8 +730,8 @@ public class PartitionService implements RaftStateListener {
                     var shardGroup = storeService.getShardGroup(newPartition.getId());
                     if (shardGroup == null) {
                         shardGroup = storeService.getShardGroup(partition.getId()).toBuilder()
-                                .setId(newPartition.getId())
-                                .build();
+                                                 .setId(newPartition.getId())
+                                                 .build();
                         storeService.getStoreInfoMeta().updateShardGroup(shardGroup);
                         updateShardGroupCache(shardGroup);
                     }
@@ -693,19 +743,20 @@ public class PartitionService implements RaftStateListener {
                 }
 
                 SplitPartition splitPartition = SplitPartition.newBuilder()
-                        .addAllNewPartition(newPartitions)
-                        .build();
+                                                              .addAllNewPartition(newPartitions)
+                                                              .build();
 
                 fireSplitPartition(partition, splitPartition);
                 // 修改Partition状态为下线，任务完成后恢复为上线
                 updatePartitionState(partition.getGraphName(), partition.getId(),
-                        Metapb.PartitionState.PState_Offline);
+                                     Metapb.PartitionState.PState_Offline);
 
                 // 记录事务
                 var task = MetaTask.Task.newBuilder().setPartition(partition)
-                        .setSplitPartition(splitPartition)
-                        .build();
-                taskInfoMeta.addSplitTask(pair.getKey(), task.getPartition(), task.getSplitPartition());
+                                        .setSplitPartition(splitPartition)
+                                        .build();
+                taskInfoMeta.addSplitTask(pair.getKey(), task.getPartition(),
+                                          task.getSplitPartition());
             }
         }
     }
@@ -718,12 +769,14 @@ public class PartitionService implements RaftStateListener {
         try {
             var partitions = getPartitionById(partId);
             if (partitions.size() > 0) {
-                fireTransferLeader(partitions.get(0), TransferLeader.newBuilder().setShard(shard).build());
+                fireTransferLeader(partitions.get(0),
+                                   TransferLeader.newBuilder().setShard(shard).build());
             }
 //            for (Metapb.Graph graph : getGraphs()) {
 //                Metapb.Partition partition = this.getPartitionById(graph.getGraphName(), partId);
 //                if (partition != null) {
-//                    fireTransferLeader(partition, TransferLeader.newBuilder().setShard(shard).build());
+//                    fireTransferLeader(partition, TransferLeader.newBuilder().setShard(shard)
+//                    .build());
 //                }
 //            }
         } catch (PDException e) {
@@ -740,9 +793,9 @@ public class PartitionService implements RaftStateListener {
     public void combinePartition(int toCount) throws PDException {
 
         int shardsTotalCount = getShardGroupCount();
-        for (var graph : getGraphs()){
+        for (var graph : getGraphs()) {
             // 对所有大于toCount分区的图，都进行缩容
-            if (graph.getPartitionCount() > toCount){
+            if (graph.getPartitionCount() > toCount) {
                 combineGraphPartition(graph, toCount, shardsTotalCount);
             }
         }
@@ -752,7 +805,7 @@ public class PartitionService implements RaftStateListener {
      * 针对单个图，进行分区合并
      *
      * @param graphName the name of the graph
-     * @param toCount the target partition count
+     * @param toCount   the target partition count
      * @throws PDException when query errors
      */
 
@@ -763,35 +816,41 @@ public class PartitionService implements RaftStateListener {
     /**
      * 单图合并的内部实现
      *
-     * @param graph the name of the graph
-     * @param toCount the target partition count
+     * @param graph      the name of the graph
+     * @param toCount    the target partition count
      * @param shardCount the shard count of the clusters
      * @throws PDException when query errors
      */
     private synchronized void combineGraphPartition(Metapb.Graph graph, int toCount, int shardCount)
             throws PDException {
-        if (graph == null){
-            throw new PDException(1, "Graph not exists, try to use full graph name, like /DEFAULT/GRAPH_NAME/g");
+        if (graph == null) {
+            throw new PDException(1,
+                                  "Graph not exists, try to use full graph name, like " +
+                                  "/DEFAULT/GRAPH_NAME/g");
         }
 
         log.info("Combine graph {} partition, from {}, to {}, with shard count:{}",
-                graph.getGraphName(), graph.getPartitionCount(), toCount, shardCount);
+                 graph.getGraphName(), graph.getPartitionCount(), toCount, shardCount);
 
-        if (! checkTargetCount(graph.getPartitionCount(), toCount, shardCount)) {
-            log.error("Combine partition, illegal toCount:{}, graph:{}", toCount, graph.getGraphName());
-            throw new PDException(2, "illegal partition toCount, should between 1 ~ shard group count and " +
-                    " can be dived by shard group count");
+        if (!checkTargetCount(graph.getPartitionCount(), toCount, shardCount)) {
+            log.error("Combine partition, illegal toCount:{}, graph:{}", toCount,
+                      graph.getGraphName());
+            throw new PDException(2,
+                                  "illegal partition toCount, should between 1 ~ shard group " +
+                                  "count and " +
+                                  " can be dived by shard group count");
         }
 
         var taskInfoMeta = storeService.getTaskInfoMeta();
-        if (taskInfoMeta.scanMoveTask(graph.getGraphName()).size() > 0 ) {
+        if (taskInfoMeta.scanMoveTask(graph.getGraphName()).size() > 0) {
             throw new PDException(3, "Graph Combine process exists");
         }
 
         // 按照 key start 排序，合并后的key range 是连续的
         var partitions = getPartitions(graph.getGraphName()).stream()
-                .sorted(Comparator.comparing(Metapb.Partition::getStartKey))
-                .collect(Collectors.toList());
+                                                            .sorted(Comparator.comparing(
+                                                                    Metapb.Partition::getStartKey))
+                                                            .collect(Collectors.toList());
 
         // 分区编号不一定是连续的
         var sortPartitions = getPartitions(graph.getGraphName())
@@ -803,16 +862,16 @@ public class PartitionService implements RaftStateListener {
         // 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 共12个分区, 合并成4个
         // 方案：0,1,2 => 0, 3,4,5 -> 1, 6,7,8 ->2, 9,10,11 -> 3
         // 保证分区的连续性.
-        for (int i = 0; i < toCount; i ++ ){
+        for (int i = 0; i < toCount; i++) {
             var startKey = partitions.get(i * groupSize).getStartKey();
             var endKey = partitions.get(i * groupSize + groupSize - 1).getEndKey();
             // compose the key range
             // the start key and end key should be changed if combine success.
 
             var targetPartition = Metapb.Partition.newBuilder(sortPartitions.get(i))
-                    .setStartKey(startKey)
-                    .setEndKey(endKey)
-                    .build();
+                                                  .setStartKey(startKey)
+                                                  .setEndKey(endKey)
+                                                  .build();
 
             for (int j = 0; j < groupSize; j++) {
                 var partition = partitions.get(i * groupSize + j);
@@ -821,21 +880,23 @@ public class PartitionService implements RaftStateListener {
                     continue;
                 }
 
-                log.info("combine partition of graph :{}, from part id {} to {}", partition.getGraphName(),
-                        partition.getId(), targetPartition.getId());
+                log.info("combine partition of graph :{}, from part id {} to {}",
+                         partition.getGraphName(),
+                         partition.getId(), targetPartition.getId());
                 MovePartition movePartition = MovePartition.newBuilder()
-                        .setTargetPartition(targetPartition)
-                        .setKeyStart(partition.getStartKey())
-                        .setKeyEnd(partition.getEndKey())
-                        .build();
+                                                           .setTargetPartition(targetPartition)
+                                                           .setKeyStart(partition.getStartKey())
+                                                           .setKeyEnd(partition.getEndKey())
+                                                           .build();
                 taskInfoMeta.addMovePartitionTask(partition, movePartition);
                 // source 下线
-                updatePartitionState(partition.getGraphName(), partition.getId(), Metapb.PartitionState.PState_Offline);
+                updatePartitionState(partition.getGraphName(), partition.getId(),
+                                     Metapb.PartitionState.PState_Offline);
                 fireMovePartition(partition, movePartition);
             }
             // target 下线
             updatePartitionState(targetPartition.getGraphName(), targetPartition.getId(),
-                    Metapb.PartitionState.PState_Offline);
+                                 Metapb.PartitionState.PState_Offline);
         }
 
         storeService.updateClusterStatus(Metapb.ClusterState.Cluster_Offline);
@@ -843,12 +904,14 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 通过 storeService 获取 raft group 总数
+     *
      * @return the count of raft groups
      */
     private int getShardGroupCount() {
         try {
-            return Optional.ofNullable(storeService.getShardGroups()).orElseGet(ArrayList::new).size();
-        }catch (PDException e){
+            return Optional.ofNullable(storeService.getShardGroups()).orElseGet(ArrayList::new)
+                           .size();
+        } catch (PDException e) {
             log.error("get shard group failed, error: {}", e);
         }
         return 0;
@@ -858,21 +921,19 @@ public class PartitionService implements RaftStateListener {
      * 判断图分区是否能够从from合并到to个
      *
      * @param fromCount 现在的分区数
-     * @param toCount 目标分区数
+     * @param toCount   目标分区数
      * @return true when available , or otherwise
      */
-    private boolean checkTargetCount(int fromCount, int toCount, int shardCount){
+    private boolean checkTargetCount(int fromCount, int toCount, int shardCount) {
         // 要介于 1 ~ N 中间，而且可以整除
-        if (toCount < 1 || toCount >= fromCount || fromCount % toCount != 0 || toCount >= shardCount) {
-            return false;
-        }
-
-        return true;
+        return toCount >= 1 && toCount < fromCount && fromCount % toCount == 0 &&
+               toCount < shardCount;
     }
 
     /**
      * 处理分区心跳， 记录Leader信息
      * 检查term和version，比较是否是最新的消息
+     *
      * @param stats
      */
     public void partitionHeartbeat(Metapb.PartitionStats stats) throws PDException {
@@ -882,9 +943,11 @@ public class PartitionService implements RaftStateListener {
         // (shard group 由pd控制, 在分裂等操作后，可能出现短暂不一致的情况，以pd为准）
         // store控制shard leader
         if (shardGroup != null &&
-                (shardGroup.getVersion() < stats.getLeaderTerm() || shardGroup.getConfVer() < stats.getConfVer())) {
+            (shardGroup.getVersion() < stats.getLeaderTerm() ||
+             shardGroup.getConfVer() < stats.getConfVer())) {
             storeService.updateShardGroup(stats.getId(),
-                    stats.getShardList(), stats.getLeaderTerm(), stats.getConfVer());
+                                          stats.getShardList(), stats.getLeaderTerm(),
+                                          stats.getConfVer());
         }
 
         List<Metapb.Partition> partitions = getPartitionById(stats.getId());
@@ -894,11 +957,12 @@ public class PartitionService implements RaftStateListener {
         }
         // 统计信息
         partitionMeta.updatePartitionStats(stats.toBuilder()
-                .setTimestamp(System.currentTimeMillis()).build());
+                                                .setTimestamp(System.currentTimeMillis()).build());
     }
 
     /**
      * 检查shard状态，离线shard影响到分区状态
+     *
      * @param stats
      */
     private void checkShardState(Metapb.Partition partition, Metapb.PartitionStats stats) {
@@ -906,44 +970,52 @@ public class PartitionService implements RaftStateListener {
         try {
             int offCount = 0;
             for (Metapb.ShardStats shard : stats.getShardStatsList()) {
-                if (shard.getState() == Metapb.ShardState.SState_Offline)
+                if (shard.getState() == Metapb.ShardState.SState_Offline) {
                     offCount++;
+                }
             }
             if (partition.getState() != Metapb.PartitionState.PState_Offline) {
                 if (offCount == 0) {
-                    updatePartitionState(partition.getGraphName(), partition.getId(), Metapb.PartitionState.PState_Normal);
+                    updatePartitionState(partition.getGraphName(), partition.getId(),
+                                         Metapb.PartitionState.PState_Normal);
                 } else if (offCount * 2 < stats.getShardStatsCount()) {
-                    updatePartitionState(partition.getGraphName(), partition.getId(), Metapb.PartitionState.PState_Warn);
-                } else
-                    updatePartitionState(partition.getGraphName(), partition.getId(), Metapb.PartitionState.PState_Warn);
+                    updatePartitionState(partition.getGraphName(), partition.getId(),
+                                         Metapb.PartitionState.PState_Warn);
+                } else {
+                    updatePartitionState(partition.getGraphName(), partition.getId(),
+                                         Metapb.PartitionState.PState_Warn);
+                }
             }
         } catch (Exception e) {
             log.error("Partition {}-{} checkShardState exception {}",
-                    partition.getGraphName(), partition.getId(), e);
+                      partition.getGraphName(), partition.getId(), e);
         }
     }
 
 
-
-    public void addInstructionListener(PartitionInstructionListener event){
+    public void addInstructionListener(PartitionInstructionListener event) {
         instructionListeners.add(event);
     }
 
-    public void addStatusListener(PartitionStatusListener listener){
+    public void addStatusListener(PartitionStatusListener listener) {
         statusListeners.add(listener);
     }
 
     /**
      * 发起改变shard命令
+     *
      * @param changeType
      */
-    protected void fireChangeShard(Metapb.Partition partition, List<Metapb.Shard> shards, ConfChangeType changeType) {
-        log.info("fireChangeShard partition: {}-{}， changeType:{} {}", partition.getGraphName(), partition.getId(), changeType, shards);
+    protected void fireChangeShard(Metapb.Partition partition, List<Metapb.Shard> shards,
+                                   ConfChangeType changeType) {
+        log.info("fireChangeShard partition: {}-{}， changeType:{} {}", partition.getGraphName(),
+                 partition.getId(), changeType, shards);
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.changeShard(partition, ChangeShard.newBuilder()
-                        .addAllShard(shards).setChangeType(changeType).build());
-            }catch (Exception e){
+                                                      .addAllShard(shards).setChangeType(changeType)
+                                                      .build());
+            } catch (Exception e) {
                 log.error("fireChangeShard", e);
             }
         });
@@ -959,15 +1031,16 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 发送分区分裂消息
+     *
      * @param partition
      */
     protected void fireSplitPartition(Metapb.Partition partition, SplitPartition splitPartition) {
         log.info("fireSplitPartition partition: {}-{}， split :{}",
-                partition.getGraphName(), partition.getId(), splitPartition);
+                 partition.getGraphName(), partition.getId(), splitPartition);
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.splitPartition(partition, splitPartition);
-            }catch (Exception e){
+            } catch (Exception e) {
                 log.error("fireSplitPartition", e);
             }
         });
@@ -978,11 +1051,11 @@ public class PartitionService implements RaftStateListener {
      */
     protected void fireTransferLeader(Metapb.Partition partition, TransferLeader transferLeader) {
         log.info("fireTransferLeader partition: {}-{}， leader :{}",
-                partition.getGraphName(), partition.getId(), transferLeader);
+                 partition.getGraphName(), partition.getId(), transferLeader);
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.transferLeader(partition, transferLeader);
-            }catch (Exception e){
+            } catch (Exception e) {
                 log.error("fireSplitPartition", e);
             }
         });
@@ -990,17 +1063,18 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 发送分区移动数据的消息
-     * @param partition 原分区
+     *
+     * @param partition     原分区
      * @param movePartition 目标分区，包含 key range
      */
     protected void fireMovePartition(Metapb.Partition partition, MovePartition movePartition) {
         log.info("fireMovePartition partition: {} -> {}",
-                partition, movePartition);
+                 partition, movePartition);
 
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.movePartition(partition, movePartition);
-            }catch (Exception e){
+            } catch (Exception e) {
                 log.error("fireMovePartition", e);
             }
         });
@@ -1008,25 +1082,26 @@ public class PartitionService implements RaftStateListener {
 
     protected void fireCleanPartition(Metapb.Partition partition, CleanPartition cleanPartition) {
         log.info("fireCleanPartition partition: {} -> just keep : {}->{}",
-                partition.getId(), cleanPartition.getKeyStart(), cleanPartition.getKeyEnd());
+                 partition.getId(), cleanPartition.getKeyStart(), cleanPartition.getKeyEnd());
 
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.cleanPartition(partition, cleanPartition);
-            }catch (Exception e){
+            } catch (Exception e) {
                 log.error("cleanPartition", e);
             }
         });
     }
 
-    protected void fireChangePartitionKeyRange(Metapb.Partition partition, PartitionKeyRange partitionKeyRange) {
+    protected void fireChangePartitionKeyRange(Metapb.Partition partition,
+                                               PartitionKeyRange partitionKeyRange) {
         log.info("fireChangePartitionKeyRange partition: {}-{} -> key range {}",
-                partition.getGraphName(), partition.getId(), partitionKeyRange);
+                 partition.getGraphName(), partition.getId(), partitionKeyRange);
 
         instructionListeners.forEach(cmd -> {
             try {
                 cmd.changePartitionKeyRange(partition, partitionKeyRange);
-            }catch (Exception e){
+            } catch (Exception e) {
                 log.error("cleanPartition", e);
             }
         });
@@ -1034,6 +1109,7 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 处理图迁移任务
+     *
      * @param task
      */
     public synchronized void handleMoveTask(MetaTask.Task task) throws PDException {
@@ -1042,24 +1118,31 @@ public class PartitionService implements RaftStateListener {
         var movePartition = task.getMovePartition();
 
         MetaTask.Task pdMetaTask = taskInfoMeta.getMovePartitionTask(partition.getGraphName(),
-                movePartition.getTargetPartition().getId(),
-                partition.getId());
+                                                                     movePartition.getTargetPartition()
+                                                                                  .getId(),
+                                                                     partition.getId());
 
-        log.info("report move task, graph:{}, pid : {}->{}, state: {}", task.getPartition().getGraphName(),
-                task.getPartition().getId(), task.getMovePartition().getTargetPartition().getId(), task.getState());
+        log.info("report move task, graph:{}, pid : {}->{}, state: {}",
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(), task.getMovePartition().getTargetPartition().getId(),
+                 task.getState());
 
         // 已经被处理（前面有failed)
         if (pdMetaTask != null) {
-             var newTask = pdMetaTask.toBuilder().setState(task.getState()).build();
-             taskInfoMeta.updateMovePartitionTask(newTask);
+            var newTask = pdMetaTask.toBuilder().setState(task.getState()).build();
+            taskInfoMeta.updateMovePartitionTask(newTask);
 
             List<MetaTask.Task> subTasks = taskInfoMeta.scanMoveTask(partition.getGraphName());
 
-            var finished  = subTasks.stream().allMatch(t ->
-                    t.getState() == MetaTask.TaskState.Task_Success || t.getState() == MetaTask.TaskState.Task_Failure);
+            var finished = subTasks.stream().allMatch(t ->
+                                                              t.getState() ==
+                                                              MetaTask.TaskState.Task_Success ||
+                                                              t.getState() ==
+                                                              MetaTask.TaskState.Task_Failure);
 
             if (finished) {
-                var allSuccess = subTasks.stream().allMatch(t -> t.getState() == MetaTask.TaskState.Task_Success);
+                var allSuccess = subTasks.stream().allMatch(
+                        t -> t.getState() == MetaTask.TaskState.Task_Success);
                 if (allSuccess) {
                     log.info("graph:{} combine task all success!", partition.getGraphName());
                     handleMoveTaskAllSuccess(subTasks, partition.getGraphName(), taskInfoMeta);
@@ -1073,71 +1156,77 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 当所有的迁移子任务成功:
-     *  1. 发送清理source分区指令
-     *  2. 设置target上线, 更新key range, 更新 graph partition count
-     *  3. 删除move task，任务结束
+     * 1. 发送清理source分区指令
+     * 2. 设置target上线, 更新key range, 更新 graph partition count
+     * 3. 删除move task，任务结束
      *
-     * @param subTasks all move sub tasks
-     * @param graphName graph name
+     * @param subTasks     all move sub tasks
+     * @param graphName    graph name
      * @param taskInfoMeta task info meta
      * @throws PDException returns if write db failed
      */
     private void handleMoveTaskAllSuccess(List<MetaTask.Task> subTasks, String graphName,
-                                         TaskInfoMeta taskInfoMeta) throws PDException {
+                                          TaskInfoMeta taskInfoMeta) throws PDException {
 
         var targetPartitionIds = new HashSet<Integer>();
         var targetPartitions = new ArrayList<Metapb.Partition>();
-        var deleteFlags = subTasks.stream().map(task -> task.getMovePartition().getTargetPartition().getId())
-                .collect(Collectors.toSet());
+        var deleteFlags =
+                subTasks.stream().map(task -> task.getMovePartition().getTargetPartition().getId())
+                        .collect(Collectors.toSet());
 
         for (MetaTask.Task subTask : subTasks) {
             var source = subTask.getPartition();
             var targetPartition = subTask.getMovePartition().getTargetPartition();
             // 是否处理过
-            if (! targetPartitionIds.contains(targetPartition.getId())) {
+            if (!targetPartitionIds.contains(targetPartition.getId())) {
                 // 更新range
                 var old = getPartitionById(targetPartition.getGraphName(), targetPartition.getId());
                 var newPartition = Metapb.Partition.newBuilder(old)
-                        .setStartKey(targetPartition.getStartKey())
-                        .setEndKey(targetPartition.getEndKey())
-                        .setState(Metapb.PartitionState.PState_Normal)
-                        .build();
+                                                   .setStartKey(targetPartition.getStartKey())
+                                                   .setEndKey(targetPartition.getEndKey())
+                                                   .setState(Metapb.PartitionState.PState_Normal)
+                                                   .build();
                 // 在 key range之前更新，避免store没有分区的问题, 需要到pd查询
                 updatePartition(List.of(newPartition));
                 targetPartitions.add(newPartition);
 
                 // 发送key range 变更消息
                 PartitionKeyRange partitionKeyRange = PartitionKeyRange.newBuilder()
-                        .setPartitionId(old.getId())
-                        .setKeyStart(targetPartition.getStartKey())
-                        .setKeyEnd(targetPartition.getEndKey())
-                        .build();
+                                                                       .setPartitionId(old.getId())
+                                                                       .setKeyStart(
+                                                                               targetPartition.getStartKey())
+                                                                       .setKeyEnd(
+                                                                               targetPartition.getEndKey())
+                                                                       .build();
                 // 通知store
-                fireChangePartitionKeyRange(old.toBuilder().setState(Metapb.PartitionState.PState_Normal).build(),
+                fireChangePartitionKeyRange(
+                        old.toBuilder().setState(Metapb.PartitionState.PState_Normal).build(),
                         partitionKeyRange);
 
                 // 将 target 设置为上线. source 理论上可能被删掉，所以不处理
                 updatePartitionState(newPartition.getGraphName(), newPartition.getId(),
-                        Metapb.PartitionState.PState_Normal);
+                                     Metapb.PartitionState.PState_Normal);
 
                 targetPartitionIds.add(targetPartition.getId());
             }
 
             CleanPartition cleanPartition = CleanPartition.newBuilder()
-                    .setKeyStart(source.getStartKey())
-                    .setKeyEnd(source.getEndKey())
-                    .setCleanType(CleanType.CLEAN_TYPE_EXCLUDE_RANGE)
-                    // target 的 partition只需要清理数据，不需要删除分区
-                    .setDeletePartition(!deleteFlags.contains(source.getId()))
-                    .build();
+                                                          .setKeyStart(source.getStartKey())
+                                                          .setKeyEnd(source.getEndKey())
+                                                          .setCleanType(
+                                                                  CleanType.CLEAN_TYPE_EXCLUDE_RANGE)
+                                                          // target 的 partition只需要清理数据，不需要删除分区
+                                                          .setDeletePartition(!deleteFlags.contains(
+                                                                  source.getId()))
+                                                          .build();
 
             log.info("pd clean data: {}-{}, key range:{}-{}, type:{}, delete partition:{}",
-                    source.getGraphName(),
-                    source.getId(),
-                    cleanPartition.getKeyStart(),
-                    cleanPartition.getKeyEnd(),
-                    CleanType.CLEAN_TYPE_EXCLUDE_RANGE,
-                    cleanPartition.getDeletePartition());
+                     source.getGraphName(),
+                     source.getId(),
+                     cleanPartition.getKeyStart(),
+                     cleanPartition.getKeyEnd(),
+                     CleanType.CLEAN_TYPE_EXCLUDE_RANGE,
+                     cleanPartition.getDeletePartition());
 
             // 清理掉被移动分区的数据
             fireCleanPartition(source, cleanPartition);
@@ -1149,7 +1238,8 @@ public class PartitionService implements RaftStateListener {
         // 更新target 分区状态，source 可能被删掉，所以不处理
         targetPartitions.forEach(p -> {
             try {
-                updatePartitionState(p.getGraphName(), p.getId(), Metapb.PartitionState.PState_Normal);
+                updatePartitionState(p.getGraphName(), p.getId(),
+                                     Metapb.PartitionState.PState_Normal);
             } catch (PDException e) {
                 throw new RuntimeException(e);
             }
@@ -1159,8 +1249,8 @@ public class PartitionService implements RaftStateListener {
 
         // 更新graph partition count
         var graph = getGraph(graphName).toBuilder()
-                .setPartitionCount(targetPartitionIds.size())
-                .build();
+                                       .setPartitionCount(targetPartitionIds.size())
+                                       .build();
         updateGraph(graph);
 
         // 事务完成
@@ -1169,22 +1259,24 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 如果缩容任务有失败的，回滚合并操作
-     *  1. 清理原来的target 分区，将迁移过来的数据再删掉
-     *  2. 将source/target 分区设置为上线
-     *  3. 删除task，任务结束
+     * 1. 清理原来的target 分区，将迁移过来的数据再删掉
+     * 2. 将source/target 分区设置为上线
+     * 3. 删除task，任务结束
      *
-     * @param graphName graph name
+     * @param graphName    graph name
      * @param taskInfoMeta task info meta
      * @throws PDException return if write to db failed
      */
-    private void handleMoveTaskIfFailed(String graphName, TaskInfoMeta taskInfoMeta) throws PDException {
+    private void handleMoveTaskIfFailed(String graphName, TaskInfoMeta taskInfoMeta) throws
+                                                                                     PDException {
         // 发送清理target分区的任务, 回滚target分区
         var targetPartitionIds = new HashSet<Integer>();
-        for (var metaTask : taskInfoMeta.scanMoveTask(graphName)){
+        for (var metaTask : taskInfoMeta.scanMoveTask(graphName)) {
 
             var source = metaTask.getPartition();
             // 设置 source 为上线
-            updatePartitionState(source.getGraphName(), source.getId(), Metapb.PartitionState.PState_Normal);
+            updatePartitionState(source.getGraphName(), source.getId(),
+                                 Metapb.PartitionState.PState_Normal);
             var movedPartition = metaTask.getMovePartition().getTargetPartition();
 
             if (targetPartitionIds.contains(movedPartition.getId())) {
@@ -1194,17 +1286,19 @@ public class PartitionService implements RaftStateListener {
             var targetPartition = getPartitionById(graphName, movedPartition.getId());
 
             CleanPartition cleanPartition = CleanPartition.newBuilder()
-                    .setKeyStart(targetPartition.getStartKey())
-                    .setKeyEnd(targetPartition.getEndKey())
-                    .setCleanType(CleanType.CLEAN_TYPE_KEEP_RANGE)
-                    .setDeletePartition(false)
-                    .build();
+                                                          .setKeyStart(
+                                                                  targetPartition.getStartKey())
+                                                          .setKeyEnd(targetPartition.getEndKey())
+                                                          .setCleanType(
+                                                                  CleanType.CLEAN_TYPE_KEEP_RANGE)
+                                                          .setDeletePartition(false)
+                                                          .build();
             fireCleanPartition(targetPartition, cleanPartition);
             targetPartitionIds.add(targetPartition.getId());
 
             // 设置target 上线
             updatePartitionState(targetPartition.getGraphName(), targetPartition.getId(),
-                    Metapb.PartitionState.PState_Normal);
+                                 Metapb.PartitionState.PState_Normal);
         }
         // 清理掉任务列表
         taskInfoMeta.removeMoveTaskPrefix(graphName);
@@ -1212,15 +1306,16 @@ public class PartitionService implements RaftStateListener {
 
     /**
      * 处理clean task
+     *
      * @param task clean task
      */
-    public void handleCleanPartitionTask(MetaTask.Task task){
+    public void handleCleanPartitionTask(MetaTask.Task task) {
         log.info("clean task {} -{}, key range:{}~{}, report: {}",
-                task.getPartition().getGraphName(),
-                task.getPartition().getId(),
-                task.getCleanPartition().getKeyStart(),
-                task.getCleanPartition().getKeyEnd(),
-                task.getState()
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(),
+                 task.getCleanPartition().getKeyStart(),
+                 task.getCleanPartition().getKeyEnd(),
+                 task.getState()
         );
 
         // 如果失败重试？
@@ -1231,10 +1326,12 @@ public class PartitionService implements RaftStateListener {
         var taskInfoMeta = storeService.getTaskInfoMeta();
         var partition = task.getPartition();
 
-        MetaTask.Task pdMetaTask = taskInfoMeta.getSplitTask(partition.getGraphName(), partition.getId());
+        MetaTask.Task pdMetaTask =
+                taskInfoMeta.getSplitTask(partition.getGraphName(), partition.getId());
 
-        log.info("report split task, graph:{}, pid : {}, state: {}", task.getPartition().getGraphName(),
-                task.getPartition().getId(), task.getState());
+        log.info("report split task, graph:{}, pid : {}, state: {}",
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(), task.getState());
 
         if (pdMetaTask != null) {
             var newTask = pdMetaTask.toBuilder().setState(task.getState()).build();
@@ -1242,11 +1339,15 @@ public class PartitionService implements RaftStateListener {
 
             List<MetaTask.Task> subTasks = taskInfoMeta.scanSplitTask(partition.getGraphName());
 
-            var finished  = subTasks.stream().allMatch(t ->
-                    t.getState() == MetaTask.TaskState.Task_Success || t.getState() == MetaTask.TaskState.Task_Failure);
+            var finished = subTasks.stream().allMatch(t ->
+                                                              t.getState() ==
+                                                              MetaTask.TaskState.Task_Success ||
+                                                              t.getState() ==
+                                                              MetaTask.TaskState.Task_Failure);
 
             if (finished) {
-                var allSuccess = subTasks.stream().allMatch(t -> t.getState() == MetaTask.TaskState.Task_Success);
+                var allSuccess = subTasks.stream().allMatch(
+                        t -> t.getState() == MetaTask.TaskState.Task_Success);
                 if (allSuccess) {
                     log.info("graph:{} split task all success!", partition.getGraphName());
                     handleSplitTaskAllSuccess(subTasks, partition.getGraphName(), taskInfoMeta);
@@ -1257,46 +1358,51 @@ public class PartitionService implements RaftStateListener {
         }
     }
 
-    private void handleSplitTaskAllSuccess(List<MetaTask.Task> subTasks, String graphName, TaskInfoMeta taskInfoMeta)
+    private void handleSplitTaskAllSuccess(List<MetaTask.Task> subTasks, String graphName,
+                                           TaskInfoMeta taskInfoMeta)
             throws PDException {
 
         int addedPartitions = 0;
         var partitions = new ArrayList<Metapb.Partition>();
-        for (MetaTask.Task subTask: subTasks) {
+        for (MetaTask.Task subTask : subTasks) {
             var source = subTask.getPartition();
             var newPartition = subTask.getSplitPartition().getNewPartitionList().get(0);
 
             // 发送key range 变更消息
             PartitionKeyRange partitionKeyRange = PartitionKeyRange.newBuilder()
-                    .setPartitionId(source.getId())
-                    .setKeyStart(newPartition.getStartKey())
-                    .setKeyEnd(newPartition.getEndKey())
-                    .build();
+                                                                   .setPartitionId(source.getId())
+                                                                   .setKeyStart(
+                                                                           newPartition.getStartKey())
+                                                                   .setKeyEnd(
+                                                                           newPartition.getEndKey())
+                                                                   .build();
             // 通知store
             fireChangePartitionKeyRange(source, partitionKeyRange);
             // 将 target 设置为上线. source 理论上可能被删掉，所以不处理
 
             CleanPartition cleanPartition = CleanPartition.newBuilder()
-                    .setKeyStart(newPartition.getStartKey())
-                    .setKeyEnd(newPartition.getEndKey())
-                    .setCleanType(CleanType.CLEAN_TYPE_KEEP_RANGE)
-                    // target 的 partition只需要清理数据，不需要删除分区
-                    .setDeletePartition(false)
-                    .build();
+                                                          .setKeyStart(newPartition.getStartKey())
+                                                          .setKeyEnd(newPartition.getEndKey())
+                                                          .setCleanType(
+                                                                  CleanType.CLEAN_TYPE_KEEP_RANGE)
+                                                          // target 的 partition只需要清理数据，不需要删除分区
+                                                          .setDeletePartition(false)
+                                                          .build();
 
             log.info("pd clean data: {}-{}, key range:{}-{}, type:{}, delete partition:{}",
-                    source.getGraphName(),
-                    source.getId(),
-                    cleanPartition.getKeyStart(),
-                    cleanPartition.getKeyEnd(),
-                    CleanType.CLEAN_TYPE_EXCLUDE_RANGE,
-                    cleanPartition.getDeletePartition());
+                     source.getGraphName(),
+                     source.getId(),
+                     cleanPartition.getKeyStart(),
+                     cleanPartition.getKeyEnd(),
+                     CleanType.CLEAN_TYPE_EXCLUDE_RANGE,
+                     cleanPartition.getDeletePartition());
 
             fireCleanPartition(source, cleanPartition);
 
             // 更新partition state
             for (var sp : subTask.getSplitPartition().getNewPartitionList()) {
-                partitions.add(sp.toBuilder().setState(Metapb.PartitionState.PState_Normal).build());
+                partitions.add(
+                        sp.toBuilder().setState(Metapb.PartitionState.PState_Normal).build());
             }
 
             addedPartitions += subTask.getSplitPartition().getNewPartitionCount() - 1;
@@ -1308,40 +1414,45 @@ public class PartitionService implements RaftStateListener {
         var graph = getGraph(graphName);
 
         // set partition count
-        if (pdConfig.getConfigService().getPartitionCount() != storeService.getShardGroups().size()) {
+        if (pdConfig.getConfigService().getPartitionCount() !=
+            storeService.getShardGroups().size()) {
             pdConfig.getConfigService().setPartitionCount(storeService.getShardGroups().size());
-            log.info("set the partition count of config server to {}", storeService.getShardGroups().size());
+            log.info("set the partition count of config server to {}",
+                     storeService.getShardGroups().size());
         }
 
         // 更新graph partition count
         var newGraph = graph.toBuilder()
-                .setPartitionCount(graph.getPartitionCount() + addedPartitions)
-                .build();
+                            .setPartitionCount(graph.getPartitionCount() + addedPartitions)
+                            .build();
         updateGraph(newGraph);
 
         // 事务完成
         taskInfoMeta.removeSplitTaskPrefix(graphName);
     }
 
-    private void handleSplitTaskIfFailed(List<MetaTask.Task> subTasks, String graphName, TaskInfoMeta taskInfoMeta)
+    private void handleSplitTaskIfFailed(List<MetaTask.Task> subTasks, String graphName,
+                                         TaskInfoMeta taskInfoMeta)
             throws PDException {
-        for (var metaTask : subTasks){
+        for (var metaTask : subTasks) {
             var splitPartitions = metaTask.getSplitPartition().getNewPartitionList();
-            for (int i = 1; i < splitPartitions.size(); i ++) {
+            for (int i = 1; i < splitPartitions.size(); i++) {
                 var split = splitPartitions.get(i);
                 CleanPartition cleanPartition = CleanPartition.newBuilder()
-                        .setKeyStart(split.getStartKey())
-                        .setKeyEnd(split.getEndKey())
-                        .setCleanType(CleanType.CLEAN_TYPE_EXCLUDE_RANGE)
-                        .setDeletePartition(true)
-                        .build();
+                                                              .setKeyStart(split.getStartKey())
+                                                              .setKeyEnd(split.getEndKey())
+                                                              .setCleanType(
+                                                                      CleanType.CLEAN_TYPE_EXCLUDE_RANGE)
+                                                              .setDeletePartition(true)
+                                                              .build();
 
                 fireCleanPartition(split, cleanPartition);
             }
 
             // set partition state normal
             var partition = metaTask.getPartition();
-            updatePartitionState(partition.getGraphName(), partition.getId(), Metapb.PartitionState.PState_Normal);
+            updatePartitionState(partition.getGraphName(), partition.getId(),
+                                 Metapb.PartitionState.PState_Normal);
         }
         // 清理掉任务列表
         taskInfoMeta.removeSplitTaskPrefix(graphName);
@@ -1353,7 +1464,7 @@ public class PartitionService implements RaftStateListener {
      */
     protected void onPartitionChanged(Metapb.Partition old, Metapb.Partition partition) {
         log.info("onPartitionChanged partition: {}", partition);
-        if (old != null && old.getState() != partition.getState()){
+        if (old != null && old.getState() != partition.getState()) {
             // 状态改变，重置图的状态
             Metapb.PartitionState state = Metapb.PartitionState.PState_Normal;
             for (Metapb.Partition pt : partitionMeta.getPartitions(partition.getGraphName())) {
@@ -1363,7 +1474,7 @@ public class PartitionService implements RaftStateListener {
             }
             try {
                 updateGraphState(partition.getGraphName(), state);
-            }catch ( PDException e){
+            } catch (PDException e) {
                 log.error("onPartitionChanged", e);
             }
 
@@ -1380,6 +1491,7 @@ public class PartitionService implements RaftStateListener {
             e.onPartitionRemoved(partition);
         });
     }
+
     /**
      * PD的leader发生改变，需要重新加载数据
      */
@@ -1400,22 +1512,25 @@ public class PartitionService implements RaftStateListener {
      * @param partId
      * @param state
      */
-    public void onPartitionStateChanged(String graph, int partId, Metapb.PartitionState state) throws PDException {
+    public void onPartitionStateChanged(String graph, int partId,
+                                        Metapb.PartitionState state) throws PDException {
         updatePartitionState(graph, partId, state);
     }
 
     /**
      * Shard状态发生改变，需要传播到分区、图、集群
+     *
      * @param graph
      * @param partId
      * @param state
      */
-    public void onShardStateChanged(String graph, int partId, Metapb.PartitionState state){
+    public void onShardStateChanged(String graph, int partId, Metapb.PartitionState state) {
 
     }
 
     /**
      * 发送rocksdb compaction 消息
+     *
      * @param partId
      * @param tableName
      */
@@ -1423,15 +1538,16 @@ public class PartitionService implements RaftStateListener {
 
         try {
             for (Metapb.Graph graph : getGraphs()) {
-                Metapb.Partition partition = partitionMeta.getPartitionById(graph.getGraphName(), partId);
+                Metapb.Partition partition =
+                        partitionMeta.getPartitionById(graph.getGraphName(), partId);
 
                 DbCompaction dbCompaction = DbCompaction.newBuilder()
-                        .setTableName(tableName)
-                        .build();
+                                                        .setTableName(tableName)
+                                                        .build();
                 instructionListeners.forEach(cmd -> {
                     try {
                         cmd.dbCompaction(partition, dbCompaction);
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         log.error("firedbCompaction", e);
                     }
                 });
@@ -1442,7 +1558,7 @@ public class PartitionService implements RaftStateListener {
 
     }
 
-    public void updateShardGroupCache(Metapb.ShardGroup group){
-       partitionMeta.getPartitionCache().updateShardGroup(group);
+    public void updateShardGroupCache(Metapb.ShardGroup group) {
+        partitionMeta.getPartitionCache().updateShardGroup(group);
     }
 }

@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
 
 import java.io.Closeable;
@@ -39,8 +56,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KvClient<T extends WatchResponse> extends AbstractClient implements Closeable {
 
-    private AtomicLong clientId = new AtomicLong(0);
-    private Semaphore semaphore = new Semaphore(1);
+    private final AtomicLong clientId = new AtomicLong(0);
+    private final Semaphore semaphore = new Semaphore(1);
 
     public KvClient(PDConfig pdConfig) {
         super(pdConfig);
@@ -103,7 +120,8 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
     }
 
     public TTLResponse putTTL(String key, String value, long ttl) throws PDException {
-        TTLRequest request = TTLRequest.newBuilder().setKey(key).setValue(value).setTtl(ttl).build();
+        TTLRequest request =
+                TTLRequest.newBuilder().setKey(key).setValue(value).setTtl(ttl).build();
         TTLResponse response = blockingUnaryCall(KvServiceGrpc.getPutTTLMethod(), request);
         handleErrors(response.getHeader());
         return response;
@@ -114,30 +132,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         clientId.compareAndSet(0L, value.getClientId());
         if (value.getEventsCount() != 0) consumer.accept((T) value);
     }
-
-    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
-        try {
-            listen(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listen with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
-
-    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
-        try {
-            listenPrefix(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listenPrefix with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
 
     private StreamObserver<WatchResponse> getObserver(String key, Consumer<T> consumer,
                                                       BiConsumer<String, Consumer> listenWrapper) {
@@ -177,19 +171,40 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
 
             }
         };
-    }
+    }    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
+        try {
+            listen(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listen with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     public void listen(String key, Consumer<T> consumer) throws PDException {
         StreamObserver<WatchResponse> observer = getObserver(key, consumer, listenWrapper);
         acquire();
         WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(key).build();
         streamingCall(KvServiceGrpc.getWatchMethod(), k, observer, 1);
-    }
+    }    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
+        try {
+            listenPrefix(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listenPrefix with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     public void listenPrefix(String prefix, Consumer<T> consumer) throws PDException {
         StreamObserver<WatchResponse> observer = getObserver(prefix, consumer, prefixListenWrapper);
         acquire();
-        WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
+        WatchRequest k =
+                WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
         streamingCall(KvServiceGrpc.getWatchPrefixMethod(), k, observer, 1);
     }
 
@@ -206,7 +221,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         }
     }
 
-
     public List<String> getWatchList(T response) {
         List<String> values = new LinkedList<>();
         List<WatchEvent> eventsList = response.getEventsList();
@@ -219,7 +233,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         }
         return values;
     }
-
 
     public Map<String, String> getWatchMap(T response) {
         Map<String, String> values = new HashMap<>();
@@ -236,10 +249,10 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         return values;
     }
 
-
     public LockResponse lock(String key, long ttl) throws PDException {
         acquire();
-        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl).build();
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl)
+                                   .build();
         LockResponse response = blockingUnaryCall(KvServiceGrpc.getLockMethod(), k);
         handleErrors(response.getHeader());
         clientId.compareAndSet(0L, response.getClientId());
@@ -249,7 +262,8 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
 
     public LockResponse lockWithoutReentrant(String key, long ttl) throws PDException {
         acquire();
-        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl).build();
+        LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).setTtl(ttl)
+                                   .build();
         LockResponse response = blockingUnaryCall(KvServiceGrpc.getLockWithoutReentrantMethod(), k);
         handleErrors(response.getHeader());
         clientId.compareAndSet(0L, response.getClientId());
@@ -264,7 +278,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         return response;
     }
 
-
     public LockResponse unlock(String key) throws PDException {
         assert clientId.get() != 0;
         LockRequest k = LockRequest.newBuilder().setKey(key).setClientId(clientId.get()).build();
@@ -274,7 +287,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         assert clientId.get() == response.getClientId();
         return response;
     }
-
 
     public LockResponse keepAlive(String key) throws PDException {
         assert clientId.get() != 0;
@@ -290,4 +302,9 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
     public void close() {
         super.close();
     }
+
+
+
+
+
 }
