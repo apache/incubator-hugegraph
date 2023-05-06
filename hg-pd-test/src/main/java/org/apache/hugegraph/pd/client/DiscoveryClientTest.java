@@ -33,14 +33,14 @@ public class DiscoveryClientTest {
 
     @Before
     public void setUp() {
-        client = getClient("appName", "localhost:8654", new HashMap());
+        this.client = getClient("appName", "localhost:8654", new HashMap());
     }
 
     @Test
     public void testGetRegisterNode() {
         // Setup
         try {
-            Consumer result = client.getRegisterConsumer();
+            Consumer result = this.client.getRegisterConsumer();
             final NodeInfo expectedResult = NodeInfo.newBuilder()
                                                     .setAppName("appName")
                                                     .build();
@@ -50,11 +50,11 @@ public class DiscoveryClientTest {
                                .setVersion("0.13.0").build();
 
             // Run the test
-            client.getNodeInfos(query);
+            this.client.getNodeInfos(query);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            client.close();
+            this.client.close();
         }
 
     }

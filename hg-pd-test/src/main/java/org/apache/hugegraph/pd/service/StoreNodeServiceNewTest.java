@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.service;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.apache.hugegraph.pd.StoreNodeService;
@@ -31,16 +30,16 @@ public class StoreNodeServiceNewTest extends PdTestBase {
 
     @Before
     public void init() {
-        service = getStoreNodeService();
+        this.service = getStoreNodeService();
     }
 
     @Test
     public void testGetTaskInfoMeta() {
-        assertNotNull(service.getTaskInfoMeta());
+        assertNotNull(this.service.getTaskInfoMeta());
     }
 
     public void testGetStoreInfoMeta() {
-        assertNotNull(service.getStoreInfoMeta());
+        assertNotNull(this.service.getStoreInfoMeta());
     }
 
     @Test
@@ -51,11 +50,11 @@ public class StoreNodeServiceNewTest extends PdTestBase {
                                                        .setState(
                                                                Metapb.PartitionState.PState_Offline)
                                                        .build();
-            service.getStoreInfoMeta().updateShardGroup(group);
+            this.service.getStoreInfoMeta().updateShardGroup(group);
         }
 
-        service.deleteShardGroup(11);
-        service.deleteShardGroup(10);
+        this.service.deleteShardGroup(11);
+        this.service.deleteShardGroup(10);
 
         assertEquals(10, getPdConfig().getConfigService().getPDConfig().getPartitionCount());
         // restore

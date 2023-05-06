@@ -32,29 +32,29 @@ public class KVPairTest {
 
     @Before
     public void init() {
-        pair = new KVPair<>("key", 1);
+        this.pair = new KVPair<>("key", 1);
     }
 
     @Test
     public void testGetKey() {
-        assertEquals(pair.getKey(), "key");
+        assertEquals(this.pair.getKey(), "key");
     }
 
     @Test
     public void testSetKey() {
-        pair.setKey("key2");
-        assertEquals(pair.getKey(), "key2");
+        this.pair.setKey("key2");
+        assertEquals(this.pair.getKey(), "key2");
     }
 
     @Test
     public void testGetValue() {
-        assertTrue(Objects.equals(pair.getValue(), 1));
+        assertEquals(1, this.pair.getValue());
     }
 
     @Test
     public void testSetValue() {
-        pair.setValue(2);
-        assertTrue(Objects.equals(pair.getValue(), 2));
+        this.pair.setValue(2);
+        assertEquals(2, this.pair.getValue());
     }
 
     @Test
@@ -70,6 +70,6 @@ public class KVPairTest {
     @Test
     public void testEquals() {
         var pair2 = new KVPair<>("key", 1);
-        assertTrue(pair2.equals(pair));
+        assertTrue(pair2.equals(this.pair));
     }
 }

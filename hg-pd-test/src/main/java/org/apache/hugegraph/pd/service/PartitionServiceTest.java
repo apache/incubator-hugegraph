@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.pd.service;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.List;
 
 import org.apache.hugegraph.pd.PartitionService;
@@ -36,16 +34,16 @@ public class PartitionServiceTest extends PdTestBase {
 
     @Before
     public void init() {
-        service = getPartitionService();
+        this.service = getPartitionService();
     }
 
     @Test
     public void testCombinePartition() throws PDException {
         buildEnv();
         // 0, 1, 2-> 0, 3,4,5->1, 6,7,8 ->2, 9,10, 11-> 3
-        service.combinePartition(4);
+        this.service.combinePartition(4);
 
-        var partition = service.getPartitionById("graph0", 0);
+        var partition = this.service.getPartitionById("graph0", 0);
         assertEquals(0, partition.getStartKey());
         assertEquals(5462, partition.getEndKey());
 
@@ -65,9 +63,9 @@ public class PartitionServiceTest extends PdTestBase {
     public void testCombinePartition2() throws PDException {
         buildEnv();
         // 0, 1, 2-> 0, 3,4,5->1, 6,7,8 ->2, 9,10, 11-> 3
-        service.combinePartition(4);
+        this.service.combinePartition(4);
 
-        var partition = service.getPartitionById("graph0", 0);
+        var partition = this.service.getPartitionById("graph0", 0);
         assertEquals(0, partition.getStartKey());
         assertEquals(5462, partition.getEndKey());
 
@@ -123,7 +121,7 @@ public class PartitionServiceTest extends PdTestBase {
                                                             .build();
             storeInfoMeta.updateShardGroup(shardGroup);
 
-            var partitionShard = service.getPartitionByCode("graph0", lastId);
+            var partitionShard = this.service.getPartitionByCode("graph0", lastId);
             if (partitionShard != null) {
                 lastId = partitionShard.getPartition().getEndKey();
             }

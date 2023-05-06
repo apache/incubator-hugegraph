@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.service;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -35,7 +34,7 @@ public class StoreMonitorDataServiceTest extends PdTestBase {
 
     @Before
     public void init() {
-        service = getStoreMonitorDataService();
+        this.service = getStoreMonitorDataService();
         var store = getPdConfig().getStore();
         store.setMonitorDataEnabled(true);
         store.setMonitorDataInterval("1s");
@@ -46,26 +45,26 @@ public class StoreMonitorDataServiceTest extends PdTestBase {
     public void test() throws InterruptedException, PDException {
         long now = System.currentTimeMillis() / 1000;
         for (int i = 0; i < 5; i++) {
-            service.saveMonitorData(genStats());
+            this.service.saveMonitorData(genStats());
             now = System.currentTimeMillis() / 1000;
             Thread.sleep(1100);
         }
-        assertTrue(service.getLatestStoreMonitorDataTimeStamp(1) == 0 ||
-                   service.getLatestStoreMonitorDataTimeStamp(1) == now);
+        assertTrue(this.service.getLatestStoreMonitorDataTimeStamp(1) == 0 ||
+                   this.service.getLatestStoreMonitorDataTimeStamp(1) == now);
 
-        var data = service.getStoreMonitorData(1);
+        var data = this.service.getStoreMonitorData(1);
         assertEquals(5, data.size());
 
-        assertNotNull(service.debugMonitorInfo(List.of(Metapb.RecordPair.newBuilder()
-                                                                        .setKey("key1")
-                                                                        .setValue(1)
-                                                                        .build())));
+        assertNotNull(this.service.debugMonitorInfo(List.of(Metapb.RecordPair.newBuilder()
+                                                                             .setKey("key1")
+                                                                             .setValue(1)
+                                                                             .build())));
 
-        assertNotNull(service.getStoreMonitorDataText(1));
+        assertNotNull(this.service.getStoreMonitorDataText(1));
 
 
-        service.removeExpiredMonitorData(1, now + 1);
-        assertEquals(0, service.getStoreMonitorData(1).size());
+        this.service.removeExpiredMonitorData(1, now + 1);
+        assertEquals(0, this.service.getStoreMonitorData(1).size());
     }
 
 

@@ -115,15 +115,15 @@ public class PartitionCacheTest {
 
     @Before
     public void setup() {
-        cache = new PartitionCache();
+        this.cache = new PartitionCache();
     }
 
     @Test
     public void testGetPartitionById() {
         var partition = createPartition(0, "graph0", 0, 65535);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition);
-        var ret = cache.getPartitionById("graph0", 0);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition);
+        var ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
     }
@@ -131,9 +131,9 @@ public class PartitionCacheTest {
     @Test
     public void testGetPartitionByKey() throws UnsupportedEncodingException {
         var partition = createPartition(0, "graph0", 0, 65535);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition);
-        var ret = cache.getPartitionByKey("graph0", "0".getBytes(StandardCharsets.UTF_8));
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition);
+        var ret = this.cache.getPartitionByKey("graph0", "0".getBytes(StandardCharsets.UTF_8));
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
     }
@@ -141,136 +141,136 @@ public class PartitionCacheTest {
     @Test
     public void getPartitionByCode() {
         var partition = createPartition(0, "graph0", 0, 1024);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition);
-        var ret = cache.getPartitionByCode("graph0", 10);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition);
+        var ret = this.cache.getPartitionByCode("graph0", 10);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
-        assertNull(cache.getPartitionByCode("graph0", 2000));
+        assertNull(this.cache.getPartitionByCode("graph0", 2000));
     }
 
     @Test
     public void testGetPartitions() {
         var partition1 = createPartition(0, "graph0", 0, 1024);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition1);
-        assertEquals(cache.getPartitions("graph0").size(), 1);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition1);
+        assertEquals(this.cache.getPartitions("graph0").size(), 1);
         var partition2 = createPartition(1, "graph0", 1024, 2048);
-        cache.updateShardGroup(creteShardGroup(1));
-        cache.updatePartition(partition2);
-        assertEquals(cache.getPartitions("graph0").size(), 2);
-        System.out.print(cache.debugCacheByGraphName("graph0"));
+        this.cache.updateShardGroup(creteShardGroup(1));
+        this.cache.updatePartition(partition2);
+        assertEquals(this.cache.getPartitions("graph0").size(), 2);
+        System.out.print(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
     public void testAddPartition() {
         var partition = createPartition(0, "graph0", 0, 65535);
-        cache.addPartition("graph0", 0, partition);
-        var ret = cache.getPartitionById("graph0", 0);
+        this.cache.addPartition("graph0", 0, partition);
+        var ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
-        assertNotNull(cache.getPartitionByCode("graph0", 2000));
-        System.out.print(cache.debugCacheByGraphName("graph0"));
+        assertNotNull(this.cache.getPartitionByCode("graph0", 2000));
+        System.out.print(this.cache.debugCacheByGraphName("graph0"));
         var partition2 = createPartition(0, "graph0", 0, 1024);
-        cache.addPartition("graph0", 0, partition2);
-        ret = cache.getPartitionById("graph0", 0);
+        this.cache.addPartition("graph0", 0, partition2);
+        ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition2);
-        assertNull(cache.getPartitionByCode("graph0", 2000));
-        System.out.print(cache.debugCacheByGraphName("graph0"));
+        assertNull(this.cache.getPartitionByCode("graph0", 2000));
+        System.out.print(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
     public void testUpdatePartition() {
         var partition = createPartition(0, "graph0", 0, 65535);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.addPartition("graph0", 0, partition);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.addPartition("graph0", 0, partition);
         var partition2 = createPartition(0, "graph0", 0, 1024);
-        cache.updatePartition("graph0", 0, partition2);
-        var ret = cache.getPartitionById("graph0", 0);
+        this.cache.updatePartition("graph0", 0, partition2);
+        var ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition2);
-        assertNull(cache.getPartitionByCode("graph0", 2000));
+        assertNull(this.cache.getPartitionByCode("graph0", 2000));
     }
 
     @Test
     public void testUpdatePartition2() {
         var partition = createPartition(0, "graph0", 0, 1024);
-        cache.updateShardGroup(creteShardGroup(0));
-        assertTrue(cache.updatePartition(partition));
-        assertFalse(cache.updatePartition(partition));
-        var ret = cache.getPartitionById("graph0", 0);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        assertTrue(this.cache.updatePartition(partition));
+        assertFalse(this.cache.updatePartition(partition));
+        var ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
-        assertNull(cache.getPartitionByCode("graph0", 2000));
+        assertNull(this.cache.getPartitionByCode("graph0", 2000));
     }
 
     @Test
     public void testRemovePartition() {
         var partition = createPartition(0, "graph0", 0, 1024);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition);
-        assertNotNull(cache.getPartitionById("graph0", 0));
-        cache.removePartition("graph0", 0);
-        assertNull(cache.getPartitionById("graph0", 0));
-        System.out.print(cache.debugCacheByGraphName("graph0"));
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition);
+        assertNotNull(this.cache.getPartitionById("graph0", 0));
+        this.cache.removePartition("graph0", 0);
+        assertNull(this.cache.getPartitionById("graph0", 0));
+        System.out.print(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
     public void testRange() {
         var partition1 = createPartition(1, "graph0", 0, 3);
         var partition2 = createPartition(2, "graph0", 3, 6);
-        cache.updatePartition(partition1);
-        cache.updatePartition(partition2);
+        this.cache.updatePartition(partition1);
+        this.cache.updatePartition(partition2);
 
         var partition3 = createPartition(3, "graph0", 1, 2);
         var partition4 = createPartition(4, "graph0", 2, 3);
 
-        cache.updatePartition(partition3);
-        cache.updatePartition(partition4);
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        this.cache.updatePartition(partition3);
+        this.cache.updatePartition(partition4);
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
         var partition6 = createPartition(1, "graph0", 0, 1);
-        cache.updatePartition(partition6);
+        this.cache.updatePartition(partition6);
 
 
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         var partition5 = createPartition(1, "graph0", 0, 3);
-        cache.updatePartition(partition5);
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        this.cache.updatePartition(partition5);
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
     public void testRange2() {
         var partition1 = createPartition(1, "graph0", 0, 3);
         var partition2 = createPartition(2, "graph0", 3, 6);
-        cache.updatePartition(partition1);
-        cache.updatePartition(partition2);
+        this.cache.updatePartition(partition1);
+        this.cache.updatePartition(partition2);
 
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         // 中间有缺失
         var partition3 = createPartition(1, "graph0", 2, 3);
-        cache.updatePartition(partition3);
+        this.cache.updatePartition(partition3);
 
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         var partition5 = createPartition(1, "graph0", 0, 3);
-        cache.updatePartition(partition5);
-        System.out.println(cache.debugCacheByGraphName("graph0"));
+        this.cache.updatePartition(partition5);
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
     public void testRemovePartitions() {
         var partition1 = createPartition(0, "graph0", 0, 1024);
         var partition2 = createPartition(1, "graph0", 1024, 2048);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition1);
-        cache.updateShardGroup(creteShardGroup(1));
-        cache.updatePartition(partition2);
-        assertEquals(cache.getPartitions("graph0").size(), 2);
-        cache.removePartitions();
-        assertEquals(cache.getPartitions("graph0").size(), 0);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition1);
+        this.cache.updateShardGroup(creteShardGroup(1));
+        this.cache.updatePartition(partition2);
+        assertEquals(this.cache.getPartitions("graph0").size(), 2);
+        this.cache.removePartitions();
+        assertEquals(this.cache.getPartitions("graph0").size(), 0);
     }
 
     @Test
@@ -278,81 +278,81 @@ public class PartitionCacheTest {
         var partition1 = createPartition(0, "graph0", 0, 1024);
         var partition2 = createPartition(1, "graph0", 1024, 2048);
         var partition3 = createPartition(0, "graph1", 0, 2048);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updateShardGroup(creteShardGroup(1));
-        cache.updatePartition(partition1);
-        cache.updatePartition(partition2);
-        cache.updatePartition(partition3);
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updateShardGroup(creteShardGroup(1));
+        this.cache.updatePartition(partition1);
+        this.cache.updatePartition(partition2);
+        this.cache.updatePartition(partition3);
 
-        assertEquals(cache.getPartitions("graph0").size(), 2);
-        assertEquals(cache.getPartitions("graph1").size(), 1);
-        cache.removeAll("graph0");
-        assertEquals(cache.getPartitions("graph0").size(), 0);
-        assertEquals(cache.getPartitions("graph1").size(), 1);
+        assertEquals(this.cache.getPartitions("graph0").size(), 2);
+        assertEquals(this.cache.getPartitions("graph1").size(), 1);
+        this.cache.removeAll("graph0");
+        assertEquals(this.cache.getPartitions("graph0").size(), 0);
+        assertEquals(this.cache.getPartitions("graph1").size(), 1);
     }
 
     @Test
     public void testUpdateShardGroup() {
         var shardGroup = createShardGroup();
-        cache.updateShardGroup(shardGroup);
-        assertNotNull(cache.getShardGroup(shardGroup.getId()));
+        this.cache.updateShardGroup(shardGroup);
+        assertNotNull(this.cache.getShardGroup(shardGroup.getId()));
     }
 
     @Test
     public void testGetShardGroup() {
         var shardGroup = createShardGroup();
-        cache.updateShardGroup(shardGroup);
-        assertTrue(Objects.equals(cache.getShardGroup(shardGroup.getId()), shardGroup));
+        this.cache.updateShardGroup(shardGroup);
+        assertEquals(this.cache.getShardGroup(shardGroup.getId()), shardGroup);
     }
 
     @Test
     public void testAddStore() {
         var store = createStore(1);
-        cache.addStore(1L, store);
-        assertEquals(cache.getStoreById(1L), store);
+        this.cache.addStore(1L, store);
+        assertEquals(this.cache.getStoreById(1L), store);
     }
 
     @Test
     public void testGetStoreById() {
         var store = createStore(1);
-        cache.addStore(1L, store);
-        assertEquals(cache.getStoreById(1L), store);
+        this.cache.addStore(1L, store);
+        assertEquals(this.cache.getStoreById(1L), store);
     }
 
     @Test
     public void testRemoveStore() {
         var store = createStore(1);
-        cache.addStore(1L, store);
-        assertEquals(cache.getStoreById(1L), store);
+        this.cache.addStore(1L, store);
+        assertEquals(this.cache.getStoreById(1L), store);
 
-        cache.removeStore(1L);
-        assertNull(cache.getStoreById(1L));
+        this.cache.removeStore(1L);
+        assertNull(this.cache.getStoreById(1L));
     }
 
     @Test
     public void testHasGraph() {
         var partition = createPartition(0, "graph0", 0, 65535);
-        cache.updateShardGroup(creteShardGroup(0));
-        cache.updatePartition(partition);
-        assertTrue(cache.hasGraph("graph0"));
-        assertFalse(cache.hasGraph("graph1"));
+        this.cache.updateShardGroup(creteShardGroup(0));
+        this.cache.updatePartition(partition);
+        assertTrue(this.cache.hasGraph("graph0"));
+        assertFalse(this.cache.hasGraph("graph1"));
     }
 
     @Test
     public void testUpdateGraph() {
         var graph = createGraph("graph0", 10);
-        cache.updateGraph(graph);
-        assertEquals(cache.getGraph("graph0"), graph);
+        this.cache.updateGraph(graph);
+        assertEquals(this.cache.getGraph("graph0"), graph);
         graph = createGraph("graph0", 12);
-        cache.updateGraph(graph);
-        assertEquals(cache.getGraph("graph0"), graph);
+        this.cache.updateGraph(graph);
+        assertEquals(this.cache.getGraph("graph0"), graph);
     }
 
     @Test
     public void testGetGraph() {
         var graph = createGraph("graph0", 12);
-        cache.updateGraph(graph);
-        assertEquals(cache.getGraph("graph0"), graph);
+        this.cache.updateGraph(graph);
+        assertEquals(this.cache.getGraph("graph0"), graph);
     }
 
     @Test
@@ -360,10 +360,10 @@ public class PartitionCacheTest {
         var graph1 = createGraph("graph0", 12);
         var graph2 = createGraph("graph1", 12);
         var graph3 = createGraph("graph2", 12);
-        cache.updateGraph(graph1);
-        cache.updateGraph(graph2);
-        cache.updateGraph(graph3);
-        assertEquals(cache.getGraphs().size(), 3);
+        this.cache.updateGraph(graph1);
+        this.cache.updateGraph(graph2);
+        this.cache.updateGraph(graph3);
+        assertEquals(this.cache.getGraphs().size(), 3);
     }
 
     @Test
@@ -371,24 +371,24 @@ public class PartitionCacheTest {
         var graph1 = createGraph("graph0", 12);
         var graph2 = createGraph("graph1", 12);
         var graph3 = createGraph("graph2", 12);
-        cache.updateGraph(graph1);
-        cache.updateGraph(graph2);
-        cache.updateGraph(graph3);
-        assertEquals(cache.getGraphs().size(), 3);
-        cache.reset();
-        assertEquals(cache.getGraphs().size(), 0);
+        this.cache.updateGraph(graph1);
+        this.cache.updateGraph(graph2);
+        this.cache.updateGraph(graph3);
+        assertEquals(this.cache.getGraphs().size(), 3);
+        this.cache.reset();
+        assertEquals(this.cache.getGraphs().size(), 0);
     }
 
     @Test
     public void testUpdateShardGroupLeader() {
         var shardGroup = createShardGroup();
-        cache.updateShardGroup(shardGroup);
+        this.cache.updateShardGroup(shardGroup);
 
         var leader =
                 Metapb.Shard.newBuilder().setStoreId(2).setRole(Metapb.ShardRole.Leader).build();
-        cache.updateShardGroupLeader(shardGroup.getId(), leader);
+        this.cache.updateShardGroupLeader(shardGroup.getId(), leader);
 
-        assertEquals(cache.getLeaderShard(shardGroup.getId()), leader);
+        assertEquals(this.cache.getLeaderShard(shardGroup.getId()), leader);
     }
 
 }

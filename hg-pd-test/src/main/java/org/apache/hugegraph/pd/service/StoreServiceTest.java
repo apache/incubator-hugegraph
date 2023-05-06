@@ -44,8 +44,8 @@ public class StoreServiceTest {
 
     @Before
     public void setUp() {
-        config = getConfig();
-        service = new StoreNodeService(config);
+        this.config = getConfig();
+        this.service = new StoreNodeService(this.config);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class StoreServiceTest {
                                                                                pdConfig1));
 
         // Run the test
-        service.init(partitionService);
+        this.service.init(partitionService);
 
         // Verify the results
     }
@@ -91,7 +91,7 @@ public class StoreServiceTest {
     public void testIsOK() {
         // Setup
         // Run the test
-        final boolean result = service.isOK();
+        final boolean result = this.service.isOK();
 
         // Verify the results
         assertThat(result).isTrue();
@@ -162,7 +162,7 @@ public class StoreServiceTest {
                 Map.entry("value", "value"));
 
         // Run the test
-        final Metapb.Store result = service.register(store);
+        final Metapb.Store result = this.service.register(store);
     }
 
     @Test
@@ -211,7 +211,7 @@ public class StoreServiceTest {
                                                             .build();
 
             // Run the test
-            final Metapb.Store result = service.getStore(0L);
+            final Metapb.Store result = this.service.getStore(0L);
         } catch (Exception e) {
 
         }
@@ -284,7 +284,7 @@ public class StoreServiceTest {
         partition.setShardCount(0);
 
         // Run the test
-        final Metapb.Store result = service.updateStore(store);
+        final Metapb.Store result = this.service.updateStore(store);
     }
 
     @Test
@@ -317,7 +317,7 @@ public class StoreServiceTest {
         partition.setShardCount(0);
 
         // Run the test
-        service.storeTurnoff(store);
+        this.service.storeTurnoff(store);
 
         // Verify the results
     }
@@ -345,7 +345,7 @@ public class StoreServiceTest {
                             .setDataPath("dataPath").build());
 
         // Run the test
-        final List<Metapb.Store> result = service.getStores();
+        final List<Metapb.Store> result = this.service.getStores();
     }
 
     @Test
@@ -370,7 +370,7 @@ public class StoreServiceTest {
                             .setDataPath("dataPath").build());
 
         // Run the test
-        final List<Metapb.Store> result = service.getStores("graphName");
+        final List<Metapb.Store> result = this.service.getStores("graphName");
     }
 
 
@@ -396,7 +396,7 @@ public class StoreServiceTest {
                             .setDataPath("dataPath").build());
 
         // Run the test
-        final List<Metapb.Store> result = service.getStoreStatus(false);
+        final List<Metapb.Store> result = this.service.getStoreStatus(false);
 
     }
 
@@ -411,7 +411,7 @@ public class StoreServiceTest {
                                  .build());
 
         // Run the test
-        final List<Metapb.ShardGroup> result = service.getShardGroups();
+        final List<Metapb.ShardGroup> result = this.service.getShardGroups();
 
     }
 
@@ -433,7 +433,7 @@ public class StoreServiceTest {
                                                                   .build();
 
         // Run the test
-        final Metapb.ShardGroup result = service.getShardGroup(0);
+        final Metapb.ShardGroup result = this.service.getShardGroup(0);
 
         // Verify the results
     }
@@ -450,7 +450,7 @@ public class StoreServiceTest {
                                  .build());
 
         // Run the test
-        final List<Metapb.ShardGroup> result = service.getShardGroupsByStore(
+        final List<Metapb.ShardGroup> result = this.service.getShardGroupsByStore(
                 0L);
     }
 
@@ -476,7 +476,7 @@ public class StoreServiceTest {
                             .setDataPath("dataPath").build());
 
         // Run the test
-        final List<Metapb.Store> result = service.getActiveStores("graphName");
+        final List<Metapb.Store> result = this.service.getActiveStores("graphName");
 
         // Verify the results
     }
@@ -484,7 +484,7 @@ public class StoreServiceTest {
     @Test
     public void testGetActiveStores1ThrowsPDException() {
         try {
-            List<Metapb.Store> stores = service.getActiveStores();
+            List<Metapb.Store> stores = this.service.getActiveStores();
             assertThat(stores.size() == 0);
         } catch (Exception e) {
 
@@ -511,15 +511,15 @@ public class StoreServiceTest {
                                                              .build()).build())
                             .setDataVersion(0).setCores(0)
                             .setDataPath("dataPath").build());
-        service.register(storeList.get(0));
+        this.service.register(storeList.get(0));
 
         // Run the test
-        final List<Metapb.Store> result = service.getTombStores();
+        final List<Metapb.Store> result = this.service.getTombStores();
 
         // Verify the results
         assertThat(result.size() == 1);
-        service.removeStore(result.get(0).getId());
-        List<Metapb.Store> stores = service.getStores();
+        this.service.removeStore(result.get(0).getId());
+        List<Metapb.Store> stores = this.service.getStores();
         assertThat(stores.size() == 0);
     }
 
@@ -550,7 +550,7 @@ public class StoreServiceTest {
             partition.setShardCount(0);
 
             // Run the test
-            final List<Metapb.Shard> result = service.allocShards(graph, 0);
+            final List<Metapb.Shard> result = this.service.allocShards(graph, 0);
         } catch (Exception e) {
 
         }
@@ -583,10 +583,10 @@ public class StoreServiceTest {
             partition.setTotalCount(0);
             partition.setMaxShardsPerStore(0);
             partition.setShardCount(0);
-            when(config.getPartition()).thenReturn(partition);
+            when(this.config.getPartition()).thenReturn(partition);
 
             // Run the test
-            final List<Metapb.Shard> result = service.reallocShards(shardGroup);
+            final List<Metapb.Shard> result = this.service.reallocShards(shardGroup);
 
             // Verify the results
             assertThat(result).isEqualTo(expectedResult);
@@ -604,7 +604,7 @@ public class StoreServiceTest {
                                 .setRole(Metapb.ShardRole.None).build());
 
             // Run the test
-            service.updateShardGroup(0, shards, 0, 0);
+            this.service.updateShardGroup(0, shards, 0, 0);
         } catch (Exception e) {
 
         }
@@ -613,7 +613,7 @@ public class StoreServiceTest {
     @Test
     public void testUpdateShardGroupState() throws Exception {
         try {
-            service.updateShardGroupState(0, Metapb.PartitionState.PState_None);
+            this.service.updateShardGroupState(0, Metapb.PartitionState.PState_None);
         } catch (Exception e) {
 
         }
@@ -642,17 +642,17 @@ public class StoreServiceTest {
             final Metapb.ClusterStats expectedResult = Metapb.ClusterStats
                     .newBuilder().setState(Metapb.ClusterState.Cluster_OK)
                     .setMessage("message").setTimestamp(0L).build();
-            when(config.getMinStoreCount()).thenReturn(0);
+            when(this.config.getMinStoreCount()).thenReturn(0);
 
             // Configure PDConfig.getPartition(...).
             final PDConfig.Partition partition = new PDConfig().new Partition();
             partition.setTotalCount(0);
             partition.setMaxShardsPerStore(0);
             partition.setShardCount(0);
-            when(config.getPartition()).thenReturn(partition);
+            when(this.config.getPartition()).thenReturn(partition);
 
             // Run the test
-            final Metapb.ClusterStats result = service.heartBeat(storeStats);
+            final Metapb.ClusterStats result = this.service.heartBeat(storeStats);
 
             // Verify the results
             assertThat(result).isEqualTo(expectedResult);
@@ -670,7 +670,7 @@ public class StoreServiceTest {
                 .setMessage("message").setTimestamp(0L).build();
 
         // Run the test
-        final Metapb.ClusterStats result = service.updateClusterStatus(
+        final Metapb.ClusterStats result = this.service.updateClusterStatus(
                 Metapb.ClusterState.Cluster_OK);
     }
 
@@ -682,7 +682,7 @@ public class StoreServiceTest {
                 .setMessage("message").setTimestamp(0L).build();
 
         // Run the test
-        final Metapb.ClusterStats result = service.updateClusterStatus(
+        final Metapb.ClusterStats result = this.service.updateClusterStatus(
                 Metapb.PartitionState.PState_None);
     }
 
@@ -690,7 +690,7 @@ public class StoreServiceTest {
     public void testCheckStoreStatus() {
         // Setup
         // Run the test
-        service.checkStoreStatus();
+        this.service.checkStoreStatus();
 
         // Verify the results
     }
@@ -702,7 +702,7 @@ public class StoreServiceTest {
                 StoreStatusListener.class);
 
         // Run the test
-        service.addStatusListener(mockListener);
+        this.service.addStatusListener(mockListener);
 
         // Verify the results
     }
@@ -801,7 +801,7 @@ public class StoreServiceTest {
                                                       .setDataPath("dataPath")
                                                       .build();
         // Run the test
-        final boolean result = service.checkStoreCanOffline(currentStore);
+        final boolean result = this.service.checkStoreCanOffline(currentStore);
 
         // Verify the results
         assertThat(result).isTrue();
@@ -812,7 +812,7 @@ public class StoreServiceTest {
         // Setup
         // Run the test
         try {
-            service.shardGroupsDbCompaction(0, "tableName");
+            this.service.shardGroupsDbCompaction(0, "tableName");
         } catch (Exception e) {
 
         }
@@ -825,7 +825,7 @@ public class StoreServiceTest {
         // Setup
         // Run the test
         try {
-            service.getQuota();
+            this.service.getQuota();
         } catch (Exception e) {
 
         }

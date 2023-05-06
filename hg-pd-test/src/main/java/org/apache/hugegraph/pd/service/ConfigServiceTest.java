@@ -35,7 +35,7 @@ public class ConfigServiceTest {
 
     @Before
     public void setUp() {
-        service = new ConfigService(config);
+        this.service = new ConfigService(this.config);
     }
 
     @Test
@@ -48,13 +48,13 @@ public class ConfigServiceTest {
                                                           .setShardCount(55)
                                                           .setMaxShardsPerStore(0)
                                                           .setTimestamp(0L).build();
-            service.setPDConfig(config);
+            this.service.setPDConfig(config);
             // Run the test
-            Metapb.PDConfig result = service.getPDConfig(0L);
+            Metapb.PDConfig result = this.service.getPDConfig(0L);
 
             // Verify the results
             Assert.assertTrue(result.getShardCount() == 55);
-            result = service.getPDConfig();
+            result = this.service.getPDConfig();
             Assert.assertTrue(result.getShardCount() == 55);
         } catch (Exception e) {
 
@@ -69,12 +69,12 @@ public class ConfigServiceTest {
                                                    .setName("gs1")
                                                    .setTimestamp(0L).build();
         final List<Metapb.GraphSpace> expectedResult = List.of(space);
-        service.setGraphSpace(space);
+        this.service.setGraphSpace(space);
         // Run the test
-        final List<Metapb.GraphSpace> result = service.getGraphSpace(
+        final List<Metapb.GraphSpace> result = this.service.getGraphSpace(
                 "gs1");
 
-        Assert.assertTrue(result.size() == 1);
+        Assert.assertEquals(1, result.size());
     }
 
     @Test
@@ -98,7 +98,7 @@ public class ConfigServiceTest {
             expectedResult.setHost("host");
             expectedResult.setVerifyPath("verifyPath");
             expectedResult.setLicensePath("licensePath");
-            service.updatePDConfig(mConfig);
+            this.service.updatePDConfig(mConfig);
         } catch (Exception e) {
 
         }

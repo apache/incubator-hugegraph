@@ -36,16 +36,16 @@ public class LogServiceTest {
 
     @Before
     public void setUp() {
-        logServiceUnderTest = new LogService(mockPdConfig);
+        this.logServiceUnderTest = new LogService(this.mockPdConfig);
     }
 
     @Test
     public void testGetLog() throws Exception {
-        logServiceUnderTest.insertLog("action", "message",
-                                      Any.newBuilder().build());
+        this.logServiceUnderTest.insertLog("action", "message",
+                                           Any.newBuilder().build());
 
         // Run the test
-        final List<Metapb.LogRecord> result = logServiceUnderTest.getLog(
+        final List<Metapb.LogRecord> result = this.logServiceUnderTest.getLog(
                 "action", 0L, System.currentTimeMillis());
 
         // Verify the results

@@ -34,7 +34,7 @@ public class TaskScheduleServiceTest extends PdTestBase {
 
     @Before
     public void init() {
-        service = getTaskService();
+        this.service = getTaskService();
     }
 
     @Test
@@ -66,7 +66,7 @@ public class TaskScheduleServiceTest extends PdTestBase {
         getPdConfig().getPartition().setShardCount(3);
 
         getPartitionService().updatePartition(list);
-        var rst = service.balancePartitionLeader(true);
+        var rst = this.service.balancePartitionLeader(true);
         assertTrue(rst.size() > 0);
         // recover
         getPdConfig().getPartition().setShardCount(1);

@@ -46,7 +46,7 @@ public class KvClientTest extends BaseClientTest {
 
     @Before
     public void setUp() {
-        client = new KvClient<>(PDConfig.of("localhost:8686"));
+        this.client = new KvClient<>(PDConfig.of("localhost:8686"));
     }
 
     @Test
@@ -54,7 +54,7 @@ public class KvClientTest extends BaseClientTest {
         // Setup
         // Run the test
         try {
-            final AbstractStub result = client.createStub();
+            final AbstractStub result = this.client.createStub();
         } catch (Exception e) {
 
         }
@@ -68,7 +68,7 @@ public class KvClientTest extends BaseClientTest {
         // Setup
         // Run the test
         try {
-            final AbstractBlockingStub result = client.createBlockingStub();
+            final AbstractBlockingStub result = this.client.createBlockingStub();
         } catch (Exception e) {
 
         }
@@ -78,42 +78,42 @@ public class KvClientTest extends BaseClientTest {
     public void testPutAndGet() throws Exception {
         // Run the test
         try {
-            client.put(key, value);
+            this.client.put(this.key, this.value);
             // Run the test
-            KResponse result = client.get(key);
+            KResponse result = this.client.get(this.key);
 
             // Verify the results
-            assertThat(result.getValue()).isEqualTo(value);
-            client.delete(key);
-            result = client.get(key);
+            assertThat(result.getValue()).isEqualTo(this.value);
+            this.client.delete(this.key);
+            result = this.client.get(this.key);
             assertThat(StringUtils.isEmpty(result.getValue()));
-            client.deletePrefix(key);
-            client.put(key + "1", value);
-            client.put(key + "2", value);
-            ScanPrefixResponse response = client.scanPrefix(key);
+            this.client.deletePrefix(this.key);
+            this.client.put(this.key + "1", this.value);
+            this.client.put(this.key + "2", this.value);
+            ScanPrefixResponse response = this.client.scanPrefix(this.key);
             assertThat(response.getKvsMap().size() == 2);
-            client.putTTL(key + "3", value, 1000);
-            client.keepTTLAlive(key + "3");
+            this.client.putTTL(this.key + "3", this.value, 1000);
+            this.client.keepTTLAlive(this.key + "3");
             final Consumer<WatchResponse> mockConsumer = mock(Consumer.class);
 
             // Run the test
-            client.listen(key + "3", mockConsumer);
-            client.listenPrefix(key + "4", mockConsumer);
+            this.client.listen(this.key + "3", mockConsumer);
+            this.client.listenPrefix(this.key + "4", mockConsumer);
             WatchResponse r = WatchResponse.newBuilder().addEvents(
                                                    WatchEvent.newBuilder().setCurrent(
-                                                           WatchKv.newBuilder().setKey(key).setValue("value")
+                                                           WatchKv.newBuilder().setKey(this.key).setValue("value")
                                                                   .build()).setType(WatchType.Put).build())
                                            .setClientId(0L)
                                            .setState(WatchState.Starting)
                                            .build();
-            client.getWatchList(r);
-            client.getWatchMap(r);
-            client.lock(key, 3000L);
-            client.isLocked(key);
-            client.unlock(key);
-            client.lock(key, 3000L);
-            client.keepAlive(key);
-            client.close();
+            this.client.getWatchList(r);
+            this.client.getWatchMap(r);
+            this.client.lock(this.key, 3000L);
+            this.client.isLocked(this.key);
+            this.client.unlock(this.key);
+            this.client.lock(this.key, 3000L);
+            this.client.keepAlive(this.key);
+            this.client.close();
         } catch (Exception e) {
 
         }
