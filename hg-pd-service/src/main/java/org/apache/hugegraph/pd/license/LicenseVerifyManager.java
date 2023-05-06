@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -44,19 +42,6 @@ public class LicenseVerifyManager extends CommonLicenseManager {
         super(param);
     }
 
-    @Override
-    protected synchronized void validate(LicenseContent content) throws LicenseContentException {
-        // Call super validate firstly to verify the common license parameters
-        try {
-            super.validate(content);
-        } catch (LicenseContentException e) {
-            // log.error("Failed to verify license", e);
-            throw e;
-        }
-        // Verify the customized license parameters.
-        getExtraParams(content);
-    }
-
     public static ExtraParam getExtraParams(LicenseContent content) {
         List<ExtraParam> params;
         try {
@@ -73,5 +58,18 @@ public class LicenseVerifyManager extends CommonLicenseManager {
                                          "Failed to read extra params", e);
         }
         return null;
+    }
+
+    @Override
+    protected synchronized void validate(LicenseContent content) throws LicenseContentException {
+        // Call super validate firstly to verify the common license parameters
+        try {
+            super.validate(content);
+        } catch (LicenseContentException e) {
+            // log.error("Failed to verify license", e);
+            throw e;
+        }
+        // Verify the customized license parameters.
+        getExtraParams(content);
     }
 }

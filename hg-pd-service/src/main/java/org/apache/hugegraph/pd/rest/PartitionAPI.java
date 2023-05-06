@@ -1,34 +1,59 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.rest;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.model.TimeRangeRequest;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.util.DateUtil;
-
-import com.google.protobuf.util.JsonFormat;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.google.protobuf.util.JsonFormat;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Slf4j
 @RequestMapping("/v1")
 public class PartitionAPI extends API {
+    public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     @Autowired
     PDRestService pdRestService;
-
-    public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     @GetMapping(value = "/highLevelPartitions", produces = MediaType.APPLICATION_JSON_VALUE)
     public RestApiResponse getHighLevelPartitions() {
@@ -57,17 +82,20 @@ public class PartitionAPI extends API {
                 }
                 // 计算分区的keyCount（不区分图）
                 partition2KeyCount.put(graphStats.getPartitionId(),
-                        partition2KeyCount.getOrDefault(graphStats.getPartitionId(),
-                                graphStats.getApproximateKeys()));
+                                       partition2KeyCount.getOrDefault(graphStats.getPartitionId(),
+                                                                       graphStats.getApproximateKeys()));
                 // 计算分区的dataSize, 通过累加图的大小实现
                 partition2DataSize.put(graphStats.getPartitionId(),
-                        partition2DataSize.getOrDefault(graphStats.getPartitionId(), 0L)
-                                + graphStats.getApproximateSize());
+                                       partition2DataSize.getOrDefault(graphStats.getPartitionId(),
+                                                                       0L)
+                                       + graphStats.getApproximateSize());
                 // 构造分区下的图信息
                 if (partitions2GraphsMap.get(graphStats.getPartitionId()) == null) {
-                    partitions2GraphsMap.put(graphStats.getPartitionId(), new HashMap<String, GraphStats>());
+                    partitions2GraphsMap.put(graphStats.getPartitionId(),
+                                             new HashMap<String, GraphStats>());
                 }
-                Map<String, GraphStats> partitionGraphsMap = partitions2GraphsMap.get(graphStats.getPartitionId());
+                Map<String, GraphStats> partitionGraphsMap =
+                        partitions2GraphsMap.get(graphStats.getPartitionId());
                 partitionGraphsMap.put(graphStats.getGraphName(), new GraphStats(graphStats));
             }
         }
@@ -76,7 +104,8 @@ public class PartitionAPI extends API {
         for (Metapb.Partition partition : partitionList) {
             // 补充分区内图信息的startKey, endKey
             if (partitions2GraphsMap.get(partition.getId()) != null) {
-                GraphStats graphStats = partitions2GraphsMap.get(partition.getId()).get(partition.getGraphName());
+                GraphStats graphStats =
+                        partitions2GraphsMap.get(partition.getId()).get(partition.getGraphName());
                 if (graphStats != null) {
                     graphStats.startKey = partition.getStartKey();
                     graphStats.endKey = partition.getEndKey();
@@ -84,19 +113,23 @@ public class PartitionAPI extends API {
             }
             // 构造分区整体信息（不区分图）
             if ((resultPartitionsMap.get(partition.getId()) == null)
-                   && (!partition.getGraphName().endsWith("/s"))
-               ) {
+                && (!partition.getGraphName().endsWith("/s"))
+            ) {
                 Metapb.PartitionStats partitionStats;
                 try {
-                    partitionStats = pdRestService.getPartitionStats(partition.getGraphName(), partition.getId());
+                    partitionStats = pdRestService.getPartitionStats(partition.getGraphName(),
+                                                                     partition.getId());
                 } catch (PDException e) {
                     log.error("getPartitionStats error", e);
                     partitionStats = null;
                 }
                 // 初始化分区信息
-                HighLevelPartition resultPartition = new HighLevelPartition(partition, partitionStats);
-                resultPartition.keyCount = partition2KeyCount.getOrDefault(resultPartition.partitionId, 0L);
-                resultPartition.dataSize = partition2DataSize.getOrDefault(resultPartition.partitionId, 0L);
+                HighLevelPartition resultPartition =
+                        new HighLevelPartition(partition, partitionStats);
+                resultPartition.keyCount =
+                        partition2KeyCount.getOrDefault(resultPartition.partitionId, 0L);
+                resultPartition.dataSize =
+                        partition2DataSize.getOrDefault(resultPartition.partitionId, 0L);
                 for (ShardStats shard : resultPartition.shards) {
                     // 对副本的地址，分区信息赋值
                     shard.address = storesMap.get(shard.storeId).getAddress();
@@ -104,7 +137,8 @@ public class PartitionAPI extends API {
                 }
                 if ((partitionStats != null) && (partitionStats.getLeader() != null)) {
                     long storeId = partitionStats.getLeader().getStoreId(); // 获取leader的storeId
-                    resultPartition.leaderAddress = storesMap.get(storeId).getAddress(); // 获取leader的address
+                    resultPartition.leaderAddress =
+                            storesMap.get(storeId).getAddress(); // 获取leader的address
                 }
                 resultPartitionsMap.put(partition.getId(), resultPartition);
             }
@@ -123,7 +157,8 @@ public class PartitionAPI extends API {
                 String graphName = entry1.getKey();
                 GraphStats tmpGraph = graphsMap.get(graphName);
                 final int postfixLength = 2;
-                tmpGraph.graphName = tmpGraph.graphName.substring(0, tmpGraph.graphName.length() - postfixLength);
+                tmpGraph.graphName = tmpGraph.graphName.substring(0, tmpGraph.graphName.length() -
+                                                                     postfixLength);
                 graphsList.add(tmpGraph);
             }
             graphsList.sort((o1, o2) -> o1.graphName.compareTo(o2.graphName));
@@ -182,7 +217,8 @@ public class PartitionAPI extends API {
                 Partition partition = new Partition(pt);
                 String graphName = partition.getGraphName();
                 partition.getShards().sort(Comparator.comparing(Shard::getStoreId));
-                Metapb.PartitionStats partitionStats = pdRestService.getPartitionStats(graphName, pt.getId());
+                Metapb.PartitionStats partitionStats =
+                        pdRestService.getPartitionStats(graphName, pt.getId());
                 Map<Long, Metapb.ShardStats> shardStats = new HashMap<>();
                 if (partitionStats != null) {
                     String dateTime = DateFormatUtils.format(
@@ -205,7 +241,8 @@ public class PartitionAPI extends API {
                         }
 
 
-                        HashMap<Integer, Metapb.RaftStats> storeRaftStats = raftMap.get(shard.getStoreId());
+                        HashMap<Integer, Metapb.RaftStats> storeRaftStats =
+                                raftMap.get(shard.getStoreId());
                         if (storeRaftStats != null) {
                             Metapb.RaftStats raftStats = storeRaftStats.get(partition.getId());
                             if (raftStats != null) {
@@ -219,7 +256,8 @@ public class PartitionAPI extends API {
 
                 partitions.add(partition);
             }
-            partitions.sort(Comparator.comparing(Partition::getGraphName).thenComparing(Partition::getId));
+            partitions.sort(
+                    Comparator.comparing(Partition::getGraphName).thenComparing(Partition::getId));
             HashMap<String, Object> dataMap = new HashMap<>();
             dataMap.put("partitions", partitions);
             return new RestApiResponse(dataMap, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
@@ -238,7 +276,8 @@ public class PartitionAPI extends API {
             for (Metapb.Graph graph : pdRestService.getGraphs()) {
                 List<Metapb.Partition> partitionList = new ArrayList<>();
                 List<Metapb.PartitionStats> partitionStatsList = new ArrayList<>();
-                for (Metapb.Partition partition : pdRestService.getPartitions(graph.getGraphName())) {
+                for (Metapb.Partition partition : pdRestService.getPartitions(
+                        graph.getGraphName())) {
                     Metapb.PartitionStats partitionStats = pdRestService
                             .getPartitionStats(graph.getGraphName(), partition.getId());
                     partitionList.add(partition);
@@ -247,10 +286,9 @@ public class PartitionAPI extends API {
                 graph2Partitions.put(graph.getGraphName(), partitionList);
                 graph2PartitionStats.put(graph.getGraphName(), partitionStatsList);
             }
-            StringBuilder builder = new StringBuilder();
-            builder.append("{\"partitions\":").append(toJSON(graph2Partitions));
-            builder.append(",\"partitionStats\":").append(toJSON(graph2PartitionStats)).append("}");
-            return builder.toString();
+            String builder = "{\"partitions\":" + toJSON(graph2Partitions) +
+                             ",\"partitionStats\":" + toJSON(graph2PartitionStats) + "}";
+            return builder;
         } catch (PDException e) {
             log.error("PD exception:" + e);
             return toJSON(e);
@@ -259,22 +297,24 @@ public class PartitionAPI extends API {
 
     private Map<Long, Metapb.ShardStats> getShardStats(Metapb.PartitionStats partitionStats) {
         Map<Long, Metapb.ShardStats> stats = new HashMap<>();
-        if (partitionStats.getShardStatsList() != null)
+        if (partitionStats.getShardStatsList() != null) {
             partitionStats.getShardStatsList().forEach(shardStats -> {
                 stats.put(shardStats.getStoreId(), shardStats);
             });
+        }
         return stats;
     }
 
     @PostMapping(value = "/partitions/log", consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public String getPartitionLog(@RequestBody TimeRangeRequest request) {
         try {
             Date dateStart = DateUtil.getDate(request.getStartTime());
             Date dateEnd = DateUtil.getDate(request.getEndTime());
-            List<Metapb.LogRecord> changedRecords = pdRestService.getPartitionLog(dateStart.getTime(),
-                    dateEnd.getTime());
+            List<Metapb.LogRecord> changedRecords =
+                    pdRestService.getPartitionLog(dateStart.getTime(),
+                                                  dateEnd.getTime());
             if (changedRecords != null) {
                 JsonFormat.TypeRegistry registry = JsonFormat.TypeRegistry
                         .newBuilder().add(Pdpb.SplitDataRequest.getDescriptor()).build();
@@ -367,7 +407,7 @@ public class PartitionAPI extends API {
                 shards = new ArrayList<>();
                 for (Metapb.ShardStats shardStats : partitionStats.getShardStatsList()) {
                     if ((shardStats.getState() != Metapb.ShardState.UNRECOGNIZED)
-                            && (shardStats.getState().getNumber() > tmpShardState.getNumber())) {
+                        && (shardStats.getState().getNumber() > tmpShardState.getNumber())) {
                         tmpShardState = shardStats.getState();
                         progress = shardStats.getProgress();
                     }
@@ -379,7 +419,7 @@ public class PartitionAPI extends API {
                     for (Metapb.Shard shard : pdRestService.getShardList(partition.getId())) {
                         shards.add(new ShardStats(shard));
                     }
-                } catch (PDException e){
+                } catch (PDException e) {
                     log.error("get shard list failed, {}", e.getMessage());
                 }
             }

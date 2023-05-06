@@ -1,27 +1,49 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.pulse;
 
-import com.baidu.hugegraph.pd.common.HgAssert;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.pulse.*;
+import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 
-import org.apache.hugegraph.pd.notice.NoticeBroadcaster;
-import org.apache.hugegraph.pd.util.IdUtil;
-
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Parser;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import javax.annotation.concurrent.ThreadSafe;
+
+import org.apache.hugegraph.pd.notice.NoticeBroadcaster;
+import org.apache.hugegraph.pd.util.IdUtil;
+
+import com.baidu.hugegraph.pd.common.HgAssert;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.pd.grpc.pulse.*;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Parser;
+
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/8
@@ -30,25 +52,31 @@ import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
 @Slf4j
 @ThreadSafe
 public class PDPulseSubject {
-    private final static long NOTICE_EXPIRATION_TIME=30*60*1000;
-    private final static int RETRYING_PERIOD_SECONDS=60;
-    private final static Map<String, AbstractObserverSubject> subjectHolder = new ConcurrentHashMap<>();
-    private final static ConcurrentLinkedQueue<NoticeBroadcaster> broadcasterQueue = new ConcurrentLinkedQueue<>();
-    private final static ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+    private final static long NOTICE_EXPIRATION_TIME = 30 * 60 * 1000;
+    private final static int RETRYING_PERIOD_SECONDS = 60;
+    private final static Map<String, AbstractObserverSubject> subjectHolder =
+            new ConcurrentHashMap<>();
+    private final static ConcurrentLinkedQueue<NoticeBroadcaster> broadcasterQueue =
+            new ConcurrentLinkedQueue<>();
+    private final static ScheduledExecutorService scheduledExecutor =
+            Executors.newScheduledThreadPool(1);
 
-    private static Supplier<List<Metapb.QueueItem>> queueRetrieveFunction = () -> Collections.emptyList();
+    private static Supplier<List<Metapb.QueueItem>> queueRetrieveFunction =
+            () -> Collections.emptyList();
     private static Function<Metapb.QueueItem, Boolean> queueDurableFunction = (e) -> true;
     private static Function<String, Boolean> queueRemoveFunction = (e) -> true;
 
     static {
-        subjectHolder.put(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT.name(), new PartitionHeartbeatSubject());
+        subjectHolder.put(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT.name(),
+                          new PartitionHeartbeatSubject());
         // add some other type here...
         // ...
     }
 
     //Schedule tasks
     static {
-        scheduledExecutor.scheduleAtFixedRate(() -> doSchedule(), 0, RETRYING_PERIOD_SECONDS, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleAtFixedRate(() -> doSchedule(), 0, RETRYING_PERIOD_SECONDS,
+                                              TimeUnit.SECONDS);
     }
 
     private static void doSchedule() {
@@ -57,10 +85,11 @@ public class PDPulseSubject {
         //retry
         broadcasterQueue.forEach(e -> {
 
-            e.notifying();});
+            e.notifying();
+        });
     }
 
-    private static void appendQueue(){
+    private static void appendQueue() {
         broadcasterQueue.addAll(
                 getQueueItems()
                         .parallelStream()
@@ -68,18 +97,18 @@ public class PDPulseSubject {
                                 .stream()
                                 .anyMatch(b -> e.getItemId().equals(b.getDurableId()))
                         ).map(e -> createBroadcaster(e))
-                        .peek(e->log.info("Appending notice: {}",e))
+                        .peek(e -> log.info("Appending notice: {}", e))
                         .filter(e -> e != null)
                         .collect(Collectors.toList())
         );
     }
 
-    private static void expireQueue(){
-        broadcasterQueue.removeIf(e->{
-            if(System.currentTimeMillis()-e.getTimestamp()>=NOTICE_EXPIRATION_TIME){
-                log.info("Notice was expired, trying to remove, notice: {}",e);
+    private static void expireQueue() {
+        broadcasterQueue.removeIf(e -> {
+            if (System.currentTimeMillis() - e.getTimestamp() >= NOTICE_EXPIRATION_TIME) {
+                log.info("Notice was expired, trying to remove, notice: {}", e);
                 return e.doRemoveDurable();
-            }else{
+            } else {
                 return false;
             }
         });
@@ -95,12 +124,14 @@ public class PDPulseSubject {
         return Collections.emptyList();
     }
 
-    public static void setQueueRetrieveFunction(Supplier<List<Metapb.QueueItem>> queueRetrieveFunction) {
+    public static void setQueueRetrieveFunction(
+            Supplier<List<Metapb.QueueItem>> queueRetrieveFunction) {
         HgAssert.isArgumentNotNull(queueRetrieveFunction, "queueRetrieveFunction");
         PDPulseSubject.queueRetrieveFunction = queueRetrieveFunction;
     }
 
-    public static void setQueueDurableFunction(Function<Metapb.QueueItem, Boolean> queueDurableFunction) {
+    public static void setQueueDurableFunction(
+            Function<Metapb.QueueItem, Boolean> queueDurableFunction) {
         HgAssert.isArgumentNotNull(queueDurableFunction, "queueDurableFunction");
         PDPulseSubject.queueDurableFunction = queueDurableFunction;
     }
@@ -116,7 +147,8 @@ public class PDPulseSubject {
      * @param responseObserver
      * @return
      */
-    public static StreamObserver<PulseRequest> addObserver(StreamObserver<PulseResponse> responseObserver) {
+    public static StreamObserver<PulseRequest> addObserver(
+            StreamObserver<PulseResponse> responseObserver) {
         isArgumentNotNull(responseObserver, "responseObserver");
         return new PDPulseStreamObserver(responseObserver);
     }
@@ -144,9 +176,9 @@ public class PDPulseSubject {
     }
 
     private static NoticeBroadcaster createBroadcaster(Metapb.QueueItem item) {
-        PartitionHeartbeatResponse notice=toNotice(item);
-        if(notice==null)return null;
-        NoticeBroadcaster res=createBroadcaster(notice);
+        PartitionHeartbeatResponse notice = toNotice(item);
+        if (notice == null) return null;
+        NoticeBroadcaster res = createBroadcaster(notice);
         res.setDurableId(item.getItemId());
         res.setTimestamp(item.getTimestamp());
         return res;
@@ -154,13 +186,14 @@ public class PDPulseSubject {
 
     private static NoticeBroadcaster createBroadcaster(PartitionHeartbeatResponse notice) {
         return NoticeBroadcaster.of(getNoticeSupplier(notice))
-                .setDurableSupplier(getDurableSupplier(notice))
-                .setRemoveFunction(getRemoveFunction());
+                                .setDurableSupplier(getDurableSupplier(notice))
+                                .setRemoveFunction(getRemoveFunction());
     }
 
     public static Supplier<Long> getNoticeSupplier(PartitionHeartbeatResponse notice) {
         // TODO: PartitionHeartbeatSubject.class -> T
-        return () -> getSubject(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT, PartitionHeartbeatSubject.class)
+        return () -> getSubject(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT,
+                                PartitionHeartbeatSubject.class)
                 .notifyClient(notice);
     }
 
@@ -173,7 +206,9 @@ public class PDPulseSubject {
                 if (queueDurableFunction.apply(queueItem)) {
                     res = queueItem.getItemId();
                 } else {
-                    log.error("Failed to persist queue-item that contained PartitionHeartbeatResponse: {}"
+                    log.error(
+                            "Failed to persist queue-item that contained " +
+                            "PartitionHeartbeatResponse: {}"
                             , notice);
                 }
             } catch (Throwable t) {
@@ -200,11 +235,11 @@ public class PDPulseSubject {
 
     private static Metapb.QueueItem toQueueItem(PartitionHeartbeatResponse notice) {
         return Metapb.QueueItem.newBuilder()
-                .setItemId(IdUtil.createMillisStr())
-                .setItemClass(notice.getClass().getTypeName())
-                .setItemContent(notice.toByteString())
-                .setTimestamp(System.currentTimeMillis())
-                .build();
+                               .setItemId(IdUtil.createMillisStr())
+                               .setItemClass(notice.getClass().getTypeName())
+                               .setItemContent(notice.toByteString())
+                               .setTimestamp(System.currentTimeMillis())
+                               .build();
     }
 
     private static PartitionHeartbeatResponse toNotice(Metapb.QueueItem item) {
@@ -230,7 +265,8 @@ public class PDPulseSubject {
      * @param listener
      */
     public static void listenPartitionHeartbeat(PulseListener<PartitionHeartbeatRequest> listener) {
-        subjectHolder.get(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT.name()).addListener(createListenerId(), listener);
+        subjectHolder.get(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT.name())
+                     .addListener(createListenerId(), listener);
     }
 
     private static Long createListenerId() {
@@ -256,7 +292,8 @@ public class PDPulseSubject {
         private void cancelObserver() {
 
             if (this.subject == null) {
-                this.responseObserver.onError(new Exception("Invoke cancel-observer before create-observer."));
+                this.responseObserver.onError(
+                        new Exception("Invoke cancel-observer before create-observer."));
                 return;
             }
 
@@ -277,10 +314,10 @@ public class PDPulseSubject {
             this.subject.addObserver(this.observerId, this.responseObserver);
         }
 
-        private void ackNotice(long noticeId,long observerId) {
+        private void ackNotice(long noticeId, long observerId) {
             // log.info("ack noticeId, noticeId: {}, observerId: {}, ts:{}",
             // noticeId,observerId, System.currentTimeMillis());
-            broadcasterQueue.removeIf(e->e.checkAck(noticeId));
+            broadcasterQueue.removeIf(e -> e.checkAck(noticeId));
         }
 
         private PulseType getPulseType(PulseCreateRequest request) {
@@ -298,7 +335,8 @@ public class PDPulseSubject {
             AbstractObserverSubject subject = subjectHolder.get(pulseType.name());
 
             if (subject == null) {
-                responseObserver.onError(new Exception("Unsupported pulse-type: " + pulseType.name()));
+                responseObserver.onError(
+                        new Exception("Unsupported pulse-type: " + pulseType.name()));
                 return null;
             }
 
@@ -328,8 +366,7 @@ public class PDPulseSubject {
 
             if (pulseRequest.hasAckRequest()) {
                 this.ackNotice(pulseRequest.getAckRequest().getNoticeId()
-                        ,pulseRequest.getAckRequest().getObserverId());
-                return;
+                        , pulseRequest.getAckRequest().getObserverId());
             }
         }
 

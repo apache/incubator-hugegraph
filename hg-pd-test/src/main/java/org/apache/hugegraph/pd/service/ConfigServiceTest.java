@@ -1,18 +1,36 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.service;
+
+import java.util.List;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import com.baidu.hugegraph.pd.ConfigService;
 import com.baidu.hugegraph.pd.IdService;
 import com.baidu.hugegraph.pd.config.PDConfig;
 import com.baidu.hugegraph.pd.grpc.Metapb;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
 
 public class ConfigServiceTest {
 
-    private PDConfig config = BaseServerTest.getConfig();
+    private final PDConfig config = BaseServerTest.getConfig();
 
     private ConfigService service;
 
@@ -24,7 +42,7 @@ public class ConfigServiceTest {
     @Test
     public void testGetPDConfig() throws Exception {
         // Setup
-        try{
+        try {
             final Metapb.PDConfig config = Metapb.PDConfig.newBuilder()
                                                           .setVersion(0L)
                                                           .setPartitionCount(0)
@@ -41,8 +59,6 @@ public class ConfigServiceTest {
             Assert.assertTrue(result.getShardCount() == 55);
         } catch (Exception e) {
 
-        } finally {
-
         }
 
     }
@@ -51,7 +67,7 @@ public class ConfigServiceTest {
     public void testGetGraphSpace() throws Exception {
         // Setup
         Metapb.GraphSpace space = Metapb.GraphSpace.newBuilder()
-                .setName("gs1")
+                                                   .setName("gs1")
                                                    .setTimestamp(0L).build();
         final List<Metapb.GraphSpace> expectedResult = List.of(space);
         service.setGraphSpace(space);
@@ -61,9 +77,10 @@ public class ConfigServiceTest {
 
         Assert.assertTrue(result.size() == 1);
     }
+
     @Test
     public void testUpdatePDConfig() {
-        try{
+        try {
             final Metapb.PDConfig mConfig = Metapb.PDConfig.newBuilder()
                                                            .setVersion(0L)
                                                            .setPartitionCount(0)
@@ -84,8 +101,6 @@ public class ConfigServiceTest {
             expectedResult.setLicensePath("licensePath");
             service.updatePDConfig(mConfig);
         } catch (Exception e) {
-
-        } finally {
 
         }
     }

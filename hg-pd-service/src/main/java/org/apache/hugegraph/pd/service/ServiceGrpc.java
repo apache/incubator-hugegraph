@@ -1,16 +1,31 @@
-package org.apache.hugegraph.pd.service;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import org.apache.hugegraph.pd.watch.PDWatchSubject;
+package org.apache.hugegraph.pd.service;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.hugegraph.pd.pulse.PDPulseSubject;
+import org.apache.hugegraph.pd.watch.PDWatchSubject;
+
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
-import org.apache.hugegraph.pd.pulse.PDPulseSubject;
-
 import com.baidu.hugegraph.pd.raft.RaftEngine;
 import com.baidu.hugegraph.pd.raft.RaftStateListener;
-import com.baidu.hugegraph.pd.watch.PDWatchSubject;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
@@ -23,8 +38,12 @@ import io.grpc.MethodDescriptor;
  **/
 public interface ServiceGrpc extends RaftStateListener {
 
+    ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap();
+
     default Pdpb.ResponseHeader getResponseHeader(PDException e) {
-        Pdpb.Error error = Pdpb.Error.newBuilder().setTypeValue(e.getErrorCode()).setMessage(e.getMessage()).build();
+        Pdpb.Error error =
+                Pdpb.Error.newBuilder().setTypeValue(e.getErrorCode()).setMessage(e.getMessage())
+                          .build();
         Pdpb.ResponseHeader header = Pdpb.ResponseHeader.newBuilder().setError(error).build();
         return header;
     }
@@ -39,16 +58,17 @@ public interface ServiceGrpc extends RaftStateListener {
         return RaftEngine.getInstance().isLeader();
     }
 
-    ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap();
-
-    default <ReqT, RespT> void redirectToLeader(ManagedChannel channel, MethodDescriptor<ReqT, RespT> method,
-                                                ReqT req, io.grpc.stub.StreamObserver<RespT> observer) {
+    default <ReqT, RespT> void redirectToLeader(ManagedChannel channel,
+                                                MethodDescriptor<ReqT, RespT> method,
+                                                ReqT req,
+                                                io.grpc.stub.StreamObserver<RespT> observer) {
         try {
             String address = RaftEngine.getInstance().getLeaderGrpcAddress();
             if ((channel = channels.get(address)) == null) {
                 synchronized (this) {
                     if ((channel = channels.get(address)) == null) {
-                        ManagedChannel c = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
+                        ManagedChannel c =
+                                ManagedChannelBuilder.forTarget(address).usePlaintext().build();
                         channels.put(address, c);
                         channel = c;
                     }
@@ -64,13 +84,13 @@ public interface ServiceGrpc extends RaftStateListener {
 
     @Override
     default void onRaftLeaderChanged() {
-        synchronized (this){
+        synchronized (this) {
             if (!isLeader()) {
                 try {
                     String message = "lose leader";
                     PDPulseSubject.notifyError(message);
                     PDWatchSubject.notifyError(message);
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

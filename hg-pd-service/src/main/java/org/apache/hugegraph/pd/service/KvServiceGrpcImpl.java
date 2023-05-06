@@ -1,4 +1,35 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.annotation.PostConstruct;
+
+import org.apache.hugegraph.pd.watch.KvWatchSubject;
+import org.lognet.springboot.grpc.GRpcService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.baidu.hugegraph.pd.KvService;
 import com.baidu.hugegraph.pd.common.PDException;
@@ -20,33 +51,25 @@ import com.baidu.hugegraph.pd.grpc.kv.WatchState;
 import com.baidu.hugegraph.pd.grpc.kv.WatchType;
 import com.baidu.hugegraph.pd.raft.RaftEngine;
 import com.baidu.hugegraph.pd.raft.RaftStateListener;
-import org.apache.hugegraph.pd.watch.KvWatchSubject;
+
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-import org.lognet.springboot.grpc.GRpcService;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import javax.annotation.PostConstruct;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * kv存储的核心实现类
  */
 @Slf4j
 @GRpcService
-public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implements RaftStateListener, ServiceGrpc {
+public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implements RaftStateListener,
+                                                                                  ServiceGrpc {
 
+    KvService kvService;
+    AtomicLong count = new AtomicLong();
+    String msg = "node is not leader,it is necessary to  redirect to the leader on the client";
     @Autowired
     private PDConfig pdConfig;
-    KvService kvService;
-    private ManagedChannel channel = null;
+    private final ManagedChannel channel = null;
     private KvWatchSubject subjects;
     private ScheduledExecutorService executor;
 
@@ -61,7 +84,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             if (isLeader()) {
                 subjects.keepClientAlive();
             }
-        }, 0, KvWatchSubject.WATCH_TTL * 1 / 2, TimeUnit.MILLISECONDS);
+        }, 0, KvWatchSubject.WATCH_TTL / 2, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -94,7 +117,6 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
-
 
     /**
      * 普通的get
@@ -148,7 +170,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             response = builder.setHeader(getResponseHeader()).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getDeleteMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getDeleteMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -156,7 +179,6 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
-
 
     /**
      * 按前缀删除
@@ -166,7 +188,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
      */
     public void deletePrefix(K request, StreamObserver<KvResponse> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(channel, KvServiceGrpc.getDeletePrefixMethod(), request, responseObserver);
+            redirectToLeader(channel, KvServiceGrpc.getDeletePrefixMethod(), request,
+                             responseObserver);
             return;
         }
         KvResponse response;
@@ -184,7 +207,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             response = builder.setHeader(getResponseHeader()).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getDeletePrefixMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getDeletePrefixMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -201,7 +225,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
      */
     public void scanPrefix(K request, StreamObserver<ScanPrefixResponse> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(channel, KvServiceGrpc.getScanPrefixMethod(), request, responseObserver);
+            redirectToLeader(channel, KvServiceGrpc.getScanPrefixMethod(), request,
+                             responseObserver);
             return;
         }
         ScanPrefixResponse response;
@@ -211,7 +236,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             response = builder.setHeader(getResponseHeader()).putAllKvs(kvs).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getScanPrefixMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getScanPrefixMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -219,8 +245,6 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
-
-    AtomicLong count = new AtomicLong();
 
     /**
      * 获取随机非0字符串做Id
@@ -236,9 +260,10 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         }
         return result;
     }
-    String msg = "node is not leader,it is necessary to  redirect to the leader on the client";
+
     /**
      * 普通的watch
+     *
      * @param request
      * @param responseObserver
      */
@@ -264,6 +289,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 普通的前缀watch
+     *
      * @param request
      * @param responseObserver
      */
@@ -289,6 +315,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 上面两个方法的通用方式
+     *
      * @param request
      * @param responseObserver
      * @param isPrefix
@@ -307,13 +334,14 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             } else {
                 response = builder.setState(WatchState.Started).build();
             }
-            String delimiter = isPrefix ? KvWatchSubject.PREFIX_DELIMITER : KvWatchSubject.KEY_DELIMITER;
+            String delimiter =
+                    isPrefix ? KvWatchSubject.PREFIX_DELIMITER : KvWatchSubject.KEY_DELIMITER;
             subjects.addObserver(key, clientId, responseObserver, delimiter);
             synchronized (responseObserver) {
                 responseObserver.onNext(response);
             }
         } catch (PDException e) {
-            if (!isLeader()){
+            if (!isLeader()) {
                 throw new PDException(-1, msg);
             }
             throw new PDException(e.getErrorCode(), e);
@@ -324,6 +352,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 加锁
+     *
      * @param request
      * @param responseObserver
      */
@@ -338,7 +367,9 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             long clientId = request.getClientId();
             if (clientId == 0) clientId = getRandomLong();
             boolean locked = this.kvService.lock(request.getKey(), request.getTtl(), clientId);
-            response = builder.setHeader(getResponseHeader()).setSucceed(locked).setClientId(clientId).build();
+            response =
+                    builder.setHeader(getResponseHeader()).setSucceed(locked).setClientId(clientId)
+                           .build();
         } catch (PDException e) {
             if (!isLeader()) {
                 redirectToLeader(channel, KvServiceGrpc.getLockMethod(), request, responseObserver);
@@ -395,7 +426,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         } catch (PDException e) {
             log.error("lock with error :", e);
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getIsLockedMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getIsLockedMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -406,6 +438,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 解锁
+     *
      * @param request
      * @param responseObserver
      */
@@ -420,10 +453,12 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             long clientId = request.getClientId();
             if (clientId == 0) throw new PDException(-1, "incorrect clientId: 0");
             boolean unlocked = this.kvService.unlock(request.getKey(), clientId);
-            response = builder.setHeader(getResponseHeader()).setSucceed(unlocked).setClientId(clientId).build();
+            response = builder.setHeader(getResponseHeader()).setSucceed(unlocked)
+                              .setClientId(clientId).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getUnlockMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getUnlockMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -435,12 +470,14 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 锁续活
+     *
      * @param request
      * @param responseObserver
      */
     public void keepAlive(LockRequest request, StreamObserver<LockResponse> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(channel, KvServiceGrpc.getKeepAliveMethod(), request, responseObserver);
+            redirectToLeader(channel, KvServiceGrpc.getKeepAliveMethod(), request,
+                             responseObserver);
             return;
         }
         LockResponse response;
@@ -449,10 +486,13 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             long clientId = request.getClientId();
             if (clientId == 0) throw new PDException(-1, "incorrect clientId: 0");
             boolean alive = this.kvService.keepAlive(request.getKey(), clientId);
-            response = builder.setHeader(getResponseHeader()).setSucceed(alive).setClientId(clientId).build();
+            response =
+                    builder.setHeader(getResponseHeader()).setSucceed(alive).setClientId(clientId)
+                           .build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getKeepAliveMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getKeepAliveMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -463,6 +503,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 带超时时间的put
+     *
      * @param request
      * @param responseObserver
      */
@@ -478,7 +519,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             response = builder.setHeader(getResponseHeader()).setSucceed(true).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getPutTTLMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getPutTTLMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();
@@ -489,12 +531,14 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     /**
      * 续活带有超时时间的key
+     *
      * @param request
      * @param responseObserver
      */
     public void keepTTLAlive(TTLRequest request, StreamObserver<TTLResponse> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(channel, KvServiceGrpc.getKeepTTLAliveMethod(), request, responseObserver);
+            redirectToLeader(channel, KvServiceGrpc.getKeepTTLAliveMethod(), request,
+                             responseObserver);
             return;
         }
         TTLResponse response;
@@ -504,7 +548,8 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             response = builder.setHeader(getResponseHeader()).setSucceed(true).build();
         } catch (PDException e) {
             if (!isLeader()) {
-                redirectToLeader(channel, KvServiceGrpc.getKeepTTLAliveMethod(), request, responseObserver);
+                redirectToLeader(channel, KvServiceGrpc.getKeepTTLAliveMethod(), request,
+                                 responseObserver);
                 return;
             }
             response = builder.setHeader(getResponseHeader(e)).build();

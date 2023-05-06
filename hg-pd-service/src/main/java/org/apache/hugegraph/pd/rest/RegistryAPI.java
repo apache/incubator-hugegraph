@@ -1,12 +1,31 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.rest;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.common.PDRuntimeException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
-import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
-import com.baidu.hugegraph.pd.grpc.discovery.Query;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.model.RegistryQueryRestRequest;
 import org.apache.hugegraph.pd.model.RegistryRestRequest;
@@ -14,8 +33,6 @@ import org.apache.hugegraph.pd.model.RegistryRestResponse;
 import org.apache.hugegraph.pd.rest.MemberAPI.CallStreamObserverWrap;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.service.PDService;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,12 +42,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.common.PDRuntimeException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.baidu.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
+import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
+import com.baidu.hugegraph.pd.grpc.discovery.Query;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author zhangyingjie
@@ -46,13 +66,16 @@ public class RegistryAPI extends API {
     @Autowired
     PDService pdService;
 
-    @PostMapping(value = "/registry", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/registry", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public RegistryRestResponse register(@RequestBody RegistryRestRequest body, HttpServletRequest request) {
+    public RegistryRestResponse register(@RequestBody RegistryRestRequest body,
+                                         HttpServletRequest request) {
         RegistryRestResponse registryResponse = null;
         try {
             long interval = Long.valueOf(body.getInterval()).longValue();
-            NodeInfo info = NodeInfo.newBuilder().setAppName(body.getAppName()).setVersion(body.getVersion())
+            NodeInfo info = NodeInfo.newBuilder().setAppName(body.getAppName())
+                                    .setVersion(body.getVersion())
                                     .setAddress(body.getAddress()).putAllLabels(body.getLabels())
                                     .setInterval(interval).build();
             registryResponse = pdRestService.register(info);
@@ -68,7 +91,8 @@ public class RegistryAPI extends API {
         return registryResponse;
     }
 
-    @PostMapping(value = "/registryInfo", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/registryInfo", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RegistryRestResponse getInfo(@RequestBody RegistryQueryRestRequest body,
                                         HttpServletRequest request) {
@@ -76,9 +100,11 @@ public class RegistryAPI extends API {
         try {
             boolean labelNotEmpty = body.getLabels() != null && !body.getLabels().isEmpty();
             Query query = Query.newBuilder()
-                               .setAppName(StringUtils.isEmpty(body.getAppName()) ? "" : body.getAppName())
+                               .setAppName(StringUtils.isEmpty(body.getAppName()) ? "" :
+                                           body.getAppName())
                                .putAllLabels(labelNotEmpty ? body.getLabels() : new HashMap<>())
-                               .setVersion(StringUtils.isEmpty(body.getVersion()) ? "" : body.getVersion())
+                               .setVersion(StringUtils.isEmpty(body.getVersion()) ? "" :
+                                           body.getVersion())
                                .build();
             ArrayList<RegistryRestRequest> registryResponse = pdRestService.getNodeInfo(query);
             response.setErrorType(Pdpb.ErrorType.OK);
@@ -98,8 +124,9 @@ public class RegistryAPI extends API {
         RegistryRestResponse response = new RegistryRestResponse();
         try {
             //1.normal registry
-            Query query = Query.newBuilder().setAppName("").putAllLabels(new HashMap<>()).setVersion("")
-                               .build();
+            Query query =
+                    Query.newBuilder().setAppName("").putAllLabels(new HashMap<>()).setVersion("")
+                         .build();
             ArrayList<RegistryRestRequest> registryResponse = pdRestService.getNodeInfo(query);
             //2.pd member
             LinkedList<RegistryRestRequest> pdMembers = getMembers();
@@ -131,7 +158,7 @@ public class RegistryAPI extends API {
     private LinkedList<RegistryRestRequest> getMembers() throws Exception {
         CallStreamObserverWrap<GetMembersResponse> response = new CallStreamObserverWrap<>();
         pdService.getMembers(Pdpb.GetMembersRequest.newBuilder().build(), response);
-        LinkedList<RegistryRestRequest> members =new LinkedList<>();
+        LinkedList<RegistryRestRequest> members = new LinkedList<>();
         List<Metapb.Member> membersList = response.get().get(0).getMembersList();
         for (Metapb.Member member : membersList) {
             RegistryRestRequest restRequest = new RegistryRestRequest();

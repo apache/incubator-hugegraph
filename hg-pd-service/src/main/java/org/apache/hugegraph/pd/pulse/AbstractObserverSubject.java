@@ -1,19 +1,38 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.pulse;
 
-import com.baidu.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseResponse;
-import com.baidu.hugegraph.pd.grpc.pulse.PulseType;
-import com.baidu.hugegraph.pd.util.IdUtil;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import javax.annotation.concurrent.ThreadSafe;
+
+import com.baidu.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
+import com.baidu.hugegraph.pd.grpc.pulse.PulseResponse;
+import com.baidu.hugegraph.pd.grpc.pulse.PulseType;
+import com.baidu.hugegraph.pd.util.IdUtil;
+
+import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/9
@@ -45,12 +64,14 @@ abstract class AbstractObserverSubject {
 
             if (this.observerHolder.containsKey(observerId)) {
                 responseObserver.onError(
-                        new Exception("The observer-id[" + observerId + "] of " + this.pulseType.name()
+                        new Exception(
+                                "The observer-id[" + observerId + "] of " + this.pulseType.name()
                                 + " subject has been existing."));
                 return;
             }
 
-            log.info("Adding a " + this.pulseType + "'s observer, observer-id is [" + observerId + "].");
+            log.info("Adding a " + this.pulseType + "'s observer, observer-id is [" + observerId +
+                     "].");
             this.observerHolder.put(observerId, responseObserver);
         }
 
@@ -64,7 +85,8 @@ abstract class AbstractObserverSubject {
      */
     void removeObserver(Long observerId, StreamObserver<PulseResponse> responseObserver) {
         synchronized (this.observerHolder) {
-            log.info("Removing a " + this.pulseType + "'s observer, observer-id is [" + observerId + "].");
+            log.info("Removing a " + this.pulseType + "'s observer, observer-id is [" + observerId +
+                     "].");
             this.observerHolder.remove(observerId);
         }
 
@@ -74,7 +96,6 @@ abstract class AbstractObserverSubject {
     abstract String toNoticeString(PulseResponse res);
 
     /**
-     *
      * @param c
      * @return notice ID
      */
@@ -82,7 +103,8 @@ abstract class AbstractObserverSubject {
         synchronized (lock) {
 
             if (c == null) {
-                log.error(this.pulseType.name() + "'s notice was abandoned, caused by: notifyObserver(null)");
+                log.error(this.pulseType.name() +
+                          "'s notice was abandoned, caused by: notifyObserver(null)");
                 return -1;
             }
 
@@ -95,38 +117,43 @@ abstract class AbstractObserverSubject {
 
             long noticeId = IdUtil.createMillisId();
 
-            Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter = observerHolder.entrySet().iterator();
+            Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter =
+                    observerHolder.entrySet().iterator();
 
             // long start = System.currentTimeMillis();
             while (iter.hasNext()) {
                 Map.Entry<Long, StreamObserver<PulseResponse>> entry = iter.next();
                 Long observerId = entry.getKey();
-                PulseResponse res = this.builder.setObserverId(observerId).setNoticeId(noticeId).build();
+                PulseResponse res =
+                        this.builder.setObserverId(observerId).setNoticeId(noticeId).build();
 
                 try {
                     entry.getValue().onNext(res);
                 } catch (Throwable e) {
-                    log.error("Failed to send " + this.pulseType.name() + "'s notice[" + toNoticeString(res)
-                            + "] to observer[" + observerId + "].", e);
+                    log.error("Failed to send " + this.pulseType.name() + "'s notice[" +
+                              toNoticeString(res)
+                              + "] to observer[" + observerId + "].", e);
 
                     // TODO: ? try multi-times?
                     // iter.remove();
                     log.error("Removed a " + this.pulseType.name() + "'s observer[" + entry.getKey()
-                            + "], because of once failure of sending.", e);
+                              + "], because of once failure of sending.", e);
                 }
 
             }
 
-            // log.info("notice client: notice id: {}, ts :{}, cost: {}", noticeId, System.currentTimeMillis(),
+            // log.info("notice client: notice id: {}, ts :{}, cost: {}", noticeId, System
+            // .currentTimeMillis(),
             //        (System.currentTimeMillis() - start )/1000);
             return noticeId;
         }
 
     }
 
-    protected void notifyError(String message){
+    protected void notifyError(String message) {
         synchronized (lock) {
-            Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter = observerHolder.entrySet().iterator();
+            Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter =
+                    observerHolder.entrySet().iterator();
             while (iter.hasNext()) {
                 Map.Entry<Long, StreamObserver<PulseResponse>> entry = iter.next();
                 Long observerId = entry.getKey();
@@ -135,8 +162,9 @@ abstract class AbstractObserverSubject {
                     entry.getValue().onError(
                             Status.PERMISSION_DENIED.withDescription(message).asRuntimeException());
                 } catch (Throwable e) {
-                    log.error("Failed to send " + this.pulseType.name() + "'s notice[" + toNoticeString(res)
-                            + "] to observer[" + observerId + "].", e);
+                    log.error("Failed to send " + this.pulseType.name() + "'s notice[" +
+                              toNoticeString(res)
+                              + "] to observer[" + observerId + "].", e);
 
                 }
             }
@@ -154,12 +182,14 @@ abstract class AbstractObserverSubject {
 
             if (this.listenerHolder.containsKey(listenerId)) {
                 listener.onError(
-                        new Exception("The listener-id[" + listenerId + "] of " + this.pulseType.name()
+                        new Exception(
+                                "The listener-id[" + listenerId + "] of " + this.pulseType.name()
                                 + " subject has been existing."));
                 return;
             }
 
-            log.info("Adding a " + this.pulseType + "'s listener, listener-id is [" + listenerId + "].");
+            log.info("Adding a " + this.pulseType + "'s listener, listener-id is [" + listenerId +
+                     "].");
             this.listenerHolder.put(listenerId, listener);
 
         }
@@ -174,14 +204,15 @@ abstract class AbstractObserverSubject {
      */
     void removeListener(Long listenerId, PulseListener<?> listener) {
         synchronized (this.listenerHolder) {
-            log.info("Removing a " + this.pulseType + "'s listener, listener-id is [" + listenerId + "].");
+            log.info("Removing a " + this.pulseType + "'s listener, listener-id is [" + listenerId +
+                     "].");
             this.observerHolder.remove(listenerId);
         }
 
         listener.onCompleted();
     }
 
-    abstract <T> Function<PulseNoticeRequest,T> getNoticeHandler();
+    abstract <T> Function<PulseNoticeRequest, T> getNoticeHandler();
 
     void handleClientNotice(PulseNoticeRequest noticeRequest) {
 
@@ -193,7 +224,7 @@ abstract class AbstractObserverSubject {
             try {
                 entry.getValue().onNext(getNoticeHandler().apply(noticeRequest));
             } catch (Throwable e) {
-                log.error(e.getMessage(),e);
+                log.error(e.getMessage(), e);
             }
 
         }

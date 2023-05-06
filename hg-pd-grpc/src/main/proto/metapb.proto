@@ -4,7 +4,7 @@ option java_package = "com.baidu.hugegraph.pd.grpc";
 import "google/protobuf/any.proto";
 
 enum ClusterState{
-    // 集群健康
+  // 集群健康
   Cluster_OK = 0;
   // 分区警告，存在部分故障节点，短时间不影响读写
   Cluster_Warn = 2;
@@ -26,7 +26,7 @@ enum StoreState {
   // 未激活
   Pending = 4;
   // 在线
-  Up      = 1;
+  Up = 1;
   // 离线
   Offline = 2;
   // 下线中
@@ -63,11 +63,11 @@ message Store {
 }
 
 enum ShardRole {
-  None      = 0;
-  Leader    = 1;
-  Follower  = 2;
+  None = 0;
+  Leader = 1;
+  Follower = 2;
   // Learner/None -> Learner
-  Learner   = 3;
+  Learner = 3;
 }
 
 message Shard {
@@ -180,7 +180,7 @@ message PartitionStats{
   // 分区状态
   PartitionState state = 8;
   repeated ShardStats shardStats = 9;
-   // 分区近似大小
+  // 分区近似大小
   uint64 approximate_size = 10;
   // 分区key的近似数量
   uint64 approximate_keys = 13;
@@ -195,8 +195,8 @@ message GraphStats{
   uint64 approximate_size = 2;
   // 分区key的近似数量
   uint64 approximate_keys = 3;
-//  // committed index
-//  uint64 committed_index = 4;
+  //  // committed index
+  //  uint64 committed_index = 4;
   uint32 partition_id = 5;
   ShardRole role = 6;
   // 当前工作状态
@@ -234,7 +234,7 @@ message QueryStats {
 }
 
 enum ShardState{
-  SState_None   = 0;
+  SState_None = 0;
   // 正常
   SState_Normal = 1;
   // 安装快照
@@ -342,10 +342,10 @@ message PDConfig{
 
 //消息持久化
 message QueueItem{
-  string item_id=1;
-  string item_class=2;
-  bytes item_content=3;
-  int64 timestamp=10;
+  string item_id = 1;
+  string item_class = 2;
+  bytes item_content = 3;
+  int64 timestamp = 10;
 }
 
 message LogRecord{

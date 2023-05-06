@@ -1,10 +1,28 @@
-package org.apache.hugegraph.pd.notice;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import com.baidu.hugegraph.pd.common.HgAssert;
-import lombok.extern.slf4j.Slf4j;
+package org.apache.hugegraph.pd.notice;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import com.baidu.hugegraph.pd.common.HgAssert;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/10
@@ -13,21 +31,21 @@ import java.util.function.Supplier;
 public class NoticeBroadcaster {
     private long noticeId;
     private String durableId;
-    private Supplier<Long> noticeSupplier;
+    private final Supplier<Long> noticeSupplier;
     private Supplier<String> durableSupplier;
     private Function<String, Boolean> removeFunction;
     private int state; //0=ready; 1=notified; 2=done ack; -1=error
     private int counter;
     private long timestamp;
 
-    public static NoticeBroadcaster of(Supplier<Long> noticeSupplier) {
-        HgAssert.isArgumentNotNull(noticeSupplier, "noticeSupplier");
-        return new NoticeBroadcaster(noticeSupplier);
-    }
-
     private NoticeBroadcaster(Supplier<Long> noticeSupplier) {
         this.noticeSupplier = noticeSupplier;
         this.timestamp = System.currentTimeMillis();
+    }
+
+    public static NoticeBroadcaster of(Supplier<Long> noticeSupplier) {
+        HgAssert.isArgumentNotNull(noticeSupplier, "noticeSupplier");
+        return new NoticeBroadcaster(noticeSupplier);
     }
 
     public NoticeBroadcaster setDurableSupplier(Supplier<String> durableSupplier) {
@@ -62,7 +80,8 @@ public class NoticeBroadcaster {
             state = 1;
         } catch (Throwable t) {
             state = -1;
-            log.error("Failed to invoke noticeSupplier: {}; cause by: " + this.noticeSupplier.toString(), t);
+            log.error("Failed to invoke noticeSupplier: {}; cause by: " +
+                      this.noticeSupplier.toString(), t);
         }
 
         return this;
@@ -105,19 +124,10 @@ public class NoticeBroadcaster {
             }
         } catch (Throwable t) {
             log.error("Failed to remove NoticeBroadcaster, noticeId: "
-                    + this.noticeId + ", durableId: " + this.durableId + ". Cause by:", t);
+                      + this.noticeId + ", durableId: " + this.durableId + ". Cause by:", t);
         }
 
         return flag;
-    }
-
-    public void setDurableId(String durableId) {
-
-        if (HgAssert.isInvalid(durableId)) {
-            log.warn("Set an invalid durable-id to NoticeBroadcaster.");
-        }
-
-        this.durableId = durableId;
     }
 
     public long getNoticeId() {
@@ -136,6 +146,15 @@ public class NoticeBroadcaster {
         return durableId;
     }
 
+    public void setDurableId(String durableId) {
+
+        if (HgAssert.isInvalid(durableId)) {
+            log.warn("Set an invalid durable-id to NoticeBroadcaster.");
+        }
+
+        this.durableId = durableId;
+    }
+
     public long getTimestamp() {
         return timestamp;
     }
@@ -147,11 +166,11 @@ public class NoticeBroadcaster {
     @Override
     public String toString() {
         return "NoticeBroadcaster{" +
-                "noticeId=" + noticeId +
-                ", durableId='" + durableId + '\'' +
-                ", state=" + state +
-                ", counter=" + counter +
-                ", timestamp=" + timestamp +
-                '}';
+               "noticeId=" + noticeId +
+               ", durableId='" + durableId + '\'' +
+               ", state=" + state +
+               ", counter=" + counter +
+               ", timestamp=" + timestamp +
+               '}';
     }
 }

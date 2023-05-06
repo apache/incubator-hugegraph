@@ -1,21 +1,52 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.rest;
 
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.model.StoreRestRequest;
 import org.apache.hugegraph.pd.model.TimeRangeRequest;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.util.DateUtil;
-import com.google.protobuf.util.JsonFormat;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.*;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.google.protobuf.util.JsonFormat;
+
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Slf4j
@@ -40,7 +71,8 @@ public class StoreAPI extends API {
             storeStatsList.sort((o1, o2) -> o1.address.compareTo(o2.address));
             dataMap.put("stores", storeStatsList);
             dataMap.put("numOfService", storeStatsList.size());
-            dataMap.put("numOfNormalService", stateCountMap.getOrDefault(Metapb.StoreState.Up.name(), 0));
+            dataMap.put("numOfNormalService",
+                        stateCountMap.getOrDefault(Metapb.StoreState.Up.name(), 0));
             dataMap.put("stateCountMap", stateCountMap);
             return new RestApiResponse(dataMap, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
         } catch (PDException e) {
@@ -50,7 +82,8 @@ public class StoreAPI extends API {
     }
 
     // 仅支持通过该接口修改 storeState
-    @PostMapping(value = "/store/{storeId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/store/{storeId}", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public String setStore(@PathVariable long storeId, @RequestBody StoreRestRequest request) {
         try {
@@ -95,8 +128,9 @@ public class StoreAPI extends API {
                     if (shard.getRole() == Metapb.ShardRole.Leader) {
                         try {
                             String ip = pdRestService.getStore(shard.getStoreId()).getRaftAddress();
-                            if (!leaders.containsKey(ip))
+                            if (!leaders.containsKey(ip)) {
                                 leaders.put(ip, new ArrayList<>());
+                            }
                             leaders.get(ip).add(group.getId());
                         } catch (PDException e) {
                             throw new RuntimeException(e);
@@ -125,14 +159,16 @@ public class StoreAPI extends API {
         return "OK";
     }
 
-    @PostMapping(value = "/store/log", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/store/log", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public String getStoreLog(@RequestBody TimeRangeRequest request) {
         try {
             Date dateStart = DateUtil.getDate(request.getStartTime());
             Date dateEnd = DateUtil.getDate(request.getEndTime());
-            List<Metapb.LogRecord> changedStore = pdRestService.getStoreStatusLog(dateStart.getTime(),
-                    dateEnd.getTime());
+            List<Metapb.LogRecord> changedStore =
+                    pdRestService.getStoreStatusLog(dateStart.getTime(),
+                                                    dateEnd.getTime());
             if (changedStore != null) {
                 JsonFormat.TypeRegistry registry = JsonFormat.TypeRegistry
                         .newBuilder().add(Metapb.Store.getDescriptor()).build();
@@ -158,9 +194,11 @@ public class StoreAPI extends API {
         }
         if (store != null) {
             StoreStatistics resultStoreStats = resultStoreStats = new StoreStatistics(store);
-            return new RestApiResponse(resultStoreStats, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
+            return new RestApiResponse(resultStoreStats, Pdpb.ErrorType.OK,
+                                       Pdpb.ErrorType.OK.name());
         } else {
-            return new RestApiResponse(null, Pdpb.ErrorType.STORE_ID_NOT_EXIST, Pdpb.ErrorType.STORE_ID_NOT_EXIST.name());
+            return new RestApiResponse(null, Pdpb.ErrorType.STORE_ID_NOT_EXIST,
+                                       Pdpb.ErrorType.STORE_ID_NOT_EXIST.name());
         }
     }
 
@@ -181,7 +219,7 @@ public class StoreAPI extends API {
     @ResponseBody
     public RestApiResponse getStoreMonitorData(@PathVariable long storeId) {
         try {
-            List<Map<String,Long>> result = pdRestService.getMonitorData(storeId);
+            List<Map<String, Long>> result = pdRestService.getMonitorData(storeId);
             return new RestApiResponse(result, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
         } catch (PDException e) {
             return new RestApiResponse(null, e.getErrorCode(), e.getMessage());
@@ -254,11 +292,11 @@ public class StoreAPI extends API {
                 version = store.getVersion();
                 deployPath = store.getDeployPath();
                 final String prefix = "file:";
-                if ((deployPath != null) && (deployPath.startsWith(prefix))){
+                if ((deployPath != null) && (deployPath.startsWith(prefix))) {
                     // 去掉前缀
                     deployPath = deployPath.substring(prefix.length());
                 }
-                if ((deployPath != null) &&  (deployPath.contains(".jar"))){
+                if ((deployPath != null) && (deployPath.contains(".jar"))) {
                     // 去掉jar包之后的信息
                     deployPath = deployPath.substring(0, deployPath.indexOf(".jar") + 4);
                 }
@@ -266,7 +304,7 @@ public class StoreAPI extends API {
                 startTimeStamp = store.getStartTimestamp();
                 try {
                     serviceCreatedTimeStamp = pdRestService.getStore(store.getId())
-                            .getStats().getStartTime(); // 实例时间
+                                                           .getStats().getStartTime(); // 实例时间
                     final int base = 1000;
                     serviceCreatedTimeStamp *= base; // 转化为毫秒
                 } catch (PDException e) {
@@ -291,12 +329,14 @@ public class StoreAPI extends API {
                     // 图名只保留/g /m /s前面的部分
                     final int postfixLength = 2;
                     graphNameSet.add(graphName.substring(0, graphName.length() - postfixLength));
-                    if ((graphStats.getGraphName() != null) && (graphStats.getGraphName().endsWith("/g"))) {
+                    if ((graphStats.getGraphName() != null) &&
+                        (graphStats.getGraphName().endsWith("/g"))) {
                         Partition pt = new Partition(graphStats);
                         partitionStatsList.add(pt);
                     }
                     // 统计每个分区的keyCount
-                    partition2KeyCount.put(graphStats.getPartitionId(), graphStats.getApproximateKeys());
+                    partition2KeyCount.put(graphStats.getPartitionId(),
+                                           graphStats.getApproximateKeys());
                     if (graphStats.getRole() == Metapb.ShardRole.Leader) {
                         leaderPartitionIds.add(graphStats.getPartitionId());
                     }

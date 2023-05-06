@@ -1,18 +1,37 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.core;
 
-import com.baidu.hugegraph.pd.ConfigService;
-import com.baidu.hugegraph.pd.config.PDConfig;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-import java.io.File;
-import java.io.IOException;
+import com.baidu.hugegraph.pd.ConfigService;
+import com.baidu.hugegraph.pd.config.PDConfig;
 
 
 public class BaseCoreTest {
 
     static com.baidu.hugegraph.pd.config.PDConfig pdConfig;
+
     @BeforeClass
     public static void init() throws Exception {
         String path = "tmp/unitTest";
@@ -20,7 +39,7 @@ public class BaseCoreTest {
         pdConfig = new com.baidu.hugegraph.pd.config.PDConfig() {{
             this.setClusterId(100);
             this.setInitialStoreList("127.0.0.1:8500,127.0.0.1:8501,127.0.0.1:8502," +
-                    "127.0.0.1:8503,127.0.0.1:8504,127.0.0.1:8505");
+                                     "127.0.0.1:8503,127.0.0.1:8504,127.0.0.1:8505");
         }};
 
         pdConfig.setStore(new com.baidu.hugegraph.pd.config.PDConfig().new Store() {{
@@ -32,7 +51,7 @@ public class BaseCoreTest {
             this.setShardCount(3);
             this.setMaxShardsPerStore(3);
         }});
-        pdConfig.setRaft(new com.baidu.hugegraph.pd.config.PDConfig().new Raft(){{
+        pdConfig.setRaft(new com.baidu.hugegraph.pd.config.PDConfig().new Raft() {{
             this.setEnable(false);
         }});
         pdConfig.setDiscovery(new PDConfig().new Discovery());
@@ -41,16 +60,16 @@ public class BaseCoreTest {
         pdConfig = configService.loadConfig();
     }
 
-    @After
-    public void teardown() throws Exception {
-        // pass
-    }
-
     public static void deleteDirectory(File dir) {
         try {
             FileUtils.deleteDirectory(dir);
         } catch (IOException e) {
-            System.out.println(String.format("Failed to start ....,%s", e.getMessage()));
+            System.out.printf("Failed to start ....,%s%n", e.getMessage());
         }
+    }
+
+    @After
+    public void teardown() throws Exception {
+        // pass
     }
 }

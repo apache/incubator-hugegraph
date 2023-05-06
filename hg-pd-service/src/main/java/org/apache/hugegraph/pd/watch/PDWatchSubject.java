@@ -1,6 +1,28 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.watch;
 
 import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.concurrent.ThreadSafe;
 
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.watch.NodeEventType;
@@ -9,12 +31,9 @@ import com.baidu.hugegraph.pd.grpc.watch.WatchCreateRequest;
 import com.baidu.hugegraph.pd.grpc.watch.WatchRequest;
 import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 import com.baidu.hugegraph.pd.grpc.watch.WatchType;
+
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.concurrent.ThreadSafe;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/4
@@ -25,26 +44,34 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
     public final static Map<String, AbstractWatchSubject> subjectHolder = new ConcurrentHashMap<>();
     private final static byte[] lock = new byte[0];
 
+    static {
+        subjectHolder.put(WatchType.WATCH_TYPE_PARTITION_CHANGE.name(),
+                          new PartitionChangeSubject());
+        subjectHolder.put(WatchType.WATCH_TYPE_STORE_NODE_CHANGE.name(), new NodeChangeSubject());
+        subjectHolder.put(WatchType.WATCH_TYPE_GRAPH_CHANGE.name(), new NodeChangeSubject());
+        subjectHolder.put(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name(),
+                          new com.baidu.hugegraph.pd.watch.ShardGroupChangeSubject());
+    }
+
     private final StreamObserver<WatchResponse> responseObserver;
     private AbstractWatchSubject subject;
     private Long watcherId;
 
-    static {
-        subjectHolder.put(WatchType.WATCH_TYPE_PARTITION_CHANGE.name(), new PartitionChangeSubject());
-        subjectHolder.put(WatchType.WATCH_TYPE_STORE_NODE_CHANGE.name(), new NodeChangeSubject());
-        subjectHolder.put(WatchType.WATCH_TYPE_GRAPH_CHANGE.name(), new NodeChangeSubject());
-        subjectHolder.put(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name(), new ShardGroupChangeSubject());
+    private PDWatchSubject(StreamObserver<WatchResponse> responseObserver) {
+        this.responseObserver = responseObserver;
     }
 
-    public static StreamObserver<WatchRequest> addObserver(StreamObserver<WatchResponse> responseObserver) {
+    public static StreamObserver<WatchRequest> addObserver(
+            StreamObserver<WatchResponse> responseObserver) {
         isArgumentNotNull(responseObserver, "responseObserver");
         return new PDWatchSubject(responseObserver);
     }
 
     /**
      * Notify partition change
-     * @param changeType change type
-     * @param graph name of graph
+     *
+     * @param changeType  change type
+     * @param graph       name of graph
      * @param partitionId id of partition
      */
     public static void notifyPartitionChange(ChangeType changeType, String graph, int partitionId) {
@@ -53,16 +80,19 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
 
     }
 
-    public static void notifyShardGroupChange(ChangeType changeType, int groupId, Metapb.ShardGroup group) {
-        ((ShardGroupChangeSubject) subjectHolder.get(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name()))
+    public static void notifyShardGroupChange(ChangeType changeType, int groupId,
+                                              Metapb.ShardGroup group) {
+        ((com.baidu.hugegraph.pd.watch.ShardGroupChangeSubject) subjectHolder.get(
+                WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE.name()))
                 .notifyWatcher(changeType.getGrpcType(), groupId, group);
     }
 
     /**
      * Notify store-node change
+     *
      * @param changeType change type
-     * @param graph name of graph
-     * @param nodeId id of partition
+     * @param graph      name of graph
+     * @param nodeId     id of partition
      */
     public static void notifyNodeChange(NodeEventType changeType, String graph, long nodeId) {
         ((NodeChangeSubject) subjectHolder.get(WatchType.WATCH_TYPE_STORE_NODE_CHANGE.name()))
@@ -74,14 +104,10 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
         subjectHolder.get(type.name()).notifyWatcher(builder);
     }
 
-    public static void notifyError(String message){
-        subjectHolder.forEach((k, v)->{
+    public static void notifyError(String message) {
+        subjectHolder.forEach((k, v) -> {
             v.notifyError(message);
         });
-    }
-    
-    private PDWatchSubject(StreamObserver<WatchResponse> responseObserver) {
-        this.responseObserver = responseObserver;
     }
 
     private static Long createWatcherId() {
@@ -101,7 +127,8 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
     private void cancelWatcher() {
 
         if (this.subject == null) {
-            this.responseObserver.onError(new Exception("Invoke cancel-watch before create-watch."));
+            this.responseObserver.onError(
+                    new Exception("Invoke cancel-watch before create-watch."));
             return;
         }
 
@@ -174,7 +201,7 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
         ALTER(WatchChangeType.WATCH_CHANGE_TYPE_ALTER),
         DEL(WatchChangeType.WATCH_CHANGE_TYPE_DEL),
 
-        USER_DEFINED (WatchChangeType.WATCH_CHANGE_TYPE_SPECIAL1);
+        USER_DEFINED(WatchChangeType.WATCH_CHANGE_TYPE_SPECIAL1);
 
         private final WatchChangeType grpcType;
 

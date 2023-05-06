@@ -126,9 +126,9 @@ enum ErrorType {
   // store上分区数量超过上限
   Too_Many_Partitions_Per_Store = 1009;
   // license 错误
-  LICENSE_ERROR= 107;
+  LICENSE_ERROR = 107;
   // license 认证错误
-  LICENSE_VERIFY_ERROR= 108;
+  LICENSE_VERIFY_ERROR = 108;
 
   //分区下线正在进行
   Store_Tombstone_Doing = 1010;
@@ -329,8 +329,8 @@ message GetIdRequest{
 
 message GetIdResponse{
   ResponseHeader header = 1;
-  int64 id =2;
-  int32 delta =3;
+  int64 id = 2;
+  int32 delta = 3;
 }
 
 message ResetIdRequest{
@@ -409,8 +409,8 @@ message getChangePeerListResponse{
 }
 
 enum OperationMode {
-  Auto      = 0;
-  Expert    = 1;
+  Auto = 0;
+  Expert = 1;
 }
 
 message SplitDataParam{
@@ -481,11 +481,11 @@ message GetPartitionStatsResponse{
 }
 
 message BalanceLeadersRequest{
-   RequestHeader header = 1;
- }
+  RequestHeader header = 1;
+}
 
 message BalanceLeadersResponse{
-   ResponseHeader header = 1;
+  ResponseHeader header = 1;
 }
 
 message PutLicenseRequest{

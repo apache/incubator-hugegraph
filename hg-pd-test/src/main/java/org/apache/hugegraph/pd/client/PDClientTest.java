@@ -1,17 +1,34 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.baidu.hugegraph.pd.client.PDClient;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.grpc.MetaTask;
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.Pdpb;
-
-import org.junit.Test;
-import org.mockito.Mockito;
 
 /**
  * @author zhengfuquan
@@ -31,6 +48,7 @@ public class PDClientTest extends BaseClientTest {
 
         System.out.println("pdclienttest testDbCompaction end");
     }
+
     @Test
     public void testRegisterStore() {
         Metapb.Store store = Metapb.Store.newBuilder().build();
@@ -42,7 +60,7 @@ public class PDClientTest extends BaseClientTest {
     }
 
     @Test
-    public void testSetGraph(){
+    public void testSetGraph() {
         Metapb.Graph graph = Metapb.Graph.newBuilder().setGraphName("test").build();
         try {
             pdClient.setGraph(graph);
@@ -68,6 +86,7 @@ public class PDClientTest extends BaseClientTest {
             e.printStackTrace();
         }
     }
+
     @Test
     public void testUpdateStore() {
         Metapb.Store store = Metapb.Store.newBuilder().build();
@@ -79,7 +98,7 @@ public class PDClientTest extends BaseClientTest {
     }
 
     @Test
-    public void testGetActiveStores(){
+    public void testGetActiveStores() {
         try {
             pdClient.getActiveStores("test");
         } catch (PDException e) {
@@ -107,7 +126,7 @@ public class PDClientTest extends BaseClientTest {
 //    }
 
     @Test
-    public void testKeyToCode(){
+    public void testKeyToCode() {
         pdClient.keyToCode("test", "test".getBytes(StandardCharsets.UTF_8));
     }
 
@@ -115,7 +134,7 @@ public class PDClientTest extends BaseClientTest {
     public void testScanPartitions() {
         try {
             pdClient.scanPartitions("test", "1".getBytes(StandardCharsets.UTF_8),
-                    "9".getBytes(StandardCharsets.UTF_8));
+                                    "9".getBytes(StandardCharsets.UTF_8));
         } catch (PDException e) {
             e.printStackTrace();
         }
@@ -308,8 +327,8 @@ public class PDClientTest extends BaseClientTest {
         try {
             Metapb.PDConfig config = pdClient.getPDConfig();
             pdClient.setPDConfig(config.toBuilder()
-                    .setMaxShardsPerStore(12)
-                    .build());
+                                       .setMaxShardsPerStore(12)
+                                       .build());
             System.out.println(pdClient.getPDConfig());
 
             // 开始分区分裂

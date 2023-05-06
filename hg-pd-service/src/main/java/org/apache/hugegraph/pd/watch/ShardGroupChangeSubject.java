@@ -1,13 +1,32 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.pd.watch;
+
+import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+
+import org.apache.hugegraph.pd.watch.AbstractWatchSubject;
 
 import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.grpc.watch.WatchChangeType;
 import com.baidu.hugegraph.pd.grpc.watch.WatchResponse;
 import com.baidu.hugegraph.pd.grpc.watch.WatchType;
 
-import static com.baidu.hugegraph.pd.common.HgAssert.isArgumentNotNull;
-
-public class ShardGroupChangeSubject extends AbstractWatchSubject{
+public class ShardGroupChangeSubject extends AbstractWatchSubject {
 
     protected ShardGroupChangeSubject() {
         super(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE);
@@ -17,20 +36,21 @@ public class ShardGroupChangeSubject extends AbstractWatchSubject{
     String toNoticeString(WatchResponse res) {
         StringBuilder sb = new StringBuilder();
         sb.append("shard group:")
-                .append(res.getShardGroupResponse().getShardGroup().toString().replace("\n", " "));
+          .append(res.getShardGroupResponse().getShardGroup().toString().replace("\n", " "));
         return sb.toString();
     }
 
-    public void notifyWatcher(WatchChangeType changeType, int groupId, Metapb.ShardGroup shardGroup) {
+    public void notifyWatcher(WatchChangeType changeType, int groupId,
+                              Metapb.ShardGroup shardGroup) {
         isArgumentNotNull(changeType, "changeType");
 
         super.notifyWatcher(builder -> {
             builder.setShardGroupResponse(
                     builder.getShardGroupResponseBuilder().clear()
-                            .setShardGroupId(groupId)
-                            .setType(changeType)
-                            .setShardGroup(shardGroup)
-                            .build()
+                           .setShardGroupId(groupId)
+                           .setType(changeType)
+                           .setShardGroup(shardGroup)
+                           .build()
             );
         });
     }

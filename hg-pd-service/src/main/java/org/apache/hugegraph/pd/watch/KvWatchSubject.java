@@ -1,15 +1,21 @@
-package org.apache.hugegraph.pd.watch;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
 
-import com.baidu.hugegraph.pd.KvService;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
-import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
-import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
-import com.baidu.hugegraph.pd.grpc.kv.WatchState;
-import com.baidu.hugegraph.pd.grpc.kv.WatchType;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
+package org.apache.hugegraph.pd.watch;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -19,19 +25,36 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiPredicate;
 
-/** watch订阅、响应处理类
+import com.baidu.hugegraph.pd.KvService;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.config.PDConfig;
+import com.baidu.hugegraph.pd.grpc.kv.WatchEvent;
+import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
+import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
+import com.baidu.hugegraph.pd.grpc.kv.WatchState;
+import com.baidu.hugegraph.pd.grpc.kv.WatchType;
+
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * watch订阅、响应处理类
+ *
  * @author zhangyingjie
  * @date 2022/6/21
  **/
 @Slf4j
 public class KvWatchSubject {
 
-    private KvService kvService;
     public static final String KEY_DELIMITER = "KW";
     public static final String PREFIX_DELIMITER = "PW";
     public static final String ALL_PREFIX = "W";
     public static final long WATCH_TTL = 20000L;
-    private static final ConcurrentMap<String, StreamObserver<WatchResponse>> clients = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, StreamObserver<WatchResponse>> clients =
+            new ConcurrentHashMap<>();
+    BiPredicate<String, String> equal = (kvKey, watchKey) -> kvKey.equals(watchKey);
+    BiPredicate<String, String> startWith = (kvKey, watchKey) -> kvKey.startsWith(watchKey);
+    private final KvService kvService;
 
     /**
      * 会使用以下三组key:
@@ -50,7 +73,8 @@ public class KvWatchSubject {
     private void addWatchKey(String key, String delimiter, long clientId) throws PDException {
         String watchKey = KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         kvService.put(watchKey, "", WATCH_TTL);
-        String clientFirstKey = KvService.getKeyWithoutPrefix(ALL_PREFIX, clientId, delimiter, key, clientId);
+        String clientFirstKey =
+                KvService.getKeyWithoutPrefix(ALL_PREFIX, clientId, delimiter, key, clientId);
         kvService.put(clientFirstKey, "", WATCH_TTL);
     }
 
@@ -63,15 +87,17 @@ public class KvWatchSubject {
 
     /**
      * 增加观察者
-     * @param key 观察的key
-     * @param clientId 客户端标识
+     *
+     * @param key       观察的key
+     * @param clientId  客户端标识
      * @param observer
      * @param delimiter 观察类型标识符，对前缀监听或者对key的监听可以通过此参数区分
      * @throws PDException
      */
     public void addObserver(String key, long clientId, StreamObserver<WatchResponse> observer,
                             String delimiter) throws PDException {
-        String keyWithoutPrefix = KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
+        String keyWithoutPrefix =
+                KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         clients.putIfAbsent(keyWithoutPrefix, observer);
         addWatchKey(key, delimiter, clientId);
         log.info("client:{},start to watch key:{}", clientId, key);
@@ -79,22 +105,22 @@ public class KvWatchSubject {
 
     public void removeObserver(String key, long clientId, String delimiter) throws PDException {
         removeWatchKey(key, delimiter, clientId);
-        String keyWithoutPrefix = KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
+        String keyWithoutPrefix =
+                KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         clients.remove(keyWithoutPrefix);
     }
 
-    BiPredicate<String, String> equal = (kvKey, watchKey) -> kvKey.equals(watchKey);
-    BiPredicate<String, String> startWith = (kvKey, watchKey) -> kvKey.startsWith(watchKey);
-
     /**
      * 通知观察者方法，key和prefix都使用此方法，predicate不同
+     *
      * @param key
      * @param watchType 观察类型，一般是增加和删除
      * @param predicate 判断等于或者是前匹配，用来适配key或prefix观察
      * @param kvs
      * @throws PDException
      */
-    public void notifyObserver(String key, WatchType watchType, BiPredicate<String, String> predicate,
+    public void notifyObserver(String key, WatchType watchType,
+                               BiPredicate<String, String> predicate,
                                WatchKv... kvs) throws PDException {
         boolean isEqual = predicate.equals(equal);
         String watchDelimiter = isEqual ? KEY_DELIMITER : PREFIX_DELIMITER;
@@ -108,7 +134,7 @@ public class KvWatchSubject {
             assert values.length == 4;
             String watchKey = values[2];
             String c = values[3];
-            long clientId = new Long(c);
+            long clientId = Long.valueOf(c);
             LinkedList<WatchEvent> watchEvents = new LinkedList<>();
             for (WatchKv kv : kvs) {
                 String kvKey = kv.getKey();
@@ -116,13 +142,16 @@ public class KvWatchSubject {
                 if (!match) {
                     continue;
                 }
-                WatchKv watchKv = WatchKv.newBuilder().setKey(kvKey).setValue(kv.getValue()).build();
-                WatchEvent event = WatchEvent.newBuilder().setCurrent(watchKv).setType(watchType).build();
+                WatchKv watchKv =
+                        WatchKv.newBuilder().setKey(kvKey).setValue(kv.getValue()).build();
+                WatchEvent event =
+                        WatchEvent.newBuilder().setCurrent(watchKv).setType(watchType).build();
                 watchEvents.add(event);
             }
             StreamObserver<WatchResponse> observer = clients.get(keyAndClient);
-            watchResponse = WatchResponse.newBuilder().setState(WatchState.Started).setClientId(clientId)
-                                         .addAllEvents(watchEvents).build();
+            watchResponse =
+                    WatchResponse.newBuilder().setState(WatchState.Started).setClientId(clientId)
+                                 .addAllEvents(watchEvents).build();
 
             try {
                 if (observer != null) {
@@ -139,7 +168,8 @@ public class KvWatchSubject {
         }
     }
 
-    public void notifyAllObserver(String key, WatchType watchType, WatchKv[] kvs) throws PDException {
+    public void notifyAllObserver(String key, WatchType watchType, WatchKv[] kvs) throws
+                                                                                  PDException {
         notifyObserver(key, watchType, equal, kvs);
         notifyObserver(key, watchType, startWith, kvs);
     }
@@ -153,7 +183,8 @@ public class KvWatchSubject {
     public void keepClientAlive() {
         WatchResponse testAlive = WatchResponse.newBuilder().setState(WatchState.Alive).build();
         Set<Map.Entry<String, StreamObserver<WatchResponse>>> entries = clients.entrySet();
-        Map.Entry<String, StreamObserver<WatchResponse>>[] array = entries.toArray(new Map.Entry[0]);
+        Map.Entry<String, StreamObserver<WatchResponse>>[] array =
+                entries.toArray(new Map.Entry[0]);
         Arrays.stream(array).parallel().forEach(entry -> {
             StreamObserver<WatchResponse> value = entry.getValue();
             String key = entry.getKey();
@@ -176,7 +207,8 @@ public class KvWatchSubject {
                         String aliveKey = entryKey.replaceFirst(removes, "");
                         boolean keepAliveKey = kvService.keepAlive(aliveKey);
                         boolean keepAliveEntry = kvService.keepAlive(entryKey);
-                        // log.info("keep alive client:{},{}:{},{}:{}", client, aliveKey, keepAliveKey,
+                        // log.info("keep alive client:{},{}:{},{}:{}", client, aliveKey,
+                        // keepAliveKey,
                         //         entryKey,
                         //         keepAliveEntry);
                         done = true;
@@ -216,7 +248,8 @@ public class KvWatchSubject {
      * 通知客户端leader切换了，重连
      */
     public void notifyClientChangeLeader() {
-        WatchResponse response = WatchResponse.newBuilder().setState(WatchState.Leader_Changed).build();
+        WatchResponse response =
+                WatchResponse.newBuilder().setState(WatchState.Leader_Changed).build();
         for (Map.Entry<String, StreamObserver<WatchResponse>> entry : clients.entrySet()) {
             StreamObserver<WatchResponse> value = entry.getValue();
             String key = entry.getKey();

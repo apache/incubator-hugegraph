@@ -1,13 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.rest;
 
-import com.baidu.hugegraph.pd.common.KVPair;
-import com.baidu.hugegraph.pd.common.PDException;
-import com.baidu.hugegraph.pd.grpc.Metapb;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.hugegraph.pd.service.PDRestService;
-
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
+import com.baidu.hugegraph.pd.common.KVPair;
+import com.baidu.hugegraph.pd.common.PDException;
+import com.baidu.hugegraph.pd.grpc.Metapb;
+
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Slf4j
@@ -51,7 +67,7 @@ public class TaskAPI extends API {
 
     @GetMapping(value = "/balancePartitions", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public Map<Integer, KVPair<Long, Long>>  balancePartitions() {
+    public Map<Integer, KVPair<Long, Long>> balancePartitions() {
         try {
             Map<Integer, KVPair<Long, Long>> partitions = pdRestService.balancePartitions();
             return partitions;
@@ -63,15 +79,16 @@ public class TaskAPI extends API {
 
     @GetMapping(value = "/splitPartitions", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public String  splitPartitions() {
+    public String splitPartitions() {
         try {
-            List<Metapb.Partition> partitions  = pdRestService.splitPartitions();
+            List<Metapb.Partition> partitions = pdRestService.splitPartitions();
             return toJSON(partitions, "partitions");
         } catch (PDException e) {
             e.printStackTrace();
             return toJSON(e);
         }
     }
+
     @GetMapping(value = "/balanceLeaders")
     public Map<Integer, Long> balanceLeaders() throws PDException {
         return pdRestService.balancePartitionLeader();

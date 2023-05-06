@@ -1,30 +1,56 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.rest;
 
-import com.baidu.hugegraph.pd.grpc.Metapb;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.hugegraph.pd.model.PeerRestRequest;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.service.PDService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.baidu.hugegraph.pd.grpc.Metapb;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
 import com.baidu.hugegraph.pd.raft.RaftEngine;
 
 import io.grpc.stub.CallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
-import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.*;
 
 @RestController
 @Slf4j
@@ -62,39 +88,43 @@ public class MemberAPI extends API {
         resultMap.put("pdList", members);
         resultMap.put("pdLeader", leader);
         resultMap.put("numOfService", members.size());
-        resultMap.put("numOfNormalService", stateCountMap.getOrDefault(Metapb.StoreState.Up.name(), 0));
+        resultMap.put("numOfNormalService",
+                      stateCountMap.getOrDefault(Metapb.StoreState.Up.name(), 0));
         resultMap.put("stateCountMap", stateCountMap);
         return new RestApiResponse(resultMap, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
     }
 
-    @PostMapping(value = "/members/change", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/members/change", consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public String changePeerList(@RequestBody PeerRestRequest body, HttpServletRequest request) {
         try {
-            Pdpb.ChangePeerListRequest rpcRequest = Pdpb.ChangePeerListRequest.newBuilder().setPeerList(
-                    body.getPeerList()).build();
+            Pdpb.ChangePeerListRequest rpcRequest =
+                    Pdpb.ChangePeerListRequest.newBuilder().setPeerList(
+                            body.getPeerList()).build();
             CountDownLatch latch = new CountDownLatch(1);
             final Pdpb.ResponseHeader[] responseHeader = {null};
-            StreamObserver<Pdpb.getChangePeerListResponse> observer = new StreamObserver<Pdpb.getChangePeerListResponse>() {
-                @Override
-                public void onNext(Pdpb.getChangePeerListResponse value) {
-                    responseHeader[0] = value.getHeader();
-                }
+            StreamObserver<Pdpb.getChangePeerListResponse> observer =
+                    new StreamObserver<Pdpb.getChangePeerListResponse>() {
+                        @Override
+                        public void onNext(Pdpb.getChangePeerListResponse value) {
+                            responseHeader[0] = value.getHeader();
+                        }
 
-                @Override
-                public void onError(Throwable t) {
-                    responseHeader[0] = Pdpb.ResponseHeader.newBuilder().setError(
-                            Pdpb.Error.newBuilder().setType(
-                                    Pdpb.ErrorType.UNKNOWN).setMessage(
-                                    t.getMessage()).build()).build();
-                    latch.countDown();
-                }
+                        @Override
+                        public void onError(Throwable t) {
+                            responseHeader[0] = Pdpb.ResponseHeader.newBuilder().setError(
+                                    Pdpb.Error.newBuilder().setType(
+                                            Pdpb.ErrorType.UNKNOWN).setMessage(
+                                            t.getMessage()).build()).build();
+                            latch.countDown();
+                        }
 
-                @Override
-                public void onCompleted() {
-                    latch.countDown();
-                }
-            };
+                        @Override
+                        public void onCompleted() {
+                            latch.countDown();
+                        }
+                    };
             pdService.changePeerList(rpcRequest, observer);
             latch.await();
             return toJSON(responseHeader[0], "changeResult");
@@ -104,7 +134,8 @@ public class MemberAPI extends API {
     }
 
 
-    public static class CallStreamObserverWrap<V> extends CallStreamObserver<V> implements Future<List<V>> {
+    public static class CallStreamObserverWrap<V> extends CallStreamObserver<V> implements
+                                                                                Future<List<V>> {
         CompletableFuture<List<V>> future = new CompletableFuture<>();
         List<V> values = new ArrayList<>();
 
@@ -169,7 +200,9 @@ public class MemberAPI extends API {
         }
 
         @Override
-        public List<V> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        public List<V> get(long timeout, TimeUnit unit) throws InterruptedException,
+                                                               ExecutionException,
+                                                               TimeoutException {
             return future.get(timeout, unit);
         }
     }

@@ -31,7 +31,7 @@ message Kv {
   string value = 3;
 }
 message KvResponse {
-    pdpb.ResponseHeader header = 1;
+  pdpb.ResponseHeader header = 1;
 }
 
 message K{
@@ -46,7 +46,7 @@ message KResponse{
 
 message ScanPrefixResponse {
   pdpb.ResponseHeader header = 1;
-  map<string,string> kvs = 2;
+  map<string, string> kvs = 2;
 }
 
 message LockRequest{
@@ -88,7 +88,7 @@ message WatchEvent {
 
 message WatchResponse {
   pdpb.ResponseHeader header = 1;
-  repeated WatchEvent events= 2;
+  repeated WatchEvent events = 2;
   int64 clientId = 3;
   WatchState state = 4;
 }
@@ -102,7 +102,7 @@ enum WatchState {
 
 message WatchRequest {
   pdpb.RequestHeader header = 1;
-  WatchState state= 2;
+  WatchState state = 2;
   string key = 3;
   int64 clientId = 4;
 }
@@ -110,7 +110,7 @@ message WatchRequest {
 message V{
   string value = 1;
   int64  ttl = 2;
-  int64 st =3;
+  int64 st = 3;
 }
 
 message TTLRequest{

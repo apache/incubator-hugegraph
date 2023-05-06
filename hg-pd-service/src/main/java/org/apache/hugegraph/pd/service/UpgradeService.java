@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.pd.service;
 
 import com.baidu.hugegraph.pd.KvService;
@@ -6,6 +23,7 @@ import com.baidu.hugegraph.pd.config.PDConfig;
 import com.baidu.hugegraph.pd.rest.API;
 import com.baidu.hugegraph.pd.upgrade.VersionScriptFactory;
 import com.baidu.hugegraph.pd.upgrade.VersionUpgradeScript;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,11 +33,11 @@ public class UpgradeService {
 
     private static final String RUN_LOG_PREFIX = "SCRIPT_RUN_LOG";
 
-    private PDConfig pdConfig;
+    private final PDConfig pdConfig;
 
-    private KvService kvService;
+    private final KvService kvService;
 
-    public UpgradeService (PDConfig pdConfig){
+    public UpgradeService(PDConfig pdConfig) {
         this.pdConfig = pdConfig;
         this.kvService = new KvService(pdConfig);
     }
@@ -30,7 +48,7 @@ public class UpgradeService {
         VersionScriptFactory factory = VersionScriptFactory.getInstance();
         var dataVersion = getDataVersion();
         log.info("now db data version : {}", dataVersion);
-        for(VersionUpgradeScript script : factory.getScripts()) {
+        for (VersionUpgradeScript script : factory.getScripts()) {
             // 执行过，run once的跳过
             if (isExecuted(script.getClass().getName()) && script.isRunOnce()) {
                 log.info("Script {} is Executed and is run once", script.getClass().getName());
@@ -39,8 +57,13 @@ public class UpgradeService {
 
             // 判断跳过的条件
             if (dataVersion == null && !script.isRunWithoutDataVersion() || dataVersion != null &&
-                            !versionCompare(dataVersion, script.getHighVersion(), script.getLowVersion())) {
-                log.info("Script {} is did not match version requirements, current data version:{}, current version:{}"
+                                                                            !versionCompare(
+                                                                                    dataVersion,
+                                                                                    script.getHighVersion(),
+                                                                                    script.getLowVersion())) {
+                log.info(
+                        "Script {} is did not match version requirements, current data " +
+                        "version:{}, current version:{}"
                         + "script run version({} to {}), run without data version:{}",
                         script.getClass().getName(),
                         dataVersion,
@@ -73,11 +96,10 @@ public class UpgradeService {
 
     private boolean versionCompare(String dataVersion, String high, String low) {
         var currentVersion = API.VERSION;
-        if (!high.equals(VersionUpgradeScript.UNLIMITED_VERSION) && high.compareTo(dataVersion) < 0
-            || !low.equals(VersionUpgradeScript.UNLIMITED_VERSION) && low.compareTo(currentVersion) > 0){
-            return false;
-        }
-        return true;
+        return (high.equals(VersionUpgradeScript.UNLIMITED_VERSION) ||
+                high.compareTo(dataVersion) >= 0)
+               && (low.equals(VersionUpgradeScript.UNLIMITED_VERSION) ||
+                   low.compareTo(currentVersion) <= 0);
     }
 
     private void writeCurrentDataVersion() throws PDException {

@@ -1,4 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.client;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.function.Consumer;
+
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
+import org.junit.Test;
 
 import com.baidu.hugegraph.pd.client.KvClient;
 import com.baidu.hugegraph.pd.client.PDConfig;
@@ -9,18 +35,14 @@ import com.baidu.hugegraph.pd.grpc.kv.WatchKv;
 import com.baidu.hugegraph.pd.grpc.kv.WatchResponse;
 import com.baidu.hugegraph.pd.grpc.kv.WatchState;
 import com.baidu.hugegraph.pd.grpc.kv.WatchType;
+
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
-import org.apache.commons.lang3.StringUtils;
-import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.Before;
-import org.junit.Test;
-import static org.mockito.Mockito.mock;
-
-import java.util.function.Consumer;
 
 public class KvClientTest extends BaseClientTest {
 
+    String key = "key";
+    String value = "value";
     private KvClient<WatchResponse> client;
 
     @Before
@@ -32,11 +54,9 @@ public class KvClientTest extends BaseClientTest {
     public void testCreateStub() {
         // Setup
         // Run the test
-        try{
+        try {
             final AbstractStub result = client.createStub();
         } catch (Exception e) {
-
-        } finally {
 
         }
 
@@ -48,17 +68,12 @@ public class KvClientTest extends BaseClientTest {
     public void testCreateBlockingStub() {
         // Setup
         // Run the test
-        try{
+        try {
             final AbstractBlockingStub result = client.createBlockingStub();
         } catch (Exception e) {
 
-        } finally {
-
         }
     }
-
-    String key = "key";
-    String value = "value";
 
     @Test
     public void testPutAndGet() throws Exception {

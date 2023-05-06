@@ -1,6 +1,4 @@
 /*
- * Copyright 2017 HugeGraph Authors
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -19,38 +17,6 @@
 
 package org.apache.hugegraph.pd.license;
 
-import com.baidu.hugegraph.license.ExtraParam;
-import com.baidu.hugegraph.license.LicenseVerifyParam;
-import com.baidu.hugegraph.license.MachineInfo;
-import com.baidu.hugegraph.pd.KvService;
-import com.baidu.hugegraph.pd.common.PDRuntimeException;
-import com.baidu.hugegraph.pd.config.PDConfig;
-import com.baidu.hugegraph.pd.grpc.Pdpb;
-import com.baidu.hugegraph.pd.grpc.kv.KvServiceGrpc;
-import com.baidu.hugegraph.pd.grpc.kv.TTLRequest;
-import com.baidu.hugegraph.pd.grpc.kv.TTLResponse;
-import com.baidu.hugegraph.pd.raft.RaftEngine;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.internal.LinkedTreeMap;
-import de.schlichtherle.license.CipherParam;
-import de.schlichtherle.license.DefaultCipherParam;
-import de.schlichtherle.license.DefaultKeyStoreParam;
-import de.schlichtherle.license.DefaultLicenseParam;
-import de.schlichtherle.license.KeyStoreParam;
-import de.schlichtherle.license.LicenseContent;
-import de.schlichtherle.license.LicenseParam;
-import io.grpc.CallOptions;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.MethodDescriptor;
-import io.grpc.stub.AbstractBlockingStub;
-import io.grpc.stub.StreamObserver;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.util.Base64Utils;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -65,27 +31,100 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.prefs.Preferences;
 
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.util.Base64Utils;
+
+import com.baidu.hugegraph.license.ExtraParam;
+import com.baidu.hugegraph.license.LicenseVerifyParam;
+import com.baidu.hugegraph.license.MachineInfo;
+import com.baidu.hugegraph.pd.KvService;
+import com.baidu.hugegraph.pd.common.PDRuntimeException;
+import com.baidu.hugegraph.pd.config.PDConfig;
+import com.baidu.hugegraph.pd.grpc.Pdpb;
+import com.baidu.hugegraph.pd.grpc.kv.KvServiceGrpc;
+import com.baidu.hugegraph.pd.grpc.kv.TTLRequest;
+import com.baidu.hugegraph.pd.grpc.kv.TTLResponse;
+import com.baidu.hugegraph.pd.raft.RaftEngine;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
+
+import de.schlichtherle.license.CipherParam;
+import de.schlichtherle.license.DefaultCipherParam;
+import de.schlichtherle.license.DefaultKeyStoreParam;
+import de.schlichtherle.license.DefaultLicenseParam;
+import de.schlichtherle.license.KeyStoreParam;
+import de.schlichtherle.license.LicenseContent;
+import de.schlichtherle.license.LicenseParam;
+import io.grpc.CallOptions;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
+import io.grpc.stub.AbstractBlockingStub;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
 @Slf4j
 public class LicenseVerifierService {
 
-    private PDConfig pdConfig;
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
-    private volatile Instant lastCheckTime = Instant.now();
-    // private final LicenseVerifyParam verifyParam;
-    private LicenseVerifyManager manager;
     private static LicenseContent content;
     private static KvService kvService;
-    private static String contentKey = "contentKey";
-    private static Gson mapper = new Gson();
-    private final MachineInfo machineInfo;
+    private static final String contentKey = "contentKey";
+    private static final Gson mapper = new Gson();
     private static volatile boolean installed = false;
+    private final MachineInfo machineInfo;
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final PDConfig pdConfig;
+    private final Instant lastCheckTime = Instant.now();
+    // private final LicenseVerifyParam verifyParam;
+    private LicenseVerifyManager manager;
+    private ManagedChannel channel;
+
+    // public static LicenseVerifierService instance() {
+    //    if (INSTANCE == null) {
+    //        synchronized (LicenseVerifierService.class) {
+    //            if (INSTANCE == null) {
+    //                INSTANCE = new LicenseVerifierService();
+    //            }
+    //        }
+    //    }
+    //    return INSTANCE;
+    // }
+
+    // public void verifyIfNeeded() {
+    //    Instant now = Instant.now();
+    //    Duration interval = Duration.between(this.lastCheckTime, now);
+    //    if (!interval.minus(CHECK_INTERVAL).isNegative()) {
+    //        this.verify();
+    //        this.lastCheckTime = now;
+    //    }
+    // }
 
     public LicenseVerifierService(PDConfig pdConfig) {
         this.pdConfig = pdConfig;
         machineInfo = new MachineInfo();
         kvService = new KvService(pdConfig);
         // verifyParam = initLicense(pdConfig);
+    }
+
+    private static LicenseVerifyParam buildVerifyParam(String path) {
+        // NOTE: can't use JsonUtil due to it bind tinkerpop jackson
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            File licenseParamFile = new File(path);
+            if (!licenseParamFile.exists()) {
+                log.warn("failed to get file:{}", path);
+                return null;
+            }
+            return mapper.readValue(licenseParamFile, LicenseVerifyParam.class);
+        } catch (IOException e) {
+            throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE,
+                                         String.format("Failed to read json stream to %s",
+                                                       LicenseVerifyParam.class));
+        }
     }
 
     public LicenseVerifyParam init() {
@@ -123,26 +162,31 @@ public class LicenseVerifierService {
                                 }
                                 if (RaftEngine.getInstance().getLeader() != null) {
                                     CountDownLatch latch = new CountDownLatch(1);
-                                    TTLRequest request = TTLRequest.newBuilder().setKey(contentKey).setValue(
-                                            mapper.toJson(content, LicenseContent.class)).setTtl(ttl).build();
-                                    StreamObserver<TTLResponse> observer = new StreamObserver<TTLResponse>() {
-                                        @Override
-                                        public void onNext(TTLResponse value) {
-                                            info[0] = value;
-                                            latch.countDown();
-                                        }
+                                    TTLRequest request =
+                                            TTLRequest.newBuilder().setKey(contentKey).setValue(
+                                                              mapper.toJson(content,
+                                                                            LicenseContent.class))
+                                                      .setTtl(ttl).build();
+                                    StreamObserver<TTLResponse> observer =
+                                            new StreamObserver<TTLResponse>() {
+                                                @Override
+                                                public void onNext(TTLResponse value) {
+                                                    info[0] = value;
+                                                    latch.countDown();
+                                                }
 
-                                        @Override
-                                        public void onError(Throwable t) {
-                                            latch.countDown();
-                                        }
+                                                @Override
+                                                public void onError(Throwable t) {
+                                                    latch.countDown();
+                                                }
 
-                                        @Override
-                                        public void onCompleted() {
-                                            latch.countDown();
-                                        }
-                                    };
-                                    redirectToLeader(KvServiceGrpc.getPutTTLMethod(), request, observer);
+                                                @Override
+                                                public void onCompleted() {
+                                                    latch.countDown();
+                                                }
+                                            };
+                                    redirectToLeader(KvServiceGrpc.getPutTTLMethod(), request,
+                                                     observer);
                                     latch.await();
                                     Pdpb.Error error = info[0].getHeader().getError();
                                     if (!error.getType().equals(Pdpb.ErrorType.OK)) {
@@ -153,7 +197,8 @@ public class LicenseVerifierService {
                                 }
 
                             } else {
-                                kvService.put(contentKey, mapper.toJson(content, LicenseContent.class), ttl);
+                                kvService.put(contentKey,
+                                              mapper.toJson(content, LicenseContent.class), ttl);
                             }
                             installed = true;
                             log.info("The license is successfully installed, valid for {} - {}",
@@ -170,30 +215,9 @@ public class LicenseVerifierService {
         return verifyParam;
     }
 
-    // public static LicenseVerifierService instance() {
-    //    if (INSTANCE == null) {
-    //        synchronized (LicenseVerifierService.class) {
-    //            if (INSTANCE == null) {
-    //                INSTANCE = new LicenseVerifierService();
-    //            }
-    //        }
-    //    }
-    //    return INSTANCE;
-    // }
-
-    // public void verifyIfNeeded() {
-    //    Instant now = Instant.now();
-    //    Duration interval = Duration.between(this.lastCheckTime, now);
-    //    if (!interval.minus(CHECK_INTERVAL).isNegative()) {
-    //        this.verify();
-    //        this.lastCheckTime = now;
-    //    }
-    // }
-
     public synchronized void install(String md5) {
 
     }
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public HashMap getContext() throws Exception {
         try {
@@ -243,7 +267,8 @@ public class LicenseVerifierService {
                 if (licNodes != -1) {
                     // licNodes为 -1时，表示不限制服务节点数目
                     if (nodeCount > licNodes) {
-                        String msg = String.format("无效的节点个数: %s,授权数: %s", nodeCount, licNodes);
+                        String msg =
+                                String.format("无效的节点个数: %s,授权数: %s", nodeCount, licNodes);
                         throw new PDRuntimeException(
                                 Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE, msg);
                     }
@@ -256,32 +281,8 @@ public class LicenseVerifierService {
         }
     }
 
-    private ManagedChannel channel;
-
     public boolean isLeader() {
         return RaftEngine.getInstance().isLeader();
-    }
-
-    private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
-            MethodDescriptor<ReqT, RespT> method, ReqT req, io.grpc.stub.StreamObserver<RespT> observer) {
-        try {
-            if (channel == null) {
-                synchronized (this) {
-                    if (channel == null) {
-                        channel = ManagedChannelBuilder
-                                .forTarget(RaftEngine.getInstance().getLeaderGrpcAddress()).usePlaintext()
-                                .build();
-                    }
-                }
-                log.info("Grpc get leader address {}", RaftEngine.getInstance().getLeaderGrpcAddress());
-            }
-
-            io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions.DEFAULT), req,
-                                                    observer);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
     }
 
     // private void verifyPublicCert(String expectMD5) {
@@ -289,38 +290,50 @@ public class LicenseVerifierService {
     //    try (InputStream is = LicenseVerifierService.class.getResourceAsStream(path)) {
     //        String actualMD5 = DigestUtils.md5Hex(is);
     //        if (!actualMD5.equals(expectMD5)) {
-    //            throw new PDRuntimeException(PDRuntimeException.LICENSE_ERROR, "Invalid public cert");
+    //            throw new PDRuntimeException(PDRuntimeException.LICENSE_ERROR, "Invalid public
+    //            cert");
     //        }
     //    } catch (IOException e) {
     //        log.error("Failed to read public cert", e);
-    //        throw new PDRuntimeException(PDRuntimeException.LICENSE_ERROR, "Failed to read public cert", e);
+    //        throw new PDRuntimeException(PDRuntimeException.LICENSE_ERROR, "Failed to read
+    //        public cert", e);
     //    }
     // }
+
+    private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
+            MethodDescriptor<ReqT, RespT> method, ReqT req,
+            io.grpc.stub.StreamObserver<RespT> observer) {
+        try {
+            if (channel == null) {
+                synchronized (this) {
+                    if (channel == null) {
+                        channel = ManagedChannelBuilder
+                                .forTarget(RaftEngine.getInstance().getLeaderGrpcAddress())
+                                .usePlaintext()
+                                .build();
+                    }
+                }
+                log.info("Grpc get leader address {}",
+                         RaftEngine.getInstance().getLeaderGrpcAddress());
+            }
+
+            io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions.DEFAULT),
+                                                    req,
+                                                    observer);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 
     private LicenseParam initLicenseParam(LicenseVerifyParam param) {
         Preferences preferences = Preferences.userNodeForPackage(LicenseVerifierService.class);
         CipherParam cipherParam = new DefaultCipherParam(param.storePassword());
         KeyStoreParam keyStoreParam = new DefaultKeyStoreParam(LicenseVerifierService.class,
-                                                               param.publicKeyPath(), param.publicAlias(),
+                                                               param.publicKeyPath(),
+                                                               param.publicAlias(),
                                                                param.storePassword(), null);
         return new DefaultLicenseParam(param.subject(), preferences, keyStoreParam, cipherParam);
-    }
-
-    private static LicenseVerifyParam buildVerifyParam(String path) {
-        // NOTE: can't use JsonUtil due to it bind tinkerpop jackson
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            File licenseParamFile = new File(path);
-            if (!licenseParamFile.exists()) {
-                log.warn("failed to get file:{}", path);
-                return null;
-            }
-            return mapper.readValue(licenseParamFile, LicenseVerifyParam.class);
-        } catch (IOException e) {
-            throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE,
-                                         String.format("Failed to read json stream to %s",
-                                                       LicenseVerifyParam.class));
-        }
     }
 
     public String getIpAndMac() {
@@ -381,8 +394,11 @@ public class LicenseVerifierService {
             String expectFormatMac = expectMac.replaceAll(":", "-");
             String actualFormatMac = actualMac.replaceAll(":", "-");
             if (!actualFormatMac.equalsIgnoreCase(expectFormatMac)) {
-                throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE, String.format(
-                        "The server's mac '%s' doesn't match the authorized '%s'", actualMac, expectMac));
+                throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE,
+                                             String.format(
+                                                     "The server's mac '%s' doesn't match the " +
+                                                     "authorized '%s'",
+                                                     actualMac, expectMac));
             }
         } else {
             String expectFormatMac = expectMac.replaceAll(":", "-");
@@ -396,8 +412,11 @@ public class LicenseVerifierService {
                 }
             }
             if (!matched) {
-                throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE, String.format(
-                        "The server's macs %s don't match the authorized '%s'", actualMacs, expectMac));
+                throw new PDRuntimeException(Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE,
+                                             String.format(
+                                                     "The server's macs %s don't match the " +
+                                                     "authorized '%s'",
+                                                     actualMacs, expectMac));
             }
         }
     }

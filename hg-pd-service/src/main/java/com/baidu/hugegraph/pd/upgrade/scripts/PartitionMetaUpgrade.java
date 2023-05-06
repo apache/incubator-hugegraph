@@ -1,4 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package com.baidu.hugegraph.pd.upgrade.scripts;
+
+import java.util.HashSet;
 
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.config.PDConfig;
@@ -6,9 +25,8 @@ import com.baidu.hugegraph.pd.grpc.Metapb;
 import com.baidu.hugegraph.pd.meta.MetadataKeyHelper;
 import com.baidu.hugegraph.pd.meta.MetadataRocksDBStore;
 import com.baidu.hugegraph.pd.upgrade.VersionUpgradeScript;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashSet;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class PartitionMetaUpgrade implements VersionUpgradeScript {
@@ -31,9 +49,11 @@ public class PartitionMetaUpgrade implements VersionUpgradeScript {
 
         try {
             var partSet = new HashSet<Integer>();
-            for (var graph : dbStore.scanPrefix(Metapb.Graph.parser(), MetadataKeyHelper.getGraphPrefix())) {
+            for (var graph : dbStore.scanPrefix(Metapb.Graph.parser(),
+                                                MetadataKeyHelper.getGraphPrefix())) {
                 var graphPrefix = MetadataKeyHelper.getPartitionPrefix(graph.getGraphName());
-                for (var partition : dbStore.scanPrefix(Metapb.PartitionV36.parser(), graphPrefix)) {
+                for (var partition : dbStore.scanPrefix(Metapb.PartitionV36.parser(),
+                                                        graphPrefix)) {
                     var newPartition = trans(partition);
                     var partId = partition.getId();
                     log.info("trans partition structure: from {} to {}", partition, newPartition);
@@ -45,23 +65,24 @@ public class PartitionMetaUpgrade implements VersionUpgradeScript {
                     dbStore.put(key, newPartition.toByteArray());
 
                     // construct shard group
-                    if (! partSet.contains(partId)) {
+                    if (!partSet.contains(partId)) {
                         var shardGroupKey = MetadataKeyHelper.getShardGroupKey(partId);
                         var shardGroup = dbStore.getOne(Metapb.ShardGroup.parser(), shardGroupKey);
                         if (shardGroup == null) {
                             var shardList = partition.getShardsList();
                             if (shardList.size() > 0) {
                                 shardGroup = Metapb.ShardGroup.newBuilder()
-                                        .setId(partId)
-                                        .setVersion(partition.getVersion())
-                                        .setConfVer(0)
-                                        .setState(partition.getState())
-                                        .addAllShards(shardList)
-                                        .build();
+                                                              .setId(partId)
+                                                              .setVersion(partition.getVersion())
+                                                              .setConfVer(0)
+                                                              .setState(partition.getState())
+                                                              .addAllShards(shardList)
+                                                              .build();
                                 dbStore.put(shardGroupKey, shardGroup.toByteArray());
                                 log.info("extract shard group from partition, {}", shardGroup);
                             } else {
-                                throw new PDException(1000, "trans partition failed, no shard list");
+                                throw new PDException(1000,
+                                                      "trans partition failed, no shard list");
                             }
                         }
                         partSet.add(partId);
@@ -87,13 +108,13 @@ public class PartitionMetaUpgrade implements VersionUpgradeScript {
     private Metapb.Partition trans(Metapb.PartitionV36 partition) {
 
         return Metapb.Partition.newBuilder()
-                .setId(partition.getId())
-                .setGraphName(partition.getGraphName())
-                .setStartKey(partition.getStartKey())
-                .setEndKey(partition.getEndKey())
-                .setVersion(partition.getVersion())
-                .setState(partition.getState())
-                .setMessage(partition.getMessage())
-                .build();
+                               .setId(partition.getId())
+                               .setGraphName(partition.getGraphName())
+                               .setStartKey(partition.getStartKey())
+                               .setEndKey(partition.getEndKey())
+                               .setVersion(partition.getVersion())
+                               .setState(partition.getState())
+                               .setMessage(partition.getMessage())
+                               .build();
     }
 }

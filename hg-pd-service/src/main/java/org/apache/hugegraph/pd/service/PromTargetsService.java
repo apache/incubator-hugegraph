@@ -1,4 +1,37 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.pd.service;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.apache.hugegraph.pd.model.PromTargetsModel;
+import org.apache.hugegraph.pd.rest.MemberAPI;
+import org.apache.hugegraph.pd.util.HgMapCache;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.baidu.hugegraph.pd.RegistryService;
 import com.baidu.hugegraph.pd.common.HgAssert;
@@ -10,18 +43,7 @@ import com.baidu.hugegraph.pd.grpc.discovery.NodeInfo;
 import com.baidu.hugegraph.pd.grpc.discovery.NodeInfos;
 import com.baidu.hugegraph.pd.grpc.discovery.Query;
 
-import org.apache.hugegraph.pd.util.HgMapCache;
-import org.apache.hugegraph.pd.model.PromTargetsModel;
-import org.apache.hugegraph.pd.rest.MemberAPI;
-
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/24
@@ -30,26 +52,23 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PromTargetsService {
 
+    private final PromTargetsModel pdModel = PromTargetsModel.of()
+                                                             .addLabel("__app_name", "pd")
+                                                             .setScheme("http")
+                                                             .setMetricsPath(
+                                                                     "/actuator/prometheus");
+    private final PromTargetsModel storeModel = PromTargetsModel.of()
+                                                                .addLabel("__app_name", "store")
+                                                                .setScheme("http")
+                                                                .setMetricsPath(
+                                                                        "/actuator/prometheus");
     @Autowired
     private PDConfig pdConfig;
     @Autowired
     private PDService pdService;
-
     private RegistryService register;
-
-    private final PromTargetsModel pdModel = PromTargetsModel.of()
-            .addLabel("__app_name", "pd")
-            .setScheme("http")
-            .setMetricsPath("/actuator/prometheus");
-
-
-    private final PromTargetsModel storeModel = PromTargetsModel.of()
-            .addLabel("__app_name", "store")
-            .setScheme("http")
-            .setMetricsPath("/actuator/prometheus");
-
-
-    private HgMapCache<String, Set<String>> targetsCache = HgMapCache.expiredOf(24 * 60 * 60 * 1000);// expired after 24H.
+    private final HgMapCache<String, Set<String>> targetsCache =
+            HgMapCache.expiredOf(24 * 60 * 60 * 1000);// expired after 24H.
 
     private RegistryService getRegister() {
         if (this.register == null) {
@@ -60,7 +79,8 @@ public class PromTargetsService {
 
     public List<PromTargetsModel> getAllTargets() {
         List<PromTargetsModel> res = new LinkedList<>();
-        List<PromTargetsModel> buf = this.toModels(this.getRegister().getNodes(Query.newBuilder().build()));
+        List<PromTargetsModel> buf =
+                this.toModels(this.getRegister().getNodes(Query.newBuilder().build()));
 
         if (buf != null) {
             res.addAll(buf);
@@ -84,7 +104,8 @@ public class PromTargetsService {
             case "store":
                 return Collections.singletonList(this.getStoreTargets());
             default:
-                return this.toModels(this.getRegister().getNodes(Query.newBuilder().setAppName(appName).build()));
+                return this.toModels(this.getRegister()
+                                         .getNodes(Query.newBuilder().setAppName(appName).build()));
         }
     }
 
@@ -97,7 +118,8 @@ public class PromTargetsService {
     }
 
     private PromTargetsModel setTargets(PromTargetsModel model, Supplier<Set<String>> supplier) {
-        return model.setTargets(supplier.get()).setClusterId(String.valueOf(pdConfig.getClusterId()));
+        return model.setTargets(supplier.get())
+                    .setClusterId(String.valueOf(pdConfig.getClusterId()));
     }
 
     /* to prevent the failure of connection between pd and store or pd and pd.*/
@@ -129,37 +151,37 @@ public class PromTargetsService {
 
         List<PromTargetsModel> res =
                 nodes.stream().map(e -> {
-                            Map<String, String> labels = e.getLabelsMap();
+                         Map<String, String> labels = e.getLabelsMap();
 
-                            String target = labels.get("target");
-                            if (HgAssert.isInvalid(target)) return null;
+                         String target = labels.get("target");
+                         if (HgAssert.isInvalid(target)) return null;
 
-                            PromTargetsModel model = PromTargetsModel.of();
-                            model.addTarget(target);
-                            model.addLabel("__app_name", e.getAppName());
+                         PromTargetsModel model = PromTargetsModel.of();
+                         model.addTarget(target);
+                         model.addLabel("__app_name", e.getAppName());
 
-                            labels.forEach((k, v) -> {
-                                k = k.trim();
-                                switch (k) {
-                                    case "metrics":
-                                        model.setMetricsPath(v.trim());
-                                        break;
-                                    case "scheme":
-                                        model.setScheme(v.trim());
-                                        break;
-                                    default:
-                                        if (k.startsWith("__")) {
-                                            model.addLabel(k, v);
-                                        }
+                         labels.forEach((k, v) -> {
+                             k = k.trim();
+                             switch (k) {
+                                 case "metrics":
+                                     model.setMetricsPath(v.trim());
+                                     break;
+                                 case "scheme":
+                                     model.setScheme(v.trim());
+                                     break;
+                                 default:
+                                     if (k.startsWith("__")) {
+                                         model.addLabel(k, v);
+                                     }
 
-                                }
-                            });
+                             }
+                         });
 
 
-                            return model;
-                        })
-                        .filter(e -> e != null)
-                        .collect(Collectors.toList());
+                         return model;
+                     })
+                     .filter(e -> e != null)
+                     .collect(Collectors.toList());
 
         if (res.isEmpty()) {
             return null;
@@ -168,7 +190,8 @@ public class PromTargetsService {
     }
 
     private Set<String> getPdAddresses() {
-        MemberAPI.CallStreamObserverWrap<Pdpb.GetMembersResponse> response = new MemberAPI.CallStreamObserverWrap<>();
+        MemberAPI.CallStreamObserverWrap<Pdpb.GetMembersResponse> response =
+                new MemberAPI.CallStreamObserverWrap<>();
         pdService.getMembers(Pdpb.GetMembersRequest.newBuilder().build(), response);
         List<Metapb.Member> members = null;
 
