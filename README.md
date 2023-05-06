@@ -1,6 +1,9 @@
 # PD部署说明
+
 ## PD配置
+
 - 配置文件在application.yml
+
 ````
 license:
   # 验证使用的配置文件所在目录，包括主题、密码等
@@ -23,15 +26,20 @@ partition:
   # 默认每机器最大副本数,初始分区数= store-max-shard-count * store-number / default-shard-count
   store-max-shard-count: 12
 ````
+
 ##store配置
 -配置文件在application.yml,配置pdserver的address
+
 ````
 pdserver:
   # pd服务地址，多个pd地址用逗号分割
   address: pdserver ip:端口
 ````
+
 ## Hugegraph配置
+
 - 配置项在hugegraph的启动脚本start-hugegraph.sh中
+
 ````
 if [ -z "$META_SERVERS" ];then
   META_SERVERS="pdserver ip:端口"
@@ -40,7 +48,9 @@ if [ -z "$PD_PEERS" ];then
   PD_PEERS="pdserver ip:端口"
 fi
 ````
+
 ## RESTFUL API
+
 - pd提供了一些restful API可以获取集群分区，图，存储节点等一系列信息
 
 ###获取集群统计信息
@@ -48,6 +58,7 @@ fi
 #### 获取集群统计信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/cluster
 ```
@@ -115,6 +126,7 @@ GET http://localhost:8620/v1/cluster
 #### 获取pd集群成员信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/member
 ```
@@ -160,19 +172,23 @@ GET http://localhost:8620/v1/member
   "status": 0
 }
 ```
+
 ###存储节点相关
 
 #### 获取集群所有的store的信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/stores
 ```
+
 ###### Response Status
 
 ```json
 200
 ```
+
 ###### Request Body
 
 ```json
@@ -241,18 +257,23 @@ GET http://localhost:8620/v1/stores
   "status": 0
 }
 ```
+
 #### 获取单个store的信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/store/{storeId}
 ```
+
 ###### Response Status
 
 ```json
 200
 ```
+
 ###### Request Body
+
 ```json
 {
   "message": "OK",
@@ -315,10 +336,13 @@ GET http://localhost:8620/v1/store/{storeId}
   "status": 0
 }
 ```
+
 ### 分区相关
+
 #### 获取分区信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/highLevelPartitions
 ```
@@ -475,10 +499,13 @@ GET http://localhost:8620/v1/highLevelPartitions
   "status": 0
 }
 ```
+
 ###获取图信息
+
 #### 获取所有的图信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/graphs
 ```
@@ -630,9 +657,11 @@ GET http://localhost:8620/v1/graphs
   "status": 0
 }
 ```
+
 #### 获取单个图信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/graph/{graphName}
 ```
@@ -726,10 +755,13 @@ GET http://localhost:8620/v1/graph/{graphName}
   "status": 0
 }
 ```
+
 ###获取shard的信息
+
 #### 获取所有shard的信息
 
 ###### Method & Url
+
 ```
 GET http://localhost:8620/v1/shards
 ```
@@ -800,15 +832,19 @@ GET http://localhost:8620/v1/shards
   "status": 0
 }
 ```
+
 ###服务注册
+
 #### 注册服务
 
 ###### Method & Url
+
 ```
 POST http://127.0.0.1:8620/v1/registry
 ```
 
 ###### Request Body
+
 ```json
 200
 ```
@@ -826,6 +862,7 @@ POST http://127.0.0.1:8620/v1/registry
   }
 }
 ```
+
 appName：所属服务名  
 version：所属服务版本号  
 address：服务实例地址+端口  
@@ -841,17 +878,21 @@ labels: 自定义标签，若服务名为'hg'即hugeserver时，需要提供key�
   "data": null
 }
 ```
+
 errorType：状态码  
 message：状态码为错误时的具体出错信息  
 data：无返回数据
+
 #### 服务实例获取
 
 ###### Method & Url
+
 ```
 POST http://127.0.0.1:8620/v1/registryInfo
 ```
 
 ###### Request Body
+
 ```json
 200
 ```
@@ -867,10 +908,11 @@ POST http://127.0.0.1:8620/v1/registryInfo
   }
 }
 ```
+
 以下三项可全部为空，则获取所有服务节点的信息:  
 -- appName：过滤所属服务名的条件   
 -- version：过滤所属服务版本号的条件，此项有值，则appName不能为空  
--- labels: 过滤自定义标签的条件  
+-- labels: 过滤自定义标签的条件
 
 ###### Response Body
 
@@ -892,6 +934,7 @@ POST http://127.0.0.1:8620/v1/registryInfo
   ]
 }
 ```
+
 errorType：状态码  
 message：状态码为错误时的具体出错信息  
 data：获取的服务节点信息  

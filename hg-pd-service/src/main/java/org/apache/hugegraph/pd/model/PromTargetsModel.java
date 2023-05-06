@@ -30,9 +30,8 @@ public class PromTargetsModel {
     private static final String LABEL_SCHEME = "__scheme__";
     private static final String LABEL_JOB_NAME = "job";
     private static final String LABEL_CLUSTER = "cluster";
-
-    private Set<String> targets = new HashSet<>();
     private final Map<String, String> labels = new HashMap<>();
+    private Set<String> targets = new HashSet<>();
 
     private PromTargetsModel() {
     }

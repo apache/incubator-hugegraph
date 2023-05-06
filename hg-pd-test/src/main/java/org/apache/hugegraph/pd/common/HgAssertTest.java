@@ -110,8 +110,10 @@ public class HgAssertTest {
 
     @Test
     public void testIsContains() {
-        assertTrue(HgAssert.isContains(new Object[]{Integer.valueOf(1), Long.valueOf(2)}, Long.valueOf(2)));
-        assertFalse(HgAssert.isContains(new Object[]{Integer.valueOf(1), Long.valueOf(2)}, Long.valueOf(3)));
+        assertTrue(HgAssert.isContains(new Object[]{Integer.valueOf(1), Long.valueOf(2)},
+                                       Long.valueOf(2)));
+        assertFalse(HgAssert.isContains(new Object[]{Integer.valueOf(1), Long.valueOf(2)},
+                                        Long.valueOf(3)));
     }
 
     @Test

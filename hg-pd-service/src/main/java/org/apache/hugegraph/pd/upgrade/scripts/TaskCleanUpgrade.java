@@ -15,13 +15,14 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd.upgrade.scripts;
+package org.apache.hugegraph.pd.upgrade.scripts;
+
+import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
 
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.config.PDConfig;
 import com.baidu.hugegraph.pd.meta.MetadataKeyHelper;
 import com.baidu.hugegraph.pd.meta.MetadataRocksDBStore;
-import com.baidu.hugegraph.pd.upgrade.VersionUpgradeScript;
 
 import lombok.extern.slf4j.Slf4j;
 

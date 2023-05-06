@@ -171,6 +171,21 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
 
             }
         };
+    }
+
+    public void listen(String key, Consumer<T> consumer) throws PDException {
+        StreamObserver<WatchResponse> observer = getObserver(key, consumer, listenWrapper);
+        acquire();
+        WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(key).build();
+        streamingCall(KvServiceGrpc.getWatchMethod(), k, observer, 1);
+    }
+
+    public void listenPrefix(String prefix, Consumer<T> consumer) throws PDException {
+        StreamObserver<WatchResponse> observer = getObserver(prefix, consumer, prefixListenWrapper);
+        acquire();
+        WatchRequest k =
+                WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
+        streamingCall(KvServiceGrpc.getWatchPrefixMethod(), k, observer, 1);
     }    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
         try {
             listen(key, consumer);
@@ -182,31 +197,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             }
         }
     };
-
-    public void listen(String key, Consumer<T> consumer) throws PDException {
-        StreamObserver<WatchResponse> observer = getObserver(key, consumer, listenWrapper);
-        acquire();
-        WatchRequest k = WatchRequest.newBuilder().setClientId(clientId.get()).setKey(key).build();
-        streamingCall(KvServiceGrpc.getWatchMethod(), k, observer, 1);
-    }    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
-        try {
-            listenPrefix(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listenPrefix with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
-
-    public void listenPrefix(String prefix, Consumer<T> consumer) throws PDException {
-        StreamObserver<WatchResponse> observer = getObserver(prefix, consumer, prefixListenWrapper);
-        acquire();
-        WatchRequest k =
-                WatchRequest.newBuilder().setClientId(clientId.get()).setKey(prefix).build();
-        streamingCall(KvServiceGrpc.getWatchPrefixMethod(), k, observer, 1);
-    }
 
     private void acquire() {
         if (clientId.get() == 0L) {
@@ -247,7 +237,17 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             values.put(key, value);
         }
         return values;
-    }
+    }    BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
+        try {
+            listenPrefix(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listenPrefix with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     public LockResponse lock(String key, long ttl) throws PDException {
         acquire();
@@ -302,6 +302,7 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
     public void close() {
         super.close();
     }
+
 
 
 

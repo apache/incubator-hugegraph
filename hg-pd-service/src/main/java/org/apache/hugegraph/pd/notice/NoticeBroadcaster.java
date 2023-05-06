@@ -29,9 +29,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class NoticeBroadcaster {
+    private final Supplier<Long> noticeSupplier;
     private long noticeId;
     private String durableId;
-    private final Supplier<Long> noticeSupplier;
     private Supplier<String> durableSupplier;
     private Function<String, Boolean> removeFunction;
     private int state; //0=ready; 1=notified; 2=done ack; -1=error

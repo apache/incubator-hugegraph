@@ -19,7 +19,7 @@ grpc:
     max-inbound-message-size: 100MB
 
 server:
-  port : 8622
+  port: 8622
 
 pd:
   # 集群ID，区分不同的PD集群

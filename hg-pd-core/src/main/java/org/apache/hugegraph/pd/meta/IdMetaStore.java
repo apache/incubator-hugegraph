@@ -49,6 +49,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
     private static final ConcurrentHashMap<String, Object> SEQUENCES = new ConcurrentHashMap<>();
     public static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
     private final long clusterId;
+
     public IdMetaStore(PDConfig pdConfig) {
         super(pdConfig);
         this.clusterId = pdConfig.getClusterId();

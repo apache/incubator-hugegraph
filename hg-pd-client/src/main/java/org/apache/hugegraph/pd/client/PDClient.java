@@ -1201,8 +1201,8 @@ public class PDClient {
     }
 
     static class StubProxy {
-        private volatile PDGrpc.PDBlockingStub stub;
         private final LinkedList<String> hostList = new LinkedList<>();
+        private volatile PDGrpc.PDBlockingStub stub;
 
         public StubProxy(String[] hosts) {
             for (String host : hosts) if (!host.isEmpty()) hostList.offer(host);

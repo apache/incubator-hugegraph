@@ -70,15 +70,15 @@ import lombok.extern.slf4j.Slf4j;
 public class LicenseVerifierService {
 
     private static final Duration CHECK_INTERVAL = Duration.ofMinutes(10);
-    private static LicenseContent content;
-    private static KvService kvService;
     private static final String contentKey = "contentKey";
     private static final Gson mapper = new Gson();
+    private static LicenseContent content;
+    private static KvService kvService;
     private static volatile boolean installed = false;
     private final MachineInfo machineInfo;
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final PDConfig pdConfig;
     private final Instant lastCheckTime = Instant.now();
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     // private final LicenseVerifyParam verifyParam;
     private LicenseVerifyManager manager;
     private ManagedChannel channel;

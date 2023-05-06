@@ -64,12 +64,12 @@ import lombok.extern.slf4j.Slf4j;
 public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implements RaftStateListener,
                                                                                   ServiceGrpc {
 
+    private final ManagedChannel channel = null;
     KvService kvService;
     AtomicLong count = new AtomicLong();
     String msg = "node is not leader,it is necessary to  redirect to the leader on the client";
     @Autowired
     private PDConfig pdConfig;
-    private final ManagedChannel channel = null;
     private KvWatchSubject subjects;
     private ScheduledExecutorService executor;
 

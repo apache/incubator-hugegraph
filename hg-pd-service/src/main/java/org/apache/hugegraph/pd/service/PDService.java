@@ -84,9 +84,10 @@ import lombok.extern.slf4j.Slf4j;
 public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
 
     static String TASK_ID_KEY = "task_id";
+    private final Pdpb.ResponseHeader okHeader = Pdpb.ResponseHeader.newBuilder().setError(
+            Pdpb.Error.newBuilder().setType(Pdpb.ErrorType.OK)).build();
     @Autowired
     private PDConfig pdConfig;
-
     private StoreNodeService storeNodeService;
     private PartitionService partitionService;
     private TaskScheduleService taskService;
@@ -94,11 +95,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
     private ConfigService configService;
     private LogService logService;
     private LicenseVerifierService licenseVerifierService;
-
     private StoreMonitorDataService storeMonitorDataService;
-
-    private final Pdpb.ResponseHeader okHeader = Pdpb.ResponseHeader.newBuilder().setError(
-            Pdpb.Error.newBuilder().setType(Pdpb.ErrorType.OK)).build();
     private ManagedChannel channel;
 
     private Pdpb.ResponseHeader newErrorHeader(int errorCode, String errorMsg) {

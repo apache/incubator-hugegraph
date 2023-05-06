@@ -30,6 +30,7 @@ public class RaftRpcProcessor<T extends RaftRpcProcessor.BaseRequest> implements
 
     private final Class<?> requestClass;
     private final RaftEngine raftEngine;
+
     public RaftRpcProcessor(Class<?> requestClass, RaftEngine raftEngine) {
         this.requestClass = requestClass;
         this.raftEngine = raftEngine;

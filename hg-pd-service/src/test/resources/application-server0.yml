@@ -18,12 +18,12 @@ grpc:
     max-inbound-message-size: 100MB
 
 server:
-  port : 8620
+  port: 8620
 
 pd:
 
   patrol-interval: 3000000
-  data-path:  tmp/8686
+  data-path: tmp/8686
   # 最少节点数，少于该数字，集群停止入库
   initial-store-count: 1
   # 初始store列表，在列表内的store自动激活

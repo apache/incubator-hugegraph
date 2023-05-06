@@ -66,8 +66,6 @@ public class TaskScheduleService {
     private final StoreMonitorDataService storeMonitorDataService;
     private final KvService kvService;
     private final LogService logService;
-    private long lastStoreTurnoffTime = 0;
-    private long lastBalanceLeaderTime = 0;
     // 先按照value排序，再按照key排序
     private final Comparator<KVPair<Long, Integer>> kvPairComparatorAsc = (o1, o2) -> {
         if (o1.getValue() == o2.getValue()) {
@@ -75,7 +73,6 @@ public class TaskScheduleService {
         }
         return o1.getValue().compareTo(o2.getValue());
     };
-
     // 先按照value排序(倒序)，再按照key排序(升序）
     private final Comparator<KVPair<Long, Integer>> kvPairComparatorDesc = (o1, o2) -> {
         if (o1.getValue() == o2.getValue()) {
@@ -83,6 +80,8 @@ public class TaskScheduleService {
         }
         return o2.getValue().compareTo(o1.getValue());
     };
+    private long lastStoreTurnoffTime = 0;
+    private long lastBalanceLeaderTime = 0;
 
 
     public TaskScheduleService(PDConfig config, StoreNodeService storeService,

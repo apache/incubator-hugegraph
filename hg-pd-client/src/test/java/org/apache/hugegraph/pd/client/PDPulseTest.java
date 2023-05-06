@@ -78,8 +78,8 @@ public class PDPulseTest {
 
 
     private class PulseListener<T> implements PDPulse.Listener<T> {
-        CountDownLatch latch = new CountDownLatch(10);
         private final String listenerName;
+        CountDownLatch latch = new CountDownLatch(10);
 
         private PulseListener(CountDownLatch latch, String listenerName) {
             this.latch = latch;

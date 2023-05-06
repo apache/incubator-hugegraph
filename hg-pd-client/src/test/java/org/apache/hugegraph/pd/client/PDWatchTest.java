@@ -63,8 +63,8 @@ public class PDWatchTest {
     }
 
     private class WatchListener<T> implements PDWatch.Listener<T> {
-        CountDownLatch latch = new CountDownLatch(10);
         private final String watcherName;
+        CountDownLatch latch = new CountDownLatch(10);
 
         private WatchListener(CountDownLatch latch, String watcherName) {
             this.latch = latch;

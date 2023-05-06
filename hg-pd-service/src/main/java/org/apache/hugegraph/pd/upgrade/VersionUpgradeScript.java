@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd.upgrade;
+package org.apache.hugegraph.pd.upgrade;
 
 import com.baidu.hugegraph.pd.config.PDConfig;
 

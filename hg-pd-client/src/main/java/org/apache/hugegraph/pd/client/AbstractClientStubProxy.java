@@ -28,9 +28,9 @@ import io.grpc.stub.AbstractStub;
  **/
 public class AbstractClientStubProxy {
 
+    private final LinkedList<String> hostList = new LinkedList<>();
     private AbstractBlockingStub blockingStub;
     private AbstractStub stub;
-    private final LinkedList<String> hostList = new LinkedList<>();
 
     public AbstractClientStubProxy(String[] hosts) {
         for (String host : hosts) if (!host.isEmpty()) hostList.offer(host);

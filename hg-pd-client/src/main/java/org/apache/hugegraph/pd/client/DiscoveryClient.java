@@ -45,12 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class DiscoveryClient implements Closeable, Discoverable {
 
+    private final Timer timer = new Timer("serverHeartbeat", true);
+    private final AtomicBoolean requireResetStub = new AtomicBoolean(false);
     protected int period; //心跳周期
     LinkedList<String> pdAddresses = new LinkedList<>();
     ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private final Timer timer = new Timer("serverHeartbeat", true);
     private volatile int currentIndex; // 当前在用pd地址位置
-    private final AtomicBoolean requireResetStub = new AtomicBoolean(false);
     private int maxTime = 6;
     private ManagedChannel channel = null;
     private DiscoveryServiceGrpc.DiscoveryServiceBlockingStub registerStub;

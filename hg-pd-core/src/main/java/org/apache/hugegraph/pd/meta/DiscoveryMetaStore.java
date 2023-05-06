@@ -41,6 +41,7 @@ public class DiscoveryMetaStore extends MetadataRocksDBStore {
     //appName --> address --> registryInfo
     private static final String PREFIX = "REGIS-";
     private static final String SPLITTER = "-";
+
     public DiscoveryMetaStore(PDConfig pdConfig) {
         super(pdConfig);
     }

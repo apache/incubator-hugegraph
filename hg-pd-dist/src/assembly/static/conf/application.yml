@@ -24,7 +24,7 @@ grpc:
 
 server:
   # rest服务端口号
-  port : 8620
+  port: 8620
 
 pd:
   # 存储路径

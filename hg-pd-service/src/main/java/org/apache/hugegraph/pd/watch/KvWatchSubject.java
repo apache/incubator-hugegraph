@@ -52,9 +52,9 @@ public class KvWatchSubject {
     public static final long WATCH_TTL = 20000L;
     private static final ConcurrentMap<String, StreamObserver<WatchResponse>> clients =
             new ConcurrentHashMap<>();
+    private final KvService kvService;
     BiPredicate<String, String> equal = (kvKey, watchKey) -> kvKey.equals(watchKey);
     BiPredicate<String, String> startWith = (kvKey, watchKey) -> kvKey.startsWith(watchKey);
-    private final KvService kvService;
 
     /**
      * 会使用以下三组key:

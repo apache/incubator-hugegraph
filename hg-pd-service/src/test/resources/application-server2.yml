@@ -19,7 +19,7 @@ grpc:
     max-inbound-message-size: 100MB
 
 server:
-  port : 8621
+  port: 8621
 
 pd:
   # 集群ID，区分不同的PD集群

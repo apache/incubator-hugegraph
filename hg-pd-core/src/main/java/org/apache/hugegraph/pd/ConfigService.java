@@ -32,8 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConfigService implements RaftStateListener {
 
-    private PDConfig pdConfig;
     private final ConfigMetaStore meta;
+    private PDConfig pdConfig;
 
     public ConfigService(PDConfig config) {
         this.pdConfig = config;

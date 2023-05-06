@@ -25,8 +25,8 @@ import com.baidu.hugegraph.pd.common.PDException;
 
 public class IdService {
 
-    private PDConfig pdConfig;
     private final IdMetaStore meta;
+    private PDConfig pdConfig;
 
     public IdService(PDConfig config) {
         this.pdConfig = config;

@@ -15,18 +15,17 @@
  * under the License.
  */
 
-package com.baidu.hugegraph.pd.upgrade;
+package org.apache.hugegraph.pd.upgrade;
 
 import java.util.LinkedList;
 import java.util.List;
 
-import com.baidu.hugegraph.pd.upgrade.scripts.PartitionMetaUpgrade;
-import com.baidu.hugegraph.pd.upgrade.scripts.TaskCleanUpgrade;
+import org.apache.hugegraph.pd.upgrade.scripts.PartitionMetaUpgrade;
+import org.apache.hugegraph.pd.upgrade.scripts.TaskCleanUpgrade;
 
 public class VersionScriptFactory {
-    private static volatile VersionScriptFactory factory;
-
     private static final List<VersionUpgradeScript> scripts = new LinkedList<>();
+    private static volatile VersionScriptFactory factory;
 
     static {
         registerScript(new PartitionMetaUpgrade());

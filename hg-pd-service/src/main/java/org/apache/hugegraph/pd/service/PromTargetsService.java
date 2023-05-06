@@ -62,13 +62,13 @@ public class PromTargetsService {
                                                                 .setScheme("http")
                                                                 .setMetricsPath(
                                                                         "/actuator/prometheus");
+    private final HgMapCache<String, Set<String>> targetsCache =
+            HgMapCache.expiredOf(24 * 60 * 60 * 1000);// expired after 24H.
     @Autowired
     private PDConfig pdConfig;
     @Autowired
     private PDService pdService;
     private RegistryService register;
-    private final HgMapCache<String, Set<String>> targetsCache =
-            HgMapCache.expiredOf(24 * 60 * 60 * 1000);// expired after 24H.
 
     private RegistryService getRegister() {
         if (this.register == null) {

@@ -17,12 +17,13 @@
 
 package com.baidu.hugegraph.pd.service;
 
+import org.apache.hugegraph.pd.upgrade.VersionScriptFactory;
+import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
+
 import com.baidu.hugegraph.pd.KvService;
 import com.baidu.hugegraph.pd.common.PDException;
 import com.baidu.hugegraph.pd.config.PDConfig;
 import com.baidu.hugegraph.pd.rest.API;
-import com.baidu.hugegraph.pd.upgrade.VersionScriptFactory;
-import com.baidu.hugegraph.pd.upgrade.VersionUpgradeScript;
 
 import lombok.extern.slf4j.Slf4j;
 

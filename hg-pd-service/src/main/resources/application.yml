@@ -24,7 +24,7 @@ license:
   license-path: 'conf/hugegraph.license'
 
 server:
-  port : 8620
+  port: 8620
 
 pd:
   # 定期检查集群是否健康的时间间隔，单位秒

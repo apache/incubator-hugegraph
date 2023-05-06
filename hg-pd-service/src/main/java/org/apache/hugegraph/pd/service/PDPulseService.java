@@ -53,6 +53,7 @@ public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
     @Autowired
     private PDConfig pdConfig;
     private QueueStore queueStore = null;
+
     public PDPulseService() {
         PDPulseSubject.setQueueRetrieveFunction(() -> getQueue());
         PDPulseSubject.setQueueDurableFunction(getQueueDurableFunction());

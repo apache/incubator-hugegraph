@@ -59,14 +59,13 @@ public class StoreNodeService {
     // Store状态监听
     private final List<StoreStatusListener> statusListeners;
     private final List<ShardGroupStatusListener> shardGroupStatusListeners;
-    private PartitionService partitionService;
     private final StoreInfoMeta storeInfoMeta;
     private final TaskInfoMeta taskInfoMeta;
     private final Random random = new Random(System.currentTimeMillis());
-    private Metapb.ClusterStats clusterStats;
     private final KvService kvService;
     private final ConfigService configService;
     private final PDConfig pdConfig;
+    private PartitionService partitionService;
     private final Runnable quotaChecker = () -> {
         try {
             getQuota();
@@ -76,6 +75,7 @@ public class StoreNodeService {
                     e);
         }
     };
+    private Metapb.ClusterStats clusterStats;
 
     public StoreNodeService(PDConfig config) {
         this.pdConfig = config;

@@ -51,8 +51,8 @@ public class KvService {
     private static final String LOCK_PREFIX = "L";
     private static final String KV_PREFIX_DELIMITER = KV_PREFIX + KV_DELIMITER;
     private static final byte[] EMPTY_VALUE = new byte[0];
-    private PDConfig pdConfig;
     private final MetadataRocksDBStore meta;
+    private PDConfig pdConfig;
 
     public KvService(PDConfig config) {
         this.pdConfig = config;
