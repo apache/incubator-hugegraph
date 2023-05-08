@@ -824,7 +824,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         Iterator<HugeVertex> vertices = new MapperIterator<>(entries,
                                                              this::parseEntry);
-        vertices = this.filterExpiredResultFromFromBackend(query, vertices);
+        vertices = this.filterExpiredResultFromBackend(query, vertices);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -1028,7 +1028,7 @@ public class GraphTransaction extends IndexableTransaction {
             return new ListIterator<>(ImmutableList.copyOf(vertex.getEdges()));
         });
 
-        edges = this.filterExpiredResultFromFromBackend(query, edges);
+        edges = this.filterExpiredResultFromBackend(query, edges);
 
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
@@ -1752,8 +1752,7 @@ public class GraphTransaction extends IndexableTransaction {
         return false;
     }
 
-    private <T extends HugeElement> Iterator<T>
-                                    filterExpiredResultFromFromBackend(
+    private <T extends HugeElement> Iterator<T> filterExpiredResultFromBackend(
                                     Query query, Iterator<T> results) {
         if (this.store().features().supportsTtl() || query.showExpired()) {
             return results;
