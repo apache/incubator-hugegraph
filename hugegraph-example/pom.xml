@@ -34,6 +34,11 @@
             <artifactId>hugegraph-dist</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>com.janeluo</groupId>
+            <artifactId>ikanalyzer</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
