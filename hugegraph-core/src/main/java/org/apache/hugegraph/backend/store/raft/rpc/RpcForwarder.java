@@ -77,7 +77,9 @@ public class RpcForwarder {
             public void setResponse(StoreCommandResponse response) {
                 if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
-                    future.complete(Status.OK(), () -> null);
+                    RaftClosure<Status> supplierFuture = new RaftClosure<>();
+                    supplierFuture.complete(Status.OK());
+                    future.complete(Status.OK(), () -> supplierFuture);
                 } else {
                     LOG.debug("StoreCommandResponse status error");
                     Status status = new Status(RaftError.UNKNOWN,

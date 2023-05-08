@@ -25,7 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.util.Log;
@@ -41,14 +41,14 @@ public class EphemeralJobQueue {
 
     private final AtomicReference<State> state;
 
-    private final HugeGraph graph;
+    private final HugeGraphParams graph;
 
     private enum State {
         INIT,
         EXECUTE,
     }
 
-    public EphemeralJobQueue(HugeGraph graph) {
+    public EphemeralJobQueue(HugeGraphParams graph) {
         this.state = new AtomicReference<>(State.INIT);
         this.graph = graph;
         this.pendingQueue = new ArrayBlockingQueue<>(CAPACITY);
@@ -69,6 +69,10 @@ public class EphemeralJobQueue {
         this.reScheduleIfNeeded();
     }
 
+    protected HugeGraphParams params() {
+        return this.graph;
+    }
+
     protected Queue<EphemeralJob<?>> queue() {
         return this.pendingQueue;
     }
@@ -81,7 +85,7 @@ public class EphemeralJobQueue {
         if (this.state.compareAndSet(State.INIT, State.EXECUTE)) {
             try {
                 BatchEphemeralJob job = new BatchEphemeralJob(this);
-                EphemeralJobBuilder.of(this.graph)
+                EphemeralJobBuilder.of(this.graph.graph())
                                    .name("batch-ephemeral-job")
                                    .job(job)
                                    .schedule();
@@ -181,6 +185,7 @@ public class EphemeralJobQueue {
             GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
             Object ret = prev;
             for (EphemeralJob<?> job : jobs) {
+                initJob(job);
                 Object obj = job.call();
                 if (job instanceof Reduce) {
                     ret = ((Reduce) job).reduce(ret, obj);
@@ -191,6 +196,11 @@ public class EphemeralJobQueue {
             systemTx.commit();
 
             return ret;
+        }
+
+        private void initJob(EphemeralJob<?> job) {
+            job.graph(this.graph());
+            job.params(this.params());
         }
 
         @Override
@@ -204,12 +214,16 @@ public class EphemeralJobQueue {
                     Thread.currentThread().interrupt();
                     if (queue != null) {
                         queue.queue().clear();
+                        queue.consumeComplete();
                     }
                     throw e;
                 }
 
-                if (queue != null && !queue.isEmpty()) {
-                    queue.reScheduleIfNeeded();
+                if (queue != null) {
+                    queue.consumeComplete();
+                    if (!queue.isEmpty()) {
+                        queue.reScheduleIfNeeded();
+                    }
                 }
                 throw e;
             }

@@ -164,7 +164,7 @@ public class StoreSnapshotFile {
             try {
                 LOG.info("Prepare to compress dir '{}' to '{}'", snapshotDir, outputFile);
                 long begin = System.currentTimeMillis();
-                String rootDir = Paths.get(snapshotDir).getParent().toString();
+                String rootDir = Paths.get(snapshotDir).toAbsolutePath().getParent().toString();
                 String sourceDir = Paths.get(snapshotDir).getFileName().toString();
                 CompressStrategyManager.getDefault()
                                        .compressZip(rootDir, sourceDir, outputFile, checksum);
@@ -200,7 +200,7 @@ public class StoreSnapshotFile {
         E.checkArgument(this.dataDisks.containsKey(diskTableKey),
                         "The data path for '%s' should be exist", diskTableKey);
         String dataPath = this.dataDisks.get(diskTableKey);
-        String parentPath = Paths.get(dataPath).getParent().toString();
+        String parentPath = Paths.get(dataPath).toAbsolutePath().getParent().toString();
         String snapshotDir = Paths.get(parentPath, StringUtils.removeEnd(snapshotDirTar, TAR))
                                   .toString();
         FileUtils.deleteDirectory(new File(snapshotDir));

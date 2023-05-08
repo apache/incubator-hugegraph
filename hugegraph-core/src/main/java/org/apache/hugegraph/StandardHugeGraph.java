@@ -1165,7 +1165,7 @@ public class StandardHugeGraph implements HugeGraph {
     private class StandardHugeGraphParams implements HugeGraphParams {
 
         private HugeGraph graph = StandardHugeGraph.this;
-        private final EphemeralJobQueue ephemeralJobQueue = new EphemeralJobQueue(this.graph);
+        private final EphemeralJobQueue ephemeralJobQueue = new EphemeralJobQueue(this);
 
         private void graph(HugeGraph graph) {
             this.graph = graph;
