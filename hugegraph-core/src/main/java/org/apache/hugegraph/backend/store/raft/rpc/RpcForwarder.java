@@ -77,6 +77,11 @@ public class RpcForwarder {
             public void setResponse(StoreCommandResponse response) {
                 if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
+                    // This code forwards the request to the Raft leader and considers the operation successful
+                    // if it's forwarded successfully. It returns a RaftClosure because the calling
+                    // logic expects a RaftClosure result. Specifically, if the current instance is the Raft leader,
+                    // it executes the corresponding logic locally and notifies the calling logic asynchronously
+                    // via RaftClosure. Therefore, the result is returned as a RaftClosure here.
                     RaftClosure<Status> supplierFuture = new RaftClosure<>();
                     supplierFuture.complete(Status.OK());
                     future.complete(Status.OK(), () -> supplierFuture);

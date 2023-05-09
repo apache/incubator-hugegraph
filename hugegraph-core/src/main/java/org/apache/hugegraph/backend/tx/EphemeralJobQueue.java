@@ -26,6 +26,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.util.Log;
@@ -105,7 +106,7 @@ public class EphemeralJobQueue {
 
     public static class BatchEphemeralJob extends EphemeralJob<Object> {
 
-        private static final int PAGE_SIZE = 100;
+        private static final long PAGE_SIZE = Query.COMMIT_BATCH;
         private static final String BATCH_EPHEMERAL_JOB = "batch-ephemeral-job";
         private static final int MAX_CONSUME_COUNT = EphemeralJobQueue.CAPACITY / 2;
 
@@ -180,22 +181,22 @@ public class EphemeralJobQueue {
             return ret;
         }
 
-        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prev) throws Exception {
+        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws Exception {
             GraphIndexTransaction graphTx = this.params().systemTransaction().indexTransaction();
             GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
-            Object ret = prev;
+            Object result = prevResult;
             for (EphemeralJob<?> job : jobs) {
-                initJob(job);
+                this.initJob(job);
                 Object obj = job.call();
                 if (job instanceof Reduce) {
-                    ret = ((Reduce) job).reduce(ret, obj);
+                    result = ((Reduce) job).reduce(result, obj);
                 }
             }
 
             graphTx.commit();
             systemTx.commit();
 
-            return ret;
+            return result;
         }
 
         private void initJob(EphemeralJob<?> job) {
