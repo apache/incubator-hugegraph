@@ -48,6 +48,7 @@ import org.apache.hugegraph.store.metric.HgMetricService;
 import org.apache.hugegraph.store.util.Asserts;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
+import org.apache.hugegraph.util.Log;
 
 import lombok.extern.slf4j.Slf4j;
 

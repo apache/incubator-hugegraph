@@ -63,6 +63,9 @@ import org.rocksdb.Slice;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBufferManager;
 import org.rocksdb.WriteOptions;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -23,10 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hugegraph.store.term.HgPair;
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
+
+import com.alibaba.fastjson.JSON;
 
 import lombok.extern.slf4j.Slf4j;
-// import org.junit.BeforeClass;
-// import org.junit.Test;
 
 @Slf4j
 public class SnapshotManagerTest {

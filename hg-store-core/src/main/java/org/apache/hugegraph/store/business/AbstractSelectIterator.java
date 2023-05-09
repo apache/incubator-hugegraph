@@ -25,6 +25,8 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.hugegraph.iterator.CIter;
+import org.apache.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
 
