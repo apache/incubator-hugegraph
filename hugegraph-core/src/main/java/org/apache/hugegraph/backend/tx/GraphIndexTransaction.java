@@ -36,6 +36,7 @@ import org.apache.hugegraph.backend.page.PageIds;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;

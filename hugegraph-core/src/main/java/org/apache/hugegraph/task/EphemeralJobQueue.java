@@ -15,18 +15,18 @@
  * under the License.
  */
 
-package org.apache.hugegraph.backend.tx;
+package org.apache.hugegraph.task;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.tx.GraphIndexTransaction;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.util.Log;
@@ -63,8 +63,6 @@ public class EphemeralJobQueue {
         if (!this.pendingQueue.offer(job)) {
             LOG.warn("The pending queue of EphemeralJobQueue is full, {} job " +
                      "will be ignored", job.type());
-            this.reScheduleIfNeeded();
-            return;
         }
 
         this.reScheduleIfNeeded();
@@ -74,8 +72,12 @@ public class EphemeralJobQueue {
         return this.graph;
     }
 
-    protected Queue<EphemeralJob<?>> queue() {
-        return this.pendingQueue;
+    protected void clear() {
+        this.pendingQueue.clear();
+    }
+
+    protected EphemeralJob<?> poll() {
+        return this.pendingQueue.poll();
     }
 
     public void consumeComplete() {
@@ -93,7 +95,7 @@ public class EphemeralJobQueue {
             } catch (Throwable e) {
                 // Maybe if it fails, consider clearing all the data in the pendingQueue,
                 // or start a scheduled retry task to retry until success.
-                LOG.warn("Failed to schedule RemoveLeftIndexJob", e);
+                LOG.warn("Failed to schedule BatchEphemeralJob", e);
                 this.pendingQueue.clear();
                 this.state.compareAndSet(State.EXECUTE, State.INIT);
             }
@@ -124,7 +126,7 @@ public class EphemeralJobQueue {
         @Override
         public Object execute() throws Exception {
             boolean stop = false;
-            Object ret = null;
+            Object result = null;
             int consumeCount = 0;
             InterruptedException interruptedException = null;
             EphemeralJobQueue queue;
@@ -152,19 +154,19 @@ public class EphemeralJobQueue {
 
                 try {
                     while (!queue.isEmpty() && batchJobs.size() < PAGE_SIZE) {
-                        EphemeralJob<?> job = queue.queue().poll();
+                        EphemeralJob<?> job = queue.poll();
                         if (job == null) {
                             continue;
                         }
                         batchJobs.add(job);
-                        consumeCount++;
                     }
 
                     if (batchJobs.isEmpty()) {
                         continue;
                     }
 
-                    ret = this.executeBatchJob(batchJobs, ret);
+                    consumeCount += batchJobs.size();
+                    result = this.executeBatchJob(batchJobs, result);
 
                 } catch (InterruptedException e) {
                     interruptedException = e;
@@ -178,7 +180,7 @@ public class EphemeralJobQueue {
                 throw interruptedException;
             }
 
-            return ret;
+            return result;
         }
 
         private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws Exception {
@@ -214,7 +216,7 @@ public class EphemeralJobQueue {
                 if (e instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
                     if (queue != null) {
-                        queue.queue().clear();
+                        queue.clear();
                         queue.consumeComplete();
                     }
                     throw e;

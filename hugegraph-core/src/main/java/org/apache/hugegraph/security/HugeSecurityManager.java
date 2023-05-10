@@ -219,31 +219,31 @@ public class HugeSecurityManager extends SecurityManager {
 
     @Override
     public void checkRead(FileDescriptor fd) {
-//        if (callFromGremlin() && !callFromBackendSocket() &&
-//            !callFromRaft() && !callFromSofaRpc()) {
-//            throw newSecurityException("Not allowed to read fd via Gremlin");
-//        }
+        if (callFromGremlin() && !callFromBackendSocket() &&
+            !callFromRaft() && !callFromSofaRpc()) {
+            throw newSecurityException("Not allowed to read fd via Gremlin");
+        }
         super.checkRead(fd);
     }
 
     @Override
     public void checkRead(String file) {
-//        if (callFromGremlin() && !callFromCaffeine() &&
-//            !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
-//            !callFromSnapshot() && !callFromRaft() &&
-//            !callFromSofaRpc()) {
-//            throw newSecurityException(
-//                  "Not allowed to read file via Gremlin: %s", file);
-//        }
+        if (callFromGremlin() && !callFromCaffeine() &&
+            !readGroovyInCurrentDir(file) && !callFromBackendHbase() &&
+            !callFromSnapshot() && !callFromRaft() &&
+            !callFromSofaRpc()) {
+            throw newSecurityException(
+                  "Not allowed to read file via Gremlin: %s", file);
+        }
         super.checkRead(file);
     }
 
     @Override
     public void checkRead(String file, Object context) {
-//        if (callFromGremlin() && !callFromRaft() && !callFromSofaRpc()) {
-//            throw newSecurityException(
-//                  "Not allowed to read file via Gremlin: %s", file);
-//        }
+        if (callFromGremlin() && !callFromRaft() && !callFromSofaRpc()) {
+            throw newSecurityException(
+                  "Not allowed to read file via Gremlin: %s", file);
+        }
         super.checkRead(file, context);
     }
 

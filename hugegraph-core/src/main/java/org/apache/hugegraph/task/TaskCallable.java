@@ -124,7 +124,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
         }
     }
 
-    public void graph(HugeGraph graph) {
+    protected void graph(HugeGraph graph) {
         this.graph = graph;
     }
 
@@ -176,7 +176,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
         private HugeGraphParams params = null;
 
-        public void params(HugeGraphParams params) {
+        protected void params(HugeGraphParams params) {
             this.params = params;
         }
 

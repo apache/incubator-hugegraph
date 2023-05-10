@@ -51,7 +51,7 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
-import org.apache.hugegraph.backend.tx.EphemeralJobQueue;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;

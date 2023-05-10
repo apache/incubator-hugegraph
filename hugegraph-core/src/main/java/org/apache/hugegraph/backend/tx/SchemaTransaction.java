@@ -85,7 +85,7 @@ public class SchemaTransaction extends IndexableTransaction {
     }
 
     @Override
-    protected AbstractTransaction indexTransaction() {
+    public AbstractTransaction indexTransaction() {
         return this.indexTx;
     }
 
