@@ -326,6 +326,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                 if (edge.expired()) {
                     this.edgesCache.invalidate(cacheKey);
                     value = null;
+                    break;
                 }
             }
         }
