@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.tx.GraphIndexTransaction;
+import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.util.Log;
@@ -36,7 +36,7 @@ public class EphemeralJobQueue {
 
     private static final Logger LOG = Log.logger(EphemeralJobQueue.class);
 
-    private static final int CAPACITY = 2000;
+    private static final long CAPACITY = 100 * Query.COMMIT_BATCH;
 
     private final BlockingQueue<EphemeralJob<?>> pendingQueue;
 
@@ -52,20 +52,22 @@ public class EphemeralJobQueue {
     public EphemeralJobQueue(HugeGraphParams graph) {
         this.state = new AtomicReference<>(State.INIT);
         this.graph = graph;
-        this.pendingQueue = new ArrayBlockingQueue<>(CAPACITY);
+        this.pendingQueue = new ArrayBlockingQueue<>((int) CAPACITY);
     }
 
-    public void add(EphemeralJob<?> job) {
+    public boolean add(EphemeralJob<?> job) {
         if (job == null) {
-            return;
+            return false;
         }
 
         if (!this.pendingQueue.offer(job)) {
             LOG.warn("The pending queue of EphemeralJobQueue is full, {} job " +
                      "will be ignored", job.type());
+            return false;
         }
 
         this.reScheduleIfNeeded();
+        return true;
     }
 
     protected HugeGraphParams params() {
@@ -110,7 +112,7 @@ public class EphemeralJobQueue {
 
         private static final long PAGE_SIZE = Query.COMMIT_BATCH;
         private static final String BATCH_EPHEMERAL_JOB = "batch-ephemeral-job";
-        private static final int MAX_CONSUME_COUNT = EphemeralJobQueue.CAPACITY / 2;
+        private static final long MAX_CONSUME_COUNT = 2 * PAGE_SIZE;
 
         private WeakReference<EphemeralJobQueue> queueWeakReference;
 
@@ -184,8 +186,8 @@ public class EphemeralJobQueue {
         }
 
         private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws Exception {
-            GraphIndexTransaction graphTx = this.params().systemTransaction().indexTransaction();
-            GraphIndexTransaction systemTx = this.params().graphTransaction().indexTransaction();
+            GraphTransaction graphTx = this.params().systemTransaction();
+            GraphTransaction systemTx = this.params().graphTransaction();
             Object result = prevResult;
             for (EphemeralJob<?> job : jobs) {
                 this.initJob(job);

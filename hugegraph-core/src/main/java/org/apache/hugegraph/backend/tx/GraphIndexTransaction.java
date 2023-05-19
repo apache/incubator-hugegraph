@@ -118,7 +118,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                         HugeElement element) {
         LOG.info("Remove left index: {}, query: {}", element, query);
         RemoveLeftIndexJob job = new RemoveLeftIndexJob(query, element);
-        job.selfCommit(false);
         this.params().submitEphemeralJob(job);
     }
 
@@ -1723,8 +1722,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         private GraphIndexTransaction tx;
         private Set<ConditionQuery.LeftIndex> leftIndexes;
 
-        private boolean selfCommit;
-
         private RemoveLeftIndexJob(ConditionQuery query, HugeElement element) {
             E.checkArgumentNotNull(query, "query");
             E.checkArgumentNotNull(element, "element");
@@ -1732,11 +1729,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
             this.element = element;
             this.tx = null;
             this.leftIndexes = query.getLeftIndexOfElement(element.id());
-            this.selfCommit = true;
-        }
-
-        public void selfCommit(boolean selfCommit) {
-            this.selfCommit = selfCommit;
         }
 
         @Override
@@ -1784,9 +1776,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Process secondary index or search index
                 sCount += this.processSecondaryOrSearchIndexLeft(cq, element);
             }
-            if (this.selfCommit) {
-                this.tx.commit();
-            }
             return rCount + sCount;
         }
 
@@ -1814,9 +1803,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             // Remove LeftIndex after constructing remove job
             this.query.removeElementLeftIndex(element.id());
-            if (this.selfCommit) {
-                this.tx.commit();
-            }
             return count;
         }
 
