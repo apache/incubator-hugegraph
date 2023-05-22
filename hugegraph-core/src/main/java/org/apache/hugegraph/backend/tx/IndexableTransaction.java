@@ -82,5 +82,5 @@ public abstract class IndexableTransaction extends AbstractTransaction {
         }
     }
 
-    public abstract AbstractTransaction indexTransaction();
+    protected abstract AbstractTransaction indexTransaction();
 }

@@ -251,7 +251,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     @Override
-    public GraphIndexTransaction indexTransaction() {
+    protected GraphIndexTransaction indexTransaction() {
         return this.indexTx;
     }
 

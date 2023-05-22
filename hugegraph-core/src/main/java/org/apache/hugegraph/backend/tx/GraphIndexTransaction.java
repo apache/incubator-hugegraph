@@ -1867,15 +1867,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                      */
                     this.tx.updateIndex(il.id(), element, false);
                 }
-                if (this.selfCommit) {
-                    this.tx.commit();
-                }
                 if (this.deletedByError(element, incorrectIndexFields,
                                         incorrectPKs)) {
                     this.tx.updateIndex(il.id(), deletion, false);
-                    if (this.selfCommit) {
-                        this.tx.commit();
-                    }
                 } else {
                     count++;
                 }
