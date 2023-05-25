@@ -55,6 +55,16 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
+## Contact Us
+- Github Issues: Feedback on usage issues and functional requirements (priority)
+
+
+- Feedback Email: dev@hugegraph.apache.org
+
+
+- WeChat public account: Apache HugeGraph.
+
+
 ## Contributing
 
 Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
