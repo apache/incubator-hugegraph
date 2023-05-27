@@ -55,15 +55,6 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
-## Contact Us
-- Github Issues: Feedback on usage issues and functional requirements (priority)
-
-
-- Feedback Email: dev@hugegraph.apache.org
-
-
-- WeChat public account: Apache HugeGraph.
-
 
 ## Contributing
 
@@ -79,3 +70,11 @@ HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we r
 Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
+
+## Contact Us
+
+- [Github Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (priority)
+- Feedback Email: [dev@hugegraph.apache.org](dev@hugegraph.apache.org)
+- WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
+
+![img](https://user-images.githubusercontent.com/17706099/238185774-ab10cfe5-9f7f-4327-af8f-9795f00009ca.png)
