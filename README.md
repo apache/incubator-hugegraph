@@ -77,4 +77,5 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
 - Feedback Email: [dev@hugegraph.apache.org](dev@hugegraph.apache.org)
 - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
-![img](https://user-images.githubusercontent.com/17706099/238185774-ab10cfe5-9f7f-4327-af8f-9795f00009ca.png)
+![new QR code](https://user-images.githubusercontent.com/87920097/242012297-306495b5-18be-4f58-9335-21ee3c201408.png)
+
