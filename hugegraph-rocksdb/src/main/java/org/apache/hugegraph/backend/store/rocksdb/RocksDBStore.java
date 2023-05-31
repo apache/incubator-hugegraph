@@ -729,7 +729,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             for (Map.Entry<String, RocksDBSessions> entry : this.dbs.entrySet()) {
                 // Like: parent_path/rocksdb-data/*, * maybe g,m,s
                 Path originDataPath = Paths.get(entry.getKey()).toAbsolutePath();
-                Path parentParentPath = originDataPath.getParent().getParent();
+                Path parentParentPath = originDataPath.toAbsolutePath().getParent().getParent();
                 // Like: rocksdb-data/*
                 Path pureDataPath = parentParentPath.relativize(originDataPath);
                 // Like: parent_path/snapshot_rocksdb-data/*
@@ -740,7 +740,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                 RocksDBSessions sessions = entry.getValue();
                 sessions.createSnapshot(snapshotPath.toString());
 
-                String snapshotDir = snapshotPath.getParent().toString();
+                String snapshotDir = snapshotPath.toAbsolutePath().getParent().toString();
                 // Find correspond data HugeType key
                 String diskTableKey = this.findDiskTableKeyByPath(
                                       entry.getKey());
@@ -781,7 +781,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
                 if (deleteSnapshot) {
                     // Delete empty snapshot parent directory
-                    Path parentPath = Paths.get(snapshotPath).getParent();
+                    Path parentPath = Paths.get(snapshotPath).toAbsolutePath().getParent();
                     if (Files.list(parentPath).count() == 0) {
                         FileUtils.deleteDirectory(parentPath.toFile());
                     }
@@ -866,7 +866,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         diskMapping.put(TABLE_GENERAL_KEY, this.dataPath);
         for (Map.Entry<HugeType, String> e : this.tableDiskMapping.entrySet()) {
             String key = this.store + "/" + e.getKey().name();
-            String value = Paths.get(e.getValue()).getParent().toString();
+            String value = Paths.get(e.getValue()).toAbsolutePath().getParent().toString();
             diskMapping.put(key, value);
         }
         return diskMapping;

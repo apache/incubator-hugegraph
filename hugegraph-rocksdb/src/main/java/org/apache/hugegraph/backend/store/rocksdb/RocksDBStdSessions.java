@@ -295,9 +295,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
     public String buildSnapshotPath(String snapshotPrefix) {
         // Like: parent_path/rocksdb-data/*, * can be g,m,s
         Path originDataPath = Paths.get(this.dataPath);
-        Path parentParentPath = originDataPath.getParent().getParent();
+        Path parentParentPath = originDataPath.toAbsolutePath().getParent().getParent();
         // Like: rocksdb-data/*
-        Path pureDataPath = parentParentPath.relativize(originDataPath);
+        Path pureDataPath = parentParentPath.relativize(originDataPath.toAbsolutePath());
         // Like: parent_path/snapshot_rocksdb-data/*
         Path snapshotPath = parentParentPath.resolve(snapshotPrefix + "_" +
                                                      pureDataPath);

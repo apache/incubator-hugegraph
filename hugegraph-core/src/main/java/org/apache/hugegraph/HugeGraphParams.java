@@ -23,6 +23,7 @@ import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.task.ServerInfoManager;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
@@ -90,4 +91,6 @@ public interface HugeGraphParams {
     RateLimiter readRateLimiter();
 
     RamTable ramtable();
+
+    <T> void submitEphemeralJob(EphemeralJob<T> job);
 }

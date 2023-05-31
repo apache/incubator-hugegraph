@@ -36,6 +36,7 @@ import org.apache.hugegraph.backend.page.PageIds;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -69,7 +70,6 @@ import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.hugegraph.job.EphemeralJob;
-import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.job.system.DeleteExpiredJob;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -81,7 +81,6 @@ import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.structure.HugeIndex.IdWithExpiredTime;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -115,15 +114,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
              conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
     }
 
-    protected Id asyncRemoveIndexLeft(ConditionQuery query,
-                                      HugeElement element) {
+    protected void asyncRemoveIndexLeft(ConditionQuery query,
+                                        HugeElement element) {
         LOG.info("Remove left index: {}, query: {}", element, query);
         RemoveLeftIndexJob job = new RemoveLeftIndexJob(query, element);
-        HugeTask<?> task = EphemeralJobBuilder.of(this.graph())
-                                              .name(element.id().asString())
-                                              .job(job)
-                                              .schedule();
-        return task.id();
+        this.params().submitEphemeralJob(job);
     }
 
     @Watched(prefix = "index")
@@ -1717,7 +1712,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    public static class RemoveLeftIndexJob extends EphemeralJob<Object> {
+    public static class RemoveLeftIndexJob extends EphemeralJob<Long>
+                                           implements EphemeralJobQueue.Reduce<Long> {
 
         private static final String REMOVE_LEFT_INDEX = "remove_left_index";
 
@@ -1741,7 +1737,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         @Override
-        public Object execute() {
+        public Long execute() {
             this.tx = this.element.schemaLabel().system() ?
                       this.params().systemTransaction().indexTransaction() :
                       this.params().graphTransaction().indexTransaction();
@@ -1780,7 +1776,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // Process secondary index or search index
                 sCount += this.processSecondaryOrSearchIndexLeft(cq, element);
             }
-            this.tx.commit();
             return rCount + sCount;
         }
 
@@ -1808,7 +1803,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             // Remove LeftIndex after constructing remove job
             this.query.removeElementLeftIndex(element.id());
-            this.tx.commit();
             return count;
         }
 
@@ -1873,11 +1867,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                      */
                     this.tx.updateIndex(il.id(), element, false);
                 }
-                this.tx.commit();
                 if (this.deletedByError(element, incorrectIndexFields,
                                         incorrectPKs)) {
                     this.tx.updateIndex(il.id(), deletion, false);
-                    this.tx.commit();
                 } else {
                     count++;
                 }
@@ -1948,6 +1940,19 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 Iterator<Edge> iter = this.graph().edges(element.id());
                 return (HugeEdge) QueryResults.one(iter);
             }
+        }
+
+        @Override
+        public Long reduce(Long t1, Long t2) {
+            if (t1 == null) {
+                return t2;
+            }
+
+            if (t2 == null) {
+                return t1;
+            }
+
+            return t1 + t2;
         }
     }
 }
