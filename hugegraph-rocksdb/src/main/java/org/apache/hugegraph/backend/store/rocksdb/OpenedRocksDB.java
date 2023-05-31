@@ -99,7 +99,7 @@ public class OpenedRocksDB implements AutoCloseable {
     }
 
     public void createCheckpoint(String targetPath) {
-        Path parentName = Paths.get(targetPath).getParent().getFileName();
+        Path parentName = Paths.get(targetPath).toAbsolutePath().getParent().getFileName();
         assert parentName.toString().startsWith("snapshot") : targetPath;
         // https://github.com/facebook/rocksdb/wiki/Checkpoints
         try (Checkpoint checkpoint = Checkpoint.create(this.rocksdb)) {

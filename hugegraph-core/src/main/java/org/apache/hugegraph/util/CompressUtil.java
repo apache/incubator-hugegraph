@@ -145,7 +145,7 @@ public final class CompressUtil {
                     Files.createDirectories(newPath);
                 } else {
                     // check parent folder again
-                    Path parent = newPath.getParent();
+                    Path parent = newPath.toAbsolutePath().getParent();
                     if (parent != null) {
                         if (Files.notExists(parent)) {
                             Files.createDirectories(parent);
@@ -176,7 +176,7 @@ public final class CompressUtil {
 
     public static void compressZip(String inputDir, String outputFile,
                                    Checksum checksum) throws IOException {
-        String rootDir = Paths.get(inputDir).getParent().toString();
+        String rootDir = Paths.get(inputDir).toAbsolutePath().getParent().toString();
         String sourceDir = Paths.get(inputDir).getFileName().toString();
         compressZip(rootDir, sourceDir, outputFile, checksum);
     }
