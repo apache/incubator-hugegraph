@@ -55,7 +55,6 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
-
 ## Contributing
 
 Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
@@ -76,6 +75,4 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
 - [Github Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (priority)
 - Feedback Email: [dev@hugegraph.apache.org](dev@hugegraph.apache.org)
 - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
-
-![new QR code](https://user-images.githubusercontent.com/87920097/242012297-306495b5-18be-4f58-9335-21ee3c201408.png)
-
+![QR png](https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true)
