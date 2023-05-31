@@ -75,4 +75,5 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
 - [Github Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (priority)
 - Feedback Email: [dev@hugegraph.apache.org](dev@hugegraph.apache.org)
 - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
-![QR png](https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true)
+
+<img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" style="zoom:30%;" />
