@@ -70,11 +70,10 @@ Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other or
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
 
->Contact Us
->------
+Contact Us
+---
+ - [GitHub Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (priority)
+ - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org)
+ - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
-> - [Github Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (priority)
-> - Feedback Email: [dev@hugegraph.apache.org](dev@hugegraph.apache.org)
-> - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
-
-> <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" width="350" />
+ <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="350"/>
