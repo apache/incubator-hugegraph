@@ -1,5 +1,5 @@
 <div align="center">
-    <img width="720" alt="hugegraph-logo" src="https://github.com/apache/incubator-hugegraph/assets/38098239/ea97dad7-ff38-4959-8d68-47290270c7e1" style="zoom:100%;" />
+    <img width="720" alt="hugegraph-logo" src="https://github.com/apache/incubator-hugegraph/assets/38098239/93845efd-7c25-4da4-845e-86013d20862e" style="zoom:100%;" />
 </div>
 
 <h3 align="center">A graph database that supports more than 10 billion data, high performance and scalability</h3>
@@ -91,4 +91,6 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
  - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
  - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
+<div align="center">
  <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="350"/>
+ </div>
