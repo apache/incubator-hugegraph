@@ -16,7 +16,7 @@
 
 </div>
 
-## 🚀 What is HugeGraph?
+## 🚀 What is Apache HugeGraph?
 
 [HugeGraph](https://hugegraph.apache.org/) is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). 
 Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
@@ -94,5 +94,5 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
  - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
 <div align="center">
- <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="350"/>
+ <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
  </div>
