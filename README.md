@@ -1,6 +1,6 @@
-<div align="center">
+<h1 align="center">
     <img width="720" alt="hugegraph-logo" src="https://github.com/apache/incubator-hugegraph/assets/38098239/93845efd-7c25-4da4-845e-86013d20862e" style="zoom:100%;" />
-</div>
+</h1>
 
 <h3 align="center">A graph database that supports more than 10 billion data, high performance and scalability</h3>
 
