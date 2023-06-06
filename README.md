@@ -31,6 +31,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 - Plug-in Backend Store Driver Framework, support `RocksDB`, `Cassandra`, `HBase`, `ScyllaDB`, and `MySQL/Postgre` now and easy to add other backend store driver if needed
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 
+
 ## 🚀 Quick Start
 
 ### 1. Docker Way
@@ -59,6 +60,7 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
+
 ## 🤝 Contributing
 
 Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
@@ -67,9 +69,11 @@ Thank you to all the people who already contributed to HugeGraph!
 
 [![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
 
+
 ## ⏰ Contributor Over Time
 
 [![Stargazers Over Time](https://contributor-overtime-api.git-contributor.com/contributors-svg?chart=contributorOverTime&repo=apache/incubator-hugegraph)](https://git-contributor.com?chart=contributorOverTime&repo=apache/incubator-hugegraph)
+
 
 ## 👍 Stargazers Over Time
 
@@ -83,9 +87,8 @@ Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other or
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
 
-## ☎️ Contact Us
 
----
+## ☎️ Contact Us
 
  - [GitHub Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (quick response)
  - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
