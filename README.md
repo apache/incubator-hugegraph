@@ -1,5 +1,5 @@
 <div align="center">
-    <img width="720" alt="hugegraph-logo" src="https://user-images.githubusercontent.com/17706099/149281100-c296db08-2861-4174-a31f-e2a92ebeeb72.png" style="zoom:100%;" />
+    <img width="720" alt="hugegraph-logo" src="https://github.com/apache/incubator-hugegraph/assets/38098239/ea97dad7-ff38-4959-8d68-47290270c7e1" style="zoom:100%;" />
 </div>
 
 <h3 align="center">A graph database that supports more than 10 billion data, high performance and scalability</h3>
