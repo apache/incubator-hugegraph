@@ -15,7 +15,6 @@
 [![stars](https://img.shields.io/github/stars/apache/hugegraph)](https://github.com/apache/incubator-hugegraph/stargazers)
 
 </div>
-<hr/>
 
 ## 🚀 What is HugeGraph?
 
