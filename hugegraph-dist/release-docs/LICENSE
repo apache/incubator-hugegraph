@@ -408,6 +408,7 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * io.grpc:grpc-protobuf (io.grpc:grpc-protobuf:1.47.0 - https://github.com/grpc/grpc-java)
 	(Apache License, Version 2.0) * io.grpc:grpc-protobuf-lite (io.grpc:grpc-protobuf-lite:1.47.0 - https://github.com/grpc/grpc-java)
 	(Apache License, Version 2.0) * io.grpc:grpc-stub (io.grpc:grpc-stub:1.47.0 - https://github.com/grpc/grpc-java)
+	(Apache License, Version 2.0) * ikanalyzer (com.janeluo.ikanalyzer:2012_u6 - https://mvnrepository.com/artifact/com.janeluo/ikanalyzer/2012_u6)
 	(Apache License, Version 2.0) * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.12.1 - http://github.com/FasterXML/jackson)
 	(Apache License, Version 2.0) * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.12.5 - http://github.com/FasterXML/jackson)
 	(Apache License, Version 2.0) * javatuples (org.javatuples:javatuples:1.2 - http://www.javatuples.org)
