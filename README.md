@@ -64,19 +64,11 @@ And here are links of other **HugeGraph** component/repositories:
 
 Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
 
+Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the PR and commit process.
+
 Thank you to all the people who already contributed to HugeGraph!
 
 [![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
-
-
-## ⏰ Contributor Over Time
-
-[![Stargazers Over Time](https://contributor-overtime-api.git-contributor.com/contributors-svg?chart=contributorOverTime&repo=apache/incubator-hugegraph)](https://git-contributor.com?chart=contributorOverTime&repo=apache/incubator-hugegraph)
-
-
-## 👍 Stargazers Over Time
-
-![Stargazers over time](https://api.star-history.com/svg?repos=apache/incubator-hugegraph&type=Date)
 
 
 ## 🌹 Thanks
