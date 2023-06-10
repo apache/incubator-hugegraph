@@ -113,7 +113,7 @@ if [ -z "${HADOOP_GREMLIN_LIBS:-}" ]; then
 fi
 
 if [ -z "${JAVA_OPTIONS:-}" ]; then
-    JAVA_OPTIONS="-Dtinkerpop.ext=$EXT -Dlog4j.configuration=conf/log4j-console.properties -Dgremlin.log4j.level=$GREMLIN_LOG_LEVEL -javaagent:$LIB/jamm-0.3.0.jar"
+    JAVA_OPTIONS="-Dtinkerpop.ext=$EXT -Dlog4j.configurationFile=conf/log4j2.xml -Dgremlin.log4j.level=$GREMLIN_LOG_LEVEL -javaagent:$LIB/jamm-0.3.0.jar"
 fi
 
 if [ "$PROFILING_ENABLED" = true ]; then
@@ -126,4 +126,4 @@ if [ -n "$SCRIPT_DEBUG" ]; then
 fi
 
 # Start the JVM, execute the application, and return its exit code
-exec $JAVA $JAVA_OPTIONS $MAIN_CLASS "$@"
+exec $JAVA $JAVA_OPTIONS $MAIN_CLASS -i "$@"
