@@ -22,7 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.T
 
 RegisterUtil.registerRocksDB()
 
-conf = "conf/hugegraph.properties"
+conf = "conf/graphs/hugegraph.properties"
 graph = HugeFactory.open(conf)
 graph.serverStarted(IdGenerator.of("server-tinkerpop"), NodeRole.MASTER)
 schema = graph.schema()
