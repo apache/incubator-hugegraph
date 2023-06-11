@@ -37,7 +37,6 @@ schema.propertyKey("price").asInt().ifNotExist().create()
 
 schema.vertexLabel("person").properties("name", "age", "city").primaryKeys("name").ifNotExist().create()
 schema.vertexLabel("software").properties("name", "lang", "price").primaryKeys("name").ifNotExist().create()
-// schema.indexLabel("personByName").onV("person").by("name").secondary().ifNotExist().create()
 schema.indexLabel("personByCity").onV("person").by("city").secondary().ifNotExist().create()
 schema.indexLabel("personByAgeAndCity").onV("person").by("age", "city").secondary().ifNotExist().create()
 schema.indexLabel("softwareByPrice").onV("software").by("price").range().ifNotExist().create()
