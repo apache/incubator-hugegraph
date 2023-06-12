@@ -59,6 +59,10 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
+## 📄 License
+
+HugeGraph is licensed under Apache 2.0 License.
+
 
 ## 🤝 Contributing
 
@@ -68,7 +72,11 @@ Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to g
 
 Thank you to all the people who already contributed to HugeGraph!
 
-[![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
+<div align="left"> 
+<a href="https://github.com/apache/incubator-hugegraph/graphs/contributors">
+ <img src="https://contrib.rocks/image?repo=apache/hugegraph" alt="QR png" width="300"/>
+ </a>
+</div>
 
 
 ## 🌹 Thanks
@@ -85,6 +93,7 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
  - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
  - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
-<div align="center">
+<div align="left">
  <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
  </div>
+ 
