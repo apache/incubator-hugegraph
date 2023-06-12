@@ -85,8 +85,6 @@ Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other or
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
 
-[![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
-
 
 ## ☎️ Contact Us
 
