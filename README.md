@@ -66,7 +66,7 @@ HugeGraph is licensed under Apache 2.0 License.
 
 ## 🤝 Contributing
 
-Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) for more information.
+Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) & [Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/) for more information.
 
 Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the PR and commit process.
 
@@ -78,13 +78,14 @@ Thank you to all the people who already contributed to HugeGraph!
  </a>
 </div>
 
-
 ## 🌹 Thanks
 
 HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of Titan and the schema definition of DataStax. 
 Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
 
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
+
+[![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
 
 
 ## ☎️ Contact Us
@@ -94,4 +95,4 @@ You are welcome to contribute to HugeGraph, and we are looking forward to workin
  - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
  <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
- 
+
