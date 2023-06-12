@@ -16,13 +16,13 @@
 
 </div>
 
-## 🚀 What is Apache HugeGraph?
+## What is Apache HugeGraph?
 
 [HugeGraph](https://hugegraph.apache.org/) is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). 
 Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
 
 
-## 🎉 Features
+## Features
 
 - Compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/), support [Gremlin](https://tinkerpop.apache.org/gremlin.html) & [Cypher](https://en.wikipedia.org/wiki/Cypher) language
 - Schema Metadata Management, including VertexLabel, EdgeLabel, PropertyKey and IndexLabel
@@ -31,7 +31,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Docker Way
 
@@ -59,16 +59,16 @@ And here are links of other **HugeGraph** component/repositories:
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
-## 📄 License
+## License
 
 HugeGraph is licensed under Apache 2.0 License.
 
 
-## 🤝 Contributing
+## Contributing
 
-Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) & [Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/) for more information.  
-Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the PR and commit process.  
-Thank you to all the people who already contributed to HugeGraph!
+- Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) & [Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/) for more information.  
+- Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the PR and commit process.  
+- Thank you to all the people who already contributed to HugeGraph!
 
 <div align="left"> 
 <a href="https://github.com/apache/incubator-hugegraph/graphs/contributors">
@@ -76,7 +76,7 @@ Thank you to all the people who already contributed to HugeGraph!
  </a>
 </div>
 
-## 🌹 Thanks
+## Thanks
 
 HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of Titan and the schema definition of DataStax. 
 Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
@@ -84,7 +84,7 @@ Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other or
 You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
 
 
-## ☎️ Contact Us
+## Contact Us
 
 - [GitHub Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (quick response)
  - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
