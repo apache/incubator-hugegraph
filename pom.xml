@@ -103,7 +103,7 @@
         <junit.version>4.12</junit.version>
         <tinkerpop.version>3.5.1</tinkerpop.version>
         <commons.io.version>2.7</commons.io.version>
-        <guava.version>25.1-jre</guava.version>
+        <guava.version>32.0.0-jre</guava.version>
         <httpclient.version>4.5.13</httpclient.version>
         <jersey.version>3.0.3</jersey.version>
         <metrics.version>4.2.4</metrics.version>
