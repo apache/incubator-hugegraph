@@ -19,7 +19,7 @@ published)
 
 ## Purpose of the PR
 
-- close: xxx  <!-- or use "fix: xxx", "xxx" is the link of related issue -->
+- close #xxx  <!-- or use "fix #xxx", "xxx" is the ID-link of related issue, e.g: close #1024 -->
 
 <!--
 Please explain more context in this section, clarify why the changes are needed. 
