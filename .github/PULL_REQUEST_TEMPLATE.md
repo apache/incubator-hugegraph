@@ -23,7 +23,7 @@ published)
 
 <!--
 Please explain more context in this section, clarify why the changes are needed. 
-For example:
+e.g:
 - If you propose a new API, clarify the use case for a new API.
 - If you fix a bug, you can clarify why it is a bug, and should be associated with an issue.
 -->
@@ -40,21 +40,12 @@ For example:
 
 ## Verifying these changes
 
-<!-- Please pick either of the following options -->
+<!-- Please pick the proper options below -->
 
-- This change is a trivial rework / code cleanup without any test coverage.
-
-*(or)*
-
-- This change is already covered by existing tests, such as *(please describe tests)*.
-
-*(or)*
-
-- This change added tests and can be verified as follows:
-
-  *(for example:)*
-    - *Add UT.*
-
+- [ ] Trivial rework / code cleanup without any test coverage. (No Need)
+- [ ] Already covered by existing tests, such as *(please modify tests here)*.
+- [ ] Need tests and can be verified as follows:
+    - xxx
 
 ## Does this PR potentially affect the following parts?
 
