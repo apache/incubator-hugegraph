@@ -63,6 +63,19 @@ public class PDConfig {
     private String verifyPath;
     @Value("${license.license-path}")
     private String licensePath;
+    @Autowired
+    private ThreadPoolGrpc threadPoolGrpc;
+
+    @Data
+    @Configuration
+    public class ThreadPoolGrpc {
+        @Value("${thread.pool.grpc.core:600}")
+        private int core;
+        @Value("${thread.pool.grpc.max:1000}")
+        private int max;
+        @Value("${thread.pool.grpc.queue:" + Integer.MAX_VALUE + "}")
+        private int queue;
+    }
 
     @Autowired
     private Raft raft;

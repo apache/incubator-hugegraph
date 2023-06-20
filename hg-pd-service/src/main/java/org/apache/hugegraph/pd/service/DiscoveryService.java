@@ -41,20 +41,13 @@ import org.apache.hugegraph.pd.watch.PDWatchSubject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import io.grpc.CallOptions;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.MethodDescriptor;
-import io.grpc.stub.AbstractBlockingStub;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author zhangyingjie
- * @date 2021/12/20
- **/
+
 @Slf4j
 @GRpcService
 public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplBase implements
+                                                                                    ServiceGrpc,
                                                                                     RaftStateListener {
 
     static final AtomicLong id = new AtomicLong();
@@ -84,7 +77,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
     @Override
     public void register(NodeInfo request, io.grpc.stub.StreamObserver<RegisterInfo> observer) {
         if (!isLeader()) {
-            redirectToLeader(DiscoveryServiceGrpc.getRegisterMethod(), request, observer);
+            redirectToLeader(null, DiscoveryServiceGrpc.getRegisterMethod(), request, observer);
             return;
         }
         int outTimes = pdConfig.getDiscovery().getHeartbeatOutTimes();
@@ -139,7 +132,8 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
 
     public void getNodes(Query request, io.grpc.stub.StreamObserver<NodeInfos> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(DiscoveryServiceGrpc.getGetNodesMethod(), request, responseObserver);
+            redirectToLeader(null, DiscoveryServiceGrpc.getGetNodesMethod(), request,
+                             responseObserver);
             return;
         }
         responseObserver.onNext(register.getNodes(request));
@@ -150,35 +144,8 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         return RaftEngine.getInstance().isLeader();
     }
 
-    private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
-            MethodDescriptor<ReqT, RespT> method, ReqT req,
-            io.grpc.stub.StreamObserver<RespT> observer) {
-        try {
-            if (channel == null) {
-                synchronized (this) {
-                    if (channel == null) {
-                        channel = ManagedChannelBuilder
-                                .forTarget(RaftEngine.getInstance().getLeaderGrpcAddress())
-                                .usePlaintext()
-                                .build();
-                    }
-                }
-                log.info("Grpc get leader address {}",
-                         RaftEngine.getInstance().getLeaderGrpcAddress());
-            }
-
-            io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions.DEFAULT),
-                                                    req,
-                                                    observer);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
-
     @Override
     public synchronized void onRaftLeaderChanged() {
-        channel = null;
         if (!isLeader()) {
             try {
                 String message = "lose leader";

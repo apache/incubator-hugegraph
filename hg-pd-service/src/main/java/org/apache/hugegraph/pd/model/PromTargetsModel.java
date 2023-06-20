@@ -56,7 +56,9 @@ public class PromTargetsModel {
     }
 
     public PromTargetsModel addTarget(String target) {
-        if (target == null) return this;
+        if (target == null) {
+            return this;
+        }
         this.targets.add(target);
         return this;
     }
@@ -74,7 +76,9 @@ public class PromTargetsModel {
     }
 
     public PromTargetsModel addLabel(String label, String value) {
-        if (label == null || value == null) return this;
+        if (label == null || value == null) {
+            return this;
+        }
         this.labels.put(label, value);
         return this;
     }

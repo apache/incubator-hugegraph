@@ -25,8 +25,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 public class Main {
 
     public static void main(String[] args) throws PDException {
-
-
         if (args.length < 3) {
             String error = " usage: pd-address config key[=value] \n key list: " +
                            "\n\tenableBatchLoad";
@@ -38,9 +36,17 @@ public class Main {
         String param = args[2];
         System.out.println(pd + " " + cmd + " " + param);
         System.out.println("Result: \n");
-        if (cmd.equals("config")) {
-            doConfig(pd, param);
+        switch (cmd) {
+            case "config":
+                doConfig(pd, param);
+            case "change_raft":
+                doChangeRaft(pd, param);
         }
+    }
+
+    private static void doChangeRaft(String pd, String param) throws PDException {
+        PDClient pdClient = PDClient.create(PDConfig.of(pd));
+        pdClient.updatePdRaft(param);
     }
 
     public static void doConfig(String pd, String param) throws PDException {

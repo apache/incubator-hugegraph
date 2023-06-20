@@ -17,10 +17,7 @@
 
 package org.apache.hugegraph.pd.common;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import java.util.Objects;
 
 import org.apache.hugegraph.pd.common.KVPair;
 import org.junit.Before;

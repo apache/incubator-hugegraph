@@ -37,8 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public final class PDMetrics {
-    public final static String PREFIX = "hg";
-    private final static AtomicLong graphs = new AtomicLong(0);
+    public static final String PREFIX = "hg";
+    private static final AtomicLong GRAPHS = new AtomicLong(0);
     private MeterRegistry registry;
 
     @Autowired
@@ -69,8 +69,8 @@ public final class PDMetrics {
     private long updateGraphs() {
         long buf = getGraphs();
 
-        if (buf != graphs.get()) {
-            graphs.set(buf);
+        if (buf != GRAPHS.get()) {
+            GRAPHS.set(buf);
             registerGraphMetrics();
         }
         return buf;

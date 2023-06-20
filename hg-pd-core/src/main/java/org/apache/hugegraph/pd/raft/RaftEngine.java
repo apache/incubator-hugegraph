@@ -19,7 +19,9 @@ package org.apache.hugegraph.pd.raft;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -45,8 +47,6 @@ import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftEngine {
@@ -190,7 +190,14 @@ public class RaftEngine {
      * 向leader发消息，获取grpc地址；
      */
     public String getLeaderGrpcAddress() throws ExecutionException, InterruptedException {
-        if (isLeader()) return config.getGrpcAddress();
+        if (isLeader()) {
+            return config.getGrpcAddress();
+        }
+
+        if (raftNode.getLeaderId() == null) {
+            waitingForLeader(10000);
+        }
+
         return raftRpcClient.getGrpcAddress(
                                     raftNode.getLeaderId().getEndpoint().toString())
                             .get().getGrpcAddress();
@@ -210,11 +217,28 @@ public class RaftEngine {
         List<Metapb.Member> members = new ArrayList<>();
 
         List<PeerId> peers = raftNode.listPeers();
+        peers.addAll(raftNode.listLearners());
+        var learners = new HashSet<>(raftNode.listLearners());
+
         for (PeerId peerId : peers) {
             Metapb.Member.Builder builder = Metapb.Member.newBuilder();
             builder.setClusterId(config.getClusterId());
             CompletableFuture<RaftRpcProcessor.GetMemberResponse> future =
                     raftRpcClient.getGrpcAddress(peerId.getEndpoint().toString());
+
+            Metapb.ShardRole role = Metapb.ShardRole.Follower;
+            if (peerEquals(peerId, raftNode.getLeaderId())) {
+                role = Metapb.ShardRole.Leader;
+            } else if (learners.contains(peerId)) {
+                role = Metapb.ShardRole.Learner;
+                var state = raftNode.getReplicatorState(peerId);
+                if (state != null) {
+                    builder.setReplicatorState(state.name());
+                }
+            }
+
+            builder.setRole(role);
+
             try {
                 if (future.isCompletedExceptionally()) {
                     log.error("failed to getGrpcAddress of {}",
@@ -285,5 +309,19 @@ public class RaftEngine {
             return leader;
         }
 
+    }
+
+    public Node getRaftNode() {
+        return raftNode;
+    }
+
+    private boolean peerEquals(PeerId p1, PeerId p2) {
+        if (p1 == null && p2 == null) {
+            return true;
+        }
+        if (p1 == null || p2 == null) {
+            return false;
+        }
+        return Objects.equals(p1.getIp(), p2.getIp()) && Objects.equals(p1.getPort(), p2.getPort());
     }
 }

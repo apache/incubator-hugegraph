@@ -33,7 +33,11 @@ public class AbstractClientStubProxy {
     private AbstractStub stub;
 
     public AbstractClientStubProxy(String[] hosts) {
-        for (String host : hosts) if (!host.isEmpty()) hostList.offer(host);
+        for (String host : hosts) {
+            if (!host.isEmpty()) {
+                hostList.offer(host);
+            }
+        }
     }
 
     public LinkedList<String> getHostList() {

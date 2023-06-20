@@ -18,7 +18,6 @@
 package org.apache.hugegraph.pd.client;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -430,6 +429,20 @@ public class PDClient {
                 cache.addPartition(graphName, partShard.getKey().getId(), partShard.getKey());
             }
         }
+
+        if (partShard.getValue() == null) {
+            var shardGroup = getShardGroup(partShard.getKey().getId());
+            if (shardGroup != null) {
+                for (var shard : shardGroup.getShardsList()) {
+                    if (shard.getRole() == Metapb.ShardRole.Leader) {
+                        partShard.setValue(shard);
+                    }
+                }
+            } else {
+                log.error("getPartition: get shard group failed, {}", partShard.getKey().getId());
+            }
+        }
+
         return partShard;
     }
 
@@ -465,6 +478,21 @@ public class PDClient {
                 cache.updateShardGroup(getShardGroup(partShard.getKey().getId()));
             }
         }
+
+        if (partShard.getValue() == null) {
+            var shardGroup = getShardGroup(partShard.getKey().getId());
+            if (shardGroup != null) {
+                for (var shard : shardGroup.getShardsList()) {
+                    if (shard.getRole() == Metapb.ShardRole.Leader) {
+                        partShard.setValue(shard);
+                    }
+                }
+            } else {
+                log.error("getPartitionByCode: get shard group failed, {}",
+                          partShard.getKey().getId());
+            }
+        }
+
         return partShard;
     }
 
@@ -502,6 +530,19 @@ public class PDClient {
             if (config.isEnableCache()) {
                 cache.addPartition(graphName, partShard.getKey().getId(), partShard.getKey());
                 cache.updateShardGroup(getShardGroup(partShard.getKey().getId()));
+            }
+        }
+        if (partShard.getValue() == null) {
+            var shardGroup = getShardGroup(partShard.getKey().getId());
+            if (shardGroup != null) {
+                for (var shard : shardGroup.getShardsList()) {
+                    if (shard.getRole() == Metapb.ShardRole.Leader) {
+                        partShard.setValue(shard);
+                    }
+                }
+            } else {
+                log.error("getPartitionById: get shard group failed, {}",
+                          partShard.getKey().getId());
             }
         }
         return partShard;
@@ -1188,46 +1229,12 @@ public class PDClient {
         return cache;
     }
 
-    public interface PDEventListener {
-        void onStoreChanged(NodeEvent event);
-
-        void onPartitionChanged(PartitionEvent event);
-
-        void onGraphChanged(WatchResponse event);
-
-        default void onShardGroupChanged(WatchResponse event) {
-        }
-
-    }
-
-    static class StubProxy {
-        private final LinkedList<String> hostList = new LinkedList<>();
-        private volatile PDGrpc.PDBlockingStub stub;
-
-        public StubProxy(String[] hosts) {
-            for (String host : hosts) if (!host.isEmpty()) hostList.offer(host);
-        }
-
-        public String nextHost() {
-            String host = hostList.poll();
-            hostList.offer(host);   //移到尾部
-            return host;
-        }
-
-        public void set(PDGrpc.PDBlockingStub stub) {
-            this.stub = stub;
-        }
-
-        public PDGrpc.PDBlockingStub get() {
-            return this.stub;
-        }
-
-        public String getHost() {
-            return hostList.peek();
-        }
-
-        public int getHostCount() {
-            return hostList.size();
-        }
+    public void updatePdRaft(String raftConfig) throws PDException {
+        Pdpb.UpdatePdRaftRequest request = Pdpb.UpdatePdRaftRequest.newBuilder()
+                                                                   .setHeader(header)
+                                                                   .setConfig(raftConfig)
+                                                                   .build();
+        Pdpb.UpdatePdRaftResponse response = getStub().updatePdRaft(request);
+        handleResponseError(response.getHeader());
     }
 }

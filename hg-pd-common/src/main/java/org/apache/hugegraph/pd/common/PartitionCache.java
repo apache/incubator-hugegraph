@@ -23,16 +23,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
-
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
-import com.google.common.collect.TreeRangeMap;
-
+/**
+ * 放弃copy on write的方式
+ *   1. 在 graph * partition 数量极多的时候，效率严重下降，不能用
+ */
 public class PartitionCache {
 
     // 读写锁对象
@@ -41,10 +40,13 @@ public class PartitionCache {
     // 每张图一个缓存
     private volatile Map<String, RangeMap<Long, Integer>> keyToPartIdCache;
     // graphName + PartitionID组成key
-    private volatile Map<String, Metapb.Partition> partitionCache;
+    private volatile Map<String, Map<Integer, Metapb.Partition>> partitionCache;
+
     private volatile Map<Integer, Metapb.ShardGroup> shardGroupCache;
     private volatile Map<Long, Metapb.Store> storeCache;
     private volatile Map<String, Metapb.Graph> graphCache;
+
+    private volatile Map<String, AtomicBoolean> locks = new HashMap<>();
 
     public PartitionCache() {
         keyToPartIdCache = new HashMap<>();
@@ -52,6 +54,41 @@ public class PartitionCache {
         shardGroupCache = new ConcurrentHashMap<>();
         storeCache = new ConcurrentHashMap<>();
         graphCache = new ConcurrentHashMap<>();
+    }
+
+    private AtomicBoolean getOrCreateGraphLock(String graphName) {
+        var lock = this.locks.get(graphName);
+        if (lock == null) {
+            try {
+                writeLock.lock();
+                if ((lock = this.locks.get(graphName)) == null) {
+                    lock = new AtomicBoolean();
+                    locks.put(graphName, lock);
+                }
+            }finally {
+                writeLock.unlock();
+            }
+        }
+        return lock;
+    }
+
+    public void waitGraphLock(String graphName) {
+        var lock = getOrCreateGraphLock(graphName);
+        while (lock.get()) {
+            Thread.onSpinWait();
+        }
+    }
+
+    public void lockGraph(String graphName) {
+        var lock = getOrCreateGraphLock(graphName);
+        while (lock.compareAndSet(false, true)) {
+            Thread.onSpinWait();
+        }
+    }
+
+    public void unlockGraph(String graphName) {
+        var lock = getOrCreateGraphLock(graphName);
+        lock.set(false);
     }
 
     /**
@@ -62,10 +99,15 @@ public class PartitionCache {
      * @return
      */
     public KVPair<Metapb.Partition, Metapb.Shard> getPartitionById(String graphName, int partId) {
-        var partition = partitionCache.get(makePartitionKey(graphName, partId));
-        if (partition != null) {
-            return new KVPair<>(partition, getLeaderShard(partId));
+        waitGraphLock(graphName);
+        var graphs = partitionCache.get(graphName);
+        if (graphs != null) {
+            var partition = graphs.get(partId );
+            if (partition != null) {
+                return new KVPair<>(partition, getLeaderShard(partId));
+            }
         }
+
         return null;
     }
 
@@ -88,6 +130,7 @@ public class PartitionCache {
      * @return
      */
     public KVPair<Metapb.Partition, Metapb.Shard> getPartitionByCode(String graphName, long code) {
+        waitGraphLock(graphName);
         RangeMap<Long, Integer> rangeMap = keyToPartIdCache.get(graphName);
         if (rangeMap != null) {
             Integer partId = rangeMap.get(code);
@@ -99,87 +142,76 @@ public class PartitionCache {
     }
 
     public List<Metapb.Partition> getPartitions(String graphName) {
+        waitGraphLock(graphName);
+
         List<Metapb.Partition> partitions = new ArrayList<>();
-        // partitionCache key: graph name + partition id
-        partitionCache.forEach((k, v) -> {
-            if (k.startsWith(graphName)) {
+        if (! partitionCache.containsKey(graphName)) {
+            return partitions;
+        }
+        partitionCache.get(graphName).forEach((k,v) -> {
                 partitions.add(v);
-            }
         });
 
         return partitions;
     }
 
     public boolean addPartition(String graphName, int partId, Metapb.Partition partition) {
-        writeLock.lock();
+        waitGraphLock(graphName);
+        Metapb.Partition old = null;
+
+        if (partitionCache.containsKey(graphName)) {
+            old = partitionCache.get(graphName).get(partId);
+        }
+
+        if (old != null && old.equals(partition)) {
+            return false;
+        }
         try {
-            // graphName + PartitionID组成key
-            Metapb.Partition old = partitionCache.get(makePartitionKey(graphName, partId));
 
-            if (old != null && old.equals(partition)) {
-                return false;
-            }
+            lockGraph(graphName);
 
-            Map<String, RangeMap<Long, Integer>> tmpKeyToPartIdCache = cloneKeyToPartIdCache();
-            Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
-
-            tmpPartitionCache.put(makePartitionKey(graphName, partId), partition);
-            if (!tmpKeyToPartIdCache.containsKey(graphName)) {
-                tmpKeyToPartIdCache.put(graphName, TreeRangeMap.create());
-            }
+            partitionCache.computeIfAbsent(graphName, k -> new HashMap<>()).put(partId, partition);
 
             if (old != null) {
                 // old [1-3) 被 [2-3)覆盖了。当 [1-3) 变成[1-2) 不应该删除原先的[1-3)
                 // 当确认老的 start, end 都是自己的时候，才可以删除老的. (即还没覆盖）
-                var graphRange = tmpKeyToPartIdCache.get(graphName);
+                var graphRange = keyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
                 }
             }
 
-            tmpKeyToPartIdCache.get(graphName)
-                               .put(Range.closedOpen(partition.getStartKey(),
-                                                     partition.getEndKey()), partId);
-            partitionCache = tmpPartitionCache;
-            keyToPartIdCache = tmpKeyToPartIdCache;
-            return true;
+            keyToPartIdCache.computeIfAbsent(graphName, k -> TreeRangeMap.create())
+                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
         } finally {
-            writeLock.unlock();
+            unlockGraph(graphName);
         }
-
+        return true;
     }
 
     public void updatePartition(String graphName, int partId, Metapb.Partition partition) {
-        writeLock.lock();
         try {
-            Map<String, RangeMap<Long, Integer>> tmpKeyToPartIdCache = cloneKeyToPartIdCache();
-            Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
-
-            Metapb.Partition old = tmpPartitionCache.get(makePartitionKey(graphName, partId));
-
-            tmpPartitionCache.put(makePartitionKey(graphName, partId), partition);
-
-            if (!tmpKeyToPartIdCache.containsKey(graphName)) {
-                tmpKeyToPartIdCache.put(graphName, TreeRangeMap.create());
+            lockGraph(graphName);
+            Metapb.Partition old = null;
+            var graphs = partitionCache.get(graphName);
+            if (graphs != null) {
+                old = graphs.get(partId);
             }
 
             if (old != null) {
-                var graphRange = tmpKeyToPartIdCache.get(graphName);
+                var graphRange = keyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
-
                 }
             }
 
-            tmpKeyToPartIdCache.get(graphName)
-                               .put(Range.closedOpen(partition.getStartKey(),
-                                                     partition.getEndKey()), partId);
-            partitionCache = tmpPartitionCache;
-            keyToPartIdCache = tmpKeyToPartIdCache;
+            partitionCache.computeIfAbsent(graphName, k -> new HashMap<>()).put(partId, partition);
+            keyToPartIdCache.computeIfAbsent(graphName, k -> TreeRangeMap.create())
+                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
         } finally {
-            writeLock.unlock();
+            unlockGraph(graphName);
         }
     }
 
@@ -198,27 +230,19 @@ public class PartitionCache {
     }
 
     public void removePartition(String graphName, int partId) {
-        writeLock.lock();
         try {
-            Map<String, RangeMap<Long, Integer>> tmpKeyToPartIdCache = cloneKeyToPartIdCache();
-            Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
-            Metapb.Partition partition =
-                    tmpPartitionCache.remove(makePartitionKey(graphName, partId));
+            lockGraph(graphName);
+            var partition = partitionCache.get(graphName).remove(partId);
             if (partition != null) {
-                var graphRange = tmpKeyToPartIdCache.get(graphName);
+                var graphRange = keyToPartIdCache.get(graphName);
 
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
                     graphRange.remove(graphRange.getEntry(partition.getStartKey()).getKey());
                 }
-
             }
-            partitionCache = tmpPartitionCache;
-            keyToPartIdCache = tmpKeyToPartIdCache;
-            // log.info("PartitionCache.removePartition : (after){}", debugCacheByGraphName
-            // (graphName));
         } finally {
-            writeLock.unlock();
+            unlockGraph(graphName);
         }
     }
 
@@ -240,6 +264,7 @@ public class PartitionCache {
         try {
             partitionCache = new HashMap<>();
             keyToPartIdCache = new HashMap<>();
+            locks.clear();
         } finally {
             writeLock.unlock();
         }
@@ -251,22 +276,13 @@ public class PartitionCache {
      * @param graphName
      */
     public void removeAll(String graphName) {
-        writeLock.lock();
         try {
-            Map<String, RangeMap<Long, Integer>> tmpKeyToPartIdCache = cloneKeyToPartIdCache();
-            Map<String, Metapb.Partition> tmpPartitionCache = clonePartitionCache();
-            var itr = tmpPartitionCache.entrySet().iterator();
-            while (itr.hasNext()) {
-                var entry = itr.next();
-                if (entry.getKey().startsWith(graphName)) {
-                    itr.remove();
-                }
-            }
-            tmpKeyToPartIdCache.remove(graphName);
-            partitionCache = tmpPartitionCache;
-            keyToPartIdCache = tmpKeyToPartIdCache;
+            lockGraph(graphName);
+            partitionCache.remove(graphName);
+            keyToPartIdCache.remove(graphName);
+            locks.remove(graphName);
         } finally {
-            writeLock.unlock();
+            unlockGraph(graphName);
         }
     }
 
@@ -331,23 +347,6 @@ public class PartitionCache {
         return graphs;
     }
 
-    private Map<String, RangeMap<Long, Integer>> cloneKeyToPartIdCache() {
-        Map<String, RangeMap<Long, Integer>> cacheClone = new HashMap<>();
-        keyToPartIdCache.forEach((k1, v1) -> {
-            cacheClone.put(k1, TreeRangeMap.create());
-            v1.asMapOfRanges().forEach((k2, v2) -> {
-                cacheClone.get(k1).put(k2, v2);
-            });
-        });
-        return cacheClone;
-    }
-
-    private Map<String, Metapb.Partition> clonePartitionCache() {
-        Map<String, Metapb.Partition> cacheClone = new HashMap<>();
-        cacheClone.putAll(partitionCache);
-        return cacheClone;
-    }
-
     public void reset() {
         writeLock.lock();
         try {
@@ -356,6 +355,7 @@ public class PartitionCache {
             shardGroupCache = new ConcurrentHashMap<>();
             storeCache = new ConcurrentHashMap<>();
             graphCache = new ConcurrentHashMap<>();
+            locks.clear();
         } finally {
             writeLock.unlock();
         }
@@ -374,7 +374,7 @@ public class PartitionCache {
         if (rangeMap != null) {
             builder.append(", partition info : {");
             rangeMap.asMapOfRanges().forEach((k, v) -> {
-                var partition = partitionCache.get(makePartitionKey(graphName, v));
+                var partition = partitionCache.get(graphName).get(v);
                 builder.append("[part_id:").append(v);
                 if (partition != null) {
                     builder.append(", start_key:").append(partition.getStartKey())

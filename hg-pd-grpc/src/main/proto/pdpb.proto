@@ -83,6 +83,8 @@ service PD {
   rpc UpdateShardGroupOp(ChangeShardRequest) returns (ChangeShardResponse){}
   // change shard
   rpc ChangeShard(ChangeShardRequest) returns (ChangeShardResponse) {}
+  // 更新pd raft
+  rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
 }
 
 message RequestHeader {
@@ -561,4 +563,14 @@ message ChangeShardRequest{
 
 message ChangeShardResponse {
   ResponseHeader header = 1;
+}
+
+message UpdatePdRaftRequest{
+  RequestHeader header = 1;
+  string config = 3;
+}
+
+message UpdatePdRaftResponse{
+  ResponseHeader header = 1;
+  string message = 2;
 }

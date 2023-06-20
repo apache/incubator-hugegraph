@@ -49,8 +49,12 @@ public class PartitionEvent {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         PartitionEvent that = (PartitionEvent) o;
         return partitionId == that.partitionId && Objects.equals(graph, that.graph) &&
                changeType == that.changeType;

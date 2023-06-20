@@ -47,13 +47,17 @@ public class HgMapCache<K, V> {
     }
 
     public void put(K key, V value) {
-        if (key == null || value == null) return;
+        if (key == null || value == null) {
+            return;
+        }
         this.cache.put(key, value);
     }
 
 
     public V get(K key) {
-        if (isExpired()) return null;
+        if (isExpired()) {
+            return null;
+        }
         return this.cache.get(key);
     }
 

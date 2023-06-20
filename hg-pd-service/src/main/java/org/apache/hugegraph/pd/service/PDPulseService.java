@@ -45,10 +45,10 @@ import lombok.extern.slf4j.Slf4j;
 @GRpcService
 public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
 
-    private static final Supplier<List<Metapb.QueueItem>> queueRetrieveFunction =
+    private static final Supplier<List<Metapb.QueueItem>> QUEUE_RETRIEVE_FUNCTION =
             () -> Collections.emptyList();
-    private static final Function<Metapb.QueueItem, Boolean> queueDurableFunction = (e) -> true;
-    private static final Function<String, Boolean> queueRemoveFunction = (e) -> true;
+    private static final Function<Metapb.QueueItem, Boolean> QUEUE_ITEM_BOOLEAN_FUNCTION = (e) -> true;
+    private static final Function<String, Boolean> QUEUE_REMOVE_FUNCTION = (e) -> true;
     @Autowired
     private PDConfig pdConfig;
     private QueueStore queueStore = null;

@@ -15,8 +15,6 @@
  * under the License.
  */
 
-package org.apache.hugegraph.pd.service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -47,6 +45,7 @@ import org.apache.hugegraph.pd.grpc.kv.WatchState;
 import org.apache.hugegraph.pd.grpc.kv.WatchType;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
+import org.apache.hugegraph.pd.service.ServiceGrpc;
 import org.apache.hugegraph.pd.watch.KvWatchSubject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -277,12 +276,12 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             if (!isLeader()) {
                 try {
                     responseObserver.onError(new PDException(-1, msg));
-                    return;
+                } catch (IllegalStateException ie) {
+
                 } catch (Exception e1) {
                     log.error("redirect with error: ", e1);
                 }
             }
-            responseObserver.onError(e);
         }
     }
 
@@ -303,12 +302,12 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             if (!isLeader()) {
                 try {
                     responseObserver.onError(new PDException(-1, msg));
-                    return;
+                } catch (IllegalStateException ie) {
+
                 } catch (Exception e1) {
                     log.error("redirect with error: ", e1);
                 }
             }
-            responseObserver.onError(e);
         }
     }
 

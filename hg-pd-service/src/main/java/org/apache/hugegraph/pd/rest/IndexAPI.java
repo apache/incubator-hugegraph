@@ -15,8 +15,6 @@
  * under the License.
  */
 
-package org.apache.hugegraph.pd.rest;
-
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +25,8 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.rest.API;
+import org.apache.hugegraph.pd.rest.MemberAPI.CallStreamObserverWrap;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.service.PDService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,8 +70,11 @@ public class IndexAPI extends API {
             statistics.state =
                     String.valueOf(pdService.getStoreNodeService().getClusterStats().getState());
             String leaderGrpcAddress = RaftEngine.getInstance().getLeaderGrpcAddress();
+            CallStreamObserverWrap<Pdpb.GetMembersResponse> response =
+                    new CallStreamObserverWrap<>();
+            pdService.getMembers(Pdpb.GetMembersRequest.newBuilder().build(), response);
             List<Member> pdList = new ArrayList<>();
-            for (Metapb.Member member : RaftEngine.getInstance().getMembers()) {
+            for (Metapb.Member member : response.get().get(0).getMembersList()) {
                 Member member1 = new Member(member);
                 if ((leaderGrpcAddress != null) &&
                     (leaderGrpcAddress.equals(member.getGrpcUrl()))) {

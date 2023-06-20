@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.pd.client;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -45,14 +46,22 @@ import lombok.extern.slf4j.Slf4j;
 final class PDPulseImpl implements PDPulse {
 
     private final HgPdPulseGrpc.HgPdPulseStub stub;
-
-    private final ExecutorService threadPool;
+    private static ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
+    private ExecutorService threadPool ;
 
     // TODO: support several servers.
     public PDPulseImpl(String pdServerAddress) {
-        this.stub = HgPdPulseGrpc.newStub(getChannel(pdServerAddress));
-        var namedThreadFactory =
-                new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
+        ManagedChannel channel;
+        if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
+            synchronized (chs) {
+                if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
+                    channel = getChannel(pdServerAddress);
+                    chs.put(pdServerAddress, channel);
+                }
+            }
+        }
+        this.stub = HgPdPulseGrpc.newStub(channel);
+        var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
         threadPool = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 

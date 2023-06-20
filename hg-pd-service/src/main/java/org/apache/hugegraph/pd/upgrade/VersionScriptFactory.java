@@ -24,7 +24,7 @@ import org.apache.hugegraph.pd.upgrade.scripts.PartitionMetaUpgrade;
 import org.apache.hugegraph.pd.upgrade.scripts.TaskCleanUpgrade;
 
 public class VersionScriptFactory {
-    private static final List<VersionUpgradeScript> scripts = new LinkedList<>();
+    private static final List<VersionUpgradeScript> SCRIPTS = new LinkedList<>();
     private static volatile VersionScriptFactory factory;
 
     static {
@@ -48,10 +48,10 @@ public class VersionScriptFactory {
     }
 
     public static void registerScript(VersionUpgradeScript script) {
-        scripts.add(script);
+        SCRIPTS.add(script);
     }
 
     public List<VersionUpgradeScript> getScripts() {
-        return scripts;
+        return SCRIPTS;
     }
 }

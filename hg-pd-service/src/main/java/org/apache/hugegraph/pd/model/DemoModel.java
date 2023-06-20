@@ -51,8 +51,12 @@ public class DemoModel {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DemoModel that = (DemoModel) o;
         return status == that.status && Objects.equals(text, that.text);
     }

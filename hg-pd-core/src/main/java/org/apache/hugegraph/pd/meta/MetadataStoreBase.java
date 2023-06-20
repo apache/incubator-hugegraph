@@ -66,11 +66,6 @@ public abstract class MetadataStoreBase {
      */
     public abstract List<KV> scanPrefix(byte[] prefix) throws PDException;
 
-    public abstract List<KV> scanRange(byte[] start, byte[] end) throws PDException;
-
-    public abstract <E> List<E> scanRange(Parser<E> parser, byte[] start, byte[] end) throws
-                                                                                      PDException;
-
     /**
      * 前缀查询
      *
@@ -81,6 +76,10 @@ public abstract class MetadataStoreBase {
 
     public abstract <E> List<E> scanPrefix(Parser<E> parser, byte[] prefix) throws PDException;
 
+    public abstract List<KV> scanRange(byte[] start, byte[] end) throws PDException;
+
+    public abstract <E> List<E> scanRange(Parser<E> parser, byte[] start, byte[] end) throws
+                                                                                      PDException;
 
     /**
      * 检查Key是否存在

@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -93,7 +93,7 @@ public class TaskScheduleService {
         this.storeMonitorDataService = new StoreMonitorDataService(pdConfig);
         this.clusterStartTime = System.currentTimeMillis();
         this.kvService = new KvService(pdConfig);
-        this.executor = Executors.newScheduledThreadPool(1024);
+        this.executor = new ScheduledThreadPoolExecutor(16);
     }
 
     public void init() {

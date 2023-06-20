@@ -308,6 +308,8 @@ message Member {
   string rest_url = 5;
   string data_path = 6;
   StoreState state = 7;
+  ShardRole role = 8;
+  string replicator_state = 9;
 }
 
 // 图空间配置

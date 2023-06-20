@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.common;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -27,7 +26,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.hugegraph.pd.common.PartitionCache;
 import org.apache.hugegraph.pd.grpc.Metapb;

@@ -153,7 +153,9 @@ public class PromTargetsService {
                          Map<String, String> labels = e.getLabelsMap();
 
                          String target = labels.get("target");
-                         if (HgAssert.isInvalid(target)) return null;
+                         if (HgAssert.isInvalid(target)) {
+                             return null;
+                         }
 
                          PromTargetsModel model = PromTargetsModel.of();
                          model.addTarget(target);
@@ -232,7 +234,9 @@ public class PromTargetsService {
     //TODO: optimized store registry data, to add host:port of REST server.
     private String getRestAddress(Metapb.Store store) {
         String address = store.getAddress();
-        if (address == null || address.isEmpty()) return null;
+        if (address == null || address.isEmpty()) {
+            return null;
+        }
         try {
             Optional<String> port = store.getLabelsList().stream().map(
                     e -> {

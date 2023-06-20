@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.service;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Pdpb;
@@ -63,11 +64,14 @@ public interface ServiceGrpc extends RaftStateListener {
                                                 io.grpc.stub.StreamObserver<RespT> observer) {
         try {
             String address = RaftEngine.getInstance().getLeaderGrpcAddress();
-            if ((channel = channels.get(address)) == null) {
-                synchronized (this) {
-                    if ((channel = channels.get(address)) == null) {
-                        ManagedChannel c =
-                                ManagedChannelBuilder.forTarget(address).usePlaintext().build();
+            if ((channel = channels.get(address)) == null || channel.isTerminated() || channel.isShutdown()) {
+                synchronized (ServiceGrpc.class) {
+                    if ((channel = channels.get(address)) == null || channel.isTerminated() ||
+                        channel.isShutdown()) {
+                        while (channel != null && channel.isShutdown() && !channel.isTerminated()) {
+                            channel.awaitTermination(50, TimeUnit.MILLISECONDS);
+                        }
+                        ManagedChannel c = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
                         channels.put(address, c);
                         channel = c;
                     }
@@ -78,6 +82,12 @@ public interface ServiceGrpc extends RaftStateListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+    }
+
+    default <ReqT, RespT> void redirectToLeader(MethodDescriptor<ReqT, RespT> method,
+                                                ReqT req, io.grpc.stub.StreamObserver<RespT> observer) {
+        redirectToLeader(null, method, req, observer);
 
     }
 

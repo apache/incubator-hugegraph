@@ -39,6 +39,10 @@ public class API {
     public static String QUOTATION = "\"";
     public static String COMMA = ",";
     public static String COLON = ": ";
+    public static final String VERSION = "3.6.5";
+    public static final String PD = "PD";
+    public static final String STORE = "STORE";
+
 
     public <T extends MessageOrBuilder> String toJSON(List<T> values, String key) {
 

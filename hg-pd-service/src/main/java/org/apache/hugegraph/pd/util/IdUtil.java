@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class IdUtil {
-    private final static byte[] lock = new byte[0];
+    private static final byte[] LOCK = new byte[0];
 
     public static String createMillisStr() {
         return String.valueOf(createMillisId());
@@ -36,7 +36,7 @@ public final class IdUtil {
      * @return
      */
     public static Long createMillisId() {
-        synchronized (lock) {
+        synchronized (LOCK) {
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {

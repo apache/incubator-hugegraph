@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DiscoveryMetaStore extends MetadataRocksDBStore {
 
-    //appName --> address --> registryInfo
+    /** appName --> address --> registryInfo */
     private static final String PREFIX = "REGIS-";
     private static final String SPLITTER = "-";
 
@@ -85,7 +85,9 @@ public class DiscoveryMetaStore extends MetadataRocksDBStore {
         if (query.getLabelsMap() != null && !query.getLabelsMap().isEmpty()) {
             List result = new LinkedList<NodeInfo>();
             for (NodeInfo node : nodeInfos) {
-                if (labelMatch(node, query)) result.add(node);
+                if (labelMatch(node, query)) {
+                    result.add(node);
+                }
             }
             return NodeInfos.newBuilder().addAllInfo(result).build();
         }

@@ -74,11 +74,9 @@ public class MemberAPI extends API {
             stateCountMap.put(stateKey, stateCountMap.getOrDefault(stateKey, 0) + 1);
             Member member1 = new Member(member);
             if ((leaderGrpcAddress != null) && (leaderGrpcAddress.equals(member.getGrpcUrl()))) {
-                member1.role = "Leader";
                 leader = member1;
-            } else {
-                member1.role = "Follower";
             }
+            member1.role = member.getRole().name();
             members.add(member1);
         }
         String state = pdService.getStoreNodeService().getClusterStats().getState().toString();
@@ -214,6 +212,7 @@ public class MemberAPI extends API {
         String state;
         String dataPath;
         String role;
+        String replicateState;
         String serviceName; //服务名称，自定义属性
         String serviceVersion; //静态定义
         long startTimeStamp; //启动时间，暂时取进程的启动时间
@@ -226,9 +225,9 @@ public class MemberAPI extends API {
                 state = String.valueOf(member.getState());
                 dataPath = member.getDataPath();
                 serviceName = grpcUrl + "-PD";
-                serviceVersion = "3.6.3";
+                serviceVersion = VERSION;
                 startTimeStamp = ManagementFactory.getRuntimeMXBean().getStartTime();
-
+                replicateState = member.getReplicatorState();
             }
 
         }

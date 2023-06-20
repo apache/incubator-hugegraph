@@ -20,8 +20,13 @@ package org.apache.hugegraph.pd.service;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
@@ -69,23 +74,24 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
+import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.conf.Configuration;
+import com.alipay.sofa.jraft.entity.PeerId;
 
-import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.MethodDescriptor;
-import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @GRpcService
-public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
+public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftStateListener {
 
     static String TASK_ID_KEY = "task_id";
     private final Pdpb.ResponseHeader okHeader = Pdpb.ResponseHeader.newBuilder().setError(
             Pdpb.Error.newBuilder().setType(Pdpb.ErrorType.OK)).build();
+    // private ManagedChannel channel;
+    private final Map<String, ManagedChannel> channelMap = new ConcurrentHashMap<>();
     @Autowired
     private PDConfig pdConfig;
     private StoreNodeService storeNodeService;
@@ -1234,30 +1240,32 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
         return RaftEngine.getInstance().isLeader();
     }
 
-    private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
-            MethodDescriptor<ReqT, RespT> method, ReqT req,
-            io.grpc.stub.StreamObserver<RespT> observer) {
-        try {
-            if (channel == null) {
-                synchronized (this) {
-                    if (channel == null) {
-                        channel = ManagedChannelBuilder
-                                .forTarget(RaftEngine.getInstance().getLeaderGrpcAddress())
-                                .usePlaintext()
-                                .build();
-                    }
-                }
-                log.info("Grpc get leader address {}",
-                         RaftEngine.getInstance().getLeaderGrpcAddress());
-            }
-
-            io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions.DEFAULT),
-                                                    req,
-                                                    observer);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    //private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
+    //        MethodDescriptor<ReqT, RespT> method, ReqT req, io.grpc.stub.StreamObserver<RespT>
+    //        observer) {
+    //    try {
+    //        var addr = RaftEngine.getInstance().getLeaderGrpcAddress();
+    //        ManagedChannel channel;
+    //
+    //        if ((channel = channelMap.get(addr)) == null) {
+    //            synchronized (this) {
+    //                if ((channel = channelMap.get(addr)) == null|| channel.isShutdown()) {
+    //                    channel = ManagedChannelBuilder
+    //                            .forTarget(addr).usePlaintext()
+    //                            .build();
+    //                }
+    //            }
+    //            log.info("Grpc get leader address {}", RaftEngine.getInstance()
+    //            .getLeaderGrpcAddress());
+    //        }
+    //
+    //        io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions
+    //        .DEFAULT), req,
+    //                                                observer);
+    //    } catch (Exception e) {
+    //        e.printStackTrace();
+    //    }
+    //}
 
     /**
      * 更新peerList
@@ -1291,7 +1299,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
     @Override
     public synchronized void onRaftLeaderChanged() {
         log.info("onLeaderChanged");
-        channel = null;
+        // channel = null;
         if (licenseVerifierService == null) {
             licenseVerifierService = new LicenseVerifierService(pdConfig);
         }
@@ -1303,7 +1311,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
                 PDPulseSubject.notifyError(message);
                 PDWatchSubject.notifyError(message);
             } catch (Exception e) {
-
+                log.error("onRaftLeaderChanged, got error:", e);
             }
         }
     }
@@ -1625,6 +1633,112 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
 
         observer.onNext(response);
         observer.onCompleted();
+    }
+
+    public void updatePdRaft(Pdpb.UpdatePdRaftRequest request,
+                             StreamObserver<Pdpb.UpdatePdRaftResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getUpdatePdRaftMethod(), request, observer);
+            return;
+        }
+
+        var list = parseConfig(request.getConfig());
+
+        log.info("update raft request: {}, list: {}", request.getConfig(), list);
+
+        Pdpb.UpdatePdRaftResponse response =
+                Pdpb.UpdatePdRaftResponse.newBuilder().setHeader(okHeader).build();
+
+        do {
+            var leaders = list.stream().filter(s -> s.getKey().equals("leader"))
+                              .collect(Collectors.toList());
+            var node = RaftEngine.getInstance().getRaftNode();
+
+            if (leaders.size() == 1) {
+                var leaderPeer = leaders.get(0).getValue();
+                // change leader
+                var peers = new HashSet<>(node.listPeers());
+
+                if (!peerEquals(leaderPeer, node.getLeaderId())) {
+                    if (peers.contains(leaderPeer)) {
+                        log.info("updatePdRaft, transfer to {}", leaderPeer);
+                        node.transferLeadershipTo(leaderPeer);
+                    } else {
+                        response = Pdpb.UpdatePdRaftResponse.newBuilder()
+                                                            .setHeader(newErrorHeader(6667,
+                                                                                      "new leader" +
+                                                                                      " not in " +
+                                                                                      "raft peers"))
+                                                            .build();
+                    }
+                    break;
+                }
+            } else {
+                response = Pdpb.UpdatePdRaftResponse.newBuilder()
+                                                    .setHeader(newErrorHeader(6666,
+                                                                              "leader size != 1"))
+                                                    .build();
+                break;
+            }
+
+            Configuration config = new Configuration();
+            // add peer
+            for (var peer : list) {
+                if (!peer.getKey().equals("learner")) {
+                    config.addPeer(peer.getValue());
+                } else {
+                    config.addLearner(peer.getValue());
+                }
+            }
+
+            log.info("pd raft update with new config: {}", config);
+
+            node.changePeers(config, status -> {
+                if (status.isOk()) {
+                    log.info("updatePdRaft, change peers success");
+                } else {
+                    log.error("changePeers status: {}, msg:{}, code: {}, raft error:{}",
+                              status, status.getErrorMsg(), status.getCode(),
+                              status.getRaftError());
+                }
+            });
+        } while (false);
+
+        observer.onNext(response);
+        observer.onCompleted();
+    }
+
+    private List<KVPair<String, PeerId>> parseConfig(String conf) {
+        List<KVPair<String, PeerId>> result = new LinkedList<>();
+
+        if (conf != null && conf.length() > 0) {
+            for (var s : conf.split(",")) {
+                if (s.endsWith("/leader")) {
+                    result.add(new KVPair<>("leader",
+                                            JRaftUtils.getPeerId(s.substring(0, s.length() - 7))));
+                } else if (s.endsWith("/learner")) {
+                    result.add(new KVPair<>("learner",
+                                            JRaftUtils.getPeerId(s.substring(0, s.length() - 8))));
+                } else if (s.endsWith("/follower")) {
+                    result.add(new KVPair<>("follower",
+                                            JRaftUtils.getPeerId(s.substring(0, s.length() - 9))));
+                } else {
+                    result.add(new KVPair<>("follower", JRaftUtils.getPeerId(s)));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private boolean peerEquals(PeerId p1, PeerId p2) {
+        if (p1 == null && p2 == null) {
+            return true;
+        }
+        if (p1 == null || p2 == null) {
+            return false;
+        }
+        return Objects.equals(p1.getIp(), p2.getIp()) && Objects.equals(p1.getPort(), p2.getPort());
     }
 
 }
