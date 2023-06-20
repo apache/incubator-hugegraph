@@ -32,7 +32,6 @@ import org.rocksdb.RocksIterator;
 import org.rocksdb.Slice;
 import org.rocksdb.Snapshot;
 import org.rocksdb.WriteBatch;
-import org.apache.hugegraph.util.Bytes;
 
 import lombok.extern.slf4j.Slf4j;
 

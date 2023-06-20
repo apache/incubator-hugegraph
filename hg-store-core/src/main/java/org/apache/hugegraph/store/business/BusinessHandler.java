@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.grpc.Graphpb;
@@ -198,28 +196,5 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     void destroyGraphDB(String graphName, int partId) throws HgStoreException;
 
-    @NotThreadSafe
-    interface TxBuilder {
-        TxBuilder put(int code, String table, byte[] key, byte[] value) throws HgStoreException;
-
-        TxBuilder del(int code, String table, byte[] key) throws HgStoreException;
-
-        TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException;
-
-        TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException;
-
-        TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
-                                                                             HgStoreException;
-
-        TxBuilder merge(int code, String table, byte[] key, byte[] value) throws HgStoreException;
-
-        Tx build();
-    }
-
-    interface Tx {
-        void commit() throws HgStoreException;
-
-        void rollback() throws HgStoreException;
-    }
-
+    long count(String graphName, String table);
 }

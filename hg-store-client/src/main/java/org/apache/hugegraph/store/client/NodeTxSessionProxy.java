@@ -506,6 +506,17 @@ class NodeTxSessionProxy implements HgStoreSession {
     }
 
     @Override
+    public long count(String table) {
+        return this.toNodeTkvList(table)
+                   .parallelStream()
+                   .map(
+                           e -> this.getStoreNode(e.getNodeId()).openSession(this.graphName)
+                                    .count(e.getTable())
+                   )
+                   .collect(Collectors.summingLong(l -> l));
+    }
+
+    @Override
     public List<HgKvIterator<HgKvEntry>> scanBatch(HgScanQuery scanQuery) {
         HgAssert.isArgumentNotNull(scanQuery, "scanQuery");
 

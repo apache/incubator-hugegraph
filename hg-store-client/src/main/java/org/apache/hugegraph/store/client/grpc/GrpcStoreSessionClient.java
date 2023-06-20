@@ -18,6 +18,7 @@
 package org.apache.hugegraph.store.client.grpc;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -37,6 +38,7 @@ import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc;
 import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc.HgStoreSessionBlockingStub;
 import org.apache.hugegraph.store.grpc.session.TableReq;
 
+import io.grpc.Deadline;
 import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;
 
@@ -136,6 +138,17 @@ class GrpcStoreSessionClient extends AbstractGrpcClient {
                                   .setMethod(method)
                                   .build()
                    );
+    }
+
+    public long count(HgStoreNodeSession nodeSession, String table) {
+        Agg agg = this.getBlockingStub(nodeSession).withDeadline(Deadline.after(24, TimeUnit.HOURS))
+                      .count(ScanStreamReq.newBuilder()
+                                          .setHeader(getHeader(nodeSession))
+                                          .setTable(table)
+                                          .setMethod(ScanMethod.ALL)
+                                          .build()
+                      );
+        return agg.getCount();
     }
 }
 

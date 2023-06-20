@@ -20,7 +20,6 @@ package org.apache.hugegraph.store.node.grpc;
 
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.buffer.ByteBufferAllocator;
@@ -44,24 +43,23 @@ import lombok.extern.slf4j.Slf4j;
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     static ByteBufferAllocator bfAllocator =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
+    static ByteBufferAllocator alloc =
+            new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
     private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //单位秒
-    private final Object stateLock = new Object();
-    private final ReentrantLock iteratorLock = new ReentrantLock();
     private final StreamObserver<KvStream> sender;
     private final HgStoreWrapperEx wrapper;
     private final ThreadPoolExecutor executor;
-    private final long logId;
     // 当前正在遍历的迭代器
     private ScanIterator iterator;
     // 下一次发送的序号
-    private volatile int nextSeqNo;
+    private volatile int seqNo;
     // Client已消费的序号
     private volatile int clientSeqNo;
     // 已经发送的条目数
-    private volatile long entriesCounter;
+    private volatile long count;
     // 客户端要求返回的最大条目数
-    private volatile long clientLimit;             // 客户端要求的最大条目数
+    private volatile long limit;
     private ScanQueryRequest query;
     // 上次读取数据时间
     private long activeTime;
@@ -73,10 +71,9 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
         this.wrapper = wrapper;
         this.executor = executor;
         this.iterator = null;
-        this.nextSeqNo = 1;
+        this.seqNo = 1;
         this.state = State.IDLE;
         this.activeTime = System.currentTimeMillis();
-        this.logId = response.hashCode();
     }
 
     /**
@@ -95,7 +92,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
                 break;
             case RECEIPT_REQUEST:   // 消息异步应答
                 this.clientSeqNo = request.getReceiptRequest().getTimes();
-                if (nextSeqNo - clientSeqNo < maxInFlightCount) {
+                if (seqNo - clientSeqNo < maxInFlightCount) {
                     synchronized (stateLock) {
                         if (state == State.IDLE) {
                             state = State.DOING;
@@ -136,16 +133,9 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
      */
     private void startQuery(String graphName, ScanQueryRequest request) {
         this.query = request;
-
-        // log.info("Stream {} startQuery graphName is {}, query degree/keylimit/limit is " +
-        //                "{}/{}/{}, scanType is {}, orderType is {}",
-        //        this.logId, graphName, query.getSkipDegree(), query.getPerKeyLimit(), query
-        //        .getLimit(),
-        //        query.getScanType(), query.getOrderType());
-
-        this.clientLimit = request.getLimit();
-        this.entriesCounter = 0;
-        this.iterator = ScanUtil.getParallelIterator(graphName, request, this.wrapper, executor);
+        this.limit = request.getLimit();
+        this.count = 0;
+        this.iterator = getParallelIterator(graphName, request, this.wrapper, executor);
         synchronized (stateLock) {
             if (state == State.IDLE) {
                 state = State.DOING;
@@ -161,63 +151,75 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
      */
     private void closeQuery() {
         setStateDone();
-        iteratorLock.lock();
+        try {
+            closeIter();
+            this.sender.onCompleted();
+        } catch (Exception e) {
+            log.error("exception ", e);
+        }
+        int active = ScanBatchResponseFactory.getInstance().removeStreamObserver(this);
+        log.info("ScanBatchResponse closeQuery, active count is {}", active);
+    }
+
+    private void closeIter() {
         try {
             if (this.iterator != null) {
                 this.iterator.close();
                 this.iterator = null;
             }
-            this.sender.onCompleted();
         } catch (Exception e) {
-            log.error("exception ", e);
-        } finally {
-            iteratorLock.unlock();
+
         }
-        int active = ScanBatchResponseFactory.getInstance().removeStreamObserver(this);
-        log.info("ScanBatchResponse closeQuery, active count is {}", active);
     }
 
     /**
      * 发送数据
      */
     private void sendEntries() {
+        if (state == State.DONE || iterator == null) {
+            setStateIdle();
+            return;
+        }
         iteratorLock.lock();
         try {
             if (state == State.DONE || iterator == null) {
                 setStateIdle();
                 return;
             }
-            KvStream.Builder dataBuilder = KvStream.newBuilder()
-                                                   .setVersion(1);
-            while (iterator.hasNext()
-                   && (nextSeqNo - clientSeqNo < maxInFlightCount)
-                   && this.entriesCounter < clientLimit
-                   && state != State.DONE) {
-                KVByteBuffer buffer = new KVByteBuffer(bfAllocator.get());
-                List<ParallelScanIterator.KV> dataList = iterator.next();
+            KvStream.Builder dataBuilder = KvStream.newBuilder().setVersion(1);
+            while (state != State.DONE && iterator.hasNext()
+                   && (seqNo - clientSeqNo < maxInFlightCount)
+                   && this.count < limit) {
+                KVByteBuffer buffer = new KVByteBuffer(alloc.get());
+                List<KV> dataList = iterator.next();
                 dataList.forEach(kv -> {
                     kv.write(buffer);
-                    this.entriesCounter++;
+                    this.count++;
                 });
                 dataBuilder.setStream(buffer.flip().getBuffer());
-                dataBuilder.setSeqNo(nextSeqNo++);
-                dataBuilder.complete(e -> {
-                    bfAllocator.release(buffer.getBuffer());
-                });
+                dataBuilder.setSeqNo(seqNo++);
+                dataBuilder.complete(e -> alloc.release(buffer.getBuffer()));
                 this.sender.onNext(dataBuilder.build());
                 this.activeTime = System.currentTimeMillis();
             }
-            if (!iterator.hasNext() || this.entriesCounter >= clientLimit || state == State.DONE) {
+            if (!iterator.hasNext() || this.count >= limit || state == State.DONE) {
+                closeIter();
                 this.sender.onNext(KvStream.newBuilder().setOver(true).build());
                 setStateDone();
             } else {
                 setStateIdle();
             }
         } catch (Throwable e) {
-            log.error("exception ", e);
-            setStateIdle();
-            if (this.sender != null) {
-                this.sender.onError(e);
+            if (this.state != State.DONE) {
+                log.error(" send data exception: ", e);
+                setStateIdle();
+                if (this.sender != null) {
+                    try {
+                        this.sender.onError(e);
+                    } catch (Exception ex) {
+
+                    }
+                }
             }
         } finally {
             iteratorLock.unlock();

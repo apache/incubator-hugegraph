@@ -80,9 +80,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     private HgMetricService metricService;
     private DataMover dataMover;
 
-    private HgStoreEngine() {
-
-    }
+    private static ConcurrentHashMap<Integer, Object> engineLocks = new ConcurrentHashMap<>();
 
     public static HgStoreEngine getInstance() {
         return instance;
@@ -290,7 +288,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                                                   Configuration conf) {
         PartitionEngine engine;
         if ((engine = partitionEngines.get(groupId)) == null) {
-            synchronized (this) {
+            engineLocks.computeIfAbsent(groupId, k -> new Object());
+            synchronized (engineLocks.get(groupId)) {
                 // 分区分裂时特殊情况(集群中图分区数量不一样)，会导致分裂的分区，可能不在本机器上.
                 if (conf != null) {
                     var list = conf.listPeers();
@@ -566,7 +565,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                             RaftClosure closure) {
         PartitionEngine engine = getPartitionEngine(graphName, partId);
         if (engine == null) {
-            synchronized (this) {
+            engineLocks.computeIfAbsent(partId, k -> new Object());
+            synchronized (engineLocks.get(partId)) {
                 engine = getPartitionEngine(graphName, partId);
                 if (engine == null) {
                     Partition partition = partitionManager.findPartition(graphName, partId);

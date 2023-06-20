@@ -97,6 +97,8 @@ public interface HgKvStore {
 
     HgKvIterator<HgKvEntry> scanIterator(ScanStreamReq.Builder scanReqBuilder);
 
+    long count(String table);
+
     boolean truncate();
 
     default boolean existsTable(String table) {

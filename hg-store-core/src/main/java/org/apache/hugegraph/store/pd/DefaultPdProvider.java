@@ -21,8 +21,6 @@ package org.apache.hugegraph.store.pd;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.pd.client.PDClient;
@@ -54,12 +52,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DefaultPdProvider implements PdProvider {
     private static final Logger LOG = Log.logger(DefaultPdProvider.class);
-    private static final ConcurrentMap<String, Boolean> quotas =
-            new ConcurrentHashMap<>();
     private final PDClient pdClient;
     private final String pdServerAddress;
+
+    private Consumer<Throwable> hbOnError = null;
     private List<PartitionInstructionListener> partitionCommandListeners =
-            Collections.synchronizedList(new ArrayList());
+            Collections.synchronizedList(new ArrayList<>());
+    private final PDPulse pulseClient;
+
     private PDPulse.Notifier<PartitionHeartbeatRequest.Builder> pdPulse;
     private GraphManager graphManager = null;
     PDClient.PDEventListener listener = new PDClient.PDEventListener() {
@@ -70,6 +70,11 @@ public class DefaultPdProvider implements PdProvider {
                 log.info("store raft group changed!, {}", event);
                 pdClient.invalidStoreCache(event.getNodeId());
                 HgStoreEngine.getInstance().rebuildRaftGroup(event.getNodeId());
+            } else if (event.getEventType() == NodeEvent.EventType.NODE_PD_LEADER_CHANGE) {
+                log.info("pd leader changed!, {}. restart heart beat", event);
+                if (pulseClient.resetStub(event.getGraph(), pdPulse)) {
+                    startHeartbeatStream(hbOnError);
+                }
             }
         }
 
@@ -94,6 +99,8 @@ public class DefaultPdProvider implements PdProvider {
         this.pdClient.addEventListener(listener);
         this.pdServerAddress = pdAddress;
         partitionCommandListeners = Collections.synchronizedList(new ArrayList());
+        log.info("pulse client connect to {}", pdClient.getLeaderIp());
+        this.pulseClient = new PDPulseImpl(pdClient.getLeaderIp());
     }
 
     @Override
@@ -244,61 +251,77 @@ public class DefaultPdProvider implements PdProvider {
      */
     @Override
     public boolean startHeartbeatStream(Consumer<Throwable> onError) {
-        PDPulse pulse = pdClient.getPulseClient();
-        pdPulse = pulse.connectPartition(new PDPulse.Listener<PartitionHeartbeatResponse>() {
+        this.hbOnError = onError;
+        pdPulse = pulseClient.connectPartition(new PDPulse.Listener<>() {
 
             @Override
-            public void onNotice(PulseServerNotice<PartitionHeartbeatResponse> response) {
-                PartitionHeartbeatResponse instruction = response.getContent();
-                LOG.debug("Partition heartbeat receive instruction: {}", instruction);
-                Partition partition = new Partition(instruction.getPartition());
+            public void onNotice(PulseServerNotice<PulseResponse> response) {
+                PulseResponse content = response.getContent();
 
                 // 消息消费应答，能够正确消费消息，调用accept返回状态码，否则不要调用accept
-                Consumer<Integer> consumer = new Consumer<>() {
-                    @Override
-                    public void accept(Integer integer) {
-                        LOG.debug("Partition heartbeat accept instruction: {}", instruction);
-                        // LOG.info("accept notice id : {}, ts:{}", response.getNoticeId(),
-                        // System.currentTimeMillis());
-                        // http2 并发问题，需要加锁
-                        // synchronized (pdPulse) {
-                        response.ack();
-                        // }
-                    }
+                Consumer<Integer> consumer = integer -> {
+                    LOG.debug("Partition heartbeat accept instruction: {}", content);
+                    // LOG.info("accept notice id : {}, ts:{}", response.getNoticeId(), System
+                    // .currentTimeMillis());
+                    // http2 并发问题，需要加锁
+                    // synchronized (pdPulse) {
+                    response.ack();
+                    // }
                 };
 
+                if (content.hasInstructionResponse()) {
+                    var pdInstruction = content.getInstructionResponse();
+                    consumer.accept(0);
+                    // 当前的链接变成了follower，重新链接
+                    if (pdInstruction.getInstructionType() ==
+                        PdInstructionType.CHANGE_TO_FOLLOWER) {
+                        onCompleted();
+                        log.info("got pulse instruction, change leader to {}",
+                                 pdInstruction.getLeaderIp());
+                        if (pulseClient.resetStub(pdInstruction.getLeaderIp(), pdPulse)) {
+                            startHeartbeatStream(hbOnError);
+                        }
+                    }
+                    return;
+                }
+
+                PartitionHeartbeatResponse instruct = content.getPartitionHeartbeatResponse();
+                LOG.debug("Partition heartbeat receive instruction: {}", instruct);
+
+                Partition partition = new Partition(instruct.getPartition());
+
                 for (PartitionInstructionListener event : partitionCommandListeners) {
-                    if (instruction.hasChangeShard()) {
-                        event.onChangeShard(instruction.getId(), partition,
-                                            instruction.getChangeShard(), consumer);
+                    if (instruct.hasChangeShard()) {
+                        event.onChangeShard(instruct.getId(), partition, instruct.getChangeShard(),
+                                            consumer);
                     }
-                    if (instruction.hasSplitPartition()) {
-                        event.onSplitPartition(instruction.getId(), partition,
-                                               instruction.getSplitPartition(), consumer);
+                    if (instruct.hasSplitPartition()) {
+                        event.onSplitPartition(instruct.getId(), partition,
+                                               instruct.getSplitPartition(), consumer);
                     }
-                    if (instruction.hasTransferLeader()) {
-                        event.onTransferLeader(instruction.getId(), partition,
-                                               instruction.getTransferLeader(), consumer);
+                    if (instruct.hasTransferLeader()) {
+                        event.onTransferLeader(instruct.getId(), partition,
+                                               instruct.getTransferLeader(), consumer);
                     }
-                    if (instruction.hasDbCompaction()) {
-                        event.onDbCompaction(instruction.getId(), partition,
-                                             instruction.getDbCompaction(), consumer);
-                    }
-
-                    if (instruction.hasMovePartition()) {
-                        event.onMovePartition(instruction.getId(), partition,
-                                              instruction.getMovePartition(), consumer);
+                    if (instruct.hasDbCompaction()) {
+                        event.onDbCompaction(instruct.getId(), partition,
+                                             instruct.getDbCompaction(), consumer);
                     }
 
-                    if (instruction.hasCleanPartition()) {
-                        event.onCleanPartition(instruction.getId(), partition,
-                                               instruction.getCleanPartition(),
+                    if (instruct.hasMovePartition()) {
+                        event.onMovePartition(instruct.getId(), partition,
+                                              instruct.getMovePartition(), consumer);
+                    }
+
+                    if (instruct.hasCleanPartition()) {
+                        event.onCleanPartition(instruct.getId(), partition,
+                                               instruct.getCleanPartition(),
                                                consumer);
                     }
 
-                    if (instruction.hasKeyRange()) {
-                        event.onPartitionKeyRangeChanged(instruction.getId(), partition,
-                                                         instruction.getKeyRange(),
+                    if (instruct.hasKeyRange()) {
+                        event.onPartitionKeyRangeChanged(instruct.getId(), partition,
+                                                         instruct.getKeyRange(),
                                                          consumer);
                     }
                 }
@@ -307,6 +330,7 @@ public class DefaultPdProvider implements PdProvider {
             @Override
             public void onError(Throwable throwable) {
                 LOG.error("Partition heartbeat stream error. {}", throwable);
+                pulseClient.resetStub(pdClient.getLeaderIp(), pdPulse);
                 onError.accept(throwable);
             }
 

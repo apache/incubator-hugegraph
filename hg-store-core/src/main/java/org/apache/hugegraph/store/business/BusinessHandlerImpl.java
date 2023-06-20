@@ -33,8 +33,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.config.HugeConfig;
@@ -802,117 +800,35 @@ public class BusinessHandlerImpl implements BusinessHandler {
         keyCreator.clearCache(partId);
     }
 
-    @NotThreadSafe
-    private class TxBuilderImpl implements TxBuilder {
-        private final String graph;
-        private final int partId;
-        private final RocksDBSession dbSession;
-        private final SessionOperator op;
-
-        private TxBuilderImpl(String graph, int partId, RocksDBSession dbSession) {
-            this.graph = graph;
-            this.partId = partId;
-            this.dbSession = dbSession;
-            this.op = this.dbSession.sessionOp();
-            this.op.prepare();
-        }
-
-        @Override
-        public TxBuilder put(int code, String table, byte[] key, byte[] value) throws
-                                                                               HgStoreException {
-            try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
-                this.op.put(table, targetKey, value);
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RKDB_DOPUT_FAIL, e.toString());
-            }
-            return this;
-        }
-
-        @Override
-        public TxBuilder del(int code, String table, byte[] key) throws HgStoreException {
-            try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
-                this.op.delete(table, targetKey);
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RKDB_DODEL_FAIL, e.toString());
-            }
-
-            return this;
-        }
-
-        @Override
-        public TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException {
-
-            try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
-                op.deleteSingle(table, targetKey);
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RDKDB_DOSINGLEDEL_FAIL,
-                                           e.toString());
-            }
-
-            return this;
-        }
-
-        @Override
-        public TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException {
-
-            try {
-                this.op.deletePrefix(table, keyCreator.getPrefixKey(this.partId, graph, prefix));
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RKDB_DODELPREFIX_FAIL, e.toString());
-            }
-
-            return this;
-        }
-
-        @Override
-        public TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
-                                                                                    HgStoreException {
-
-            try {
-                this.op.deleteRange(table, keyCreator.getStartKey(this.partId, graph, start),
-                                    keyCreator.getEndKey(this.partId, graph, end));
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RKDB_DODELRANGE_FAIL, e.toString());
-            }
-
-            return this;
-        }
-
-        @Override
-        public TxBuilder merge(int code, String table, byte[] key, byte[] value) throws
-                                                                                 HgStoreException {
-
-            try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
-                op.merge(table, targetKey, value);
-            } catch (DBStoreException e) {
-                throw new HgStoreException(HgStoreException.EC_RKDB_DOMERGE_FAIL, e.toString());
-            }
-
-            return this;
-        }
-
-        @Override
-        public Tx build() {
-            return new Tx() {
-                @Override
-                public void commit() throws HgStoreException {
-                    op.commit();  // commit发生异常后，必须调用rollback，否则造成锁未释放
-                    dbSession.close();
+    @Override
+    public long count(String graph, String table) {
+        List<Integer> ids = this.getLeaderPartitionIds(graph);
+        Long all = ids.parallelStream().map((id) -> {
+            InnerKeyFilter it = null;
+            try (RocksDBSession dbSession = getSession(graph, table, id)) {
+                long count = 0;
+                SessionOperator op = dbSession.sessionOp();
+                it = new InnerKeyFilter(op.scan(table,
+                                                keyCreator.getStartKey(id, graph),
+                                                keyCreator.getEndKey(id, graph),
+                                                ScanIterator.Trait.SCAN_LT_END));
+                while (it.hasNext()) {
+                    it.next();
+                    count++;
                 }
-
-                @Override
-                public void rollback() throws HgStoreException {
+                return count;
+            } catch (Exception e) {
+                throw e;
+            } finally {
+                if (it != null) {
                     try {
-                        op.rollback();
-                    } finally {
-                        dbSession.close();
+                        it.close();
+                    } catch (Exception e) {
+
                     }
                 }
-            };
-        }
+            }
+        }).collect(Collectors.summingLong(l -> l));
+        return all;
     }
 }

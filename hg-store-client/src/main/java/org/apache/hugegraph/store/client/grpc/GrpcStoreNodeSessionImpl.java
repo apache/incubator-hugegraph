@@ -368,6 +368,11 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
         return GrpcKvIteratorImpl.of(this, scanner);
     }
 
+    @Override
+    public long count(String table) {
+        return this.storeSessionClient.count(this, table);
+    }
+
 
     @Override
     public HgKvIterator<HgKvEntry> scanIterator(String table, byte[] query) {

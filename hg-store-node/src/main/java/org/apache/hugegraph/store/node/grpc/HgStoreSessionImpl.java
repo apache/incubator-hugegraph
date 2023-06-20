@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphMode;
+import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.grpc.common.Key;
 import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.common.ResCode;
@@ -522,5 +524,26 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
             builder.setStatus(HgGrpc.fail(msg));
         }
         GrpcClosure.setResult(response, builder.build());
+    }
+
+    @Override
+    public void count(ScanStreamReq request, StreamObserver<Agg> observer) {
+        ScanIterator it = null;
+        try {
+            BusinessHandler handler = storeService.getStoreEngine().getBusinessHandler();
+            long count = handler.count(request.getHeader().getGraph(), request.getTable());
+            observer.onNext(Agg.newBuilder().setCount(count).build());
+            observer.onCompleted();
+        } catch (Exception e) {
+            observer.onError(e);
+        } finally {
+            if (it != null) {
+                try {
+                    it.close();
+                } catch (Exception e) {
+
+                }
+            }
+        }
     }
 }
