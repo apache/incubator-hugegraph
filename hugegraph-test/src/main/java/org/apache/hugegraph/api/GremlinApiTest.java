@@ -219,4 +219,48 @@ public class GremlinApiTest extends BaseApiTest {
         Map data = ((List<Map>) assertMapContains(result, "data")).get(0);
         Assert.assertEquals("test.text", data.get("file"));
     }
+
+    @Test
+    public void testVertexOrderByDesc() {
+        String body = "{" +
+                      "\"gremlin\":\"g.V().order().by(desc)\"," +
+                      "\"bindings\":{}," +
+                      "\"language\":\"gremlin-groovy\"," +
+                      "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response response = client().post(path, body);
+        assertResponseStatus(200, response);
+    }
+
+    @Test
+    public void testVertexOrderByAsc() {
+        String body = "{" +
+                      "\"gremlin\":\"g.V().order().by(asc)\"," +
+                      "\"bindings\":{}," +
+                      "\"language\":\"gremlin-groovy\"," +
+                      "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response response = client().post(path, body);
+        assertResponseStatus(200, response);
+    }
+
+    @Test
+    public void testEegeOrderByDesc() {
+        String body = "{" +
+                      "\"gremlin\":\"g.E().order().by(desc)\"," +
+                      "\"bindings\":{}," +
+                      "\"language\":\"gremlin-groovy\"," +
+                      "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response response = client().post(path, body);
+        assertResponseStatus(200, response);
+    }
+
+    @Test
+    public void testEdgeOrderByAsc() {
+        String body = "{" +
+                      "\"gremlin\":\"g.E().order().by(asc)\"," +
+                      "\"bindings\":{}," +
+                      "\"language\":\"gremlin-groovy\"," +
+                      "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
+        Response response = client().post(path, body);
+        assertResponseStatus(200, response);
+    }
 }
