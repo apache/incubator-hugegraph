@@ -24,7 +24,8 @@
     <parent>
         <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-pd-root</artifactId>
-        <version>3.6.5-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>hugegraph-pd</artifactId>
@@ -112,7 +113,13 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.8.12</version>
+            <version>1.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.7</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>

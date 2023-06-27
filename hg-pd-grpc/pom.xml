@@ -25,7 +25,8 @@
     <parent>
         <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-pd-root</artifactId>
-        <version>3.6.5-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>hg-pd-grpc</artifactId>
 
