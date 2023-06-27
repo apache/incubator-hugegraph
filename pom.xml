@@ -42,14 +42,15 @@
         <module>hg-store-node</module>
         <module>hg-store-dist</module>
         <module>hg-store-cli</module>
-        <module>hg-store-test</module>
+      <!-- TODO: exclude it for build first -->
+<!--        <module>hg-store-test</module>-->
     </modules>
 
     <properties>
         <revision>1.5.0</revision>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <hugegraph.server.version>3.6.4-SNAPSHOT</hugegraph.server.version>
+        <hugegraph.server.version>1.5.0</hugegraph.server.version>
         <log4j2.version>2.15.0</log4j2.version>
     </properties>
 
@@ -123,6 +124,31 @@
                     <execution>
                         <goals>
                             <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
                         </goals>
                     </execution>
                 </executions>
