@@ -21,12 +21,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
-import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/8
- */
 @Deprecated
 public class PDWatchTest {
     private static PDClient pdClient;
@@ -36,21 +33,20 @@ public class PDWatchTest {
     private final String graphName = "graph1";
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         pdClient = PDClient.create(PDConfig.of("localhost:9000"));
     }
 
-    // @Test
+    @Test
     public void watch() {
         PDWatch watch = pdClient.getWatchClient();
         CountDownLatch latch = new CountDownLatch(10);
 
-        PDWatch.Watcher watcher1 = watch.watchPartition(new WatchListener(latch, "watcher1"));
-        PDWatch.Watcher watcher2 = watch.watchPartition(new WatchListener(latch, "watcher2"));
-        PDWatch.Watcher watcher3 = watch.watchPartition(new WatchListener(latch, "watcher3"));
+        PDWatch.Watcher watcher1 = watch.watchPartition(new WatchListener<>(latch, "watcher1"));
+        PDWatch.Watcher watcher2 = watch.watchPartition(new WatchListener<>(latch, "watcher2"));
+        PDWatch.Watcher watcher3 = watch.watchPartition(new WatchListener<>(latch, "watcher3"));
 
-        PDWatch.Watcher nodeWatcher1 =
-                watch.watchNode(new WatchListener<NodeEvent>(latch, "nodeWatcher1"));
+        PDWatch.Watcher nodeWatcher1 = watch.watchNode(new WatchListener<>(latch, "nodeWatcher1"));
 
         try {
             latch.await(15, TimeUnit.SECONDS);
@@ -64,7 +60,7 @@ public class PDWatchTest {
 
     private class WatchListener<T> implements PDWatch.Listener<T> {
         private final String watcherName;
-        CountDownLatch latch = new CountDownLatch(10);
+        CountDownLatch latch;
 
         private WatchListener(CountDownLatch latch, String watcherName) {
             this.latch = latch;

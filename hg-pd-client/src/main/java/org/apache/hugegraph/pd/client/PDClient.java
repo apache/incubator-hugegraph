@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.client;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
@@ -94,7 +95,9 @@ public class PDClient {
     }
 
     private synchronized void newBlockingStub() throws PDException {
-        if (stubProxy.get() != null) return;
+        if (stubProxy.get() != null) {
+            return;
+        }
         String host = newLeaderStub();
         if (host.isEmpty()) {
             throw new PDException(Pdpb.ErrorType.PD_UNREACHABLE_VALUE,
@@ -1236,5 +1239,52 @@ public class PDClient {
                                                                    .build();
         Pdpb.UpdatePdRaftResponse response = getStub().updatePdRaft(request);
         handleResponseError(response.getHeader());
+    }
+
+    public interface PDEventListener {
+        void onStoreChanged(NodeEvent event);
+
+        void onPartitionChanged(PartitionEvent event);
+
+        void onGraphChanged(WatchResponse event);
+
+        default void onShardGroupChanged(WatchResponse event) {
+        }
+
+    }
+
+    static class StubProxy {
+        private final LinkedList<String> hostList = new LinkedList<>();
+        private volatile PDGrpc.PDBlockingStub stub;
+
+        public StubProxy(String[] hosts) {
+            for (String host : hosts) {
+                if (!host.isEmpty()) {
+                    hostList.offer(host);
+                }
+            }
+        }
+
+        public String nextHost() {
+            String host = hostList.poll();
+            hostList.offer(host);   //移到尾部
+            return host;
+        }
+
+        public void set(PDGrpc.PDBlockingStub stub) {
+            this.stub = stub;
+        }
+
+        public PDGrpc.PDBlockingStub get() {
+            return this.stub;
+        }
+
+        public String getHost() {
+            return hostList.peek();
+        }
+
+        public int getHostCount() {
+            return hostList.size();
+        }
     }
 }

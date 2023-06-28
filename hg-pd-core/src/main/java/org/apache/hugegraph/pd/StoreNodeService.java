@@ -271,7 +271,9 @@ public class StoreNodeService {
         log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(),
                  store.getAddress(), store.getState());
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
-        if (lastStore == null) return null;
+        if (lastStore == null) {
+            return null;
+        }
         Metapb.Store.Builder builder =
                 Metapb.Store.newBuilder(lastStore).clearLabels().clearStats();
         store = builder.mergeFrom(store).build();

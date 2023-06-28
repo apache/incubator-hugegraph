@@ -177,7 +177,9 @@ public class PDPulseSubject {
 
     private static NoticeBroadcaster createBroadcaster(Metapb.QueueItem item) {
         PartitionHeartbeatResponse notice = toNotice(item);
-        if (notice == null) return null;
+        if (notice == null) {
+            return null;
+        }
         NoticeBroadcaster res = createBroadcaster(notice);
         res.setDurableId(item.getItemId());
         res.setTimestamp(item.getTimestamp());
@@ -306,7 +308,9 @@ public class PDPulseSubject {
             }
 
             PulseType pulseType = getPulseType(request);
-            if (pulseType == null) return;
+            if (pulseType == null) {
+                return;
+            }
 
             this.subject = getSubject(pulseType);
             this.observerId = createObserverId();

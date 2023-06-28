@@ -48,10 +48,11 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public class RaftEngine {
-    private static final RaftEngine instance = new RaftEngine();
-    private final String groupId = "pd_raft";
+    private static final RaftEngine INSTANCE = new RaftEngine();
     private final RaftStateMachine stateMachine;
     private PDConfig.Raft config;
     private RaftGroupService raftGroupService;
@@ -64,16 +65,19 @@ public class RaftEngine {
     }
 
     public static RaftEngine getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     public boolean init(PDConfig.Raft config) {
-        if (this.raftNode != null) return false;
+        if (this.raftNode != null) {
+            return false;
+        }
         this.config = config;
 
         raftRpcClient = new RaftRpcClient();
         raftRpcClient.init(new RpcOptions());
 
+        String groupId = "pd_raft";
         String raftPath = config.getDataPath() + "/" + groupId;
         new File(raftPath).mkdirs();
 
@@ -81,18 +85,16 @@ public class RaftEngine {
         Configuration initConf = new Configuration();
         initConf.parse(config.getPeersList());
         if (config.isEnable() && config.getPeersList().length() < 3) {
-            log.error(
-                    "The RaftEngine parameter is incorrect." +
-                    " When RAFT is enabled, the number of peers " +
-                    "cannot be less than 3");
+            log.error("The RaftEngine parameter is incorrect." +
+                      " When RAFT is enabled, the number of peers " + "cannot be less than 3");
         }
-        // 设置Node参数，包括日志存储路径和状态机实例
+        // 设置 Node 参数，包括日志存储路径和状态机实例
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setFsm(stateMachine);
         nodeOptions.setEnableMetrics(true);
         // 日志路径
         nodeOptions.setLogUri(raftPath + "/log");
-        // raft元数据路径
+        // raft 元数据路径
         nodeOptions.setRaftMetaUri(raftPath + "/meta");
         // 快照路径
         nodeOptions.setSnapshotUri(raftPath + "/snapshot");
@@ -104,7 +106,7 @@ public class RaftEngine {
         nodeOptions.setRpcConnectTimeoutMs(config.getRpcTimeout());
         nodeOptions.setRpcDefaultTimeout(config.getRpcTimeout());
         nodeOptions.setRpcInstallSnapshotTimeout(config.getRpcTimeout());
-        // 设置raft配置
+        // 设置 raft 配置
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
 
         nodeOptions.setEnableMetrics(true);
@@ -112,9 +114,9 @@ public class RaftEngine {
         final PeerId serverId = JRaftUtils.getPeerId(config.getAddress());
 
         rpcServer = createRaftRpcServer(config.getAddress());
-        // 构建raft组并启动raft
-        this.raftGroupService = new RaftGroupService(groupId, serverId,
-                                                     nodeOptions, rpcServer, true);
+        // 构建 raft 组并启动 raft
+        this.raftGroupService =
+                new RaftGroupService(groupId, serverId, nodeOptions, rpcServer, true);
         this.raftNode = raftGroupService.start(false);
         log.info("RaftEngine start successfully: id = {}, peers list = {}", groupId,
                  nodeOptions.getInitialConf().getPeers());
@@ -122,7 +124,7 @@ public class RaftEngine {
     }
 
     /**
-     * 创建raft rpc server，用于pd之间通讯
+     * 创建 raft rpc server，用于 pd 之间通讯
      */
     private RpcServer createRaftRpcServer(String raftAddr) {
         Endpoint endpoint = JRaftUtils.getEndPoint(raftAddr);
@@ -158,7 +160,7 @@ public class RaftEngine {
     }
 
     /**
-     * 添加Raft任务，grpc通过该接口给raft发送数据
+     * 添加 Raft 任务，grpc 通过该接口给 raft 发送数据
      */
     public void addTask(Task task) {
         if (!isLeader()) {
@@ -187,7 +189,7 @@ public class RaftEngine {
     }
 
     /**
-     * 向leader发消息，获取grpc地址；
+     * 向 leader 发消息，获取 grpc 地址；
      */
     public String getLeaderGrpcAddress() throws ExecutionException, InterruptedException {
         if (isLeader()) {
@@ -198,9 +200,8 @@ public class RaftEngine {
             waitingForLeader(10000);
         }
 
-        return raftRpcClient.getGrpcAddress(
-                                    raftNode.getLeaderId().getEndpoint().toString())
-                            .get().getGrpcAddress();
+        return raftRpcClient.getGrpcAddress(raftNode.getLeaderId().getEndpoint().toString()).get()
+                            .getGrpcAddress();
     }
 
     public Metapb.Member getLocalMember() {
@@ -213,7 +214,7 @@ public class RaftEngine {
         return builder.build();
     }
 
-    public List<Metapb.Member> getMembers() throws ExecutionException, InterruptedException {
+    public List<Metapb.Member> getMembers() {
         List<Metapb.Member> members = new ArrayList<>();
 
         List<PeerId> peers = raftNode.listPeers();
@@ -226,23 +227,23 @@ public class RaftEngine {
             CompletableFuture<RaftRpcProcessor.GetMemberResponse> future =
                     raftRpcClient.getGrpcAddress(peerId.getEndpoint().toString());
 
-            Metapb.ShardRole role = Metapb.ShardRole.Follower;
-            if (peerEquals(peerId, raftNode.getLeaderId())) {
-                role = Metapb.ShardRole.Leader;
-            } else if (learners.contains(peerId)) {
-                role = Metapb.ShardRole.Learner;
-                var state = raftNode.getReplicatorState(peerId);
-                if (state != null) {
-                    builder.setReplicatorState(state.name());
-                }
-            }
-
-            builder.setRole(role);
+            // TODO: uncomment later - jraft problem
+//            Metapb.ShardRole role = Metapb.ShardRole.Follower;
+//            if (peerEquals(peerId, raftNode.getLeaderId())) {
+//                role = Metapb.ShardRole.Leader;
+//            } else if (learners.contains(peerId)) {
+//                role = Metapb.ShardRole.Learner;
+//                var state = raftNode.getReplicatorState(peerId);
+//                if (state != null) {
+//                    builder.setReplicatorState(state.name());
+//                }
+//            }
+//
+//            builder.setRole(role);
 
             try {
                 if (future.isCompletedExceptionally()) {
-                    log.error("failed to getGrpcAddress of {}",
-                              peerId.getEndpoint().toString());
+                    log.error("failed to getGrpcAddress of {}", peerId.getEndpoint().toString());
                     builder.setState(Metapb.StoreState.Offline);
                     builder.setRaftUrl(peerId.getEndpoint().toString());
                     members.add(builder.build());
@@ -256,8 +257,7 @@ public class RaftEngine {
                     members.add(builder.build());
                 }
             } catch (Exception e) {
-                log.error("failed to getGrpcAddress of {}. {}",
-                          peerId.getEndpoint().toString(), e);
+                log.error("failed to getGrpcAddress of {}.", peerId.getEndpoint().toString(), e);
                 builder.setState(Metapb.StoreState.Offline);
                 builder.setRaftUrl(peerId.getEndpoint().toString());
                 members.add(builder.build());
@@ -283,7 +283,7 @@ public class RaftEngine {
             });
             latch.await();
         } catch (Exception e) {
-            log.error("failed to changePeerList to {},{}", peerList, e);
+            log.error("failed to changePeerList to {}", peerList, e);
             result.set(new Status(-1, e.getMessage()));
         }
         return result.get();

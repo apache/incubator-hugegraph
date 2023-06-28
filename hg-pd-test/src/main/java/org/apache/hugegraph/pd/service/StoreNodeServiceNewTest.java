@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.service;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.hugegraph.pd.StoreNodeService;
 import org.apache.hugegraph.pd.common.PDException;

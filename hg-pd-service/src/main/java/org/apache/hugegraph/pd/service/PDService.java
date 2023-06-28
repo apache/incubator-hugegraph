@@ -63,7 +63,6 @@ import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
 import org.apache.hugegraph.pd.grpc.watch.WatchGraphResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchType;
-import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.pulse.PDPulseSubject;
 import org.apache.hugegraph.pd.pulse.PulseListener;
 import org.apache.hugegraph.pd.raft.RaftEngine;
@@ -83,6 +82,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
+// TODO: uncomment later - remove license verifier service now
 @Slf4j
 @GRpcService
 public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftStateListener {
@@ -100,7 +100,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     private IdService idService;
     private ConfigService configService;
     private LogService logService;
-    private LicenseVerifierService licenseVerifierService;
+    //private LicenseVerifierService licenseVerifierService;
     private StoreMonitorDataService storeMonitorDataService;
     private ManagedChannel channel;
 
@@ -141,9 +141,9 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         return logService;
     }
 
-    public LicenseVerifierService getLicenseVerifierService() {
-        return licenseVerifierService;
-    }
+    //public LicenseVerifierService getLicenseVerifierService() {
+    //    return licenseVerifierService;
+    //}
 
     /**
      * 初始化
@@ -156,16 +156,16 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         RaftEngine.getInstance().addStateListener(this);
         RaftEngine.getInstance().addStateListener(configService);
         RaftEngine.getInstance().init(pdConfig.getRaft());
-        //pdConfig = configService.loadConfig(); onLeaderChanged中加载
+        //pdConfig = configService.loadConfig(); onLeaderChanged 中加载
         storeNodeService = new StoreNodeService(pdConfig);
         partitionService = new PartitionService(pdConfig, storeNodeService);
         taskService = new TaskScheduleService(pdConfig, storeNodeService, partitionService);
         idService = new IdService(pdConfig);
         logService = new LogService(pdConfig);
         storeMonitorDataService = new StoreMonitorDataService(pdConfig);
-        if (licenseVerifierService == null) {
-            licenseVerifierService = new LicenseVerifierService(pdConfig);
-        }
+        //if (licenseVerifierService == null) {
+        //    licenseVerifierService = new LicenseVerifierService(pdConfig);
+        //}
         RaftEngine.getInstance().addStateListener(partitionService);
         pdConfig.setIdService(idService);
 
@@ -193,7 +193,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
 
         /**
-         * 监听分区指令，并转发给Store
+         * 监听分区指令，并转发给 Store
          */
         partitionService.addInstructionListener(new PartitionInstructionListener() {
             private PartitionHeartbeatResponse.Builder getBuilder(Metapb.Partition partition) throws
@@ -255,7 +255,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         });
 
         /**
-         * 监听分区状态改变消息，并转发给Client
+         * 监听分区状态改变消息，并转发给 Client
          */
         partitionService.addStatusListener(new PartitionStatusListener() {
             @Override
@@ -296,7 +296,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         });
 
         /**
-         * 监听store状态改变消息，并转发给Client
+         * 监听 store 状态改变消息，并转发给 Client
          */
         storeNodeService.addStatusListener(new StoreStatusListener() {
 
@@ -344,7 +344,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 注册store，首次注册会生成新的store_id， store_id是store唯一标识
+     * 注册 store，首次注册会生成新的 store_id，store_id 是 store 唯一标识
      * </pre>
      */
     @Override
@@ -371,7 +371,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 根据store_id查找store
+     * 根据 store_id 查找 store
      */
     @Override
     public void getStore(Pdpb.GetStoreRequest request,
@@ -396,7 +396,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 修改Store状态等信息.
+     * 修改 Store 状态等信息。
      * </pre>
      */
     public void setStore(Pdpb.SetStoreRequest request,
@@ -409,10 +409,10 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         try {
             Metapb.StoreState state = request.getStore().getState();
             Long storeId = request.getStore().getId();
-            // 处于Pending状态，才可以上线
+            // 处于 Pending 状态，才可以上线
             Metapb.Store lastStore = storeNodeService.getStore(request.getStore().getId());
             if (lastStore == null) {
-                // storeId不存在，抛出异常
+                // storeId 不存在，抛出异常
                 throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
                                       String.format("Store id %d does not exist!", storeId));
             }
@@ -437,7 +437,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                 }
             }
             logService.insertLog(LogService.NODE_CHANGE, LogService.GRPC, request.getStore());
-            // 检查失败，状态改为Pending,把错误原因返回去
+            // 检查失败，状态改为 Pending，把错误原因返回去
             if (state.equals(Metapb.StoreState.Up)) {
                 int cores = 0;
                 long id = request.getStore().getId();
@@ -445,7 +445,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                 int nodeCount = 0;
                 for (Metapb.Store store : stores) {
                     if (store.getId() == id) {
-                        // 获取之前注册的store中的cores 作为验证参数
+                        // 获取之前注册的 store 中的 cores 作为验证参数
                         cores = store.getCores();
                     }
                     if (store.getState().equals(Metapb.StoreState.Up)) {
@@ -453,7 +453,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                     }
                 }
                 try {
-                    licenseVerifierService.verify(cores, nodeCount);
+                    //licenseVerifierService.verify(cores, nodeCount);
                 } catch (Exception e) {
                     Metapb.Store store = Metapb.Store.newBuilder(request.getStore())
                                                      .setState(Metapb.StoreState.Pending).build();
@@ -488,15 +488,15 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                     if (resultMap.get("current_store_is_online") != null
                         && (boolean) resultMap.get("current_store_is_online")) {
                         log.info("updateStore removeActiveStores store {}", store.getId());
-                        // 将在线的store的状态设置为下线中,等待副本迁移
+                        // 将在线的 store 的状态设置为下线中，等待副本迁移
                         store = Metapb.Store.newBuilder(lastStore)
                                             .setState(Metapb.StoreState.Exiting).build();
                         // 进行分区迁移操作
                         taskService.movePartitions((Map<Integer, KVPair<Long, Long>>) resultMap.get(
                                 "movedPartitions"));
                     } else {
-                        // store已经离线的，不做副本迁移
-                        // 将状态改为Tombstone
+                        // store 已经离线的，不做副本迁移
+                        // 将状态改为 Tombstone
                     }
                 } else {
                     throw new PDException(Pdpb.ErrorType.UPDATE_STORE_STATE_ERROR_VALUE,
@@ -505,7 +505,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                                           "the partitions of current store!");
                 }
             }
-            // 替换license 都走grpc
+            // 替换 license 都走 grpc
             store = storeNodeService.updateStore(store);
             response =
                     Pdpb.SetStoreResponse.newBuilder().setHeader(okHeader).setStore(store).build();
@@ -519,7 +519,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 返回所有的store,exclude_offline_stores=true,返回活跃的stores
+     * 返回所有的 store,exclude_offline_stores=true，返回活跃的 stores
      */
     @Override
     public void getAllStores(Pdpb.GetAllStoresRequest request,
@@ -548,7 +548,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 处理store心跳
+     * 处理 store 心跳
      */
     @Override
     public void storeHeartbeat(Pdpb.StoreHeartbeatRequest request,
@@ -595,7 +595,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 查找key所属的分区
+     * 查找 key 所属的分区
      * </pre>
      */
     @Override
@@ -624,7 +624,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 查找HashCode所属的分区
+     * 查找 HashCode 所属的分区
      * </pre>
      */
     @Override
@@ -651,7 +651,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 根据partition_id查找partition
+     * 根据 partition_id 查找 partition
      */
     @Override
     public void getPartitionByID(Pdpb.GetPartitionByIDRequest request,
@@ -684,7 +684,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 更新分区信息，主要用来更新分区key范围，调用此接口需谨慎，否则会造成数据丢失。
+     * 更新分区信息，主要用来更新分区 key 范围，调用此接口需谨慎，否则会造成数据丢失。
      * </pre>
      */
     public void updatePartition(Pdpb.UpdatePartitionRequest request,
@@ -708,7 +708,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 根据partition_id查找partition
+     * 根据 partition_id 查找 partition
      */
     @Override
     public void delPartition(Pdpb.DelPartitionRequest request,
@@ -723,7 +723,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                                                                            request.getPartitionId());
             if (partition != null) {
                 partitionService.removePartition(request.getGraphName(),
-                                                 (int) request.getPartitionId());
+                                                 request.getPartitionId());
                 response = Pdpb.DelPartitionResponse.newBuilder().setHeader(okHeader)
                                                     .setPartition(partition)
                                                     .build();
@@ -739,7 +739,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 给定key范围查找所属的partition集合
+     * 给定 key 范围查找所属的 partition 集合
      */
     @Override
     public void scanPartitions(Pdpb.ScanPartitionsRequest request,
@@ -848,7 +848,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 根据条件查询分区信息, 包括Store、Graph等条件
+     * 根据条件查询分区信息，包括 Store、Graph 等条件
      * </pre>
      */
     public void queryPartitions(Pdpb.QueryPartitionsRequest request,
@@ -857,7 +857,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             redirectToLeader(PDGrpc.getQueryPartitionsMethod(), request, observer);
             return;
         }
-        //TODO 临时采用遍历方案，后续使用rocksdb存储时，通过kv索引实现
+        //TODO 临时采用遍历方案，后续使用 rocksdb 存储时，通过 kv 索引实现
         Metapb.PartitionQuery query = request.getQuery();
         List<Metapb.Partition> partitions = partitionService.getPartitions(query.getGraphName());
         List<Metapb.Partition> result = new ArrayList<>();
@@ -986,7 +986,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 读取PD配置
+     * 读取 PD 配置
      */
     @Override
     public void getPDConfig(Pdpb.GetPDConfigRequest request,
@@ -1010,7 +1010,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 修改PD配置
+     * 修改 PD 配置
      */
     @Override
     public void setPDConfig(Pdpb.SetPDConfigRequest request,
@@ -1028,7 +1028,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             }
             if (request.getPdConfig().getShardCount() >
                 storeNodeService.getActiveStores().size()) {
-                // 不能大于活跃的store数量
+                // 不能大于活跃的 store 数量
                 throw new PDException(Pdpb.ErrorType.SET_CONFIG_SHARD_COUNT_ERROR_VALUE,
                                       "shard count can't be greater than the number of active " +
                                       "stores!");
@@ -1036,7 +1036,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             int oldShardCount = configService.getPDConfig().getShardCount();
             int newShardCount = request.getPdConfig().getShardCount();
             if (newShardCount > oldShardCount) {
-                // 如果副本数增大，则检查store内部的资源是否够用
+                // 如果副本数增大，则检查 store 内部的资源是否够用
                 if (!isResourceEnough(oldShardCount, newShardCount)) {
                     throw new PDException(Pdpb.ErrorType.SET_CONFIG_SHARD_COUNT_ERROR_VALUE,
                                           "There is not enough disk space left!");
@@ -1147,7 +1147,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 在store之间平衡数据
+     * 在 store 之间平衡数据
      */
     public void movePartition(Pdpb.MovePartitionRequest request,
                               StreamObserver<Pdpb.MovePartitionResponse> observer) {
@@ -1268,7 +1268,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     //}
 
     /**
-     * 更新peerList
+     * 更新 peerList
      */
     @Override
     public void changePeerList(Pdpb.ChangePeerListRequest request,
@@ -1300,13 +1300,13 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     public synchronized void onRaftLeaderChanged() {
         log.info("onLeaderChanged");
         // channel = null;
-        if (licenseVerifierService == null) {
-            licenseVerifierService = new LicenseVerifierService(pdConfig);
-        }
-        licenseVerifierService.init();
+        //if (licenseVerifierService == null) {
+        //    licenseVerifierService = new LicenseVerifierService(pdConfig);
+        //}
+        //licenseVerifierService.init();
         if (!isLeader()) {
             try {
-                // 关闭Client通知，Client重新向Leader发起连接
+                // 关闭 Client 通知，Client 重新向 Leader 发起连接
                 String message = "lose leader";
                 PDPulseSubject.notifyError(message);
                 PDWatchSubject.notifyError(message);
@@ -1384,7 +1384,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         try {
             Metapb.Store store = storeNodeService.getStore(storeId);
             if (Metapb.StoreState.Tombstone == store.getState()) {
-                // 只有已经被下线(Tombstone)的store可以被删除
+                // 只有已经被下线 (Tombstone) 的 store 可以被删除
                 storeNodeService.removeStore(storeId);
                 response = Pdpb.DetStoreResponse.newBuilder()
                                                 .setHeader(okHeader)
@@ -1427,10 +1427,10 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     }
 
     /**
-     * 检查store资源是否够用
+     * 检查 store 资源是否够用
      */
     public boolean isResourceEnough(int oldShardCount, int newShardCount) {
-        // 活跃的store的资源是否够用
+        // 活跃的 store 的资源是否够用
         try {
 
             float expansionRatio = newShardCount / oldShardCount; // 占用的存储空间膨胀的倍数
@@ -1449,7 +1449,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             }
             // 估计数据膨胀后占用的存储空间
             newDataSize = (long) Math.ceil(currentDataSize * expansionRatio);
-            // 统计所有活跃的store里面可用的空间
+            // 统计所有活跃的 store 里面可用的空间
             List<Metapb.Store> activeStores = storeNodeService.getActiveStores();
             for (Metapb.Store store : activeStores) {
                 Metapb.StoreStats storeStats = store.getStats();
@@ -1465,7 +1465,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
 
     /**
      * <pre>
-     * 对rocksdb进行compaction
+     * 对 rocksdb 进行 compaction
      * </pre>
      */
     public void dbCompaction(Pdpb.DbCompactionRequest request,

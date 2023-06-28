@@ -18,8 +18,9 @@
 package org.apache.hugegraph.pd.common;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.apache.hugegraph.pd.common.KVPair;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,6 +68,6 @@ public class KVPairTest {
     @Test
     public void testEquals() {
         var pair2 = new KVPair<>("key", 1);
-        assertTrue(pair2.equals(this.pair));
+        Assert.assertEquals(pair2, this.pair);
     }
 }

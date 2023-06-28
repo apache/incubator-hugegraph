@@ -195,7 +195,9 @@ public class IdMetaStore extends MetadataRocksDBStore {
                     }
                 }
             }
-            if (current == last) return -1;
+            if (current == last) {
+                return -1;
+            }
             put(genCIDSlotKey(key, current), longToBytes(current));
             put(keyBs, longToBytes(current + 1));
             return current;

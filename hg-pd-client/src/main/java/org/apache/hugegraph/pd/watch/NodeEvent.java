@@ -52,7 +52,9 @@ public class NodeEvent {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         NodeEvent nodeEvent = (NodeEvent) o;
         return nodeId == nodeEvent.nodeId && Objects.equals(graph,
                                                             nodeEvent.graph) &&

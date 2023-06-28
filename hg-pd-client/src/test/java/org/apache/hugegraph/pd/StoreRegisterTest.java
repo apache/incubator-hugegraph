@@ -60,7 +60,7 @@ public class StoreRegisterTest {
     public void testGetStore() throws PDException {
         testRegisterStore();
         Metapb.Store store = pdClient.getStore(storeId);
-        Assert.assertTrue(store.getAddress().equals(storeAddr));
+        Assert.assertEquals(storeAddr, store.getAddress());
         System.out.println(store);
     }
 
@@ -78,9 +78,7 @@ public class StoreRegisterTest {
     // @Test
     public void testStoreHeartbeat() throws PDException {
         testRegisterStore();
-        Metapb.StoreStats stats = Metapb.StoreStats.newBuilder()
-                                                   .setStoreId(storeId)
-                                                   .build();
+        Metapb.StoreStats stats = Metapb.StoreStats.newBuilder().setStoreId(storeId).build();
         pdClient.storeHeartbeat(stats);
         List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
         boolean exist = false;
@@ -98,8 +96,8 @@ public class StoreRegisterTest {
     public void testPartitionHeartbeat() throws InterruptedException, PDException {
         testRegisterStore();
         PDPulse pdPulse = pdClient.getPulseClient();
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier = pdPulse.connectPartition(
-                new PDPulse.Listener<PartitionHeartbeatResponse>() {
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier =
+                pdPulse.connectPartition(new PDPulse.Listener<PartitionHeartbeatResponse>() {
 
                     @Override
                     public void onNext(PartitionHeartbeatResponse response) {
@@ -123,18 +121,10 @@ public class StoreRegisterTest {
                 });
         KVPair<Metapb.Partition, Metapb.Shard> partShard =
                 pdClient.getPartition("test", "1".getBytes(StandardCharsets.UTF_8));
-        notifier.notifyServer(PartitionHeartbeatRequest.newBuilder()
-                                                       .setStates(
-                                                               Metapb.PartitionStats.newBuilder()
-                                                                                    .addGraphName(
-                                                                                            "test")
-                                                                                    .setId(partShard.getKey()
-                                                                                                    .getId())
-                                                                                    .setLeader(
-                                                                                            Metapb.Shard.newBuilder()
-                                                                                                        .setStoreId(
-                                                                                                                1)
-                                                                                                        .build())));
+        notifier.notifyServer(PartitionHeartbeatRequest.newBuilder().setStates(
+                Metapb.PartitionStats.newBuilder().addGraphName("test")
+                                     .setId(partShard.getKey().getId())
+                                     .setLeader(Metapb.Shard.newBuilder().setStoreId(1).build())));
 
 
         Thread.sleep(10000);

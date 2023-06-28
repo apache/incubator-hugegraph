@@ -43,11 +43,11 @@ import lombok.extern.slf4j.Slf4j;
  * @author lynn.bond@hotmail.com created on 2021/11/9
  */
 @Slf4j
-final class PDPulseImpl implements PDPulse {
+public final class PDPulseImpl implements PDPulse {
 
+    private static final ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
     private final HgPdPulseGrpc.HgPdPulseStub stub;
-    private static ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
-    private ExecutorService threadPool ;
+    private final ExecutorService threadPool;
 
     // TODO: support several servers.
     public PDPulseImpl(String pdServerAddress) {
@@ -61,7 +61,8 @@ final class PDPulseImpl implements PDPulse {
             }
         }
         this.stub = HgPdPulseGrpc.newStub(channel);
-        var namedThreadFactory = new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
+        var namedThreadFactory =
+                new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
         threadPool = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 

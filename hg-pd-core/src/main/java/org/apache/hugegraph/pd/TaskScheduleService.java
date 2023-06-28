@@ -194,7 +194,9 @@ public class TaskScheduleService {
      * 巡查所有的store，检查是否在线，存储空间是否充足
      */
     public List<Metapb.Store> patrolStores() throws PDException {
-        if (!isLeader()) return null;
+        if (!isLeader()) {
+            return null;
+        }
 
         List<Metapb.Store> changedStores = new ArrayList<>();
         // 检查store在线状态
@@ -613,7 +615,9 @@ public class TaskScheduleService {
      * @throws PDException
      */
     public List<Metapb.Partition> autoSplitPartition() throws PDException {
-        if (!isLeader()) return null;
+        if (!isLeader()) {
+            return null;
+        }
 
         if (Metapb.ClusterState.Cluster_OK != storeService.getClusterStats().getState()) {
             if (Metapb.ClusterState.Cluster_Offline == storeService.getClusterStats().getState()) {

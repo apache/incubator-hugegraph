@@ -117,10 +117,14 @@ public class KVPair<K, V> implements Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (this == o) {
+            return true;
+        }
         if (o instanceof KVPair) {
             KVPair pair = (KVPair) o;
-            if (!Objects.equals(key, pair.key)) return false;
+            if (!Objects.equals(key, pair.key)) {
+                return false;
+            }
             return Objects.equals(value, pair.value);
         }
         return false;

@@ -66,7 +66,9 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
     public <E> E getOne(Parser<E> parser, byte[] key) throws PDException {
         try {
             byte[] bytes = store.get(key);
-            if (ArrayUtils.isEmpty(bytes)) return null;
+            if (ArrayUtils.isEmpty(bytes)) {
+                return null;
+            }
             return parser.parseFrom(bytes);
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);

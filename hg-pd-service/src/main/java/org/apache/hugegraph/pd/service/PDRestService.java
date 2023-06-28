@@ -98,7 +98,9 @@ public class PDRestService implements InitializingBean {
     }
 
     public boolean removeStore(Long storeId) throws PDException {
-        if (storeId == null) return false;
+        if (storeId == null) {
+            return false;
+        }
         return 0 != storeNodeService.removeStore(storeId);
     }
 

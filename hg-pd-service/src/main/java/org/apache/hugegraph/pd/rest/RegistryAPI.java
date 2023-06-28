@@ -33,7 +33,6 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetMembersResponse;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
-import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.model.RegistryQueryRestRequest;
 import org.apache.hugegraph.pd.model.RegistryRestRequest;
 import org.apache.hugegraph.pd.model.RegistryRestResponse;
@@ -176,8 +175,9 @@ public class RegistryAPI extends API {
         RegistryRestResponse response = new RegistryRestResponse();
         try {
             response.setErrorType(Pdpb.ErrorType.OK);
-            LicenseVerifierService licenseVerifierService = pdService.getLicenseVerifierService();
-            response.setData(licenseVerifierService.getContext());
+            // TODO: uncomment later
+            //LicenseVerifierService licenseVerifierService = pdService.getLicenseVerifierService();
+            //response.setData(licenseVerifierService.getContext());
         } catch (Exception e) {
             log.warn(e.getMessage());
             response.setErrorType(Pdpb.ErrorType.UNRECOGNIZED);
@@ -193,8 +193,9 @@ public class RegistryAPI extends API {
         RegistryRestResponse response = new RegistryRestResponse();
         try {
             response.setErrorType(Pdpb.ErrorType.OK);
-            LicenseVerifierService licenseVerifierService = pdService.getLicenseVerifierService();
-            response.setData(licenseVerifierService.getIpAndMac());
+            // TODO: uncomment later
+            //LicenseVerifierService licenseVerifierService = pdService.getLicenseVerifierService();
+            //response.setData(licenseVerifierService.getIpAndMac());
         } catch (Exception e) {
             log.warn(e.getMessage());
             response.setErrorType(Pdpb.ErrorType.UNRECOGNIZED);

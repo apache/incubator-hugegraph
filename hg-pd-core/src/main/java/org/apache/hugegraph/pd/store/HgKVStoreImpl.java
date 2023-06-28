@@ -179,7 +179,9 @@ public class HgKVStoreImpl implements HgKVStore {
         CACHE.keySet().forEach((cacheKey) -> {
             if (cacheKey.startsWith(storeKey)) {
                 ConcurrentMap map;
-                if ((map = CACHE.get(cacheKey)) == null) return;
+                if ((map = CACHE.get(cacheKey)) == null) {
+                    return;
+                }
                 map.values().forEach((element) -> {
                     ts.add((byte[]) element);
                 });
@@ -192,7 +194,9 @@ public class HgKVStoreImpl implements HgKVStore {
     public byte[] getWithTTL(byte[] key) throws PDException {
         ConcurrentMap map;
         String storeKey = new String(key, Charset.defaultCharset());
-        if ((map = CACHE.get(storeKey)) == null) return null;
+        if ((map = CACHE.get(storeKey)) == null) {
+            return null;
+        }
         Object value = map.get(storeKey);
         return value == null ? null : (byte[]) value;
     }
@@ -201,7 +205,9 @@ public class HgKVStoreImpl implements HgKVStore {
     public void removeWithTTL(byte[] key) throws PDException {
         ConcurrentMap map;
         String storeKey = new String(key, Charset.defaultCharset());
-        if ((map = CACHE.get(storeKey)) == null) return;
+        if ((map = CACHE.get(storeKey)) == null) {
+            return;
+        }
         map.remove(storeKey);
     }
 

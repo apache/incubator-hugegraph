@@ -164,7 +164,9 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
             return;
         }
         WatchType watchType = getWatchType(request);
-        if (watchType == null) return;
+        if (watchType == null) {
+            return;
+        }
 
         this.subject = getSubject(watchType);
         this.watcherId = createWatcherId();

@@ -21,7 +21,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
@@ -325,9 +324,7 @@ public class PDClientTest extends BaseClientTest {
     public void testSplitData() {
         try {
             Metapb.PDConfig config = pdClient.getPDConfig();
-            pdClient.setPDConfig(config.toBuilder()
-                                       .setMaxShardsPerStore(12)
-                                       .build());
+            pdClient.setPDConfig(config.toBuilder().setMaxShardsPerStore(12).build());
             System.out.println(pdClient.getPDConfig());
 
             // 开始分区分裂

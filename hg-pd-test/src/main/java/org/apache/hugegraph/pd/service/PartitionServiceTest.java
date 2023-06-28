@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.pd.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.List;
 
 import org.apache.hugegraph.pd.PartitionService;

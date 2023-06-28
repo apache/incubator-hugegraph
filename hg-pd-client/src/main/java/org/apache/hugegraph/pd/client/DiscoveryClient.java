@@ -106,11 +106,15 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
                 break;
             } catch (Exception e) {
                 requireResetStub.set(true);
-                if (errLog == null) errLog = e.getMessage();
+                if (errLog == null) {
+                    errLog = e.getMessage();
+                }
                 continue;
             }
         }
-        if (errLog != null) log.error(errLog);
+        if (errLog != null) {
+            log.error(errLog);
+        }
     }
 
     /***
@@ -180,7 +184,9 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
                         register = registerStub.register(t);
                         log.debug("Discovery Client work done.");
                         Consumer<RegisterInfo> consumer = getRegisterConsumer();
-                        if (consumer != null) consumer.accept(register);
+                        if (consumer != null) {
+                            consumer.accept(register);
+                        }
                     } catch (Exception e) {
                         throw e;
                     } finally {

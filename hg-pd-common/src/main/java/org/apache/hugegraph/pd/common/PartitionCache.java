@@ -28,9 +28,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.hugegraph.pd.grpc.Metapb;
+
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.TreeRangeMap;
+
 /**
- * 放弃copy on write的方式
- *   1. 在 graph * partition 数量极多的时候，效率严重下降，不能用
+ * 放弃 copy on write 的方式
+ * 1. 在 graph * partition 数量极多的时候，效率严重下降，不能用
  */
 public class PartitionCache {
 
@@ -39,14 +45,14 @@ public class PartitionCache {
     Lock writeLock = readWriteLock.writeLock();
     // 每张图一个缓存
     private volatile Map<String, RangeMap<Long, Integer>> keyToPartIdCache;
-    // graphName + PartitionID组成key
+    // graphName + PartitionID 组成 key
     private volatile Map<String, Map<Integer, Metapb.Partition>> partitionCache;
 
     private volatile Map<Integer, Metapb.ShardGroup> shardGroupCache;
     private volatile Map<Long, Metapb.Store> storeCache;
     private volatile Map<String, Metapb.Graph> graphCache;
 
-    private volatile Map<String, AtomicBoolean> locks = new HashMap<>();
+    private final Map<String, AtomicBoolean> locks = new HashMap<>();
 
     public PartitionCache() {
         keyToPartIdCache = new HashMap<>();
@@ -65,7 +71,7 @@ public class PartitionCache {
                     lock = new AtomicBoolean();
                     locks.put(graphName, lock);
                 }
-            }finally {
+            } finally {
                 writeLock.unlock();
             }
         }
@@ -92,7 +98,7 @@ public class PartitionCache {
     }
 
     /**
-     * 根据partitionId返回分区信息
+     * 根据 partitionId 返回分区信息
      *
      * @param graphName
      * @param partId
@@ -102,7 +108,7 @@ public class PartitionCache {
         waitGraphLock(graphName);
         var graphs = partitionCache.get(graphName);
         if (graphs != null) {
-            var partition = graphs.get(partId );
+            var partition = graphs.get(partId);
             if (partition != null) {
                 return new KVPair<>(partition, getLeaderShard(partId));
             }
@@ -112,7 +118,7 @@ public class PartitionCache {
     }
 
     /**
-     * 返回key所在的分区信息
+     * 返回 key 所在的分区信息
      *
      * @param key
      * @return
@@ -123,7 +129,7 @@ public class PartitionCache {
     }
 
     /**
-     * 根据key的hashcode返回分区信息
+     * 根据 key 的 hashcode 返回分区信息
      *
      * @param graphName
      * @param code
@@ -145,11 +151,11 @@ public class PartitionCache {
         waitGraphLock(graphName);
 
         List<Metapb.Partition> partitions = new ArrayList<>();
-        if (! partitionCache.containsKey(graphName)) {
+        if (!partitionCache.containsKey(graphName)) {
             return partitions;
         }
-        partitionCache.get(graphName).forEach((k,v) -> {
-                partitions.add(v);
+        partitionCache.get(graphName).forEach((k, v) -> {
+            partitions.add(v);
         });
 
         return partitions;
@@ -173,8 +179,8 @@ public class PartitionCache {
             partitionCache.computeIfAbsent(graphName, k -> new HashMap<>()).put(partId, partition);
 
             if (old != null) {
-                // old [1-3) 被 [2-3)覆盖了。当 [1-3) 变成[1-2) 不应该删除原先的[1-3)
-                // 当确认老的 start, end 都是自己的时候，才可以删除老的. (即还没覆盖）
+                // old [1-3) 被 [2-3) 覆盖了。当 [1-3) 变成 [1-2) 不应该删除原先的 [1-3)
+                // 当确认老的 start, end 都是自己的时候，才可以删除老的。(即还没覆盖）
                 var graphRange = keyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
@@ -183,7 +189,8 @@ public class PartitionCache {
             }
 
             keyToPartIdCache.computeIfAbsent(graphName, k -> TreeRangeMap.create())
-                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
+                            .put(Range.closedOpen(partition.getStartKey(),
+                                                  partition.getEndKey()), partId);
         } finally {
             unlockGraph(graphName);
         }
@@ -209,7 +216,8 @@ public class PartitionCache {
 
             partitionCache.computeIfAbsent(graphName, k -> new HashMap<>()).put(partId, partition);
             keyToPartIdCache.computeIfAbsent(graphName, k -> TreeRangeMap.create())
-                    .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()), partId);
+                            .put(Range.closedOpen(partition.getStartKey(), partition.getEndKey()),
+                                 partId);
         } finally {
             unlockGraph(graphName);
         }

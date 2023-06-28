@@ -255,7 +255,9 @@ public class KvWatchSubject {
             String key = entry.getKey();
             String client = key.split(KvService.getDelimiter())[3];
             String clientKey = KvService.getKeyWithoutPrefix(ALL_PREFIX, client);
-            if (value == null) removeClient(null, key, clientKey);
+            if (value == null) {
+                removeClient(null, key, clientKey);
+            }
             for (int i = 0; i < 3; i++) {
                 try {
                     synchronized (value) {

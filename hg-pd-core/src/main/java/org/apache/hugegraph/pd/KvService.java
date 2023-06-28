@@ -120,7 +120,9 @@ public class KvService {
     }
 
     private String getValue(byte[] keyBytes, byte[] valueBytes) throws PDException {
-        if (valueBytes == null || valueBytes.length == 0) return "";
+        if (valueBytes == null || valueBytes.length == 0) {
+            return "";
+        }
         try {
             V v = V.parseFrom(valueBytes);
             if (v.getTtl() == 0 || v.getTtl() >= System.currentTimeMillis()) {
@@ -178,7 +180,9 @@ public class KvService {
         for (KV kv : kvList) {
             String kvKey = new String(kv.getKey()).replaceFirst(KV_PREFIX_DELIMITER, "");
             String kvValue = getValue(kv.getKey(), kv.getValue());
-            if (kvValue != null) kvs.add(Kv.newBuilder().setKey(kvKey).setValue(kvValue).build());
+            if (kvValue != null) {
+                kvs.add(Kv.newBuilder().setKey(kvKey).setValue(kvValue).build());
+            }
         }
         meta.removeByPrefix(storeKey);
         // log.warn("delete kv with key prefix :{}", key);
@@ -228,7 +232,9 @@ public class KvService {
     private boolean owned(String key, long clientId) throws PDException {
         String lockKey = KvService.getKeyWithoutPrefix(KvService.LOCK_PREFIX, key);
         Map<String, String> allLock = scanWithPrefix(lockKey);
-        if (allLock.size() == 0) return true;
+        if (allLock.size() == 0) {
+            return true;
+        }
         for (Map.Entry<String, String> entry : allLock.entrySet()) {
             String entryKey = entry.getKey();
             String[] split = entryKey.split(String.valueOf(KV_DELIMITER));
@@ -242,7 +248,9 @@ public class KvService {
     public boolean lock(String key, long ttl, long clientId) throws PDException {
         //TODO lock improvement
         synchronized (KvService.class) {
-            if (!owned(key, clientId)) return false;
+            if (!owned(key, clientId)) {
+                return false;
+            }
             put(getLockKey(key, clientId), " ", ttl);
             return true;
         }
@@ -261,7 +269,9 @@ public class KvService {
 
     public boolean unlock(String key, long clientId) throws PDException {
         synchronized (KvService.class) {
-            if (!owned(key, clientId)) return false;
+            if (!owned(key, clientId)) {
+                return false;
+            }
             delete(getLockKey(key, clientId));
             return true;
         }

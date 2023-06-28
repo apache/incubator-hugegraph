@@ -39,10 +39,6 @@ public class API {
     public static String QUOTATION = "\"";
     public static String COMMA = ",";
     public static String COLON = ": ";
-    public static final String VERSION = "3.6.5";
-    public static final String PD = "PD";
-    public static final String STORE = "STORE";
-
 
     public <T extends MessageOrBuilder> String toJSON(List<T> values, String key) {
 
@@ -119,15 +115,14 @@ public class API {
     }
 
     public String toJSON(PDException exception) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{")
-               .append(QUOTATION).append(STATUS_KEY).append(QUOTATION).append(COLON)
-               .append(exception.getErrorCode()).append(COMMA)
-               .append(QUOTATION).append(ERROR_KEY).append(QUOTATION).append(COLON)
-               .append(QUOTATION).append(exception.getMessage()).append(QUOTATION);
-        builder.append("}");
+        String builder = "{" +
+                         QUOTATION + STATUS_KEY + QUOTATION + COLON +
+                         exception.getErrorCode() + COMMA +
+                         QUOTATION + ERROR_KEY + QUOTATION + COLON +
+                         QUOTATION + exception.getMessage() + QUOTATION +
+                         "}";
 
-        return builder.toString();
+        return builder;
     }
 
     public String toJSON(Exception exception) {

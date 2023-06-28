@@ -15,6 +15,8 @@
  * under the License.
  */
 
+package org.apache.hugegraph.pd.service;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -45,7 +47,6 @@ import org.apache.hugegraph.pd.grpc.kv.WatchState;
 import org.apache.hugegraph.pd.grpc.kv.WatchType;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
-import org.apache.hugegraph.pd.service.ServiceGrpc;
 import org.apache.hugegraph.pd.watch.KvWatchSubject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +56,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * kv存储的核心实现类
+ * kv 存储的核心实现类
  */
 @Slf4j
 @GRpcService
@@ -86,7 +87,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的put
+     * 普通的 put
      *
      * @param request
      * @param responseObserver
@@ -117,7 +118,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的get
+     * 普通的 get
      *
      * @param request
      * @param responseObserver
@@ -132,7 +133,9 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         try {
             String value = this.kvService.get(request.getKey());
             builder.setHeader(getResponseHeader());
-            if (value != null) builder.setValue(value);
+            if (value != null) {
+                builder.setValue(value);
+            }
             response = builder.build();
         } catch (PDException e) {
             if (!isLeader()) {
@@ -146,7 +149,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的delete
+     * 普通的 delete
      *
      * @param request
      * @param responseObserver
@@ -245,7 +248,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 获取随机非0字符串做Id
+     * 获取随机非 0 字符串做 Id
      *
      * @return
      */
@@ -260,7 +263,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的watch
+     * 普通的 watch
      *
      * @param request
      * @param responseObserver
@@ -286,7 +289,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的前缀watch
+     * 普通的前缀 watch
      *
      * @param request
      * @param responseObserver
@@ -363,7 +366,9 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         LockResponse.Builder builder = LockResponse.newBuilder();
         try {
             long clientId = request.getClientId();
-            if (clientId == 0) clientId = getRandomLong();
+            if (clientId == 0) {
+                clientId = getRandomLong();
+            }
             boolean locked = this.kvService.lock(request.getKey(), request.getTtl(), clientId);
             response =
                     builder.setHeader(getResponseHeader()).setSucceed(locked).setClientId(clientId)
@@ -394,10 +399,11 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
             if (clientId == 0) {
                 clientId = getRandomLong();
             }
-            boolean locked = this.kvService.lockWithoutReentrant(
-                    request.getKey(), request.getTtl(), clientId);
-            response = builder.setHeader(getResponseHeader()).setSucceed(locked)
-                              .setClientId(clientId).build();
+            boolean locked = this.kvService.lockWithoutReentrant(request.getKey(), request.getTtl(),
+                                                                 clientId);
+            response =
+                    builder.setHeader(getResponseHeader()).setSucceed(locked).setClientId(clientId)
+                           .build();
         } catch (PDException e) {
             if (!isLeader()) {
                 redirectToLeader(channel, KvServiceGrpc.getLockWithoutReentrantMethod(), request,
@@ -449,7 +455,9 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         LockResponse.Builder builder = LockResponse.newBuilder();
         try {
             long clientId = request.getClientId();
-            if (clientId == 0) throw new PDException(-1, "incorrect clientId: 0");
+            if (clientId == 0) {
+                throw new PDException(-1, "incorrect clientId: 0");
+            }
             boolean unlocked = this.kvService.unlock(request.getKey(), clientId);
             response = builder.setHeader(getResponseHeader()).setSucceed(unlocked)
                               .setClientId(clientId).build();
@@ -482,7 +490,9 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         LockResponse.Builder builder = LockResponse.newBuilder();
         try {
             long clientId = request.getClientId();
-            if (clientId == 0) throw new PDException(-1, "incorrect clientId: 0");
+            if (clientId == 0) {
+                throw new PDException(-1, "incorrect clientId: 0");
+            }
             boolean alive = this.kvService.keepAlive(request.getKey(), clientId);
             response =
                     builder.setHeader(getResponseHeader()).setSucceed(alive).setClientId(clientId)
@@ -500,7 +510,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 带超时时间的put
+     * 带超时时间的 put
      *
      * @param request
      * @param responseObserver
@@ -528,7 +538,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 续活带有超时时间的key
+     * 续活带有超时时间的 key
      *
      * @param request
      * @param responseObserver

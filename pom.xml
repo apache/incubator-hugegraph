@@ -26,6 +26,7 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
+    <!-- TODO: replace it with non-parent mode & use apache as parent  -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -134,6 +135,25 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${project.basedir}/</directory>
+                            <includes>
+                                <include>*.tar</include>
+                                <include>*.tar.gz</include>
+                                <include>.flattened-pom.xml</include>
+<!--                                <include>${final.name}/**</include>-->
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+<!--                        <fileset><directory>${final.name}</directory></fileset>-->
+                    </filesets>
+                </configuration>
             </plugin>
         </plugins>
     </build>
