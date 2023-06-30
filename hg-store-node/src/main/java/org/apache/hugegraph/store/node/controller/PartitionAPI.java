@@ -85,7 +85,7 @@ public class PartitionAPI {
             raft.setGroupId(engine.getGroupId());
             raft.setLeader(engine.getLeader());
             raft.setRole(engine.getRaftNode().getNodeState().name());
-            raft.setConf(engine.getRaftNode().getCurrentConf().toString());
+            raft.setConf(engine.getCurrentConf().toString());
             if (engine.isLeader()) {
                 raft.setPeers(engine.getRaftNode().listPeers());
                 raft.setLearners(engine.getRaftNode().listLearners());

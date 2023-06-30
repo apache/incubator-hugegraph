@@ -311,13 +311,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             // 统计shard状态
             partition.getShardGroup().getShards().forEach(shard -> {
                 Metapb.ShardState state = Metapb.ShardState.SState_Normal;
-                if (aliveShards.containsKey(shard.getStoreId())) {
-                    Replicator.State s = partition.getRaftNode().getReplicatorState(
-                            aliveShards.get(shard.getStoreId()));
-                    if (s == Replicator.State.Snapshot) {
-                        state = Metapb.ShardState.SState_Snapshot;
-                    }
-                } else {
+                if (! aliveShards.containsKey(shard.getStoreId())) {
                     state = Metapb.ShardState.SState_Offline;
                 }
 

@@ -66,6 +66,7 @@ import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
+import com.alipay.sofa.jraft.ReplicatorGroup;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.DefaultJRaftServiceFactory;
@@ -80,6 +81,7 @@ import com.alipay.sofa.jraft.storage.LogStorage;
 import com.alipay.sofa.jraft.storage.impl.RocksDBLogStorage;
 import com.alipay.sofa.jraft.storage.log.RocksDBSegmentLogStorage;
 import com.alipay.sofa.jraft.util.Endpoint;
+import com.alipay.sofa.jraft.util.ThreadId;
 import com.alipay.sofa.jraft.util.Utils;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
 import com.google.protobuf.CodedInputStream;
@@ -117,17 +119,16 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         partitionManager = storeEngine.getPartitionManager();
         stateListeners = Collections.synchronizedList(new ArrayList());
     }
+//    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
+//        if (raftLogWriteExecutor == null) {
+//            synchronized (PartitionEngine.class) {
+//                if (raftLogWriteExecutor == null)
+//                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
+//            }
+//        }
+//        return raftLogWriteExecutor;
+//    }
 
-    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
-        if (raftLogWriteExecutor == null) {
-            synchronized (PartitionEngine.class) {
-                if (raftLogWriteExecutor == null) {
-                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
-                }
-            }
-        }
-        return raftLogWriteExecutor;
-    }
 
     /**
      * 记录使用本raft的分区信息
@@ -209,16 +210,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             @Override
             public LogStorage createLogStorage(final String uri, final RaftOptions raftOptions) {
                 if (options.getRaftOptions().isUseRocksDBSegmentLogStorage()) {
-                    return new RocksDBSegmentLogStorage(uri, raftOptions,
-                                                        RocksDBSegmentLogStorage.DEFAULT_VALUE_SIZE_THRESHOLD,
-                                                        options.getRaftOptions()
-                                                               .getMaxSegmentFileSize(),
-                                                        options.getRaftOptions()
-                                                               .getPreAllocateSegmentCount(),
-                                                        options.getRaftOptions()
-                                                               .getKeepInMemorySegmentCount(),
-                                                        RocksDBSegmentLogStorage.DEFAULT_CHECKPOINT_INTERVAL_MS,
-                                                        getRaftLogWriteExecutor());
+                    return new RocksDBSegmentLogStorage(uri, raftOptions);
                 } else {
                     return new RocksDBLogStorage(uri, raftOptions);
                 }
@@ -237,8 +229,6 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         nodeOptions.setRpcInstallSnapshotTimeout(
                 options.getRaftOptions().getRpcInstallSnapshotTimeout());
         nodeOptions.setElectionTimeoutMs(options.getRaftOptions().getElectionTimeoutMs());
-        nodeOptions.setChannelWriteBufLowWaterMark(2 * 1024 * 1024);
-        nodeOptions.setChannelWriteBufHighWaterMark(4 * 1024 * 1024);
         // 设置raft配置
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         raftOptions.setDisruptorBufferSize(options.getRaftOptions().getDisruptorBufferSize());
@@ -316,7 +306,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         HgCmdClient rpcClient = storeEngine.getHgCmdClient();
         // 生成新的Configuration对象
-        Configuration oldConf = raftNode.getCurrentConf();
+        Configuration oldConf = getCurrentConf();
         Configuration conf = oldConf.copy();
         if (!addPeers.isEmpty()) {
             addPeers.forEach(peer -> {
@@ -344,7 +334,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             // 3. 检查learner是否完成快照同步
             boolean snapshotOk = true;
             for (PeerId peerId : raftNode.listLearners()) {
-                Replicator.State state = raftNode.getReplicatorState(peerId);
+                Replicator.State state = getReplicatorState(peerId);
                 if (state == null || state != Replicator.State.Replicate) {
                     snapshotOk = false;
                     break;
@@ -610,7 +600,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         // 更新shard group对象
         shardGroup.changeLeader(partitionManager.getStore().getId());
 
-        onConfigurationCommitted(this.getRaftNode().getCurrentConf());
+        onConfigurationCommitted(getCurrentConf());
         synchronized (leaderChangedEvent) {
             leaderChangedEvent.notifyAll();
         }
@@ -619,7 +609,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
     @Override
     public void onStartFollowing(final PeerId newLeaderId, final long newTerm) {
-        onConfigurationCommitted(this.getRaftNode().getCurrentConf());
+        onConfigurationCommitted(getCurrentConf());
         synchronized (leaderChangedEvent) {
             leaderChangedEvent.notifyAll();
         }
@@ -1031,11 +1021,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         if (this.snapshotFlag.compareAndSet(false, true)) {
 
-            raftNode.getRaftOptions().setTruncateLog(true);
-
             raftNode.snapshot(status -> {
                 log.info("Raft {}  snapshot OK. ", this.getGroupId());
-                raftNode.getRaftOptions().setTruncateLog(false);
                 if (done != null) {
                     done.run(status);
                 }
@@ -1222,4 +1209,57 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             return true;
         }
     }
+
+    public Configuration getCurrentConf() {
+        return new Configuration(this.raftNode.listPeers(), this.raftNode.listLearners());
+    }
+
+    private Replicator.State getReplicatorState(PeerId peerId) {
+        var replicateGroup = getReplicatorGroup();
+        if (replicateGroup == null) {
+            return null;
+        }
+
+        ThreadId threadId = replicateGroup.getReplicator(peerId);
+        if (threadId == null) {
+            return null;
+        } else {
+            Replicator r = (Replicator) threadId.lock();
+            if (r == null) {
+                return Replicator.State.Probe;
+            }
+            Replicator.State result = getState(r);
+            threadId.unlock();
+            return result;
+        }
+    }
+
+    private ReplicatorGroup getReplicatorGroup() {
+        var clz = this.raftNode.getClass();
+        try {
+            var f = clz.getDeclaredField("replicatorGroup");
+            f.setAccessible(true);
+            var group = (ReplicatorGroup) f.get(this.raftNode);
+            f.setAccessible(false);
+            return group;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            log.info("getReplicatorGroup: error {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private Replicator.State getState(Replicator r) {
+        var clz = r.getClass();
+        try {
+            var f = clz.getDeclaredField("state");
+            f.setAccessible(true);
+            var state = (Replicator.State) f.get(this.raftNode);
+            f.setAccessible(false);
+            return state;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            log.info("getReplicatorGroup: error {}", e.getMessage());
+            return null;
+        }
+    }
+
 }
