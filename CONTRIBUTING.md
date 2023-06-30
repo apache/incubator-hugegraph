@@ -71,6 +71,20 @@ mvn test -Pcore-test,memory
 ```
 Note: In order to be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
 
+##### 3.2.1 Check licenses
+If we want to add new third-party dependencies to the `HugeGraph` project, we need to do the following things:
+1. Find the third-party dependent repository, put the dependent `license` file into [./hugegraph-dist/release-docs/licenses/](https://github.com/apache/incubator-hugegraph/tree/master/hugegraph-dist/release-docs/licenses) path.
+2. Declare the dependency in [./hugegraph-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/LICENSE) `LICENSE` information.
+3. Find the NOTICE file in the repository and append it to [./hugegraph-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
+4. Execute locally [./hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/known-dependencies.txt) (or manually update) .
+
+**Example**: A new third-party dependency is introduced into the project -> `ant-1.9.1.jar`
+- The project source code is located at: https://github.com/apache/ant/tree/rel/1.9.1
+- LICENSE file: https://github.com/apache/ant/blob/rel/1.9.1/LICENSE
+- NOTICE file: https://github.com/apache/ant/blob/rel/1.9.1/NOTICE
+
+The license information of `ant-1.9.1.jar` needs to be specified in the LICENSE file, and the notice information needs to be specified in the NOTICE file. The detailed LICENSE file corresponding to ant-1.9.1.jar needs to be copied to our licenses/ directory. Finally update the known-dependencies.txt file.
+
 #### 3.3 Commit changes to git repo
 
 After the code has been completed, we submit them to the local git repo:
