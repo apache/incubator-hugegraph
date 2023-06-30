@@ -9,6 +9,8 @@ The following is a contribution guide for HugeGraph:
 
 ## 1. Preparation
 
+**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
+
 We can contribute by reporting issues, submitting code patches or any other feedback.
 
 Before submitting the code, we need to do some preparation:
@@ -36,8 +38,6 @@ Before submitting the code, we need to do some preparation:
    git config user.name "{full-name}" # like "Jermy Li"
    git config user.email "{email-address-of-github}" # like "jermy@apache.org"
    ```
-
-**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
 
 ## 2. Create an Issue on GitHub
 
@@ -108,10 +108,6 @@ Note that since GitHub requires submitting code through `username + token` (inst
 ## 4. Create a Pull Request
 
 Go to the web page of GitHub fork repo, there would be a chance to create a Pull Request after pushing to a new branch, just click button "Compare & pull request" to do it. Then edit the description for proposed changes, which can just be copied from the commit message.
-
-Please sign the HugeGraph CLA when contributing code for the first time. You can sign the CLA by just posting a Pull Request Comment same as the below format:
-
-`I have read the CLA Document and I hereby sign the CLA`
 
 Note: please make sure the email address you used to submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
 <img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163522445-2a50a72a-dea2-434f-9868-3a0d40d0d037.png">
