@@ -35,8 +35,10 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
+import com.alipay.sofa.jraft.ReplicatorGroup;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
+import com.alipay.sofa.jraft.core.Replicator;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
@@ -46,6 +48,7 @@ import com.alipay.sofa.jraft.option.RpcOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
+import com.alipay.sofa.jraft.util.ThreadId;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
 
 import lombok.extern.slf4j.Slf4j;
@@ -227,19 +230,18 @@ public class RaftEngine {
             CompletableFuture<RaftRpcProcessor.GetMemberResponse> future =
                     raftRpcClient.getGrpcAddress(peerId.getEndpoint().toString());
 
-            // TODO: uncomment later - jraft problem
-//            Metapb.ShardRole role = Metapb.ShardRole.Follower;
-//            if (peerEquals(peerId, raftNode.getLeaderId())) {
-//                role = Metapb.ShardRole.Leader;
-//            } else if (learners.contains(peerId)) {
-//                role = Metapb.ShardRole.Learner;
-//                var state = raftNode.getReplicatorState(peerId);
-//                if (state != null) {
-//                    builder.setReplicatorState(state.name());
-//                }
-//            }
-//
-//            builder.setRole(role);
+            Metapb.ShardRole role = Metapb.ShardRole.Follower;
+            if (peerEquals(peerId, raftNode.getLeaderId())) {
+                role = Metapb.ShardRole.Leader;
+            } else if (learners.contains(peerId)) {
+                role = Metapb.ShardRole.Learner;
+                var state = getReplicatorState(peerId);
+                if (state != null) {
+                    builder.setReplicatorState(state.name());
+                }
+            }
+
+            builder.setRole(role);
 
             try {
                 if (future.isCompletedExceptionally()) {
@@ -323,5 +325,53 @@ public class RaftEngine {
             return false;
         }
         return Objects.equals(p1.getIp(), p2.getIp()) && Objects.equals(p1.getPort(), p2.getPort());
+    }
+
+    private Replicator.State getReplicatorState(PeerId peerId) {
+        var replicateGroup = getReplicatorGroup();
+        if (replicateGroup == null) {
+            return null;
+        }
+
+        ThreadId threadId = replicateGroup.getReplicator(peerId);
+        if (threadId == null) {
+            return null;
+        } else {
+            Replicator r = (Replicator) threadId.lock();
+            if (r == null) {
+                return Replicator.State.Probe;
+            }
+            Replicator.State result = getState(r);
+            threadId.unlock();
+            return result;
+        }
+    }
+
+    private ReplicatorGroup getReplicatorGroup() {
+        var clz = this.raftNode.getClass();
+        try {
+            var f = clz.getDeclaredField("replicatorGroup");
+            f.setAccessible(true);
+            var group = (ReplicatorGroup) f.get(this.raftNode);
+            f.setAccessible(false);
+            return group;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            log.info("getReplicatorGroup: error {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private Replicator.State getState(Replicator r) {
+        var clz = r.getClass();
+        try {
+            var f = clz.getDeclaredField("state");
+            f.setAccessible(true);
+            var state = (Replicator.State) f.get(this.raftNode);
+            f.setAccessible(false);
+            return state;
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            log.info("getReplicatorGroup: error {}", e.getMessage());
+            return null;
+        }
     }
 }
