@@ -9,6 +9,8 @@ The following is a contribution guide for HugeGraph:
 
 ## 1. Preparation
 
+**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
+
 We can contribute by reporting issues, submitting code patches or any other feedback.
 
 Before submitting the code, we need to do some preparation:
@@ -36,8 +38,6 @@ Before submitting the code, we need to do some preparation:
    git config user.name "{full-name}" # like "Jermy Li"
    git config user.email "{email-address-of-github}" # like "jermy@apache.org"
    ```
-
-**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
 
 ## 2. Create an Issue on GitHub
 
@@ -70,6 +70,20 @@ vim hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
 mvn test -Pcore-test,memory
 ```
 Note: In order to be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
+
+##### 3.2.1 Check licenses
+If we want to add new third-party dependencies to the `HugeGraph` project, we need to do the following things:
+1. Find the third-party dependent repository, put the dependent `license` file into [./hugegraph-dist/release-docs/licenses/](https://github.com/apache/incubator-hugegraph/tree/master/hugegraph-dist/release-docs/licenses) path.
+2. Declare the dependency in [./hugegraph-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/LICENSE) `LICENSE` information.
+3. Find the NOTICE file in the repository and append it to [./hugegraph-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
+4. Execute locally [./hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/known-dependencies.txt) (or manually update) .
+
+**Example**: A new third-party dependency is introduced into the project -> `ant-1.9.1.jar`
+- The project source code is located at: https://github.com/apache/ant/tree/rel/1.9.1
+- LICENSE file: https://github.com/apache/ant/blob/rel/1.9.1/LICENSE
+- NOTICE file: https://github.com/apache/ant/blob/rel/1.9.1/NOTICE
+
+The license information of `ant-1.9.1.jar` needs to be specified in the LICENSE file, and the notice information needs to be specified in the NOTICE file. The detailed LICENSE file corresponding to ant-1.9.1.jar needs to be copied to our licenses/ directory. Finally update the known-dependencies.txt file.
 
 #### 3.3 Commit changes to git repo
 
@@ -108,10 +122,6 @@ Note that since GitHub requires submitting code through `username + token` (inst
 ## 4. Create a Pull Request
 
 Go to the web page of GitHub fork repo, there would be a chance to create a Pull Request after pushing to a new branch, just click button "Compare & pull request" to do it. Then edit the description for proposed changes, which can just be copied from the commit message.
-
-Please sign the HugeGraph CLA when contributing code for the first time. You can sign the CLA by just posting a Pull Request Comment same as the below format:
-
-`I have read the CLA Document and I hereby sign the CLA`
 
 Note: please make sure the email address you used to submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
 <img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163522445-2a50a72a-dea2-434f-9868-3a0d40d0d037.png">

@@ -57,4 +57,5 @@ notifications:
   issues: issues@hugegraph.apache.org
   issues_status: dev@hugegraph.apache.org
   issues_comment: issues@hugegraph.apache.org
-  discussions: dev@hugegraph.apache.org
+  discussions_status: dev@hugegraph.apache.org
+  discussions_comment: issues@hugegraph.apache.org
