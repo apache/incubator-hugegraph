@@ -9,6 +9,7 @@ The following is a contribution guide for HugeGraph:
 
 ## 1. Preparation
 
+**Recommended**: You can use [GitHub desktop](https://desktop.github.com/) to greatly simplify the PR process.
 
 We can contribute by reporting issues, submitting code patches or any other feedback.
 
