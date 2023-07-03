@@ -114,6 +114,7 @@
         <hugegraph-commons.version>1.0.0</hugegraph-commons.version>
         <grpc.version>1.47.0</grpc.version>
         <protobuf.version>3.21.7</protobuf.version>
+        <jmh.version>1.36</jmh.version>
     </properties>
 
     <modules>
@@ -322,7 +323,17 @@
                 <artifactId>commons-text</artifactId>
                 <version>1.10.0</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
