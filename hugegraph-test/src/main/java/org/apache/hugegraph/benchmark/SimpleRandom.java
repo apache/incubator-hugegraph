@@ -23,14 +23,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * Fairly fast random numbers
  */
 public final class SimpleRandom {
+
     private static final long MULTIPLIER = 0x5DEECE66DL;
     private static final long ADD_END = 0xBL;
     private static final long MASK = (1L << 48) - 1;
-    static final AtomicLong SEG = new AtomicLong(-715159705);
+    private static final AtomicLong SEG = new AtomicLong(-715159705);
     private long seed;
 
     public SimpleRandom() {
-        seed = System.nanoTime() + SEG.getAndAdd(129);
+        this.seed = System.nanoTime() + SEG.getAndAdd(129);
     }
 
     public int next() {

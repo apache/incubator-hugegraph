@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.benchmark.map;
 
-import static org.apache.hugegraph.benchmark.BenchMarkConstants.OUTPUT_PATH;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hugegraph.benchmark.BenchmarkConstants;
 import org.apache.hugegraph.benchmark.SimpleRandom;
 import org.apache.hugegraph.util.collection.IntMap;
+import org.apache.hugegraph.util.collection.IntSet;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -46,7 +46,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Measurement(iterations = 6, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 @Fork(3)
-public class RandomGetPutThroughput {
+public class MapRandomGetPutThroughputTest {
 
     private static final int MAP_CAPACITY = 100000;
     private final ConcurrentHashMap<Integer, Integer> concurrentHashMapNonCap =
@@ -58,8 +58,13 @@ public class RandomGetPutThroughput {
     private final IntMap.IntMapBySegments intMapBySegments =
         new IntMap.IntMapBySegments(MAP_CAPACITY);
 
+    private final IntMap.IntMapByEcSegment intMapByEcSegments =
+        new IntMap.IntMapByEcSegment(IntSet.CPUS * 100);
+
+    private static final int THREAD_COUNT = 8;
+
     @State(Scope.Thread)
-    public static class ThreadState {
+    private static class ThreadState {
         private final SimpleRandom random = new SimpleRandom();
 
         int next() {
@@ -68,8 +73,8 @@ public class RandomGetPutThroughput {
     }
 
     @Benchmark
-    @Threads(8)
-    public void randomGetPutByConcurrentHashMapWithNoneCap(ThreadState state) {
+    @Threads(THREAD_COUNT)
+    public void randomGetPutByConcurrentHashMapWithNoneInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
         if (!concurrentHashMapNonCap.containsKey(key)) {
             concurrentHashMapNonCap.put(key, state.next());
@@ -78,8 +83,8 @@ public class RandomGetPutThroughput {
     }
 
     @Benchmark
-    @Threads(8)
-    public void randomGetPutByConcurrentHashMapWithCap(ThreadState state) {
+    @Threads(THREAD_COUNT)
+    public void randomGetPutByConcurrentHashMapWithInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
         if (!concurrentHashMap.containsKey(key)) {
             concurrentHashMap.put(key, state.next());
@@ -88,7 +93,7 @@ public class RandomGetPutThroughput {
     }
 
     @Benchmark
-    @Threads(8)
+    @Threads(THREAD_COUNT)
     public void randomGetPutByIntMapBySegments(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
         if (!intMapBySegments.containsKey(key)) {
@@ -97,10 +102,20 @@ public class RandomGetPutThroughput {
         intMapBySegments.get(key);
     }
 
+    @Benchmark
+    @Threads(THREAD_COUNT)
+    public void randomGetPutByIntMapByEcSegment(ThreadState state) {
+        int key = state.next() & (MAP_CAPACITY - 1);
+        if (!intMapByEcSegments.containsKey(key)) {
+            intMapByEcSegments.put(key, state.next());
+        }
+        intMapByEcSegments.get(key);
+    }
+
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-            .include(RandomGetPutThroughput.class.getSimpleName())
-            .result(OUTPUT_PATH + "random_get_put_result.json")
+            .include(MapRandomGetPutThroughputTest.class.getSimpleName())
+            .result(BenchmarkConstants.OUTPUT_PATH + "random_get_put_result.json")
             .resultFormat(ResultFormatType.JSON)
             .build();
         new Runner(opt).run();

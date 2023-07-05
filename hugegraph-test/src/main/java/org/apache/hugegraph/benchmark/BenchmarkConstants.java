@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.benchmark;
 
-public class BenchMarkConstants {
+public class BenchmarkConstants {
 
     public static String OUTPUT_PATH = "./hugegraph-test/target/";
 }
