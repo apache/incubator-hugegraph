@@ -25,12 +25,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
-import org.apache.hugegraph.pd.common.PartitionCache;
 import org.apache.hugegraph.pd.common.PartitionUtils;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb.ShardGroup;
 import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb.CachePartitionResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionByCodeRequest;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionRequest;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
@@ -53,7 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PDClient {
     private final PDConfig config;
     private final Pdpb.RequestHeader header;
-    private final PartitionCache cache;
+    private final ClientCache cache;
     private final StubProxy stubProxy;
     private final List<PDEventListener> eventListeners;
     private PDWatch.Watcher partitionWatcher;
@@ -65,10 +71,9 @@ public class PDClient {
     private PDClient(PDConfig config) {
         this.config = config;
         this.header = Pdpb.RequestHeader.getDefaultInstance();
-        this.cache = new PartitionCache();
         this.stubProxy = new StubProxy(config.getServerHost().split(","));
         this.eventListeners = new CopyOnWriteArrayList<>();
-
+        this.cache = new ClientCache(this);
     }
 
     /**
@@ -78,8 +83,7 @@ public class PDClient {
      * @return
      */
     public static PDClient create(PDConfig config) {
-        PDClient client = new PDClient(config);
-        return client;
+        return new PDClient(config);
     }
 
     private static void handleResponseError(Pdpb.ResponseHeader header) throws
@@ -95,9 +99,7 @@ public class PDClient {
     }
 
     private synchronized void newBlockingStub() throws PDException {
-        if (stubProxy.get() != null) {
-            return;
-        }
+        if (stubProxy.get() != null) return;
         String host = newLeaderStub();
         if (host.isEmpty()) {
             throw new PDException(Pdpb.ErrorType.PD_UNREACHABLE_VALUE,
@@ -107,12 +109,12 @@ public class PDClient {
         if (config.isEnableCache()) {
             log.info("PDClient enable cache, init PDWatch object");
             this.pdPulse = new PDPulseImpl(host);
-            partitionWatcher = pdWatch.watchPartition(new PDWatch.Listener<PartitionEvent>() {
+            partitionWatcher = pdWatch.watchPartition(new PDWatch.Listener<>() {
                 @Override
                 public void onNext(PartitionEvent response) {
-                    // log.info("PDClient receive partition event {}-{} {}",
-                    //        response.getGraph(), response.getPartitionId(), response
-                    //        .getChangeType());
+                    log.info("PDClient receive partition event {}-{} {}",
+                             response.getGraph(), response.getPartitionId(),
+                             response.getChangeType());
                     invalidPartitionCache(response.getGraph(), response.getPartitionId());
 
                     if (response.getChangeType() == PartitionEvent.ChangeType.DEL) {
@@ -181,9 +183,9 @@ public class PDClient {
             @Override
             public void onNext(WatchResponse response) {
                 var shardResponse = response.getShardGroupResponse();
-                log.info("PDClient receive shard group event: raft {}-{}",
-                         shardResponse.getShardGroupId(),
-                         shardResponse.getType());
+                // log.info("PDClient receive shard group event: raft {}-{}", shardResponse
+                // .getShardGroupId(),
+                //        shardResponse.getType());
                 if (config.isEnableCache()) {
                     switch (shardResponse.getType()) {
                         case WATCH_CHANGE_TYPE_DEL:
@@ -244,6 +246,15 @@ public class PDClient {
         }
         return stubProxy.get().withDeadlineAfter(config.getGrpcTimeOut(),
                                                  TimeUnit.MILLISECONDS);
+    }
+
+    private PDGrpc.PDBlockingStub newStub() throws PDException {
+        if (stubProxy.get() == null) {
+            newBlockingStub();
+        }
+        return PDGrpc.newBlockingStub(stubProxy.get().getChannel())
+                     .withDeadlineAfter(config.getGrpcTimeOut(),
+                                        TimeUnit.MILLISECONDS);
     }
 
     private String newLeaderStub() {
@@ -406,6 +417,25 @@ public class PDClient {
         return response.getClusterStats();
     }
 
+    private KVPair<Metapb.Partition, Metapb.Shard> getKvPair(String graphName, byte[] key,
+                                                             KVPair<Metapb.Partition,
+                                                                     Metapb.Shard> partShard) throws
+                                                                                              PDException {
+        if (partShard == null) {
+            GetPartitionRequest request = GetPartitionRequest.newBuilder()
+                                                             .setHeader(header)
+                                                             .setGraphName(graphName)
+                                                             .setKey(ByteString.copyFrom(key))
+                                                             .build();
+            GetPartitionResponse response =
+                    blockingUnaryCall(PDGrpc.getGetPartitionMethod(), request);
+            handleResponseError(response.getHeader());
+            partShard = new KVPair<>(response.getPartition(), response.getLeader());
+            cache.update(graphName, partShard.getKey().getId(), partShard.getKey());
+        }
+        return partShard;
+    }
+
     /**
      * 查询Key所属分区信息
      *
@@ -418,34 +448,16 @@ public class PDClient {
                                                                                              PDException {
         // 先查cache，cache没有命中，在调用PD
         KVPair<Metapb.Partition, Metapb.Shard> partShard = cache.getPartitionByKey(graphName, key);
-        if (partShard == null) {
-            Pdpb.GetPartitionRequest request = Pdpb.GetPartitionRequest.newBuilder()
-                                                                       .setHeader(header)
-                                                                       .setGraphName(graphName)
-                                                                       .setKey(ByteString.copyFrom(
-                                                                               key)).build();
-            Pdpb.GetPartitionResponse response =
-                    blockingUnaryCall(PDGrpc.getGetPartitionMethod(), request);
-            handleResponseError(response.getHeader());
-            partShard = new KVPair<>(response.getPartition(), response.getLeader());
-            if (config.isEnableCache()) {
-                cache.addPartition(graphName, partShard.getKey().getId(), partShard.getKey());
-            }
-        }
+        partShard = getKvPair(graphName, key, partShard);
+        return partShard;
+    }
 
-        if (partShard.getValue() == null) {
-            var shardGroup = getShardGroup(partShard.getKey().getId());
-            if (shardGroup != null) {
-                for (var shard : shardGroup.getShardsList()) {
-                    if (shard.getRole() == Metapb.ShardRole.Leader) {
-                        partShard.setValue(shard);
-                    }
-                }
-            } else {
-                log.error("getPartition: get shard group failed, {}", partShard.getKey().getId());
-            }
-        }
-
+    public KVPair<Metapb.Partition, Metapb.Shard> getPartition(String graphName, byte[] key,
+                                                               int code) throws
+                                                                         PDException {
+        KVPair<Metapb.Partition, Metapb.Shard> partShard =
+                cache.getPartitionByCode(graphName, code);
+        partShard = getKvPair(graphName, key, partShard);
         return partShard;
     }
 
@@ -464,26 +476,20 @@ public class PDClient {
         KVPair<Metapb.Partition, Metapb.Shard> partShard =
                 cache.getPartitionByCode(graphName, hashCode);
         if (partShard == null) {
-            Pdpb.GetPartitionByCodeRequest request = Pdpb.GetPartitionByCodeRequest.newBuilder()
-                                                                                   .setHeader(
-                                                                                           header)
-                                                                                   .setGraphName(
-                                                                                           graphName)
-                                                                                   .setCode(
-                                                                                           hashCode)
-                                                                                   .build();
-            Pdpb.GetPartitionResponse response =
+            GetPartitionByCodeRequest request = GetPartitionByCodeRequest.newBuilder()
+                                                                         .setHeader(header)
+                                                                         .setGraphName(graphName)
+                                                                         .setCode(hashCode).build();
+            GetPartitionResponse response =
                     blockingUnaryCall(PDGrpc.getGetPartitionByCodeMethod(), request);
             handleResponseError(response.getHeader());
             partShard = new KVPair<>(response.getPartition(), response.getLeader());
-            if (config.isEnableCache()) {
-                cache.addPartition(graphName, partShard.getKey().getId(), partShard.getKey());
-                cache.updateShardGroup(getShardGroup(partShard.getKey().getId()));
-            }
+            cache.update(graphName, partShard.getKey().getId(), partShard.getKey());
+            cache.updateShardGroup(getShardGroup(partShard.getKey().getId()));
         }
 
         if (partShard.getValue() == null) {
-            var shardGroup = getShardGroup(partShard.getKey().getId());
+            ShardGroup shardGroup = getShardGroup(partShard.getKey().getId());
             if (shardGroup != null) {
                 for (var shard : shardGroup.getShardsList()) {
                     if (shard.getRole() == Metapb.ShardRole.Leader) {
@@ -495,7 +501,6 @@ public class PDClient {
                           partShard.getKey().getId());
             }
         }
-
         return partShard;
     }
 
@@ -526,12 +531,12 @@ public class PDClient {
                                                                                .setPartitionId(
                                                                                        partId)
                                                                                .build();
-            Pdpb.GetPartitionResponse response =
+            GetPartitionResponse response =
                     blockingUnaryCall(PDGrpc.getGetPartitionByIDMethod(), request);
             handleResponseError(response.getHeader());
             partShard = new KVPair<>(response.getPartition(), response.getLeader());
             if (config.isEnableCache()) {
-                cache.addPartition(graphName, partShard.getKey().getId(), partShard.getKey());
+                cache.update(graphName, partShard.getKey().getId(), partShard.getKey());
                 cache.updateShardGroup(getShardGroup(partShard.getKey().getId()));
             }
         }
@@ -551,8 +556,8 @@ public class PDClient {
         return partShard;
     }
 
-    public Metapb.ShardGroup getShardGroup(int partId) throws PDException {
-        Metapb.ShardGroup group = cache.getShardGroup(partId);
+    public ShardGroup getShardGroup(int partId) throws PDException {
+        ShardGroup group = cache.getShardGroup(partId);
         if (group == null) {
             Pdpb.GetShardGroupRequest request = Pdpb.GetShardGroupRequest.newBuilder()
                                                                          .setHeader(header)
@@ -569,7 +574,7 @@ public class PDClient {
         return group;
     }
 
-    public void updateShardGroup(Metapb.ShardGroup shardGroup) throws PDException {
+    public void updateShardGroup(ShardGroup shardGroup) throws PDException {
         Pdpb.UpdateShardGroupRequest request = Pdpb.UpdateShardGroupRequest.newBuilder()
                                                                            .setHeader(header)
                                                                            .setShardGroup(
@@ -683,9 +688,9 @@ public class PDClient {
     }
 
     public Metapb.Graph getGraph(String graphName) throws PDException {
-        Pdpb.GetGraphRequest request = Pdpb.GetGraphRequest.newBuilder()
-                                                           .setGraphName(graphName)
-                                                           .build();
+        GetGraphRequest request = GetGraphRequest.newBuilder()
+                                                 .setGraphName(graphName)
+                                                 .build();
         Pdpb.GetGraphResponse response =
                 blockingUnaryCall(PDGrpc.getGetGraphMethod(), request);
 
@@ -695,10 +700,10 @@ public class PDClient {
 
     public Metapb.Graph getGraphWithOutException(String graphName) throws
                                                                    PDException {
-        Pdpb.GetGraphRequest request = Pdpb.GetGraphRequest.newBuilder()
-                                                           .setGraphName(
-                                                                   graphName)
-                                                           .build();
+        GetGraphRequest request = GetGraphRequest.newBuilder()
+                                                 .setGraphName(
+                                                         graphName)
+                                                 .build();
         Pdpb.GetGraphResponse response = blockingUnaryCall(
                 PDGrpc.getGetGraphMethod(), request);
         return response.getGraph();
@@ -814,8 +819,8 @@ public class PDClient {
      */
     public void updatePartitionCache(Metapb.Partition partition, Metapb.Shard leader) {
         if (config.isEnableCache()) {
-            cache.updatePartition(partition.getGraphName(), partition.getId(), partition);
-            cache.updateShardGroupLeader(partition.getId(), leader);
+            cache.update(partition.getGraphName(), partition.getId(), partition);
+            cache.updateLeader(partition.getId(), leader);
         }
     }
 
@@ -1228,8 +1233,23 @@ public class PDClient {
         handleResponseError(response.getHeader());
     }
 
-    public PartitionCache getCache() {
+    public ClientCache getCache() {
         return cache;
+    }
+
+    public CacheResponse getClientCache() throws PDException {
+        GetGraphRequest request = GetGraphRequest.newBuilder().setHeader(header).build();
+        CacheResponse cache = getStub().getCache(request);
+        handleResponseError(cache.getHeader());
+        return cache;
+    }
+
+    public CachePartitionResponse getPartitionCache(String graph) throws PDException {
+        GetGraphRequest request =
+                GetGraphRequest.newBuilder().setHeader(header).setGraphName(graph).build();
+        CachePartitionResponse ps = getStub().getPartitions(request);
+        handleResponseError(ps.getHeader());
+        return ps;
     }
 
     public void updatePdRaft(String raftConfig) throws PDException {
@@ -1258,11 +1278,7 @@ public class PDClient {
         private volatile PDGrpc.PDBlockingStub stub;
 
         public StubProxy(String[] hosts) {
-            for (String host : hosts) {
-                if (!host.isEmpty()) {
-                    hostList.offer(host);
-                }
-            }
+            for (String host : hosts) if (!host.isEmpty()) hostList.offer(host);
         }
 
         public String nextHost() {

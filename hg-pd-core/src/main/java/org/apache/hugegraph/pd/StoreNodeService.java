@@ -36,6 +36,7 @@ import org.apache.hugegraph.pd.grpc.Metapb.GraphMode;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphModeReason;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphState;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
 import org.apache.hugegraph.pd.grpc.pulse.ConfChangeType;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
@@ -115,7 +116,7 @@ public class StoreNodeService {
                         }
                         updateClusterStatus(state);
                     } catch (PDException e) {
-                        log.error("onPartitionChanged exception {}", e);
+                        log.error("onPartitionChanged exception: ", e);
                     }
                 }
             }
@@ -271,9 +272,7 @@ public class StoreNodeService {
         log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(),
                  store.getAddress(), store.getState());
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
-        if (lastStore == null) {
-            return null;
-        }
+        if (lastStore == null) return null;
         Metapb.Store.Builder builder =
                 Metapb.Store.newBuilder(lastStore).clearLabels().clearStats();
         store = builder.mergeFrom(store).build();
@@ -517,7 +516,7 @@ public class StoreNodeService {
             // 需要增加shard
             log.info("reallocShards ShardGroup {}, add shards from {} to {}",
                      shardGroup.getId(), shards.size(), shardCount);
-            int storeIdx = (int) shardGroup.getId() % stores.size();  //store分配规则，简化为取模
+            int storeIdx = shardGroup.getId() % stores.size();  //store分配规则，简化为取模
             for (int addCount = shardCount - shards.size(); addCount > 0; ) {
                 // 检查是否已经存在
                 if (!isStoreInShards(shards, stores.get(storeIdx).getId())) {
@@ -588,7 +587,6 @@ public class StoreNodeService {
     /**
      * 分配shard group，为分裂做准备
      *
-     * @param groups
      * @return true
      * @throws PDException
      */
@@ -1063,4 +1061,15 @@ public class StoreNodeService {
         return leader;
     }
 
+    public CacheResponse getCache() throws PDException {
+
+        List<Metapb.Store> stores = getStores();
+        List<Metapb.ShardGroup> groups = getShardGroups();
+        List<Metapb.Graph> graphs = partitionService.getGraphs();
+        CacheResponse cache = CacheResponse.newBuilder().addAllGraphs(graphs)
+                                           .addAllShards(groups)
+                                           .addAllStores(stores)
+                                           .build();
+        return cache;
+    }
 }

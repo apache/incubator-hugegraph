@@ -47,20 +47,17 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author zhangyingjie
- * @date 2022/6/20
- **/
 @Slf4j
 public abstract class AbstractClient implements Closeable {
 
+    private static final ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
     public static Pdpb.ResponseHeader okHeader = Pdpb.ResponseHeader.newBuilder().setError(
             Pdpb.Error.newBuilder().setType(Pdpb.ErrorType.OK)).build();
     protected final Pdpb.RequestHeader header;
     protected final AbstractClientStubProxy stubProxy;
     protected final PDConfig config;
     protected ManagedChannel channel = null;
-    protected ConcurrentMap<String, AbstractBlockingStub> stubs = null;
+    protected volatile ConcurrentMap<String, AbstractBlockingStub> stubs = null;
 
     protected AbstractClient(PDConfig config) {
         String[] hosts = config.getServerHost().split(",");
@@ -84,7 +81,7 @@ public abstract class AbstractClient implements Closeable {
         }
     }
 
-    private AbstractBlockingStub getBlockingStub() throws PDException {
+    protected AbstractBlockingStub getBlockingStub() throws PDException {
         if (stubProxy.getBlockingStub() == null) {
             synchronized (this) {
                 if (stubProxy.getBlockingStub() == null) {
@@ -97,10 +94,12 @@ public abstract class AbstractClient implements Closeable {
                 }
             }
         }
-        return stubProxy.getBlockingStub();
+        return (AbstractBlockingStub) stubProxy.getBlockingStub()
+                                               .withDeadlineAfter(config.getGrpcTimeOut(),
+                                                                  TimeUnit.MILLISECONDS);
     }
 
-    private AbstractStub getStub() throws PDException {
+    protected AbstractStub getStub() throws PDException {
         if (stubProxy.getStub() == null) {
             synchronized (this) {
                 if (stubProxy.getStub() == null) {
@@ -129,8 +128,8 @@ public abstract class AbstractClient implements Closeable {
                                                 .withDeadlineAfter(config.getGrpcTimeOut(),
                                                                    TimeUnit.MILLISECONDS);
             try {
-                GetMembersRequest request =
-                        Pdpb.GetMembersRequest.newBuilder().setHeader(header).build();
+                GetMembersRequest request = Pdpb.GetMembersRequest.newBuilder()
+                                                                  .setHeader(header).build();
                 GetMembersResponse members = blockingStub.getMembers(request);
                 Metapb.Member leader = members.getLeader();
                 leaderHost = leader.getGrpcUrl();
@@ -192,8 +191,7 @@ public abstract class AbstractClient implements Closeable {
     }
 
     protected <ReqT, RespT> KVPair<Boolean, RespT> concurrentBlockingUnaryCall(
-            MethodDescriptor<ReqT, RespT> method, ReqT req, Predicate<RespT> predicate) throws
-                                                                                        PDException {
+            MethodDescriptor<ReqT, RespT> method, ReqT req, Predicate<RespT> predicate) {
         LinkedList<String> hostList = this.stubProxy.getHostList();
         if (this.stubs == null) {
             synchronized (this) {
@@ -204,9 +202,8 @@ public abstract class AbstractClient implements Closeable {
         }
         Stream<RespT> respTStream = hostList.parallelStream().map((address) -> {
             AbstractBlockingStub stub = getConcurrentBlockingStub(address);
-            RespT resp =
-                    ClientCalls.blockingUnaryCall(stub.getChannel(), method, stub.getCallOptions(),
-                                                  req);
+            RespT resp = ClientCalls.blockingUnaryCall(stub.getChannel(),
+                                                       method, stub.getCallOptions(), req);
             return resp;
         });
         KVPair<Boolean, RespT> pair;
@@ -225,8 +222,7 @@ public abstract class AbstractClient implements Closeable {
 
     protected <ReqT, RespT> void streamingCall(MethodDescriptor<ReqT, RespT> method, ReqT request,
                                                StreamObserver<RespT> responseObserver,
-                                               int retry) throws
-                                                          PDException {
+                                               int retry) throws PDException {
         AbstractStub stub = getStub();
         try {
             ClientCall<ReqT, RespT> call = stub.getChannel().newCall(method, stub.getCallOptions());
@@ -263,7 +259,7 @@ public abstract class AbstractClient implements Closeable {
                 continue;
             }
         } catch (Exception e) {
-            log.info("Close channel with error : {}.", e);
+            log.info("Close channel with error : ", e);
         }
     }
 }

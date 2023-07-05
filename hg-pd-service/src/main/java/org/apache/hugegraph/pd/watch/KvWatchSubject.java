@@ -34,6 +34,7 @@ import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchState;
 import org.apache.hugegraph.pd.grpc.kv.WatchType;
 
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,8 +54,8 @@ public class KvWatchSubject {
     private static final ConcurrentMap<String, StreamObserver<WatchResponse>> clients =
             new ConcurrentHashMap<>();
     private final KvService kvService;
-    BiPredicate<String, String> equal = (kvKey, watchKey) -> kvKey.equals(watchKey);
-    BiPredicate<String, String> startWith = (kvKey, watchKey) -> kvKey.startsWith(watchKey);
+    BiPredicate<String, String> equal = String::equals;
+    BiPredicate<String, String> startWith = String::startsWith;
 
     /**
      * 会使用以下三组key:
@@ -134,7 +135,7 @@ public class KvWatchSubject {
             assert values.length == 4;
             String watchKey = values[2];
             String c = values[3];
-            long clientId = Long.valueOf(c);
+            long clientId = Long.parseLong(c);
             LinkedList<WatchEvent> watchEvents = new LinkedList<>();
             for (WatchKv kv : kvs) {
                 String kvKey = kv.getKey();
@@ -162,6 +163,8 @@ public class KvWatchSubject {
                 } else {
                     log.info("cannot find StreamObserver for clientId:{}", clientId);
                 }
+            } catch (StatusRuntimeException ignored) {
+
             } catch (Exception e) {
                 log.warn("notifyObserver with error:{}", clientId, e);
             }
@@ -231,7 +234,7 @@ public class KvWatchSubject {
 
     private void removeClient(StreamObserver<WatchResponse> value, String key, String clientKey) {
         try {
-            log.info("remove null observer,client:", clientKey);
+            log.info("remove null observer, client {}", clientKey);
             kvService.deleteWithPrefix(clientKey);
             if (value != null) {
                 synchronized (value) {
@@ -268,8 +271,7 @@ public class KvWatchSubject {
                 } catch (Exception e) {
                     try {
                         Thread.sleep(100);
-                    } catch (InterruptedException ex) {
-
+                    } catch (InterruptedException ignored) {
                     }
                 }
             }

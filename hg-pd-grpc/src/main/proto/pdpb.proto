@@ -85,6 +85,9 @@ service PD {
   rpc ChangeShard(ChangeShardRequest) returns (ChangeShardResponse) {}
   // 更新pd raft
   rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
+
+  rpc getCache(GetGraphRequest) returns (CacheResponse)  {}
+  rpc getPartitions(GetGraphRequest) returns (CachePartitionResponse)  {}
 }
 
 message RequestHeader {
@@ -573,4 +576,15 @@ message UpdatePdRaftRequest{
 message UpdatePdRaftResponse{
   ResponseHeader header = 1;
   string message = 2;
+}
+message CacheResponse {
+  ResponseHeader header = 1;
+  // 返回修改后的Store
+  repeated metapb.Store stores = 2;
+  repeated metapb.ShardGroup shards = 3;
+  repeated metapb.Graph graphs = 4;
+}
+message CachePartitionResponse {
+  ResponseHeader header = 1;
+  repeated metapb.Partition partitions = 2;
 }

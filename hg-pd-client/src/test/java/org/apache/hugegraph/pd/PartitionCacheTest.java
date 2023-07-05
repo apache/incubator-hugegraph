@@ -30,8 +30,6 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 
-// import org.junit.Test;
-
 public class PartitionCacheTest {
 
     // @Test
@@ -43,7 +41,7 @@ public class PartitionCacheTest {
                                                  .setStartKey(i * 10)
                                                  .setEndKey((i + 1) * 10)
                                                  .build(), null);
-            cache.addPartition("aa", i, partShards.getKey());
+            cache.updatePartition("aa", i, partShards.getKey());
         }
 
         for (int i = 0; i < 100; i++) {

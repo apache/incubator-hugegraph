@@ -48,6 +48,9 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.CachePartitionResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseResponse;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
@@ -770,7 +773,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 获得图信息
      */
-    public void getGraph(Pdpb.GetGraphRequest request,
+    public void getGraph(GetGraphRequest request,
                          io.grpc.stub.StreamObserver<Pdpb.GetGraphResponse> observer) {
         if (!isLeader()) {
             redirectToLeader(PDGrpc.getGetGraphMethod(), request, observer);
@@ -1708,6 +1711,39 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
+    public void getCache(GetGraphRequest request,
+                         StreamObserver<CacheResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getGetCacheMethod(), request, observer);
+            return;
+        }
+        CacheResponse response;
+        try {
+            response = CacheResponse.newBuilder().mergeFrom(storeNodeService.getCache())
+                                    .setHeader(okHeader).build();
+        } catch (PDException e) {
+            log.error("get cache exception, ", e);
+            response = CacheResponse.newBuilder().setHeader(newErrorHeader(e)).build();
+        }
+        observer.onNext(response);
+        observer.onCompleted();
+    }
+
+    public void getPartitions(GetGraphRequest request,
+                              StreamObserver<CachePartitionResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getGetPartitionsMethod(), request, observer);
+            return;
+        }
+        CachePartitionResponse response;
+        List<Metapb.Partition> partitions = partitionService.getPartitions(request.getGraphName());
+        response = CachePartitionResponse.newBuilder().addAllPartitions(partitions)
+                                         .setHeader(okHeader).build();
+        observer.onNext(response);
+        observer.onCompleted();
+    }
+
+
     private List<KVPair<String, PeerId>> parseConfig(String conf) {
         List<KVPair<String, PeerId>> result = new LinkedList<>();
 
@@ -1740,5 +1776,4 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         }
         return Objects.equals(p1.getIp(), p2.getIp()) && Objects.equals(p1.getPort(), p2.getPort());
     }
-
 }
