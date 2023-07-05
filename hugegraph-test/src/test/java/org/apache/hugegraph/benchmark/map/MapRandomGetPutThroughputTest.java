@@ -63,8 +63,11 @@ public class MapRandomGetPutThroughputTest {
 
     private static final int THREAD_COUNT = 8;
 
+    /**
+     * The instantiated @State annotation only supports public classes.
+     */
     @State(Scope.Thread)
-    private static class ThreadState {
+    public static class ThreadState {
         private final SimpleRandom random = new SimpleRandom();
 
         int next() {

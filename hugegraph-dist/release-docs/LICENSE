@@ -555,11 +555,3 @@ Third party ISC licenses
 
 The following components are provided under the ISC License.
 	(ISC) * jBCrypt (org.mindrot:jbcrypt:0.4 - https://github.com/djmdjm/jBCrypt)
-
-========================================================================
-Third party GPL licenses
-========================================================================
-
-The following components are provided under the GPL License.
-	(GPL) * jmh-core (org.openjdk.jmh:jmh-core:1.36 - https://github.com/openjdk/jmh/tree/master/jmh-core)
-	(GPL) * jmh-generator-annprocess (org.openjdk.jmh:jmh-generator-annprocess:1.36 - https://github.com/openjdk/jmh/tree/master/jmh-generator-annprocess)
