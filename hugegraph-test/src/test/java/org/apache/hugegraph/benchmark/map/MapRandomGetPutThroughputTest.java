@@ -68,6 +68,7 @@ public class MapRandomGetPutThroughputTest {
      */
     @State(Scope.Thread)
     public static class ThreadState {
+
         private final SimpleRandom random = new SimpleRandom();
 
         int next() {
@@ -77,42 +78,42 @@ public class MapRandomGetPutThroughputTest {
 
     @Benchmark
     @Threads(THREAD_COUNT)
-    public void randomGetPutByConcurrentHashMapWithNoneInitCap(ThreadState state) {
+    public void randomGetPutOfConcurrentHashMapWithNoneInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!concurrentHashMapNonCap.containsKey(key)) {
-            concurrentHashMapNonCap.put(key, state.next());
+        if (!this.concurrentHashMapNonCap.containsKey(key)) {
+            this.concurrentHashMapNonCap.put(key, state.next());
         }
-        concurrentHashMapNonCap.get(key);
+        this.concurrentHashMapNonCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
-    public void randomGetPutByConcurrentHashMapWithInitCap(ThreadState state) {
+    public void randomGetPutOfConcurrentHashMapWithInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!concurrentHashMap.containsKey(key)) {
-            concurrentHashMap.put(key, state.next());
+        if (!this.concurrentHashMap.containsKey(key)) {
+            this.concurrentHashMap.put(key, state.next());
         }
-        concurrentHashMap.get(key);
+        this.concurrentHashMap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
-    public void randomGetPutByIntMapBySegments(ThreadState state) {
+    public void randomGetPutOfIntMapBySegments(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!intMapBySegments.containsKey(key)) {
-            intMapBySegments.put(key, state.next());
+        if (!this.intMapBySegments.containsKey(key)) {
+            this.intMapBySegments.put(key, state.next());
         }
-        intMapBySegments.get(key);
+        this.intMapBySegments.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
-    public void randomGetPutByIntMapByEcSegment(ThreadState state) {
+    public void randomGetPutOfIntMapByEcSegment(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!intMapByEcSegments.containsKey(key)) {
-            intMapByEcSegments.put(key, state.next());
+        if (!this.intMapByEcSegments.containsKey(key)) {
+            this.intMapByEcSegments.put(key, state.next());
         }
-        intMapByEcSegments.get(key);
+        this.intMapByEcSegments.get(key);
     }
 
     public static void main(String[] args) throws RunnerException {

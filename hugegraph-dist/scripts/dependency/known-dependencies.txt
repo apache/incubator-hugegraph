@@ -162,13 +162,11 @@ jjwt-api-0.11.5.jar
 jjwt-impl-0.11.5.jar
 jjwt-jackson-0.11.5.jar
 jline-2.14.6.jar
-jmh-core-1.36.jar
 jna-5.12.1.jar
 jnr-ffi-2.1.7.jar
 jnr-x86asm-1.0.2.jar
 joda-time-2.10.8.jar
 joda-time-2.4.jar
-jopt-simple-5.0.4.jar
 jraft-core-1.3.11.jar
 json-simple-1.1.jar
 json-smart-2.3.jar
