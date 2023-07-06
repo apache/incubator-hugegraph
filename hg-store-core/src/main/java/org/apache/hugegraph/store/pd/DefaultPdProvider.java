@@ -26,12 +26,15 @@ import java.util.function.Consumer;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.client.PDPulseImpl;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PdInstructionType;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchGraphResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
@@ -54,12 +57,9 @@ public class DefaultPdProvider implements PdProvider {
     private static final Logger LOG = Log.logger(DefaultPdProvider.class);
     private final PDClient pdClient;
     private final String pdServerAddress;
-
-    private Consumer<Throwable> hbOnError = null;
-    private List<PartitionInstructionListener> partitionCommandListeners =
-            Collections.synchronizedList(new ArrayList<>());
     private final PDPulse pulseClient;
-
+    private Consumer<Throwable> hbOnError = null;
+    private List<PartitionInstructionListener> partitionCommandListeners;
     private PDPulse.Notifier<PartitionHeartbeatRequest.Builder> pdPulse;
     private GraphManager graphManager = null;
     PDClient.PDEventListener listener = new PDClient.PDEventListener() {
@@ -292,7 +292,8 @@ public class DefaultPdProvider implements PdProvider {
 
                 for (PartitionInstructionListener event : partitionCommandListeners) {
                     if (instruct.hasChangeShard()) {
-                        event.onChangeShard(instruct.getId(), partition, instruct.getChangeShard(),
+                        event.onChangeShard(instruct.getId(), partition, instruct
+                                                    .getChangeShard(),
                                             consumer);
                     }
                     if (instruct.hasSplitPartition()) {

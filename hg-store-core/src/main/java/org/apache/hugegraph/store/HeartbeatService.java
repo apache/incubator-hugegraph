@@ -36,7 +36,6 @@ import org.apache.hugegraph.store.util.IpUtil;
 import org.apache.hugegraph.store.util.Lifecycle;
 import org.rocksdb.MemoryUsageType;
 
-import com.alipay.sofa.jraft.core.Replicator;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.util.Utils;
 
@@ -162,7 +161,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             }
             try {
                 synchronized (partitionThreadLock) {
-                    partitionThreadLock.wait(options.getPartitionHBInterval() * 1000);
+                    partitionThreadLock.wait(options.getPartitionHBInterval() * 1000L);
                 }
             } catch (InterruptedException e) {
                 log.error("doPartitionHeartbeat error: ", e);
@@ -172,7 +171,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     protected void registerStore() {
         try {
-            // 注册 store，初次注册PD产生id，自动给storeinfo赋值
+            // 注册 store，初次注册 PD 产生 id，自动给 storeinfo 赋值
             this.storeInfo.setStoreAddress(IpUtil.getNearestAddress(options.getGrpcAddress()));
             this.storeInfo.setRaftAddress(IpUtil.getNearestAddress(options.getRaftAddress()));
 
@@ -188,7 +187,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                 }
                 log.info("Register Store id= {} successfully. store = {}, clusterStats {}",
                          storeInfo.getId(), storeInfo, this.clusterStats);
-                // 监听partition消息
+                // 监听 partition 消息
                 pdProvider.startHeartbeatStream(error -> {
                     onStateChanged(Metapb.StoreState.Offline);
                     timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
@@ -294,7 +293,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                                                                   .getId())
                                                .setRole(Metapb.ShardRole.Leader)
                                                .build();
-        // 获取各个shard信息.
+        // 获取各个 shard 信息。
         for (PartitionEngine partition : partitions) {
             Metapb.PartitionStats.Builder stats = Metapb.PartitionStats.newBuilder();
             stats.setId(partition.getGroupId());
@@ -308,7 +307,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             // shard 状态
             List<Metapb.ShardStats> shardStats = new ArrayList<>();
             Map<Long, PeerId> aliveShards = partition.getAlivePeers();
-            // 统计shard状态
+            // 统计 shard 状态
             partition.getShardGroup().getShards().forEach(shard -> {
                 Metapb.ShardState state = Metapb.ShardState.SState_Normal;
                 if (! aliveShards.containsKey(shard.getStoreId())) {
@@ -362,7 +361,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     @Override
     public void partitionRoleChanged(Partition partition, PartitionRole newRole) {
         if (newRole == PartitionRole.LEADER) {
-            // leader发生改变，激活心跳
+            // leader 发生改变，激活心跳
             synchronized (partitionThreadLock) {
                 partitionThreadLock.notifyAll();
             }

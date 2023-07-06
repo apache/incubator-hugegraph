@@ -33,6 +33,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.config.HugeConfig;
@@ -126,11 +129,10 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
                                          RocksdbChangedListener listener) {
-        // 注册rocksdb配置
-        OptionSpace.register("rocksdb",
-                             "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
+        // 注册 rocksdb 配置
+        OptionSpace.register("rocksdb", "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
-        HugeConfig hConfig = new HugeConfig(rocksdbConfig);
+        HugeConfig hConfig = new HugeConfig(new MapConfiguration(rocksdbConfig));
         factory.setHugeConfig(hConfig);
         if (listener != null) {
             factory.addRocksdbChangedListener(listener);
@@ -144,7 +146,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             dbName = String.format("%05d", partId);
             dbNames.put(partId, dbName);
         }
-        // 每个分区对应一个rocksdb实例，因此rocksdb实例名为partId
+        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 partId
         return dbName;
     }
 
@@ -169,8 +171,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     @Override
-    public byte[] doGet(String graph, int code, String table, byte[] key)
-            throws HgStoreException {
+    public byte[] doGet(String graph, int code, String table, byte[] key) throws HgStoreException {
         int partId = provider.getPartitionByCode(graph, code).getId();
 
         try (RocksDBSession dbSession = getSession(graph, table, partId)) {
@@ -188,13 +189,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
         BiFunction<Integer, byte[], ScanIterator> function = (id, position) -> {
             try (RocksDBSession dbSession = getSession(graph, table, id)) {
-                return new InnerKeyFilter(dbSession.sessionOp().scan(table,
-                                                                     position == null ?
-                                                                     keyCreator.getStartKey(id,
-                                                                                            graph) :
-                                                                     keyCreator.getStartKey(id,
-                                                                                            graph,
-                                                                                            position),
+                return new InnerKeyFilter(dbSession.sessionOp().scan(table, position == null ?
+                                                                            keyCreator.getStartKey(
+                                                                                    id, graph) :
+                                                                            keyCreator.getStartKey(
+                                                                                    id, graph,
+                                                                                    position),
                                                                      keyCreator.getEndKey(id,
                                                                                           graph),
                                                                      ScanIterator.Trait.SCAN_LT_END));
@@ -210,8 +210,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     @Override
     public ScanIterator scan(String graph, int code, String table, byte[] start, byte[] end,
-                             int scanType)
-            throws HgStoreException {
+                             int scanType) throws HgStoreException {
         List<Integer> ids;
         if (code == SCAN_ALL_PARTITIONS_ID) {
             ids = this.getLeaderPartitionIds(graph);
@@ -230,30 +229,31 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 type = scanType;
             }
             try (RocksDBSession dbSession = getSession(graph, table, id)) {
-                return new InnerKeyFilter(
-                        dbSession.sessionOp().scan(table,
-                                                   keyCreator.getStartKey(id, graph,
-                                                                          toPosition(start,
-                                                                                     position)),
-                                                   endKey, type));
+                return new InnerKeyFilter(dbSession.sessionOp().scan(table,
+                                                                     keyCreator.getStartKey(id,
+                                                                                            graph,
+                                                                                            toPosition(
+                                                                                                    start,
+                                                                                                    position)),
+                                                                     endKey, type));
             }
         };
         return MultiPartitionIterator.of(ids, function);
     }
 
     /**
-     * 根据keyCode范围返回数据,左闭右开
+     * 根据 keyCode 范围返回数据，左闭右开
      *
      * @param graph
      * @param table
-     * @param codeFrom 起始code，包含该值
-     * @param codeTo   结束code，不包含该值
+     * @param codeFrom 起始 code，包含该值
+     * @param codeTo   结束 code，不包含该值
      * @return
      * @throws HgStoreException
      */
     @Override
-    public ScanIterator scan(String graph, String table, int codeFrom, int codeTo)
-            throws HgStoreException {
+    public ScanIterator scan(String graph, String table, int codeFrom, int codeTo) throws
+                                                                                   HgStoreException {
 
         List<Integer> ids = new ArrayList<>();
         ids.add(partitionManager.getPartitionIdByCode(graph, codeFrom));
@@ -289,14 +289,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     @Override
-    public GraphStoreIterator scan(ScanPartitionRequest spr) throws
-                                                             HgStoreException {
+    public GraphStoreIterator scan(ScanPartitionRequest spr) throws HgStoreException {
         return new GraphStoreIterator(scanOriginal(spr), spr);
     }
 
     @Override
-    public ScanIterator scanOriginal(ScanPartitionRequest spr) throws
-                                                               HgStoreException {
+    public ScanIterator scanOriginal(ScanPartitionRequest spr) throws HgStoreException {
         Request request = spr.getScanRequest();
         String graph = request.getGraphName();
         List<Integer> ids;
@@ -308,8 +306,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
         } else {
             ids = new ArrayList<>();
             if (startCode != 0 || endCode != 0) {
-                ids.add(partitionManager.getPartitionIdByCode(graph,
-                                                              startCode));
+                ids.add(partitionManager.getPartitionIdByCode(graph, startCode));
             } else {
                 ids.add(partitionId);
             }
@@ -324,27 +321,21 @@ public class BusinessHandlerImpl implements BusinessHandler {
         }
         String tab = table;
         int st = scanType;
-        BiFunction<Integer, byte[], ScanIterator> func =
-                (id, position) -> {
-                    try (RocksDBSession dbSession = getSession(graph, tab,
-                                                               id)) {
-                        byte[] startPos = toPosition(EMPTY_BYTES, position);
-                        byte[] startKey = keyCreator.getStartKey(id, graph,
-                                                                 startPos);
-                        byte[] endKey = keyCreator.getEndKey(id, graph);
-                        ScanIterator iter = dbSession.sessionOp()
-                                                     .scan(tab, startKey,
-                                                           endKey, st);
-                        return new InnerKeyFilter(iter);
-                    }
-                };
+        BiFunction<Integer, byte[], ScanIterator> func = (id, position) -> {
+            try (RocksDBSession dbSession = getSession(graph, tab, id)) {
+                byte[] startPos = toPosition(EMPTY_BYTES, position);
+                byte[] startKey = keyCreator.getStartKey(id, graph, startPos);
+                byte[] endKey = keyCreator.getEndKey(id, graph);
+                ScanIterator iter = dbSession.sessionOp().scan(tab, startKey, endKey, st);
+                return new InnerKeyFilter(iter);
+            }
+        };
         return MultiPartitionIterator.of(ids, func);
     }
 
     @Override
     public ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix,
-                                   int scanType)
-            throws HgStoreException {
+                                   int scanType) throws HgStoreException {
         List<Integer> ids;
         if (code == SCAN_ALL_PARTITIONS_ID) {
             ids = this.getLeaderPartitionIds(graph);
@@ -354,20 +345,21 @@ public class BusinessHandlerImpl implements BusinessHandler {
         }
         BiFunction<Integer, byte[], ScanIterator> function = (id, position) -> {
             try (RocksDBSession dbSession = getSession(graph, table, id)) {
-                return new InnerKeyFilter(
-                        dbSession.sessionOp().scan(table,
-                                                   keyCreator.getPrefixKey(id, graph,
-                                                                           toPosition(prefix,
-                                                                                      position)),
-                                                   scanType));
+                return new InnerKeyFilter(dbSession.sessionOp().scan(table,
+                                                                     keyCreator.getPrefixKey(id,
+                                                                                             graph,
+                                                                                             toPosition(
+                                                                                                     prefix,
+                                                                                                     position)),
+                                                                     scanType));
             }
         };
         return MultiPartitionIterator.of(ids, function);
     }
 
     @Override
-    public ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix)
-            throws HgStoreException {
+    public ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix) throws
+                                                                                        HgStoreException {
 
         return scanPrefix(graph, code, table, prefix, 0);
     }
@@ -388,9 +380,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
         Map<String, String> sizeMap = null;
 
         try (RocksDBSession dbSession = getSession(graph, partId)) {
-            countMap = dbSession.getKeyCountPerCF(
-                    keyCreator.getStartKey(partId, graph),
-                    keyCreator.getEndKey(partId, graph), accurateCount);
+            countMap = dbSession.getKeyCountPerCF(keyCreator.getStartKey(partId, graph),
+                                                  keyCreator.getEndKey(partId, graph),
+                                                  accurateCount);
             sizeMap = dbSession.getApproximateCFDataSize(keyCreator.getStartKey(partId, graph),
                                                          keyCreator.getEndKey(partId, graph));
 
@@ -416,10 +408,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
     public HgStoreMetric.Graph getGraphMetric(String graph, int partId) {
         HgStoreMetric.Graph graphMetric = new HgStoreMetric.Graph();
         try (RocksDBSession dbSession = getSession(graph, partId)) {
-            graphMetric.setApproxDataSize(dbSession.getApproximateDataSize(
-                    keyCreator.getStartKey(partId, graph),
-                    keyCreator.getEndKey(partId, graph)
-            ));
+            graphMetric.setApproxDataSize(
+                    dbSession.getApproximateDataSize(keyCreator.getStartKey(partId, graph),
+                                                     keyCreator.getEndKey(partId, graph)));
             graphMetric.setApproxKeyCount(dbSession.getEstimateNumKeys());
 
             return graphMetric;
@@ -459,13 +450,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void truncate(String graphName, int partId) throws HgStoreException {
-        // 每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
+        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
         try (RocksDBSession dbSession = getSession(graphName, partId)) {
-            dbSession.sessionOp().deleteRange(
-                    keyCreator.getStartKey(partId, graphName),
-                    keyCreator.getEndKey(partId, graphName)
-            );
-            // 释放图ID
+            dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
+                                              keyCreator.getEndKey(partId, graphName));
+            // 释放图 ID
             keyCreator.delGraphId(partId, graphName);
         }
     }
@@ -566,8 +555,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return true;
         }
 
-        log.info("cleanPartition: graph {}, part id: {}, {} -> {}, cleanType:{}",
-                 graph, partId, startKey, endKey, cleanType);
+        log.info("cleanPartition: graph {}, part id: {}, {} -> {}, cleanType:{}", graph, partId,
+                 startKey, endKey, cleanType);
 
         var taskManager = HgStoreEngine.getInstance().getPartitionEngine(partId).getTaskManager();
         CleanDataRequest request = new CleanDataRequest();
@@ -585,7 +574,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 boolean flag = code >= startKey && code < endKey;
                 return (cleanType == CleanType.CLEAN_TYPE_KEEP_RANGE) == flag;
             });
-            // 可能被 destroy了
+            // 可能被 destroy 了
             if (HgStoreEngine.getInstance().getPartitionEngine(partId) != null) {
                 taskManager.updateAsyncTaskState(partId, graph, cleanTask.getId(),
                                                  AsyncTaskState.SUCCESS);
@@ -596,7 +585,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     /**
      * 清理分区数据，删除非本分区的数据
-     * 遍历partId的所有key，读取code，if code >= splitKey 生成新的key，写入newPartId
+     * 遍历 partId 的所有 key，读取 code，if code >= splitKey 生成新的 key，写入 newPartId
      */
     private boolean cleanPartition(Partition partition,
                                    Function<Integer, Boolean> belongsFunction) {
@@ -606,9 +595,10 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
         SessionOperator op = getSession(partition.getGraphName(), partition.getId()).sessionOp();
         try {
-            ScanIterator cfIterator = op.scanRaw(
-                    keyCreator.getStartKey(partition.getId(), partition.getGraphName()),
-                    keyCreator.getEndKey(partition.getId(), partition.getGraphName()), 0);
+            ScanIterator cfIterator =
+                    op.scanRaw(keyCreator.getStartKey(partition.getId(), partition.getGraphName()),
+                               keyCreator.getEndKey(partition.getId(), partition.getGraphName()),
+                               0);
             while (cfIterator.hasNext()) {
                 ScanIterator iterator = cfIterator.next();
                 String table = new String(cfIterator.position());
@@ -688,11 +678,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 获取dbsession，不更新dbsession活跃时间
+     * 获取 dbsession，不更新 dbsession 活跃时间
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
-        // 每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
+        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
         String dbName = getDbName(partId);
         RocksDBSession dbSession = factory.queryGraphDB(dbName);
         if (dbSession == null) {
@@ -706,7 +696,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                            "failed to create a new graph db: {}", dbName);
             }
         }
-        dbSession.setDisableWAL(true); //raft模式，关闭rocksdb日志
+        dbSession.setDisableWAL(true); //raft 模式，关闭 rocksdb 日志
         return dbSession;
     }
 
@@ -751,16 +741,13 @@ public class BusinessHandlerImpl implements BusinessHandler {
     public void dropTable(String graph, int partId, String table) {
         try (RocksDBSession session = getSession(graph, partId)) {
 //            session.dropTables(table);
-            session.sessionOp().deleteRange(
-                    table,
-                    keyCreator.getStartKey(partId, graph),
-                    keyCreator.getEndKey(partId, graph)
-            );
+            session.sessionOp().deleteRange(table, keyCreator.getStartKey(partId, graph),
+                                            keyCreator.getEndKey(partId, graph));
         }
     }
 
     /**
-     * 对rocksdb进行compaction
+     * 对 rocksdb 进行 compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId) {
@@ -768,7 +755,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 对rocksdb进行compaction
+     * 对 rocksdb 进行 compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId, String tableName) {
@@ -793,7 +780,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // 每个图每个分区对应一个rocksdb实例，因此rocksdb实例名为rocksdb + partId
+        // 每个图每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
         String dbName = getDbName(partId);
 
         factory.destroyGraphDB(dbName);
@@ -808,8 +795,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             try (RocksDBSession dbSession = getSession(graph, table, id)) {
                 long count = 0;
                 SessionOperator op = dbSession.sessionOp();
-                it = new InnerKeyFilter(op.scan(table,
-                                                keyCreator.getStartKey(id, graph),
+                it = new InnerKeyFilter(op.scan(table, keyCreator.getStartKey(id, graph),
                                                 keyCreator.getEndKey(id, graph),
                                                 ScanIterator.Trait.SCAN_LT_END));
                 while (it.hasNext()) {
@@ -830,5 +816,118 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
         }).collect(Collectors.summingLong(l -> l));
         return all;
+    }
+
+    @NotThreadSafe
+    private class TxBuilderImpl implements TxBuilder {
+        private final String graph;
+        private final int partId;
+        private final RocksDBSession dbSession;
+        private final SessionOperator op;
+
+        private TxBuilderImpl(String graph, int partId, RocksDBSession dbSession) {
+            this.graph = graph;
+            this.partId = partId;
+            this.dbSession = dbSession;
+            this.op = this.dbSession.sessionOp();
+            this.op.prepare();
+        }
+
+        @Override
+        public TxBuilder put(int code, String table, byte[] key, byte[] value) throws
+                                                                               HgStoreException {
+            try {
+                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                this.op.put(table, targetKey, value);
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RKDB_DOPUT_FAIL, e.toString());
+            }
+            return this;
+        }
+
+        @Override
+        public TxBuilder del(int code, String table, byte[] key) throws HgStoreException {
+            try {
+                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                this.op.delete(table, targetKey);
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RKDB_DODEL_FAIL, e.toString());
+            }
+
+            return this;
+        }
+
+        @Override
+        public TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException {
+
+            try {
+                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                op.deleteSingle(table, targetKey);
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RDKDB_DOSINGLEDEL_FAIL,
+                                           e.toString());
+            }
+
+            return this;
+        }
+
+        @Override
+        public TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException {
+
+            try {
+                this.op.deletePrefix(table, keyCreator.getPrefixKey(this.partId, graph, prefix));
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RKDB_DODELPREFIX_FAIL, e.toString());
+            }
+
+            return this;
+        }
+
+        @Override
+        public TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
+                                                                                    HgStoreException {
+
+            try {
+                this.op.deleteRange(table, keyCreator.getStartKey(this.partId, graph, start),
+                                    keyCreator.getEndKey(this.partId, graph, end));
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RKDB_DODELRANGE_FAIL, e.toString());
+            }
+
+            return this;
+        }
+
+        @Override
+        public TxBuilder merge(int code, String table, byte[] key, byte[] value) throws
+                                                                                 HgStoreException {
+
+            try {
+                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                op.merge(table, targetKey, value);
+            } catch (DBStoreException e) {
+                throw new HgStoreException(HgStoreException.EC_RKDB_DOMERGE_FAIL, e.toString());
+            }
+            return this;
+        }
+
+        @Override
+        public Tx build() {
+            return new Tx() {
+                @Override
+                public void commit() throws HgStoreException {
+                    op.commit();  // commit发生异常后，必须调用rollback，否则造成锁未释放
+                    dbSession.close();
+                }
+
+                @Override
+                public void rollback() throws HgStoreException {
+                    try {
+                        op.rollback();
+                    } finally {
+                        dbSession.close();
+                    }
+                }
+            };
+        }
     }
 }

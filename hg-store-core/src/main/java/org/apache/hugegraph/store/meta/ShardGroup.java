@@ -31,15 +31,15 @@ import lombok.Data;
  */
 @Data
 public class ShardGroup {
-    private final List<Shard> shards = new CopyOnWriteArrayList<>();
+    private List<Shard> shards = new CopyOnWriteArrayList<>();
     private int id;
     /**
-     * Leader任期，leader切换后递增 = raftNode.leader_term
+     * Leader 任期，leader 切换后递增 = raftNode.leader_term
      * 无实际用处
      */
     private long version;
     /**
-     * shards版本号，每次改变后递增
+     * shards 版本号，每次改变后递增
      */
     private long confVersion;
 
@@ -54,11 +54,6 @@ public class ShardGroup {
         shardGroup.setShards(meta.getShardsList().stream().map(Shard::fromMetaPbShard)
                                  .collect(Collectors.toList()));
         return shardGroup;
-    }
-
-    public ShardGroup addShard(Shard shard) {
-        this.shards.add(shard);
-        return this;
     }
 
     public synchronized ShardGroup changeLeader(long storeId) {

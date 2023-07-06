@@ -28,7 +28,10 @@ import javax.annotation.PreDestroy;
 
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.business.DefaultDataMover;
-import org.apache.hugegraph.store.grpc.session.*;
+import org.apache.hugegraph.store.grpc.session.BatchReq;
+import org.apache.hugegraph.store.grpc.session.CleanReq;
+import org.apache.hugegraph.store.grpc.session.GraphReq;
+import org.apache.hugegraph.store.grpc.session.TableReq;
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.RaftRocksdbOptions;
@@ -93,7 +96,8 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 setDisruptorBufferSize(appConfig.getRaft().getDisruptorBufferSize());
                 setMaxLogSize(appConfig.getRaft().getMaxLogFileSize());
                 setAveLogEntrySizeRatio(appConfig.getRaft().getAveLogEntrySizeRation());
-                setUseRocksDBSegmentLogStorage(appConfig.getRaft().isUseRocksDBSegmentLogStorage());
+                setUseRocksDBSegmentLogStorage(appConfig.getRaft()
+                                                        .isUseRocksDBSegmentLogStorage());
                 setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
                 setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
             }});

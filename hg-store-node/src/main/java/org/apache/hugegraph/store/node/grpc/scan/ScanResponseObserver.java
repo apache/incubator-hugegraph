@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.business.GraphStoreIterator;
+import org.apache.hugegraph.store.grpc.Graphpb.Error;
 import org.apache.hugegraph.store.grpc.Graphpb.ErrorType;
 import org.apache.hugegraph.store.grpc.Graphpb.ResponseHeader;
 import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
@@ -100,6 +101,10 @@ public class ScanResponseObserver<T> implements
 
     private boolean readTaskCondition() {
         return readCondition() && (readTask == null || readTask.isDone());
+    }
+
+    private boolean sendCondition() {
+        return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
     }    Runnable rr = new Runnable() {
         @Override
         public void run() {
@@ -144,12 +149,32 @@ public class ScanResponseObserver<T> implements
         }
     };
 
-    private boolean sendCondition() {
-        return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
-    }
-
     private boolean sendTaskCondition() {
         return sendCondition() && (sendTask == null || sendTask.isDone());
+    }
+
+    private void offer(Iterable<T> data, boolean isVertex) {
+        ScanResponse.Builder builder = ScanResponse.newBuilder();
+        builder.setHeader(okHeader).setSeqNo(nextSeqNo.get());
+        if (isVertex) {
+            builder = builder.setField(vertexField, data);
+        } else {
+            builder = builder.setField(edgeField, data);
+        }
+        ScanResponse response = builder.build();
+        packages.offer(response);
+        startSend();
+    }
+
+    private void startRead() {
+        if (readTaskCondition()) {
+            if (readLock.tryLock()) {
+                if (readTaskCondition()) {
+                    readTask = executor.submit(rr);
+                }
+                readLock.unlock();
+            }
+        }
     }    Runnable sr = () -> {
         while (sendCondition()) {
             ScanResponse response;
@@ -178,30 +203,6 @@ public class ScanResponseObserver<T> implements
             }
         }
     };
-
-    private void offer(Iterable<T> data, boolean isVertex) {
-        ScanResponse.Builder builder = ScanResponse.newBuilder();
-        builder.setHeader(okHeader).setSeqNo(nextSeqNo.get());
-        if (isVertex) {
-            builder = builder.setField(vertexField, data);
-        } else {
-            builder = builder.setField(edgeField, data);
-        }
-        ScanResponse response = builder.build();
-        packages.offer(response);
-        startSend();
-    }
-
-    private void startRead() {
-        if (readTaskCondition()) {
-            if (readLock.tryLock()) {
-                if (readTaskCondition()) {
-                    readTask = executor.submit(rr);
-                }
-                readLock.unlock();
-            }
-        }
-    }
 
     private void startSend() {
         if (sendTaskCondition()) {

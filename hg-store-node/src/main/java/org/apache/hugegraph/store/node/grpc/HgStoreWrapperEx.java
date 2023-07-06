@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
+import static org.apache.hugegraph.store.grpc.common.GraphMethod.GRAPH_METHOD_DELETE;
+
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -119,7 +121,7 @@ public class HgStoreWrapperEx {
 
     public boolean doGraph(int partId, GraphMethod method, String graph) {
         boolean flag = true;
-        if (method == GRAPH_METHOD_DELETE) {// 交给raft执行，此处不处理
+        if (method == GRAPH_METHOD_DELETE) {// 交给 raft 执行，此处不处理
             flag = true;
         } else {
             throw new UnsupportedOperationException("GraphMethod: " + method.name());

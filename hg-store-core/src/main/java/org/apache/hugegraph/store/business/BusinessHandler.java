@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.grpc.Graphpb;
@@ -58,9 +60,8 @@ public interface BusinessHandler extends DBSessionBuilder {
     String tableTask = "task";
     String tableOlap = "olap";
 
-    String[] tables = new String[]{
-            tableUnknown, tableVertex, tableOutEdge, tableInEdge, tableIndex, tableTask, tableOlap
-    };
+    String[] tables = new String[]{tableUnknown, tableVertex, tableOutEdge, tableInEdge, tableIndex,
+                                   tableTask, tableOlap};
 
     void doPut(String graph, int code, String table, byte[] key, byte[] value) throws
                                                                                HgStoreException;
@@ -73,8 +74,8 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     ScanIterator scan(String graph, String table, int codeFrom, int codeTo) throws HgStoreException;
 
-    ScanIterator scan(String graph, int code, String table, byte[] start,
-                      byte[] end, int scanType) throws HgStoreException;
+    ScanIterator scan(String graph, int code, String table, byte[] start, byte[] end,
+                      int scanType) throws HgStoreException;
 
     ScanIterator scan(String graph, int code, String table, byte[] start, byte[] end, int scanType,
                       byte[] conditionQuery) throws HgStoreException;
@@ -116,7 +117,7 @@ public interface BusinessHandler extends DBSessionBuilder {
     long getLatestSequenceNumber(String graph, int partId);
 
 
-    // 扫描分区从seqnum开始的kv
+    // 扫描分区从 seqnum 开始的 kv
     ScanIterator scanRaw(String graph, int partId, long seqNum) throws HgStoreException;
 
     void ingestSstFile(String graph, int partId, Map<byte[], List<String>> sstFiles) throws
@@ -132,7 +133,7 @@ public interface BusinessHandler extends DBSessionBuilder {
     boolean cleanPartition(String graph, int partId, long startKey, long endKey,
                            CleanType cleanType);
 
-    //所有指定分区图的所有table名
+    //所有指定分区图的所有 table 名
     List<String> getTableNames(String graph, int partId);
 
     TxBuilder txBuilder(String graph, int partId);
@@ -197,4 +198,28 @@ public interface BusinessHandler extends DBSessionBuilder {
     void destroyGraphDB(String graphName, int partId) throws HgStoreException;
 
     long count(String graphName, String table);
+
+    @NotThreadSafe
+    interface TxBuilder {
+        TxBuilder put(int code, String table, byte[] key, byte[] value) throws HgStoreException;
+
+        TxBuilder del(int code, String table, byte[] key) throws HgStoreException;
+
+        TxBuilder delSingle(int code, String table, byte[] key) throws HgStoreException;
+
+        TxBuilder delPrefix(int code, String table, byte[] prefix) throws HgStoreException;
+
+        TxBuilder delRange(int code, String table, byte[] start, byte[] end) throws
+                                                                             HgStoreException;
+
+        TxBuilder merge(int code, String table, byte[] key, byte[] value) throws HgStoreException;
+
+        Tx build();
+    }
+
+    interface Tx {
+        void commit() throws HgStoreException;
+
+        void rollback() throws HgStoreException;
+    }
 }

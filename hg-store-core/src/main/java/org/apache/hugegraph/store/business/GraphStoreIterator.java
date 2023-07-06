@@ -18,6 +18,7 @@
 package org.apache.hugegraph.store.business;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -131,7 +132,7 @@ public class GraphStoreIterator<T> extends AbstractSelectIterator
         }
         BackendEntry.BackendColumn[] columns =
                 new BackendEntry.BackendColumn[]{column};
-        entry.columns(columns);
+        entry.columns(Arrays.asList(columns));
         return this.parseEntry(entry, isVertex);
     }
 

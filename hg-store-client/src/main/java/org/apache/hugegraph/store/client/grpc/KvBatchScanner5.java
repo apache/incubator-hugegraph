@@ -39,6 +39,10 @@ import org.apache.hugegraph.store.client.util.Base58;
 import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
 import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
+import org.apache.hugegraph.store.grpc.stream.KvPageRes;
+import org.apache.hugegraph.store.grpc.stream.ScanCancelRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanReceiptRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;

@@ -177,7 +177,7 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
                                                         Metapb.PartitionState state) {
-        // 分区分裂时，主动需要查找leader进行同步信息
+        // 分区分裂时，主动需要查找 leader 进行同步信息
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setWorkState(state);
         request.setPartitionId(partition.getId());
@@ -188,7 +188,7 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
                                                         int endKey) {
-        // 分区分裂时，主动需要查找leader进行同步信息
+        // 分区分裂时，主动需要查找 leader 进行同步信息
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setStartKey(startKey);
         request.setEndKey(endKey);

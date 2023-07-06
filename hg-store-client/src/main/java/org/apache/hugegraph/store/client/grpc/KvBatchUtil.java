@@ -27,6 +27,9 @@ import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.grpc.common.Header;
 import org.apache.hugegraph.store.grpc.common.ScanMethod;
+import org.apache.hugegraph.store.grpc.stream.ScanCondition;
+import org.apache.hugegraph.store.grpc.stream.ScanQueryRequest;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
 import com.google.protobuf.ByteString;
 

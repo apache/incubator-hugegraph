@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.store.business;
 
+import java.util.Arrays;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
@@ -68,10 +70,10 @@ public class FilterIterator<T extends BackendColumn> extends
                     this.query.resultType().isEdge()) {
                     entry = new BinaryBackendEntry(query.resultType(),
                                                    current.name);
-                    entry.columns(columns);
+                    entry.columns(Arrays.asList(columns));
                 } else {
-                    // 有可能存在包含多个column的情况
-                    entry.columns(columns);
+                    // 有可能存在包含多个 column 的情况
+                    entry.columns(Arrays.asList(columns));
                     continue;
                 }
                 HugeElement element = this.parseEntry(entry,

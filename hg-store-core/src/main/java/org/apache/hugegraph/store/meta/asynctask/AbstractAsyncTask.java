@@ -20,11 +20,10 @@ package org.apache.hugegraph.store.meta.asynctask;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.UUID;
-
-import org.apache.scan.safesdk.SafeObjectInputStream;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,8 +58,8 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
         AsyncTask obj = null;
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            SafeObjectInputStream ois = new SafeObjectInputStream(bis);
-            obj = (AsyncTask) ois.readObject("*");
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            obj = (AsyncTask) ois.readObject();
             ois.close();
             bis.close();
         } catch (IOException e) {

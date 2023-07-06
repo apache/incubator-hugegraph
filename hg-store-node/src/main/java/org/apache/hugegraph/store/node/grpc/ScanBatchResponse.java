@@ -18,8 +18,12 @@
 package org.apache.hugegraph.store.node.grpc;
 
 
+import static org.apache.hugegraph.store.node.grpc.ScanUtil.getParallelIterator;
+
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.store.buffer.ByteBufferAllocator;
@@ -50,6 +54,8 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     private final StreamObserver<KvStream> sender;
     private final HgStoreWrapperEx wrapper;
     private final ThreadPoolExecutor executor;
+    private final Object stateLock = new Object();
+    private final Lock iteratorLock = new ReentrantLock();
     // 当前正在遍历的迭代器
     private ScanIterator iterator;
     // 下一次发送的序号
@@ -64,6 +70,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     // 上次读取数据时间
     private long activeTime;
     private volatile State state;
+
 
     public ScanBatchResponse(StreamObserver<KvStream> response, HgStoreWrapperEx wrapper,
                              ThreadPoolExecutor executor) {
@@ -191,7 +198,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
                    && (seqNo - clientSeqNo < maxInFlightCount)
                    && this.count < limit) {
                 KVByteBuffer buffer = new KVByteBuffer(alloc.get());
-                List<KV> dataList = iterator.next();
+                List<ParallelScanIterator.KV> dataList = iterator.next();
                 dataList.forEach(kv -> {
                     kv.write(buffer);
                     this.count++;

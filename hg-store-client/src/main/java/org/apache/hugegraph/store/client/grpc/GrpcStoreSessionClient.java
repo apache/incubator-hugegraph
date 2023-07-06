@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.store.client.grpc;
 
+import static org.apache.hugegraph.store.client.grpc.KvBatchUtil.getHeader;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +27,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.grpc.common.GraphMethod;
+import org.apache.hugegraph.store.grpc.common.ScanMethod;
 import org.apache.hugegraph.store.grpc.common.TableMethod;
+import org.apache.hugegraph.store.grpc.session.Agg;
 import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.grpc.session.BatchGetReq;
 import org.apache.hugegraph.store.grpc.session.BatchReq;
@@ -37,6 +41,7 @@ import org.apache.hugegraph.store.grpc.session.GraphReq;
 import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc;
 import org.apache.hugegraph.store.grpc.session.HgStoreSessionGrpc.HgStoreSessionBlockingStub;
 import org.apache.hugegraph.store.grpc.session.TableReq;
+import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 
 import io.grpc.Deadline;
 import io.grpc.ManagedChannel;

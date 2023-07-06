@@ -28,14 +28,16 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
+import org.junit.BeforeClass;
 
 public class RocksDBSessionTest {
 
     private final String graphName = "testDummy";
 
-    //    @BeforeClass
+    @BeforeClass
     public static void init() {
         OptionSpace.register("rocksdb",
                              "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
@@ -44,7 +46,7 @@ public class RocksDBSessionTest {
         configMap.put("rocksdb.write_buffer_size", "1048576");
         configMap.put("rocksdb.bloom_filter_bits_per_key", "10");
 
-        HugeConfig hConfig = new HugeConfig(configMap);
+        HugeConfig hConfig = new HugeConfig(new MapConfiguration(configMap));
         RocksDBFactory rFactory = RocksDBFactory.getInstance();
         rFactory.setHugeConfig(hConfig);
     }

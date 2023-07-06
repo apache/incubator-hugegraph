@@ -41,12 +41,12 @@ public class HgStoreEngineOptions {
     private final int partitionHBInterval = 5;
     // 等待leader超时时间，单位秒
     private final int waitLeaderTimeout = 30;
-    // 没有PD模式，用于开发调试使用
-    private final boolean fakePD = false;
     private final int raftRpcThreadPoolSize = Utils.cpus() * 6;
+    // 没有PD模式，用于开发调试使用
+    private boolean fakePD = false;
     // fakePd配置项
-    private final FakePdOptions fakePdOptions = new FakePdOptions();
-    private final RaftOptions raftOptions = new RaftOptions();
+    private FakePdOptions fakePdOptions = new FakePdOptions();
+    private RaftOptions raftOptions = new RaftOptions();
     // pd 服务器地址
     private String pdAddress;
     // 对外服务地址
@@ -69,8 +69,8 @@ public class HgStoreEngineOptions {
 
     @Data
     public static class FakePdOptions {
-        private final int partitionCount = 0;
-        private final int shardCount = 0;
+        private int partitionCount = 0;
+        private int shardCount = 0;
         private String storeList;
         private String peersList;
     }
@@ -83,26 +83,37 @@ public class HgStoreEngineOptions {
          * The time should be less than electionTimeoutMs, otherwise the election will timeout
          */
         private final int rpcConnectTimeoutMs = 1000;
-
-        /**
-         * RPC request default timeout in milliseconds
-         */
-        private final int rpcDefaultTimeout = 5000;
+        private final int electionTimeoutMs = 3000;
 
         // A follower would become a candidate if it doesn't receive any message
         // from the leader in |election_timeout_ms| milliseconds
-
-        private final int electionTimeoutMs = 3000;
         /**
          * Install snapshot RPC request default timeout in milliseconds
          */
         private final int rpcInstallSnapshotTimeout = 60 * 60 * 1000;
+        // 等待leader超时时间，单位秒
+        private final int waitLeaderTimeout = 30;
+        /**
+         * The maximum number of entries in AppendEntriesRequest
+         */
+        private final int maxEntriesSize = 256;
+        /**
+         * Raft集群发生数据积压后，限速等待时间 单位毫秒
+         **/
+        private final int overloadRateLimit = 100;
+        private final int keepInMemorySegmentCount = 2;
+        private final int preAllocateSegmentCount = 1;
+        private final int splitPartitionLogIndexMargin = 10;
+        /**
+         * RPC request default timeout in milliseconds
+         */
+        private int rpcDefaultTimeout = 5000;
         // A snapshot saving would be triggered every |snapshot_interval_s| seconds
         // if this was reset as a positive number
         // If |snapshot_interval_s| <= 0, the time based snapshot would be disabled.
         //
         // Default: 3600 (1 hour)
-        private final int snapshotIntervalSecs = 3600;
+        private int snapshotIntervalSecs = 3600;
         // A snapshot saving would be triggered every |snapshot_interval_s| seconds,
         // and at this moment when state machine's lastAppliedIndex value
         // minus lastSnapshotId value is greater than snapshotLogIndexMargin value,
@@ -110,41 +121,26 @@ public class HgStoreEngineOptions {
         // If |snapshotLogIndexMargin| <= 0, the distance based snapshot would be disable.
         //
         // Default: 0
-        private final int snapshotLogIndexMargin = 1024;
-        private final boolean metrics = true;
-        // 等待leader超时时间，单位秒
-        private final int waitLeaderTimeout = 30;
+        private int snapshotLogIndexMargin = 1024;
+        private boolean metrics = true;
         /**
          * Internal disruptor buffers size for Node/FSMCaller/LogManager etc.
          */
-        private final int disruptorBufferSize = 4096;
-        /**
-         * The maximum number of entries in AppendEntriesRequest
-         */
-        private final int maxEntriesSize = 256;
+        private int disruptorBufferSize = 4096;
         /**
          * The maximum replicator pipeline in-flight requests/responses, only valid when enable
          * replicator pipeline.
          */
-        private final int maxReplicatorInflightMsgs = 256;
-        /**
-         * Raft集群发生数据积压后，限速等待时间 单位毫秒
-         **/
-        private final int overloadRateLimit = 100;
-
+        private int maxReplicatorInflightMsgs = 256;
         /**
          * The maximum byte size of log allowed by user.
          */
-        private final long maxLogSize = 100 * 1024 * 1024;
+        private long maxLogSize = 100 * 1024 * 1024;
         /**
          * The ratio of exponential approximation for average size of log entry.
          */
-        private final double aveLogEntrySizeRatio = 0.95;
-
-        private final boolean useRocksDBSegmentLogStorage = true;
-        private final int maxSegmentFileSize = 64 * 1024 * 1024;
-        private final int keepInMemorySegmentCount = 2;
-        private final int preAllocateSegmentCount = 1;
-        private final int splitPartitionLogIndexMargin = 10;
+        private double aveLogEntrySizeRatio = 0.95;
+        private boolean useRocksDBSegmentLogStorage = true;
+        private int maxSegmentFileSize = 64 * 1024 * 1024;
     }
 }
