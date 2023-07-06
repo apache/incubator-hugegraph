@@ -27,10 +27,13 @@ import org.apache.hugegraph.util.collection.IntSet;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
@@ -45,23 +48,31 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Warmup(iterations = 2, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(iterations = 6, time = 1000, timeUnit = TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-@Fork(3)
+@Fork(2)
 public class MapRandomGetPutThroughputTest {
 
-    private static final int MAP_CAPACITY = 100000;
-    private final ConcurrentHashMap<Integer, Integer> concurrentHashMapNonCap =
-        new ConcurrentHashMap<>();
+    @Param(value = {"10000", "100000", "1000000"})
+    private int MAP_CAPACITY;
 
-    private final ConcurrentHashMap<Integer, Integer> concurrentHashMap =
-        new ConcurrentHashMap<>(MAP_CAPACITY);
+    private ConcurrentHashMap<Integer, Integer> concurrentHashMapNonCap;
 
-    private final IntMap.IntMapBySegments intMapBySegments =
-        new IntMap.IntMapBySegments(MAP_CAPACITY);
+    private ConcurrentHashMap<Integer, Integer> concurrentHashMap;
 
-    private final IntMap.IntMapByEcSegment intMapByEcSegments =
-        new IntMap.IntMapByEcSegment(IntSet.CPUS * 100);
+    private IntMap.IntMapBySegments intMapBySegments;
+
+    private IntMap.IntMapByEcSegment intMapByEcSegments;
 
     private static final int THREAD_COUNT = 8;
+
+    private static final String OUTPUT_FILE_NAME = "map_random_get_put_result.json";
+
+    @Setup(Level.Trial)
+    public void prepareMap() {
+        this.concurrentHashMapNonCap = new ConcurrentHashMap<>();
+        this.concurrentHashMap = new ConcurrentHashMap<>(MAP_CAPACITY);
+        this.intMapBySegments = new IntMap.IntMapBySegments(MAP_CAPACITY);
+        this.intMapByEcSegments = new IntMap.IntMapByEcSegment(IntSet.CPUS * 100);
+    }
 
     /**
      * The instantiated @State annotation only supports public classes.
@@ -119,7 +130,7 @@ public class MapRandomGetPutThroughputTest {
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
             .include(MapRandomGetPutThroughputTest.class.getSimpleName())
-            .result(BenchmarkConstants.OUTPUT_PATH + "random_get_put_result.json")
+            .result(BenchmarkConstants.OUTPUT_PATH + OUTPUT_FILE_NAME)
             .resultFormat(ResultFormatType.JSON)
             .build();
         new Runner(opt).run();
