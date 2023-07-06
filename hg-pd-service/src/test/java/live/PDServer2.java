@@ -25,7 +25,6 @@ import org.apache.hugegraph.pd.boot.HugePDServer;
 import org.springframework.boot.SpringApplication;
 
 /**
- * @author zhangyingjie
  * @date 2022/1/9
  **/
 public class PDServer2 {

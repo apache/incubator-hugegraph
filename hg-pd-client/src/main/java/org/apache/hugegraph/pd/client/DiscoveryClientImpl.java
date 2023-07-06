@@ -24,7 +24,6 @@ import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
 /**
- * @author zhangyingjie
  * @date 2021/12/20
  **/
 public class DiscoveryClientImpl extends DiscoveryClient {

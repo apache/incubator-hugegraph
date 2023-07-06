@@ -272,7 +272,9 @@ public class StoreNodeService {
         log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(),
                  store.getAddress(), store.getState());
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
-        if (lastStore == null) return null;
+        if (lastStore == null) {
+            return null;
+        }
         Metapb.Store.Builder builder =
                 Metapb.Store.newBuilder(lastStore).clearLabels().clearStats();
         store = builder.mergeFrom(store).build();
@@ -611,34 +613,30 @@ public class StoreNodeService {
      * @return
      */
     public synchronized Metapb.ShardGroup updateShardGroup(int groupId, List<Metapb.Shard> shards,
-                                                           long version, long confVersion) {
-        try {
-            Metapb.ShardGroup group = this.storeInfoMeta.getShardGroup(groupId);
+                                                           long version, long confVersion) throws
+                                                                                           PDException {
+        Metapb.ShardGroup group = this.storeInfoMeta.getShardGroup(groupId);
 
-            if (group == null) {
-                return null;
-            }
-
-            var builder = Metapb.ShardGroup.newBuilder(group);
-            if (version >= 0) {
-                builder.setVersion(version);
-            }
-
-            if (confVersion >= 0) {
-                builder.setConfVer(confVersion);
-            }
-
-            var newGroup = builder.clearShards().addAllShards(shards).build();
-
-            storeInfoMeta.updateShardGroup(newGroup);
-            partitionService.updateShardGroupCache(newGroup);
-            onShardGroupStatusChanged(group, newGroup);
-            log.info("Raft {} updateShardGroup {}", groupId, newGroup);
-            return group;
-        } catch (Exception e) {
-            log.error("Shardgroup {} update exception {}", groupId, e);
+        if (group == null) {
+            return null;
         }
-        return null;
+
+        var builder = Metapb.ShardGroup.newBuilder(group);
+        if (version >= 0) {
+            builder.setVersion(version);
+        }
+
+        if (confVersion >= 0) {
+            builder.setConfVer(confVersion);
+        }
+
+        var newGroup = builder.clearShards().addAllShards(shards).build();
+
+        storeInfoMeta.updateShardGroup(newGroup);
+        partitionService.updateShardGroupCache(newGroup);
+        onShardGroupStatusChanged(group, newGroup);
+        log.info("Raft {} updateShardGroup {}", groupId, newGroup);
+        return group;
     }
 
     /**
@@ -1056,7 +1054,8 @@ public class StoreNodeService {
                 }
             }
         } catch (Exception e) {
-            log.error("get leader error: group id:{}, error:", partition.getId(), e.getMessage());
+            log.error("get leader error: group id:{}, error: {}",
+                      partition.getId(), e.getMessage());
         }
         return leader;
     }

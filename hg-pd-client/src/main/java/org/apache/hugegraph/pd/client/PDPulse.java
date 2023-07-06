@@ -21,7 +21,7 @@ import java.io.Closeable;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 
 /**
@@ -50,7 +50,7 @@ public interface PDPulse {
 
     static <T> Listener<T> listener(Consumer<T> onNext, Consumer<Throwable> onError,
                                     Runnable onCompleted) {
-        return new Listener<T>() {
+        return new Listener<>() {
             @Override
             public void onNext(T response) {
                 onNext.accept(response);
@@ -77,8 +77,16 @@ public interface PDPulse {
      * @param listener
      * @return
      */
-    Notifier<PartitionHeartbeatRequest.Builder> connectPartition(
-            Listener<PartitionHeartbeatResponse> listener);
+    Notifier<PartitionHeartbeatRequest.Builder> connectPartition(Listener<PulseResponse> listener);
+
+    /**
+     * 切换成新的host。做 channel/host的检查，如果需要关闭，notifier调用close方法。
+     *
+     * @param host     new host
+     * @param notifier notifier
+     * @return true if create new stub, otherwise false
+     */
+    boolean resetStub(String host, Notifier notifier);
 
     /**
      * Interface of pulse.

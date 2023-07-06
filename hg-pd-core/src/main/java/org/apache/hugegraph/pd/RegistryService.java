@@ -26,7 +26,6 @@ import org.apache.hugegraph.pd.meta.DiscoveryMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 
 /**
- * @author zhangyingjie
  * @date 2022/1/14
  **/
 public class RegistryService {

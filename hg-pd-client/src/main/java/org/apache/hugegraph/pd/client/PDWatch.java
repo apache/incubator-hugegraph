@@ -46,6 +46,9 @@ public interface PDWatch {
      */
     //PDWatcher watchNode(String graph, Listener<NodeEvent> listener);
 
+    String getCurrentHost();
+
+    boolean checkChannel();
 
     /*** inner static methods ***/
     static <T> Listener<T> listener(Consumer<T> onNext) {
@@ -118,7 +121,7 @@ public interface PDWatch {
         /**
          * Invoked on completion.
          */
-        void onCompleted();
+        default void onCompleted() {};
     }
 
     interface Watcher extends Closeable {

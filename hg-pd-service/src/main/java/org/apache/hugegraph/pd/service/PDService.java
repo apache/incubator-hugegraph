@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -48,8 +49,8 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
-import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.CachePartitionResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseResponse;
@@ -175,12 +176,8 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         // 接收心跳消息
         PDPulseSubject.listenPartitionHeartbeat(new PulseListener<PartitionHeartbeatRequest>() {
             @Override
-            public void onNext(PartitionHeartbeatRequest request) {
-                try {
-                    partitionService.partitionHeartbeat(request.getStates());
-                } catch (PDException e) {
-                    log.error("PartitionHeartbeatRequest onNext exception", e);
-                }
+            public void onNext(PartitionHeartbeatRequest request) throws Exception {
+                partitionService.partitionHeartbeat(request.getStates());
             }
 
             @Override
@@ -402,6 +399,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 修改 Store 状态等信息。
      * </pre>
      */
+    @Override
     public void setStore(Pdpb.SetStoreRequest request,
                          StreamObserver<Pdpb.SetStoreResponse> observer) {
         if (!isLeader()) {
@@ -690,6 +688,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 更新分区信息，主要用来更新分区 key 范围，调用此接口需谨慎，否则会造成数据丢失。
      * </pre>
      */
+    @Override
     public void updatePartition(Pdpb.UpdatePartitionRequest request,
                                 io.grpc.stub.StreamObserver<Pdpb.UpdatePartitionResponse> observer) {
         if (!isLeader()) {
@@ -773,6 +772,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 获得图信息
      */
+    @Override
     public void getGraph(GetGraphRequest request,
                          io.grpc.stub.StreamObserver<Pdpb.GetGraphResponse> observer) {
         if (!isLeader()) {
@@ -803,6 +803,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 修改图信息
      */
+    @Override
     public void setGraph(Pdpb.SetGraphRequest request,
                          io.grpc.stub.StreamObserver<Pdpb.SetGraphResponse> observer) {
         if (!isLeader()) {
@@ -826,6 +827,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 获得图信息
      */
+    @Override
     public void delGraph(Pdpb.DelGraphRequest request,
                          io.grpc.stub.StreamObserver<Pdpb.DelGraphResponse> observer) {
         if (!isLeader()) {
@@ -854,6 +856,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 根据条件查询分区信息，包括 Store、Graph 等条件
      * </pre>
      */
+    @Override
     public void queryPartitions(Pdpb.QueryPartitionsRequest request,
                                 io.grpc.stub.StreamObserver<Pdpb.QueryPartitionsResponse> observer) {
         if (!isLeader()) {
@@ -943,6 +946,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 获取集群成员信息
      */
+    @Override
     public void getMembers(Pdpb.GetMembersRequest request,
                            io.grpc.stub.StreamObserver<Pdpb.GetMembersResponse> observer) {
         if (!isLeader()) {
@@ -1108,6 +1112,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 数据分裂
      * </pre>
      */
+    @Override
     public void splitData(Pdpb.SplitDataRequest request,
                           StreamObserver<Pdpb.SplitDataResponse> observer) {
         if (!isLeader()) {
@@ -1152,6 +1157,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      * 在 store 之间平衡数据
      */
+    @Override
     public void movePartition(Pdpb.MovePartitionRequest request,
                               StreamObserver<Pdpb.MovePartitionResponse> observer) {
         if (!isLeader()) {
@@ -1177,6 +1183,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 获取集群健康状态
      * </pre>
      */
+    @Override
     public void getClusterStats(Pdpb.GetClusterStatsRequest request,
                                 io.grpc.stub.StreamObserver<Pdpb.GetClusterStatsResponse> observer) {
         if (!isLeader()) {
@@ -1196,6 +1203,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 汇报分区分裂等任务执行结果
      * </pre>
      */
+    @Override
     public void reportTask(Pdpb.ReportTaskRequest request,
                            io.grpc.stub.StreamObserver<Pdpb.ReportTaskResponse> observer) {
         if (!isLeader()) {
@@ -1216,6 +1224,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     /**
      *
      */
+    @Override
     public void getPartitionStats(Pdpb.GetPartitionStatsRequest request,
                                   io.grpc.stub.StreamObserver<Pdpb.GetPartitionStatsResponse> observer) {
         if (!isLeader()) {
@@ -1239,6 +1248,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
+    @Override
     public boolean isLeader() {
         return RaftEngine.getInstance().isLeader();
     }
@@ -1303,19 +1313,17 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
     public synchronized void onRaftLeaderChanged() {
         log.info("onLeaderChanged");
         // channel = null;
+        // TODO: uncomment later
         //if (licenseVerifierService == null) {
         //    licenseVerifierService = new LicenseVerifierService(pdConfig);
         //}
         //licenseVerifierService.init();
-        if (!isLeader()) {
-            try {
-                // 关闭 Client 通知，Client 重新向 Leader 发起连接
-                String message = "lose leader";
-                PDPulseSubject.notifyError(message);
-                PDWatchSubject.notifyError(message);
-            } catch (Exception e) {
-                log.error("onRaftLeaderChanged, got error:", e);
-            }
+
+        try {
+            PDWatchSubject.notifyNodeChange(NodeEventType.NODE_EVENT_TYPE_PD_LEADER_CHANGE,
+                                            RaftEngine.getInstance().getLeaderGrpcAddress(), 0L);
+        } catch (ExecutionException | InterruptedException e) {
+            log.error("failed to notice client", e);
         }
     }
 
@@ -1332,7 +1340,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             taskService.balancePartitionLeader(true);
             response = Pdpb.BalanceLeadersResponse.newBuilder().setHeader(okHeader).build();
         } catch (PDException e) {
-            log.error("balance Leaders exception {}", e);
+            log.error("balance Leaders exception: ", e);
             response =
                     Pdpb.BalanceLeadersResponse.newBuilder().setHeader(newErrorHeader(e)).build();
         }
@@ -1471,6 +1479,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
      * 对 rocksdb 进行 compaction
      * </pre>
      */
+    @Override
     public void dbCompaction(Pdpb.DbCompactionRequest request,
                              StreamObserver<Pdpb.DbCompactionResponse> observer) {
         if (!isLeader()) {
@@ -1555,6 +1564,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
+    @Override
     public void getShardGroup(Pdpb.GetShardGroupRequest request,
                               io.grpc.stub.StreamObserver<Pdpb.GetShardGroupResponse> observer) {
         if (!isLeader()) {
@@ -1584,11 +1594,17 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             return;
         }
         Pdpb.UpdateShardGroupResponse response;
-        var group = request.getShardGroup();
-        storeNodeService.updateShardGroup(group.getId(), group.getShardsList(),
-                                          group.getVersion(), group.getConfVer());
 
-        response = Pdpb.UpdateShardGroupResponse.newBuilder().setHeader(okHeader).build();
+        try {
+            var group = request.getShardGroup();
+            storeNodeService.updateShardGroup(group.getId(), group.getShardsList(),
+                                              group.getVersion(), group.getConfVer());
+            response = Pdpb.UpdateShardGroupResponse.newBuilder().setHeader(okHeader).build();
+        } catch (PDException e) {
+            log.error("updateShardGroup exception, ", e);
+            response =
+                    Pdpb.UpdateShardGroupResponse.newBuilder().setHeader(newErrorHeader(e)).build();
+        }
 
         responseObserver.onNext(response);
         responseObserver.onCompleted();
@@ -1638,6 +1654,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
+    @Override
     public void updatePdRaft(Pdpb.UpdatePdRaftRequest request,
                              StreamObserver<Pdpb.UpdatePdRaftResponse> observer) {
         if (!isLeader()) {

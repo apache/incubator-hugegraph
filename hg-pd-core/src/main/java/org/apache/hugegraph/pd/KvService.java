@@ -37,7 +37,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
+ *
  **/
 @Slf4j
 @Service
@@ -311,4 +311,7 @@ public class KvService {
         }
     }
 
+    public MetadataRocksDBStore getMeta() {
+        return meta;
+    }
 }

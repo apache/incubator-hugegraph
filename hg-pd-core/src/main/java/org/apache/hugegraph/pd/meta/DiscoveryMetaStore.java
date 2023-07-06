@@ -31,13 +31,14 @@ import org.apache.hugegraph.pd.grpc.discovery.Query;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/1/14
  **/
 @Slf4j
 public class DiscoveryMetaStore extends MetadataRocksDBStore {
 
-    /** appName --> address --> registryInfo */
+    /**
+     * appName --> address --> registryInfo
+     */
     private static final String PREFIX = "REGIS-";
     private static final String SPLITTER = "-";
 

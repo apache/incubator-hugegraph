@@ -21,9 +21,6 @@ import java.util.Objects;
 
 import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 public class NodeEvent {
     private final String graph;
     private final long nodeId;
@@ -79,8 +76,8 @@ public class NodeEvent {
         UNKNOWN,
         NODE_ONLINE,
         NODE_OFFLINE,
-        NODE_RAFT_CHANGE;
-
+        NODE_RAFT_CHANGE,
+        NODE_PD_LEADER_CHANGE;
 
         public static EventType grpcTypeOf(NodeEventType grpcType) {
             switch (grpcType) {
@@ -90,6 +87,8 @@ public class NodeEvent {
                     return NODE_OFFLINE;
                 case NODE_EVENT_TYPE_NODE_RAFT_CHANGE:
                     return NODE_RAFT_CHANGE;
+                case NODE_EVENT_TYPE_PD_LEADER_CHANGE:
+                    return NODE_PD_LEADER_CHANGE;
                 default:
                     return UNKNOWN;
             }

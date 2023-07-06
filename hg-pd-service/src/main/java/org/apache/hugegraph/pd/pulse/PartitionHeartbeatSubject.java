@@ -19,7 +19,13 @@ package org.apache.hugegraph.pd.pulse;
 
 import java.util.function.Function;
 
-import org.apache.hugegraph.pd.grpc.pulse.*;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseType;
+
+import com.google.protobuf.GeneratedMessageV3;
 
 /**
  * @author lynn.bond@hotmail.com created on 2021/11/9
@@ -48,9 +54,10 @@ public class PartitionHeartbeatSubject extends AbstractObserverSubject {
 
     }
 
-    long notifyClient(PartitionHeartbeatResponse response) {
+    @Override
+    long notifyClient(GeneratedMessageV3 response) {
         return super.notifyClient(b -> {
-            b.setPartitionHeartbeatResponse(response);
+            b.setPartitionHeartbeatResponse((PartitionHeartbeatResponse) response);
         });
     }
 }

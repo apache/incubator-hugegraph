@@ -23,6 +23,8 @@ import org.apache.hugegraph.pd.common.HgAssert;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.store.RaftKVStore;
 
 /**
  * @author lynn.bond@hotmail.com on 2022/2/10
@@ -39,7 +41,15 @@ public class QueueStore extends MetadataRocksDBStore {
     }
 
     public void removeItem(String itemId) throws PDException {
-        remove(MetadataKeyHelper.getQueueItemKey(itemId));
+        if (RaftEngine.getInstance().isLeader()) {
+            remove(MetadataKeyHelper.getQueueItemKey(itemId));
+        } else {
+            var store = getStore();
+            // todo: delete record via client
+            if (store instanceof RaftKVStore) {
+                ((RaftKVStore) store).doRemove(MetadataKeyHelper.getQueueItemKey(itemId));
+            }
+        }
     }
 
     public List<Metapb.QueueItem> getQueue() throws PDException {

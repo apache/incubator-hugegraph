@@ -22,10 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Pdpb;
-import org.apache.hugegraph.pd.pulse.PDPulseSubject;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
-import org.apache.hugegraph.pd.watch.PDWatchSubject;
 
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
@@ -33,7 +31,6 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.MethodDescriptor;
 
 /**
- * @author zhangyingjie
  * @date 2022/6/21
  **/
 public interface ServiceGrpc extends RaftStateListener {
@@ -64,14 +61,16 @@ public interface ServiceGrpc extends RaftStateListener {
                                                 io.grpc.stub.StreamObserver<RespT> observer) {
         try {
             String address = RaftEngine.getInstance().getLeaderGrpcAddress();
-            if ((channel = channels.get(address)) == null || channel.isTerminated() || channel.isShutdown()) {
+            if ((channel = channels.get(address)) == null || channel.isTerminated() ||
+                channel.isShutdown()) {
                 synchronized (ServiceGrpc.class) {
                     if ((channel = channels.get(address)) == null || channel.isTerminated() ||
                         channel.isShutdown()) {
                         while (channel != null && channel.isShutdown() && !channel.isTerminated()) {
                             channel.awaitTermination(50, TimeUnit.MILLISECONDS);
                         }
-                        ManagedChannel c = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
+                        ManagedChannel c =
+                                ManagedChannelBuilder.forTarget(address).usePlaintext().build();
                         channels.put(address, c);
                         channel = c;
                     }
@@ -86,23 +85,13 @@ public interface ServiceGrpc extends RaftStateListener {
     }
 
     default <ReqT, RespT> void redirectToLeader(MethodDescriptor<ReqT, RespT> method,
-                                                ReqT req, io.grpc.stub.StreamObserver<RespT> observer) {
+                                                ReqT req,
+                                                io.grpc.stub.StreamObserver<RespT> observer) {
         redirectToLeader(null, method, req, observer);
 
     }
 
     @Override
     default void onRaftLeaderChanged() {
-        synchronized (this) {
-            if (!isLeader()) {
-                try {
-                    String message = "lose leader";
-                    PDPulseSubject.notifyError(message);
-                    PDWatchSubject.notifyError(message);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 }

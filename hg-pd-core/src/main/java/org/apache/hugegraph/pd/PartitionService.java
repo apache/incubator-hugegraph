@@ -1496,7 +1496,7 @@ public class PartitionService implements RaftStateListener {
      */
     @Override
     public void onRaftLeaderChanged() {
-        log.info("Partition service reload cache from rocksdb");
+        log.info("Partition service reload cache from rocksdb, due to leader change");
         try {
             partitionMeta.reload();
         } catch (PDException e) {

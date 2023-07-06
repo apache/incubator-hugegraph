@@ -27,13 +27,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ClientCache {
 
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final org.apache.hugegraph.pd.client.PDClient client;
     private volatile Map<Integer, KVPair<ShardGroup, Shard>> groups;
     private volatile Map<Long, Metapb.Store> stores;
     private volatile Map<String, GraphCache> caches = new ConcurrentHashMap<>();
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
-    private final PDClient client;
 
-    public ClientCache(PDClient pdClient) {
+    public ClientCache(org.apache.hugegraph.pd.client.PDClient pdClient) {
         groups = new ConcurrentHashMap<>();
         stores = new ConcurrentHashMap<>();
         client = pdClient;

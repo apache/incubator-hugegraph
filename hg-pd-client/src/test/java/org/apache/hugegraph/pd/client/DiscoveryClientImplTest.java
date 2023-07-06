@@ -28,7 +28,6 @@ import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.junit.Assert;
 
 /**
- * @author zhangyingjie
  * @date 2021/12/21
  **/
 public class DiscoveryClientImplTest {
@@ -117,21 +116,19 @@ public class DiscoveryClientImplTest {
         DiscoveryClientImpl discoveryClient = getClient(appName, address, labels);
         Thread.sleep(10000);
         NodeInfos nodeInfos1 = discoveryClient.getNodeInfos(query);
-        Assert.assertTrue(nodeInfos1.getInfoCount() == 1);
+        Assert.assertEquals(1, nodeInfos1.getInfoCount());
         DiscoveryClientImpl discoveryClient1 = getClient(appName, address + 0, labels);
         Thread.sleep(10000);
-        Assert.assertTrue(
-                discoveryClient.getNodeInfos(query).getInfoCount() == 2);
+        Assert.assertEquals(2, discoveryClient.getNodeInfos(query).getInfoCount());
         Query query1 = Query.newBuilder().setAppName(
                 appName).setVersion("0.12.0").putAllLabels(labels).build();
-        Assert.assertTrue(
-                discoveryClient.getNodeInfos(query1).getInfoCount() == 0);
+        Assert.assertEquals(0, discoveryClient.getNodeInfos(query1).getInfoCount());
         discoveryClient.cancelTask();
         discoveryClient1.cancelTask();
         Thread.sleep(wait);
         NodeInfos nodeInfos = discoveryClient.getNodeInfos(query);
         System.out.println(nodeInfos);
-        Assert.assertTrue(nodeInfos.getInfoCount() == 0);
+        Assert.assertEquals(0, nodeInfos.getInfoCount());
         discoveryClient.close();
         discoveryClient1.close();
     }

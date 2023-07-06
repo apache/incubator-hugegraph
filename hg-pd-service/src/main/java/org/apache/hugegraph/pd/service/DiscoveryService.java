@@ -33,10 +33,8 @@ import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterInfo;
-import org.apache.hugegraph.pd.pulse.PDPulseSubject;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
-import org.apache.hugegraph.pd.watch.PDWatchSubject;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -130,6 +128,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         observer.onCompleted();
     }
 
+    @Override
     public void getNodes(Query request, io.grpc.stub.StreamObserver<NodeInfos> responseObserver) {
         if (!isLeader()) {
             redirectToLeader(null, DiscoveryServiceGrpc.getGetNodesMethod(), request,
@@ -140,20 +139,9 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         responseObserver.onCompleted();
     }
 
+    @Override
     public boolean isLeader() {
         return RaftEngine.getInstance().isLeader();
     }
 
-    @Override
-    public synchronized void onRaftLeaderChanged() {
-        if (!isLeader()) {
-            try {
-                String message = "lose leader";
-                PDPulseSubject.notifyError(message);
-                PDWatchSubject.notifyError(message);
-            } catch (Exception e) {
-                log.error("notifyError error {}", e);
-            }
-        }
-    }
 }

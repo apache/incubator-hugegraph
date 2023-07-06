@@ -18,7 +18,6 @@
 package org.apache.hugegraph.pd.common;
 
 /**
- * @author zhangyingjie
  * @date 2022/8/1
  **/
 public class PDRuntimeException extends RuntimeException {

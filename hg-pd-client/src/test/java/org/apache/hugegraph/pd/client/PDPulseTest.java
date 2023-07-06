@@ -46,7 +46,7 @@ public class PDPulseTest {
     // @Test
     public void listen() {
 
-        PDPulse pulse = pdClient.getPulseClient();
+        PDPulse pulse = new PDPulseImpl(pdClient.getLeaderIp());
         CountDownLatch latch = new CountDownLatch(60);
 
         PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier1 =

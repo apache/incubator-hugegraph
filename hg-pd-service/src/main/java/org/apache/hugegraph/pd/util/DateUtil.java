@@ -25,7 +25,6 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
 /**
- * @author zhangyingjie
  * @date 2022/3/23
  **/
 public class DateUtil {

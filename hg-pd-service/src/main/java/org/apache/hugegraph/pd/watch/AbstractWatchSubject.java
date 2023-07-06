@@ -77,7 +77,7 @@ abstract class AbstractWatchSubject {
 
     abstract String toNoticeString(WatchResponse res);
 
-    public void notifyError(String message) {
+    public void notifyError(int code, String message){
         synchronized (lock) {
             Iterator<Map.Entry<Long, StreamObserver<WatchResponse>>> iter =
                     watcherHolder.entrySet().iterator();
@@ -86,13 +86,10 @@ abstract class AbstractWatchSubject {
                 Long watcherId = entry.getKey();
                 WatchResponse res = this.builder.setWatcherId(watcherId).build();
                 try {
-                    entry.getValue().onError(
-                            Status.PERMISSION_DENIED.withDescription(message).asRuntimeException());
+                    entry.getValue().onError(Status.fromCodeValue(code).withDescription(message).asRuntimeException());
                 } catch (Throwable e) {
-                    //log.error("Failed to send " + this.watchType.name() + "'s error message ["
-                    // + toNoticeString(res)
+                    // log.error("Failed to send " + this.watchType.name() + "'s error message [" + toNoticeString(res)
                     //        + "] to watcher[" + watcherId + "].", e);
-
                 }
             }
         }

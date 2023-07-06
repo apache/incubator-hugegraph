@@ -150,7 +150,9 @@ abstract class AbstractObserverSubject {
 
     }
 
-    protected void notifyError(String message) {
+    abstract long notifyClient(com.google.protobuf.GeneratedMessageV3 response);
+
+    protected void notifyError(int code, String message){
         synchronized (lock) {
             Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter =
                     observerHolder.entrySet().iterator();
@@ -159,13 +161,10 @@ abstract class AbstractObserverSubject {
                 Long observerId = entry.getKey();
                 PulseResponse res = this.builder.setObserverId(observerId).build();
                 try {
-                    entry.getValue().onError(
-                            Status.PERMISSION_DENIED.withDescription(message).asRuntimeException());
+                    entry.getValue().onError(Status.fromCodeValue(code).withDescription(message).asRuntimeException());
                 } catch (Throwable e) {
-                    log.error("Failed to send " + this.pulseType.name() + "'s notice[" +
-                              toNoticeString(res)
-                              + "] to observer[" + observerId + "].", e);
-
+                    log.warn("Failed to send {} 's notice[{}] to observer[{}], error:{}",
+                            this.pulseType.name(),  toNoticeString(res), observerId, e.getMessage());
                 }
             }
         }
@@ -214,20 +213,14 @@ abstract class AbstractObserverSubject {
 
     abstract <T> Function<PulseNoticeRequest, T> getNoticeHandler();
 
-    void handleClientNotice(PulseNoticeRequest noticeRequest) {
+    void handleClientNotice(PulseNoticeRequest noticeRequest) throws Exception {
 
         Iterator<Map.Entry<Long, PulseListener>> iter = listenerHolder.entrySet().iterator();
 
         while (iter.hasNext()) {
             Map.Entry<Long, PulseListener> entry = iter.next();
             Long listenerId = entry.getKey();
-            try {
-                entry.getValue().onNext(getNoticeHandler().apply(noticeRequest));
-            } catch (Throwable e) {
-                log.error(e.getMessage(), e);
-            }
-
+            entry.getValue().onNext(getNoticeHandler().apply(noticeRequest));
         }
-
     }
 }

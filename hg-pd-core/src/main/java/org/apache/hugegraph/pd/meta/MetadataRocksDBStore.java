@@ -31,7 +31,6 @@ import org.apache.hugegraph.pd.store.KV;
 import com.google.protobuf.Parser;
 
 /**
- * @author zhangyingjie
  * @date 2022/1/9
  **/
 public class MetadataRocksDBStore extends MetadataStoreBase {
@@ -45,7 +44,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
         this.pdConfig = pdConfig;
     }
 
-    private HgKVStore getStore() {
+    public HgKVStore getStore() {
         if (store == null) {
             store = MetadataFactory.getStore(pdConfig);
         }
@@ -131,7 +130,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
         try {
             List<KV> kvs = this.scanRange(start, end);
             for (KV keyValue : kvs) {
-                stores.add(parser.parseFrom((byte[]) keyValue.getValue()));
+                stores.add(parser.parseFrom(keyValue.getValue()));
             }
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);
@@ -145,7 +144,7 @@ public class MetadataRocksDBStore extends MetadataStoreBase {
         try {
             List<KV> kvs = this.scanPrefix(prefix);
             for (KV keyValue : kvs) {
-                stores.add(parser.parseFrom((byte[]) keyValue.getValue()));
+                stores.add(parser.parseFrom(keyValue.getValue()));
             }
         } catch (Exception e) {
             throw new PDException(Pdpb.ErrorType.ROCKSDB_READ_ERROR_VALUE, e);

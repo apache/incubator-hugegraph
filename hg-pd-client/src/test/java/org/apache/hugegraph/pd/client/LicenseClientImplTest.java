@@ -31,7 +31,6 @@ import org.yaml.snakeyaml.Yaml;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2021/12/21
  **/
 @Slf4j

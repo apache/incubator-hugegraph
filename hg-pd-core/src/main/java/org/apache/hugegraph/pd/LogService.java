@@ -32,7 +32,6 @@ import com.google.protobuf.GeneratedMessageV3;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/3/29
  **/
 @Slf4j

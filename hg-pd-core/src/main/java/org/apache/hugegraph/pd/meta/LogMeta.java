@@ -24,7 +24,6 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 
 /**
- * @author zhangyingjie
  * @date 2022/3/29
  **/
 public class LogMeta extends MetadataRocksDBStore {

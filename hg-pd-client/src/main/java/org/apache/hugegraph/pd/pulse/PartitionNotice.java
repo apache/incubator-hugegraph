@@ -19,18 +19,14 @@ package org.apache.hugegraph.pd.pulse;
 
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 
-/**
- * @author lynn.bond@hotmail.com created on 2022/2/13
- */
-public class PartitionNotice implements PulseServerNotice<PartitionHeartbeatResponse> {
+public class PartitionNotice implements PulseServerNotice<PulseResponse> {
     private final long noticeId;
     private final Consumer<Long> ackConsumer;
-    private final PartitionHeartbeatResponse content;
+    private final PulseResponse content;
 
-    public PartitionNotice(long noticeId, Consumer<Long> ackConsumer,
-                           PartitionHeartbeatResponse content) {
+    public PartitionNotice(long noticeId, Consumer<Long> ackConsumer, PulseResponse content) {
         this.noticeId = noticeId;
         this.ackConsumer = ackConsumer;
         this.content = content;
@@ -47,7 +43,7 @@ public class PartitionNotice implements PulseServerNotice<PartitionHeartbeatResp
     }
 
     @Override
-    public PartitionHeartbeatResponse getContent() {
+    public PulseResponse getContent() {
         return this.content;
     }
 }

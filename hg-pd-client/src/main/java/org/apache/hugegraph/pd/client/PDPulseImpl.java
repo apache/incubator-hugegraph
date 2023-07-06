@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.pd.client;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.hugegraph.pd.grpc.pulse.HgPdPulseGrpc;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 import org.apache.hugegraph.pd.grpc.pulse.PulseAckRequest;
 import org.apache.hugegraph.pd.grpc.pulse.PulseCreateRequest;
 import org.apache.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
@@ -35,7 +35,6 @@ import org.apache.hugegraph.pd.pulse.PartitionNotice;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,43 +45,60 @@ import lombok.extern.slf4j.Slf4j;
 public final class PDPulseImpl implements PDPulse {
 
     private static final ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
-    private final HgPdPulseGrpc.HgPdPulseStub stub;
     private final ExecutorService threadPool;
+    private HgPdPulseGrpc.HgPdPulseStub stub;
+    private String pdServerAddress;
 
     // TODO: support several servers.
     public PDPulseImpl(String pdServerAddress) {
-        ManagedChannel channel;
-        if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
-            synchronized (chs) {
-                if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
-                    channel = getChannel(pdServerAddress);
-                    chs.put(pdServerAddress, channel);
-                }
-            }
-        }
-        this.stub = HgPdPulseGrpc.newStub(channel);
+        this.pdServerAddress = pdServerAddress;
+        this.stub = HgPdPulseGrpc.newStub(Channels.getChannel(pdServerAddress));
         var namedThreadFactory =
                 new ThreadFactoryBuilder().setNameFormat("ack-notice-pool-%d").build();
         threadPool = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
-    private ManagedChannel getChannel(String target) {
-        return ManagedChannelBuilder.forTarget(target).usePlaintext().build();
+
+    private String getCurrentHost() {
+        return this.pdServerAddress;
+    }
+
+    private boolean checkChannel() {
+        return stub != null && !((ManagedChannel) stub.getChannel()).isShutdown();
+    }
+
+    /* TODO: handle this override problem */
+    @Override
+    public Notifier<PartitionHeartbeatRequest.Builder> connectPartition(Listener<PulseResponse>
+                                                                                listener) {
+        return new PartitionHeartbeat(listener);
     }
 
     @Override
-    public Notifier<PartitionHeartbeatRequest.Builder> connectPartition(
-            Listener<PartitionHeartbeatResponse> listener) {
-        return new PartitionHeartbeat(listener);
+    public boolean resetStub(String host, Notifier notifier) {
+        log.info("reset stub: current, {}, new: {}, channel state:{}", getCurrentHost(), host,
+                 checkChannel());
+        if (Objects.equals(host, getCurrentHost()) && checkChannel()) {
+            return false;
+        }
+
+        if (notifier != null) {
+            notifier.close();
+        }
+
+        this.stub = HgPdPulseGrpc.newStub(Channels.getChannel(host));
+        log.info("pd pulse connect to {}", host);
+        this.pdServerAddress = host;
+        return true;
     }
 
     /*** PartitionHeartbeat's implement  ***/
     private class PartitionHeartbeat extends
                                      AbstractConnector<PartitionHeartbeatRequest.Builder,
-                                             PartitionHeartbeatResponse> {
+                                             PulseResponse> {
         private long observerId = -1;
 
-        PartitionHeartbeat(Listener listener) {
+        PartitionHeartbeat(Listener<PulseResponse> listener) {
             super(listener, PulseType.PULSE_TYPE_PARTITION_HEARTBEAT);
         }
 
@@ -108,10 +124,10 @@ public final class PDPulseImpl implements PDPulse {
         public void onNext(PulseResponse pulseResponse) {
             this.setObserverId(pulseResponse.getObserverId());
             long noticeId = pulseResponse.getNoticeId();
-            PartitionHeartbeatResponse res = pulseResponse.getPartitionHeartbeatResponse();
-            this.listener.onNext(res);
+            this.listener.onNext(pulseResponse);
             this.listener.onNotice(new PartitionNotice(noticeId,
-                                                       e -> super.ackNotice(e, observerId), res));
+                                                       e -> super.ackNotice(e, observerId),
+                                                       pulseResponse));
         }
 
     }
@@ -180,5 +196,4 @@ public final class PDPulseImpl implements PDPulse {
             });
         }
     }
-
 }

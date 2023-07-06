@@ -39,25 +39,23 @@ import io.grpc.stub.StreamObserver;
  */
 final class PDWatchImpl implements PDWatch {
 
-    private static final ConcurrentHashMap<String, ManagedChannel> chs = new ConcurrentHashMap<>();
-    private final HgPdWatchGrpc.HgPdWatchStub stub;
+    private HgPdWatchGrpc.HgPdWatchStub stub;
 
+    private String pdServerAddress;
     // TODO: support several servers.
     PDWatchImpl(String pdServerAddress) {
-        ManagedChannel channel;
-        if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
-            synchronized (chs) {
-                if ((channel = chs.get(pdServerAddress)) == null || channel.isShutdown()) {
-                    channel = getChannel(pdServerAddress);
-                    chs.put(pdServerAddress, channel);
-                }
-            }
-        }
-        this.stub = HgPdWatchGrpc.newStub(channel);
+        this.pdServerAddress = pdServerAddress;
+        this.stub = HgPdWatchGrpc.newStub(Channels.getChannel(pdServerAddress));
     }
 
-    private ManagedChannel getChannel(String target) {
-        return ManagedChannelBuilder.forTarget(target).usePlaintext().build();
+    @Override
+    public String getCurrentHost() {
+        return this.pdServerAddress;
+    }
+
+    @Override
+    public boolean checkChannel() {
+        return stub != null && ! ((ManagedChannel) stub.getChannel()).isShutdown();
     }
 
     /**
@@ -195,6 +193,7 @@ final class PDWatchImpl implements PDWatch {
 
         @Override
         public void onError(Throwable throwable) {
+
             this.listener.onError(throwable);
         }
 

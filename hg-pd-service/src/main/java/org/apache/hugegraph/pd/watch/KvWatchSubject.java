@@ -33,6 +33,8 @@ import org.apache.hugegraph.pd.grpc.kv.WatchKv;
 import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchState;
 import org.apache.hugegraph.pd.grpc.kv.WatchType;
+import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.store.RaftKVStore;
 
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -41,7 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * watch订阅、响应处理类
  *
- * @author zhangyingjie
  * @date 2022/6/21
  **/
 @Slf4j
@@ -234,8 +235,17 @@ public class KvWatchSubject {
 
     private void removeClient(StreamObserver<WatchResponse> value, String key, String clientKey) {
         try {
-            log.info("remove null observer, client {}", clientKey);
-            kvService.deleteWithPrefix(clientKey);
+            log.info("remove null observer,client:", clientKey);
+            if (RaftEngine.getInstance().isLeader()) {
+                kvService.deleteWithPrefix(clientKey);
+            } else {
+                // todo: delete records via client
+                var store = kvService.getMeta().getStore();
+                if (store instanceof RaftKVStore) {
+                    ((RaftKVStore) store).doRemoveByPrefix(kvService.getStoreKey(clientKey));
+                }
+            }
+
             if (value != null) {
                 synchronized (value) {
                     value.onCompleted();

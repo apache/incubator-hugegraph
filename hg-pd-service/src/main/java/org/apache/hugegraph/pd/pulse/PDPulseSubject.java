@@ -18,12 +18,14 @@
 package org.apache.hugegraph.pd.pulse;
 
 import static org.apache.hugegraph.pd.common.HgAssert.isArgumentNotNull;
+import static org.apache.hugegraph.pd.grpc.Pdpb.ErrorType.NOT_LEADER;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -34,9 +36,19 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.hugegraph.pd.common.HgAssert;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.apache.hugegraph.pd.grpc.pulse.*;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PdInstructionResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PdInstructionType;
+import org.apache.hugegraph.pd.grpc.pulse.PulseCreateRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseNoticeRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseType;
 import org.apache.hugegraph.pd.notice.NoticeBroadcaster;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.util.IdUtil;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -69,6 +81,7 @@ public class PDPulseSubject {
     static {
         subjectHolder.put(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT.name(),
                           new PartitionHeartbeatSubject());
+        subjectHolder.put(PulseType.PULSE_TYPE_PD_INSTRUCTION.name(), new PdInstructionSubject());
         // add some other type here...
         // ...
     }
@@ -167,12 +180,16 @@ public class PDPulseSubject {
         doBroadcast(createBroadcaster(response));
     }
 
+    public static void notifyClient(PdInstructionResponse response) {
+        doBroadcast(createBroadcaster(response));
+    }
+
     private static void doBroadcast(NoticeBroadcaster broadcaster) {
         broadcasterQueue.add(broadcaster.notifying());
     }
 
-    private static <T> T getSubject(PulseType pulseType, Class<T> clazz) {
-        return (T) subjectHolder.get(pulseType.name());
+    private static AbstractObserverSubject getSubject(PulseType pulseType) {
+        return subjectHolder.get(pulseType.name());
     }
 
     private static NoticeBroadcaster createBroadcaster(Metapb.QueueItem item) {
@@ -192,14 +209,35 @@ public class PDPulseSubject {
                                 .setRemoveFunction(getRemoveFunction());
     }
 
-    public static Supplier<Long> getNoticeSupplier(PartitionHeartbeatResponse notice) {
-        // TODO: PartitionHeartbeatSubject.class -> T
-        return () -> getSubject(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT,
-                                PartitionHeartbeatSubject.class)
-                .notifyClient(notice);
+    private static NoticeBroadcaster createBroadcaster(PdInstructionResponse notice) {
+        return NoticeBroadcaster.of(getNoticeSupplier(notice))
+                                .setDurableSupplier(getDurableSupplier(notice))
+                                .setRemoveFunction(getRemoveFunction());
     }
 
-    private static Supplier<String> getDurableSupplier(PartitionHeartbeatResponse notice) {
+    // public static Supplier<Long> getNoticeSupplier(PartitionHeartbeatResponse notice) {
+    // TODO: PartitionHeartbeatSubject.class -> T
+    //    return () -> getSubject(PulseType.PULSE_TYPE_PARTITION_HEARTBEAT,
+    //    PartitionHeartbeatSubject.class)
+    //            .notifyClient(notice);
+    // }
+
+    public static <T extends com.google.protobuf.GeneratedMessageV3> Supplier<Long> getNoticeSupplier(
+            T notice) {
+        PulseType type;
+        if (notice instanceof PdInstructionResponse) {
+            type = PulseType.PULSE_TYPE_PD_INSTRUCTION;
+        } else if (notice instanceof PartitionHeartbeatResponse) {
+            type = PulseType.PULSE_TYPE_PARTITION_HEARTBEAT;
+        } else {
+            throw new IllegalArgumentException("Unknown pulse type " + notice.getClass().getName());
+        }
+        return () -> getSubject(type).notifyClient(notice);
+    }
+
+
+    private static Supplier<String> getDurableSupplier(
+            com.google.protobuf.GeneratedMessageV3 notice) {
         return () -> {
             Metapb.QueueItem queueItem = toQueueItem(notice);
             String res = null;
@@ -235,7 +273,7 @@ public class PDPulseSubject {
         };
     }
 
-    private static Metapb.QueueItem toQueueItem(PartitionHeartbeatResponse notice) {
+    private static Metapb.QueueItem toQueueItem(com.google.protobuf.GeneratedMessageV3 notice) {
         return Metapb.QueueItem.newBuilder()
                                .setItemId(IdUtil.createMillisStr())
                                .setItemClass(notice.getClass().getTypeName())
@@ -255,9 +293,9 @@ public class PDPulseSubject {
         return buf;
     }
 
-    public static void notifyError(String message) {
+    public static void notifyError(int code, String message) {
         subjectHolder.forEach((k, v) -> {
-            v.notifyError(message);
+            v.notifyError(code, message);
         });
     }
 
@@ -348,7 +386,28 @@ public class PDPulseSubject {
         }
 
         private void handleNotice(PulseNoticeRequest noticeRequest) {
-            subject.handleClientNotice(noticeRequest);
+            try {
+                subject.handleClientNotice(noticeRequest);
+            } catch (Exception e) {
+                if (e instanceof PDException) {
+                    var pde = (PDException) e;
+                    if (pde.getErrorCode() == NOT_LEADER.getNumber()) {
+                        try {
+                            log.info("send change leader command to watch, due to ERROR-100", pde);
+                            notifyClient(PdInstructionResponse.newBuilder()
+                                                              .setInstructionType(
+                                                                      PdInstructionType.CHANGE_TO_FOLLOWER)
+                                                              .setLeaderIp(RaftEngine.getInstance()
+                                                                                     .getLeaderGrpcAddress())
+                                                              .build());
+                        } catch (ExecutionException | InterruptedException ex) {
+                            log.error("send notice to observer failed, ", ex);
+                        }
+                    }
+                } else {
+                    log.error("handleNotice error", e);
+                }
+            }
         }
 
         @Override

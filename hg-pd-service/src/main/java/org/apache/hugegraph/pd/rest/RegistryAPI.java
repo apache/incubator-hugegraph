@@ -51,7 +51,6 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/2/8
  **/
 @RestController

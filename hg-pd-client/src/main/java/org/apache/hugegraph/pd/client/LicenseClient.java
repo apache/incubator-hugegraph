@@ -28,7 +28,6 @@ import io.grpc.stub.AbstractStub;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zhangyingjie
  * @date 2022/8/3
  **/
 @Slf4j

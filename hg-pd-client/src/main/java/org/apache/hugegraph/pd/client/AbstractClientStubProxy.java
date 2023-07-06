@@ -23,7 +23,6 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 
 /**
- * @author zhangyingjie
  * @date 2022/6/20
  **/
 public class AbstractClientStubProxy {

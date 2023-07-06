@@ -23,11 +23,12 @@ import java.util.List;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.client.PDPulseImpl;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
-import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
+import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -95,17 +96,18 @@ public class StoreRegisterTest {
     // @Test
     public void testPartitionHeartbeat() throws InterruptedException, PDException {
         testRegisterStore();
-        PDPulse pdPulse = pdClient.getPulseClient();
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier =
-                pdPulse.connectPartition(new PDPulse.Listener<PartitionHeartbeatResponse>() {
+        PDPulse pdPulse = new PDPulseImpl(pdClient.getLeaderIp());
+
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier = pdPulse.connectPartition(
+                new PDPulse.Listener<PulseResponse>() {
 
                     @Override
-                    public void onNext(PartitionHeartbeatResponse response) {
+                    public void onNext(PulseResponse response) {
 
                     }
 
                     @Override
-                    public void onNotice(PulseServerNotice<PartitionHeartbeatResponse> notice) {
+                    public void onNotice(PulseServerNotice<PulseResponse> notice) {
 
                     }
 
