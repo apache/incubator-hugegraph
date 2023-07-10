@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hugegraph.benchmark.BenchmarkConstants;
 import org.apache.hugegraph.benchmark.SimpleRandom;
 import org.apache.hugegraph.util.collection.IntMap;
-import org.apache.hugegraph.util.collection.IntSet;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -51,7 +50,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @Fork(2)
 public class MapRandomGetPutThroughputTest {
 
-    @Param(value = {"10000", "100000", "1000000"})
+    @Param(value = {"1000", "10000", "100000", "1000000"})
     private int MAP_CAPACITY;
 
     private ConcurrentHashMap<Integer, Integer> concurrentHashMapNonCap;
@@ -71,7 +70,7 @@ public class MapRandomGetPutThroughputTest {
         this.concurrentHashMapNonCap = new ConcurrentHashMap<>();
         this.concurrentHashMap = new ConcurrentHashMap<>(MAP_CAPACITY);
         this.intMapBySegments = new IntMap.IntMapBySegments(MAP_CAPACITY);
-        this.intMapByEcSegments = new IntMap.IntMapByEcSegment(IntSet.CPUS * 100);
+        this.intMapByEcSegments = new IntMap.IntMapByEcSegment();
     }
 
     /**
