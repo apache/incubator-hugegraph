@@ -37,7 +37,7 @@ public class EdgeExistenceAPI extends TraverserAPI {
         @DefaultValue("1000") long limit) {
 
         E.checkArgumentNotNull(source, "The source can't be null");
-        E.checkArgumentNotNull(source, "The target can't be null");
+        E.checkArgumentNotNull(target, "The target can't be null");
 
         Id sourceId = HugeVertex.getIdValue(source);
         Id targetId = HugeVertex.getIdValue(target);
