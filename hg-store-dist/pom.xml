@@ -31,12 +31,13 @@
     <artifactId>hg-store-dist</artifactId>
 
     <properties>
-        <dist.dir>${project.parent.basedir}/dist</dist.dir>
+        <!--  TODO: enhance the parent attribute -->
+        <dist.dir>${project.basedir}/../dist</dist.dir>
         <shell-executable>bash</shell-executable>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
-        <final.name>hugegraph-store-${project.parent.version}</final.name>
+        <final.name>hugegraph-store-${revision}</final.name>
     </properties>
     <dependencies>
         <dependency>
@@ -106,10 +107,10 @@
                                     <contains string="${os.name}" substring="Linux"/>
                                     <then>
                                         <echo file="${dist.dir}/dist.sh">
-                                            tar -zcvf \
+                                            tar zcvf \
                                             ${dist.dir}/${final.name}.tar.gz \
                                             ${final.name} || exit 1
-                                            rm -rf ${dist.dir}/${final.name}
+
                                             rm -f ${dist.dir}/dist.sh
                                             echo
                                             echo "HugeGraph dist tar.gz available at:
@@ -121,6 +122,10 @@
                                             <arg line="./dist.sh"/>
                                         </exec>
                                     </then>
+                                    <else>
+                                        <!-- WARN: keep msg in one line -->
+                                        <echo message="We only tar package in Linux env, you could check pom.xml in pd-dist to modify it"/>
+                                    </else>
                                 </if>
                             </tasks>
                         </configuration>
@@ -128,6 +133,7 @@
                 </executions>
                 <dependencies>
                     <dependency>
+                        <!-- TODO: why we need this? -->
                         <groupId>ant-contrib</groupId>
                         <artifactId>ant-contrib</artifactId>
                         <version>1.0b3</version>

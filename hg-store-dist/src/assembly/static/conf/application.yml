@@ -1,5 +1,5 @@
 pdserver:
-  # pd服务地址，多个pd地址用逗号分割
+  # pd 服务地址，多个 pd 地址用逗号分割
   address: localhost:8686
 
 management:
@@ -13,7 +13,7 @@ management:
         include: "*"
 
 grpc:
-  # grpc的服务地址
+  # grpc 的服务地址
   host: 127.0.0.1
   port: 8500
   netty-server:

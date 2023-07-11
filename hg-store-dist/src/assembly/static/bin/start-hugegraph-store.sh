@@ -152,7 +152,7 @@ fi
 echo "Starting HugeGraphStoreServer..."
 
 exec ${JAVA} ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar -Dspring.config.location=${CONF}/application.yml \
-    ${LIB}/hugegraph-store-3.6.3-SNAPSHOT.jar >> ${OUTPUT} 2>&1 &
+    ${LIB}/hugegraph-store-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"
 # Write pid to file

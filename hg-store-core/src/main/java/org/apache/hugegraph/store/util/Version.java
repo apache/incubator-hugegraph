@@ -28,8 +28,6 @@ public class Version {
 
     /**
      * 软件版本号
-     *
-     * @return
      */
     public static String getVersion() {
         if (version.isEmpty()) {
@@ -38,7 +36,7 @@ public class Version {
                 int len = is.read(buf);
                 version = new String(buf, 0, len);
             } catch (Exception e) {
-                log.error("Version.getVersion exception {}", e);
+                log.error("Version.getVersion exception: ", e);
             }
         }
         return version;
@@ -46,8 +44,6 @@ public class Version {
 
     /**
      * 存储格式版本号
-     *
-     * @return
      */
     public static int getDataFmtVersion() {
         return 1;
