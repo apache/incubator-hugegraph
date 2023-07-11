@@ -147,11 +147,12 @@
                                 <include>*.tar</include>
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
-<!--                                <include>${final.name}/**</include>-->
+                                <!-- WARN: delete dist dir may influence dev? -->
+                                <!-- <include>dist</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
-<!--                        <fileset><directory>${final.name}</directory></fileset>-->
+                        <!--                        <fileset><directory>${final.name}</directory></fileset>-->
                     </filesets>
                 </configuration>
             </plugin>

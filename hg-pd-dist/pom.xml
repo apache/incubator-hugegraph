@@ -107,11 +107,10 @@
                                     <contains string="${os.name}" substring="Linux"/>
                                     <then>
                                         <echo file="${dist.dir}/dist.sh">
-                                            tar -zcvf \
+                                            tar zcvf \
                                             ${dist.dir}/${final.name}.tar.gz \
                                             ${final.name} || exit 1
                                             rm -f ${dist.dir}/dist.sh
-                                            rm -rf ${dist.dir}/${final.name}
                                             echo
                                             echo "HugeGraph dist tar.gz available at:
                                             ${dist.dir}/${final.name}.tar.gz"
@@ -122,6 +121,10 @@
                                             <arg line="./dist.sh"/>
                                         </exec>
                                     </then>
+                                    <else>
+                                        <!-- WARN: keep msg in one line -->
+                                        <echo message="We only tar package in Linux env, you could check pom.xml in pd-dist to modify it"/>
+                                    </else>
                                 </if>
                             </tasks>
                         </configuration>

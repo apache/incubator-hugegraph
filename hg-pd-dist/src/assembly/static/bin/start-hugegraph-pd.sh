@@ -28,7 +28,6 @@ while getopts "g:j:v" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
-        v) VERBOSE="verbose" ;;
         ?) echo "USAGE: $0 [-g g1] [-j xxx] [-v]" && exit 1 ;;
     esac
 done
@@ -61,7 +60,7 @@ MIN_MEM=$((1 * 512))
 EXPECT_JDK_VERSION=11
 
 # Change to $BIN's parent
-cd ${TOP}
+cd "${TOP}" || exit
 
 # Find Java
 if [ "$JAVA_HOME" = "" ]; then
@@ -116,7 +115,7 @@ echo "Starting HugeGraphPDServer..."
 
 # Turn on security check
 exec ${JAVA} ${JAVA_OPTIONS} -jar -Dspring.config.location=${CONF}/application.yml \
-    ${LIB}/hugegraph-pd-3.6.5-SNAPSHOT.jar >> ${OUTPUT} 2>&1 &
+    ${LIB}/hugegraph-pd-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"
 # Write pid to file

@@ -32,11 +32,12 @@ pd:
   # 自动扩容的检查周期，定时检查每个Store的分区数量，自动进行分区数量平衡
   patrol-interval: 1800
   # 初始store列表，grpc IP:grpc port, 在列表内的store自动激活
+  # NOTE: set to one addr when in stand-alone mode
   initial-store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503
 raft:
   # 本机raft服务地址
   address: 127.0.0.1:8610
-  # PD集群服务地址
+  # PD集群服务地址 NOTE: set to one addr when in stand-alone mode
   peers-list: 127.0.0.1:8610,127.0.0.1:8611,127.0.0.1:8612
 
 store:
@@ -49,9 +50,11 @@ store:
   monitor_data_interval: 1 minute
   # 监控数据的保留时间 1 天; day, month, year
   monitor_data_retention: 1 day
+  # NOTE: set to 1 when in stand-alone mode
+  # initial-store-count: 1
 
 partition:
-  # 默认每个分区副本数
+  # 默认每个分区副本数, set to 1 when in stand-alone mode
   default-shard-count: 3
   # 默认每机器最大副本数,初始分区数= store-max-shard-count * store-number / default-shard-count
   store-max-shard-count: 12
