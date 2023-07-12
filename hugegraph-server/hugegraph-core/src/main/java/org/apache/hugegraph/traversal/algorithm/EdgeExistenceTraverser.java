@@ -3,6 +3,7 @@ package org.apache.hugegraph.traversal.algorithm;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -20,16 +21,23 @@ public class EdgeExistenceTraverser extends HugeTraverser {
     public Iterator<Edge> queryEdgeExistence(
         Id sourceId, Id targetId,
         String label, long limit) {
-        if ("BOTH".equals(label)) {
+        if (label == null || label.isEmpty()) {
             return queryByNeighbor(sourceId, targetId, limit);
         }
+        Id edgeLabelId = getEdgeLabelId(label);
+        EdgeLabel edgeLabel = EdgeLabel.undefined(graph(), edgeLabelId);
+        List<Id> sortKeys = edgeLabel.sortKeys();
+
         ConditionQuery conditionQuery = new ConditionQuery(HugeType.EDGE);
         conditionQuery.eq(HugeKeys.OWNER_VERTEX, sourceId);
         conditionQuery.eq(HugeKeys.OTHER_VERTEX, targetId);
-        conditionQuery.eq(HugeKeys.LABEL, getEdgeLabelId(label));
+        conditionQuery.eq(HugeKeys.LABEL, edgeLabelId);
         conditionQuery.eq(HugeKeys.DIRECTION, Directions.OUT);
-        conditionQuery.eq(HugeKeys.SORT_VALUES, "");
-
+        if (sortKeys.size() == 0) {
+            conditionQuery.eq(HugeKeys.SORT_VALUES, "");
+        } else {
+            conditionQuery.eq(HugeKeys.SORT_VALUES, sortKeys);
+        }
         return graph().edges(conditionQuery);
     }
 
