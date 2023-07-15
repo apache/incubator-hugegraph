@@ -460,7 +460,7 @@ public class StandardHugeGraph implements HugeGraph {
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
             LOG.error("{}", message, e);
-            throw new HugeException(message);
+            throw new HugeException(message, e);
         }
     }
 

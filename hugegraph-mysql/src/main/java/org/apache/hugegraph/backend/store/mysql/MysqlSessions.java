@@ -283,7 +283,7 @@ public class MysqlSessions extends BackendSessionPool {
             // Register JDBC driver
             Class.forName(driverName);
         } catch (ClassNotFoundException e) {
-            throw new BackendException("Invalid driver class '%s'",
+            throw new BackendException("Failed to register JDBC driver. Class '%s' not found. Please check if the MySQL driver package is available.",
                                        driverName);
         }
         return DriverManager.getConnection(url, username, password);
