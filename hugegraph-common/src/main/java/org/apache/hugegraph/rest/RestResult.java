@@ -38,9 +38,15 @@ public class RestResult {
     private final String content;
 
     public RestResult(Response response) {
-        this.status = response.getStatus();
-        this.headers = response.getHeaders();
-        this.content = response.readEntity(String.class);
+        this(response.getStatus(), response.readEntity(String.class),
+             response.getHeaders());
+    }
+
+    public RestResult(int status, String content,
+                      MultivaluedMap<String, Object> headers) {
+        this.status = status;
+        this.headers = headers;
+        this.content = content;
     }
 
     public int status() {

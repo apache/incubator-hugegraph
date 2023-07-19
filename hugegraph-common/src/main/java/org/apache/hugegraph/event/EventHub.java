@@ -57,11 +57,14 @@ public class EventHub {
     }
 
     public EventHub(String name) {
-        LOG.debug("Create new EventHub: {}", name);
+        this(name, 1);
+    }
 
+    public EventHub(String name, int threadSize) {
+        LOG.debug("Create new EventHub {}", name);
         this.name = name;
         this.listeners = new ConcurrentHashMap<>();
-        EventHub.init(1);
+        EventHub.init(threadSize);
     }
 
     public static synchronized void init(int poolSize) {
