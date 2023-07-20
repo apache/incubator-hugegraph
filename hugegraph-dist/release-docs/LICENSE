@@ -539,6 +539,7 @@ See licenses/ for text of these licenses.
 	(The MIT License) * mockito-core (org.mockito:mockito-core:3.3.3 - https://github.com/mockito/mockito)
 	(The MIT License) * sourcecode (com.lihaoyi:sourcecode_2.12:0.1.4 - https://github.com/lihaoyi/sourcecode)
 	(The MIT License) * Checker Qual (org.checkerframework:checker-qual:2.0.0 - http://checkerframework.org)
+	(The MIT License) * jopt-simple (net.sf.jopt-simple:jopt-simple:5.0.4 - https://github.com/jopt-simple/jopt-simple)
 
 ========================================================================
 Third party Public Domain licenses
