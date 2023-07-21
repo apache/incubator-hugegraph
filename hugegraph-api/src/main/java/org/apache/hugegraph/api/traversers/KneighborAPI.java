@@ -19,11 +19,33 @@ package org.apache.hugegraph.api.traversers;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
+import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.graph.EdgeAPI;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.KneighborTraverser;
+import org.apache.hugegraph.traversal.algorithm.records.KneighborRecords;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -36,28 +58,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.graph.EdgeAPI;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.traversal.algorithm.KneighborTraverser;
-import org.apache.hugegraph.traversal.algorithm.records.KneighborRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 
 @Path("graphs/{graph}/traversers/kneighbor")
 @Singleton
@@ -134,7 +134,7 @@ public class KneighborAPI extends TraverserAPI {
         }
 
         long size = results.size();
-        if (request.limit != Query.NO_LIMIT && size > request.limit) {
+        if (request.limit != NO_LIMIT && size > request.limit) {
             size = request.limit;
         }
         List<Id> neighbors = request.countOnly ?
