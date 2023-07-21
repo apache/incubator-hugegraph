@@ -34,8 +34,10 @@ LIB="$TOP/lib"
 LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-store-server.log
 PID_FILE="$BIN/pid"
-arch=`arch`
-echo "arch --> ", ${arch}
+arch=$(arch)
+
+# TODO: repalce it with uname -a?
+echo "Current arch: ", ${arch}
 #if [[ $arch =~ "aarch64" ]];then
 #	  export LD_PRELOAD="$TOP/bin/libjemalloc_aarch64.so"
 #else
@@ -43,9 +45,12 @@ export LD_PRELOAD="$TOP/bin/libjemalloc.so"
 #fi
 
 ##pd/store max user processes, ulimit -u
-export PROC_LIMITN=20480
+# Reduce the maximum number of processes that can be opened by a normal dev/user
+export PROC_LIMITN=1024
+#export PROC_LIMITN=20480
 ##pd/store open files, ulimit -n
-export FILE_LIMITN=1024000
+export FILE_LIMITN=1024
+#export FILE_LIMITN=1024000
 
 function check_evn_limit() {
     local limit_check=$(ulimit -n)
@@ -87,15 +92,15 @@ done
 
 . "$BIN"/util.sh
 
-mkdir -p ${LOGS}
+mkdir -p "${LOGS}"
 
-# The maximum and minium heap memory that service can use
-MAX_MEM=$((36 * 1024))
-MIN_MEM=$((36 * 1024))
+# The maximum and minimum heap memory that service can use (for production env set it 36GB)
+MAX_MEM=$((2 * 1024))
+MIN_MEM=$((1 * 512))
 EXPECT_JDK_VERSION=11
 
 # Change to $BIN's parent
-cd ${TOP}
+cd ${TOP} || exit
 
 # Find Java
 if [ "$JAVA_HOME" = "" ]; then
@@ -149,9 +154,10 @@ if [ $(ps -ef|grep -v grep| grep java|grep -cE ${CONF}) -ne 0 ]; then
    exit 0
 fi
 
-echo "Starting HugeGraphStoreServer..."
+echo "Starting HG-StoreServer..."
 
-exec ${JAVA} ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar -Dspring.config.location=${CONF}/application.yml \
+exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
+    -Dspring.config.location=${CONF}/application.yml \
     ${LIB}/hugegraph-store-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"

@@ -60,8 +60,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
+
     private static final HgStoreClientConfig hgStoreClientConfig = HgStoreClientConfig.of();
-    private static final ConcurrentHashMap<String, Integer> tables = new ConcurrentHashMap() {{
+    private static final ConcurrentHashMap<String, Integer> tables = new ConcurrentHashMap<>() {{
         put("unknown", 0);
         put("g+v", 1);
         put("g+oe", 2);
@@ -87,7 +88,6 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
                              HgStoreNodeManager nodeManager,
                              GrpcStoreSessionClient sessionClient,
                              GrpcStoreStreamClient streamClient) {
-
         HgAssert.isFalse(HgAssert.isInvalid(graphName), "the argument: graphName is invalid.");
         HgAssert.isFalse(nodeManager == null, "the argument: nodeManager is null.");
         HgAssert.isFalse(storeNode == null, "the argument: storeNode is null.");
@@ -102,7 +102,6 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
 
         this.notifier = new NotifyingExecutor(this.graphName, this.nodeManager, this);
         this.switcher = SwitchingExecutor.of();
-
     }
 
     @Override
@@ -542,7 +541,6 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
 
     @Override
     public String toString() {
-        return "storeNodeSession: {" + storeNode + ", graphName: \"" +
-               graphName + "\"}";
+        return "storeNodeSession: {" + storeNode + ", graphName: \"" + graphName + "\"}";
     }
 }
