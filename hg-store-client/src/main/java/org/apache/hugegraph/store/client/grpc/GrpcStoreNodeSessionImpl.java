@@ -63,12 +63,12 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
     private static final HgStoreClientConfig hgStoreClientConfig = HgStoreClientConfig.of();
     private static final ConcurrentHashMap<String, Integer> tables = new ConcurrentHashMap() {{
         put("unknown", 0);
-        put("vertex", 1);
-        put("out_edge", 2);
-        put("in_edge", 3);
-        put("index", 4);
-        put("task", 5);
-        put("olap", 6);
+        put("g+v", 1);
+        put("g+oe", 2);
+        put("g+ie", 3);
+        put("g+index", 4);
+        put("g+task", 5);
+        put("g+olap", 6);
     }};
     private final HgStoreNode storeNode;
     private final String graphName;
