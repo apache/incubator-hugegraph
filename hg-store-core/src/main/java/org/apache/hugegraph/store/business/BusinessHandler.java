@@ -53,12 +53,12 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     Logger log = LoggerFactory.getLogger(HgStoreStateMachine.class);
     String tableUnknown = "unknown";
-    String tableVertex = "vertex";
-    String tableOutEdge = "out_edge";
-    String tableInEdge = "in_edge";
-    String tableIndex = "index";
-    String tableTask = "task";
-    String tableOlap = "olap";
+    String tableVertex = "g+v";
+    String tableOutEdge = "g+oe";
+    String tableInEdge = "g+ie";
+    String tableIndex = "g+index";
+    String tableTask = "g+task";
+    String tableOlap = "g+olap";
 
     String[] tables = new String[]{tableUnknown, tableVertex, tableOutEdge, tableInEdge, tableIndex,
                                    tableTask, tableOlap};
