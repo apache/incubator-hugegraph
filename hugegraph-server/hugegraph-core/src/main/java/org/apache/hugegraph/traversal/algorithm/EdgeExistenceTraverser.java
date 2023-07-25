@@ -1,9 +1,15 @@
 package org.apache.hugegraph.traversal.algorithm;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.auth.HugeTarget;
+import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.query.IdQuery;
+import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -18,9 +24,8 @@ public class EdgeExistenceTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Iterator<Edge> queryEdgeExistence(
-        Id sourceId, Id targetId,
-        String label, long limit) {
+    public Iterator<Edge> queryEdgeExistence(Id sourceId, Id targetId, String label,
+                                             String sortValues, long limit) {
         if (label == null || label.isEmpty()) {
             return queryByNeighbor(sourceId, targetId, limit);
         }
@@ -33,10 +38,11 @@ public class EdgeExistenceTraverser extends HugeTraverser {
         conditionQuery.eq(HugeKeys.OTHER_VERTEX, targetId);
         conditionQuery.eq(HugeKeys.LABEL, edgeLabelId);
         conditionQuery.eq(HugeKeys.DIRECTION, Directions.OUT);
-        if (sortKeys.size() == 0) {
-            conditionQuery.eq(HugeKeys.SORT_VALUES, "");
-        } else {
-            conditionQuery.eq(HugeKeys.SORT_VALUES, sortKeys);
+        conditionQuery.eq(HugeKeys.SORT_VALUES, sortValues);
+        conditionQuery.limit(limit);
+        if (sortKeys != null) {
+            List<String> names = graph().mapPkId2Name(sortKeys);
+            conditionQuery.key(HugeKeys.SORT_KEYS, names);
         }
         return graph().edges(conditionQuery);
     }

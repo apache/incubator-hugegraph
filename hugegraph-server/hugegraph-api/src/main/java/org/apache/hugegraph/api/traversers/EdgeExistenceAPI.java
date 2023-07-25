@@ -27,6 +27,7 @@ import java.util.List;
 public class EdgeExistenceAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(EdgeExistenceAPI.class);
+    private static final String DEFAULT_EMPTY = "";
 
     @GET
     @Timed
@@ -36,11 +37,13 @@ public class EdgeExistenceAPI extends TraverserAPI {
                       @QueryParam("source") String source,
                       @QueryParam("target") String target,
                       @QueryParam("edgelabel") String edgeLabel,
+                      @QueryParam("sortValues")
+                      @DefaultValue(DEFAULT_EMPTY) String sortValues,
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_LIMIT) long limit) {
         LOG.debug("Graph [{}] get edgeexistence with " +
-                "source '{}', target '{}', edgeLabel '{}' and limit '{}'",
-            graph, source, target, edgeLabel, limit);
+                "source '{}', target '{}', edgeLabel '{}', sortValue '{}'and limit '{}'",
+            graph, source, target, edgeLabel, sortValues, limit);
 
         E.checkArgumentNotNull(source, "The source can't be null");
         E.checkArgumentNotNull(target, "The target can't be null");
@@ -50,7 +53,7 @@ public class EdgeExistenceAPI extends TraverserAPI {
         HugeGraph hugeGraph = graph(manager, graph);
         EdgeExistenceTraverser traverser = new EdgeExistenceTraverser(hugeGraph);
 
-        Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel, limit);
+        Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel, sortValues, limit);
 
         List<Edge> all = Lists.newArrayList(edges);
         return manager.serializer(hugeGraph).writeList("edges", all);
