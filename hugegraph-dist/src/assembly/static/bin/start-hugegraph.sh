@@ -62,6 +62,7 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LOGS="$TOP/logs"
+SCRIPTS="$TOP/scripts"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
@@ -79,20 +80,19 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
-GERMLIN_SERVER_YAML="gremlin-server.yaml"
-
-if [ $PRELOAD ]; then
-    GERMLIN_SERVER_YAML="gremlin-server-preload.yaml"
+if [[ $PRELOAD == "true" ]]; then
+    sed -i -e 's/empty-sample.groovy/example.groovy/g' "${CONF}"/gremlin-server.yaml
+    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}"/example.groovy
 fi
 
 
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/"${GERMLIN_SERVER_YAML}" "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
 else
     echo "Starting HugeGraphServer in foreground mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/"${GERMLIN_SERVER_YAML}" "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
