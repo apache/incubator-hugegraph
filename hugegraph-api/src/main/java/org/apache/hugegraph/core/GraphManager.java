@@ -224,6 +224,10 @@ public final class GraphManager {
         return JsonSerializer.instance();
     }
 
+    public Serializer serializer(Graph g, Map<String, Object> apiMeasure) {
+        return JsonSerializer.instance(apiMeasure);
+    }
+
     public void rollbackAll() {
         for (Graph graph : this.graphs.values()) {
             if (graph.features().graph().supportsTransactions() &&

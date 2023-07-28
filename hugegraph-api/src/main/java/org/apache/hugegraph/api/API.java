@@ -18,27 +18,29 @@
 package org.apache.hugegraph.api;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.Meter;
+import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.NotSupportedException;
 import jakarta.ws.rs.core.MediaType;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.Checkable;
-import org.apache.hugegraph.metrics.MetricsUtil;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.Meter;
-import com.google.common.collect.ImmutableMap;
 
 public class API {
 
@@ -188,6 +190,44 @@ public class API {
         } else {
             throw new NotSupportedException(
                       String.format("Not support action '%s'", action));
+        }
+    }
+
+    public static class ApiMeasure {
+        public static final String EDGE_ITER = "edge_iters";
+        public static final String VERTICE_ITER = "vertice_iters";
+        public static final String COST = "cost";
+        protected long timeStart = System.currentTimeMillis();
+        protected HashMap<String, Object> mapResult = new LinkedHashMap<>();
+
+        public Map<String, Object> getResult() {
+            mapResult.put(COST, System.currentTimeMillis() - timeStart);
+            return mapResult;
+        }
+
+        public void put(String key, String value) {
+            this.mapResult.put(key, value);
+        }
+
+        public void put(String key, long value) {
+            this.mapResult.put(key, value);
+        }
+
+        public void put(String key, int value) {
+            this.mapResult.put(key, value);
+        }
+
+        protected void addCount(String key, long value) {
+            long cur = 0;
+            if (this.mapResult.containsKey(key)) {
+                cur = (long) this.mapResult.get(key);
+            }
+            this.mapResult.put(key, cur + value);
+        }
+
+        public void addIterCount(long verticeIters, long edgeIters) {
+            this.addCount(EDGE_ITER, edgeIters);
+            this.addCount(VERTICE_ITER, verticeIters);
         }
     }
 }
