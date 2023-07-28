@@ -25,20 +25,6 @@ import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
 public class ServerOptions extends OptionHolder {
 
-    private ServerOptions() {
-        super();
-    }
-
-    private static volatile ServerOptions instance;
-
-    public static synchronized ServerOptions instance() {
-        if (instance == null) {
-            instance = new ServerOptions();
-            instance.registerOptions();
-        }
-        return instance;
-    }
-
     public static final ConfigOption<String> REST_SERVER_URL =
             new ConfigOption<>(
                     "restserver.url",
@@ -46,7 +32,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "http://127.0.0.1:8080"
             );
-
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",
@@ -54,7 +39,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "server-1"
             );
-
     public static final ConfigOption<String> SERVER_ROLE =
             new ConfigOption<>(
                     "server.role",
@@ -63,7 +47,6 @@ public class ServerOptions extends OptionHolder {
                     allowValues("master", "worker", "computer"),
                     "master"
             );
-
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
@@ -71,7 +54,6 @@ public class ServerOptions extends OptionHolder {
                     rangeInt(2, Integer.MAX_VALUE),
                     2 * CoreOptions.CPUS
             );
-
     public static final ConfigOption<Integer> MIN_FREE_MEMORY =
             new ConfigOption<>(
                     "restserver.min_free_memory",
@@ -81,7 +63,6 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     64
             );
-
     public static final ConfigOption<Integer> REQUEST_TIMEOUT =
             new ConfigOption<>(
                     "restserver.request_timeout",
@@ -90,7 +71,6 @@ public class ServerOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     30
             );
-
     public static final ConfigOption<Integer> CONN_IDLE_TIMEOUT =
             new ConfigOption<>(
                     "restserver.connection_idle_timeout",
@@ -99,7 +79,6 @@ public class ServerOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     30
             );
-
     public static final ConfigOption<Integer> CONN_MAX_REQUESTS =
             new ConfigOption<>(
                     "restserver.connection_max_requests",
@@ -108,7 +87,6 @@ public class ServerOptions extends OptionHolder {
                     rangeInt(-1, Integer.MAX_VALUE),
                     256
             );
-
     public static final ConfigOption<String> GREMLIN_SERVER_URL =
             new ConfigOption<>(
                     "gremlinserver.url",
@@ -116,7 +94,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "http://127.0.0.1:8182"
             );
-
     public static final ConfigOption<Integer> GREMLIN_SERVER_TIMEOUT =
             new ConfigOption<>(
                     "gremlinserver.timeout",
@@ -124,7 +101,6 @@ public class ServerOptions extends OptionHolder {
                     positiveInt(),
                     30
             );
-
     public static final ConfigOption<Integer> GREMLIN_SERVER_MAX_ROUTE =
             new ConfigOption<>(
                     "gremlinserver.max_route",
@@ -132,7 +108,6 @@ public class ServerOptions extends OptionHolder {
                     positiveInt(),
                     2 * CoreOptions.CPUS
             );
-
     public static final ConfigOption<String> GRAPHS =
             new ConfigOption<>(
                     "graphs",
@@ -140,7 +115,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "./conf/graphs"
             );
-
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
             new ConfigOption<>(
                     "batch.max_vertices_per_batch",
@@ -148,7 +122,6 @@ public class ServerOptions extends OptionHolder {
                     positiveInt(),
                     500
             );
-
     public static final ConfigOption<Integer> MAX_EDGES_PER_BATCH =
             new ConfigOption<>(
                     "batch.max_edges_per_batch",
@@ -156,7 +129,6 @@ public class ServerOptions extends OptionHolder {
                     positiveInt(),
                     500
             );
-
     public static final ConfigOption<Integer> MAX_WRITE_RATIO =
             new ConfigOption<>(
                     "batch.max_write_ratio",
@@ -165,7 +137,6 @@ public class ServerOptions extends OptionHolder {
                     rangeInt(0, 100),
                     50
             );
-
     public static final ConfigOption<Integer> MAX_WRITE_THREADS =
             new ConfigOption<>(
                     "batch.max_write_threads",
@@ -174,7 +145,6 @@ public class ServerOptions extends OptionHolder {
                     "batch.max_write_ratio * restserver.max_worker_threads.",
                     nonNegativeInt(),
                     0);
-
     public static final ConfigOption<String> RAFT_GROUP_PEERS =
             new ConfigOption<>(
                     "raft.group_peers",
@@ -182,15 +152,13 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "127.0.0.1:8090"
             );
-
     public static final ConfigOption<Boolean> ALLOW_TRACE =
             new ConfigOption<>(
                     "exception.allow_trace",
                     "Whether to allow exception trace stack.",
                     disallowEmpty(),
-                    false
+                    true
             );
-
     public static final ConfigOption<String> AUTHENTICATOR =
             new ConfigOption<>(
                     "auth.authenticator",
@@ -200,7 +168,6 @@ public class ServerOptions extends OptionHolder {
                     null,
                     ""
             );
-
     public static final ConfigOption<String> AUTH_GRAPH_STORE =
             new ConfigOption<>(
                     "auth.graph_store",
@@ -209,7 +176,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph"
             );
-
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",
@@ -218,7 +184,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "162f7848-0b6d-4faf-b557-3a0797869c55"
             );
-
     public static final ConfigListOption<String> AUTH_USER_TOKENS =
             new ConfigListOption<>(
                     "auth.user_tokens",
@@ -227,7 +192,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "hugegraph:9fd95c9c-711b-415b-b85f-d4df46ba5c31"
             );
-
     public static final ConfigOption<String> AUTH_REMOTE_URL =
             new ConfigOption<>(
                     "auth.remote_url",
@@ -238,7 +202,6 @@ public class ServerOptions extends OptionHolder {
                     null,
                     ""
             );
-
     public static final ConfigOption<String> SSL_KEYSTORE_FILE =
             new ConfigOption<>(
                     "ssl.keystore_file",
@@ -247,7 +210,6 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     "conf/hugegraph-server.keystore"
             );
-
     public static final ConfigOption<String> SSL_KEYSTORE_PASSWORD =
             new ConfigOption<>(
                     "ssl.keystore_password",
@@ -256,7 +218,6 @@ public class ServerOptions extends OptionHolder {
                     null,
                     "hugegraph"
             );
-
     public static final ConfigOption<Boolean> ENABLE_DYNAMIC_CREATE_DROP =
             new ConfigOption<>(
                     "graphs.enable_dynamic_create_drop",
@@ -264,4 +225,17 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
+    private static volatile ServerOptions instance;
+
+    private ServerOptions() {
+        super();
+    }
+
+    public static synchronized ServerOptions instance() {
+        if (instance == null) {
+            instance = new ServerOptions();
+            instance.registerOptions();
+        }
+        return instance;
+    }
 }
