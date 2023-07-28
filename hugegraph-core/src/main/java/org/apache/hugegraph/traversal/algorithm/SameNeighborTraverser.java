@@ -66,7 +66,7 @@ public class SameNeighborTraverser extends HugeTraverser {
     }
 
     public Set<Id> sameNeighbors(List<Id> vertexIds, Directions direction,
-                                 List<String> labels, long degree, long limit) {
+                                 List<String> labels, long degree, int limit) {
         E.checkNotNull(vertexIds, "vertex ids");
         E.checkArgument(vertexIds.size() >= 2, "vertex_list size can't " +
                                                "be less than 2");
@@ -99,7 +99,7 @@ public class SameNeighborTraverser extends HugeTraverser {
         }
 
         if (limit != NO_LIMIT) {
-            int end = Math.min(sameNeighbors.size(), (int) limit);
+            int end = Math.min(sameNeighbors.size(), limit);
             sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
         }
         return sameNeighbors;

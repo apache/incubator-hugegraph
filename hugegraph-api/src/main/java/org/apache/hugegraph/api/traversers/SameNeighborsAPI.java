@@ -142,7 +142,7 @@ public class SameNeighborsAPI extends API {
         @JsonProperty("max_degree")
         public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
-        public long limit = Long.parseLong(DEFAULT_ELEMENTS_LIMIT);
+        public int limit = Integer.parseInt(DEFAULT_ELEMENTS_LIMIT);
         @JsonProperty("vertex_list")
         private List<Object> vertexList;
         @JsonProperty("direction")
