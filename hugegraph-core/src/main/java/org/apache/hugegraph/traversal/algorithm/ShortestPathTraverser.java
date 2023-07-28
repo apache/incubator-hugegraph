@@ -20,18 +20,19 @@ package org.apache.hugegraph.traversal.algorithm;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.records.ShortestPathRecords;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public class ShortestPathTraverser extends HugeTraverser {
@@ -81,7 +82,15 @@ public class ShortestPathTraverser extends HugeTraverser {
             checkCapacity(traverser.capacity, traverser.accessed(),
                           "shortest path");
         }
-        return paths.isEmpty() ? Path.EMPTY : paths.iterator().next();
+
+        this.vertexIterCounter.addAndGet(traverser.vertexCount);
+        this.edgeIterCounter.addAndGet(traverser.record.accessed());
+
+        Path path = paths.isEmpty() ? Path.EMPTY : paths.iterator().next();
+
+        Set<Edge> edges = traverser.edgeRecord.getEdges(path);
+        path.setEdges(edges);
+        return path;
     }
 
     public Path shortestPath(Id sourceV, Id targetV, EdgeStep step,
@@ -126,27 +135,36 @@ public class ShortestPathTraverser extends HugeTraverser {
             checkCapacity(traverser.capacity, traverser.accessed(),
                           "shortest path");
         }
+
+        this.vertexIterCounter.addAndGet(traverser.vertexCount);
+        this.edgeIterCounter.addAndGet(traverser.record.accessed());
+
+        paths.setEdges(traverser.edgeRecord.getEdges(paths));
         return paths;
     }
 
     private class Traverser {
 
         private final ShortestPathRecords record;
+        private final EdgeRecord edgeRecord;
         private final Directions direction;
         private final Map<Id, String> labels;
         private final long degree;
         private final long skipDegree;
         private final long capacity;
+        private long vertexCount;
 
         public Traverser(Id sourceV, Id targetV, Directions dir,
                          Map<Id, String> labels, long degree,
                          long skipDegree, long capacity) {
             this.record = new ShortestPathRecords(sourceV, targetV);
+            this.edgeRecord = new EdgeRecord(false);
             this.direction = dir;
             this.labels = labels;
             this.degree = degree;
             this.skipDegree = skipDegree;
             this.capacity = capacity;
+            this.vertexCount = 0L;
         }
 
         public PathSet traverse(boolean all) {
@@ -170,13 +188,18 @@ public class ShortestPathTraverser extends HugeTraverser {
                                                      this.labels, degree);
                 edges = skipSuperNodeIfNeeded(edges, this.degree,
                                               this.skipDegree);
+
+                this.vertexCount += 1L;
+
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
+                    this.edgeRecord.addEdge(source, target, edge);
+
                     PathSet paths = this.record.findPath(target,
-                                    t -> !this.superNode(t, this.direction),
-                                    all, false);
+                                                         t -> !this.superNode(t, this.direction),
+                                                         all, false);
 
                     if (paths.isEmpty()) {
                         continue;
@@ -186,6 +209,7 @@ public class ShortestPathTraverser extends HugeTraverser {
                         return paths;
                     }
                 }
+
             }
 
             this.record.finishOneLayer();
@@ -210,13 +234,18 @@ public class ShortestPathTraverser extends HugeTraverser {
                                                      this.labels, degree);
                 edges = skipSuperNodeIfNeeded(edges, this.degree,
                                               this.skipDegree);
+
+                this.vertexCount += 1L;
+
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
+                    this.edgeRecord.addEdge(source, target, edge);
+
                     PathSet paths = this.record.findPath(target,
-                                    t -> !this.superNode(t, opposite),
-                                    all, false);
+                                                         t -> !this.superNode(t, opposite),
+                                                         all, false);
 
                     if (paths.isEmpty()) {
                         continue;

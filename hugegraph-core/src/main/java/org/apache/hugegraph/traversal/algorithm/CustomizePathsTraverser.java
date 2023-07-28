@@ -22,25 +22,54 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.MultivaluedMap;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.steps.WeightedEdgeStep;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import jakarta.ws.rs.core.MultivaluedMap;
+
 public class CustomizePathsTraverser extends HugeTraverser {
+    private final EdgeRecord edgeRecord;
 
     public CustomizePathsTraverser(HugeGraph graph) {
         super(graph);
+        this.edgeRecord = new EdgeRecord(false);
+    }
+
+    public static List<Path> topNPath(List<Path> paths,
+                                      boolean incr, long limit) {
+        paths.sort((p1, p2) -> {
+            WeightPath wp1 = (WeightPath) p1;
+            WeightPath wp2 = (WeightPath) p2;
+            int result = Double.compare(wp1.totalWeight(), wp2.totalWeight());
+            return incr ? result : -result;
+        });
+
+        if (limit == NO_LIMIT || paths.size() <= limit) {
+            return paths;
+        }
+        return paths.subList(0, (int) limit);
+    }
+
+    private static List<Node> sample(List<Node> nodes, long sample) {
+        if (nodes.size() <= sample) {
+            return nodes;
+        }
+        List<Node> result = newList((int) sample);
+        int size = nodes.size();
+        for (int random : CollectionUtil.randomSet(0, size, (int) sample)) {
+            result.add(nodes.get(random));
+        }
+        return result;
     }
 
     public List<Path> customizedPaths(Iterator<Vertex> vertices,
@@ -64,7 +93,8 @@ public class CustomizePathsTraverser extends HugeTraverser {
         int pathCount = 0;
         long access = 0;
         MultivaluedMap<Id, Node> newVertices = null;
-        root : for (WeightedEdgeStep step : steps) {
+        root:
+        for (WeightedEdgeStep step : steps) {
             stepNum--;
             newVertices = newMultivalueMap();
             Iterator<Edge> edges;
@@ -75,7 +105,11 @@ public class CustomizePathsTraverser extends HugeTraverser {
                 edges = this.edgesOfVertex(entry.getKey(), step.step());
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
+                    this.edgeIterCounter.addAndGet(1L);
                     Id target = edge.id().otherVertexId();
+
+                    this.edgeRecord.addEdge(entry.getKey(), target, edge);
+
                     for (Node n : entry.getValue()) {
                         // If have loop, skip target
                         if (n.contains(target)) {
@@ -113,6 +147,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
                     }
                 }
             }
+            this.vertexIterCounter.addAndGet(sources.size());
             // Re-init sources
             sources = newVertices;
         }
@@ -120,6 +155,9 @@ public class CustomizePathsTraverser extends HugeTraverser {
             return ImmutableList.of();
         }
         List<Path> paths = newList();
+        if (newVertices == null) {
+            return ImmutableList.of();
+        }
         for (List<Node> nodes : newVertices.values()) {
             for (Node n : nodes) {
                 if (sorted) {
@@ -133,36 +171,13 @@ public class CustomizePathsTraverser extends HugeTraverser {
         return paths;
     }
 
-    public static List<Path> topNPath(List<Path> paths,
-                                      boolean incr, long limit) {
-        paths.sort((p1, p2) -> {
-            WeightPath wp1 = (WeightPath) p1;
-            WeightPath wp2 = (WeightPath) p2;
-            int result = Double.compare(wp1.totalWeight(), wp2.totalWeight());
-            return incr ? result : -result;
-        });
-
-        if (limit == NO_LIMIT || paths.size() <= limit) {
-            return paths;
-        }
-        return paths.subList(0, (int) limit);
-    }
-
-    private static List<Node> sample(List<Node> nodes, long sample) {
-        if (nodes.size() <= sample) {
-            return nodes;
-        }
-        List<Node> result = newList((int) sample);
-        int size = nodes.size();
-        for (int random : CollectionUtil.randomSet(0, size, (int) sample)) {
-            result.add(nodes.get(random));
-        }
-        return result;
+    public EdgeRecord getEdgeRecord() {
+        return edgeRecord;
     }
 
     public static class WeightNode extends Node {
 
-        private double weight;
+        private final double weight;
 
         public WeightNode(Id id, Node parent, double weight) {
             super(id, parent);
@@ -183,7 +198,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
 
     public static class WeightPath extends Path {
 
-        private List<Double> weights;
+        private final List<Double> weights;
         private double totalWeight;
 
         public WeightPath(List<Id> vertices,

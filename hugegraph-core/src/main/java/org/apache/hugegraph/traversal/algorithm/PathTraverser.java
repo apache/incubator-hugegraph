@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -25,21 +27,17 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
-import org.apache.hugegraph.structure.HugeEdge;
-
-import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
-
 public abstract class PathTraverser {
 
     protected final HugeTraverser traverser;
-
-    protected int stepCount;
     protected final long capacity;
     protected final long limit;
+    protected int stepCount;
     protected int totalSteps; // TODO: delete or implement abstract method
 
     protected Map<Id, List<HugeTraverser.Node>> sources;
@@ -52,10 +50,11 @@ public abstract class PathTraverser {
     protected Set<HugeTraverser.Path> paths;
 
     protected TraverseStrategy traverseStrategy;
+    protected HugeTraverser.EdgeRecord edgeRecord;
 
     public PathTraverser(HugeTraverser traverser, TraverseStrategy strategy,
                          Collection<Id> sources, Collection<Id> targets,
-                         long capacity, long limit) {
+                         long capacity, long limit, boolean concurrent) {
         this.traverser = traverser;
         this.traverseStrategy = strategy;
 
@@ -79,6 +78,8 @@ public abstract class PathTraverser {
         this.targetsAll.putAll(this.targets);
 
         this.paths = this.newPathSet();
+
+        this.edgeRecord = new HugeTraverser.EdgeRecord(concurrent);
     }
 
     public void forward() {
@@ -145,9 +146,13 @@ public abstract class PathTraverser {
         while (edges.hasNext()) {
             HugeEdge edge = (HugeEdge) edges.next();
             Id target = edge.id().otherVertexId();
+            this.traverser.edgeIterCounter.addAndGet(1L);
+
+            this.edgeRecord.addEdge(v, target, edge);
 
             this.processOne(v, target, forward);
         }
+        this.traverser.vertexIterCounter.addAndGet(1L);
     }
 
     private void processOne(Id source, Id target, boolean forward) {
@@ -205,10 +210,7 @@ public abstract class PathTraverser {
     protected boolean reachLimit() {
         HugeTraverser.checkCapacity(this.capacity, this.accessedNodes(),
                                     "template paths");
-        if (this.limit == NO_LIMIT || this.pathCount() < this.limit) {
-            return false;
-        }
-        return true;
+        return this.limit != NO_LIMIT && this.pathCount() >= this.limit;
     }
 
     protected int accessedNodes() {
