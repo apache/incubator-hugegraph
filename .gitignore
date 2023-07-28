@@ -7,6 +7,8 @@ upload-files/
 demo*
 gen-java
 *.class
+swagger-ui-*
+hugegraph-dist/dist.sh
 
 ### STS ###
 .apt_generated
