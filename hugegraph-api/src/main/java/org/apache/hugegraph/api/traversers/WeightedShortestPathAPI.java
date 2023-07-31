@@ -85,7 +85,7 @@ public class WeightedShortestPathAPI extends API {
                   graph, source, target, direction, edgeLabel, weight,
                   maxDegree, skipDegree, capacity, withVertex, withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -103,7 +103,7 @@ public class WeightedShortestPathAPI extends API {
                              traverser.edgeIterCounter.get());
 
         if (node == null) {
-            return manager.serializer(g, measure.getResult())
+            return manager.serializer(g, measure.measures())
                           .writeWeightedPath(null,
                                              QueryResults.emptyIterator(),
                                              QueryResults.emptyIterator());
@@ -126,7 +126,7 @@ public class WeightedShortestPathAPI extends API {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeWeightedPath(node, iterVertex, iterEdge);
     }
 }

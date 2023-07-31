@@ -81,7 +81,7 @@ public class RaysAPI extends API {
                   "max degree '{}', capacity '{}' and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth, maxDegree,
                   capacity, limit);
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -114,8 +114,8 @@ public class RaysAPI extends API {
         } else {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
-        
-        return manager.serializer(g, measure.getResult())
+
+        return manager.serializer(g, measure.measures())
                       .writePaths("rays", paths, false,
                                   iterVertex, iterEdge);
     }

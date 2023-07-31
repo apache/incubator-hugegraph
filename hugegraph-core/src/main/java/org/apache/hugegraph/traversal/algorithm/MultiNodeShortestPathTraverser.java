@@ -132,6 +132,7 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
     }
 
     public static class WrappedListPath {
+
         private final List<Path> paths;
         private final Set<Edge> edges;
 
@@ -140,11 +141,11 @@ public class MultiNodeShortestPathTraverser extends OltpTraverser {
             this.edges = edges;
         }
 
-        public List<Path> getPaths() {
+        public List<Path> paths() {
             return paths;
         }
 
-        public Set<Edge> getEdges() {
+        public Set<Edge> edges() {
             return edges;
         }
     }

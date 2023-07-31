@@ -84,7 +84,7 @@ public class SingleSourceShortestPathAPI extends API {
                   graph, source, direction, edgeLabel,
                   weight, maxDegree, capacity, limit, withVertex, withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -116,7 +116,7 @@ public class SingleSourceShortestPathAPI extends API {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeWeightedPaths(paths, iterVertex, iterEdge);
     }
 }

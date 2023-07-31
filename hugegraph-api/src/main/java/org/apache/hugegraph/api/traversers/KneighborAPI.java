@@ -89,7 +89,7 @@ public class KneighborAPI extends TraverserAPI {
                   graph, sourceV, direction, edgeLabel, depth,
                   maxDegree, limit);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -104,10 +104,10 @@ public class KneighborAPI extends TraverserAPI {
                                  traverser.edgeIterCounter.get());
         }
         if (countOnly) {
-            return manager.serializer(g, measure.getResult()).writeMap(
-                    ImmutableMap.of("vertices_size", ids.size()));
+            return manager.serializer(g, measure.measures())
+                          .writeMap(ImmutableMap.of("vertices_size", ids.size()));
         }
-        return manager.serializer(g, measure.getResult()).writeList("vertices", ids);
+        return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
 
     @POST
@@ -134,7 +134,7 @@ public class KneighborAPI extends TraverserAPI {
                   request.countOnly, request.withVertex, request.withPath,
                   request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
@@ -163,7 +163,7 @@ public class KneighborAPI extends TraverserAPI {
         }
 
         if (request.countOnly) {
-            return manager.serializer(g, measure.getResult())
+            return manager.serializer(g, measure.measures())
                           .writeNodesWithPath("kneighbor", neighbors, size, paths,
                                               QueryResults.emptyIterator(),
                                               QueryResults.emptyIterator());
@@ -193,7 +193,7 @@ public class KneighborAPI extends TraverserAPI {
             }
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeNodesWithPath("kneighbor", neighbors,
                                           size, paths, iterVertex, iterEdge);
     }

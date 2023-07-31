@@ -79,7 +79,7 @@ public class SameNeighborsAPI extends API {
                   "direction {}, edge label {}, max degree '{}' and limit '{}'",
                   graph, vertex, other, direction, edgeLabel, maxDegree, limit);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
@@ -93,7 +93,7 @@ public class SameNeighborsAPI extends API {
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeList("same_neighbors", neighbors);
     }
 
@@ -105,7 +105,7 @@ public class SameNeighborsAPI extends API {
                                 Request request) {
         LOG.debug("Graph [{}] get same neighbors among batch, '{}'", graph, request.toString());
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Directions dir = Directions.convert(EdgeAPI.parseDirection(request.direction));
         HugeGraph g = graph(manager, graph);
@@ -133,7 +133,7 @@ public class SameNeighborsAPI extends API {
         } else {
             iterVertex = ids.iterator();
         }
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeMap(ImmutableMap.of("same_neighbors", neighbors,
                                                 "vertices", iterVertex));
     }

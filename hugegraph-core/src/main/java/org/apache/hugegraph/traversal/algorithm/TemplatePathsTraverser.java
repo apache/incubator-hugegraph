@@ -18,7 +18,6 @@
 package org.apache.hugegraph.traversal.algorithm;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -282,23 +281,20 @@ public class TemplatePathsTraverser extends HugeTraverser {
     }
 
     public static class WrappedPathSet {
-        private final Set<Path> paths;
-        private Set<Edge> edges = Collections.emptySet();
 
-        public WrappedPathSet(Set<Path> paths) {
-            this.paths = paths;
-        }
+        private final Set<Path> paths;
+        private final Set<Edge> edges;
 
         public WrappedPathSet(Set<Path> paths, Set<Edge> edges) {
             this.paths = paths;
             this.edges = edges;
         }
 
-        public Set<Path> getPaths() {
+        public Set<Path> paths() {
             return paths;
         }
 
-        public Set<Edge> getEdges() {
+        public Set<Edge> edges() {
             return edges;
         }
     }

@@ -87,7 +87,7 @@ public class PathsAPI extends TraverserAPI {
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, capacity, limit);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -101,7 +101,7 @@ public class PathsAPI extends TraverserAPI {
                                                       limit);
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths, false);
     }
 
@@ -130,7 +130,7 @@ public class PathsAPI extends TraverserAPI {
                   request.depth, request.capacity, request.limit,
                   request.withVertex, request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -143,7 +143,7 @@ public class PathsAPI extends TraverserAPI {
                                                         step, request.depth,
                                                         request.nearest, request.capacity,
                                                         request.limit);
-        Collection<HugeTraverser.Path> paths = wrappedPathCollection.getPaths();
+        Collection<HugeTraverser.Path> paths = wrappedPathCollection.paths();
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
 
@@ -160,14 +160,14 @@ public class PathsAPI extends TraverserAPI {
         }
 
         Iterator<?> iterEdge;
-        Set<Edge> edges = wrappedPathCollection.getEdges();
+        Set<Edge> edges = wrappedPathCollection.edges();
         if (request.withEdge && !edges.isEmpty()) {
             iterEdge = edges.iterator();
         } else {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths, false,
                                   iterVertex, iterEdge);
     }

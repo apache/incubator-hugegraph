@@ -18,18 +18,18 @@
 package org.apache.hugegraph.api;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
+import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
@@ -71,8 +71,7 @@ public class API {
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
         if (g == null) {
-            throw new NotFoundException(String.format(
-                      "Graph '%s' does not exist",  graph));
+            throw new NotFoundException(String.format("Graph '%s' does not exist", graph));
         }
         return g;
     }
@@ -142,8 +141,7 @@ public class API {
         body.checkUpdate();
     }
 
-    protected static void checkCreatingBody(
-                          Collection<? extends Checkable> bodies) {
+    protected static void checkCreatingBody(Collection<? extends Checkable> bodies) {
         E.checkArgumentNotNull(bodies, "The request body can't be empty");
         for (Checkable body : bodies) {
             E.checkArgument(body != null,
@@ -152,8 +150,7 @@ public class API {
         }
     }
 
-    protected static void checkUpdatingBody(
-                          Collection<? extends Checkable> bodies) {
+    protected static void checkUpdatingBody(Collection<? extends Checkable> bodies) {
         E.checkArgumentNotNull(bodies, "The request body can't be empty");
         for (Checkable body : bodies) {
             E.checkArgumentNotNull(body,
@@ -188,41 +185,51 @@ public class API {
         } else if (action.equals(ACTION_ELIMINATE)) {
             return false;
         } else {
-            throw new NotSupportedException(
-                      String.format("Not support action '%s'", action));
+            throw new NotSupportedException(String.format("Not support action '%s'", action));
         }
     }
 
-    public static class ApiMeasure {
-        public static final String EDGE_ITER = "edge_iters";
-        public static final String VERTICE_ITER = "vertice_iters";
-        public static final String COST = "cost";
-        protected long timeStart = System.currentTimeMillis();
-        protected HashMap<String, Object> mapResult = new LinkedHashMap<>();
+    public static class ApiMeasurer {
 
-        public Map<String, Object> getResult() {
-            mapResult.put(COST, System.currentTimeMillis() - timeStart);
-            return mapResult;
+        public static final String EDGE_ITER = "edge_iterations";
+        public static final String VERTICE_ITER = "vertice_iterations";
+        public static final String COST = "cost";
+        private final long timeStart;
+        private final Map<String, Object> measures;
+
+        public ApiMeasurer() {
+            this.timeStart = System.currentTimeMillis();
+            this.measures = InsertionOrderUtil.newMap();
+        }
+
+        public Map<String, Object> measures() {
+            measures.put(COST, System.currentTimeMillis() - timeStart);
+            return measures;
         }
 
         public void put(String key, String value) {
-            this.mapResult.put(key, value);
+            this.measures.put(key, value);
         }
 
         public void put(String key, long value) {
-            this.mapResult.put(key, value);
+            this.measures.put(key, value);
         }
 
         public void put(String key, int value) {
-            this.mapResult.put(key, value);
+            this.measures.put(key, value);
         }
 
         protected void addCount(String key, long value) {
-            long cur = 0;
-            if (this.mapResult.containsKey(key)) {
-                cur = (long) this.mapResult.get(key);
+            Object current = measures.get(key);
+            if (current == null) {
+                measures.put(key, new MutableLong(value));
+            } else if (current instanceof MutableLong) {
+                MutableLong currentMutableLong = (MutableLong) current;
+                currentMutableLong.add(value);
+            } else if (current instanceof Long) {
+                Long currentLong = (Long) current;
+                measures.put(key, new MutableLong(currentLong + value));
             }
-            this.mapResult.put(key, cur + value);
         }
 
         public void addIterCount(long verticeIters, long edgeIters) {

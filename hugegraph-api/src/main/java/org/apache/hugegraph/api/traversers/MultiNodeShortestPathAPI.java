@@ -74,7 +74,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
                   graph, request.vertices, request.step, request.maxDepth,
                   request.capacity, request.withVertex);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> vertices = request.vertices.vertices(g);
@@ -91,7 +91,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
                                  traverser.edgeIterCounter.get());
         }
 
-        List<HugeTraverser.Path> paths = wrappedListPath.getPaths();
+        List<HugeTraverser.Path> paths = wrappedListPath.paths();
 
         Iterator<?> iterVertex;
         Set<Id> vertexIds = new HashSet<>();
@@ -106,14 +106,14 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
         }
 
         Iterator<?> iterEdge;
-        Set<Edge> edges = wrappedListPath.getEdges();
+        Set<Edge> edges = wrappedListPath.edges();
         if (request.withEdge && !edges.isEmpty()) {
-            iterEdge = wrappedListPath.getEdges().iterator();
+            iterEdge = wrappedListPath.edges().iterator();
         } else {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths,
                                   false, iterVertex, iterEdge);
     }

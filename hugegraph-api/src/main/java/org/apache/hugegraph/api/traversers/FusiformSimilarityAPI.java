@@ -95,7 +95,7 @@ public class FusiformSimilarityAPI extends API {
                   request.minNeighbors, request.alpha, request.minSimilars,
                   request.groupProperty, request.minGroups);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         E.checkArgument(sources != null && sources.hasNext(),
@@ -125,7 +125,7 @@ public class FusiformSimilarityAPI extends API {
             iterVertex = vertexIds.iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeSimilars(result, iterVertex);
     }
 

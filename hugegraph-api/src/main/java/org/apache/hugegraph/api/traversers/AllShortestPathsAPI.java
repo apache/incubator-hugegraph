@@ -85,7 +85,7 @@ public class AllShortestPathsAPI extends API {
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, skipDegree, capacity, withVertex, withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
@@ -96,9 +96,9 @@ public class AllShortestPathsAPI extends API {
         ShortestPathTraverser traverser = new ShortestPathTraverser(g);
         List<String> edgeLabels = edgeLabel == null ? ImmutableList.of() :
                                   ImmutableList.of(edgeLabel);
-        HugeTraverser.PathSet paths = traverser.allShortestPaths(
-                sourceId, targetId, dir, edgeLabels,
-                depth, maxDegree, skipDegree, capacity);
+        HugeTraverser.PathSet paths = traverser.allShortestPaths(sourceId, targetId, dir,
+                                                                 edgeLabels, depth, maxDegree,
+                                                                 skipDegree, capacity);
 
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
@@ -123,7 +123,7 @@ public class AllShortestPathsAPI extends API {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths, false,
                                   iterVertex, iterEdge);
     }

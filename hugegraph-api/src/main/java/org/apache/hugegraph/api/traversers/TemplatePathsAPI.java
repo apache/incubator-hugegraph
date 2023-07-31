@@ -94,7 +94,7 @@ public class TemplatePathsAPI extends TraverserAPI {
                   graph, request.sources, request.targets, request.steps,
                   request.capacity, request.limit, request.withVertex, request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -109,7 +109,7 @@ public class TemplatePathsAPI extends TraverserAPI {
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
 
-        Set<HugeTraverser.Path> paths = wrappedPathSet.getPaths();
+        Set<HugeTraverser.Path> paths = wrappedPathSet.paths();
 
         Iterator<?> iterVertex;
         Set<Id> vertexIds = new HashSet<>();
@@ -124,14 +124,14 @@ public class TemplatePathsAPI extends TraverserAPI {
         }
 
         Iterator<?> iterEdge;
-        Set<Edge> edges = wrappedPathSet.getEdges();
+        Set<Edge> edges = wrappedPathSet.edges();
         if (request.withEdge && !edges.isEmpty()) {
             iterEdge = edges.iterator();
         } else {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths, false,
                                   iterVertex, iterEdge);
     }

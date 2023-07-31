@@ -85,7 +85,7 @@ public class RingsAPI extends API {
                   graph, sourceV, direction, edgeLabel, depth, sourceInRing,
                   maxDegree, capacity, limit, withVertex, withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
@@ -119,7 +119,7 @@ public class RingsAPI extends API {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("rings", paths, false,
                                   iterVertex, iterEdge);
     }

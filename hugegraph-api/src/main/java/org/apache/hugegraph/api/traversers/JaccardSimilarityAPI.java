@@ -74,7 +74,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                   "with direction {}, edge label {} and max degree '{}'",
                   graph, vertex, other, direction, edgeLabel, maxDegree);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
@@ -90,7 +90,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                                  traverser.edgeIterCounter.get());
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeMap(ImmutableMap.of("jaccard_similarity", similarity));
     }
 
@@ -114,7 +114,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                   graph, request.vertex, request.step,
                   request.top, request.capacity);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.vertex);
@@ -129,7 +129,7 @@ public class JaccardSimilarityAPI extends TraverserAPI {
             measure.addIterCount(traverser.vertexIterCounter.get(),
                                  traverser.edgeIterCounter.get());
         }
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeMap(ImmutableMap.of("jaccard_similarity", results));
     }
 

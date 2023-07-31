@@ -65,11 +65,10 @@ public class CustomizedCrosspointsAPI extends API {
     private static List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns(
             HugeGraph graph, CrosspointsRequest request) {
         int stepSize = request.pathPatterns.size();
-        List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns;
-        pathPatterns = new ArrayList<>(stepSize);
+        List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns = new ArrayList<>(stepSize);
         for (PathPattern pattern : request.pathPatterns) {
-            CustomizedCrosspointsTraverser.PathPattern pathPattern;
-            pathPattern = new CustomizedCrosspointsTraverser.PathPattern();
+            CustomizedCrosspointsTraverser.PathPattern pathPattern =
+                    new CustomizedCrosspointsTraverser.PathPattern();
             for (Step step : pattern.steps) {
                 pathPattern.add(step.jsonToStep(graph));
             }
@@ -100,7 +99,7 @@ public class CustomizedCrosspointsAPI extends API {
                   graph, request.sources, request.pathPatterns, request.withPath,
                   request.withVertex, request.capacity, request.limit, request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -142,7 +141,7 @@ public class CustomizedCrosspointsAPI extends API {
             }
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeCrosspoints(paths, iterVertex,
                                         iterEdge, request.withPath);
     }

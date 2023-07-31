@@ -96,7 +96,7 @@ public class CustomizedPathsAPI extends API {
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex, request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -136,7 +136,7 @@ public class CustomizedPathsAPI extends API {
             iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("paths", paths, false,
                                   iterVertex, iterEdge);
     }

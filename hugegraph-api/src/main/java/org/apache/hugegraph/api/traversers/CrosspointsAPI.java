@@ -74,7 +74,7 @@ public class CrosspointsAPI extends API {
                   graph, source, target, direction, edgeLabel,
                   depth, maxDegree, capacity, limit);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -87,7 +87,7 @@ public class CrosspointsAPI extends API {
                                                       limit);
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writePaths("crosspoints", paths, true);
     }
 }

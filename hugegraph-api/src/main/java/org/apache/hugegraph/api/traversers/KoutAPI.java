@@ -94,7 +94,7 @@ public class KoutAPI extends TraverserAPI {
                   graph, source, direction, edgeLabel, depth,
                   nearest, maxDegree, capacity, limit);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -110,10 +110,10 @@ public class KoutAPI extends TraverserAPI {
         }
 
         if (count_only) {
-            return manager.serializer(g, measure.getResult()).writeMap(ImmutableMap.of(
+            return manager.serializer(g, measure.measures()).writeMap(ImmutableMap.of(
                     "vertices_size", ids.size()));
         }
-        return manager.serializer(g, measure.getResult()).writeList("vertices", ids);
+        return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
 
     @POST
@@ -142,7 +142,7 @@ public class KoutAPI extends TraverserAPI {
                   request.limit, request.withVertex, request.withPath,
                   request.withEdge);
 
-        ApiMeasure measure = new ApiMeasure();
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
@@ -171,7 +171,7 @@ public class KoutAPI extends TraverserAPI {
         }
 
         if (request.countOnly) {
-            return manager.serializer(g, measure.getResult())
+            return manager.serializer(g, measure.measures())
                           .writeNodesWithPath("kneighbor", neighbors, size, paths,
                                               QueryResults.emptyIterator(),
                                               QueryResults.emptyIterator());
@@ -201,7 +201,7 @@ public class KoutAPI extends TraverserAPI {
             }
         }
 
-        return manager.serializer(g, measure.getResult())
+        return manager.serializer(g, measure.measures())
                       .writeNodesWithPath("kout", neighbors, size, paths,
                                           iterVertex, iterEdge);
     }
