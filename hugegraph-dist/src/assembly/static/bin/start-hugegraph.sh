@@ -80,19 +80,23 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
+GREMLIN_SERVER_CONF="gremlin-server.yaml"
 if [[ $PRELOAD == "true" ]]; then
-    sed -i -e 's/empty-sample.groovy/example.groovy/g' "${CONF}"/gremlin-server.yaml
-    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}"/example.groovy
+    GREMLIN_SERVER_CONF="gremlin-server-preload.yaml"
+    EXAMPLE_SCRPIT="example-preload.groovy"
+    cp "${CONF}"/gremlin-server.yaml "${CONF}/${GREMLIN_SERVER_CONF}"
+    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRPIT}"
+    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRPIT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
+    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRPIT}"
 fi
-
 
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
 else
     echo "Starting HugeGraphServer in foreground mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
