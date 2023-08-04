@@ -26,7 +26,7 @@
     <name>${project.artifactId}</name>
     <url>https://github.com/apache/hugegraph</url>
     <description>
-        hugegraph is a fast-speed, highly-scalable, transactional graph database developed by baidu
+        HugeGraph is a fast-speed and highly-scalable graph database.
     </description>
 
     <parent>
@@ -94,7 +94,8 @@
 
     <modules>
         <module>hugegraph-server</module>
-        <module>hugegraph-pd</module>
-        <module>hugegraph-store</module>
+        <!--  TODO: uncomment when merge into pd and store-->
+<!--        <module>hugegraph-pd</module>-->
+<!--        <module>hugegraph-store</module>-->
     </modules>
 </project>
