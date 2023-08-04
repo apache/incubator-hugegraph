@@ -10,7 +10,7 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in bac
 
 2. Using docker compose
 
-    We can also use `docker-compose up -d`.  The docker-compose.yaml is below:
+    We can also use `docker-compose up -d`.  The `docker-compose.yaml` is below:
 
     ```yaml
     version: '3'
@@ -23,17 +23,18 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in bac
 
 ## 2. Create Sample Graph on Server Startup
 
-If you want to pre-load some data or graphs in container, you can set the env `PRELOAD=ture`
+If you want to **pre-load** some (test) data or graphs in container(by default), you can set the env `PRELOAD=ture`
 
 If you want to customize the pre-loaded data, please mount the the groovy scripts (not necessary).
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 18080:8080 -e PRELOAD=true -v /yourscript:/hugegraph/scripts/example.groovy hugegraph/hugegraph` to start hugegraph server.
+    Use `docker run -itd --name=graph -p 18080:8080 -e PRELOAD=true -v /path/to/yourScript:/hugegraph/scripts/example.groovy hugegraph/hugegraph`
+    to start hugegraph server.
 
-2. Using docker compose 
+3. Using docker compose 
     
-    We can also use `docker-compose up -d` to quickly start. The docker-compose.yaml is below:
+    We can also use `docker-compose up -d` to quickly start. The `docker-compose.yaml` is below:
 
     ```yaml
     version: '3'
