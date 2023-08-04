@@ -1,35 +1,49 @@
-# Deploy Hugegraph server with docker compose(WIP)
+# Deploy Hugegraph server with docker
 
 ## 1. Deploy
 
-We can use `docker-compose up -d` to quickly start an inner HugeGraph server with RocksDB in background.
+We can use docker to quickly start an inner HugeGraph server with RocksDB in background.
 
-The docker-compose.yaml is below:
+1. Using docker run
 
-```yaml
-version: '3'
-services:
-  graph:
-    image: hugegraph/hugegraph
-    ports:
-      - 18080:8080
-```
+    Use `docker run -itd --name=graph -p 18080:8080 hugegraph/hugegraph` to start hugegraph server.
+
+2. Using docker compose
+
+    We can also use `docker-compose up -d`.  The docker-compose.yaml is below:
+
+    ```yaml
+    version: '3'
+    services:
+      graph:
+        image: hugegraph/hugegraph
+        ports:
+          - 18080:8080
+    ```
 
 ## 2. Create Sample Graph on Server Startup
 
 If you want to pre-load some data or graphs in container, you can set the env `PRELOAD=ture`
 
-If you want to customize the pre-loaded data, please mount the the groovy scripts
+If you want to customize the pre-loaded data, please mount the the groovy scripts (not necessary).
 
-```yaml
-version: '3'
-services:
-  graph:
-    image: hugegraph/hugegraph
-    environment:
-      - PRELOAD=true
-    volumes:
-      - /path/to/yourscript:/hugegraph/scripts/example-preload.groovy
-    ports:
-      - 18080:8080
-```
+1. Using docker run
+
+    Use `docker run -itd --name=graph -p 18080:8080 -e PRELOAD=true -v /yourscript:/hugegraph/scripts/example.groovy hugegraph/hugegraph` to start hugegraph server.
+
+2. Using docker compose 
+    
+    We can also use `docker-compose up -d` to quickly start. The docker-compose.yaml is below:
+
+    ```yaml
+    version: '3'
+    services:
+      graph:
+        image: hugegraph/hugegraph
+        environment:
+          - PRELOAD=true
+        volumes:
+          - /path/to/yourscript:/hugegraph/scripts/example.groovy
+        ports:
+          - 18080:8080
+    ```
