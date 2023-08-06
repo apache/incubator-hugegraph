@@ -188,7 +188,7 @@
                         </manifest>
                         <manifestEntries>
                             <!-- TODO: update it -->
-                            <Implementation-Version>0.69.0.0</Implementation-Version>
+                            <Implementation-Version>0.70.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

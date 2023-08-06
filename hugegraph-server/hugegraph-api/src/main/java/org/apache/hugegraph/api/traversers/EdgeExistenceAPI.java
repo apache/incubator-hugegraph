@@ -1,9 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.apache.hugegraph.api.traversers;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.Lists;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.*;
@@ -19,9 +35,8 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
 import java.util.Iterator;
-import java.util.List;
 
-@Path("graphs/{graph}/traversers/edgeexistence")
+@Path("graphs/{graph}/traversers/edgeexist")
 @Singleton
 @Tag(name = "EdgeExistenceAPI")
 public class EdgeExistenceAPI extends TraverserAPI {
@@ -36,26 +51,24 @@ public class EdgeExistenceAPI extends TraverserAPI {
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("target") String target,
-                      @QueryParam("edgelabel") String edgeLabel,
-                      @QueryParam("sortValues")
+                      @QueryParam("label") String edgeLabel,
+                      @QueryParam("sort_values")
                       @DefaultValue(DEFAULT_EMPTY) String sortValues,
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_LIMIT) long limit) {
         LOG.debug("Graph [{}] get edgeexistence with " +
-                "source '{}', target '{}', edgeLabel '{}', sortValue '{}'and limit '{}'",
-            graph, source, target, edgeLabel, sortValues, limit);
+                  "source '{}', target '{}', edgeLabel '{}', sortValue '{}', limit '{}'",
+                  graph, source, target, edgeLabel, sortValues, limit);
 
         E.checkArgumentNotNull(source, "The source can't be null");
         E.checkArgumentNotNull(target, "The target can't be null");
 
         Id sourceId = HugeVertex.getIdValue(source);
         Id targetId = HugeVertex.getIdValue(target);
-        HugeGraph hugeGraph = graph(manager, graph);
-        EdgeExistenceTraverser traverser = new EdgeExistenceTraverser(hugeGraph);
-
+        HugeGraph hugegraph = graph(manager, graph);
+        EdgeExistenceTraverser traverser = new EdgeExistenceTraverser(hugegraph);
         Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel, sortValues, limit);
 
-        List<Edge> all = Lists.newArrayList(edges);
-        return manager.serializer(hugeGraph).writeList("edges", all);
+        return manager.serializer(hugegraph).writeEdges(edges, false);
     }
 }
