@@ -20,17 +20,15 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <groupId>org.apache.hugegraph</groupId>
-    <artifactId>hugegraph-pd-root</artifactId>
+    <artifactId>hugegraph-pd</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
-    <!-- TODO: replace it with non-parent mode & use apache as parent  -->
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.14</version>
+        <groupId>org.apache.hugegraph</groupId>
+        <artifactId>hugegraph</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <modules>
@@ -46,7 +44,6 @@
     </modules>
 
     <properties>
-        <revision>1.5.0</revision>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <log4j2.version>2.17.0</log4j2.version>
@@ -76,20 +73,10 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <distributionManagement>
-        <repository>
-            <id>Baidu_Local</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local</url>
-        </repository>
-        <snapshotRepository>
-            <id>Baidu_Local_Snapshots</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local_Snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <plugins>
@@ -148,7 +135,7 @@
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
                                 <!-- WARN: delete dist dir may influence dev? -->
-                                <!-- <include>dist</include>-->
+                                <!-- <include>dist/**</include>-->
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

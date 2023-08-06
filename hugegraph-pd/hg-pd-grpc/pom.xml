@@ -24,7 +24,7 @@
 
     <parent>
         <groupId>org.apache.hugegraph</groupId>
-        <artifactId>hugegraph-pd-root</artifactId>
+        <artifactId>hugegraph-pd</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>

@@ -710,8 +710,6 @@ public class TaskScheduleService {
 
     /**
      * 判断是否能把一个store的分区全部迁出，给出判断结果和迁移方案
-     *
-     * @author tianxiaohui@baidu.com
      */
     public Map<String, Object> canAllPartitionsMovedOut(Metapb.Store sourceStore) throws
                                                                                   PDException {

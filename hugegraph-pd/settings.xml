@@ -38,6 +38,7 @@
     </servers>
     <profiles>
         <profile>
+            <!-- TODO: remove later -->
             <id>baidu</id>
             <repositories>
                 <repository>

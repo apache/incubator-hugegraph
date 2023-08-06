@@ -24,7 +24,7 @@
 
     <parent>
         <groupId>org.apache.hugegraph</groupId>
-        <artifactId>hugegraph-pd-root</artifactId>
+        <artifactId>hugegraph-pd</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -66,6 +66,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
+            <version>1.28</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
