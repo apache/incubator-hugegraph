@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.common";
+option java_outer_classname = "HgStoreCommonProto";
+
+message Header {
+  string graph = 1;
+}
+message Tkv {
+  string table = 1;
+  bytes key = 2;
+  bytes value = 3;
+  int32 code = 9;
+
+}
+
+message Tk {
+  string table = 1;
+  bytes key = 2;
+  int32 code = 9;
+}
+
+message Tp {
+  string table = 1;
+  bytes prefix = 2;
+  int32 code = 9;
+}
+
+message Tse {
+  string table = 1;
+  Key start = 2;
+  Key end = 3;
+}
+
+message Key {
+  bytes key = 1;
+  int32 code = 9;
+}
+
+message Kv {
+  bytes key = 1;
+  bytes value = 2;
+  int32 code = 9;
+}
+
+message ResStatus {
+  ResCode code = 1;
+  string msg = 2;
+}
+
+/*--- enum ---*/
+enum ResCode {
+  RES_CODE_OK = 0;
+  RES_CODE_FAIL = 1;
+  RES_CODE_NOT_EXIST = 2;
+  RES_CODE_EXCESS = 3;
+}
+
+enum ScanMethod {
+  UNKNOWN_SCAN_TYPE = 0;
+  ALL = 1;
+  PREFIX = 2;
+  RANGE = 3;
+}
+
+enum ScanOrderType{
+  // 批量接口下，返回顺序的要求
+  ORDER_NONE = 0;             // 允许无序
+  ORDER_WITHIN_VERTEX = 1;    // 一个点内的边不会被打断，单不同点之间为无序
+  ORDER_STRICT = 2;           // 保证原始的输入点顺序
+}
+
+enum OpType {
+  OP_TYPE_UNKNOWN = 0;
+  OP_TYPE_PUT = 1;
+  OP_TYPE_DEL = 2;
+  OP_TYPE_DEL_SINGLE = 3;
+  OP_TYPE_DEL_PREFIX = 4;
+  OP_TYPE_DEL_RANGE = 5;
+  OP_TYPE_MERGE = 6;
+}
+
+enum TableMethod{
+  TABLE_METHOD_UNKNOWN = 0;
+  TABLE_METHOD_EXISTS = 1;
+  TABLE_METHOD_CREATE = 2;
+  TABLE_METHOD_DELETE = 3;
+  TABLE_METHOD_DROP = 4;
+  TABLE_METHOD_TRUNCATE = 5;
+}
+
+enum GraphMethod{
+  GRAPH_METHOD_UNKNOWN = 0;
+  GRAPH_METHOD_DELETE = 3;
+}

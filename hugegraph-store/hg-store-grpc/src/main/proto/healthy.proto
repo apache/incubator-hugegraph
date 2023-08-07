@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option java_package = "org.apache.hugegraph.store.grpc";
+
+import "google/protobuf/empty.proto";
+
+service Healthy {
+  rpc IsOk(google.protobuf.Empty) returns (StringReply) {}
+}
+
+message StringReply {
+  string message = 1;
+}

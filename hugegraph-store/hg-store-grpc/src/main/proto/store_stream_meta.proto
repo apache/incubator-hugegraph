@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+import "store_common.proto";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.stream";
+option java_outer_classname = "HgStoreStreamMetaProto";
+
+
+message ScanStreamBatchReq {
+  Header header = 1;
+  oneof query {
+    ScanQueryRequest query_request = 10;
+    ScanPagingRequest paging_request = 11;
+    ScanPauseRequest pause_request = 12;
+    ScanCancelRequest cancel_request = 13;
+    ScanReceiptRequest receipt_request = 14;
+  }
+  int64 logId = 15;
+}
+
+message ScanQueryRequest {
+  ScanMethod method = 2;
+  string table = 3;
+  int64 limit = 4;
+  int64 pageSize = 5;
+  int32 scanType = 6;
+  bytes query = 7;
+  bytes position = 8;
+  repeated ScanCondition condition = 9;
+  int64 perKeyLimit = 10;
+  int64 skipDegree = 11;
+  ScanOrderType orderType = 12;
+  int64 perKeyMax = 13;
+}
+
+message ScanPagingRequest {
+  int64 pageSize = 1;
+}
+message ScanPauseRequest {}
+message ScanCancelRequest {}
+message ScanReceiptRequest {
+  uint32 times = 1;
+}
+
+message ScanCondition {
+  int32 code = 1;      // owner key hashcode
+  bytes prefix = 2;   // key prefix
+  bytes start = 3;    // start key
+  bytes end = 4;      // end key
+  int32 serialNo = 5; // serial no
+}
+
+message ScanStreamReq {
+  Header header = 1;
+  ScanMethod method = 2;
+  string table = 3;
+  int32 code = 4;  // partitionId
+  bytes prefix = 5;   // key prefix
+  bytes start = 6;    //start key
+  bytes end = 7;      //end key
+  int64 limit = 8;
+  int32 scanType = 9;
+  bytes query = 10;
+  int32 pageSize = 11;
+  bytes position = 12;
+  uint32 closeFlag = 13;
+  SelectParam selects = 14;
+}
+
+message SelectParam {
+  bytes filter = 1;
+  bool withNoProperties = 2;
+  repeated int32 properties = 3;
+}
+
+message KvPageRes {
+  int32 times = 1;        //query times.
+  bool over = 2;          //true=no more data
+  repeated Kv data = 3;
+  uint32 version = 4;
+  bytes stream = 5;
+}
+
+enum KvStreamType {
+  STREAM_TYPE_NONE = 0;
+  STREAM_TYPE_KV = 1;
+  STREAM_TYPE_K = 2;
+  STREAM_TYPE_SKV = 3;
+  STREAM_TYPE_SK = 4;
+}
+

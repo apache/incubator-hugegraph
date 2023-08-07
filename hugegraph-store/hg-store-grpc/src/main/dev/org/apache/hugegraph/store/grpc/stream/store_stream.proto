@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+import "store_common.proto";
+import "store_stream_meta.proto";
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.stream";
+option java_outer_classname = "HgStoreStreamProto";
+
+/**
+    为了提升性能，复用内存，减少gc回收，需要重写KvStream.writeTo方法
+
+ */
+service HgStoreStream {
+
+  rpc Scan(stream ScanStreamReq) returns (stream KvPageRes) {}
+  rpc ScanOneShot(ScanStreamReq) returns (KvPageRes) {}
+  rpc ScanBatch(stream ScanStreamBatchReq) returns (stream KvPageRes) {}
+  rpc ScanBatch2(stream ScanStreamBatchReq) returns (stream KvStream) {}
+  rpc ScanBatchOneShot(ScanStreamBatchReq) returns (KvPageRes) {}
+}
+
+
+message KvStream {
+  int32 seq_no = 1;        //query times.
+  bool over = 2;          //true=no more data
+  uint32 version = 4;
+  bytes stream = 5;
+  KvStreamType type = 6;
+}
+
+
+
+

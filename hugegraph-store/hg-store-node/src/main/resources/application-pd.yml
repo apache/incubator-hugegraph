@@ -1,0 +1,21 @@
+pdserver:
+  # pd服务地址，多个pd地址用逗号分割
+  address: localhost:8686
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+logging:
+  config: classpath:log4j2-dev.xml
+  level:
+    root: info
+rocksdb:
+  # rocksdb 使用的总内存大小
+  total_memory_size: 32000000000
+  write_buffer_size: 32000000
