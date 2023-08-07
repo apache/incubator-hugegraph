@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+import "metapb.proto";
+import "pd_common.proto";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.pd.grpc.pulse";
+option java_outer_classname = "HgPdPulseProto";
+
+service HgPdPulse {
+  rpc Pulse(stream PulseRequest) returns (stream PulseResponse);
+}
+
+/* requests */
+message PulseRequest {
+  PulseCreateRequest create_request = 1;
+  PulseCancelRequest cancel_request = 2;
+  PulseNoticeRequest notice_request = 3;
+  PulseAckRequest ack_request = 4;
+}
+
+message PulseCreateRequest {
+  PulseType  pulse_type = 1;
+}
+
+message PulseCancelRequest {
+  int64 observer_id = 1;
+}
+
+message PulseNoticeRequest {
+  int64 observer_id = 1;
+  oneof request_union {
+    PartitionHeartbeatRequest partition_heartbeat_request = 10;
+  }
+}
+
+message PulseAckRequest {
+  int64 observer_id = 1;
+  int64 notice_id = 2;
+}
+
+// 分区心跳，分区的peer增减、leader改变等事件发生时，由leader发送心跳。
+// 同时pd对分区进行shard增减通过Response发送给leader
+message PartitionHeartbeatRequest {
+  RequestHeader header = 1;
+  // Leader Peer sending the heartbeat
+  metapb.PartitionStats states = 4;
+}
+
+/* responses */
+message PulseResponse {
+    PulseType pulse_type = 1;
+    int64 observer_id = 2;
+    int32 status = 3;   //0=ok,1=fail
+    int64 notice_id=4;
+    oneof response_union {
+        PartitionHeartbeatResponse partition_heartbeat_response = 10;
+        PdInstructionResponse instruction_response = 11;
+    }
+}
+
+message PartitionHeartbeatResponse {
+  ResponseHeader header = 1;
+  uint64 id = 3;
+  metapb.Partition partition = 2;
+  ChangeShard change_shard = 4;
+
+  TransferLeader transfer_leader = 5;
+  // 拆分成多个分区，第一个SplitPartition是原分区，从第二开始是新分区
+  SplitPartition split_partition = 6;
+  // rocksdb compaction 指定的表，null是针对所有
+  DbCompaction db_compaction = 7;
+  // 将partition的数据，迁移到 target
+  MovePartition move_partition = 8;
+  // 清理partition的graph的数据
+  CleanPartition clean_partition = 9;
+  // partition key range 变化
+  PartitionKeyRange key_range = 10;
+}
+
+/* Date model */
+message ChangeShard {
+  repeated metapb.Shard shard = 1;
+  ConfChangeType change_type = 2;
+}
+
+message TransferLeader {
+  metapb.Shard shard = 1;
+}
+
+message SplitPartition {
+  repeated metapb.Partition new_partition = 1;
+}
+
+message DbCompaction {
+  string table_name = 3;
+}
+
+message MovePartition{
+  // target partition的key range为，迁移后的新range
+  metapb.Partition target_partition = 1;
+  // partition 的 key start 和 key end的所有数据，
+  // 会迁移到 target partition 上
+  uint64 key_start = 2;
+  uint64 key_end = 3;
+}
+
+message CleanPartition {
+  uint64 key_start = 1;
+  uint64 key_end = 2;
+  CleanType clean_type = 3;
+  bool delete_partition = 4; //是否删除分区
+}
+
+message PartitionKeyRange{
+  uint32 partition_id = 1;
+  uint64 key_start = 2;
+  uint64 key_end = 3;
+}
+
+message PdInstructionResponse {
+    PdInstructionType instruction_type = 1;
+    string leader_ip = 2;
+}
+
+/* enums */
+enum PulseType {
+    PULSE_TYPE_UNKNOWN = 0;
+    PULSE_TYPE_PARTITION_HEARTBEAT = 1;
+    PULSE_TYPE_PD_INSTRUCTION = 2;
+}
+
+enum PulseChangeType {
+  PULSE_CHANGE_TYPE_UNKNOWN = 0;
+  PULSE_CHANGE_TYPE_ADD = 1;
+  PULSE_CHANGE_TYPE_ALTER = 2;
+  PULSE_CHANGE_TYPE_DEL = 3;
+}
+
+enum ConfChangeType {
+  CONF_CHANGE_TYPE_UNKNOWN = 0;
+  CONF_CHANGE_TYPE_ADD_NODE = 1;
+  CONF_CHANGE_TYPE_REMOVE_NODE = 2;
+  CONF_CHANGE_TYPE_ADD_LEARNER_NODE = 3;
+  CONF_CHANGE_TYPE_ADJUST = 4;    // 调整shard，leader根据新的配置动态增减。
+}
+
+enum CleanType {
+    CLEAN_TYPE_KEEP_RANGE = 0; // 仅保留这个range
+    CLEAN_TYPE_EXCLUDE_RANGE = 1; // 删除这个range
+}
+
+enum PdInstructionType {
+    CHANGE_TO_FOLLOWER = 0;
+}

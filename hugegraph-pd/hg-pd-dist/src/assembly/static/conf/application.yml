@@ -1,0 +1,78 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+spring:
+  application:
+    name: hugegraph-pd
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  config: 'file:./conf/log4j2.xml'
+license:
+  verify-path: ./conf/verify-license.json
+  license-path: ./conf/hugegraph.license
+grpc:
+  port: 8686
+  # grpc的服务地址, 部署时需要改为本地实际IPv4地址。
+  host: 127.0.0.1
+
+server:
+  # rest服务端口号
+  port: 8620
+
+pd:
+  # 存储路径
+  data-path: ./pd_data
+  # 自动扩容的检查周期，定时检查每个Store的分区数量，自动进行分区数量平衡
+  patrol-interval: 1800
+  # 初始store列表，grpc IP:grpc port, 在列表内的store自动激活
+  # NOTE: set to one addr when in stand-alone mode
+  initial-store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503
+raft:
+  # 本机raft服务地址
+  address: 127.0.0.1:8610
+  # PD集群服务地址 NOTE: set to one addr when in stand-alone mode
+  peers-list: 127.0.0.1:8610,127.0.0.1:8611,127.0.0.1:8612
+
+store:
+  # store下线时间。超过该时间，认为store永久不可用，分配副本到其他机器，单位秒
+  max-down-time: 172800
+  # 是否开启store监控数据存储
+  monitor_data_enabled: true
+  # 监控数据的间隔，minute(默认), hour, second
+  # default: 1 min * 1 day = 1440
+  monitor_data_interval: 1 minute
+  # 监控数据的保留时间 1 天; day, month, year
+  monitor_data_retention: 1 day
+  # NOTE: set to 1 when in stand-alone mode
+  # initial-store-count: 1
+
+partition:
+  # 默认每个分区副本数, set to 1 when in stand-alone mode
+  default-shard-count: 3
+  # 默认每机器最大副本数,初始分区数= store-max-shard-count * store-number / default-shard-count
+  store-max-shard-count: 12
+

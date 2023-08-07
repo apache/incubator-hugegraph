@@ -1,0 +1,126 @@
+syntax = "proto3";
+package kv;
+import "pdpb.proto";
+import "metapb.proto";
+
+option java_package = "org.apache.hugegraph.pd.grpc.kv";
+option java_multiple_files = true;
+
+
+service KvService {
+  rpc put(Kv) returns (KvResponse);
+  rpc get(K) returns (KResponse);
+  rpc delete(K) returns (KvResponse);
+  rpc deletePrefix(K) returns (KvResponse);
+  rpc scanPrefix(K) returns (ScanPrefixResponse);
+  rpc watch(WatchRequest) returns (stream WatchResponse);
+  rpc watchPrefix(WatchRequest) returns (stream WatchResponse);
+  rpc lock(LockRequest) returns (LockResponse);
+  rpc lockWithoutReentrant(LockRequest) returns (LockResponse);
+  rpc unlock(LockRequest) returns (LockResponse);
+  rpc keepAlive(LockRequest) returns (LockResponse);
+  rpc isLocked(LockRequest) returns (LockResponse);
+  rpc putTTL(TTLRequest) returns (TTLResponse);
+  rpc keepTTLAlive(TTLRequest) returns (TTLResponse);
+}
+
+/* requests */
+message Kv {
+  pdpb.RequestHeader header = 1;
+  string key = 2;
+  string value = 3;
+}
+message KvResponse {
+  pdpb.ResponseHeader header = 1;
+}
+
+message K{
+  pdpb.RequestHeader header = 1;
+  string key = 2;
+}
+
+message KResponse{
+  pdpb.ResponseHeader header = 1;
+  string value = 2;
+}
+
+message ScanPrefixResponse {
+  pdpb.ResponseHeader header = 1;
+  map<string, string> kvs = 2;
+}
+
+message LockRequest{
+  pdpb.RequestHeader header = 1;
+  string key = 2;
+  int64 ttl = 3;
+  int64 clientId = 4;
+}
+message LockResponse{
+  pdpb.ResponseHeader header = 1;
+  string key = 2;
+  int64 ttl = 3;
+  int64 clientId = 4;
+  bool succeed = 5;
+}
+
+message LockAliveResponse{
+  pdpb.ResponseHeader header = 1;
+  int64 clientId = 2;
+}
+
+
+message WatchKv {
+  string key = 1;
+  string value = 2;
+}
+
+enum WatchType {
+  Put = 0;
+  Delete = 1;
+  Unrecognized = 2;
+}
+
+message WatchEvent {
+  WatchKv current = 1;
+  WatchKv prev = 2;
+  WatchType type = 3;
+}
+
+message WatchResponse {
+  pdpb.ResponseHeader header = 1;
+  repeated WatchEvent events = 2;
+  int64 clientId = 3;
+  WatchState state = 4;
+}
+
+enum WatchState {
+  Starting = 0;
+  Started = 1;
+  Leader_Changed = 2;
+  Alive = 3;
+}
+
+message WatchRequest {
+  pdpb.RequestHeader header = 1;
+  WatchState state = 2;
+  string key = 3;
+  int64 clientId = 4;
+}
+
+message V{
+  string value = 1;
+  int64  ttl = 2;
+  int64 st = 3;
+}
+
+message TTLRequest{
+  pdpb.RequestHeader header = 1;
+  string key = 2;
+  string value = 3;
+  int64 ttl = 4;
+}
+
+message TTLResponse{
+  pdpb.ResponseHeader header = 1;
+  bool succeed = 2;
+}
