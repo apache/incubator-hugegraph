@@ -21,9 +21,6 @@ import java.util.HashMap;
 
 import lombok.Data;
 
-/**
- * @date 2022/2/8
- **/
 @Data
 public class RegistryQueryRestRequest {
 

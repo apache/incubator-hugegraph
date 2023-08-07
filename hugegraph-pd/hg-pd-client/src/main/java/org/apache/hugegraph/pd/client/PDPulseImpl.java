@@ -38,9 +38,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/9
- */
 @Slf4j
 public final class PDPulseImpl implements PDPulse {
 

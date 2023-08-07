@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 /**
  * @param <K>
  * @param <V>
- * @author lynn.bond@hotmail.com on 2022/3/10
  */
 public class HgMapCache<K, V> {
     private final Map<K, V> cache = new ConcurrentHashMap<K, V>();

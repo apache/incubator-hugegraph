@@ -31,9 +31,6 @@ import com.google.protobuf.GeneratedMessageV3;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/3/29
- **/
 @Slf4j
 @Service
 public class LogService {

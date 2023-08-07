@@ -27,10 +27,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Test;
 
-/**
- * @author tianxiaohui
- * @date 20221220
- **/
 public class RestApiTest extends BaseServerTest {
     @Test
     public void testQueryClusterInfo() throws URISyntaxException, IOException, InterruptedException,

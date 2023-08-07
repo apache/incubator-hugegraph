@@ -23,9 +23,6 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 
 import lombok.Data;
 
-/**
- * @date 2022/2/8
- **/
 @Data
 public class RegistryRestResponse {
 

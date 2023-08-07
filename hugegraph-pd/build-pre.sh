@@ -21,7 +21,7 @@ touch output/1
 export JAVA_HOME=$ORACLEJDK_1_8_0_HOME
 
 readonly VER=3.6.3
-readonly REPO_URL=http://10.14.139.8:8081/artifactory/star-local
+readonly REPO_URL=http://127.0.0.1:8081/artifactory/star-local
 
 $MAVEN_3_5_3_BIN/mvn -DremoveSnapshot=true  -DprocessAllModules=true -DgenerateBackupPoms=true versions:set
 $MAVEN_3_5_3_BIN/mvn --settings ./settings.xml -Dmaven.test.skip=true -DaltDeploymentRepository=star-local::default::${REPO_URL} clean deploy
@@ -30,7 +30,7 @@ $MAVEN_3_5_3_BIN/mvn versions:revert
 
 #------------------repo-----------------------
 readonly FILE_NAME=hugegraph-pd-3.6.3.tar.gz
-readonly REPO_URL_FILE=http://10.14.139.8:8081/artifactory/star-file
+readonly REPO_URL_FILE=http://127.0.0.1:8081/artifactory/star-file
 
 localFilePath=dist/${FILE_NAME}
 targetFolder="${REPO_URL_FILE}/dist/$(date '+%Y-%m-%d')/"

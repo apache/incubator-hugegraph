@@ -20,9 +20,6 @@ package org.apache.hugegraph.pd.common;
 import java.util.Collection;
 import java.util.Map;
 
-/**
- * @author lynn.bond@hotmail.com
- */
 public final class HgAssert {
 
     public static void isTrue(boolean expression, String message) {

@@ -27,9 +27,6 @@ import org.apache.hugegraph.pd.grpc.pulse.PulseType;
 
 import com.google.protobuf.GeneratedMessageV3;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/9
- */
 public class PartitionHeartbeatSubject extends AbstractObserverSubject {
 
     PartitionHeartbeatSubject() {

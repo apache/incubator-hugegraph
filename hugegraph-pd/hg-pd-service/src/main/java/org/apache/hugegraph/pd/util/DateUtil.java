@@ -24,9 +24,6 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
-/**
- * @date 2022/3/23
- **/
 public class DateUtil {
     private static final String DATE = "yyyy-MM-dd";
     private static final String DATETIME = "yyyy-MM-dd HH:mm:ss";

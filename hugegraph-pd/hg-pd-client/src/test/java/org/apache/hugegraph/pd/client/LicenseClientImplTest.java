@@ -30,9 +30,6 @@ import org.yaml.snakeyaml.Yaml;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2021/12/21
- **/
 @Slf4j
 public class LicenseClientImplTest {
 
@@ -49,7 +46,7 @@ public class LicenseClientImplTest {
             log.info(error.getMessage());
             assert error.getType().equals(Pdpb.ErrorType.OK);
         } catch (Exception e) {
-            log.error("put license with error: {}", e);
+            log.error("put license with error: ", e);
         }
     }
 
@@ -66,13 +63,13 @@ public class LicenseClientImplTest {
             Object property = ymlConfig.get("rocksdb.write_buffer_size");
             assert property.toString().equals("32000000");
         } catch (Exception e) {
-            log.error("put license with error: {}", e);
+            log.error("put license with error: ", e);
         }
     }
 
     // @Test
     public void putKv() {
-        PDConfig pdConfig = PDConfig.of("10.14.139.70:8688");
+        PDConfig pdConfig = PDConfig.of("127.0.0.1.70:8688");
         pdConfig.setEnableCache(true);
         try (KvClient c = new KvClient(pdConfig)) {
             long l = System.currentTimeMillis();
@@ -81,7 +78,7 @@ public class LicenseClientImplTest {
             log.info(error.getMessage());
             assert error.getType().equals(Pdpb.ErrorType.OK);
         } catch (Exception e) {
-            log.error("put license with error: {}", e);
+            log.error("put license with error: ", e);
         }
     }
 
@@ -96,14 +93,14 @@ public class LicenseClientImplTest {
             log.info(error.getMessage());
             assert error.getType().equals(Pdpb.ErrorType.OK);
         } catch (Exception e) {
-            log.error("put license with error: {}", e);
+            log.error("put license with error: ", e);
         }
     }
 
     private Properties getYmlConfig(String yml) {
         Yaml yaml = new Yaml();
-        Iterable load = yaml.loadAll(yml);
-        Iterator iterator = load.iterator();
+        Iterable<Object> load = yaml.loadAll(yml);
+        Iterator<Object> iterator = load.iterator();
         Properties properties = new Properties();
         while (iterator.hasNext()) {
             Map<String, Object> next = (Map<String, Object>) iterator.next();

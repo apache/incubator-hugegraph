@@ -44,9 +44,6 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/24
- */
 @Service
 @Slf4j
 public class PromTargetsService {

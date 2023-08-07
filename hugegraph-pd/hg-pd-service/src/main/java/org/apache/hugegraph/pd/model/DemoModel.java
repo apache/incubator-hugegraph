@@ -19,9 +19,6 @@ package org.apache.hugegraph.pd.model;
 
 import java.util.Objects;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/1
- */
 public class DemoModel {
     private int status;
     private String text;

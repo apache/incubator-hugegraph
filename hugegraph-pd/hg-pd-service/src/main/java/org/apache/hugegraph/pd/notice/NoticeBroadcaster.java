@@ -24,9 +24,6 @@ import org.apache.hugegraph.pd.common.HgAssert;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/10
- */
 @Slf4j
 public class NoticeBroadcaster {
     private final Supplier<Long> noticeSupplier;

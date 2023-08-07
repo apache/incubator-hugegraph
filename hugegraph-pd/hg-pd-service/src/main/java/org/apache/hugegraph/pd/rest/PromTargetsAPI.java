@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author lynn.bond@hotmail.com on 2022/2/14
+ * TODO: ensure if we need this class & method (delete)
  */
 @RestController
 @Slf4j
@@ -45,8 +45,9 @@ public class PromTargetsAPI {
     private PromTargetsService service;
 
     @GetMapping(value = "/targets/{appName}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PromTargetsModel>> getPromTargets(
-            @PathVariable(value = "appName", required = true) String appName) {
+    public ResponseEntity<List<PromTargetsModel>> getPromTargets(@PathVariable(value = "appName",
+                                                                               required = true)
+                                                                 String appName) {
         return ResponseEntity.of(Optional.ofNullable(this.service.getTargets(appName)));
     }
 
@@ -56,9 +57,9 @@ public class PromTargetsAPI {
     }
 
     @GetMapping(value = "/demo/targets/{appName}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<PromTargetsModel> getDemoTargets(
-            @PathVariable(value = "appName", required = true) String targetType) {
-
+    public List<PromTargetsModel> getDemoTargets(@PathVariable(value = "appName",
+                                                               required = true) String targetType) {
+        // TODO: ensure the IP addr is correct & useful
         PromTargetsModel model = null;
         switch (targetType) {
             case "node":
@@ -86,7 +87,6 @@ public class PromTargetsAPI {
             default:
 
         }
-
         return Collections.singletonList(model);
     }
 }

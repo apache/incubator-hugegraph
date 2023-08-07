@@ -35,9 +35,6 @@ import lombok.Data;
 
 /**
  * PD配置文件
- *
- * @author: yanjinbing
- * @date: 2021/10/20
  */
 @Data
 @Component
@@ -65,28 +62,14 @@ public class PDConfig {
     private String licensePath;
     @Autowired
     private ThreadPoolGrpc threadPoolGrpc;
-
-    @Data
-    @Configuration
-    public class ThreadPoolGrpc {
-        @Value("${thread.pool.grpc.core:600}")
-        private int core;
-        @Value("${thread.pool.grpc.max:1000}")
-        private int max;
-        @Value("${thread.pool.grpc.queue:" + Integer.MAX_VALUE + "}")
-        private int queue;
-    }
-
     @Autowired
     private Raft raft;
-
     @Autowired
     private Store store;
     @Autowired
     private Partition partition;
     @Autowired
     private Discovery discovery;
-
     private Map<String, String> initialStoreMap = null;
     private ConfigService configService;
     private IdService idService;
@@ -126,6 +109,17 @@ public class PDConfig {
 
     public void setIdService(IdService idService) {
         this.idService = idService;
+    }
+
+    @Data
+    @Configuration
+    public class ThreadPoolGrpc {
+        @Value("${thread.pool.grpc.core:600}")
+        private int core;
+        @Value("${thread.pool.grpc.max:1000}")
+        private int max;
+        @Value("${thread.pool.grpc.queue:" + Integer.MAX_VALUE + "}")
+        private int queue;
     }
 
     @Data
@@ -207,7 +201,7 @@ public class PDConfig {
         private Long parseTimeExpression(String exp) {
             if (exp != null) {
                 Pattern pattern = Pattern.compile(
-                        "(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
+                    "(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
                 Matcher matcher = pattern.matcher(exp.trim());
                 if (matcher.find()) {
                     String n = matcher.group("n");

@@ -27,9 +27,6 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/8/3
- **/
 @Slf4j
 public class LicenseClient extends AbstractClient {
 

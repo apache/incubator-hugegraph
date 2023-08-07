@@ -22,9 +22,6 @@ import java.util.LinkedList;
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 
-/**
- * @date 2022/6/20
- **/
 public class AbstractClientStubProxy {
 
     private final LinkedList<String> hostList = new LinkedList<>();

@@ -26,9 +26,6 @@ import org.lognet.springboot.grpc.GRpcService;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 @Slf4j
 @GRpcService
 public class PDWatchService extends HgPdWatchGrpc.HgPdWatchImplBase {

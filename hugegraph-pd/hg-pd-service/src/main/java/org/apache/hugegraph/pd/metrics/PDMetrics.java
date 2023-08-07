@@ -31,9 +31,6 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/1/5
- */
 @Component
 @Slf4j
 public final class PDMetrics {

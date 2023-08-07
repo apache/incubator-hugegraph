@@ -27,8 +27,6 @@ import org.apache.hugegraph.pd.grpc.watch.WatchType;
 
 /**
  * The subject of partition change.
- *
- * @author lynn.bond@hotmail.com created on 2021/11/26
  */
 @ThreadSafe
 final class NodeChangeSubject extends AbstractWatchSubject {
@@ -50,11 +48,11 @@ final class NodeChangeSubject extends AbstractWatchSubject {
 
         super.notifyWatcher(builder -> {
             builder.setNodeResponse(
-                    builder.getNodeResponseBuilder().clear()
-                           .setGraph(graph)
-                           .setNodeId(nodeId)
-                           .setNodeEventType(nodeEventType)
-                           .build()
+                builder.getNodeResponseBuilder().clear()
+                       .setGraph(graph)
+                       .setNodeId(nodeId)
+                       .setNodeEventType(nodeEventType)
+                       .build()
             );
 
         });

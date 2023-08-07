@@ -42,8 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * watch订阅、响应处理类
- *
- * @date 2022/6/21
  **/
 @Slf4j
 public class KvWatchSubject {
@@ -53,7 +51,7 @@ public class KvWatchSubject {
     public static final String ALL_PREFIX = "W";
     public static final long WATCH_TTL = 20000L;
     private static final ConcurrentMap<String, StreamObserver<WatchResponse>> clients =
-            new ConcurrentHashMap<>();
+        new ConcurrentHashMap<>();
     private final KvService kvService;
     BiPredicate<String, String> equal = String::equals;
     BiPredicate<String, String> startWith = String::startsWith;
@@ -76,7 +74,7 @@ public class KvWatchSubject {
         String watchKey = KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         kvService.put(watchKey, "", WATCH_TTL);
         String clientFirstKey =
-                KvService.getKeyWithoutPrefix(ALL_PREFIX, clientId, delimiter, key, clientId);
+            KvService.getKeyWithoutPrefix(ALL_PREFIX, clientId, delimiter, key, clientId);
         kvService.put(clientFirstKey, "", WATCH_TTL);
     }
 
@@ -99,7 +97,7 @@ public class KvWatchSubject {
     public void addObserver(String key, long clientId, StreamObserver<WatchResponse> observer,
                             String delimiter) throws PDException {
         String keyWithoutPrefix =
-                KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
+            KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         clients.putIfAbsent(keyWithoutPrefix, observer);
         addWatchKey(key, delimiter, clientId);
         log.info("client:{},start to watch key:{}", clientId, key);
@@ -108,7 +106,7 @@ public class KvWatchSubject {
     public void removeObserver(String key, long clientId, String delimiter) throws PDException {
         removeWatchKey(key, delimiter, clientId);
         String keyWithoutPrefix =
-                KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
+            KvService.getKeyWithoutPrefix(ALL_PREFIX, delimiter, key, clientId);
         clients.remove(keyWithoutPrefix);
     }
 
@@ -145,15 +143,15 @@ public class KvWatchSubject {
                     continue;
                 }
                 WatchKv watchKv =
-                        WatchKv.newBuilder().setKey(kvKey).setValue(kv.getValue()).build();
+                    WatchKv.newBuilder().setKey(kvKey).setValue(kv.getValue()).build();
                 WatchEvent event =
-                        WatchEvent.newBuilder().setCurrent(watchKv).setType(watchType).build();
+                    WatchEvent.newBuilder().setCurrent(watchKv).setType(watchType).build();
                 watchEvents.add(event);
             }
             StreamObserver<WatchResponse> observer = clients.get(keyAndClient);
             watchResponse =
-                    WatchResponse.newBuilder().setState(WatchState.Started).setClientId(clientId)
-                                 .addAllEvents(watchEvents).build();
+                WatchResponse.newBuilder().setState(WatchState.Started).setClientId(clientId)
+                             .addAllEvents(watchEvents).build();
 
             try {
                 if (observer != null) {
@@ -188,7 +186,7 @@ public class KvWatchSubject {
         WatchResponse testAlive = WatchResponse.newBuilder().setState(WatchState.Alive).build();
         Set<Map.Entry<String, StreamObserver<WatchResponse>>> entries = clients.entrySet();
         Map.Entry<String, StreamObserver<WatchResponse>>[] array =
-                entries.toArray(new Map.Entry[0]);
+            entries.toArray(new Map.Entry[0]);
         Arrays.stream(array).parallel().forEach(entry -> {
             StreamObserver<WatchResponse> value = entry.getValue();
             String key = entry.getKey();
@@ -262,7 +260,7 @@ public class KvWatchSubject {
      */
     public void notifyClientChangeLeader() {
         WatchResponse response =
-                WatchResponse.newBuilder().setState(WatchState.Leader_Changed).build();
+            WatchResponse.newBuilder().setState(WatchState.Leader_Changed).build();
         for (Map.Entry<String, StreamObserver<WatchResponse>> entry : clients.entrySet()) {
             StreamObserver<WatchResponse> value = entry.getValue();
             String key = entry.getKey();

@@ -22,9 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/14
- */
 public class PromTargetsModel {
     private static final String LABEL_METRICS_PATH = "__metrics_path__";
     private static final String LABEL_SCHEME = "__scheme__";

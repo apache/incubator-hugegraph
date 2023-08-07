@@ -23,9 +23,6 @@ import java.util.function.Consumer;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
-/**
- * @date 2021/12/20
- **/
 public class DiscoveryClientImpl extends DiscoveryClient {
 
     private final String id;

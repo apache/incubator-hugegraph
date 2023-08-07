@@ -25,9 +25,6 @@ import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.meta.DiscoveryMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 
-/**
- * @date 2022/1/14
- **/
 public class RegistryService {
     private final PDConfig pdConfig;
     private final DiscoveryMetaStore meta;

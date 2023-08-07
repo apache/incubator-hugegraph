@@ -26,8 +26,6 @@ import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 
 /**
  * Bidirectional communication interface of pd-client and pd-server
- *
- * @author lynn.bond@hotmail.com created on 2021/11/9
  */
 public interface PDPulse {
 

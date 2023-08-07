@@ -28,8 +28,6 @@ import org.apache.hugegraph.pd.grpc.watch.WatchType;
 
 /**
  * The subject of partition change.
- *
- * @author lynn.bond@hotmail.com created on 2021/11/5
  */
 @ThreadSafe
 final class PartitionChangeSubject extends AbstractWatchSubject {
@@ -40,11 +38,10 @@ final class PartitionChangeSubject extends AbstractWatchSubject {
 
     @Override
     String toNoticeString(WatchResponse res) {
-        StringBuilder sb = new StringBuilder();
-        return sb.append("graph:").append(res.getPartitionResponse().getGraph())
-                 .append(",")
-                 .append("partitionId:").append(res.getPartitionResponse().getPartitionId())
-                 .toString();
+        String sb = "graph:" + res.getPartitionResponse().getGraph() +
+                    "," +
+                    "partitionId:" + res.getPartitionResponse().getPartitionId();
+        return sb;
     }
 
     public void notifyWatcher(WatchChangeType changeType, String graph, int partitionId) {
@@ -53,11 +50,11 @@ final class PartitionChangeSubject extends AbstractWatchSubject {
 
         super.notifyWatcher(builder -> {
             builder.setPartitionResponse(
-                    builder.getPartitionResponseBuilder().clear()
-                           .setGraph(graph)
-                           .setPartitionId(partitionId)
-                           .setChangeType(changeType)
-                           .build()
+                builder.getPartitionResponseBuilder().clear()
+                       .setGraph(graph)
+                       .setPartitionId(partitionId)
+                       .setChangeType(changeType)
+                       .build()
             );
 
         });

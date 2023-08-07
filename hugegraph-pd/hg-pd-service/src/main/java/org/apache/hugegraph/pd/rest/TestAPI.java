@@ -46,9 +46,6 @@ import com.google.protobuf.Parser;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/9
- */
 @RestController
 @Slf4j
 @RequestMapping("/test")

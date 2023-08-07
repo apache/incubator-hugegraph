@@ -35,9 +35,6 @@ import org.apache.hugegraph.pd.grpc.watch.WatchType;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 @Slf4j
 @ThreadSafe
 public class PDWatchSubject implements StreamObserver<WatchRequest> {

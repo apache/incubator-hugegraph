@@ -17,9 +17,6 @@
 
 package org.apache.hugegraph.pd.common;
 
-/**
- * @date 2022/8/1
- **/
 public class PDRuntimeException extends RuntimeException {
 
     // public static final int LICENSE_ERROR = -11;

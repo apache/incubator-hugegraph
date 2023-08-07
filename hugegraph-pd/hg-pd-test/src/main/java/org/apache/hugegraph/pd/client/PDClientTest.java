@@ -28,10 +28,6 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-/**
- * @author zhengfuquan
- * @date 2022/11/28
- **/
 public class PDClientTest extends BaseClientTest {
     @Test
     public void testDbCompaction() {

@@ -27,9 +27,6 @@ import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.junit.Assert;
 
-/**
- * @date 2021/12/21
- **/
 public class DiscoveryClientImplTest {
 
     private static final AtomicLong label = new AtomicLong();

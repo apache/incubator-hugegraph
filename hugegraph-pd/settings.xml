@@ -65,7 +65,7 @@
                 <!-- 项目组自建仓库-->
                 <repository>
                     <id>star</id>
-                    <url>http://10.14.139.8:8082/artifactory/star</url>
+                    <url>http://127.0.0.1:8082/artifactory/star</url>
                     <releases>
                         <enabled>true</enabled>
                         <updatePolicy>always</updatePolicy>

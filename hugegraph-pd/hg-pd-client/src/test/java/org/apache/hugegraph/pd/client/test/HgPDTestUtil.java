@@ -22,9 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/8
- */
 public class HgPDTestUtil {
 
     public static void println(Object str) {

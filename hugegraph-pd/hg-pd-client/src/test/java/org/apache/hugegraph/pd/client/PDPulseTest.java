@@ -25,9 +25,6 @@ import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.BeforeClass;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/8
- */
 public class PDPulseTest {
     private static PDClient pdClient;
 

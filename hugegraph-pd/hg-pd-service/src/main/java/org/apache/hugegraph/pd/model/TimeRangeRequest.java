@@ -19,9 +19,6 @@ package org.apache.hugegraph.pd.model;
 
 import lombok.Data;
 
-/**
- * @date 2022/3/23
- **/
 @Data
 public class TimeRangeRequest {
     String startTime;

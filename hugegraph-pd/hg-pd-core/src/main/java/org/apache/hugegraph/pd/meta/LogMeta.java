@@ -23,9 +23,6 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 
-/**
- * @date 2022/3/29
- **/
 public class LogMeta extends MetadataRocksDBStore {
 
     private final PDConfig pdConfig;

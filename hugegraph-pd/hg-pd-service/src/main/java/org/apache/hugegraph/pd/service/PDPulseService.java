@@ -37,16 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
-
 @Slf4j
 @GRpcService
 public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
 
     private static final Supplier<List<Metapb.QueueItem>> QUEUE_RETRIEVE_FUNCTION =
-            () -> Collections.emptyList();
+        () -> Collections.emptyList();
     private static final Function<Metapb.QueueItem, Boolean> QUEUE_ITEM_BOOLEAN_FUNCTION = (e) -> true;
     private static final Function<String, Boolean> QUEUE_REMOVE_FUNCTION = (e) -> true;
     @Autowired

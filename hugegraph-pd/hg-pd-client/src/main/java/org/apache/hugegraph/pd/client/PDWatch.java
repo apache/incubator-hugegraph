@@ -24,9 +24,6 @@ import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 public interface PDWatch {
 
     /**

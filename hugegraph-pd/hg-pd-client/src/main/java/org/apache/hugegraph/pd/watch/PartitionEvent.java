@@ -21,9 +21,6 @@ import java.util.Objects;
 
 import org.apache.hugegraph.pd.grpc.watch.WatchChangeType;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 public class PartitionEvent {
     private final String graph;
     private final int partitionId;

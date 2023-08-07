@@ -30,9 +30,6 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.MethodDescriptor;
 
-/**
- * @date 2022/6/21
- **/
 public interface ServiceGrpc extends RaftStateListener {
 
     ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap();

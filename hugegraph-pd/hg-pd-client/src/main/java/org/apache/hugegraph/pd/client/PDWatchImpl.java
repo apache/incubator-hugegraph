@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.client;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.apache.hugegraph.pd.grpc.watch.HgPdWatchGrpc;
@@ -31,17 +30,14 @@ import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
 
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 
-/**
- * @author lynn.bond@hotmail.com created on 2021/11/4
- */
 final class PDWatchImpl implements PDWatch {
 
-    private HgPdWatchGrpc.HgPdWatchStub stub;
+    private final HgPdWatchGrpc.HgPdWatchStub stub;
 
-    private String pdServerAddress;
+    private final String pdServerAddress;
+
     // TODO: support several servers.
     PDWatchImpl(String pdServerAddress) {
         this.pdServerAddress = pdServerAddress;
@@ -55,7 +51,7 @@ final class PDWatchImpl implements PDWatch {
 
     @Override
     public boolean checkChannel() {
-        return stub != null && ! ((ManagedChannel) stub.getChannel()).isShutdown();
+        return stub != null && !((ManagedChannel) stub.getChannel()).isShutdown();
     }
 
     /**
@@ -95,9 +91,9 @@ final class PDWatchImpl implements PDWatch {
         private GraphWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                          .newBuilder()
-                          .setWatchType(WatchType.WATCH_TYPE_GRAPH_CHANGE)
-                          .build()
+                      .newBuilder()
+                      .setWatchType(WatchType.WATCH_TYPE_GRAPH_CHANGE)
+                      .build()
             );
         }
 
@@ -112,9 +108,9 @@ final class PDWatchImpl implements PDWatch {
         private ShardGroupWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                          .newBuilder()
-                          .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
-                          .build()
+                      .newBuilder()
+                      .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
+                      .build()
             );
         }
 
@@ -129,9 +125,9 @@ final class PDWatchImpl implements PDWatch {
         private PartitionWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                          .newBuilder()
-                          .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
-                          .build()
+                      .newBuilder()
+                      .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
+                      .build()
             );
         }
 
@@ -140,7 +136,7 @@ final class PDWatchImpl implements PDWatch {
             WatchPartitionResponse res = watchResponse.getPartitionResponse();
             PartitionEvent event = new PartitionEvent(res.getGraph(), res.getPartitionId(),
                                                       PartitionEvent.ChangeType.grpcTypeOf(
-                                                              res.getChangeType()));
+                                                          res.getChangeType()));
             this.listener.onNext(event);
         }
     }
@@ -149,9 +145,9 @@ final class PDWatchImpl implements PDWatch {
         private NodeWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                          .newBuilder()
-                          .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
-                          .build()
+                      .newBuilder()
+                      .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
+                      .build()
             );
         }
 
@@ -179,7 +175,7 @@ final class PDWatchImpl implements PDWatch {
         void init() {
             this.reqStream = PDWatchImpl.this.stub.watch(this);
             this.reqStream.onNext(WatchRequest.newBuilder().setCreateRequest(
-                    this.requestSupplier.get()
+                this.requestSupplier.get()
             ).build());
         }
 

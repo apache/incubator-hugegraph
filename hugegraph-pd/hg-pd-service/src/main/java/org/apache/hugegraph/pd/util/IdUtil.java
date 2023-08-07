@@ -19,9 +19,6 @@ package org.apache.hugegraph.pd.util;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @author lynn.bond@hotmail.com on 2022/2/8
- */
 @Slf4j
 public final class IdUtil {
     private static final byte[] LOCK = new byte[0];

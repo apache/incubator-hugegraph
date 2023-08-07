@@ -23,10 +23,6 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 
 import lombok.Data;
 
-/**
- * @author tianxiaohui
- * @date 2022-07-21
- */
 @Data
 public class RestApiResponse {
     String message;
