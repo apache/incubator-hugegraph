@@ -19,14 +19,6 @@ package org.apache.hugegraph.store.meta;
 
 import org.apache.hugegraph.pd.grpc.Metapb;
 
-/**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store.partitions
- * @className: PartitionRole
- * @description: TODO
- * @date: 2021/10/19 18:18
- * @version: 1.0
- */
 public enum PartitionRole {
     UNKNOWN(0, "unknown"),
     LEADER(1, "leader"),

@@ -33,14 +33,6 @@ import org.apache.hugegraph.store.term.HgPair;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store.grpc.boot.service
- * @className: HgStoreWrapperEx
- * @description: TODO
- * @date: 2021/10/25 18:35
- * @version: 1.0
- */
 @Slf4j
 public class HgStoreWrapperEx {
 
@@ -67,7 +59,7 @@ public class HgStoreWrapperEx {
                              int scanType,
                              byte[] query) {
         ScanIterator scanIterator =
-                this.handler.scan(graph, partId, table, start, end, scanType, query);
+            this.handler.scan(graph, partId, table, start, end, scanType, query);
         return FilterIterator.of(scanIterator, query);
     }
 
@@ -82,7 +74,7 @@ public class HgStoreWrapperEx {
                                    int scanType,
                                    byte[] query) {
         ScanIterator scanIterator =
-                this.handler.scanPrefix(graph, partition, table, prefix, scanType);
+            this.handler.scanPrefix(graph, partition, table, prefix, scanType);
         return FilterIterator.of(scanIterator, query);
     }
 

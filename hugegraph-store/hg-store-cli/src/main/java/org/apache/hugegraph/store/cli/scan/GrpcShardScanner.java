@@ -36,16 +36,12 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/11/1
- **/
-
 @Slf4j
 public class GrpcShardScanner {
     private final boolean closed = false;
     private final AtomicInteger sum = new AtomicInteger();
     private final ConcurrentHashMap<Long, StreamObserver<ScanPartitionRequest>>
-            observers = new ConcurrentHashMap<>();
+        observers = new ConcurrentHashMap<>();
 
     public void getData() {
         ExecutorService service = new ThreadPoolExecutor(500, Integer.MAX_VALUE,
@@ -81,18 +77,18 @@ public class GrpcShardScanner {
     public void getData(int pId, CountDownLatch latch, String address) {
         try {
             ScanPartitionRequest.Builder builder =
-                    ScanPartitionRequest.newBuilder();
+                ScanPartitionRequest.newBuilder();
             ScanPartitionRequest.Request.Builder srb =
-                    ScanPartitionRequest.Request.newBuilder();
+                ScanPartitionRequest.Request.newBuilder();
             ScanPartitionRequest.Request request =
-                    srb.setGraphName("DEFAULT/hugegraph2/g")
-                       .setScanType(
-                               ScanPartitionRequest.ScanType.SCAN_EDGE)
-                       .setTable("g+oe").setBoundary(0x10)
-                       .setPartitionId(pId).build();
+                srb.setGraphName("DEFAULT/hugegraph2/g")
+                   .setScanType(
+                       ScanPartitionRequest.ScanType.SCAN_EDGE)
+                   .setTable("g+oe").setBoundary(0x10)
+                   .setPartitionId(pId).build();
             ManagedChannel c =
-                    ManagedChannelBuilder.forTarget(address)
-                                         .usePlaintext().build();
+                ManagedChannelBuilder.forTarget(address)
+                                     .usePlaintext().build();
             int maxSize = 1024 * 1024 * 1024;
             GraphStoreStub stub;
             stub = GraphStoreGrpc.newStub(c)
@@ -103,51 +99,51 @@ public class GrpcShardScanner {
             long start = System.currentTimeMillis();
             long id = Thread.currentThread().getId();
             StreamObserver<ScanResponse> ro =
-                    new StreamObserver<ScanResponse>() {
-                        @Override
-                        public void onNext(ScanResponse value) {
-                            try {
-                                int edgeSize = value.getEdgeCount();
-                                int vertexSize = value.getVertexCount();
-                                if (request.getScanType().equals(
-                                        ScanPartitionRequest.ScanType.SCAN_VERTEX)) {
-                                    count.getAndAdd(vertexSize);
-                                } else {
-                                    count.getAndAdd(edgeSize);
-                                }
-                                // String print = JsonFormat.printer().print
-                                // (value);
-                                // System.out.println(print);
-                                ScanPartitionRequest.Builder builder =
-                                        ScanPartitionRequest.newBuilder();
-                                builder.setScanRequest(request);
-                                Reply.Builder reply = Reply.newBuilder();
-                                reply.setSeqNo(1);
-                                builder.setReplyRequest(reply);
-                                observers.get(id).onNext(builder.build());
-
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                new StreamObserver<ScanResponse>() {
+                    @Override
+                    public void onNext(ScanResponse value) {
+                        try {
+                            int edgeSize = value.getEdgeCount();
+                            int vertexSize = value.getVertexCount();
+                            if (request.getScanType().equals(
+                                ScanPartitionRequest.ScanType.SCAN_VERTEX)) {
+                                count.getAndAdd(vertexSize);
+                            } else {
+                                count.getAndAdd(edgeSize);
                             }
-                        }
+                            // String print = JsonFormat.printer().print
+                            // (value);
+                            // System.out.println(print);
+                            ScanPartitionRequest.Builder builder =
+                                ScanPartitionRequest.newBuilder();
+                            builder.setScanRequest(request);
+                            Reply.Builder reply = Reply.newBuilder();
+                            reply.setSeqNo(1);
+                            builder.setReplyRequest(reply);
+                            observers.get(id).onNext(builder.build());
 
-                        @Override
-                        public void onError(Throwable t) {
-                            log.warn("调用grpc接口发生错误", t);
-                            latch.countDown();
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
+                    }
 
-                        @Override
-                        public void onCompleted() {
-                            long time = System.currentTimeMillis() - start;
-                            log.info("scan id : {}, complete: {} ,time:{}",
-                                     pId, count.get(), time);
-                            sum.addAndGet(count.get());
-                            latch.countDown();
-                        }
-                    };
+                    @Override
+                    public void onError(Throwable t) {
+                        log.warn("调用grpc接口发生错误", t);
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        long time = System.currentTimeMillis() - start;
+                        log.info("scan id : {}, complete: {} ,time:{}",
+                                 pId, count.get(), time);
+                        sum.addAndGet(count.get());
+                        latch.countDown();
+                    }
+                };
             StreamObserver<ScanPartitionRequest> observer =
-                    stub.scanPartition(ro);
+                stub.scanPartition(ro);
             observers.put(id, observer);
             builder.setScanRequest(request);
             observer.onNext(builder.build());

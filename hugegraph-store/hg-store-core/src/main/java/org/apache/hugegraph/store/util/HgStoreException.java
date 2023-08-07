@@ -17,14 +17,6 @@
 
 package org.apache.hugegraph.store.util;
 
-/**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store
- * @className: HgCoreServiceException
- * @description: TODO
- * @date: 2021/10/22 9:44
- * @version: 1.0
- */
 public class HgStoreException extends RuntimeException {
     public final static int EC_NOEXCEPT = 0;
     public final static int EC_FAIL = 1000;

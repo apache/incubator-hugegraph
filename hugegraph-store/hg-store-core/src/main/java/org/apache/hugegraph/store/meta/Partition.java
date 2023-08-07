@@ -23,14 +23,6 @@ import org.apache.hugegraph.store.PartitionEngine;
 
 import lombok.Data;
 
-/**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store.partitions
- * @className: Partition
- * @description: TODO
- * @date: 2021/10/19 18:16
- * @version: 1.0
- */
 @Data
 public class Partition implements Cloneable {
     private int id;                                             // region id

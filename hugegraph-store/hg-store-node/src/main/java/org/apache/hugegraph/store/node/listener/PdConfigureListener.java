@@ -45,9 +45,6 @@ import com.google.common.base.Charsets;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/7/5
- **/
 @Slf4j
 public class PdConfigureListener implements
                                  ApplicationListener<ApplicationEnvironmentPreparedEvent> {

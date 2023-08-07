@@ -35,9 +35,6 @@ import io.grpc.stub.AbstractAsyncStub;
 import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 
-/**
- * @date 2023/3/28
- **/
 public abstract class AbstractGrpcClient {
 
     private static Map<String, ManagedChannel[]> channels = new ConcurrentHashMap<>();

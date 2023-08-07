@@ -28,9 +28,6 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/10/26
- **/
 @Slf4j
 public abstract class AbstractSelectIterator implements ScanIterator {
     protected ScanIterator iterator;

@@ -41,9 +41,6 @@ import com.google.protobuf.Descriptors;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/10/26
- **/
 @Slf4j
 public class ScanResponseObserver<T> implements
                                      StreamObserver<ScanPartitionRequest> {

@@ -24,9 +24,6 @@ import org.apache.hugegraph.store.grpc.common.Header;
 
 import com.google.protobuf.ByteString;
 
-/**
- * @date 2022/10/8
- **/
 public class ScanUtil {
 
 

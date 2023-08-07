@@ -69,14 +69,6 @@ import com.alipay.sofa.jraft.util.Utils;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @projectName: hugegraph-store
- * @package: org.apache.hugegraph.store.business
- * @className: HgBusinessImpl
- * @description: TODO
- * @date: 2021/10/19 19:17
- * @version: 1.0
- */
 @Slf4j
 public class BusinessHandlerImpl implements BusinessHandler {
 
@@ -191,10 +183,10 @@ public class BusinessHandlerImpl implements BusinessHandler {
             try (RocksDBSession dbSession = getSession(graph, table, id)) {
                 return new InnerKeyFilter(dbSession.sessionOp().scan(table, position == null ?
                                                                             keyCreator.getStartKey(
-                                                                                    id, graph) :
+                                                                                id, graph) :
                                                                             keyCreator.getStartKey(
-                                                                                    id, graph,
-                                                                                    position),
+                                                                                id, graph,
+                                                                                position),
                                                                      keyCreator.getEndKey(id,
                                                                                           graph),
                                                                      ScanIterator.Trait.SCAN_LT_END));
@@ -233,8 +225,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                                                      keyCreator.getStartKey(id,
                                                                                             graph,
                                                                                             toPosition(
-                                                                                                    start,
-                                                                                                    position)),
+                                                                                                start,
+                                                                                                position)),
                                                                      endKey, type));
             }
         };
@@ -349,8 +341,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                                                      keyCreator.getPrefixKey(id,
                                                                                              graph,
                                                                                              toPosition(
-                                                                                                     prefix,
-                                                                                                     position)),
+                                                                                                 prefix,
+                                                                                                 position)),
                                                                      scanType));
             }
         };
@@ -409,8 +401,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
         HgStoreMetric.Graph graphMetric = new HgStoreMetric.Graph();
         try (RocksDBSession dbSession = getSession(graph, partId)) {
             graphMetric.setApproxDataSize(
-                    dbSession.getApproximateDataSize(keyCreator.getStartKey(partId, graph),
-                                                     keyCreator.getEndKey(partId, graph)));
+                dbSession.getApproximateDataSize(keyCreator.getStartKey(partId, graph),
+                                                 keyCreator.getEndKey(partId, graph)));
             graphMetric.setApproxKeyCount(dbSession.getEstimateNumKeys());
 
             return graphMetric;
@@ -596,9 +588,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
         SessionOperator op = getSession(partition.getGraphName(), partition.getId()).sessionOp();
         try {
             ScanIterator cfIterator =
-                    op.scanRaw(keyCreator.getStartKey(partition.getId(), partition.getGraphName()),
-                               keyCreator.getEndKey(partition.getId(), partition.getGraphName()),
-                               0);
+                op.scanRaw(keyCreator.getStartKey(partition.getId(), partition.getGraphName()),
+                           keyCreator.getEndKey(partition.getId(), partition.getGraphName()),
+                           0);
             while (cfIterator.hasNext()) {
                 ScanIterator iterator = cfIterator.next();
                 String table = new String(cfIterator.position());
@@ -688,8 +680,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
         if (dbSession == null) {
             long version = HgStoreEngine.getInstance().getCommittedIndex(partId);
             dbSession =
-                    factory.createGraphDB(partitionManager.getDbDataPath(partId, dbName), dbName,
-                                          version);
+                factory.createGraphDB(partitionManager.getDbDataPath(partId, dbName), dbName,
+                                      version);
             if (dbSession == null) {
                 log.info("failed to create a new graph db: {}", dbName);
                 throw new HgStoreException(HgStoreException.EC_RKDB_CREATE_FAIL,

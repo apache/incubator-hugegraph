@@ -28,9 +28,6 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.SerialEnum;
 
-/**
- * @date 2022/9/23
- **/
 public class SelectIterator implements ScanIterator {
 
     ScanIterator iter;

@@ -21,9 +21,6 @@ import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * @date 2022/11/15
- **/
 @Slf4j
 public class SessionTest {
     @Test
