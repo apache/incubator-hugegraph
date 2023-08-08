@@ -1,0 +1,590 @@
+syntax = "proto3";
+package pdpb;
+
+import "metapb.proto";
+import "metaTask.proto";
+
+option java_package = "org.apache.hugegraph.pd.grpc";
+
+service PD {
+  // 注册store，首次注册会生成新的store_id， store_id是store唯一标识
+  rpc RegisterStore(RegisterStoreRequest) returns (RegisterStoreResponse) {}
+  rpc GetStore(GetStoreRequest) returns (GetStoreResponse) {}
+  // 修改Store状态等信息.
+  rpc SetStore(SetStoreRequest) returns (SetStoreResponse) {}
+  // 根据可以查找所属分区
+  rpc DelStore(DetStoreRequest) returns (DetStoreResponse) {}
+  rpc GetAllStores(GetAllStoresRequest) returns (GetAllStoresResponse) {}
+  rpc StoreHeartbeat(StoreHeartbeatRequest) returns (StoreHeartbeatResponse) {}
+
+  // 根据可以查找所属分区
+  rpc GetPartition(GetPartitionRequest) returns (GetPartitionResponse) {}
+
+  // 根据HashCode查找所属分区
+  rpc GetPartitionByCode(GetPartitionByCodeRequest) returns (GetPartitionResponse) {}
+  // 根据PartitionID返回分区
+  rpc GetPartitionByID(GetPartitionByIDRequest) returns (GetPartitionResponse) {}
+  rpc ScanPartitions(ScanPartitionsRequest) returns (ScanPartitionsResponse) {}
+  // 更新分区信息，主要用来更新分区key范围，调用此接口需谨慎，否则会造成数据丢失。
+  rpc UpdatePartition(UpdatePartitionRequest) returns (UpdatePartitionResponse) {}
+  // 根据可以查找所属分区
+  rpc DelPartition(DelPartitionRequest) returns (DelPartitionResponse) {}
+  // 根据条件查询分区信息, 包括Store、Graph等条件
+  rpc QueryPartitions(QueryPartitionsRequest) returns (QueryPartitionsResponse){}
+  // 读取图信息
+  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse){}
+  // 修改图信息
+  rpc SetGraph(SetGraphRequest) returns (SetGraphResponse){}
+  rpc DelGraph(DelGraphRequest) returns (DelGraphResponse){}
+  // 全局唯一自增ID
+  rpc GetId(GetIdRequest) returns (GetIdResponse){}
+  rpc ResetId(ResetIdRequest) returns (ResetIdResponse){}
+  // PD的集群列表
+  rpc GetMembers(GetMembersRequest) returns (GetMembersResponse) {}
+  rpc GetStoreStatus(GetAllStoresRequest) returns (GetAllStoresResponse) {}
+  rpc GetPDConfig(GetPDConfigRequest) returns (GetPDConfigResponse){}
+  rpc SetPDConfig(SetPDConfigRequest) returns (SetPDConfigResponse){}
+  rpc GetGraphSpace(GetGraphSpaceRequest) returns (GetGraphSpaceResponse){}
+  rpc SetGraphSpace(SetGraphSpaceRequest) returns (SetGraphSpaceResponse){}
+  // 获取集群健康状态
+  rpc GetClusterStats(GetClusterStatsRequest) returns (GetClusterStatsResponse){}
+  // 替换PD的集群节点
+  rpc ChangePeerList(ChangePeerListRequest) returns (getChangePeerListResponse) {}
+  // 数据分裂
+  rpc SplitData(SplitDataRequest) returns (SplitDataResponse){}
+
+  rpc SplitGraphData(SplitGraphDataRequest) returns (SplitDataResponse) {}
+  // 数据迁移
+  rpc MovePartition(MovePartitionRequest) returns (MovePartitionResponse){}
+  // 汇报分区分裂等任务执行结果
+  rpc ReportTask(ReportTaskRequest) returns (ReportTaskResponse){}
+
+  rpc GetPartitionStats(GetPartitionStatsRequest) returns (GetPartitionStatsResponse){}
+  //平衡store中分区leader的数量
+  rpc BalanceLeaders(BalanceLeadersRequest) returns (BalanceLeadersResponse){}
+
+  // 替换license文件
+  rpc PutLicense(PutLicenseRequest) returns (PutLicenseResponse){}
+
+  // 通知rocksdb进行compaction
+  rpc DbCompaction(DbCompactionRequest) returns (DbCompactionResponse){}
+
+  // 合并分区
+  rpc CombineCluster(CombineClusterRequest) returns (CombineClusterResponse){}
+  // 单个图缩容
+  rpc CombineGraph(CombineGraphRequest) returns (CombineGraphResponse) {}
+
+  // shard group
+  rpc GetShardGroup(GetShardGroupRequest) returns (GetShardGroupResponse){}
+  rpc UpdateShardGroup(UpdateShardGroupRequest) returns (UpdateShardGroupResponse){}
+  // 删除掉shard group
+  rpc DeleteShardGroup(DeleteShardGroupRequest) returns (DeleteShardGroupResponse) {}
+  // shard group 运维相关的处理
+  rpc UpdateShardGroupOp(ChangeShardRequest) returns (ChangeShardResponse){}
+  // change shard
+  rpc ChangeShard(ChangeShardRequest) returns (ChangeShardResponse) {}
+  // 更新pd raft
+  rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
+
+  rpc getCache(GetGraphRequest) returns (CacheResponse)  {}
+  rpc getPartitions(GetGraphRequest) returns (CachePartitionResponse)  {}
+}
+
+message RequestHeader {
+  // 集群 ID.
+  uint64 cluster_id = 1;
+  // 发送者 ID.
+  uint64 sender_id = 2;
+}
+
+message ResponseHeader {
+  // cluster_id is the ID of the cluster which sent the response.
+  uint64 cluster_id = 1;
+  Error error = 2;
+}
+
+enum ErrorType {
+  OK = 0;
+  UNKNOWN = 1;
+
+  NOT_LEADER = 100;
+  STORE_ID_NOT_EXIST = 101;
+  NO_ACTIVE_STORE = 102;
+  NOT_FOUND = 103;
+  PD_UNREACHABLE = 104;
+  LESS_ACTIVE_STORE = 105;
+  STORE_HAS_BEEN_REMOVED = 106;
+  STORE_PROHIBIT_DELETION = 111;
+  SET_CONFIG_SHARD_COUNT_ERROR = 112;
+  UPDATE_STORE_STATE_ERROR = 113;
+  STORE_PROHIBIT_DUPLICATE = 114;
+  ROCKSDB_READ_ERROR = 1002;
+  ROCKSDB_WRITE_ERROR = 1003;
+  ROCKSDB_DEL_ERROR = 1004;
+  ROCKSDB_SAVE_SNAPSHOT_ERROR = 1005;
+  ROCKSDB_LOAD_SNAPSHOT_ERROR = 1006;
+
+  // 当前集群状态禁止分裂
+  Cluster_State_Forbid_Splitting = 1007;
+  // 正在分裂中
+  Split_Partition_Doing = 1008;
+  // store上分区数量超过上限
+  Too_Many_Partitions_Per_Store = 1009;
+  // license 错误
+  LICENSE_ERROR = 107;
+  // license 认证错误
+  LICENSE_VERIFY_ERROR = 108;
+
+  //分区下线正在进行
+  Store_Tombstone_Doing = 1010;
+
+  // 不合法的分裂个数
+  Invalid_Split_Partition_Count = 1011;
+}
+
+message Error {
+  ErrorType type = 1;
+  string message = 2;
+}
+message GetStoreRequest {
+  RequestHeader header = 1;
+  uint64 store_id = 2;
+}
+
+message GetStoreResponse {
+  ResponseHeader header = 1;
+
+  metapb.Store store = 2;
+  metapb.StoreStats stats = 3;
+}
+
+message DetStoreRequest {
+  RequestHeader header = 1;
+  uint64 store_id = 2;
+}
+
+message DetStoreResponse {
+  ResponseHeader header = 1;
+  metapb.Store store = 2;
+}
+
+message RegisterStoreRequest {
+  RequestHeader header = 1;
+  metapb.Store store = 2;
+}
+
+
+message RegisterStoreResponse {
+  ResponseHeader header = 1;
+  // 初次注册，返回新的store_id
+  uint64 store_id = 2;
+}
+
+message SetStoreRequest {
+  RequestHeader header = 1;
+  metapb.Store store = 2;
+}
+
+message SetStoreResponse {
+  ResponseHeader header = 1;
+  // 返回修改后的Store
+  metapb.Store store = 2;
+}
+
+
+// 返回graph_name所在的所有store，如果graph_name为空值，则返回系统所有的store
+message GetAllStoresRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  // 是否返回离线的store
+  bool exclude_offline_stores = 3;
+}
+
+message GetAllStoresResponse {
+  ResponseHeader header = 1;
+
+  repeated metapb.Store stores = 2;
+}
+
+
+message StoreHeartbeatRequest {
+  RequestHeader header = 1;
+
+  metapb.StoreStats stats = 2;
+}
+
+message StoreHeartbeatResponse {
+  ResponseHeader header = 1;
+  string cluster_version = 3;
+  metapb.ClusterStats clusterStats = 4;
+}
+
+message GetPartitionRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  bytes key = 3;
+}
+
+
+message GetPartitionByCodeRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  uint64 code = 3;
+}
+
+
+message GetPartitionResponse {
+  ResponseHeader header = 1;
+  metapb.Partition partition = 2;
+  metapb.Shard leader = 3;
+  // 离线的Shard
+  repeated metapb.Shard offline_shards = 4;
+}
+
+message GetPartitionByIDRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  uint32 partition_id = 3;
+}
+
+message DelPartitionRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  uint32 partition_id = 3;
+}
+message DelPartitionResponse {
+  ResponseHeader header = 1;
+  metapb.Partition partition = 2;
+}
+
+message UpdatePartitionRequest{
+  RequestHeader header = 1;
+  repeated metapb.Partition partition = 2;
+}
+
+message UpdatePartitionResponse{
+  ResponseHeader header = 1;
+  repeated metapb.Partition partition = 2;
+}
+// Use GetPartitionResponse as the response of GetPartitionByIDRequest.
+
+message ScanPartitionsRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  bytes start_key = 3;
+  bytes end_key = 4; // end_key is +inf when it is empty.
+}
+
+
+
+message ScanPartitionsResponse {
+  ResponseHeader header = 1;
+  repeated metapb.PartitionShard partitions = 4;
+}
+
+
+
+message QueryPartitionsRequest{
+  RequestHeader header = 1;
+  metapb.PartitionQuery query = 2;
+}
+
+message QueryPartitionsResponse {
+  ResponseHeader header = 1;
+  repeated metapb.Partition partitions = 4;
+}
+
+
+
+message GetGraphRequest{
+  RequestHeader header = 1;
+  string graph_name = 2;
+}
+
+message GetGraphResponse{
+  ResponseHeader header = 1;
+  metapb.Graph graph = 2;
+}
+
+message SetGraphRequest{
+  RequestHeader header = 1;
+  metapb.Graph graph = 2;
+}
+
+message SetGraphResponse{
+  ResponseHeader header = 1;
+  metapb.Graph graph = 2;
+}
+
+message DelGraphRequest{
+  RequestHeader header = 1;
+  string graph_name = 2;
+}
+
+message DelGraphResponse{
+  ResponseHeader header = 1;
+  metapb.Graph graph = 2;
+}
+
+message GetIdRequest{
+  RequestHeader header = 1;
+  string key = 2;
+  int32 delta = 3;
+}
+
+message GetIdResponse{
+  ResponseHeader header = 1;
+  int64 id = 2;
+  int32 delta = 3;
+}
+
+message ResetIdRequest{
+  RequestHeader header = 1;
+  string key = 2;
+}
+
+message ResetIdResponse{
+  ResponseHeader header = 1;
+  int32 result = 2;
+}
+
+message GetMembersRequest{
+  RequestHeader header = 1;
+}
+
+message GetMembersResponse{
+  ResponseHeader header = 1;
+  repeated metapb.Member members = 2;
+  metapb.Member leader = 3;
+}
+
+message GetPDConfigRequest{
+  RequestHeader header = 1;
+  uint64 version = 2 ;
+}
+
+message GetPDConfigResponse{
+  ResponseHeader header = 1;
+  metapb.PDConfig pd_config = 2;
+}
+
+message SetPDConfigRequest{
+  RequestHeader header = 1;
+  metapb.PDConfig pd_config = 2;
+}
+
+message SetPDConfigResponse{
+  ResponseHeader header = 1;
+}
+
+
+message GetGraphSpaceRequest{
+  RequestHeader header = 1;
+  string graph_Space_Name = 2;
+}
+
+message GetGraphSpaceResponse{
+  ResponseHeader header = 1;
+  repeated metapb.GraphSpace graph_space = 2;
+}
+
+message SetGraphSpaceRequest{
+  RequestHeader header = 1;
+  metapb.GraphSpace graph_space = 2;
+}
+
+message SetGraphSpaceResponse{
+  ResponseHeader header = 1;
+}
+
+message GetClusterStatsRequest{
+  RequestHeader header = 1;
+}
+
+message GetClusterStatsResponse{
+  ResponseHeader header = 1;
+  metapb.ClusterStats cluster = 2;
+}
+message ChangePeerListRequest{
+  RequestHeader header = 1;
+  string peer_List = 2;
+}
+message getChangePeerListResponse{
+  ResponseHeader header = 1;
+}
+
+enum OperationMode {
+  Auto = 0;
+  Expert = 1;
+}
+
+message SplitDataParam{
+  // 被分裂的源分区ID
+  uint32 partition_id = 1;
+  //目标分区数量
+  uint32 count = 2;
+}
+
+message SplitDataRequest{
+  RequestHeader header = 1;
+  //工作模式
+  //  Auto：自动分裂，每个Store上分区数达到最大值
+  //  Expert:专家模式，需要指定splitParams
+  OperationMode mode = 2;
+  repeated SplitDataParam param = 3;
+}
+
+message SplitGraphDataRequest{
+  RequestHeader header = 1;
+  //工作模式
+  string graph_name = 2;
+  uint32 to_count = 3;
+}
+
+message SplitDataResponse{
+  ResponseHeader header = 1;
+}
+
+message MovePartitionParam{
+  uint32 partition_id = 1;
+  uint64 src_store_id = 2;
+  uint64 dst_store_id = 3;
+}
+
+message MovePartitionRequest{
+  RequestHeader header = 1;
+  //工作模式
+  //  Auto：自动转移，达到每个Store上分区数量相同
+  //  Expert:专家模式，需要指定transferParams
+  OperationMode mode = 2;
+  repeated MovePartitionParam param = 3;
+}
+
+message MovePartitionResponse{
+  ResponseHeader header = 1;
+}
+
+message ReportTaskRequest{
+  RequestHeader header = 1;
+  metaTask.Task task = 2;
+}
+
+message ReportTaskResponse{
+  ResponseHeader header = 1;
+}
+
+message GetPartitionStatsRequest{
+  RequestHeader header = 1;
+  uint32 partition_id = 2;
+  // 如果未空，返回所有图的同一分区ID
+  string graph_name = 4;
+}
+
+message GetPartitionStatsResponse{
+  ResponseHeader header = 1;
+  metapb.PartitionStats partition_stats = 2;
+}
+
+message BalanceLeadersRequest{
+  RequestHeader header = 1;
+}
+
+message BalanceLeadersResponse{
+  ResponseHeader header = 1;
+}
+
+message PutLicenseRequest{
+  RequestHeader header = 1;
+  bytes content = 2;
+}
+
+message PutLicenseResponse{
+  ResponseHeader header = 1;
+}
+
+message DbCompactionRequest{
+  RequestHeader header = 1;
+  string tableName = 2;
+}
+
+message DbCompactionResponse{
+  ResponseHeader header = 1;
+}
+
+message CombineClusterRequest {
+  RequestHeader header = 1;
+  uint32 toCount = 2;
+}
+
+message CombineClusterResponse {
+  ResponseHeader header = 1;
+}
+
+message CombineGraphRequest {
+  RequestHeader header = 1;
+  string graphName = 2;
+  uint32 toCount = 3;
+}
+
+message CombineGraphResponse {
+  ResponseHeader header = 1;
+}
+
+message DeleteShardGroupRequest {
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+}
+
+message DeleteShardGroupResponse {
+  ResponseHeader header = 1;
+}
+
+message GetShardGroupRequest{
+  RequestHeader header = 1;
+  uint32 group_id = 2 ;
+}
+
+message GetShardGroupResponse{
+  ResponseHeader header = 1;
+  metapb.ShardGroup shardGroup = 2;
+}
+
+message UpdateShardGroupRequest{
+  RequestHeader header = 1;
+  metapb.ShardGroup shardGroup = 2;
+}
+
+message UpdateShardGroupResponse{
+  ResponseHeader header = 1;
+}
+
+message ChangeShardRequest{
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+  repeated metapb.Shard shards = 3;
+}
+
+message ChangeShardResponse {
+  ResponseHeader header = 1;
+}
+
+message UpdatePdRaftRequest{
+  RequestHeader header = 1;
+  string config = 3;
+}
+
+message UpdatePdRaftResponse{
+  ResponseHeader header = 1;
+  string message = 2;
+}
+message CacheResponse {
+  ResponseHeader header = 1;
+  // 返回修改后的Store
+  repeated metapb.Store stores = 2;
+  repeated metapb.ShardGroup shards = 3;
+  repeated metapb.Graph graphs = 4;
+}
+message CachePartitionResponse {
+  ResponseHeader header = 1;
+  repeated metapb.Partition partitions = 2;
+}

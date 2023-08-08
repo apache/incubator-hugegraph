@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+import "metapb.proto";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.pd.grpc.watch";
+option java_outer_classname = "HgPdWatchProto";
+
+service HgPdWatch {
+  rpc Watch(stream WatchRequest) returns (stream WatchResponse);
+}
+
+message WatchRequest {
+  WatchCreateRequest create_request = 1;
+  WatchCancelRequest cancel_request = 2;
+}
+
+message WatchCreateRequest {
+  WatchType  watch_type = 1;
+}
+
+message WatchCancelRequest {
+  int64 watcher_id = 1;
+}
+
+message WatchResponse {
+  WatchType watch_type = 1;
+  int64 watcher_id = 2;
+  int32 status = 3;   //0=ok,1=fail
+  int64 notice_id = 4;
+  string msg = 5;
+  oneof response_union {
+    WatchPartitionResponse partition_response = 10;
+    WatchNodeResponse node_response = 11;
+    WatchGraphResponse graph_response = 12;
+    WatchShardGroupResponse shard_group_response = 13;
+  }
+}
+
+message WatchPartitionResponse {
+  string graph = 1;
+  int32 partition_id = 2;
+  WatchChangeType change_type = 3;
+}
+
+message WatchNodeResponse {
+  string graph = 1;
+  uint64 node_id = 2;
+  NodeEventType node_event_type = 3;
+}
+
+message WatchGraphResponse {
+  metapb.Graph graph = 1;
+  WatchType type = 2;
+}
+
+message WatchShardGroupResponse {
+  metapb.ShardGroup shard_group = 1;
+  WatchChangeType type = 2;
+  int32 shard_group_id = 3;
+}
+
+enum WatchType {
+  WATCH_TYPE_UNKNOWN = 0;
+  WATCH_TYPE_PARTITION_CHANGE = 1;
+  WATCH_TYPE_STORE_NODE_CHANGE = 2;
+  WATCH_TYPE_GRAPH_CHANGE = 3;
+  WATCH_TYPE_SHARD_GROUP_CHANGE = 4;
+}
+
+enum WatchChangeType {
+  WATCH_CHANGE_TYPE_UNKNOWN = 0;
+  WATCH_CHANGE_TYPE_ADD = 1;
+  WATCH_CHANGE_TYPE_ALTER = 2;
+  WATCH_CHANGE_TYPE_DEL = 3;
+  WATCH_CHANGE_TYPE_SPECIAL1 = 4;
+}
+
+enum NodeEventType {
+    NODE_EVENT_TYPE_UNKNOWN = 0;
+    NODE_EVENT_TYPE_NODE_ONLINE = 1;
+    NODE_EVENT_TYPE_NODE_OFFLINE = 2;
+    NODE_EVENT_TYPE_NODE_RAFT_CHANGE = 3;
+    // pd leader 变更
+    NODE_EVENT_TYPE_PD_LEADER_CHANGE = 4;
+}
