@@ -66,7 +66,8 @@ public class StoreEngineTestBase {
             setShardCount(1);
         }});
 
-        StorageOptionsFactory.clear();
+        // TODO: uncomment later (jraft)
+//        StorageOptionsFactory.clear();
         RaftRocksdbOptions.initRocksdbGlobalConfig(options.getRocksdbConfig());
 
         HgStoreEngine.getInstance().init(options);
