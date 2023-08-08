@@ -49,6 +49,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <log4j2.version>2.15.0</log4j2.version>
+        <top.level.dir>${project.basedir}/..</top.level.dir>
     </properties>
 
     <dependencyManagement>
