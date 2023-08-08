@@ -73,16 +73,6 @@
             <version>4.13.2</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hg-store-grpc</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hg-store-common</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.24</version>
