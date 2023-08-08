@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.session";
+option java_outer_classname = "HgStoreSessionProto";
+
+import "store_common.proto";
+import "store_stream_meta.proto";
+
+service HgStoreSession {
+  rpc Get2(GetReq) returns (FeedbackRes) {}
+  rpc BatchGet2(BatchGetReq) returns (FeedbackRes) {}
+  rpc Batch(BatchReq) returns (FeedbackRes){}
+  rpc Table(TableReq) returns (FeedbackRes){};
+  rpc Graph(GraphReq) returns (FeedbackRes){};
+  rpc Clean(CleanReq) returns (FeedbackRes) {}
+  rpc Count(ScanStreamReq) returns (Agg) {}
+}
+
+message TableReq{
+  Header header = 1;
+  TableMethod method = 2;
+  string table_name = 3;
+}
+
+message GraphReq{
+  Header header = 1;
+  GraphMethod method = 2;
+  string graph_name = 3;
+}
+
+message BatchReq{
+  Header header = 1;
+  string batch_id = 2;
+  oneof requests{
+    BatchWriteReq write_req = 10;
+    BatchCommitReq commit_req = 11;
+    BatchRollbackReq rollback_req = 12;
+  }
+}
+
+message BatchWriteReq{
+  repeated BatchEntry entry = 1;
+}
+
+message BatchCommitReq{}
+
+message BatchRollbackReq{}
+
+message BatchEntry{
+  OpType op_type = 1;
+  int32 table = 2;
+  Key start_key = 3;
+  Key end_key = 4;
+  bytes value = 5;
+}
+
+message BatchGetReq {
+  Header header = 1;
+  string table = 2;
+  repeated Key key = 3;
+  int32 partition = 9;
+}
+
+message GetReq {
+  Header header = 1;
+  Tk tk = 2;
+}
+
+message CleanReq{
+  Header header = 1;
+  int32 partition = 2;
+}
+
+
+message FeedbackRes {
+  ResStatus status = 1;
+
+  oneof responses{
+    PartitionFaultResponse partition_fault_response = 10;
+    ValueResponse value_response = 11;
+    KeyValueResponse key_value_response = 12;
+
+  }
+
+}
+
+message ValueResponse {
+  bytes value = 1;
+}
+
+message KeyValueResponse {
+  repeated Kv kv = 1;
+}
+
+message PartitionFaultResponse{
+  PartitionFaultType fault_type = 1;
+  repeated PartitionLeader partition_leaders = 2;
+  repeated int32 partition_ids = 3;
+}
+
+message PartitionLeader {
+  int32 partitionId = 2;
+  int64 leaderId = 3;
+}
+
+enum PartitionFaultType{
+  PARTITION_FAULT_TYPE_UNKNOWN = 0;
+  // 当前不是Leader，返回Leader所在store
+  PARTITION_FAULT_TYPE_NOT_LEADER = 1;
+  // 等待Leader超时，可能raft group创建失败
+  PARTITION_FAULT_TYPE_WAIT_LEADER_TIMEOUT = 2;
+  // 分区不属于本机
+  PARTITION_FAULT_TYPE_NOT_LOCAL = 3;
+
+}
+message Agg {
+    Header header = 1;
+    int64 count = 2;
+}
+

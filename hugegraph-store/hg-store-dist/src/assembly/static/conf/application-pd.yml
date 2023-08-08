@@ -1,0 +1,17 @@
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+rocksdb:
+  # rocksdb使用的总内存大小,达到该值强制写盘
+  total_memory_size: 32000000000
+  # rocksdb使用的memtable大小
+  write_buffer_size: 32000000
+  # 对于每个rocksdb来说，memtable个数达到该值进行写盘
+  min_write_buffer_number_to_merge: 16

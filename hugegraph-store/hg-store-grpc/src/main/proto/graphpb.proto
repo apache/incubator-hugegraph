@@ -1,0 +1,121 @@
+syntax = "proto3";
+package graph_pb;
+
+option java_package = "org.apache.hugegraph.store.grpc";
+
+service GraphStore {
+  rpc ScanPartition(stream ScanPartitionRequest) returns (stream ScanResponse){}
+}
+
+message ScanPartitionRequest{
+  enum ScanType{
+    SCAN_UNKNOWN = 0;
+    SCAN_VERTEX = 1;
+    SCAN_EDGE = 2;
+  }
+  // 请求参数
+  message Request{
+    ScanType scan_type = 1;
+    string graph_name = 2;
+    uint32 partition_id = 3;
+    uint32 start_code = 4;
+    uint32 end_code = 5;
+    // 过滤条件
+    string condition = 6;
+    string table = 7;
+    int64 limit = 8;
+    int32 boundary = 9;
+    bytes position = 10;
+    // 返回条件
+    repeated int64 properties = 11;
+  }
+
+
+  message Reply{
+    int32 seq_no = 1;
+  }
+  RequestHeader header = 1;
+  oneof request {
+    Request scan_request = 2;
+    // 每消费一个数据包，通知服务端一次，返回消息序号
+    Reply reply_request = 4;
+  }
+}
+
+message ScanResponse{
+  ResponseHeader header = 1;
+  // 消息序号
+  int32     seq_no = 2;
+  repeated  Vertex vertex = 3;
+  repeated  Edge edge = 4;
+}
+
+
+message Property{
+  uint64 label = 1;
+  Variant value = 2;
+}
+
+message Vertex{
+  int64 label = 1; // 点类型
+  Variant id = 2;  // 点ID
+  repeated Property properties = 3; //点属性
+}
+
+message Edge{
+  int64 label = 1;        // 边类型
+  int64 sourceLabel = 2;
+  int64 targetLabel = 3;
+  Variant source_id = 4;  // 源点ID
+  Variant target_id = 5;  // 目标点ID
+
+  repeated Property properties = 6; //边属性
+}
+
+message Variant {
+  optional VariantType type = 1;
+  optional int32 value_int32 = 2;
+  optional int64 value_int64 = 3;
+  optional float value_float = 4;
+  optional double value_double = 5;
+  optional string value_string = 6;
+  optional bytes value_bytes = 7;
+  optional string value_datetime = 8;
+  optional bool value_boolean = 9;
+}
+
+enum VariantType {
+  VT_UNKNOWN = 0;
+  VT_BOOLEAN = 1;
+  VT_INT = 2;
+  VT_LONG = 3;
+  VT_FLOAT = 4;
+  VT_DOUBLE = 7;
+  VT_STRING = 8;
+  VT_BYTES = 9;
+  VT_DATETIME = 10;
+}
+
+
+
+message RequestHeader {
+  // 发送者 ID.
+  uint64 sender_id = 2;
+}
+
+message ResponseHeader {
+  uint64 sender_id = 1;
+  Error error = 2;
+}
+
+
+enum ErrorType {
+  OK = 0;
+  UNKNOWN = 1;
+}
+
+message Error {
+  ErrorType type = 1;
+  string message = 2;
+}
+
