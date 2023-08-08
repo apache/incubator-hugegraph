@@ -24,6 +24,9 @@ import org.junit.Test;
 
 import com.google.protobuf.GeneratedMessageV3;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
 public class RaftOperationTest {
 
     private RaftOperation raftOperationUnderTest;
