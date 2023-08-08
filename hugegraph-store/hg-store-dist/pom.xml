@@ -42,7 +42,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hugegraph-store</artifactId>
+            <artifactId>hg-store-node</artifactId>
             <version>${revision}</version>
         </dependency>
     </dependencies>

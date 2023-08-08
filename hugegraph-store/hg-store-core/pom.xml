@@ -116,6 +116,15 @@
             <version>${hugegraph.server.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-core</artifactId>
+            <version>${revision}</version>
+            <scope>system</scope>
+            <systemPath>
+                ${project.basedir}/../hg-store-dist/src/assembly/ext-lib/hugegraph-core-1.5.0.jar
+            </systemPath>
+        </dependency>
+        <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.8.9</version>

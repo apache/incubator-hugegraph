@@ -42,7 +42,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hugegraph-pd</artifactId>
+            <artifactId>hg-pd-service</artifactId>
             <version>${revision}</version>
         </dependency>
     </dependencies>
