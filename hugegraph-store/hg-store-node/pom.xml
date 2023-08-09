@@ -127,15 +127,14 @@
             <artifactId>hg-store-core</artifactId>
         </dependency>
         <dependency>
+            <!-- TODO: import through system dependency approach is just a temporal solution -->
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
-            <version>${hugegraph.server.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.etcd</groupId>
-                    <artifactId>jetcd-core</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>${revision}</version>
+            <scope>system</scope>
+            <systemPath>
+                ${top.level.dir}/hg-store-dist/src/assembly/ext-lib/hugegraph-core-1.5.0.jar
+            </systemPath>
         </dependency>
 
 
