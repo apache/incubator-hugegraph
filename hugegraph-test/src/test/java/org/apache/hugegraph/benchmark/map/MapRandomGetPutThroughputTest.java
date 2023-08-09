@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hugegraph.benchmark.BenchmarkConstants;
 import org.apache.hugegraph.benchmark.SimpleRandom;
 import org.apache.hugegraph.util.collection.IntMap;
+import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -61,6 +62,8 @@ public class MapRandomGetPutThroughputTest {
 
     private IntMap.IntMapByEcSegment intMapByEcSegments;
 
+    private IntMapByDynamicHash intMapByDynamicHash;
+
     private static final int THREAD_COUNT = 8;
 
     private static final String OUTPUT_FILE_NAME = "map_random_get_put_result.json";
@@ -71,6 +74,8 @@ public class MapRandomGetPutThroughputTest {
         this.concurrentHashMap = new ConcurrentHashMap<>(MAP_CAPACITY);
         this.intMapBySegments = new IntMap.IntMapBySegments(MAP_CAPACITY);
         this.intMapByEcSegments = new IntMap.IntMapByEcSegment();
+        intMapByDynamicHash =
+            new IntMapByDynamicHash();
     }
 
     /**
@@ -89,7 +94,7 @@ public class MapRandomGetPutThroughputTest {
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfConcurrentHashMapWithNoneInitCap(ThreadState state) {
-        int key = state.next() & (MAP_CAPACITY - 1);
+        int key = state.next();
         if (!this.concurrentHashMapNonCap.containsKey(key)) {
             this.concurrentHashMapNonCap.put(key, state.next());
         }
@@ -124,6 +129,16 @@ public class MapRandomGetPutThroughputTest {
             this.intMapByEcSegments.put(key, state.next());
         }
         this.intMapByEcSegments.get(key);
+    }
+
+    @Benchmark
+    @Threads(THREAD_COUNT)
+    public void randomGetPutOfIntMapByDynamicHash(ThreadState state) {
+        int key = state.next() & (MAP_CAPACITY - 1);
+        if (!this.intMapByDynamicHash.containsKey(key)) {
+            this.intMapByDynamicHash.put(key, state.next());
+        }
+        this.intMapByDynamicHash.get(key);
     }
 
     public static void main(String[] args) throws RunnerException {

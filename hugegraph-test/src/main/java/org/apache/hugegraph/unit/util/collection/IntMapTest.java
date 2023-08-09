@@ -23,15 +23,15 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.function.BiFunction;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.util.collection.IntMap;
+import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IntMapTest extends BaseUnitTest {
 
@@ -409,6 +409,17 @@ public class IntMapTest extends BaseUnitTest {
             }, e -> {
                 Assert.assertNull(e.getMessage());
             });
+        }
+    }
+
+    @Test
+    public void testIntMapByDynamicHash() {
+        IntMapByDynamicHash map = new IntMapByDynamicHash();
+
+        for (int i = 0; i < 1000; i++) {
+            map.put(i, i + 1);
+            Assert.assertTrue(map.containsKey(i));
+            Assert.assertEquals(i + 1, map.get(i));
         }
     }
 
