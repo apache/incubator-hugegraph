@@ -111,11 +111,7 @@
             <version>${revision}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hugegraph-core</artifactId>
-            <version>${hugegraph.server.version}</version>
-        </dependency>
-        <dependency>
+            <!-- TODO: import through system dependency approach is just a temporal solution -->
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
             <version>${revision}</version>

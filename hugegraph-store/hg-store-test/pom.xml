@@ -210,6 +210,7 @@
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
+        <!-- TODO: import through system dependency approach is just a temporal solution -->
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
