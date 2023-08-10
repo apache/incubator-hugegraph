@@ -39,11 +39,18 @@ import org.apache.hugegraph.backend.query.Aggregate;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.exception.NotSupportException;
+import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaLabel;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.CollectionUtil;
+import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.gremlin.process.traversal.Compare;
 import org.apache.tinkerpop.gremlin.process.traversal.Contains;
@@ -83,13 +90,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
 
-import org.apache.hugegraph.exception.NotSupportException;
-import org.apache.hugegraph.iterator.FilterIterator;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.structure.HugeProperty;
-import org.apache.hugegraph.util.CollectionUtil;
-import org.apache.hugegraph.util.DateUtil;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public final class TraversalUtil {
@@ -146,7 +146,8 @@ public final class TraversalUtil {
                 }
                 local.setGraph(graph);
             }
-            for (final Traversal.Admin<?, ?> global : ((TraversalParent) step).getGlobalChildren()) {
+            for (final Traversal.Admin<?, ?> global :
+                    ((TraversalParent) step).getGlobalChildren()) {
                 if (global.getGraph().filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                     continue;
                 }
@@ -242,7 +243,7 @@ public final class TraversalUtil {
                     long limit = holder.setRange(range.getLowRange(),
                                                  range.getHighRange());
                     RangeGlobalStep<Object> newRange = new RangeGlobalStep<>(
-                                                       traversal, 0, limit);
+                            traversal, 0, limit);
                     TraversalHelper.replaceStep(range, newRange, traversal);
                 }
             }
@@ -310,9 +311,9 @@ public final class TraversalUtil {
     }
 
     public static ConditionQuery fillConditionQuery(
-                                 ConditionQuery query,
-                                 List<HasContainer> hasContainers,
-                                 HugeGraph graph) {
+            ConditionQuery query,
+            List<HasContainer> hasContainers,
+            HugeGraph graph) {
         HugeType resultType = query.resultType();
 
         for (HasContainer has : hasContainers) {
@@ -549,7 +550,7 @@ public final class TraversalUtil {
         // Convert contains-key or contains-value
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         E.checkArgument(bp == Compare.eq, "CONTAINS query with relation " +
-                        "'%s' is not supported", bp);
+                                          "'%s' is not supported", bp);
 
         HugeKeys key = token2HugeKey(has.getKey());
         E.checkNotNull(key, "token key");
@@ -601,8 +602,8 @@ public final class TraversalUtil {
 
     @SuppressWarnings("unchecked")
     public static <V> Iterator<V> filterResult(
-                                  List<HasContainer> hasContainers,
-                                  Iterator<? extends Element> iterator) {
+            List<HasContainer> hasContainers,
+            Iterator<? extends Element> iterator) {
         if (hasContainers.isEmpty()) {
             return (Iterator<V>) iterator;
         }
@@ -625,8 +626,8 @@ public final class TraversalUtil {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
         List<HasStep> steps =
-                      TraversalHelper.getStepsOfAssignableClassRecursively(
-                      HasStep.class, traversal);
+                TraversalHelper.getStepsOfAssignableClassRecursively(
+                        HasStep.class, traversal);
 
         if (steps.isEmpty()) {
             return;
@@ -643,8 +644,8 @@ public final class TraversalUtil {
             }
 
             Optional<Graph> parentGraph = ((Traversal<?, ?>) traversal.getParent())
-                                                                      .asAdmin()
-                                                                      .getGraph();
+                    .asAdmin()
+                    .getGraph();
             if (parentGraph.filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                 traversal.setGraph(parentGraph.get());
             }
@@ -690,7 +691,7 @@ public final class TraversalUtil {
         return token2HugeKey(key) != null;
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static void collectPredicates(List<P<Object>> results,
                                           List<P<?>> predicates) {
         for (P<?> p : predicates) {
@@ -781,7 +782,7 @@ public final class TraversalUtil {
 
     public static void retrieveSysprop(List<HasContainer> hasContainers,
                                        Function<HasContainer, Boolean> func) {
-        for (Iterator<HasContainer> iter = hasContainers.iterator(); iter.hasNext();) {
+        for (Iterator<HasContainer> iter = hasContainers.iterator(); iter.hasNext(); ) {
             HasContainer container = iter.next();
             if (container.getKey().startsWith("~") && func.apply(container)) {
                 iter.remove();
@@ -842,7 +843,7 @@ public final class TraversalUtil {
     public static Map<Id, Object> transProperties(HugeGraph graph,
                                                   Map<String, Object> props) {
         Map<Id, Object> pks = new HashMap<>(props.size());
-        for (Map.Entry<String, Object> e: props.entrySet()) {
+        for (Map.Entry<String, Object> e : props.entrySet()) {
             PropertyKey pk = graph.propertyKey(e.getKey());
             pks.put(pk.id(), e.getValue());
         }
@@ -979,7 +980,7 @@ public final class TraversalUtil {
             }
 
             throw new HugeException(
-                      "Invalid value '%s', expect a number", e, value);
+                    "Invalid value '%s', expect a number", e, value);
         }
     }
 
@@ -1004,7 +1005,7 @@ public final class TraversalUtil {
                 continue;
             }
             throw new HugeException(
-                      "Invalid value '%s', expect a list of number", value);
+                    "Invalid value '%s', expect a list of number", value);
         }
         return values.toArray(new Number[0]);
     }
@@ -1015,7 +1016,7 @@ public final class TraversalUtil {
             return (V) JsonUtil.fromJson(value, Object.class);
         } catch (Exception e) {
             throw new HugeException(
-                      "Invalid value '%s', expect a single value", e, value);
+                    "Invalid value '%s', expect a single value", e, value);
         }
     }
 
@@ -1025,7 +1026,7 @@ public final class TraversalUtil {
             return JsonUtil.fromJson("[" + value + "]", List.class);
         } catch (Exception e) {
             throw new HugeException(
-                      "Invalid value '%s', expect a list", e, value);
+                    "Invalid value '%s', expect a list", e, value);
         }
     }
 }
