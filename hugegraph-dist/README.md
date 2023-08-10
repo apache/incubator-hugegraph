@@ -34,7 +34,7 @@ If you want to customize the pre-loaded data, please mount the the groovy script
     Use `docker run -itd --name=graph -p 18080:8080 -e PRELOAD=true -v /path/to/yourScript:/hugegraph/scripts/example.groovy hugegraph/hugegraph`
     to start hugegraph server.
 
-3. Using docker compose 
+2. Using docker compose 
     
     We can also use `docker-compose up -d` to quickly start. The `docker-compose.yaml` is below:
 
