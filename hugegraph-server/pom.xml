@@ -31,8 +31,7 @@
     <parent>
         <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph</artifactId>
-        <!--  TODO: use nicer way rather than raw number -->
-        <version>1.5.0</version>
+        <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -90,7 +89,6 @@
     </prerequisites>
 
     <properties>
-        <revision>${hugegraph.server.version}</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <release.name>hugegraph</release.name>

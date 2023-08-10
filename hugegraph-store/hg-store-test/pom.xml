@@ -214,7 +214,7 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-core</artifactId>
-            <version>${revision}</version>
+            <version>${hugegraph.core.version}</version>
             <scope>system</scope>
             <systemPath>
                 ${top.level.dir}/hg-store-dist/src/assembly/ext-lib/hugegraph-core-1.5.0.jar
