@@ -49,6 +49,7 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.CollectionType;
@@ -436,6 +437,92 @@ public class HugeTraverser {
             });
         }
         return edgeStep.skipSuperNodeIfNeeded(edges);
+    }
+
+    protected Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
+        List<Id> edgeLabels = steps.edgeLabels();
+        ConditionQuery cq = GraphTransaction.constructEdgesQuery(
+                source, steps.direction(), edgeLabels);
+        cq.capacity(Query.NO_CAPACITY);
+        if (steps.limit() != NO_LIMIT) {
+            cq.limit(steps.limit());
+        }
+
+        Map<Id, ConditionQuery> edgeConditions =
+                getElementFilterQuery(steps.edgeSteps(), HugeType.EDGE);
+
+        Iterator<Edge> filteredEdges =
+                new FilterIterator<>(this.graph().edges(cq),
+                                     edge -> validateEdge(edgeConditions, (HugeEdge) edge));
+
+        return edgesOfVertexStep(filteredEdges, steps);
+    }
+
+    protected Iterator<Edge> edgesOfVertexStep(Iterator<Edge> edges, Steps steps) {
+        if (steps.isVertexEmpty()) {
+            return edges;
+        }
+
+        Map<Id, ConditionQuery> vertexConditions =
+                getElementFilterQuery(steps.vertexSteps(), HugeType.VERTEX);
+
+        return new FilterIterator<>(edges,
+                                    edge -> validateVertex(vertexConditions, (HugeEdge) edge));
+    }
+
+    private Boolean validateVertex(Map<Id, ConditionQuery> vConditions,
+                                   HugeEdge edge) {
+        HugeVertex sourceV = edge.sourceVertex();
+        HugeVertex targetV = edge.targetVertex();
+        if (!vConditions.containsKey(sourceV.schemaLabel().id()) ||
+            !vConditions.containsKey(targetV.schemaLabel().id())) {
+            return false;
+        }
+
+        ConditionQuery cq = vConditions.get(sourceV.schemaLabel().id());
+        if (cq != null) {
+            sourceV = (HugeVertex) this.graph.vertex(sourceV.id());
+            if (!cq.test(sourceV)) {
+                return false;
+            }
+        }
+
+        cq = vConditions.get(targetV.schemaLabel().id());
+        if (cq != null) {
+            targetV = (HugeVertex) this.graph.vertex(targetV.id());
+            return cq.test(targetV);
+        }
+        return true;
+    }
+
+    private Boolean validateEdge(Map<Id, ConditionQuery> eConditions,
+                                 HugeEdge edge) {
+        if (!eConditions.containsKey(edge.schemaLabel().id())) {
+            return false;
+        }
+
+        ConditionQuery cq = eConditions.get(edge.schemaLabel().id());
+        if (cq != null) {
+            return cq.test(edge);
+        }
+        return true;
+    }
+
+    private Map<Id, ConditionQuery> getElementFilterQuery(
+            Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
+        Map<Id, ConditionQuery> vertexConditions = new HashMap<>();
+        for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
+            Steps.StepEntity stepEntity = entry.getValue();
+            if (stepEntity.getProperties() != null && !stepEntity.getProperties().isEmpty()) {
+                ConditionQuery cq = new ConditionQuery(type);
+                Map<Id, Object> properties = stepEntity.getProperties();
+                TraversalUtil.fillConditionQuery(cq, properties, this.graph);
+                vertexConditions.put(entry.getKey(), cq);
+            } else {
+                vertexConditions.put(entry.getKey(), null);
+            }
+        }
+        return vertexConditions;
     }
 
     private void fillFilterBySortKeys(Query query, Id[] edgeLabels,
