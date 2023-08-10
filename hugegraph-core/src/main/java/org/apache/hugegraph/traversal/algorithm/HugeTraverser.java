@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,9 +46,11 @@ import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.LimitIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.iterator.WrappedIterator;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
@@ -86,6 +89,9 @@ public class HugeTraverser {
     // Empirical value of scan limit, with which results can be returned in 3s
     public static final String DEFAULT_PAGE_LIMIT = "100000";
     public static final long NO_LIMIT = -1L;
+    // algorithms
+    public static final String ALGORITHM_BFS = "breadth_first_search";
+    public static final String ALGORITHM_DFS = "depth_first_search";
     protected static final Logger LOG = Log.logger(HugeTraverser.class);
     protected static final int MAX_VERTICES = 10;
     private static CollectionFactory collectionFactory;
@@ -163,6 +169,17 @@ public class HugeTraverser {
                             "but got skipped degree '%s' and max degree '%s'",
                             skipDegree, degree);
         }
+    }
+
+    public static void checkAlgorithm(String algorithm) {
+        E.checkArgument(algorithm.compareToIgnoreCase(ALGORITHM_BFS) == 0 ||
+                        algorithm.compareToIgnoreCase(ALGORITHM_DFS) == 0,
+                        "The algorithm must be one of '%s' or '%s', but got '%s'",
+                        ALGORITHM_BFS, ALGORITHM_DFS, algorithm);
+    }
+
+    public static boolean isDFSAlgorithm(String algorithm) {
+        return algorithm.compareToIgnoreCase(ALGORITHM_DFS) == 0;
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
@@ -271,6 +288,15 @@ public class HugeTraverser {
         // Append other path behind self path
         path.addAll(backPath);
         return path;
+    }
+
+    public static List<HugeEdge> getPathEdges(Iterator<Edge> iterator, HugeEdge edge) {
+        List<HugeEdge> edges = new ArrayList<>();
+        if (iterator instanceof NestedIterator) {
+            edges = ((NestedIterator) iterator).getPathEdges();
+        }
+        edges.add(edge);
+        return edges;
     }
 
     public HugeGraph graph() {
@@ -598,6 +624,21 @@ public class HugeTraverser {
             throw new IllegalArgumentException(String.format(
                     "The %s with id '%s' does not exist", name, vertexId), e);
         }
+    }
+
+    public Iterator<Edge> createNestedIterator(Id sourceV, Steps steps,
+                                               int depth, Set<Id> visited, boolean nearest) {
+        E.checkArgument(depth > 0,
+                        "The depth should large than 0 for nested iterator");
+
+        visited.add(sourceV);
+
+        // build a chained iterator path with length of depth
+        Iterator<Edge> iterator = this.edgesOfVertex(sourceV, steps);
+        for (int i = 1; i < depth; i++) {
+            iterator = new NestedIterator(this, iterator, steps, visited, nearest);
+        }
+        return iterator;
     }
 
     public static class Node {
@@ -964,5 +1005,166 @@ public class HugeTraverser {
             return edges;
         }
 
+    }
+
+    public static class NestedIterator extends WrappedIterator<Edge> {
+
+        private final int MAX_CACHED_COUNT = 1000;
+        /*
+         * Set<Id> visited: visited vertex-ids of all parent-tree
+         * used to exclude visited vertex
+         */
+        private final boolean nearest;
+        private final Set<Id> visited;
+        private final int MAX_VISITED_COUNT = 100000;
+
+        // cache for edges, initial capacity to avoid memory fragment
+        private final List<HugeEdge> cache;
+        private final Map<Long, Integer> parentEdgePointerMap;
+
+        private final Iterator<Edge> parentIterator;
+        private final HugeTraverser traverser;
+        private final Steps steps;
+        private final ObjectIntMapping<Id> idMapping;
+        private HugeEdge currentEdge;
+        private int cachePointer;
+        private Iterator<Edge> currentIterator;
+
+        public NestedIterator(HugeTraverser traverser,
+                              Iterator<Edge> parentIterator,
+                              Steps steps,
+                              Set<Id> visited,
+                              boolean nearest) {
+            this.traverser = traverser;
+            this.parentIterator = parentIterator;
+            this.steps = steps;
+            this.visited = visited;
+            this.nearest = nearest;
+
+            this.cache = new ArrayList<>(MAX_CACHED_COUNT);
+            this.parentEdgePointerMap = new HashMap<>();
+
+            this.cachePointer = 0;
+            this.currentEdge = null;
+            this.currentIterator = null;
+
+            this.idMapping = ObjectIntMappingFactory.newObjectIntMapping(false);
+        }
+
+        private static Long makeVertexPairIndex(int source, int target) {
+            return ((long) source & 0xFFFFFFFFL) |
+                   (((long) target << 32) & 0xFFFFFFFF00000000L);
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (this.currentIterator == null || !this.currentIterator.hasNext()) {
+                return fetch();
+            }
+            return true;
+        }
+
+        @Override
+        public Edge next() {
+            return this.currentIterator.next();
+        }
+
+        @Override
+        protected Iterator<?> originIterator() {
+            return this.parentIterator;
+        }
+
+        @Override
+        protected boolean fetch() {
+            while (this.currentIterator == null || !this.currentIterator.hasNext()) {
+                if (this.currentIterator != null) {
+                    this.currentIterator = null;
+                }
+
+                if (this.cache.size() == this.cachePointer && !this.fillCache()) {
+                    return false;
+                }
+
+                this.currentEdge = this.cache.get(this.cachePointer);
+                this.cachePointer++;
+                this.currentIterator =
+                        traverser.edgesOfVertex(this.currentEdge.id().otherVertexId(), steps);
+
+            }
+            return true;
+        }
+
+        private boolean fillCache() {
+            // fill cache from parent
+            while (this.parentIterator.hasNext() && this.cache.size() < MAX_CACHED_COUNT) {
+                HugeEdge edge = (HugeEdge) this.parentIterator.next();
+                Id vertexId = edge.id().otherVertexId();
+
+                this.traverser.edgeIterCounter.addAndGet(1L);
+
+                if (!this.nearest || !this.visited.contains(vertexId)) {
+                    // update parent edge cache pointer
+                    int parentEdgePointer = -1;
+                    if (this.parentIterator instanceof NestedIterator) {
+                        parentEdgePointer =
+                                ((NestedIterator) this.parentIterator).currentEdgePointer();
+                    }
+
+                    this.parentEdgePointerMap.put(makeEdgeIndex(edge), parentEdgePointer);
+
+                    this.cache.add(edge);
+                    if (this.visited.size() < MAX_VISITED_COUNT) {
+                        this.visited.add(vertexId);
+                    }
+                }
+            }
+            return this.cache.size() > this.cachePointer;
+        }
+
+        public List<HugeEdge> getPathEdges() {
+            List<HugeEdge> edges = new ArrayList<>();
+            HugeEdge currentEdge = this.currentEdge;
+            if (this.parentIterator instanceof NestedIterator) {
+                NestedIterator parent = (NestedIterator) this.parentIterator;
+                int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(currentEdge));
+                edges.addAll(parent.getPathEdges(parentEdgePointer));
+            }
+            edges.add(currentEdge);
+            return edges;
+        }
+
+        private List<HugeEdge> getPathEdges(int edgePointer) {
+            List<HugeEdge> edges = new ArrayList<>();
+            HugeEdge edge = this.cache.get(edgePointer);
+            if (this.parentIterator instanceof NestedIterator) {
+                NestedIterator parent = (NestedIterator) this.parentIterator;
+                int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(edge));
+                edges.addAll(parent.getPathEdges(parentEdgePointer));
+            }
+            edges.add(edge);
+            return edges;
+        }
+
+        public int currentEdgePointer() {
+            return this.cachePointer - 1;
+        }
+
+        private Long makeEdgeIndex(HugeEdge edge) {
+            int sourceV = this.code(edge.id().ownerVertexId());
+            int targetV = this.code(edge.id().otherVertexId());
+            return makeVertexPairIndex(sourceV, targetV);
+        }
+
+        private int code(Id id) {
+            if (id.number()) {
+                long l = id.asLong();
+                if (0 <= l && l <= Integer.MAX_VALUE) {
+                    return (int) l;
+                }
+            }
+            int code = this.idMapping.object2Code(id);
+            assert code > 0;
+            return -code;
+        }
     }
 }
