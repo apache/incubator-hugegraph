@@ -153,6 +153,17 @@
             <artifactId>swagger-jaxrs2-jakarta</artifactId>
             <version>2.1.9</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.taobao.arthas</groupId>
+            <artifactId>arthas-agent-attach</artifactId>
+            <version>3.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.taobao.arthas</groupId>
+            <artifactId>arthas-packaging</artifactId>
+            <version>3.6.4</version>
+        </dependency>
     </dependencies>
 
     <build>
