@@ -27,6 +27,8 @@ If you want to pre-load some data or graphs in container, you can set the env `P
 
 If you want to customize the pre-loaded data, please mount the the groovy scripts (not necessary).
 
+
+
 1. Using docker run
 
     Use `docker run -itd --name=graph -p 18080:8080 -e PRELOAD=true -v /yourscript:/hugegraph/scripts/example.groovy hugegraph/hugegraph` to start hugegraph server.
@@ -47,3 +49,7 @@ If you want to customize the pre-loaded data, please mount the the groovy script
         ports:
           - 18080:8080
     ```
+
+3. Using start-hugegraph.sh
+
+    If you deploy HugeGraph server without docker, you can also pass arguments using `-p`, like this: `bin/start-hugegraph.sh -p true`.
