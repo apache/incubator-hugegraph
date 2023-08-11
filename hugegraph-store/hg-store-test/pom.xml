@@ -20,7 +20,7 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>hugegraph-store-root</artifactId>
+        <artifactId>hugegraph-store</artifactId>
         <groupId>org.apache.hugegraph</groupId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
@@ -133,10 +133,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context-support</artifactId>
+            <version>5.3.20</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
+            <version>5.3.20</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -152,6 +154,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <version>2.5.14</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
@@ -203,11 +206,20 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hugegraph-store</artifactId>
+            <artifactId>hg-store-node</artifactId>
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
-
+        <!-- TODO: import through system dependency approach is just a temporal solution -->
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-core</artifactId>
+            <version>${hugegraph.core.version}</version>
+            <scope>system</scope>
+            <systemPath>
+                ${top.level.dir}/hg-store-dist/src/assembly/ext-lib/hugegraph-core-1.5.0.jar
+            </systemPath>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -333,15 +345,4 @@
             </resource>
         </resources>
     </build>
-    <distributionManagement>
-        <repository>
-            <id>Baidu_Local</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local</url>
-        </repository>
-        <snapshotRepository>
-            <id>Baidu_Local_Snapshots</id>
-            <url>http://maven.baidu-int.com/nexus/content/repositories/Baidu_Local_Snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
 </project>
