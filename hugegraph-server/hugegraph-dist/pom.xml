@@ -183,12 +183,13 @@
                                 <echo file="${project.basedir}/dist.sh">
                                     wget --version 1>/dev/null || exit
                                     wget https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz
-                                    tar zxvf v4.15.5.tar.gz
+                                    tar zxf v4.15.5.tar.gz
                                     echo "window.onload = function() { window.ui = SwaggerUIBundle({
                                     url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
                                     presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
                                     plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
                                     cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
+                                    rm -rfv swagger-ui-4.15.5 dist.sh
                                 </echo>
                                 <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
                                     <arg line="./dist.sh"/>
