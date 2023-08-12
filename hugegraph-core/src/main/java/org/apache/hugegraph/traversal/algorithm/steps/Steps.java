@@ -145,19 +145,6 @@ public class Steps {
         return this.vertexSteps.isEmpty();
     }
 
-    public boolean isEdgeStepPropertiesEmpty() {
-        if (this.edgeSteps.isEmpty()) {
-            return true;
-        }
-        for (Map.Entry<Id, StepEntity> entry : this.edgeSteps.entrySet()) {
-            Map<Id, Object> properties = entry.getValue().getProperties();
-            if (properties != null && !properties.isEmpty()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public String toString() {
         return "Steps{" +

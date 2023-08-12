@@ -536,19 +536,19 @@ public class HugeTraverser {
 
     private Map<Id, ConditionQuery> getElementFilterQuery(
             Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
-        Map<Id, ConditionQuery> vertexConditions = new HashMap<>();
+        Map<Id, ConditionQuery> conditions = new HashMap<>();
         for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
             Steps.StepEntity stepEntity = entry.getValue();
             if (stepEntity.getProperties() != null && !stepEntity.getProperties().isEmpty()) {
                 ConditionQuery cq = new ConditionQuery(type);
                 Map<Id, Object> properties = stepEntity.getProperties();
                 TraversalUtil.fillConditionQuery(cq, properties, this.graph);
-                vertexConditions.put(entry.getKey(), cq);
+                conditions.put(entry.getKey(), cq);
             } else {
-                vertexConditions.put(entry.getKey(), null);
+                conditions.put(entry.getKey(), null);
             }
         }
-        return vertexConditions;
+        return conditions;
     }
 
     private void fillFilterBySortKeys(Query query, Id[] edgeLabels,
