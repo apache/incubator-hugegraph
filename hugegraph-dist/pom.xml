@@ -179,21 +179,42 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <tasks>
-                                <echo file="${project.basedir}/dist.sh">
-                                    wget --version 1>/dev/null || exit
-                                    wget https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz
-                                    tar zxvf v4.15.5.tar.gz
-                                    echo "window.onload = function() { window.ui = SwaggerUIBundle({
-                                    url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
-                                    presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
-                                    plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
-                                    cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
-                                </echo>
-                                <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
-                                    <arg line="./dist.sh"/>
-                                </exec>
-                            </tasks>
+                            <target>
+                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
+                                         classpathref="maven.plugin.classpath"/>
+                                <if>
+                                    <contains string="${os.name}" substring="Linux"/>
+                                    <then>
+                                        <echo file="${project.basedir}/dist.sh">
+                                            <![CDATA[
+curl --version >/dev/null || exit
+# TODO: perhaps it's necessary verify the checksum before reusing the existing v4.15.5.tar.gz
+if [ ! -f v4.15.5.tar.gz ]; then
+    curl -s -S -L -o v4.15.5.tar.gz \
+    https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz
+fi
+tar zxf v4.15.5.tar.gz -C . > /dev/null 2>&1
+echo "window.onload = function() { window.ui = SwaggerUIBundle({
+url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
+presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
+plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
+cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
+rm -rf dist.sh swagger-ui-4.15.5
+]]>
+                                        </echo>
+                                        <exec executable="${shell-executable}"
+                                              dir="${project.basedir}"
+                                              failonerror="true">
+                                            <arg line="./dist.sh"/>
+                                        </exec>
+                                    </then>
+                                    <else>
+                                        <!-- WARN: keep msg in one line -->
+                                        <echo
+                                            message="We only download swagger-ui in Linux env, you could check pom.xml in hugegraph-dist to modify it"/>
+                                    </else>
+                                </if>
+                            </target>
                         </configuration>
                     </execution>
                     <execution>
@@ -212,6 +233,19 @@
                         </configuration>
                     </execution>
                 </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>ant-contrib</groupId>
+                        <artifactId>ant-contrib</artifactId>
+                        <version>1.0b3</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>ant</groupId>
+                                <artifactId>ant</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
