@@ -101,8 +101,7 @@ public class FusiformSimilarityAPI extends API {
         E.checkArgument(sources != null && sources.hasNext(),
                         "The source vertices can't be empty");
 
-        FusiformSimilarityTraverser traverser =
-                new FusiformSimilarityTraverser(g);
+        FusiformSimilarityTraverser traverser = new FusiformSimilarityTraverser(g);
         SimilarsMap result = traverser.fusiformSimilarity(
                 sources, request.direction, request.label,
                 request.minNeighbors, request.alpha,

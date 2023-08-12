@@ -81,7 +81,7 @@ public class WeightedShortestPathAPI extends API {
         LOG.debug("Graph [{}] get weighted shortest path between '{}' and " +
                   "'{}' with direction {}, edge label {}, weight property {}, " +
                   "max degree '{}', skip degree '{}', capacity '{}', " +
-                  "with vertex '{}' and with edge '{}'",
+                  "with_vertex '{}' and with_edge '{}'",
                   graph, source, target, direction, edgeLabel, weight,
                   maxDegree, skipDegree, capacity, withVertex, withEdge);
 

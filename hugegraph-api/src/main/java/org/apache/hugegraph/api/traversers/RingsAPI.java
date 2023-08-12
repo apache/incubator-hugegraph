@@ -81,7 +81,7 @@ public class RingsAPI extends API {
         LOG.debug("Graph [{}] get rings paths reachable from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "source in ring '{}', max degree '{}', capacity '{}', " +
-                  "limit '{}', with vertex '{}' and with edge '{}'",
+                  "limit '{}', with_vertex '{}' and with_edge '{}'",
                   graph, sourceV, direction, edgeLabel, depth, sourceInRing,
                   maxDegree, capacity, limit, withVertex, withEdge);
 

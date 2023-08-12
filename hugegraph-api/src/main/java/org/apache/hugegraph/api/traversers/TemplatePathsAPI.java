@@ -90,7 +90,7 @@ public class TemplatePathsAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get template paths from source vertices '{}', " +
                   "target vertices '{}', with steps '{}', " +
-                  "capacity '{}', limit '{}', with vertex '{}' and with edge '{}'",
+                  "capacity '{}', limit '{}', with_vertex '{}' and with_edge '{}'",
                   graph, request.sources, request.targets, request.steps,
                   request.capacity, request.limit, request.withVertex, request.withEdge);
 

@@ -81,7 +81,7 @@ public class ShortestPathAPI extends API {
         LOG.debug("Graph [{}] get shortest path from '{}', to '{}' with " +
                   "direction {}, edge label {}, max depth '{}', " +
                   "max degree '{}', skipped maxDegree '{}', capacity '{}', " +
-                  "with vertex '{}' and with edge '{}'",
+                  "with_vertex '{}' and with_edge '{}'",
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, skipDegree, capacity, withVertex, withEdge);
 

@@ -110,8 +110,8 @@ public class KoutAPI extends TraverserAPI {
         }
 
         if (count_only) {
-            return manager.serializer(g, measure.measures()).writeMap(ImmutableMap.of(
-                    "vertices_size", ids.size()));
+            return manager.serializer(g, measure.measures())
+                          .writeMap(ImmutableMap.of("vertices_size", ids.size()));
         }
         return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
@@ -130,7 +130,7 @@ public class KoutAPI extends TraverserAPI {
                         "The steps of request can't be null");
         if (request.countOnly) {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
-                            "Can't return vertex or path or edge when count only");
+                            "Can't return vertex, edge or path when count only");
         }
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
@@ -193,7 +193,7 @@ public class KoutAPI extends TraverserAPI {
 
         Iterator<?> iterEdge = Collections.emptyIterator();
         if (request.withPath) {
-            Set<Edge> edges = results.getEdgeIdRecord().getEdges(paths);
+            Set<Edge> edges = results.edgeResults().getEdges(paths);
             if (request.withEdge) {
                 iterEdge = edges.iterator();
             } else {
@@ -226,7 +226,6 @@ public class KoutAPI extends TraverserAPI {
         public boolean withVertex = false;
         @JsonProperty("with_path")
         public boolean withPath = false;
-
         @JsonProperty("with_edge")
         public boolean withEdge = false;
 

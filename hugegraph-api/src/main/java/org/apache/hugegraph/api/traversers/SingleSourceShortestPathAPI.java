@@ -80,7 +80,7 @@ public class SingleSourceShortestPathAPI extends API {
         LOG.debug("Graph [{}] get single source shortest path from '{}' " +
                   "with direction {}, edge label {}, weight property {}, " +
                   "max degree '{}', capacity '{}', limit '{}', " +
-                  "with vertex '{}' and with edge '{}'",
+                  "with_vertex '{}' and with_edge '{}'",
                   graph, source, direction, edgeLabel,
                   weight, maxDegree, capacity, limit, withVertex, withEdge);
 

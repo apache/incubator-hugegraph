@@ -65,10 +65,10 @@ public class CustomizedPathsAPI extends API {
     private static final Logger LOG = Log.logger(CustomizedPathsAPI.class);
 
     private static List<WeightedEdgeStep> step(HugeGraph graph,
-                                               PathRequest req) {
-        int stepSize = req.steps.size();
+                                               PathRequest request) {
+        int stepSize = request.steps.size();
         List<WeightedEdgeStep> steps = new ArrayList<>(stepSize);
-        for (Step step : req.steps) {
+        for (Step step : request.steps) {
             steps.add(step.jsonToStep(graph));
         }
         return steps;
@@ -92,7 +92,7 @@ public class CustomizedPathsAPI extends API {
 
         LOG.debug("Graph [{}] get customized paths from source vertex '{}', " +
                   "with steps '{}', sort by '{}', capacity '{}', limit '{}', " +
-                  "with vertex '{}' and with edge '{}'", graph, request.sources, request.steps,
+                  "with_vertex '{}' and with_edge '{}'", graph, request.sources, request.steps,
                   request.sortBy, request.capacity, request.limit,
                   request.withVertex, request.withEdge);
 
@@ -129,7 +129,7 @@ public class CustomizedPathsAPI extends API {
         }
 
         Iterator<?> iterEdge;
-        Set<Edge> edges = traverser.getEdgeRecord().getEdges(paths);
+        Set<Edge> edges = traverser.edgeResults().getEdges(paths);
         if (request.withEdge && !edges.isEmpty()) {
             iterEdge = edges.iterator();
         } else {

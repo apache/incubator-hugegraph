@@ -94,8 +94,8 @@ public class CustomizedCrosspointsAPI extends API {
                         "The steps of crosspoints request can't be empty");
 
         LOG.debug("Graph [{}] get customized crosspoints from source vertex " +
-                  "'{}', with path_pattern '{}', with path '{}', with vertex " +
-                  "'{}', capacity '{}', limit '{}' and with edge '{}'",
+                  "'{}', with path_pattern '{}', with path '{}', with_vertex " +
+                  "'{}', capacity '{}', limit '{}' and with_edge '{}'",
                   graph, request.sources, request.pathPatterns, request.withPath,
                   request.withVertex, request.capacity, request.limit, request.withEdge);
 

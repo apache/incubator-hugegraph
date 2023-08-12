@@ -125,7 +125,7 @@ public class PathsAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get paths from source vertices '{}', target " +
                   "vertices '{}', with step '{}', max depth '{}', " +
-                  "capacity '{}', limit '{}', with vertex '{}' and with edge '{}'",
+                  "capacity '{}', limit '{}', with_vertex '{}' and with_edge '{}'",
                   graph, request.sources, request.targets, request.step,
                   request.depth, request.capacity, request.limit,
                   request.withVertex, request.withEdge);

@@ -124,7 +124,7 @@ public class KneighborAPI extends TraverserAPI {
                         "The steps of request can't be null");
         if (request.countOnly) {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
-                            "Can't return vertex or path or edge when count only");
+                            "Can't return vertex, edge or path when count only");
         }
 
         LOG.debug("Graph [{}] get customized kneighbor from source vertex " +
@@ -185,7 +185,7 @@ public class KneighborAPI extends TraverserAPI {
 
         Iterator<?> iterEdge = Collections.emptyIterator();
         if (request.withPath) {
-            Set<Edge> edges = results.getEdgeIdRecord().getEdges(paths);
+            Set<Edge> edges = results.edgeResults().getEdges(paths);
             if (request.withEdge) {
                 iterEdge = edges.iterator();
             } else {
