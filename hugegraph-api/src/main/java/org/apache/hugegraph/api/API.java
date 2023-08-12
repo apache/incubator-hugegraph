@@ -48,21 +48,21 @@ public class API {
     public static final String TEXT_PLAIN = MediaType.TEXT_PLAIN;
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
-            APPLICATION_JSON + ";charset=" + CHARSET;
+                               APPLICATION_JSON + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
-            .getSubtype();
+                                               .getSubtype();
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
     public static final String ACTION_CLEAR = "clear";
     protected static final Logger LOG = Log.logger(API.class);
     private static final Meter SUCCEED_METER =
-            MetricsUtil.registerMeter(API.class, "commit-succeed");
+                         MetricsUtil.registerMeter(API.class, "commit-succeed");
     private static final Meter ILLEGAL_ARG_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "illegal-arg");
+                         MetricsUtil.registerMeter(API.class, "illegal-arg");
     private static final Meter EXPECTED_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "expected-error");
+                         MetricsUtil.registerMeter(API.class, "expected-error");
     private static final Meter UNKNOWN_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "unknown-error");
+                         MetricsUtil.registerMeter(API.class, "unknown-error");
 
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
@@ -224,6 +224,9 @@ public class API {
             } else if (current instanceof Long) {
                 Long currentLong = (Long) current;
                 measures.put(key, new MutableLong(currentLong + value));
+            } else {
+                throw new NotSupportedException("addCount() method's 'value' datatype must be " +
+                                                "Long or MutableLong");
             }
         }
 
