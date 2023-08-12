@@ -92,7 +92,7 @@ public class KneighborTraverser extends OltpTraverser {
                 Id target = edge.id().otherVertexId();
                 records.addPath(v, target);
 
-                records.getEdgeIdRecord().addEdge(v, target, edge);
+                records.edgeResults().addEdge(v, target, edge);
 
                 this.edgeIterCounter.addAndGet(1L);
             }

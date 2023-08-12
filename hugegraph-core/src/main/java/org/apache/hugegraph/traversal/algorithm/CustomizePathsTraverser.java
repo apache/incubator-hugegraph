@@ -38,11 +38,12 @@ import com.google.common.collect.ImmutableMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 
 public class CustomizePathsTraverser extends HugeTraverser {
-    private final EdgeRecord edgeRecord;
+
+    private final EdgeRecord edgeResults;
 
     public CustomizePathsTraverser(HugeGraph graph) {
         super(graph);
-        this.edgeRecord = new EdgeRecord(false);
+        this.edgeResults = new EdgeRecord(false);
     }
 
     public static List<Path> topNPath(List<Path> paths,
@@ -108,7 +109,7 @@ public class CustomizePathsTraverser extends HugeTraverser {
                     this.edgeIterCounter.addAndGet(1L);
                     Id target = edge.id().otherVertexId();
 
-                    this.edgeRecord.addEdge(entry.getKey(), target, edge);
+                    this.edgeResults.addEdge(entry.getKey(), target, edge);
 
                     for (Node n : entry.getValue()) {
                         // If have loop, skip target
@@ -171,8 +172,8 @@ public class CustomizePathsTraverser extends HugeTraverser {
         return paths;
     }
 
-    public EdgeRecord getEdgeRecord() {
-        return edgeRecord;
+    public EdgeRecord edgeResults() {
+        return edgeResults;
     }
 
     public static class WeightNode extends Node {

@@ -80,14 +80,14 @@ public class TemplatePathsTraverser extends HugeTraverser {
             traverser.forward();
             if (traverser.finished()) {
                 Set<Path> paths = traverser.paths();
-                return new WrappedPathSet(paths, traverser.edgeRecord.getEdges(paths));
+                return new WrappedPathSet(paths, traverser.edgeResults.getEdges(paths));
             }
 
             // Backward
             traverser.backward();
             if (traverser.finished()) {
                 Set<Path> paths = traverser.paths();
-                return new WrappedPathSet(paths, traverser.edgeRecord.getEdges(paths));
+                return new WrappedPathSet(paths, traverser.edgeResults.getEdges(paths));
             }
         } while (true);
     }

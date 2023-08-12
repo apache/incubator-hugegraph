@@ -133,7 +133,7 @@ public class CustomizedCrosspointsAPI extends API {
 
         Iterator<?> iterEdge = Collections.emptyIterator();
         if (request.withPath) {
-            Set<Edge> edges = traverser.getEdgeRecord().getEdges(paths.paths());
+            Set<Edge> edges = traverser.edgeResults().getEdges(paths.paths());
             if (request.withEdge) {
                 iterEdge = edges.iterator();
             } else {

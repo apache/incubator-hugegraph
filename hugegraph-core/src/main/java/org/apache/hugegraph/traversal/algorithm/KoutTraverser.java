@@ -124,7 +124,7 @@ public class KoutTraverser extends OltpTraverser {
                 records.addPath(v, target);
                 this.checkCapacity(capacity, records.accessed(), depth[0]);
 
-                records.getEdgeIdRecord().addEdge(v, target, edge);
+                records.edgeResults().addEdge(v, target, edge);
 
                 this.edgeIterCounter.addAndGet(1L);
             }

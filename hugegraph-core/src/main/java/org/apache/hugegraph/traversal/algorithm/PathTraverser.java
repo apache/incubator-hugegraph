@@ -28,6 +28,7 @@ import java.util.function.BiConsumer;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser.EdgeRecord;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -50,7 +51,7 @@ public abstract class PathTraverser {
     protected Set<HugeTraverser.Path> paths;
 
     protected TraverseStrategy traverseStrategy;
-    protected HugeTraverser.EdgeRecord edgeRecord;
+    protected EdgeRecord edgeResults;
 
     public PathTraverser(HugeTraverser traverser, TraverseStrategy strategy,
                          Collection<Id> sources, Collection<Id> targets,
@@ -79,7 +80,7 @@ public abstract class PathTraverser {
 
         this.paths = this.newPathSet();
 
-        this.edgeRecord = new HugeTraverser.EdgeRecord(concurrent);
+        this.edgeResults = new EdgeRecord(concurrent);
     }
 
     public void forward() {
@@ -148,7 +149,7 @@ public abstract class PathTraverser {
             Id target = edge.id().otherVertexId();
             this.traverser.edgeIterCounter.addAndGet(1L);
 
-            this.edgeRecord.addEdge(v, target, edge);
+            this.edgeResults.addEdge(v, target, edge);
 
             this.processOne(v, target, forward);
         }

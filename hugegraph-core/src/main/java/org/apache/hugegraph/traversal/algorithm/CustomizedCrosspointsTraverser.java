@@ -42,11 +42,11 @@ import jakarta.ws.rs.core.MultivaluedMap;
 
 public class CustomizedCrosspointsTraverser extends HugeTraverser {
 
-    private final EdgeRecord edgeRecord;
+    private final EdgeRecord edgeResults;
 
     public CustomizedCrosspointsTraverser(HugeGraph graph) {
         super(graph);
-        this.edgeRecord = new EdgeRecord(false);
+        this.edgeResults = new EdgeRecord(false);
     }
 
     private static CrosspointsPaths intersectionPaths(List<HugeVertex> sources,
@@ -98,8 +98,8 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
         return new CrosspointsPaths(newSet(intersection), results);
     }
 
-    public EdgeRecord getEdgeRecord() {
-        return edgeRecord;
+    public EdgeRecord edgeResults() {
+        return edgeResults;
     }
 
     public CrosspointsPaths crosspointsPaths(Iterator<Vertex> vertices,
@@ -143,7 +143,7 @@ public class CustomizedCrosspointsTraverser extends HugeTraverser {
                         edgeCount += 1;
                         Id target = edge.id().otherVertexId();
 
-                        this.edgeRecord.addEdge(entry.getKey(), target, edge);
+                        this.edgeResults.addEdge(entry.getKey(), target, edge);
 
                         for (Node n : entry.getValue()) {
                             // If have loop, skip target

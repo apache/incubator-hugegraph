@@ -84,14 +84,14 @@ public class CollectionPathsTraverser extends HugeTraverser {
             traverser.forward();
             if (traverser.finished()) {
                 Collection<Path> paths = traverser.paths();
-                return new WrappedPathCollection(paths, traverser.edgeRecord.getEdges(paths));
+                return new WrappedPathCollection(paths, traverser.edgeResults.getEdges(paths));
             }
 
             // Backward
             traverser.backward();
             if (traverser.finished()) {
                 Collection<Path> paths = traverser.paths();
-                return new WrappedPathCollection(paths, traverser.edgeRecord.getEdges(paths));
+                return new WrappedPathCollection(paths, traverser.edgeResults.getEdges(paths));
             }
         } while (true);
     }

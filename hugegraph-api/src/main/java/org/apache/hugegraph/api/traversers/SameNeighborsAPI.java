@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -139,6 +138,7 @@ public class SameNeighborsAPI extends API {
     }
 
     private static class Request {
+
         @JsonProperty("max_degree")
         public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
         @JsonProperty("limit")
@@ -154,16 +154,11 @@ public class SameNeighborsAPI extends API {
 
         @Override
         public String toString() {
-            ObjectMapper om = new ObjectMapper();
-            String vertexStr;
-            try {
-                vertexStr = om.writeValueAsString(this.vertexList);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            return String.format("SameNeighborsBatchRequest{vertex=%s,direction=%s,label=%s," +
-                                 "max_degree=%d,limit=%d,with_vertex=%s", vertexStr, this.direction,
-                                 this.labels, this.maxDegree, this.limit, this.withVertex);
+            return String.format("SameNeighborsBatchRequest{vertex_list=%s," +
+                                 "direction=%s,label=%s,max_degree=%d," +
+                                 "limit=%d,with_vertex=%s",
+                                 this.vertexList, this.direction, this.labels,
+                                 this.maxDegree, this.limit, this.withVertex);
         }
     }
 }
