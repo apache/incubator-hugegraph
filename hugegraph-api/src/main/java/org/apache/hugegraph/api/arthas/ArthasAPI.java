@@ -28,13 +28,12 @@ import com.codahale.metrics.annotation.Timed;
 import com.taobao.arthas.agent.attach.ArthasAgent;
 
 import jakarta.inject.Singleton;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("arthasstart")
+@Path("arthas")
 @Singleton
 public class ArthasAPI extends API {
 
@@ -44,16 +43,9 @@ public class ArthasAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Object arthasOp(@Context HttpServletRequest request) {
+    public Object arthasStart() {
         HugeConfig config = this.configProvider.get();
-        HashMap<String, String> configMap = new HashMap<>();
-        /*
-         * Default arthas configuration:
-         * telnetPort = "8562";
-         * httpPort = "8561";
-         * arthasip = "0.0.0.0";
-         * disCmd = "jad";
-         */
+        HashMap<String, String> configMap = new HashMap<>(4);
         configMap.put("arthas.telnetPort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
         configMap.put("arthas.httpPort", config.get(ServerOptions.ARTHAS_HTTP_PORT));
         configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
