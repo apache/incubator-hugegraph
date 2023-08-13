@@ -64,9 +64,9 @@ public class PaloStoreProvider extends MysqlStoreProvider {
          * [1.8] #295: support ttl for vertex and edge
          * [1.9] #1333: support read frequency for property key
          * [1.10] #1506: rename read frequency to write type
-         * [1.10] #1533: add meta table in system store
+         * [1.11] #1533: add meta table in system store
          */
-        return "1.10";
+        return "1.11";
     }
 
     public static class PaloSchemaStore extends PaloStore {
