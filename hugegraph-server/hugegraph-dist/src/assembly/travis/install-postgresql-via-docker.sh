@@ -18,7 +18,7 @@
 set -ev
 
 TRAVIS_DIR=$(dirname "$0")
-CONF=hugegraph-test/src/main/resources/hugegraph.properties
+CONF=hugegraph-server/hugegraph-test/src/main/resources/hugegraph.properties
 
 POSTGRESQL_DRIVER=org.postgresql.Driver
 POSTGRESQL_URL=jdbc:postgresql://localhost:5432/
