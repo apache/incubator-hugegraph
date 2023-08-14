@@ -185,30 +185,23 @@
                                 <if>
                                     <contains string="${os.name}" substring="Linux"/>
                                     <then>
-                                        <echo file="${project.basedir}/dist.sh">
-                                            <![CDATA[
-curl --version >/dev/null \
-    || { echo 'ERROR: Please install `curl` first if you need `swagger-ui`'; exit; }
-# TODO: perhaps it's necessary verify the checksum before reusing the existing v4.15.5.tar.gz
-if [ ! -f v4.15.5.tar.gz ]; then
-    curl -s -S -L -o v4.15.5.tar.gz \
-    https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz \
-    || { echo 'ERROR: Download `swagger-ui` failed, please check your network connection'; exit; }
-fi
-tar zxf v4.15.5.tar.gz -C . > /dev/null 2>&1
-echo "window.onload = function() { window.ui = SwaggerUIBundle({
-url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
-presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
-plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
-cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
-rm -rf dist.sh swagger-ui-4.15.5
-echo 'INFO: Successfully download `swagger-ui`'
-]]>
-                                        </echo>
                                         <exec executable="${shell-executable}"
                                               dir="${project.basedir}"
-                                              failonerror="true">
+                                              failonerror="false">
                                             <arg line="./dist.sh"/>
+                                        </exec>
+                                        <exec executable="cp"
+                                              dir="${project.basedir}"
+                                              failonerror="false">
+                                            <arg value="-r"/>
+                                            <arg value="swagger-ui/dist"/>
+                                            <arg value="../${final.name}/swagger-ui"/>
+                                        </exec>
+                                        <exec executable="rm"
+                                              dir="${project.basedir}"
+                                              failonerror="false">
+                                            <arg value="-rf"/>
+                                            <arg value="swagger-ui"/>
                                         </exec>
                                     </then>
                                     <else>
