@@ -78,19 +78,28 @@ public class CountTraverser extends HugeTraverser {
             });
         }
 
-        // The last step, just query count
-        EdgeStep lastStep = steps.get(stepNum - 1);
-        while (edges.hasNext()) {
-            Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-            if (this.dedup(target)) {
-                continue;
+        try {
+            // The last step, just query count
+            EdgeStep lastStep = steps.get(stepNum - 1);
+            while (edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                if (this.dedup(target)) {
+                    continue;
+                }
+                // Count last layer vertices(without dedup size)
+                long edgesCount = this.edgesCount(target, lastStep);
+                this.count.add(edgesCount);
             }
-            // Count last layer vertices(without dedup size)
-            long edgesCount = this.edgesCount(target, lastStep);
-            this.count.add(edgesCount);
-        }
 
-        return this.count.longValue();
+            return this.count.longValue();
+        } finally {
+            if (edges instanceof FlatMapperIterator) {
+                try {
+                    ((FlatMapperIterator<?, ?>)edges).close();
+                } catch (Exception ignored) {
+                }
+            }
+        }
     }
 
     private Iterator<Edge> edgesOfVertexWithCount(Id source, EdgeStep step) {
