@@ -50,26 +50,39 @@ public class HugeVertexStepByBatch<E extends Element>
         this.head = null;
         this.iterator = null;
     }
-
+    
+    private ExecutorService executorService = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors() *2);
     @Override
     protected Traverser.Admin<E> processNextStart() {
-        /* Override super.processNextStart() */
-        if (this.batchIterator == null) {
-            int batchSize = (int) Query.QUERY_BATCH;
-            this.batchIterator = new BatchMapperIterator<>(
-                                 batchSize, this.starts, this::flatMap);
+        while (true) {
+            if (this.iterator.hasNext()) {
+                return this.head.split(this.iterator.next(), this);
+            } else {
+                closeIterator();
+                this.head = this.starts.next();
+                this.iterator = this.flatMap(this.head);
+                List<Future<Iterator<E>>> futures = Lists.newArrayList();
+                while(this.starts.hasNext()){
+                    Traverser.Admin<Vertex> start = this.starts.next();
+                    Future<Iterator<E>> its = executorService.submit(()->{
+                        Iterator<E>  end = this.flatMap(start);
+                        return end;
+                    });
+                    futures.add(its);
+                }
+                try {
+                    for(Future<Iterator<E>> its: futures) {
+                        this.iterator = Iterators.concat(iterator, its.get());
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-
-        if (this.batchIterator.hasNext()) {
-            assert this.head != null;
-            E item = this.batchIterator.next();
-            // TODO: find the parent node accurately instead the head
-            return this.head.split(item, this);
-        }
-
-        throw FastNoSuchElementException.instance();
     }
-
     @Override
     public void reset() {
         super.reset();
