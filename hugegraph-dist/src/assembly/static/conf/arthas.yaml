@@ -1,9 +1,0 @@
-arthas:
-  # 通过 http 访问的端口
-  httpPort: 8561
-  # 通过 telnet 访问的端口
-  telnetPort: 8562
-  session-timeout: 1800
-  disabledCommands: jad
-  # 绑定的 ip
-  ip: 0.0.0.0
