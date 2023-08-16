@@ -31,6 +31,11 @@ JACOCO_PORT=36320
 
 mvn package -DskipTests -ntp
 
+ls
+
+ls $SERVER_DIR/
+
+ls $SERVER_DIR/conf/
 
 # add mysql dependency
 wget -P $SERVER_DIR/lib/ https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
