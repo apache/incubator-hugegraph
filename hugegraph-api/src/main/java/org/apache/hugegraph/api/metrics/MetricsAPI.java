@@ -19,9 +19,50 @@ package org.apache.hugegraph.api.metrics;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.hugegraph.metrics.MetricsUtil.COUNT_ATTR;
+import static org.apache.hugegraph.metrics.MetricsUtil.END_LSTR;
+import static org.apache.hugegraph.metrics.MetricsUtil.FIFT_MIN_RATE_ATRR;
+import static org.apache.hugegraph.metrics.MetricsUtil.FIVE_MIN_RATE_ATRR;
+import static org.apache.hugegraph.metrics.MetricsUtil.GAUGE_TYPE;
+import static org.apache.hugegraph.metrics.MetricsUtil.HISTOGRAM_TYPE;
+import static org.apache.hugegraph.metrics.MetricsUtil.MEAN_RATE_ATRR;
+import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
+import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
+import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUNTER;
+import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTER;
+import static org.apache.hugegraph.metrics.MetricsUtil.ONE_MIN_RATE_ATRR;
+import static org.apache.hugegraph.metrics.MetricsUtil.SPACE_STR;
+import static org.apache.hugegraph.metrics.MetricsUtil.STR_HELP;
+import static org.apache.hugegraph.metrics.MetricsUtil.STR_TYPE;
+import static org.apache.hugegraph.metrics.MetricsUtil.UNTYPED;
+import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshort;
+import static org.apache.hugegraph.metrics.MetricsUtil.replaceDotDashInKey;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.backend.store.BackendMetrics;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.metrics.MetricsKeys;
+import org.apache.hugegraph.metrics.MetricsModule;
+import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.metrics.ServerReporter;
+import org.apache.hugegraph.metrics.SystemMetrics;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.version.ApiVersion;
+import org.apache.tinkerpop.gremlin.server.util.MetricManager;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.annotation.Timed;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -29,22 +70,8 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.metrics.MetricsModule;
-import org.apache.hugegraph.metrics.ServerReporter;
-import org.apache.hugegraph.metrics.SystemMetrics;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.backend.store.BackendMetrics;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.Metric;
-import com.codahale.metrics.annotation.Timed;
 
 @Singleton
 @Path("metrics")
@@ -53,11 +80,13 @@ public class MetricsAPI extends API {
 
     private static final Logger LOG = Log.logger(MetricsAPI.class);
 
-    private SystemMetrics systemMetrics;
+    private static final String JSON_STR = "json";
 
     static {
         JsonUtil.registerModule(new MetricsModule(SECONDS, MILLISECONDS, false));
     }
+
+    private final SystemMetrics systemMetrics;
 
     public MetricsAPI() {
         this.systemMetrics = new SystemMetrics();
@@ -94,10 +123,6 @@ public class MetricsAPI extends API {
         return JsonUtil.toJson(results);
     }
 
-    @GET
-    @Timed
-    @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String all() {
         ServerReporter reporter = ServerReporter.instance();
         Map<String, Map<String, ? extends Metric>> result = new LinkedHashMap<>();
@@ -158,4 +183,205 @@ public class MetricsAPI extends API {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.timers());
     }
+
+
+    @GET
+    @Timed
+    @Produces(APPLICATION_TEXT_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    public String all(@Context GraphManager manager,
+                      @QueryParam("type") String type) {
+
+        if (type != null && type.equals(JSON_STR)) {
+            return all();
+        } else {
+            return prometheusAll();
+        }
+    }
+
+    @GET
+    @Path("statistics")
+    @Timed
+    @Produces(APPLICATION_TEXT_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    public String statistics(@Context GraphManager manager) {
+        return statistics();
+    }
+
+
+    private String prometheusAll() {
+
+        StringBuilder promMetric = new StringBuilder();
+        ServerReporter reporter = ServerReporter.instance();
+        String helpName = "hugegraph_info";
+        //version
+        promMetric.append(STR_HELP)
+                  .append(helpName).append(END_LSTR);
+        promMetric.append(STR_TYPE)
+                  .append(helpName)
+                  .append(SPACE_STR + UNTYPED + END_LSTR);
+        promMetric.append(helpName)
+                  .append("{version=\"")
+                  .append(ApiVersion.VERSION.toString()).append("\",}")
+                  .append(SPACE_STR + "1.0" + END_LSTR);
+
+        //gauges
+        for (String key : reporter.gauges().keySet()) {
+            final com.codahale.metrics.Gauge<?> gauge
+                    = reporter.gauges().get(key);
+            if (gauge != null) {
+                helpName = replaceDotDashInKey(key);
+                promMetric.append(STR_HELP)
+                          .append(helpName).append(END_LSTR);
+                promMetric.append(STR_TYPE)
+                          .append(helpName).append(SPACE_STR + GAUGE_TYPE + END_LSTR);
+                promMetric.append(helpName)
+                          .append(SPACE_STR + gauge.getValue() + END_LSTR);
+            }
+        }
+
+        //histograms
+        for (String histogramkey : reporter.histograms().keySet()) {
+            final Histogram histogram = reporter.histograms().get(histogramkey);
+            if (histogram != null) {
+                helpName = replaceDotDashInKey(histogramkey);
+                promMetric.append(STR_HELP)
+                          .append(helpName).append(END_LSTR);
+                promMetric.append(STR_TYPE)
+                          .append(helpName)
+                          .append(SPACE_STR + HISTOGRAM_TYPE + END_LSTR);
+
+                promMetric.append(helpName)
+                          .append(COUNT_ATTR)
+                          .append(histogram.getCount() + END_LSTR);
+                promMetric.append(
+                        exportSnapshort(helpName, histogram.getSnapshot()));
+            }
+        }
+
+
+        //meters
+        for (String meterkey : reporter.meters().keySet()) {
+            final Meter metric = reporter.meters().get(meterkey);
+            if (metric != null) {
+                helpName = replaceDotDashInKey(meterkey);
+                promMetric.append(STR_HELP)
+                          .append(helpName).append(END_LSTR);
+                promMetric.append(STR_TYPE)
+                          .append(helpName)
+                          .append(SPACE_STR + HISTOGRAM_TYPE + END_LSTR);
+
+                promMetric.append(helpName)
+                          .append(COUNT_ATTR)
+                          .append(metric.getCount() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(MEAN_RATE_ATRR)
+                          .append(metric.getMeanRate() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(ONE_MIN_RATE_ATRR)
+                          .append(metric.getOneMinuteRate() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(FIVE_MIN_RATE_ATRR)
+                          .append(metric.getFiveMinuteRate() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(FIFT_MIN_RATE_ATRR)
+                          .append(metric.getFifteenMinuteRate() + END_LSTR);
+            }
+        }
+
+        //timer
+        for (String timerkey : reporter.timers().keySet()) {
+            final com.codahale.metrics.Timer timer = reporter.timers()
+                                                             .get(timerkey);
+            if (timer != null) {
+                helpName = replaceDotDashInKey(timerkey);
+                promMetric.append(STR_HELP)
+                          .append(helpName).append(END_LSTR);
+                promMetric.append(STR_TYPE)
+                          .append(helpName)
+                          .append(SPACE_STR + HISTOGRAM_TYPE + END_LSTR);
+
+                promMetric.append(helpName)
+                          .append(COUNT_ATTR)
+                          .append(timer.getCount() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(ONE_MIN_RATE_ATRR)
+                          .append(timer.getOneMinuteRate() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(FIVE_MIN_RATE_ATRR)
+                          .append(timer.getFiveMinuteRate() + END_LSTR);
+                promMetric.append(helpName)
+                          .append(FIFT_MIN_RATE_ATRR)
+                          .append(timer.getFifteenMinuteRate() + END_LSTR);
+                promMetric.append(
+                        exportSnapshort(helpName, timer.getSnapshot()));
+            }
+        }
+
+        MetricsUtil.writePrometheus(promMetric,
+                                    MetricManager.INSTANCE.getRegistry());
+
+        return promMetric.toString();
+    }
+
+
+    private String statistics() {
+        HashMap<String, Object> metricsMap = new HashMap<>();
+        ServerReporter reporter = ServerReporter.instance();
+        for (Map.Entry<String, Histogram> entry : reporter.histograms().entrySet()) {
+            // entryKey = path/method/responseTimeHistogram
+            String entryKey = entry.getKey();
+            String[] split = entryKey.split("/");
+            String lastWord = split[split.length - 1];
+            if (!lastWord.equals(METRICS_PATH_RESPONSE_TIME_HISTOGRAM)) {
+                // original metrics dont report
+                continue;
+            }
+            // metricsName = path/method
+            String metricsName =
+                    entryKey.substring(0, entryKey.length() - lastWord.length() - 1);
+
+            Counter totalCounter = reporter.counters().get(
+                    join(metricsName, METRICS_PATH_TOTAL_COUNTER));
+            Counter failedCounter = reporter.counters().get(
+                    join(metricsName, METRICS_PATH_FAILED_COUNTER));
+            Counter successCounter = reporter.counters().get(
+                    join(metricsName, METRICS_PATH_SUCCESS_COUNTER));
+
+
+            Histogram histogram = entry.getValue();
+            HashMap<String, Object> entryMetricsMap = new HashMap<>();
+            entryMetricsMap.put(MetricsKeys.MAX_RESPONSE_TIME.name(),
+                                histogram.getSnapshot().getMax());
+            entryMetricsMap.put(MetricsKeys.MEAN_RESPONSE_TIME.name(),
+                                histogram.getSnapshot().getMean());
+
+            entryMetricsMap.put(MetricsKeys.TOTAL_REQUEST.name(),
+                                totalCounter.getCount());
+
+            if (failedCounter == null) {
+                entryMetricsMap.put(MetricsKeys.FAILED_REQUEST.name(), 0);
+            } else {
+                entryMetricsMap.put(MetricsKeys.FAILED_REQUEST.name(),
+                                    failedCounter.getCount());
+            }
+
+            if (successCounter == null) {
+                entryMetricsMap.put(MetricsKeys.SUCCESS_REQUEST.name(), 0);
+            } else {
+                entryMetricsMap.put(MetricsKeys.SUCCESS_REQUEST.name(),
+                                    successCounter.getCount());
+            }
+
+            metricsMap.put(metricsName, entryMetricsMap);
+
+        }
+        return JsonUtil.toJson(metricsMap);
+    }
+
+    private String join(String path1, String path2) {
+        return String.join("/", path1, path2);
+    }
+
+
 }

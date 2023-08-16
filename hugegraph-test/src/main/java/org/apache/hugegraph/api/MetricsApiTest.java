@@ -17,16 +17,18 @@
 
 package org.apache.hugegraph.api;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
+import jakarta.ws.rs.core.Response;
 
 public class MetricsApiTest extends BaseApiTest {
 
-    private static String path = "/metrics";
+    private static final String path = "/metrics";
+    private static final String statistics_path = path + "/statistics";
 
     @Test
     public void testMetricsAll() {
@@ -38,6 +40,21 @@ public class MetricsApiTest extends BaseApiTest {
         assertJsonContains(result, "meters");
         assertJsonContains(result, "timers");
     }
+
+    @Test
+    public void testMetricsPromAll() {
+        Map<String, String> params = new HashMap<>();
+        params.put("type", "json");
+        Response r = client().get(path);
+        assertResponseStatus(200, r);
+    }
+
+    @Test
+    public void testStatisticsMetricsPromAll() {
+        Response r = client().get(statistics_path);
+        assertResponseStatus(200, r);
+    }
+
 
     @Test
     public void testMetricsSystem() {
@@ -102,8 +119,8 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
+                                              "Expect map value for key %s but got %s",
+                                              key, value),
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
@@ -165,8 +182,8 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
+                                              "Expect map value for key %s but got %s",
+                                              key, value),
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
@@ -234,8 +251,8 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
+                                              "Expect map value for key %s but got %s",
+                                              key, value),
                                       value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
                     assertMapContains(regionServer, "mem_max");
