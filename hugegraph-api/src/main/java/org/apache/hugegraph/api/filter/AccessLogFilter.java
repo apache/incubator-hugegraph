@@ -38,7 +38,6 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String path = requestContext.getUriInfo().getPath();
         String metricsName = join(path, method);
 
-        System.out.println("AccessLogFilter filter");
         MetricsUtil.registerCounter(
                            join(metricsName, METRICS_PATH_TOTAL_COUNTER))
                    .inc();

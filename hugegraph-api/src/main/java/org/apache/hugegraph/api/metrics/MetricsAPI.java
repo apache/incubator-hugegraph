@@ -25,18 +25,22 @@ import static org.apache.hugegraph.metrics.MetricsUtil.FIFT_MIN_RATE_ATRR;
 import static org.apache.hugegraph.metrics.MetricsUtil.FIVE_MIN_RATE_ATRR;
 import static org.apache.hugegraph.metrics.MetricsUtil.GAUGE_TYPE;
 import static org.apache.hugegraph.metrics.MetricsUtil.HISTOGRAM_TYPE;
+import static org.apache.hugegraph.metrics.MetricsUtil.LEFT_NAME_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.MEAN_RATE_ATRR;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.ONE_MIN_RATE_ATRR;
+import static org.apache.hugegraph.metrics.MetricsUtil.PROM_HELP_NAME;
+import static org.apache.hugegraph.metrics.MetricsUtil.RIGHT_NAME_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.SPACE_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_HELP;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_TYPE;
 import static org.apache.hugegraph.metrics.MetricsUtil.UNTYPED;
 import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshort;
 import static org.apache.hugegraph.metrics.MetricsUtil.replaceDotDashInKey;
+import static org.apache.hugegraph.metrics.MetricsUtil.replaceSlashInKey;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -123,16 +127,6 @@ public class MetricsAPI extends API {
         return JsonUtil.toJson(results);
     }
 
-    public String all() {
-        ServerReporter reporter = ServerReporter.instance();
-        Map<String, Map<String, ? extends Metric>> result = new LinkedHashMap<>();
-        result.put("gauges", reporter.gauges());
-        result.put("counters", reporter.counters());
-        result.put("histograms", reporter.histograms());
-        result.put("meters", reporter.meters());
-        result.put("timers", reporter.timers());
-        return JsonUtil.toJson(result);
-    }
 
     @GET
     @Timed
@@ -193,9 +187,9 @@ public class MetricsAPI extends API {
                       @QueryParam("type") String type) {
 
         if (type != null && type.equals(JSON_STR)) {
-            return all();
+            return baseMetricAll();
         } else {
-            return prometheusAll();
+            return baseMetricPrometheusAll();
         }
     }
 
@@ -204,12 +198,29 @@ public class MetricsAPI extends API {
     @Timed
     @Produces(APPLICATION_TEXT_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
-    public String statistics(@Context GraphManager manager) {
-        return statistics();
+    public String statistics(@QueryParam("type") String type) {
+        Map<String, Map<String, Object>> metricMap = statistics();
+
+        if (type != null && type.equals(JSON_STR)) {
+            return JsonUtil.toJson(metricMap);
+        }
+        return statisticsProm(metricMap);
+
     }
 
 
-    private String prometheusAll() {
+    public String baseMetricAll() {
+        ServerReporter reporter = ServerReporter.instance();
+        Map<String, Map<String, ? extends Metric>> result = new LinkedHashMap<>();
+        result.put("gauges", reporter.gauges());
+        result.put("counters", reporter.counters());
+        result.put("histograms", reporter.histograms());
+        result.put("meters", reporter.meters());
+        result.put("timers", reporter.timers());
+        return JsonUtil.toJson(result);
+    }
+
+    private String baseMetricPrometheusAll() {
 
         StringBuilder promMetric = new StringBuilder();
         ServerReporter reporter = ServerReporter.instance();
@@ -325,8 +336,8 @@ public class MetricsAPI extends API {
     }
 
 
-    private String statistics() {
-        HashMap<String, Object> metricsMap = new HashMap<>();
+    private Map<String, Map<String, Object>> statistics() {
+        Map<String, Map<String, Object>> metricsMap = new HashMap<>();
         ServerReporter reporter = ServerReporter.instance();
         for (Map.Entry<String, Histogram> entry : reporter.histograms().entrySet()) {
             // entryKey = path/method/responseTimeHistogram
@@ -342,15 +353,15 @@ public class MetricsAPI extends API {
                     entryKey.substring(0, entryKey.length() - lastWord.length() - 1);
 
             Counter totalCounter = reporter.counters().get(
-                    join(metricsName, METRICS_PATH_TOTAL_COUNTER));
+                    joinWithSlash(metricsName, METRICS_PATH_TOTAL_COUNTER));
             Counter failedCounter = reporter.counters().get(
-                    join(metricsName, METRICS_PATH_FAILED_COUNTER));
+                    joinWithSlash(metricsName, METRICS_PATH_FAILED_COUNTER));
             Counter successCounter = reporter.counters().get(
-                    join(metricsName, METRICS_PATH_SUCCESS_COUNTER));
+                    joinWithSlash(metricsName, METRICS_PATH_SUCCESS_COUNTER));
 
 
             Histogram histogram = entry.getValue();
-            HashMap<String, Object> entryMetricsMap = new HashMap<>();
+            Map<String, Object> entryMetricsMap = new HashMap<>();
             entryMetricsMap.put(MetricsKeys.MAX_RESPONSE_TIME.name(),
                                 histogram.getSnapshot().getMax());
             entryMetricsMap.put(MetricsKeys.MEAN_RESPONSE_TIME.name(),
@@ -376,10 +387,41 @@ public class MetricsAPI extends API {
             metricsMap.put(metricsName, entryMetricsMap);
 
         }
-        return JsonUtil.toJson(metricsMap);
+        return metricsMap;
     }
 
-    private String join(String path1, String path2) {
+
+    private String statisticsProm(Map<String, Map<String, Object>> metricMap) {
+        StringBuilder promMetric = new StringBuilder();
+
+        //version
+        promMetric.append(STR_HELP)
+                  .append(PROM_HELP_NAME).append(END_LSTR);
+        promMetric.append(STR_TYPE)
+                  .append(PROM_HELP_NAME)
+                  .append(SPACE_STR + UNTYPED + END_LSTR);
+        promMetric.append(PROM_HELP_NAME)
+                  .append("{version=\"")
+                  .append(ApiVersion.VERSION.toString()).append("\",}")
+                  .append(SPACE_STR + "1.0" + END_LSTR);
+
+        for (String methodKey : metricMap.keySet()) {
+            String metricName = replaceSlashInKey(methodKey);
+            promMetric.append(STR_HELP)
+                      .append(metricName).append(END_LSTR);
+            promMetric.append(STR_TYPE)
+                      .append(metricName).append(SPACE_STR + GAUGE_TYPE + END_LSTR);
+            Map<String, Object> itemMetricMap = metricMap.get(methodKey);
+            for (String labelName : itemMetricMap.keySet()) {
+                promMetric.append(metricName).append(LEFT_NAME_STR).append(labelName)
+                          .append(RIGHT_NAME_STR).append(itemMetricMap.get(labelName))
+                          .append(END_LSTR);
+            }
+        }
+        return promMetric.toString();
+    }
+
+    private String joinWithSlash(String path1, String path2) {
         return String.join("/", path1, path2);
     }
 

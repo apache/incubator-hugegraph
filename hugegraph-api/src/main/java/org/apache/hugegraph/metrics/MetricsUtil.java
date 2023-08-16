@@ -59,6 +59,11 @@ public class MetricsUtil {
     public static final String STDDEV_ATTR = "{name=\"stddev\",} ";
     public static final String P50_ATTR = "{name=\"p50\",} ";
 
+    public static final String LEFT_NAME_STR = "{name=";
+    public static final String RIGHT_NAME_STR = ",} ";
+    public static final String PROM_HELP_NAME = "hugegraph_info";
+
+
     public static <T> Gauge<T> registerGauge(Class<?> clazz, String name,
                                              Gauge<T> gauge) {
         return REGISTRY.register(MetricRegistry.name(clazz, name), gauge);
@@ -91,6 +96,10 @@ public class MetricsUtil {
 
     public static String replaceDotDashInKey(String orgKey) {
         return orgKey.replace(".", "_").replace("-", "_");
+    }
+
+    public static String replaceSlashInKey(String orgKey) {
+        return orgKey.replace("/", "_");
     }
 
     public static void writePrometheus(StringBuilder promeMetrics,
@@ -205,4 +214,6 @@ public class MetricsUtil {
         }
         return "";
     }
+
+
 }
