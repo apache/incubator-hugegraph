@@ -7,6 +7,8 @@ annotations-4.1.1.4.jar
 ansj_seg-5.1.6.jar
 antlr-runtime-3.5.2.jar
 aopalliance-repackaged-3.0.1.jar
+arthas-agent-attach-3.6.9.jar
+arthas-packaging-3.6.9.jar
 asm-5.0.4.jar
 asm-6.0.jar
 asm-analysis-5.0.3.jar
@@ -18,6 +20,7 @@ audience-annotations-0.5.0.jar
 bolt-1.6.4.jar
 byte-buddy-1.10.5.jar
 byte-buddy-agent-1.10.5.jar
+byte-buddy-agent-1.11.6.jar
 caffeine-2.2.6.jar
 caffeine-2.3.1.jar
 cassandra-all-3.11.12.jar
@@ -261,3 +264,4 @@ tracer-core-3.0.8.jar
 translation-1.0.4.jar
 util-9.0-9.0.20190305.jar
 validation-api-1.1.0.Final.jar
+zt-zip-1.14.jar
