@@ -90,7 +90,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
 
             assert (this.code(sourceV) == sourceCode);
 
-            this.getEdgeRecord().addEdge(sourceV, targetV, edge);
+            this.edgeResults().addEdge(sourceV, targetV, edge);
 
             targetCode = this.code(targetV);
             Record record = this.records().elementAt(i + 1);

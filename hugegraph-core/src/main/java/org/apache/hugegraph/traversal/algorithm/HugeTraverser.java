@@ -290,10 +290,10 @@ public class HugeTraverser {
         return path;
     }
 
-    public static List<HugeEdge> getPathEdges(Iterator<Edge> iterator, HugeEdge edge) {
+    public static List<HugeEdge> pathEdges(Iterator<Edge> iterator, HugeEdge edge) {
         List<HugeEdge> edges = new ArrayList<>();
         if (iterator instanceof NestedIterator) {
-            edges = ((NestedIterator) iterator).getPathEdges();
+            edges = ((NestedIterator) iterator).pathEdges();
         }
         edges.add(edge);
         return edges;
@@ -539,9 +539,9 @@ public class HugeTraverser {
         Map<Id, ConditionQuery> conditions = new HashMap<>();
         for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
             Steps.StepEntity stepEntity = entry.getValue();
-            if (stepEntity.getProperties() != null && !stepEntity.getProperties().isEmpty()) {
+            if (stepEntity.properties() != null && !stepEntity.properties().isEmpty()) {
                 ConditionQuery cq = new ConditionQuery(type);
-                Map<Id, Object> properties = stepEntity.getProperties();
+                Map<Id, Object> properties = stepEntity.properties();
                 TraversalUtil.fillConditionQuery(cq, properties, this.graph);
                 conditions.put(entry.getKey(), cq);
             } else {
@@ -1121,25 +1121,25 @@ public class HugeTraverser {
             return this.cache.size() > this.cachePointer;
         }
 
-        public List<HugeEdge> getPathEdges() {
+        public List<HugeEdge> pathEdges() {
             List<HugeEdge> edges = new ArrayList<>();
             HugeEdge currentEdge = this.currentEdge;
             if (this.parentIterator instanceof NestedIterator) {
                 NestedIterator parent = (NestedIterator) this.parentIterator;
                 int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(currentEdge));
-                edges.addAll(parent.getPathEdges(parentEdgePointer));
+                edges.addAll(parent.pathEdges(parentEdgePointer));
             }
             edges.add(currentEdge);
             return edges;
         }
 
-        private List<HugeEdge> getPathEdges(int edgePointer) {
+        private List<HugeEdge> pathEdges(int edgePointer) {
             List<HugeEdge> edges = new ArrayList<>();
             HugeEdge edge = this.cache.get(edgePointer);
             if (this.parentIterator instanceof NestedIterator) {
                 NestedIterator parent = (NestedIterator) this.parentIterator;
                 int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(edge));
-                edges.addAll(parent.getPathEdges(parentEdgePointer));
+                edges.addAll(parent.pathEdges(parentEdgePointer));
             }
             edges.add(edge);
             return edges;

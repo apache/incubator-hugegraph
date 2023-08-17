@@ -43,7 +43,6 @@ public class Steps {
     protected final long degree;
     protected final long skipDegree;
 
-
     public Steps(HugeGraph graph, Directions direction,
                  Map<String, Map<String, Object>> vSteps,
                  Map<String, Map<String, Object>> eSteps,
@@ -167,15 +166,15 @@ public class Steps {
             this.properties = properties;
         }
 
-        public Id getId() {
+        public Id id() {
             return id;
         }
 
-        public String getLabel() {
+        public String label() {
             return label;
         }
 
-        public Map<Id, Object> getProperties() {
+        public Map<Id, Object> properties() {
             return properties;
         }
 

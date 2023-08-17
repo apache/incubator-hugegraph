@@ -158,7 +158,7 @@ public class KoutTraverser extends OltpTraverser {
 
             Id target = edge.id().otherVertexId();
             if (!nearest || !all.contains(target)) {
-                records.addFullPath(HugeTraverser.getPathEdges(iterator, edge));
+                records.addFullPath(HugeTraverser.pathEdges(iterator, edge));
             }
 
             if (limit != NO_LIMIT && records.size() >= limit ||
