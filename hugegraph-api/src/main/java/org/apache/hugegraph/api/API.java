@@ -42,33 +42,37 @@ import jakarta.ws.rs.core.MediaType;
 
 public class API {
 
+    protected static final Logger LOG = Log.logger(API.class);
+
     public static final String CHARSET = "UTF-8";
+
     public static final String TEXT_PLAIN = MediaType.TEXT_PLAIN;
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
-            APPLICATION_JSON + ";charset=" + CHARSET;
+                               APPLICATION_JSON + ";charset=" + CHARSET;
     public static final String APPLICATION_TEXT_WITH_CHARSET =
             MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
-            .getSubtype();
+                                               .getSubtype();
+
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
     public static final String ACTION_CLEAR = "clear";
-    protected static final Logger LOG = Log.logger(API.class);
+
     private static final Meter SUCCEED_METER =
-            MetricsUtil.registerMeter(API.class, "commit-succeed");
+                         MetricsUtil.registerMeter(API.class, "commit-succeed");
     private static final Meter ILLEGAL_ARG_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "illegal-arg");
+                         MetricsUtil.registerMeter(API.class, "illegal-arg");
     private static final Meter EXPECTED_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "expected-error");
+                         MetricsUtil.registerMeter(API.class, "expected-error");
     private static final Meter UNKNOWN_ERROR_METER =
-            MetricsUtil.registerMeter(API.class, "unknown-error");
+                         MetricsUtil.registerMeter(API.class, "unknown-error");
 
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);
         if (g == null) {
             throw new NotFoundException(String.format(
-                    "Graph '%s' does not exist", graph));
+                      "Graph '%s' does not exist",  graph));
         }
         return g;
     }
@@ -95,7 +99,7 @@ public class API {
             SUCCEED_METER.mark();
             return result;
         } catch (IllegalArgumentException | NotFoundException |
-                ForbiddenException e) {
+                 ForbiddenException e) {
             ILLEGAL_ARG_ERROR_METER.mark();
             rollback.accept(null);
             throw e;
@@ -139,7 +143,7 @@ public class API {
     }
 
     protected static void checkCreatingBody(
-            Collection<? extends Checkable> bodies) {
+                          Collection<? extends Checkable> bodies) {
         E.checkArgumentNotNull(bodies, "The request body can't be empty");
         for (Checkable body : bodies) {
             E.checkArgument(body != null,
@@ -149,7 +153,7 @@ public class API {
     }
 
     protected static void checkUpdatingBody(
-            Collection<? extends Checkable> bodies) {
+                          Collection<? extends Checkable> bodies) {
         E.checkArgumentNotNull(bodies, "The request body can't be empty");
         for (Checkable body : bodies) {
             E.checkArgumentNotNull(body,
@@ -185,7 +189,7 @@ public class API {
             return false;
         } else {
             throw new NotSupportedException(
-                    String.format("Not support action '%s'", action));
+                      String.format("Not support action '%s'", action));
         }
     }
 }
