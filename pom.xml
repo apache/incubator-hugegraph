@@ -93,8 +93,8 @@
     </properties>
 
     <modules>
-        <module>hugegraph-server</module>
         <module>hugegraph-pd</module>
         <module>hugegraph-store</module>
+        <module>hugegraph-server</module>
     </modules>
 </project>

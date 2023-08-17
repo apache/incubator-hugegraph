@@ -162,7 +162,7 @@ public class HstoreTables {
             E.checkArgumentNotNull(min, "Range index begin key is missing");
             byte[] begin = min.asBytes();
             if (!minEq) {
-                begin = BinarySerializer.increaseOne(begin);
+                BinarySerializer.increaseOne(begin);
             }
             byte[] ownerStart = this.ownerScanDelegate.get();
             byte[] ownerEnd = this.ownerScanDelegate.get();

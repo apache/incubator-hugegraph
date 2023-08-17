@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.backend.store.hstore;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,22 +28,16 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.backend.query.IdPrefixQuery;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.backend.serializer.MergeIterator;
 import org.apache.hugegraph.backend.store.AbstractBackendStore;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -56,12 +49,10 @@ import org.apache.hugegraph.backend.store.hstore.HstoreSessions.Session;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.iterator.CIter;
-import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.type.HugeTableType;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.GraphMode;
-import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
@@ -74,11 +65,11 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     private static final Logger LOG = Log.logger(HstoreStore.class);
 
     private static final Set<HugeType> INDEX_TYPES = ImmutableSet.of(
-            HugeType.SECONDARY_INDEX, HugeType.VERTEX_LABEL_INDEX,
-            HugeType.EDGE_LABEL_INDEX, HugeType.RANGE_INT_INDEX,
-            HugeType.RANGE_FLOAT_INDEX, HugeType.RANGE_LONG_INDEX,
-            HugeType.RANGE_DOUBLE_INDEX, HugeType.SEARCH_INDEX,
-            HugeType.SHARD_INDEX, HugeType.UNIQUE_INDEX
+        HugeType.SECONDARY_INDEX, HugeType.VERTEX_LABEL_INDEX,
+        HugeType.EDGE_LABEL_INDEX, HugeType.RANGE_INT_INDEX,
+        HugeType.RANGE_FLOAT_INDEX, HugeType.RANGE_LONG_INDEX,
+        HugeType.RANGE_DOUBLE_INDEX, HugeType.SEARCH_INDEX,
+        HugeType.SHARD_INDEX, HugeType.UNIQUE_INDEX
     );
 
     private static final BackendFeatures FEATURES = new HstoreFeatures();
@@ -152,7 +143,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                        "Invalid type: %s", type));
+                    "Invalid type: %s", type));
         }
         return this.tables.get((int) table.code());
     }
@@ -297,8 +288,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                         break;
                     default:
                         throw new AssertionError(String.format(
-                                "Unsupported mutate action: %s",
-                                item.action()));
+                            "Unsupported mutate action: %s",
+                            item.action()));
                 }
             }
         }
@@ -338,160 +329,160 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     }
 
 
-    @Override
-    public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
-                                                  Function<Query, Query> queryWriter,
-                                                  HugeGraph hugeGraph) {
-        if (queries == null || !queries.hasNext()) {
-            return new LinkedList<Iterator<BackendEntry>>().iterator();
-        }
+    //@Override
+    //public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
+    //                                              Function<Query, Query> queryWriter,
+    //                                              HugeGraph hugeGraph) {
+    //    if (queries == null || !queries.hasNext()) {
+    //        return Collections.emptyIterator();
+    //    }
+    //
+    //    class QueryWrapper implements Iterator<IdPrefixQuery> {
+    //        Query first;
+    //        final Iterator<Query> queries;
+    //        Iterator<Id> subEls;
+    //        Query preQuery;
+    //        Iterator<IdPrefixQuery> queryListIterator;
+    //
+    //        QueryWrapper(Iterator<Query> queries, Query first) {
+    //            this.queries = queries;
+    //            this.first = first;
+    //        }
+    //
+    //        @Override
+    //        public boolean hasNext() {
+    //            return first != null || (this.subEls != null && this.subEls.hasNext())
+    //                   || (queryListIterator != null && queryListIterator.hasNext()) ||
+    //                   queries.hasNext();
+    //        }
+    //
+    //        @Override
+    //        public IdPrefixQuery next() {
+    //            if (queryListIterator != null && queryListIterator.hasNext()) {
+    //                return queryListIterator.next();
+    //            }
+    //
+    //            Query q;
+    //            if (first != null) {
+    //                q = first;
+    //                preQuery = q.copy();
+    //                first = null;
+    //            } else {
+    //                if (this.subEls == null || !this.subEls.hasNext()) {
+    //                    q = queries.next();
+    //                    preQuery = q.copy();
+    //                } else {
+    //                    q = preQuery.copy();
+    //                }
+    //            }
+    //
+    //            assert q instanceof ConditionQuery;
+    //            ConditionQuery cq = (ConditionQuery) q;
+    //            ConditionQuery originQuery = (ConditionQuery) q.copy();
+    //
+    //            List<IdPrefixQuery> queryList = Lists.newArrayList();
+    //            if (hugeGraph != null) {
+    //                for (ConditionQuery conditionQuery :
+    //                    ConditionQueryFlatten.flatten(cq)) {
+    //                    Id label = conditionQuery.condition(HugeKeys.LABEL);
+    //                 /* 父类型 + sortKeys： g.V("V.id").outE("parentLabel").has
+    //                 ("sortKey","value")转成 所有子类型 + sortKeys*/
+    //                    if ((this.subEls == null ||
+    //                         !this.subEls.hasNext()) && label != null &&
+    //                        hugeGraph.edgeLabel(label).isFather() &&
+    //                        conditionQuery.condition(HugeKeys.SUB_LABEL) ==
+    //                        null &&
+    //                        conditionQuery.condition(HugeKeys.OWNER_VERTEX) !=
+    //                        null &&
+    //                        conditionQuery.condition(HugeKeys.DIRECTION) !=
+    //                        null &&
+    //                        matchEdgeSortKeys(conditionQuery, false,
+    //                                          hugeGraph)) {
+    //                        this.subEls =
+    //                            getSubLabelsOfParentEl(
+    //                                hugeGraph.edgeLabels(),
+    //                                label);
+    //                    }
+    //
+    //                    if (this.subEls != null &&
+    //                        this.subEls.hasNext()) {
+    //                        conditionQuery.eq(HugeKeys.SUB_LABEL,
+    //                                          subEls.next());
+    //                    }
+    //
+    //                    HugeType hugeType = conditionQuery.resultType();
+    //                    if (hugeType != null && hugeType.isEdge() &&
+    //                        !conditionQuery.conditions().isEmpty()) {
+    //                        IdPrefixQuery idPrefixQuery =
+    //                            (IdPrefixQuery) queryWriter.apply(
+    //                                conditionQuery);
+    //                        idPrefixQuery.setOriginQuery(originQuery);
+    //                        queryList.add(idPrefixQuery);
+    //                    }
+    //                }
+    //
+    //                queryListIterator = queryList.iterator();
+    //                if (queryListIterator.hasNext()) {
+    //                    return queryListIterator.next();
+    //                }
+    //            }
+    //
+    //            Id ownerId = cq.condition(HugeKeys.OWNER_VERTEX);
+    //            assert ownerId != null;
+    //            BytesBuffer buffer =
+    //                BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
+    //            buffer.writeId(ownerId);
+    //            return new IdPrefixQuery(cq, new BinaryBackendEntry.BinaryId(
+    //                buffer.bytes(), ownerId));
+    //        }
+    //
+    //        private boolean matchEdgeSortKeys(ConditionQuery query,
+    //                                          boolean matchAll,
+    //                                          HugeGraph graph) {
+    //            assert query.resultType().isEdge();
+    //            Id label = query.condition(HugeKeys.LABEL);
+    //            if (label == null) {
+    //                return false;
+    //            }
+    //            List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
+    //            if (sortKeys.isEmpty()) {
+    //                return false;
+    //            }
+    //            Set<Id> queryKeys = query.userpropKeys();
+    //            for (int i = sortKeys.size(); i > 0; i--) {
+    //                List<Id> subFields = sortKeys.subList(0, i);
+    //                if (queryKeys.containsAll(subFields)) {
+    //                    if (queryKeys.size() == subFields.size() || !matchAll) {
+    //                        /*
+    //                         * Return true if:
+    //                         * matchAll=true and all queryKeys are in sortKeys
+    //                         *  or
+    //                         * partial queryKeys are in sortKeys
+    //                         */
+    //                        return true;
+    //                    }
+    //                }
+    //            }
+    //            return false;
+    //        }
+    //    }
+    //    Query first = queries.next();
+    //    List<HugeType> typeList = getHugeTypes(first);
+    //    QueryWrapper idPrefixQueries = new QueryWrapper(queries, first);
+    //
+    //    return query(typeList, idPrefixQueries);
+    //}
 
-        class QueryWrapper implements Iterator<IdPrefixQuery> {
-            Query first;
-            Iterator<Query> queries;
-            Iterator<Id> subEls;
-            Query preQuery;
-            Iterator<IdPrefixQuery> queryListIterator;
-
-            QueryWrapper(Iterator<Query> queries, Query first) {
-                this.queries = queries;
-                this.first = first;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return first != null || (this.subEls != null && this.subEls.hasNext())
-                       || (queryListIterator != null && queryListIterator.hasNext()) ||
-                       queries.hasNext();
-            }
-
-            @Override
-            public IdPrefixQuery next() {
-                if (queryListIterator != null && queryListIterator.hasNext()) {
-                    return queryListIterator.next();
-                }
-
-                Query q;
-                if (first != null) {
-                    q = first;
-                    preQuery = q.copy();
-                    first = null;
-                } else {
-                    if (this.subEls == null || !this.subEls.hasNext()) {
-                        q = queries.next();
-                        preQuery = q.copy();
-                    } else {
-                        q = preQuery.copy();
-                    }
-                }
-
-                assert q instanceof ConditionQuery;
-                ConditionQuery cq = (ConditionQuery) q;
-                ConditionQuery originQuery = (ConditionQuery) q.copy();
-
-                List<IdPrefixQuery> queryList = Lists.newArrayList();
-                if (hugeGraph != null) {
-                    for (ConditionQuery conditionQuery :
-                            ConditionQueryFlatten.flatten(cq)) {
-                        Id label = conditionQuery.condition(HugeKeys.LABEL);
-                     /* 父类型 + sortKeys： g.V("V.id").outE("parentLabel").has
-                     ("sortKey","value")转成 所有子类型 + sortKeys*/
-                        if ((this.subEls == null ||
-                             !this.subEls.hasNext()) && label != null &&
-                            hugeGraph.edgeLabel(label).isFather() &&
-                            conditionQuery.condition(HugeKeys.SUB_LABEL) ==
-                            null &&
-                            conditionQuery.condition(HugeKeys.OWNER_VERTEX) !=
-                            null &&
-                            conditionQuery.condition(HugeKeys.DIRECTION) !=
-                            null &&
-                            matchEdgeSortKeys(conditionQuery, false,
-                                              hugeGraph)) {
-                            this.subEls =
-                                    getSubLabelsOfParentEl(
-                                            hugeGraph.edgeLabels(),
-                                            label);
-                        }
-
-                        if (this.subEls != null &&
-                            this.subEls.hasNext()) {
-                            conditionQuery.eq(HugeKeys.SUB_LABEL,
-                                              subEls.next());
-                        }
-
-                        HugeType hugeType = conditionQuery.resultType();
-                        if (hugeType != null && hugeType.isEdge() &&
-                            !conditionQuery.conditions().isEmpty()) {
-                            IdPrefixQuery idPrefixQuery =
-                                    (IdPrefixQuery) queryWriter.apply(
-                                            conditionQuery);
-                            idPrefixQuery.setOriginQuery(originQuery);
-                            queryList.add(idPrefixQuery);
-                        }
-                    }
-
-                    queryListIterator = queryList.iterator();
-                    if (queryListIterator.hasNext()) {
-                        return queryListIterator.next();
-                    }
-                }
-
-                Id ownerId = cq.condition(HugeKeys.OWNER_VERTEX);
-                assert ownerId != null;
-                BytesBuffer buffer =
-                        BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
-                buffer.writeId(ownerId);
-                return new IdPrefixQuery(cq, new BinaryBackendEntry.BinaryId(
-                        buffer.bytes(), ownerId));
-            }
-
-            private boolean matchEdgeSortKeys(ConditionQuery query,
-                                              boolean matchAll,
-                                              HugeGraph graph) {
-                assert query.resultType().isEdge();
-                Id label = query.condition(HugeKeys.LABEL);
-                if (label == null) {
-                    return false;
-                }
-                List<Id> sortKeys = graph.edgeLabel(label).sortKeys();
-                if (sortKeys.isEmpty()) {
-                    return false;
-                }
-                Set<Id> queryKeys = query.userpropKeys();
-                for (int i = sortKeys.size(); i > 0; i--) {
-                    List<Id> subFields = sortKeys.subList(0, i);
-                    if (queryKeys.containsAll(subFields)) {
-                        if (queryKeys.size() == subFields.size() || !matchAll) {
-                            /*
-                             * Return true if:
-                             * matchAll=true and all queryKeys are in sortKeys
-                             *  or
-                             * partial queryKeys are in sortKeys
-                             */
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-        }
-        Query first = queries.next();
-        List<HugeType> typeList = getHugeTypes(first);
-        QueryWrapper idPrefixQueries = new QueryWrapper(queries, first);
-
-        return query(typeList, idPrefixQueries);
-    }
-
-    private Iterator<Id> getSubLabelsOfParentEl(Collection<EdgeLabel> allEls,
-                                                Id label) {
-        List<Id> list = new ArrayList<>();
-        for (EdgeLabel el : allEls) {
-            if (el.edgeLabelType().sub() && el.fatherId().equals(label)) {
-                list.add(el.id());
-            }
-        }
-        return list.iterator();
-    }
+    //private Iterator<Id> getSubLabelsOfParentEl(Collection<EdgeLabel> allEls,
+    //                                            Id label) {
+    //    List<Id> list = new ArrayList<>();
+    //    for (EdgeLabel el : allEls) {
+    //        if (el.edgeLabelType().sub() && el.fatherId().equals(label)) {
+    //            list.add(el.id());
+    //        }
+    //    }
+    //    return list.iterator();
+    //}
 
     public List<CIter<BackendEntry>> query(List<HugeType> typeList,
                                            List<IdPrefixQuery> queries) {
@@ -510,8 +501,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                 builder.append((table = this.table(type)).table()).append(",");
             }
             List<Iterator<BackendEntry>> iteratorList =
-                    table.query(session, queries,
-                                builder.substring(0, builder.length() - 1));
+                table.query(session, queries,
+                            builder.substring(0, builder.length() - 1));
             for (int i = 0; i < iteratorList.size(); i++) {
                 Iterator<BackendEntry> entries = iteratorList.get(i);
                 // Merge olap results as needed
@@ -544,8 +535,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             }
 
             Iterator<Iterator<BackendEntry>> iterators =
-                    table.query(session, queries,
-                                builder.substring(0, builder.length() - 1));
+                table.query(session, queries,
+                            builder.substring(0, builder.length() - 1));
 
             return iterators;
         } finally {
@@ -554,21 +545,21 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     }
 
     private Iterator<BackendEntry> getBackendEntryIterator(
-            Iterator<BackendEntry> entries,
-            Query query) {
-        HstoreTable table;
-        Set<Id> olapPks = query.olapPks();
-        if (this.isGraphStore && !olapPks.isEmpty()) {
-            List<Iterator<BackendEntry>> iterators = new ArrayList<>();
-            for (Id pk : olapPks) {
-                // 构造olap表查询query condition
-                Query q = this.constructOlapQueryCondition(pk, query);
-                table = this.table(HugeType.OLAP);
-                iterators.add(table.queryOlap(this.session(HugeType.OLAP), q));
-            }
-            entries = new MergeIterator<>(entries, iterators,
-                                          BackendEntry::mergable);
-        }
+        Iterator<BackendEntry> entries,
+        Query query) {
+        //HstoreTable table;
+        //Set<Id> olapPks = query.olapPks();
+        //if (this.isGraphStore && !olapPks.isEmpty()) {
+        //    List<Iterator<BackendEntry>> iterators = new ArrayList<>();
+        //    for (Id pk : olapPks) {
+        //        // 构造olap表查询query condition
+        //        Query q = this.constructOlapQueryCondition(pk, query);
+        //        table = this.table(HugeType.OLAP);
+        //        iterators.add(table.queryOlap(this.session(HugeType.OLAP), q));
+        //    }
+        //    entries = new MergeIterator<>(entries, iterators,
+        //                                  BackendEntry::mergable);
+        //}
         return entries;
     }
 
@@ -596,10 +587,10 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
                 // create binary id
                 BytesBuffer buffer =
-                        BytesBuffer.allocate(1 + pk.length() + 1 + id.length());
+                    BytesBuffer.allocate(1 + pk.length() + 1 + id.length());
                 buffer.writeId(pk);
                 id = new BinaryBackendEntry.BinaryId(
-                        buffer.writeId(id).bytes(), id);
+                    buffer.writeId(id).bytes(), id);
                 linkedHashSet.add(id);
             }
             q.resetIds();
@@ -609,7 +600,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             // create binary id
             BytesBuffer buffer = BytesBuffer.allocate(1 + pk.length());
             pk = new BinaryBackendEntry.BinaryId(
-                    buffer.writeId(pk).bytes(), pk);
+                buffer.writeId(pk).bytes(), pk);
 
             IdPrefixQuery idPrefixQuery = new IdPrefixQuery(HugeType.OLAP, pk);
             return idPrefixQuery;
@@ -734,25 +725,21 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         }
 
         @Override
-        public void close(boolean force) {
-        }
-
-        @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                    "HstoreGraphStore.nextId()");
+                "HstoreGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                    "HstoreGraphStore.increaseCounter()");
+                "HstoreGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                    "HstoreGraphStore.getCounter()");
+                "HstoreGraphStore.getCounter()");
         }
 
         @Override
@@ -785,12 +772,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
         @Override
         public void removeOlapTable(Id pkId) {
-        }
-
-        @Override
-        public boolean existOlapTable(Id pkId) {
-            String tableName = this.olapTableName(pkId);
-            return super.sessions.existsTable(tableName);
         }
     }
 }

@@ -17,12 +17,10 @@
 
 package org.apache.hugegraph.backend.store.hstore;
 
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.hstore.HstoreStore.HstoreGraphStore;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.config.HugeConfig;
 
 public class HstoreProvider extends AbstractBackendStoreProvider {
 
@@ -31,36 +29,27 @@ public class HstoreProvider extends AbstractBackendStoreProvider {
     }
 
     @Override
-    protected synchronized BackendStore newSchemaStore(String store) {
-        return null;
-    }
-
-    @Override
-    protected BackendStore newGraphStore(String store) {
-        return new HstoreGraphStore(this, this.namespace(), store);
-    }
-
-    @Override
-    public void truncateGraph(HugeGraph graph) {
-        this.checkOpened();
-        String g = graph.option(CoreOptions.STORE_GRAPH);
-        BackendStore store = this.stores.get(g);
-        store.truncate();
-        this.notifyAndWaitEvent(Events.STORE_TRUNCATE);
-        LOG.debug("Graph '{}' store has been truncated", graph.name());
-    }
-
-    @Override
     public String type() {
         return "hstore";
     }
 
     @Override
-    public String version() {
-        /*
-         * Versions history:
-         * [1.0] HugeGraph-1328: supports hstore
-         */
-        return "1.11";
+    public String driverVersion() {
+        return null;
+    }
+
+    @Override
+    protected BackendStore newSchemaStore(HugeConfig config, String store) {
+        return new HstoreGraphStore(this, this.namespace(), store);
+    }
+
+    @Override
+    protected BackendStore newGraphStore(HugeConfig config, String store) {
+        return null;
+    }
+
+    @Override
+    protected BackendStore newSystemStore(HugeConfig config, String store) {
+        return null;
     }
 }

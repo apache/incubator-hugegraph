@@ -18,6 +18,7 @@
 package org.apache.hugegraph.backend.query;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +35,8 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.hugegraph.backend.query.Condition.Relation;
 import org.apache.hugegraph.backend.query.Condition.RelationType;
+import org.apache.hugegraph.backend.query.serializer.QueryAdapter;
+import org.apache.hugegraph.backend.query.serializer.QueryIdAdapter;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
@@ -44,9 +47,12 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LongEncoding;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class ConditionQuery extends IdQuery {
 
@@ -869,5 +875,15 @@ public class ConditionQuery extends IdQuery {
     public interface ResultsFilter {
 
         boolean test(HugeElement element);
+    }
+
+    public byte[] bytes() {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Condition.class, new QueryAdapter())
+                .registerTypeAdapter(Id.class, new QueryIdAdapter())
+                .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+                .create();
+        String cqs = gson.toJson(this);
+        return cqs.getBytes(StandardCharsets.UTF_8);
     }
 }

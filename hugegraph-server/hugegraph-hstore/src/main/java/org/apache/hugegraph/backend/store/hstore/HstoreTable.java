@@ -18,18 +18,16 @@
 package org.apache.hugegraph.backend.store.hstore;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
@@ -46,7 +44,6 @@ import org.apache.hugegraph.backend.serializer.BinaryEntryIterator;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIteratorWrapper;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.backend.store.Shard;
@@ -70,22 +67,22 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
     private static final Logger LOG = Log.logger(HstoreStore.class);
 
-    private final HstoreShardSpliter shardSpliter;
+    private final HstoreShardSplitter shardSpliter;
     Function<BackendEntry, byte[]> ownerDelegate = (entry) -> getOwner(entry);
     Function<Id, byte[]> ownerByIdDelegate = (id) -> getOwnerId(id);
     BiFunction<HugeType, Id, byte[]> ownerByQueryDelegate =
-            (type, id) -> getOwnerId(type, id);
+        (type, id) -> getOwnerId(type, id);
     Supplier<byte[]> ownerScanDelegate =
-            () -> HgStoreClientConst.ALL_PARTITION_OWNER;
+        () -> HgStoreClientConst.ALL_PARTITION_OWNER;
 
     public HstoreTable(String database, String table) {
         super(String.format("%s+%s", database, table));
-        this.shardSpliter = new HstoreShardSpliter(this.table());
+        this.shardSpliter = new HstoreShardSplitter(this.table());
     }
 
     public static ConditionQuery removeDirectionCondition(ConditionQuery conditionQuery) {
-        Set<Condition> conditions = conditionQuery.conditions();
-        Set<Condition> newConditions = new HashSet<>();
+        Collection<Condition> conditions = conditionQuery.conditions();
+        List<Condition> newConditions = new ArrayList<>();
         for (Condition condition : conditions) {
             if (!direction(condition)) {
                 newConditions.add(condition);
@@ -112,7 +109,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static BackendEntryIterator newEntryIterator(
-            BackendColumnIterator cols, Query query) {
+        BackendColumnIterator cols, Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
@@ -125,7 +122,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static BackendEntryIterator newEntryIteratorOlap(
-            BackendColumnIterator cols, Query query, boolean isOlap) {
+        BackendColumnIterator cols, Query query, boolean isOlap) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
@@ -248,17 +245,16 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     @Override
     public void insert(Session session, BackendEntry entry) {
         byte[] owner = entry.type().isEdge() ? getInsertEdgeOwner(entry) : getInsertOwner(entry);
-        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.realColumns();
+        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.columns();
         for (int i = 0; i < columns.size(); i++) {
             BackendColumn col = columns.get(i);
             session.put(this.table(), owner, col.name, col.value);
         }
     }
 
-    @Override
     public void insert(Session session, BackendEntry entry, boolean isEdge) {
         byte[] owner = isEdge ? getInsertEdgeOwner(entry) : getInsertOwner(entry);
-        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.realColumns();
+        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.columns();
         for (int i = 0; i < columns.size(); i++) {
             BackendColumn col = columns.get(i);
             session.put(this.table(), owner, col.name, col.value);
@@ -329,27 +325,27 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         return newEntryIterator(this.queryBy(session, query), query);
     }
 
-    @Override
-    public Iterator<BackendEntry> queryOlap(Session session, Query query) {
-        if (query.limit() == 0L && !query.noLimit()) {
-            // LOG.debug("Return empty result(limit=0) for query {}", query);
-            return Collections.emptyIterator();
-        }
-        return newEntryIteratorOlap(this.queryBy(session, query), query, true);
-    }
+    //@Override
+    //public Iterator<BackendEntry> queryOlap(Session session, Query query) {
+    //    if (query.limit() == 0L && !query.noLimit()) {
+    //        // LOG.debug("Return empty result(limit=0) for query {}", query);
+    //        return Collections.emptyIterator();
+    //    }
+    //    return newEntryIteratorOlap(this.queryBy(session, query), query, true);
+    //}
 
     public List<Iterator<BackendEntry>> query(Session session,
                                               List<IdPrefixQuery> queries,
                                               String tableName) {
         List<BackendColumnIterator> queryByPrefixList =
-                this.queryByPrefixList(session, queries, tableName);
+            this.queryByPrefixList(session, queries, tableName);
         LinkedList<Iterator<BackendEntry>> iterators = new LinkedList<>();
         for (int i = 0; i < queryByPrefixList.size(); i++) {
             IdPrefixQuery q = queries.get(i).copy();
             q.capacity(Query.NO_CAPACITY);
             q.limit(Query.NO_LIMIT);
             BackendEntryIterator iterator =
-                    newEntryIterator(queryByPrefixList.get(i), q);
+                newEntryIterator(queryByPrefixList.get(i), q);
             iterators.add(iterator);
         }
         return iterators;
@@ -358,60 +354,61 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     public BackendEntry.BackendIterator<Iterator<BackendEntry>> query(Session session,
                                                                       Iterator<IdPrefixQuery> queries,
                                                                       String tableName) {
-        final IdPrefixQuery[] first = {queries.next()};
-        int type = first[0].withProperties() ? 0 : Session.SCAN_KEY_ONLY;
-
-        IdPrefixQuery queryTmpl = first[0].copy();
-        queryTmpl.capacity(Query.NO_CAPACITY);
-        queryTmpl.limit(Query.NO_LIMIT);
-
-        ConditionQuery originQuery = (ConditionQuery) first[0].originQuery();
-        if (originQuery != null) {
-            originQuery = prepareConditionQueryList(originQuery);
-        }
-        byte[] queryBytes = originQuery == null ? null : originQuery.bytes();
-
-        BackendEntry.BackendIterator<BackendColumnIterator> it
-                = session.scan(tableName, new Iterator<HgOwnerKey>() {
-            @Override
-            public boolean hasNext() {
-                if (first[0] != null) {
-                    return true;
-                }
-                return queries.hasNext();
-            }
-
-            @Override
-            public HgOwnerKey next() {
-                IdPrefixQuery query = first[0] != null ? first[0] : queries.next();
-                first[0] = null;
-                byte[] prefix = ownerByQueryDelegate.apply(query.resultType(),
-                                                           query.prefix());
-                return HgOwnerKey.of(prefix, query.prefix().asBytes());
-            }
-        }, type, first[0], queryBytes);
-        return new BackendEntry.BackendIterator<>() {
-            @Override
-            public boolean hasNext() {
-                return it.hasNext();
-            }
-
-            @Override
-            public Iterator<BackendEntry> next() {
-                BackendEntryIterator iterator = newEntryIterator(it.next(), queryTmpl);
-                return iterator;
-            }
-
-            @Override
-            public void close() {
-                it.close();
-            }
-
-            @Override
-            public byte[] position() {
-                return new byte[0];
-            }
-        };
+        //final IdPrefixQuery[] first = {queries.next()};
+        //int type = first[0].withProperties() ? 0 : Session.SCAN_KEY_ONLY;
+        //
+        //IdPrefixQuery queryTmpl = first[0].copy();
+        //queryTmpl.capacity(Query.NO_CAPACITY);
+        //queryTmpl.limit(Query.NO_LIMIT);
+        //
+        //ConditionQuery originQuery = (ConditionQuery) first[0].originQuery();
+        //if (originQuery != null) {
+        //    originQuery = prepareConditionQueryList(originQuery);
+        //}
+        //byte[] queryBytes = originQuery == null ? null : originQuery.bytes();
+        //
+        //BackendEntry.BackendIterator<BackendColumnIterator> it
+        //    = session.scan(tableName, new Iterator<HgOwnerKey>() {
+        //    @Override
+        //    public boolean hasNext() {
+        //        if (first[0] != null) {
+        //            return true;
+        //        }
+        //        return queries.hasNext();
+        //    }
+        //
+        //    @Override
+        //    public HgOwnerKey next() {
+        //        IdPrefixQuery query = first[0] != null ? first[0] : queries.next();
+        //        first[0] = null;
+        //        byte[] prefix = ownerByQueryDelegate.apply(query.resultType(),
+        //                                                   query.prefix());
+        //        return HgOwnerKey.of(prefix, query.prefix().asBytes());
+        //    }
+        //}, type, first[0], queryBytes);
+        //return new BackendEntry.BackendIterator<>() {
+        //    @Override
+        //    public boolean hasNext() {
+        //        return it.hasNext();
+        //    }
+        //
+        //    @Override
+        //    public Iterator<BackendEntry> next() {
+        //        BackendEntryIterator iterator = newEntryIterator(it.next(), queryTmpl);
+        //        return iterator;
+        //    }
+        //
+        //    @Override
+        //    public void close() {
+        //        it.close();
+        //    }
+        //
+        //    @Override
+        //    public byte[] position() {
+        //        return new byte[0];
+        //    }
+        //};
+        return null;
     }
 
     protected BackendColumnIterator queryBy(Session session, Query query) {
@@ -447,7 +444,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
             }
             BackendColumnIterator withBatch = session.getWithBatch(this.table(),
                                                                    hgOwnerKeys);
-            return new BackendColumnIteratorWrapper(withBatch);
+            return BackendColumnIterator.wrap(withBatch);
         }
 
         // Query by condition (or condition + id)
@@ -459,8 +456,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         if (query.paging()) {
             PageState page = PageState.fromString(query.page());
             byte[] ownerKey = this.getOwnerScanDelegate().get();
-            int scanType = Session.SCAN_ANY |
-                           (query.withProperties() ? 0 : Session.SCAN_KEY_ONLY);
+            //int scanType = Session.SCAN_ANY |
+            //               (query.withProperties() ? 0 : Session.SCAN_KEY_ONLY);
+            int scanType = 0;
             byte[] queryBytes = query instanceof ConditionQuery ?
                                 ((ConditionQuery) query).bytes() : null;
             // LOG.debug("query {} with ownerKeyFrom: {}, ownerKeyTo: {}, " +
@@ -492,7 +490,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
             return BackendColumnIterator.empty();
         }
         BackendColumn col = BackendColumn.of(id.asBytes(), value);
-        return new BackendEntry.BackendColumnIteratorWrapper(col);
+        return BackendColumnIterator.iterator(col);
     }
 
     protected BackendColumnIterator queryByPrefix(Session session,
@@ -534,29 +532,30 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected List<BackendColumnIterator> queryByPrefixList(
-            Session session,
-            List<IdPrefixQuery> queries,
-            String tableName) {
-        E.checkArgument(queries.size() > 0,
-                        "The size of queries must be greater than zero");
-        IdPrefixQuery query = queries.get(0);
-        int type = 0;
-        LinkedList<HgOwnerKey> ownerKey = new LinkedList<>();
-        queries.forEach((item) -> {
-            byte[] prefix = this.ownerByQueryDelegate.apply(item.resultType(),
-                                                            item.prefix());
-            ownerKey.add(HgOwnerKey.of(prefix, item.prefix().asBytes()));
-        });
-        ConditionQuery originQuery = (ConditionQuery) query.originQuery();
-        if (originQuery != null) {
-            originQuery = prepareConditionQueryList(originQuery);
-        }
-        byte[] queryBytes = originQuery == null ? null : originQuery.bytes();
-
-        // LOG.debug("query {} with scanType: {}, limit: {}, conditionQuery:
-        // {}", this.table(), type, query.limit(), queryBytes);
-        return session.scan(tableName, ownerKey, type,
-                            query.limit(), queryBytes);
+        Session session,
+        List<IdPrefixQuery> queries,
+        String tableName) {
+        //E.checkArgument(queries.size() > 0,
+        //                "The size of queries must be greater than zero");
+        //IdPrefixQuery query = queries.get(0);
+        //int type = 0;
+        //LinkedList<HgOwnerKey> ownerKey = new LinkedList<>();
+        //queries.forEach((item) -> {
+        //    byte[] prefix = this.ownerByQueryDelegate.apply(item.resultType(),
+        //                                                    item.prefix());
+        //    ownerKey.add(HgOwnerKey.of(prefix, item.prefix().asBytes()));
+        //});
+        //ConditionQuery originQuery = (ConditionQuery) query.originQuery();
+        //if (originQuery != null) {
+        //    originQuery = prepareConditionQueryList(originQuery);
+        //}
+        //byte[] queryBytes = originQuery == null ? null : originQuery.bytes();
+        //
+        //// LOG.debug("query {} with scanType: {}, limit: {}, conditionQuery:
+        //// {}", this.table(), type, query.limit(), queryBytes);
+        //return session.scan(tableName, ownerKey, type,
+        //                    query.limit(), queryBytes);
+        return null;
     }
 
     /***
@@ -570,8 +569,8 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
             return null;
         }
         // only userpropConditions can send to store
-        Set<Condition> conditions = conditionQuery.conditions();
-        Set<Condition> newConditions = new HashSet<>();
+        Collection<Condition> conditions = conditionQuery.conditions();
+        List<Condition> newConditions = new ArrayList<>();
         for (Condition condition : conditions) {
             if (!onlyOwnerVertex(condition)) {
                 newConditions.add(condition);
@@ -592,23 +591,24 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
      * @return
      */
     private ConditionQuery prepareConditionQueryList(ConditionQuery conditionQuery) {
-        if (!conditionQuery.containsLabelOrUserpropRelation()) {
-            return null;
-        }
-        // only userpropConditions can send to store
-        Set<Condition> conditions = conditionQuery.conditions();
-        Set<Condition> newConditions = new HashSet<>();
-        for (Condition condition : conditions) {
-            if (!onlyOwnerVertex(condition)) {
-                newConditions.add(condition);
-            }
-        }
-        if (newConditions.size() > 0) {
-            conditionQuery.resetConditions(newConditions);
-            return conditionQuery;
-        } else {
-            return null;
-        }
+        //if (!conditionQuery.containsLabelOrUserpropRelation()) {
+        //    return null;
+        //}
+        //// only userpropConditions can send to store
+        //Collection<Condition> conditions = conditionQuery.conditions();
+        //List<Condition> newConditions = new ArrayList<>();
+        //for (Condition condition : conditions) {
+        //    if (!onlyOwnerVertex(condition)) {
+        //        newConditions.add(condition);
+        //    }
+        //}
+        //if (newConditions.size() > 0) {
+        //    conditionQuery.resetConditions(newConditions);
+        //    return conditionQuery;
+        //} else {
+        //    return null;
+        //}
+        return null;
     }
 
     private boolean onlyOwnerVertex(Condition condition) {
@@ -653,8 +653,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
             //          this.table(), bytes2String(ownerStart),
             //          bytes2String(ownerEnd), bytes2String(start),
             //          bytes2String(end), type, cq.bytes());
-            return session.scan(this.table(), ownerStart,
-                                ownerEnd, start, end, type, cq.bytes(), position);
+            //return session.scan(this.table(), ownerStart,
+            //                    ownerEnd, start, end, type, cq.bytes(), position);
+            return null;
         }
         return session.scan(this.table(), ownerStart,
                             ownerEnd, start, end, type, null, position);
@@ -662,41 +663,42 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
     protected BackendColumnIterator queryByCond(Session session,
                                                 ConditionQuery query) {
-        if (query.containsScanCondition()) {
-            E.checkArgument(query.relations().size() == 1,
-                            "Invalid scan with multi conditions: %s", query);
-            Relation scan = query.relations().iterator().next();
-            Shard shard = (Shard) scan.value();
-            return this.queryByRange(session, shard, query);
-        }
+        //if (query.containsScanCondition()) {
+        //    E.checkArgument(query.relations().size() == 1,
+        //                    "Invalid scan with multi conditions: %s", query);
+        //    Relation scan = query.relations().iterator().next();
+        //    Shard shard = (Shard) scan.value();
+        //    return this.queryByRange(session, shard, query);
+        //}
         // throw new NotSupportException("query: %s", query);
         return this.queryAll(session, query);
     }
 
     protected BackendColumnIterator queryByRange(Session session, Shard shard,
                                                  ConditionQuery query) {
-        int type = Session.SCAN_GTE_BEGIN;
-        type |= Session.SCAN_LT_END;
-        type |= Session.SCAN_HASHCODE;
-        type |= query.withProperties() ? 0 : Session.SCAN_KEY_ONLY;
-
-        int start = Integer.parseInt(StringUtils.isEmpty(shard.start()) ?
-                                     "0" : shard.start());
-        int end = Integer.parseInt(StringUtils.isEmpty(shard.end()) ?
-                                   "0" : shard.end());
-        byte[] queryBytes = query.bytes();
-        String page = query.page();
-        if (page != null && !page.isEmpty()) {
-            byte[] position = PageState.fromString(page).position();
-            return session.scan(this.table(), start, end, type, queryBytes,
-                                position);
-        }
-        return session.scan(this.table(), start, end, type, queryBytes);
+        //int type = Session.SCAN_GTE_BEGIN;
+        //type |= Session.SCAN_LT_END;
+        //type |= Session.SCAN_HASHCODE;
+        //type |= query.withProperties() ? 0 : Session.SCAN_KEY_ONLY;
+        //
+        //int start = Integer.parseInt(StringUtils.isEmpty(shard.start()) ?
+        //                             "0" : shard.start());
+        //int end = Integer.parseInt(StringUtils.isEmpty(shard.end()) ?
+        //                           "0" : shard.end());
+        //byte[] queryBytes = query.bytes();
+        //String page = query.page();
+        //if (page != null && !page.isEmpty()) {
+        //    byte[] position = PageState.fromString(page).position();
+        //    return session.scan(this.table(), start, end, type, queryBytes,
+        //                        position);
+        //}
+        //return session.scan(this.table(), start, end, type, queryBytes);
+        return null;
     }
 
-    private static class HstoreShardSpliter extends ShardSpliter<Session> {
+    private static class HstoreShardSplitter extends ShardSplitter<Session> {
 
-        public HstoreShardSpliter(String table) {
+        public HstoreShardSplitter(String table) {
             super(table);
         }
 

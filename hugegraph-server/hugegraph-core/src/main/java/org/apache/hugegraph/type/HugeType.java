@@ -192,4 +192,8 @@ public enum HugeType implements SerialEnum {
     public static HugeType fromCode(byte code) {
         return SerialEnum.fromCode(HugeType.class, code);
     }
+
+    public boolean isLabelIndex() {
+        return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX;
+    }
 }

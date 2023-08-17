@@ -47,6 +47,11 @@ public class HstoreFeatures implements BackendFeatures {
     }
 
     @Override
+    public boolean supportsQueryWithInCondition() {
+        return false;
+    }
+
+    @Override
     public boolean supportsQueryWithRangeCondition() {
         return true;
     }
@@ -123,8 +128,4 @@ public class HstoreFeatures implements BackendFeatures {
         return true;
     }
 
-    @Override
-    public boolean supportsFilterInStore() {
-        return true;
-    }
 }
