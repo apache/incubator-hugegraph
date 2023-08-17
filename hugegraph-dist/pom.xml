@@ -170,50 +170,11 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>download-swagger-ui</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <taskdef resource="net/sf/antcontrib/antcontrib.properties"
-                                         classpathref="maven.plugin.classpath"/>
-                                <if>
-                                    <contains string="${os.name}" substring="Linux"/>
-                                    <then>
-                                        <exec executable="${shell-executable}"
-                                              dir="${project.basedir}"
-                                              failonerror="false">
-                                            <arg line="./dist.sh"/>
-                                        </exec>
-                                        <exec executable="cp"
-                                              dir="${project.basedir}"
-                                              failonerror="false">
-                                            <arg value="-r"/>
-                                            <arg value="swagger-ui/dist"/>
-                                            <arg value="../${final.name}/swagger-ui"/>
-                                        </exec>
-                                        <exec executable="rm"
-                                              dir="${project.basedir}"
-                                              failonerror="false">
-                                            <arg value="-rf"/>
-                                            <arg value="swagger-ui"/>
-                                        </exec>
-                                    </then>
-                                    <else>
-                                        <!-- WARN: keep msg in one line -->
-                                        <echo
-                                            message="We only download swagger-ui in Linux env, you could check pom.xml in hugegraph-dist to modify it"/>
-                                    </else>
-                                </if>
-                            </target>
-                        </configuration>
-                    </execution>
-                    <execution>
+                        <id>tar-package</id>
                         <phase>package</phase>
                         <goals>
                             <goal>run</goal>
@@ -229,20 +190,43 @@
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>ant-contrib</groupId>
-                        <artifactId>ant-contrib</artifactId>
-                        <version>1.0b3</version>
-                        <exclusions>
-                            <exclusion>
-                                <groupId>ant</groupId>
-                                <artifactId>ant</artifactId>
-                            </exclusion>
-                        </exclusions>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>unix-download-swagger-ui</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>Linux</name>
+                </os>
+            </activation>
+        </profile>
+        <profile>
+            <id>mac-download-swagger-ui</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+        </profile>
+    </profiles>
 </project>
