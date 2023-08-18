@@ -32,6 +32,7 @@ import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class CountTraverser extends HugeTraverser {
 
@@ -93,12 +94,7 @@ public class CountTraverser extends HugeTraverser {
 
             return this.count.longValue();
         } finally {
-            if (edges instanceof FlatMapperIterator) {
-                try {
-                    ((FlatMapperIterator<?, ?>)edges).close();
-                } catch (Exception ignored) {
-                }
-            }
+            CloseableIterator.closeIterator(edges);
         }
     }
 
