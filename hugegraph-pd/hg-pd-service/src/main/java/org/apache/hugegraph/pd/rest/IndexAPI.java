@@ -15,6 +15,8 @@
  * under the License.
  */
 
+package org.apache.hugegraph.pd.rest;
+
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.raft.RaftEngine;
-import org.apache.hugegraph.pd.rest.API;
 import org.apache.hugegraph.pd.rest.MemberAPI.CallStreamObserverWrap;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.service.PDService;
