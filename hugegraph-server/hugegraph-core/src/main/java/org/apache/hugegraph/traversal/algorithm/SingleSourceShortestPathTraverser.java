@@ -17,6 +17,9 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,14 +29,14 @@ import java.util.Set;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.NumericUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -57,13 +60,21 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
         Traverser traverser = new Traverser(sourceV, dir, labelId, weight,
-                                            degree, skipDegree, capacity,
-                                            limit);
+                                            degree, skipDegree, capacity, limit);
         while (true) {
             // Found, reach max depth or reach capacity, stop searching
             traverser.forward();
             if (traverser.done()) {
-                return traverser.shortestPaths();
+                this.vertexIterCounter.addAndGet(traverser.vertexCount);
+                this.edgeIterCounter.addAndGet(traverser.edgeCount);
+                WeightedPaths paths = traverser.shortestPaths();
+                List<List<Id>> pathList = paths.pathList();
+                Set<Edge> edges = new HashSet<>();
+                for (List<Id> path : pathList) {
+                    edges.addAll(traverser.edgeRecord.getEdges(path.iterator()));
+                }
+                paths.setEdges(edges);
+                return paths;
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");
         }
@@ -91,18 +102,107 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             traverser.forward();
             Map<Id, NodeWithWeight> results = traverser.shortestPaths();
             if (results.containsKey(targetV) || traverser.done()) {
-                return results.get(targetV);
+                this.vertexIterCounter.addAndGet(traverser.vertexCount);
+                this.edgeIterCounter.addAndGet(traverser.edgeCount);
+                NodeWithWeight nodeWithWeight = results.get(targetV);
+                if (nodeWithWeight != null) {
+                    Iterator<Id> vertexIter = nodeWithWeight.node.path().iterator();
+                    Set<Edge> edges = traverser.edgeRecord.getEdges(vertexIter);
+                    nodeWithWeight.setEdges(edges);
+                }
+                return nodeWithWeight;
             }
             checkCapacity(traverser.capacity, traverser.size, "shortest path");
         }
     }
 
+    public static class NodeWithWeight implements Comparable<NodeWithWeight> {
+
+        private final double weight;
+        private final Node node;
+
+        private Set<Edge> edges = Collections.emptySet();
+
+        public NodeWithWeight(double weight, Node node) {
+            this.weight = weight;
+            this.node = node;
+        }
+
+        public NodeWithWeight(double weight, Id id, NodeWithWeight prio) {
+            this(weight, new Node(id, prio.node()));
+        }
+
+        public Set<Edge> getEdges() {
+            return edges;
+        }
+
+        public void setEdges(Set<Edge> edges) {
+            this.edges = edges;
+        }
+
+        public double weight() {
+            return weight;
+        }
+
+        public Node node() {
+            return this.node;
+        }
+
+        public Map<String, Object> toMap() {
+            return ImmutableMap.of("weight", this.weight,
+                                   "vertices", this.node().path());
+        }
+
+        @Override
+        public int compareTo(NodeWithWeight other) {
+            return Double.compare(this.weight, other.weight);
+        }
+    }
+
+    public static class WeightedPaths extends LinkedHashMap<Id, NodeWithWeight> {
+
+        private static final long serialVersionUID = -313873642177730993L;
+        private Set<Edge> edges = Collections.emptySet();
+
+        public Set<Edge> getEdges() {
+            return edges;
+        }
+
+        public void setEdges(Set<Edge> edges) {
+            this.edges = edges;
+        }
+
+        public Set<Id> vertices() {
+            Set<Id> vertices = newIdSet();
+            vertices.addAll(this.keySet());
+            for (NodeWithWeight nw : this.values()) {
+                vertices.addAll(nw.node().path());
+            }
+            return vertices;
+        }
+
+        public List<List<Id>> pathList() {
+            List<List<Id>> pathList = new ArrayList<>();
+            for (NodeWithWeight nw : this.values()) {
+                pathList.add(nw.node.path());
+            }
+            return pathList;
+        }
+
+        public Map<Id, Map<String, Object>> toMap() {
+            Map<Id, Map<String, Object>> results = newMap();
+            for (Map.Entry<Id, NodeWithWeight> entry : this.entrySet()) {
+                Id source = entry.getKey();
+                NodeWithWeight nw = entry.getValue();
+                Map<String, Object> result = nw.toMap();
+                results.put(source, result);
+            }
+            return results;
+        }
+    }
+
     private class Traverser {
 
-        private WeightedPaths findingNodes = new WeightedPaths();
-        private WeightedPaths foundNodes = new WeightedPaths();
-        private Set<NodeWithWeight> sources;
-        private Id source;
         private final Directions direction;
         private final Id label;
         private final String weight;
@@ -110,15 +210,21 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         private final long skipDegree;
         private final long capacity;
         private final long limit;
-        private long size;
+        private final WeightedPaths findingNodes = new WeightedPaths();
+        private final WeightedPaths foundNodes = new WeightedPaths();
+        private final EdgeRecord edgeRecord;
+        private final Id source;
+        private final long size;
+        private Set<NodeWithWeight> sources;
+        private long vertexCount;
+        private long edgeCount;
         private boolean done = false;
 
         public Traverser(Id sourceV, Directions dir, Id label, String weight,
-                         long degree, long skipDegree, long capacity,
-                         long limit) {
+                         long degree, long skipDegree, long capacity, long limit) {
             this.source = sourceV;
             this.sources = ImmutableSet.of(new NodeWithWeight(
-                           0D, new Node(sourceV, null)));
+                    0D, new Node(sourceV, null)));
             this.direction = dir;
             this.label = label;
             this.weight = weight;
@@ -127,6 +233,9 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
             this.capacity = capacity;
             this.limit = limit;
             this.size = 0L;
+            this.vertexCount = 0L;
+            this.edgeCount = 0L;
+            this.edgeRecord = new EdgeRecord(false);
         }
 
         /**
@@ -143,11 +252,15 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
 
+                    this.edgeCount += 1L;
+
                     if (this.foundNodes.containsKey(target) ||
                         this.source.equals(target)) {
                         // Already find shortest path for target, skip
                         continue;
                     }
+
+                    this.edgeRecord.addEdge(node.node().id(), target, edge);
 
                     double currentWeight = this.edgeWeight(edge);
                     double weight = currentWeight + node.weight();
@@ -164,9 +277,10 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                     }
                 }
             }
+            this.vertexCount += sources.size();
 
             Map<Id, NodeWithWeight> sorted = CollectionUtil.sortByValue(
-                                             this.findingNodes, true);
+                    this.findingNodes, true);
             double minWeight = 0;
             Set<NodeWithWeight> newSources = InsertionOrderUtil.newSet();
             for (Map.Entry<Id, NodeWithWeight> entry : sorted.entrySet()) {
@@ -209,7 +323,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 edgeWeight = 1.0;
             } else {
                 edgeWeight = NumericUtil.convertToNumber(
-                             edge.value(this.weight)).doubleValue();
+                        edge.value(this.weight)).doubleValue();
             }
             return edgeWeight;
         }
@@ -230,64 +344,6 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
                 count++;
             }
             return edgeList.iterator();
-        }
-    }
-
-    public static class NodeWithWeight implements Comparable<NodeWithWeight> {
-
-        private final double weight;
-        private final Node node;
-
-        public NodeWithWeight(double weight, Node node) {
-            this.weight = weight;
-            this.node = node;
-        }
-
-        public NodeWithWeight(double weight, Id id, NodeWithWeight prio) {
-            this(weight, new Node(id, prio.node()));
-        }
-
-        public double weight() {
-            return weight;
-        }
-
-        public Node node() {
-            return this.node;
-        }
-
-        public Map<String, Object> toMap() {
-            return ImmutableMap.of("weight", this.weight,
-                                   "vertices", this.node().path());
-        }
-
-        @Override
-        public int compareTo(NodeWithWeight other) {
-            return Double.compare(this.weight, other.weight);
-        }
-    }
-
-    public static class WeightedPaths extends LinkedHashMap<Id, NodeWithWeight> {
-
-        private static final long serialVersionUID = -313873642177730993L;
-
-        public Set<Id> vertices() {
-            Set<Id> vertices = newIdSet();
-            vertices.addAll(this.keySet());
-            for (NodeWithWeight nw : this.values()) {
-                vertices.addAll(nw.node().path());
-            }
-            return vertices;
-        }
-
-        public Map<Id, Map<String, Object>> toMap() {
-            Map<Id, Map<String, Object>> results = newMap();
-            for (Map.Entry<Id, NodeWithWeight> entry : this.entrySet()) {
-                Id source = entry.getKey();
-                NodeWithWeight nw = entry.getValue();
-                Map<String, Object> result = nw.toMap();
-                results.put(source, result);
-            }
-            return results;
         }
     }
 }

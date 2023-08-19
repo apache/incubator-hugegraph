@@ -22,9 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.EdgeLabel;
@@ -37,6 +34,8 @@ import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.Simi
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.NodeWithWeight;
 import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.WeightedPaths;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public interface Serializer {
 
@@ -77,23 +76,26 @@ public interface Serializer {
     <V extends AuthElement> String writeAuthElements(String label, List<V> users);
 
     String writePaths(String name, Collection<HugeTraverser.Path> paths,
-                      boolean withCrossPoint, Iterator<Vertex> vertices);
+                      boolean withCrossPoint, Iterator<?> vertices,
+                      Iterator<?> edges);
 
     default String writePaths(String name, Collection<HugeTraverser.Path> paths,
                               boolean withCrossPoint) {
-        return this.writePaths(name, paths, withCrossPoint, null);
+        return this.writePaths(name, paths, withCrossPoint, null, null);
     }
 
-    String writeCrosspoints(CrosspointsPaths paths, Iterator<Vertex> iterator,
-                            boolean withPath);
+    String writeCrosspoints(CrosspointsPaths paths, Iterator<?> vertices,
+                            Iterator<?> edges, boolean withPath);
 
-    String writeSimilars(SimilarsMap similars, Iterator<Vertex> vertices);
+    String writeSimilars(SimilarsMap similars, Iterator<?> vertices);
 
-    String writeWeightedPath(NodeWithWeight path, Iterator<Vertex> vertices);
+    String writeWeightedPath(NodeWithWeight path, Iterator<?> vertices,
+                             Iterator<?> edges);
 
-    String writeWeightedPaths(WeightedPaths paths, Iterator<Vertex> vertices);
+    String writeWeightedPaths(WeightedPaths paths, Iterator<?> vertices,
+                              Iterator<?> edges);
 
     String writeNodesWithPath(String name, List<Id> nodes, long size,
                               Collection<HugeTraverser.Path> paths,
-                              Iterator<Vertex> vertices);
+                              Iterator<?> vertices, Iterator<?> edges);
 }
