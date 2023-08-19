@@ -18,10 +18,27 @@
 package org.apache.hugegraph.api.traversers;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
-import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
+import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
 import java.util.Map;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.graph.EdgeAPI;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.algorithm.JaccardSimilarTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -34,24 +51,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.graph.EdgeAPI;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.hugegraph.traversal.algorithm.JaccardSimilarTraverser;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/traversers/jaccardsimilarity")
 @Singleton
@@ -75,6 +74,8 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                   "with direction {}, edge label {} and max degree '{}'",
                   graph, vertex, other, direction, edgeLabel, maxDegree);
 
+        ApiMeasurer measure = new ApiMeasurer();
+
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -82,12 +83,15 @@ public class JaccardSimilarityAPI extends TraverserAPI {
         HugeGraph g = graph(manager, graph);
         double similarity;
         try (JaccardSimilarTraverser traverser =
-                                     new JaccardSimilarTraverser(g)) {
+                     new JaccardSimilarTraverser(g)) {
             similarity = traverser.jaccardSimilarity(sourceId, targetId, dir,
                                                      edgeLabel, maxDegree);
+            measure.addIterCount(traverser.vertexIterCounter.get(),
+                                 traverser.edgeIterCounter.get());
         }
-        return JsonUtil.toJson(ImmutableMap.of("jaccard_similarity",
-                                               similarity));
+
+        return manager.serializer(g, measure.measures())
+                      .writeMap(ImmutableMap.of("jaccard_similarity", similarity));
     }
 
     @POST
@@ -110,6 +114,8 @@ public class JaccardSimilarityAPI extends TraverserAPI {
                   graph, request.vertex, request.step,
                   request.top, request.capacity);
 
+        ApiMeasurer measure = new ApiMeasurer();
+
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.vertex);
 
@@ -117,11 +123,14 @@ public class JaccardSimilarityAPI extends TraverserAPI {
 
         Map<Id, Double> results;
         try (JaccardSimilarTraverser traverser =
-                                     new JaccardSimilarTraverser(g)) {
+                     new JaccardSimilarTraverser(g)) {
             results = traverser.jaccardSimilars(sourceId, step, request.top,
                                                 request.capacity);
+            measure.addIterCount(traverser.vertexIterCounter.get(),
+                                 traverser.edgeIterCounter.get());
         }
-        return manager.serializer(g).writeMap(results);
+        return manager.serializer(g, measure.measures())
+                      .writeMap(ImmutableMap.of("jaccard_similarity", results));
     }
 
     private static class Request {

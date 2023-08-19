@@ -21,18 +21,6 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAP
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.DefaultValue;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
-
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
@@ -43,7 +31,19 @@ import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.PathsTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
 import com.codahale.metrics.annotation.Timed;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 
 @Path("graphs/{graph}/traversers/crosspoints")
 @Singleton
@@ -74,6 +74,7 @@ public class CrosspointsAPI extends API {
                   graph, source, target, direction, edgeLabel,
                   depth, maxDegree, capacity, limit);
 
+        ApiMeasurer measure = new ApiMeasurer();
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -84,6 +85,9 @@ public class CrosspointsAPI extends API {
                                                       dir, edgeLabel, depth,
                                                       maxDegree, capacity,
                                                       limit);
-        return manager.serializer(g).writePaths("crosspoints", paths, true);
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+        return manager.serializer(g, measure.measures())
+                      .writePaths("crosspoints", paths, true);
     }
 }

@@ -22,6 +22,7 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELE
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,12 +42,13 @@ import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -78,6 +80,8 @@ public class KoutAPI extends TraverserAPI {
                       @QueryParam("max_depth") int depth,
                       @QueryParam("nearest")
                       @DefaultValue("true") boolean nearest,
+                      @QueryParam("count_only")
+                      @DefaultValue("false") boolean count_only,
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("capacity")
@@ -87,8 +91,10 @@ public class KoutAPI extends TraverserAPI {
         LOG.debug("Graph [{}] get k-out from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', nearest " +
                   "'{}', max degree '{}', capacity '{}' and limit '{}'",
-                  graph, source, direction, edgeLabel, depth, nearest,
-                  maxDegree, capacity, limit);
+                  graph, source, direction, edgeLabel, depth,
+                  nearest, maxDegree, capacity, limit);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -99,8 +105,15 @@ public class KoutAPI extends TraverserAPI {
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             ids = traverser.kout(sourceId, dir, edgeLabel, depth,
                                  nearest, maxDegree, capacity, limit);
+            measure.addIterCount(traverser.vertexIterCounter.get(),
+                                 traverser.edgeIterCounter.get());
         }
-        return manager.serializer(g).writeList("vertices", ids);
+
+        if (count_only) {
+            return manager.serializer(g, measure.measures())
+                          .writeMap(ImmutableMap.of("vertices_size", ids.size()));
+        }
+        return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
 
     @POST
@@ -116,23 +129,25 @@ public class KoutAPI extends TraverserAPI {
         E.checkArgument(request.step != null,
                         "The steps of request can't be null");
         if (request.countOnly) {
-            E.checkArgument(!request.withVertex && !request.withPath,
-                            "Can't return vertex or path when count only");
+            E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
+                            "Can't return vertex, edge or path when count only");
         }
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
                   "with step '{}', max_depth '{}', nearest '{}', " +
                   "count_only '{}', capacity '{}', limit '{}', " +
-                  "with_vertex '{}' and with_path '{}'",
+                  "with_vertex '{}', with_path '{}' and with_edge '{}'",
                   graph, request.source, request.step, request.maxDepth,
                   request.nearest, request.countOnly, request.capacity,
-                  request.limit, request.withVertex, request.withPath);
+                  request.limit, request.withVertex, request.withPath,
+                  request.withEdge);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
 
         EdgeStep step = step(g, request.step);
-
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             results = traverser.customizedKout(sourceId, step,
@@ -140,8 +155,9 @@ public class KoutAPI extends TraverserAPI {
                                                request.nearest,
                                                request.capacity,
                                                request.limit);
+            measure.addIterCount(traverser.vertexIterCounter.get(),
+                                 traverser.edgeIterCounter.get());
         }
-
         long size = results.size();
         if (request.limit != NO_LIMIT && size > request.limit) {
             size = request.limit;
@@ -154,20 +170,40 @@ public class KoutAPI extends TraverserAPI {
             paths.addAll(results.paths(request.limit));
         }
 
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (request.withVertex && !request.countOnly) {
-            Set<Id> ids = new HashSet<>(neighbors);
-            if (request.withPath) {
-                for (HugeTraverser.Path p : paths) {
-                    ids.addAll(p.vertices());
-                }
-            }
-            if (!ids.isEmpty()) {
-                iter = g.vertices(ids.toArray());
+        if (request.countOnly) {
+            return manager.serializer(g, measure.measures())
+                          .writeNodesWithPath("kneighbor", neighbors, size, paths,
+                                              QueryResults.emptyIterator(),
+                                              QueryResults.emptyIterator());
+        }
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>(neighbors);
+        if (request.withPath) {
+            for (HugeTraverser.Path p : results.paths(request.limit)) {
+                vertexIds.addAll(p.vertices());
             }
         }
-        return manager.serializer(g).writeNodesWithPath("kout", neighbors,
-                                                        size, paths, iter);
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
+        }
+
+        Iterator<?> iterEdge = Collections.emptyIterator();
+        if (request.withPath) {
+            Set<Edge> edges = results.edgeResults().getEdges(paths);
+            if (request.withEdge) {
+                iterEdge = edges.iterator();
+            } else {
+                iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
+            }
+        }
+
+        return manager.serializer(g, measure.measures())
+                      .writeNodesWithPath("kout", neighbors, size, paths,
+                                          iterVertex, iterEdge);
     }
 
     private static class Request {
@@ -190,15 +226,18 @@ public class KoutAPI extends TraverserAPI {
         public boolean withVertex = false;
         @JsonProperty("with_path")
         public boolean withPath = false;
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
 
         @Override
         public String toString() {
             return String.format("KoutRequest{source=%s,step=%s,maxDepth=%s" +
                                  "nearest=%s,countOnly=%s,capacity=%s," +
-                                 "limit=%s,withVertex=%s,withPath=%s}",
-                                 this.source, this.step, this.maxDepth,
-                                 this.nearest, this.countOnly, this.capacity,
-                                 this.limit, this.withVertex, this.withPath);
+                                 "limit=%s,withVertex=%s,withPath=%s," +
+                                 "withEdge=%s}", this.source, this.step,
+                                 this.maxDepth, this.nearest, this.countOnly,
+                                 this.capacity, this.limit, this.withVertex,
+                                 this.withPath, this.withEdge);
         }
     }
 }
