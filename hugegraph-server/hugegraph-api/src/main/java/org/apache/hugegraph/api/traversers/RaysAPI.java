@@ -21,6 +21,25 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAP
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.graph.EdgeAPI;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.SubGraphTraverser;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
@@ -30,20 +49,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.graph.EdgeAPI;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.traversal.algorithm.SubGraphTraverser;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/rays")
 @Singleton
@@ -66,12 +71,17 @@ public class RaysAPI extends API {
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit,
+                      @QueryParam("with_vertex")
+                      @DefaultValue("false") boolean withVertex,
+                      @QueryParam("with_edge")
+                      @DefaultValue("false") boolean withEdge) {
         LOG.debug("Graph [{}] get rays paths from '{}' with " +
                   "direction '{}', edge label '{}', max depth '{}', " +
                   "max degree '{}', capacity '{}' and limit '{}'",
                   graph, sourceV, direction, edgeLabel, depth, maxDegree,
                   capacity, limit);
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -80,8 +90,33 @@ public class RaysAPI extends API {
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rays(source, dir, edgeLabel,
-                                                     depth, maxDegree,
-                                                     capacity, limit);
-        return manager.serializer(g).writePaths("rays", paths, false);
+                                                     depth, maxDegree, capacity,
+                                                     limit);
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>();
+        for (HugeTraverser.Path path : paths) {
+            vertexIds.addAll(path.vertices());
+        }
+        if (withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
+        }
+
+        Iterator<?> iterEdge;
+        Set<Edge> edges = paths.getEdges();
+        if (withEdge && !edges.isEmpty()) {
+            iterEdge = edges.iterator();
+        } else {
+            iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
+        }
+
+        return manager.serializer(g, measure.measures())
+                      .writePaths("rays", paths, false,
+                                  iterVertex, iterEdge);
     }
 }

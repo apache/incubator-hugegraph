@@ -22,61 +22,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.ws.rs.core.MultivaluedMap;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.util.E;
+import jakarta.ws.rs.core.MultivaluedMap;
 
 public class SubGraphTraverser extends HugeTraverser {
 
     public SubGraphTraverser(HugeGraph graph) {
         super(graph);
-    }
-
-    public PathSet rays(Id sourceV, Directions dir, String label,
-                        int depth, long degree, long capacity, long limit) {
-        return this.subGraphPaths(sourceV, dir, label, depth, degree,
-                                  capacity, limit, false, false);
-    }
-
-    public PathSet rings(Id sourceV, Directions dir, String label, int depth,
-                         boolean sourceInRing, long degree, long capacity,
-                         long limit) {
-        return this.subGraphPaths(sourceV, dir, label, depth, degree,
-                                  capacity, limit, true, sourceInRing);
-    }
-
-    private PathSet subGraphPaths(Id sourceV, Directions dir, String label,
-                                  int depth, long degree, long capacity,
-                                  long limit, boolean rings,
-                                  boolean sourceInRing) {
-        E.checkNotNull(sourceV, "source vertex id");
-        this.checkVertexExist(sourceV, "source vertex");
-        E.checkNotNull(dir, "direction");
-        checkPositive(depth, "max depth");
-        checkDegree(degree);
-        checkCapacity(capacity);
-        checkLimit(limit);
-
-        Id labelId = this.getEdgeLabelId(label);
-        Traverser traverser = new Traverser(sourceV, labelId, depth, degree,
-                                            capacity, limit, rings,
-                                            sourceInRing);
-        PathSet paths = new PathSet();
-        while (true) {
-            paths.addAll(traverser.forward(dir));
-            if (--depth <= 0 || traverser.reachLimit() ||
-                traverser.finished()) {
-                break;
-            }
-        }
-        return paths;
     }
 
     private static boolean hasMultiEdges(List<Edge> edges, Id target) {
@@ -97,20 +56,109 @@ public class SubGraphTraverser extends HugeTraverser {
         return false;
     }
 
+    public PathSet rays(Id sourceV, Directions dir, String label, int depth,
+                        long degree, long capacity, long limit) {
+        return this.subGraphPaths(sourceV, dir, label, depth, degree, capacity,
+                                  limit, false, false);
+    }
+
+    public PathSet rings(Id sourceV, Directions dir, String label, int depth,
+                         boolean sourceInRing, long degree, long capacity,
+                         long limit) {
+        return this.subGraphPaths(sourceV, dir, label, depth, degree, capacity,
+                                  limit, true, sourceInRing);
+    }
+
+    private PathSet subGraphPaths(Id sourceV, Directions dir, String label,
+                                  int depth, long degree, long capacity,
+                                  long limit, boolean rings,
+                                  boolean sourceInRing) {
+        E.checkNotNull(sourceV, "source vertex id");
+        this.checkVertexExist(sourceV, "source vertex");
+        E.checkNotNull(dir, "direction");
+        checkPositive(depth, "max depth");
+        checkDegree(degree);
+        checkCapacity(capacity);
+        checkLimit(limit);
+
+        Id labelId = this.getEdgeLabelId(label);
+        Traverser traverser = new Traverser(sourceV, labelId, depth, degree,
+                                            capacity, limit, rings,
+                                            sourceInRing);
+        PathSet paths = new PathSet();
+        do {
+            paths.addAll(traverser.forward(dir));
+        } while (--depth > 0 && !traverser.reachLimit() &&
+                 !traverser.finished());
+        this.vertexIterCounter.addAndGet(traverser.accessedVertices.size());
+        this.edgeIterCounter.addAndGet(traverser.edgeCount);
+        paths.setEdges(traverser.edgeRecord.getEdges(paths));
+        return paths;
+    }
+
+    private static class RingPath extends Path {
+
+        public RingPath(Id crosspoint, List<Id> vertices) {
+            super(crosspoint, vertices);
+        }
+
+        @Override
+        public int hashCode() {
+            int hashCode = 0;
+            for (Id id : this.vertices()) {
+                hashCode ^= id.hashCode();
+            }
+            return hashCode;
+        }
+
+        /**
+         * Compares the specified object with this path for equality.
+         * Returns <tt>true</tt> if other path is equal to or
+         * reversed of this path.
+         *
+         * @param other the object to be compared
+         * @return <tt>true</tt> if the specified object is equal to or
+         * reversed of this path
+         */
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RingPath)) {
+                return false;
+            }
+            List<Id> vertices = this.vertices();
+            List<Id> otherVertices = ((Path) other).vertices();
+
+            if (vertices.equals(otherVertices)) {
+                return true;
+            }
+            if (vertices.size() != otherVertices.size()) {
+                return false;
+            }
+            for (int i = 0, size = vertices.size(); i < size; i++) {
+                int j = size - i - 1;
+                if (!vertices.get(i).equals(otherVertices.get(j))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
     private class Traverser {
 
         private final Id source;
-        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
-        private Set<Id> accessedVertices = newIdSet();
-
         private final Id label;
-        private int depth;
         private final long degree;
         private final long capacity;
         private final long limit;
         private final boolean rings;
         private final boolean sourceInRing;
+        private final Set<Id> accessedVertices = newIdSet();
+        private final EdgeRecord edgeRecord;
+        private MultivaluedMap<Id, Node> sources = newMultivalueMap();
+        private int depth;
         private long pathCount;
+        private long edgeCount;
 
         public Traverser(Id sourceV, Id label, int depth, long degree,
                          long capacity, long limit, boolean rings,
@@ -126,6 +174,8 @@ public class SubGraphTraverser extends HugeTraverser {
             this.rings = rings;
             this.sourceInRing = sourceInRing;
             this.pathCount = 0L;
+            this.edgeCount = 0L;
+            this.edgeRecord = new EdgeRecord(false);
         }
 
         /**
@@ -140,7 +190,7 @@ public class SubGraphTraverser extends HugeTraverser {
                 Id vid = entry.getKey();
                 // Record edgeList to determine if multiple edges exist
                 List<Edge> edgeList = IteratorUtils.list(edgesOfVertex(
-                                      vid, direction, this.label, this.degree));
+                        vid, direction, this.label, this.degree));
                 edges = edgeList.iterator();
 
                 if (!edges.hasNext()) {
@@ -163,7 +213,11 @@ public class SubGraphTraverser extends HugeTraverser {
                 while (edges.hasNext()) {
                     neighborCount++;
                     HugeEdge edge = (HugeEdge) edges.next();
+                    this.edgeCount += 1L;
                     Id target = edge.id().otherVertexId();
+
+                    this.edgeRecord.addEdge(vid, target, edge);
+
                     // Avoid deduplicate path
                     if (currentNeighbors.contains(target)) {
                         continue;
@@ -241,62 +295,11 @@ public class SubGraphTraverser extends HugeTraverser {
         private boolean reachLimit() {
             checkCapacity(this.capacity, this.accessedVertices.size(),
                           this.rings ? "rings" : "rays");
-            if (this.limit == NO_LIMIT || this.pathCount < this.limit) {
-                return false;
-            }
-            return true;
+            return this.limit != NO_LIMIT && this.pathCount >= this.limit;
         }
 
         private boolean finished() {
             return this.sources.isEmpty();
-        }
-    }
-
-    private static class RingPath extends Path {
-
-        public RingPath(Id crosspoint, List<Id> vertices) {
-            super(crosspoint, vertices);
-        }
-
-        @Override
-        public int hashCode() {
-            int hashCode = 0;
-            for (Id id : this.vertices()) {
-                hashCode ^= id.hashCode();
-            }
-            return hashCode;
-        }
-
-        /**
-         * Compares the specified object with this path for equality.
-         * Returns <tt>true</tt> if other path is equal to or
-         * reversed of this path.
-         * @param other the object to be compared
-         * @return <tt>true</tt> if the specified object is equal to or
-         * reversed of this path
-         */
-        @Override
-        public boolean equals(Object other) {
-            if (!(other instanceof RingPath)) {
-                return false;
-            }
-            List<Id> vertices = this.vertices();
-            List<Id> otherVertices = ((Path) other).vertices();
-
-            if (vertices.equals(otherVertices)) {
-                return true;
-            }
-            if (vertices.size() != otherVertices.size()) {
-                return false;
-            }
-            assert vertices.size() == otherVertices.size();
-            for (int i = 0, size = vertices.size(); i < size; i++) {
-                int j = size - i - 1;
-                if (!vertices.get(i).equals(otherVertices.get(j))) {
-                    return false;
-                }
-            }
-            return true;
         }
     }
 }

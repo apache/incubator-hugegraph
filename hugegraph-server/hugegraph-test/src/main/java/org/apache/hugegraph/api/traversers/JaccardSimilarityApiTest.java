@@ -19,13 +19,14 @@ package org.apache.hugegraph.api.traversers;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class JaccardSimilarityApiTest extends BaseApiTest {
 
@@ -72,9 +73,10 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
                                        "\"top\": 3}", markoId);
         Response r = client().post(PATH, reqBody);
         String content = assertResponseStatus(200, r);
-        Double rippleJaccardSimilarity = assertJsonContains(content, rippleId);
-        Double peterJaccardSimilarity = assertJsonContains(content, peterId);
-        Double jsonJaccardSimilarity = assertJsonContains(content, jsonId);
+        Map<?, ?> jaccardSimilarity = assertJsonContains(content, "jaccard_similarity");
+        Double rippleJaccardSimilarity = assertMapContains(jaccardSimilarity, rippleId);
+        Double peterJaccardSimilarity = assertMapContains(jaccardSimilarity, peterId);
+        Double jsonJaccardSimilarity = assertMapContains(jaccardSimilarity, jsonId);
         Assert.assertEquals(0.3333, rippleJaccardSimilarity.doubleValue(),
                             0.0001);
         Assert.assertEquals(0.25, peterJaccardSimilarity.doubleValue(), 0.0001);
