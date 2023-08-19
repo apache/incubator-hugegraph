@@ -20,7 +20,7 @@ byte-buddy-1.10.5.jar
 byte-buddy-agent-1.10.5.jar
 caffeine-2.2.6.jar
 caffeine-2.3.1.jar
-cassandra-all-3.11.12.jar
+cassandra-all-4.0.10.jar
 cassandra-driver-core-3.6.0.jar
 checker-qual-2.0.0.jar
 checker-qual-3.5.0.jar
