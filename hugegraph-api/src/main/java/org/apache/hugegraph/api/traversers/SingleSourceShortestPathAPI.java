@@ -22,6 +22,22 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.Iterator;
+import java.util.Set;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.graph.EdgeAPI;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -32,22 +48,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.graph.EdgeAPI;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
-import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser.WeightedPaths;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/singlesourceshortestpath")
 @Singleton
@@ -69,16 +69,22 @@ public class SingleSourceShortestPathAPI extends API {
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
                       @QueryParam("skip_degree")
                       @DefaultValue("0") long skipDegree,
+                      @QueryParam("with_vertex")
+                      @DefaultValue("false") boolean withVertex,
+                      @QueryParam("with_edge")
+                      @DefaultValue("false") boolean withEdge,
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity,
                       @QueryParam("limit")
-                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit,
-                      @QueryParam("with_vertex") boolean withVertex) {
+                      @DefaultValue(DEFAULT_PATHS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get single source shortest path from '{}' " +
                   "with direction {}, edge label {}, weight property {}, " +
-                  "max degree '{}', limit '{}' and with vertex '{}'",
+                  "max degree '{}', capacity '{}', limit '{}', " +
+                  "with_vertex '{}' and with_edge '{}'",
                   graph, source, direction, edgeLabel,
-                  weight, maxDegree, withVertex);
+                  weight, maxDegree, capacity, limit, withVertex, withEdge);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -86,14 +92,31 @@ public class SingleSourceShortestPathAPI extends API {
         HugeGraph g = graph(manager, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
-        WeightedPaths paths = traverser.singleSourceShortestPaths(
-                              sourceId, dir, edgeLabel, weight,
-                              maxDegree, skipDegree, capacity, limit);
-        Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        assert paths != null;
-        if (!paths.isEmpty() && withVertex) {
-            iterator = g.vertices(paths.vertices().toArray());
+        SingleSourceShortestPathTraverser.WeightedPaths paths =
+                traverser.singleSourceShortestPaths(
+                        sourceId, dir, edgeLabel, weight,
+                        maxDegree, skipDegree, capacity, limit);
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = paths.vertices();
+        if (withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
-        return manager.serializer(g).writeWeightedPaths(paths, iterator);
+
+        Iterator<?> iterEdge;
+        Set<Edge> edges = paths.getEdges();
+        if (withEdge && !edges.isEmpty()) {
+            iterEdge = edges.iterator();
+        } else {
+            iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
+        }
+
+        return manager.serializer(g, measure.measures())
+                      .writeWeightedPaths(paths, iterVertex, iterEdge);
     }
 }

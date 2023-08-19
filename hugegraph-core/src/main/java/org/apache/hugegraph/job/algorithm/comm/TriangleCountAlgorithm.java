@@ -26,18 +26,28 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+
 import com.google.common.collect.ImmutableMap;
 
 public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
 
     public static final String ALGO_NAME = "triangle_count";
+
+    protected static int workersWhenBoth(Map<String, Object> parameters) {
+        Directions direction = direction4Out(parameters);
+        int workers = workers(parameters);
+        E.checkArgument(direction == Directions.BOTH || workers <= 0,
+                        "The workers must be not set when direction!=BOTH, " +
+                        "but got workers=%s and direction=%s",
+                        workers, direction);
+        return workers;
+    }
 
     @Override
     public String name() {
@@ -60,16 +70,6 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
         }
     }
 
-    protected static int workersWhenBoth(Map<String, Object> parameters) {
-        Directions direction = direction4Out(parameters);
-        int workers = workers(parameters);
-        E.checkArgument(direction == Directions.BOTH || workers <= 0,
-                        "The workers must be not set when direction!=BOTH, " +
-                        "but got workers=%s and direction=%s",
-                        workers, direction);
-        return workers;
-    }
-
     protected static class Traverser extends AlgoTraverser {
 
         protected static final String KEY_TRIANGLES = "triangles";
@@ -83,8 +83,12 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
             super(job, name, workers);
         }
 
+        protected static <V> Set<V> newOrderedSet() {
+            return new TreeSet<>();
+        }
+
         public Object triangleCount(Directions direction, long degree) {
-            Map<String, Long> results = triangles( direction, degree);
+            Map<String, Long> results = triangles(direction, degree);
             results = InsertionOrderUtil.newMap(results);
             results.remove(KEY_TRIADS);
             return results;
@@ -191,7 +195,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
                                          MutableLong edgesCount) {
             Iterator<Id> adjVertices = this.adjacentVertices(source,
                                                              Directions.BOTH,
-                                                             null, degree);
+                                                             (Id) null, degree);
             Set<Id> set = newOrderedSet();
             while (adjVertices.hasNext()) {
                 edgesCount.increment();
@@ -206,7 +210,7 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
             Id empty = IdGenerator.ZERO;
             Iterator<Id> vertices;
             for (Id v : adjVertices) {
-                vertices = this.adjacentVertices(v, dir, null, degree);
+                vertices = this.adjacentVertices(v, dir, (Id) null, degree);
                 Id lastVertex = empty;
                 while (vertices.hasNext()) {
                     Id vertex = vertices.next();
@@ -230,10 +234,6 @@ public class TriangleCountAlgorithm extends AbstractCommAlgorithm {
 
         protected long localTriads(int size) {
             return size * (size - 1L) / 2L;
-        }
-
-        protected static <V> Set<V> newOrderedSet() {
-            return new TreeSet<>();
         }
     }
 }
