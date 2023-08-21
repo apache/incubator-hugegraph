@@ -49,7 +49,7 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${top.level.dir}/hugegraph-dist/release-docs/</directory>
+            <directory>${top.level.dir}/hugegraph-server/hugegraph-dist/release-docs/</directory>
             <outputDirectory>/</outputDirectory>
         </fileSet>
         <fileSet>

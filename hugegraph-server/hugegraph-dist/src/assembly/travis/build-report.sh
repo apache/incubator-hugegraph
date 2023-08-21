@@ -27,7 +27,7 @@ if [ "$BACKEND" == "memory" ]; then
     OPTION_CLASS_FILES_BACKEND=""
 fi
 
-cd hugegraph-test
+cd hugegraph-server/hugegraph-test
 mvn jacoco:dump@pull-test-data -Dapp.host=localhost -Dapp.port=$JACOCO_PORT -Dskip.dump=false
 cd ../
 

@@ -23,14 +23,13 @@ REPORT_FILE=$REPORT_DIR/jacoco-api-test-for-raft.xml
 
 TRAVIS_DIR=$(dirname $0)
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-SERVER_DIR=apache-hugegraph-incubating-$VERSION
+SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-$VERSION/
 CONF=$SERVER_DIR/conf/graphs/hugegraph.properties
 REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 JACOCO_PORT=36320
 
 mvn package -DskipTests -ntp
-
 
 # add mysql dependency
 wget -P $SERVER_DIR/lib/ https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
