@@ -28,14 +28,14 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.job.JobBuilder;
-import org.apache.hugegraph.job.schema.EdgeLabelRemoveCallable;
-import org.apache.hugegraph.job.schema.IndexLabelRemoveCallable;
-import org.apache.hugegraph.job.schema.OlapPropertyKeyClearCallable;
-import org.apache.hugegraph.job.schema.OlapPropertyKeyCreateCallable;
-import org.apache.hugegraph.job.schema.OlapPropertyKeyRemoveCallable;
-import org.apache.hugegraph.job.schema.RebuildIndexCallable;
-import org.apache.hugegraph.job.schema.SchemaCallable;
-import org.apache.hugegraph.job.schema.VertexLabelRemoveCallable;
+import org.apache.hugegraph.job.schema.EdgeLabelRemoveJob;
+import org.apache.hugegraph.job.schema.IndexLabelRebuildJob;
+import org.apache.hugegraph.job.schema.IndexLabelRemoveJob;
+import org.apache.hugegraph.job.schema.OlapPropertyKeyClearJob;
+import org.apache.hugegraph.job.schema.OlapPropertyKeyCreateJob;
+import org.apache.hugegraph.job.schema.OlapPropertyKeyRemoveJob;
+import org.apache.hugegraph.job.schema.SchemaJob;
+import org.apache.hugegraph.job.schema.VertexLabelRemoveJob;
 import org.apache.hugegraph.meta.MetaDriver;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.PdMetaDriver;
@@ -62,7 +62,7 @@ import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransaction {
+public class SchemaTransactionV2 extends SchemaTransaction {
 
     protected static final Logger LOG = Log.logger(SchemaTransaction.class);
 
@@ -72,12 +72,15 @@ public class SchemaTransaction {
     private final IdCounter idCounter;
     private final SchemaMetaManager schemaMetaManager;
 
-    public SchemaTransaction(MetaDriver metaDriver,
+    public SchemaTransactionV2(MetaDriver metaDriver,
                              String cluster,
                              HugeGraphParams graphParams) {
+        super(graphParams, null);
         E.checkNotNull(graphParams, "graphParams");
         this.graphParams = graphParams;
-        this.graphSpace = graphParams.graph().graphSpace();
+        // TODO: uncomment later - graph space
+        //this.graphSpace = graphParams.graph().graphSpace();
+        this.graphSpace = "";
         this.graph = graphParams.name();
         this.schemaMetaManager =
                 new SchemaMetaManager(metaDriver, cluster, this.graph());
@@ -95,20 +98,20 @@ public class SchemaTransaction {
      * 异步任务系列
      */
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               SchemaCallable callable) {
-        return asyncRun(graph, schema, callable, ImmutableSet.of());
+                               SchemaJob job) {
+        return asyncRun(graph, schema, job, ImmutableSet.of());
     }
 
     @Watched(prefix = "schema")
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
-                               SchemaCallable callable, Set<Id> dependencies) {
+                               SchemaJob job, Set<Id> dependencies) {
         E.checkArgument(schema != null, "Schema can't be null");
-        String name = SchemaCallable.formatTaskName(schema.type(),
+        String name = SchemaJob.formatTaskName(schema.type(),
                                                     schema.id(),
                                                     schema.name());
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
-                                               .job(callable)
+                                               .job(job)
                                                .dependencies(dependencies);
         HugeTask<?> task = builder.schedule();
         // If TASK_SYNC_DELETION is true, wait async thread done before
@@ -249,9 +252,9 @@ public class SchemaTransaction {
     @Watched(prefix = "schema")
     public Id removeVertexLabel(Id id) {
         LOG.debug("SchemaTransaction remove vertex label '{}'", id);
-        SchemaCallable callable = new VertexLabelRemoveCallable();
+        SchemaJob job = new VertexLabelRemoveJob();
         VertexLabel schema = this.getVertexLabel(id);
-        return asyncRun(this.graph(), schema, callable);
+        return asyncRun(this.graph(), schema, job);
     }
 
     @Watched(prefix = "schema")
@@ -286,20 +289,21 @@ public class SchemaTransaction {
          */
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         EdgeLabel schema = this.getEdgeLabel(id);
-        if (schema.edgeLabelType().parent()) {
-            List<EdgeLabel> edgeLabels = this.getEdgeLabels();
-            for (EdgeLabel edgeLabel : edgeLabels) {
-                if (edgeLabel.edgeLabelType().sub() &&
-                    edgeLabel.fatherId() == id) {
-                    throw new NotAllowException(
-                            "Not allowed to remove a parent edge label: '%s' " +
-                            "because the sub edge label '%s' is still existing",
-                            schema.name(), edgeLabel.name());
-                }
-            }
-        }
-        SchemaCallable callable = new EdgeLabelRemoveCallable();
-        return asyncRun(this.graph(), schema, callable);
+        // TODO: uncomment later - el
+        //if (schema.edgeLabelType().parent()) {
+        //    List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+        //    for (EdgeLabel edgeLabel : edgeLabels) {
+        //        if (edgeLabel.edgeLabelType().sub() &&
+        //            edgeLabel.fatherId() == id) {
+        //            throw new NotAllowException(
+        //                    "Not allowed to remove a parent edge label: '%s' " +
+        //                    "because the sub edge label '%s' is still existing",
+        //                    schema.name(), edgeLabel.name());
+        //        }
+        //    }
+        //}
+        SchemaJob job = new EdgeLabelRemoveJob();
+        return asyncRun(this.graph(), schema, job);
     }
 
     @Watched(prefix = "schema")
@@ -341,9 +345,9 @@ public class SchemaTransaction {
     @Watched(prefix = "schema")
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
-        SchemaCallable callable = new IndexLabelRemoveCallable();
+        SchemaJob job = new IndexLabelRemoveJob();
         IndexLabel schema = this.getIndexLabel(id);
-        return asyncRun(this.graph(), schema, callable);
+        return asyncRun(this.graph(), schema, job);
     }
 
     // 通用性 的schema处理函数
@@ -383,8 +387,10 @@ public class SchemaTransaction {
     private void saveSchema(SchemaElement schema, boolean update,
                             Consumer<SchemaElement> updateCallback) {
         // Lock for schema update
-        String spaceGraph = this.graphParams()
-                                .graph().spaceGraphName();
+        // TODO: uncomment later - graph space
+        //String spaceGraph = this.graphParams()
+        //                        .graph().spaceGraphName();
+        String spaceGraph = "";
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()), schema.id());
@@ -505,8 +511,10 @@ public class SchemaTransaction {
     protected void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        String spaceGraph = this.graphParams()
-                                .graph().spaceGraphName();
+        // TODO: uncomment later - graph space
+        //String spaceGraph = this.graphParams()
+        //                        .graph().spaceGraphName();
+        String spaceGraph = "";
         LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
@@ -563,8 +571,8 @@ public class SchemaTransaction {
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyRemoveCallable();
-        return asyncRun(this.graph(), propertyKey, callable);
+        SchemaJob job = new OlapPropertyKeyRemoveJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     public void removeOlapPk(Id id) {
@@ -574,8 +582,8 @@ public class SchemaTransaction {
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyClearCallable();
-        return asyncRun(this.graph(), propertyKey, callable);
+        SchemaJob job = new OlapPropertyKeyClearJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     public void clearOlapPk(Id id) {
@@ -585,8 +593,8 @@ public class SchemaTransaction {
     public Id createOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaCallable callable = new OlapPropertyKeyCreateCallable();
-        return asyncRun(this.graph(), propertyKey, callable);
+        SchemaJob job = new OlapPropertyKeyCreateJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     // -- store 相关的方法，分为两类：1、olaptable相关  2、id生成策略
@@ -595,9 +603,10 @@ public class SchemaTransaction {
         this.graphParams().loadGraphStore().createOlapTable(id);
     }
 
-    public boolean existOlapTable(Id id) {
-        return this.graphParams().loadGraphStore().existOlapTable(id);
-    }
+    // TODO: uncomment later - olap
+    //public boolean existOlapTable(Id id) {
+    //    return this.graphParams().loadGraphStore().existOlapTable(id);
+    //}
 
     public void initAndRegisterOlapTables() {
         for (PropertyKey pk : this.getPropertyKeys()) {
@@ -701,8 +710,8 @@ public class SchemaTransaction {
     public Id rebuildIndex(SchemaElement schema, Set<Id> dependencies) {
         LOG.debug("SchemaTransaction rebuild index for {} with id '{}'",
                   schema.type(), schema.id());
-        SchemaCallable callable = new RebuildIndexCallable();
-        return asyncRun(this.graph(), schema, callable, dependencies);
+        SchemaJob job = new IndexLabelRebuildJob();
+        return asyncRun(this.graph(), schema, job, dependencies);
     }
 
     /**

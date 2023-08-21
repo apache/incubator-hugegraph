@@ -47,6 +47,11 @@ public abstract class SchemaElement implements Nameable, Typeable,
     protected static final int ILN_IL_ID = -6;
     protected static final int OLAP_VL_ID = -7;
 
+    // OLAP_ID means all of vertex label ids
+    public static final Id OLAP_ID = IdGenerator.of(-7);
+    // OLAP means all of vertex label names
+    public static final String OLAP = "~olap";
+
     public static final Id NONE_ID = IdGenerator.ZERO;
 
     public static final String UNDEF = "~undefined";
