@@ -23,6 +23,23 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAT
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
 import java.util.Iterator;
+import java.util.Set;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
+import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -32,22 +49,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
-import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser.SimilarsMap;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/fusiformsimilarity")
 @Singleton
@@ -64,7 +65,7 @@ public class FusiformSimilarityAPI extends API {
                        @PathParam("graph") String graph,
                        FusiformSimilarityRequest request) {
         E.checkArgumentNotNull(request, "The fusiform similarity " +
-                               "request body can't be null");
+                                        "request body can't be null");
         E.checkArgumentNotNull(request.sources,
                                "The sources of fusiform similarity " +
                                "request can't be null");
@@ -94,28 +95,37 @@ public class FusiformSimilarityAPI extends API {
                   request.minNeighbors, request.alpha, request.minSimilars,
                   request.groupProperty, request.minGroups);
 
+        ApiMeasurer measure = new ApiMeasurer();
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         E.checkArgument(sources != null && sources.hasNext(),
                         "The source vertices can't be empty");
 
-        FusiformSimilarityTraverser traverser =
-                                    new FusiformSimilarityTraverser(g);
+        FusiformSimilarityTraverser traverser = new FusiformSimilarityTraverser(g);
         SimilarsMap result = traverser.fusiformSimilarity(
-                             sources, request.direction, request.label,
-                             request.minNeighbors, request.alpha,
-                             request.minSimilars, request.top,
-                             request.groupProperty, request.minGroups,
-                             request.maxDegree, request.capacity,
-                             request.limit, request.withIntermediary);
+                sources, request.direction, request.label,
+                request.minNeighbors, request.alpha,
+                request.minSimilars, request.top,
+                request.groupProperty, request.minGroups,
+                request.maxDegree, request.capacity,
+                request.limit, request.withIntermediary);
 
         CloseableIterator.closeIterator(sources);
 
-        Iterator<Vertex> iterator = QueryResults.emptyIterator();
-        if (request.withVertex && !result.isEmpty()) {
-            iterator = g.vertices(result.vertices().toArray());
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = result.vertices();
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
-        return manager.serializer(g).writeSimilars(result, iterator);
+
+        return manager.serializer(g, measure.measures())
+                      .writeSimilars(result, iterVertex);
     }
 
     private static class FusiformSimilarityRequest {

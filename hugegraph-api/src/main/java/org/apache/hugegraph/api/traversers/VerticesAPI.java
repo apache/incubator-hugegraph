@@ -22,6 +22,22 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PAG
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
@@ -31,22 +47,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.store.Shard;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
 
 @Path("graphs/{graph}/traversers/vertices")
 @Singleton
