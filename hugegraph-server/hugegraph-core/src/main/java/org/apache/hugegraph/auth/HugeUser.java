@@ -37,6 +37,7 @@ public class HugeUser extends Entity {
     private static final long serialVersionUID = -8951193710873772717L;
 
     private String name;
+    private String nickname;
     private String password;
     private String phone;
     private String email;
@@ -72,6 +73,14 @@ public class HugeUser extends Entity {
     @Override
     public String name() {
         return this.name;
+    }
+
+    public String nickname() {
+        return nickname;
+    }
+
+    public void nickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String password() {
@@ -280,5 +289,10 @@ public class HugeUser extends Entity {
 
             return super.initProperties(props);
         }
+    }
+
+    public static HugeUser fromMap(Map<String, Object> map) {
+        HugeUser user = new HugeUser("");
+        return fromMap(map, user);
     }
 }

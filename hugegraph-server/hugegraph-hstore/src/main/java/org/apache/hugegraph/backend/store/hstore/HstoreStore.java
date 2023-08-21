@@ -699,6 +699,62 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
     /***************************** Store defines *****************************/
 
+    public static class HstoreSystemStore extends HstoreStore {
+
+        public HstoreSystemStore(BackendStoreProvider provider, String namespace, String store) {
+            super(provider, namespace, store);
+
+            registerTableManager(HugeTableType.VERTEX,
+                                 new HstoreTables.Vertex(store));
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                "HstoreSchemaStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                "HstoreSchemaStore.getCounter()");
+        }
+
+        @Override
+        public String storedVersion() {
+            return "1.12";
+        }
+    }
+
+    public static class HstoreSchemaStore extends HstoreStore {
+
+        public HstoreSchemaStore(BackendStoreProvider provider, String namespace, String store) {
+            super(provider, namespace, store);
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                "HstoreSchemaStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                "HstoreSchemaStore.getCounter()");
+        }
+    }
+
     public static class HstoreGraphStore extends HstoreStore {
 
         public HstoreGraphStore(BackendStoreProvider provider,

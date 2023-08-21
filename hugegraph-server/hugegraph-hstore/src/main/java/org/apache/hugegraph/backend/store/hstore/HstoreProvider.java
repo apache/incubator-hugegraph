@@ -19,7 +19,6 @@ package org.apache.hugegraph.backend.store.hstore;
 
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.hstore.HstoreStore.HstoreGraphStore;
 import org.apache.hugegraph.config.HugeConfig;
 
 public class HstoreProvider extends AbstractBackendStoreProvider {
@@ -35,21 +34,21 @@ public class HstoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public String driverVersion() {
-        return null;
+        return "1.12";
     }
 
     @Override
     protected BackendStore newSchemaStore(HugeConfig config, String store) {
-        return new HstoreGraphStore(this, this.namespace(), store);
+        return new HstoreStore.HstoreSchemaStore(this, this.namespace(), store);
     }
 
     @Override
     protected BackendStore newGraphStore(HugeConfig config, String store) {
-        return null;
+        return new HstoreStore.HstoreGraphStore(this, this.namespace(), store);
     }
 
     @Override
     protected BackendStore newSystemStore(HugeConfig config, String store) {
-        return null;
+        return new HstoreStore.HstoreSystemStore(this, this.namespace(), store);
     }
 }

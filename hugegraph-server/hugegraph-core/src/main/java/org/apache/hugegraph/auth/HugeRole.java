@@ -22,51 +22,67 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.auth.SchemaDefine.Entity;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
+import org.apache.tinkerpop.gremlin.structure.T;
 
-public class HugeGroup extends Entity {
+public class HugeRole extends Entity {
 
     private static final long serialVersionUID = 2330399818352242686L;
 
     private String name;
     private String nickname;
+    private String graphSpace;
     private String description;
 
-    public HugeGroup(String name) {
-        this(null, name);
-    }
-
-    public HugeGroup(Id id) {
-        this(id, null);
-    }
-
-    public HugeGroup(Id id, String name) {
+    public HugeRole(Id id, String name, String graphSpace) {
         this.id = id;
         this.name = name;
+        this.graphSpace = graphSpace;
         this.description = null;
+    }
+
+    public HugeRole(String name, String graphSpace) {
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null,
+             name, graphSpace);
+    }
+
+    public HugeRole(Id id, String graphSpace) {
+        this(id, id.asString(), graphSpace);
+    }
+
+    public static HugeRole fromMap(Map<String, Object> map) {
+        HugeRole role = new HugeRole("", "");
+        return fromMap(map, role);
+    }
+
+    public static Schema schema(HugeGraphParams graph) {
+        return new Schema(graph);
     }
 
     @Override
     public ResourceType type() {
-        return ResourceType.USER_GROUP;
+        return ResourceType.GRANT;
     }
 
     @Override
     public String label() {
-        return P.GROUP;
+        return P.ROLE;
     }
 
     @Override
     public String name() {
         return this.name;
+    }
+
+    public void name(String name) {
+        this.name = name;
     }
 
     public String nickname() {
@@ -75,6 +91,10 @@ public class HugeGroup extends Entity {
 
     public void nickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String graphSpace() {
+        return this.graphSpace;
     }
 
     public String description() {
@@ -87,7 +107,7 @@ public class HugeGroup extends Entity {
 
     @Override
     public String toString() {
-        return String.format("HugeGroup(%s)%s", this.id, this.asMap());
+        return String.format("HugeGroup(%s)", this.id);
     }
 
     @Override
@@ -96,8 +116,14 @@ public class HugeGroup extends Entity {
             return true;
         }
         switch (key) {
+            case P.GRAPHSPACE:
+                this.graphSpace = (String) value;
+                break;
             case P.NAME:
                 this.name = (String) value;
+                break;
+            case P.NICKNAME:
+                this.nickname = (String) value;
                 break;
             case P.DESCRIPTION:
                 this.description = (String) value;
@@ -115,10 +141,18 @@ public class HugeGroup extends Entity {
         List<Object> list = new ArrayList<>(12);
 
         list.add(T.label);
-        list.add(P.GROUP);
+        list.add(P.ROLE);
+
+        list.add(P.GRAPHSPACE);
+        list.add(this.graphSpace);
 
         list.add(P.NAME);
         list.add(this.name);
+
+        if (this.nickname != null) {
+            list.add(P.NICKNAME);
+            list.add(this.nickname);
+        }
 
         if (this.description != null) {
             list.add(P.DESCRIPTION);
@@ -135,34 +169,32 @@ public class HugeGroup extends Entity {
         Map<String, Object> map = new HashMap<>();
 
         map.put(Hidden.unHide(P.NAME), this.name);
+        map.put(Hidden.unHide(P.GRAPHSPACE), this.graphSpace);
         if (this.description != null) {
             map.put(Hidden.unHide(P.DESCRIPTION), this.description);
+        }
+
+        if (this.nickname != null) {
+            map.put(Hidden.unHide(P.NICKNAME), this.nickname);
         }
 
         return super.asMap(map);
     }
 
-    public static HugeGroup fromVertex(Vertex vertex) {
-        HugeGroup group = new HugeGroup((Id) vertex.id());
-        return fromVertex(vertex, group);
-    }
-
-    public static Schema schema(HugeGraphParams graph) {
-        return new Schema(graph);
-    }
-
     public static final class P {
 
-        public static final String GROUP = Hidden.hide("group");
+        public static final String ROLE = Hidden.hide("role");
 
         public static final String ID = T.id.getAccessor();
         public static final String LABEL = T.label.getAccessor();
 
-        public static final String NAME = "~group_name";
-        public static final String DESCRIPTION = "~group_description";
+        public static final String NAME = "~role_name";
+        public static final String NICKNAME = "~role_nickname";
+        public static final String GRAPHSPACE = "~graphspace";
+        public static final String DESCRIPTION = "~role_description";
 
         public static String unhide(String key) {
-            final String prefix = Hidden.hide("group_");
+            final String prefix = Hidden.hide("role_");
             if (key.startsWith(prefix)) {
                 return key.substring(prefix.length());
             }
@@ -173,7 +205,7 @@ public class HugeGroup extends Entity {
     public static final class Schema extends SchemaDefine {
 
         public Schema(HugeGraphParams graph) {
-            super(graph, P.GROUP);
+            super(graph, P.ROLE);
         }
 
         @Override
@@ -189,7 +221,7 @@ public class HugeGroup extends Entity {
                                     .properties(properties)
                                     .usePrimaryKeyId()
                                     .primaryKeys(P.NAME)
-                                    .nullableKeys(P.DESCRIPTION)
+                                    .nullableKeys(P.DESCRIPTION, P.NICKNAME)
                                     .enableLabelIndex(true)
                                     .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -200,13 +232,9 @@ public class HugeGroup extends Entity {
 
             props.add(createPropertyKey(P.NAME));
             props.add(createPropertyKey(P.DESCRIPTION));
+            props.add(createPropertyKey(P.NICKNAME));
 
             return super.initProperties(props);
         }
-    }
-
-    public static HugeGroup fromMap(Map<String, Object> map) {
-        HugeGroup group = new HugeGroup("");
-        return fromMap(map, group);
     }
 }
