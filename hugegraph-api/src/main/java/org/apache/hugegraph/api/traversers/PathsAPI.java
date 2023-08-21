@@ -27,6 +27,25 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.graph.EdgeAPI;
+import org.apache.hugegraph.api.graph.VertexAPI;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.CollectionPathsTraverser;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.PathsTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -38,25 +57,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.graph.EdgeAPI;
-import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.CollectionPathsTraverser;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.traversal.algorithm.PathsTraverser;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/paths")
 @Singleton
@@ -87,6 +87,8 @@ public class PathsAPI extends TraverserAPI {
                   graph, source, target, direction, edgeLabel, depth,
                   maxDegree, capacity, limit);
 
+        ApiMeasurer measure = new ApiMeasurer();
+
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
         Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
@@ -97,7 +99,10 @@ public class PathsAPI extends TraverserAPI {
                                                       dir.opposite(), edgeLabel,
                                                       depth, maxDegree, capacity,
                                                       limit);
-        return manager.serializer(g).writePaths("paths", paths, false);
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+        return manager.serializer(g, measure.measures())
+                      .writePaths("paths", paths, false);
     }
 
     @POST
@@ -120,10 +125,12 @@ public class PathsAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get paths from source vertices '{}', target " +
                   "vertices '{}', with step '{}', max depth '{}', " +
-                  "capacity '{}', limit '{}' and with_vertex '{}'",
+                  "capacity '{}', limit '{}', with_vertex '{}' and with_edge '{}'",
                   graph, request.sources, request.targets, request.step,
                   request.depth, request.capacity, request.limit,
-                  request.withVertex);
+                  request.withVertex, request.withEdge);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -131,24 +138,38 @@ public class PathsAPI extends TraverserAPI {
         EdgeStep step = step(g, request.step);
 
         CollectionPathsTraverser traverser = new CollectionPathsTraverser(g);
-        Collection<HugeTraverser.Path> paths;
-        paths = traverser.paths(sources, targets, step, request.depth,
-                                request.nearest, request.capacity,
-                                request.limit);
+        CollectionPathsTraverser.WrappedPathCollection
+                wrappedPathCollection = traverser.paths(sources, targets,
+                                                        step, request.depth,
+                                                        request.nearest, request.capacity,
+                                                        request.limit);
+        Collection<HugeTraverser.Path> paths = wrappedPathCollection.paths();
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
 
-        if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>();
+        for (HugeTraverser.Path path : paths) {
+            vertexIds.addAll(path.vertices());
+        }
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
 
-        Set<Id> ids = new HashSet<>();
-        for (HugeTraverser.Path p : paths) {
-            ids.addAll(p.vertices());
+        Iterator<?> iterEdge;
+        Set<Edge> edges = wrappedPathCollection.edges();
+        if (request.withEdge && !edges.isEmpty()) {
+            iterEdge = edges.iterator();
+        } else {
+            iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (!ids.isEmpty()) {
-            iter = g.vertices(ids.toArray());
-        }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
+
+        return manager.serializer(g, measure.measures())
+                      .writePaths("paths", paths, false,
+                                  iterVertex, iterEdge);
     }
 
     private static class Request {
@@ -170,14 +191,17 @@ public class PathsAPI extends TraverserAPI {
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
 
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
+
         @Override
         public String toString() {
             return String.format("PathRequest{sources=%s,targets=%s,step=%s," +
                                  "maxDepth=%s,nearest=%s,capacity=%s," +
-                                 "limit=%s,withVertex=%s}", this.sources,
-                                 this.targets, this.step, this.depth,
-                                 this.nearest, this.capacity,
-                                 this.limit, this.withVertex);
+                                 "limit=%s,withVertex=%s,withEdge=%s}",
+                                 this.sources, this.targets, this.step,
+                                 this.depth, this.nearest, this.capacity,
+                                 this.limit, this.withVertex, this.withEdge);
         }
     }
 }
