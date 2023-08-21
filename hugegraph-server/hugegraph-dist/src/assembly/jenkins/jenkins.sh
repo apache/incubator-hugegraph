@@ -18,7 +18,7 @@
 # Backends contains [memory, rocksdb, cassandra, scylladb, mysql]
 export BACKEND=memory
 # The jenkins script store path
-export SCRIPT_DIR="hugegraph-dist/src/assembly/jenkins"
+export SCRIPT_DIR="hugegraph-server/hugegraph-dist/src/assembly/jenkins"
 
 # The jenkins job integrated behavior: [test, deploy, publish]
 export ACTION=${ACTION}
