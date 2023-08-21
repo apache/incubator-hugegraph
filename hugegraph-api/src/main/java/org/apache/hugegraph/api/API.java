@@ -27,17 +27,20 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.metrics.MetricsUtil;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.core.MediaType;
 
 public class API {
 
@@ -93,7 +96,7 @@ public class API {
             SUCCEED_METER.mark();
             return result;
         } catch (IllegalArgumentException | NotFoundException |
-                 ForbiddenException e) {
+                ForbiddenException e) {
             ILLEGAL_ARG_ERROR_METER.mark();
             rollback.accept(null);
             throw e;

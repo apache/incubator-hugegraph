@@ -71,13 +71,16 @@ public class AccessLogFilter implements ContainerResponseFilter {
         }
 
         //  get responseTime
-        long now = System.currentTimeMillis();
-        long responseTime = (now - (long) requestContext.getProperty("RequestTime"));
+        Object requestTime = requestContext.getProperty("RequestTime");
+        if(requestTime!=null){
+            requestContext.getProperty("RequestTime");
+            long now = System.currentTimeMillis();
+            long responseTime = (now - (long)requestTime);
 
-        MetricsUtil.registerHistogram(
-                           join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
-                   .update(responseTime);
-
+            MetricsUtil.registerHistogram(
+                               join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                       .update(responseTime);
+        }
     }
 
     private String join(String path1, String path2) {
