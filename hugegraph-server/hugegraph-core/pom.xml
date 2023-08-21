@@ -246,6 +246,11 @@
             <artifactId>hg-pd-client</artifactId>
             <version>${revision}</version>
         </dependency>
+       <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-store-common</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>io.etcd</groupId>
             <artifactId>jetcd-core</artifactId>
