@@ -522,22 +522,6 @@
                                 </target>
                             </configuration>
                         </execution>
-                        <execution>
-                            <id>tar-package</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>run</goal>
-                            </goals>
-                            <configuration>
-                                <target>
-                                    <tar destfile="${final.destfile}" compression="gzip">
-                                        <tarfileset dir="${top.level.dir}/" filemode="755">
-                                            <include name="${final.name}/**"/>
-                                        </tarfileset>
-                                    </tar>
-                                </target>
-                            </configuration>
-                        </execution>
                     </executions>
                 </plugin>
             </plugins>
@@ -836,6 +820,41 @@
                 <os>
                     <family>mac</family>
                 </os>
+                <file>
+                    <exists>dist.sh</exists>
+                </file>
+            </activation>
+        </profile>
+        <profile>
+            <id>tar-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>tar-package</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <tar destfile="${final.destfile}" compression="gzip">
+                                            <tarfileset dir="${top.level.dir}/" filemode="755">
+                                                <include name="${final.name}/**"/>
+                                            </tarfileset>
+                                        </tar>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
                 <file>
                     <exists>dist.sh</exists>
                 </file>
