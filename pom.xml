@@ -455,6 +455,30 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.4</version>
+                    <executions>
+                        <execution>
+                            <id>assembly-hugegraph</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                            <configuration>
+                                <attach>false</attach>
+                                <appendAssemblyId>false</appendAssemblyId>
+                                <outputDirectory>${top.level.dir}
+                                </outputDirectory>
+                                <descriptor>
+                                    ${assembly.descriptor.dir}/assembly.xml
+                                </descriptor>
+                                <finalName>${final.name}</finalName>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-antrun-plugin</artifactId>
                     <version>1.8</version>
                     <executions>
@@ -471,6 +495,17 @@
                                           failonerror="false">
                                         <arg line="./dist.sh"/>
                                     </exec>
+                                </target>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>install-swagger-ui</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
                                     <exec executable="cp"
                                           dir="${project.basedir}"
                                           failonerror="false">
@@ -484,6 +519,22 @@
                                         <arg value="-rf"/>
                                         <arg value="swagger-ui"/>
                                     </exec>
+                                </target>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>tar-package</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
+                                    <tar destfile="${final.destfile}" compression="gzip">
+                                        <tarfileset dir="${top.level.dir}/" filemode="755">
+                                            <include name="${final.name}/**"/>
+                                        </tarfileset>
+                                    </tar>
                                 </target>
                             </configuration>
                         </execution>
@@ -737,6 +788,49 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>unix-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>Linux</name>
+                </os>
+                <file>
+                    <exists>dist.sh</exists>
+                </file>
+            </activation>
+        </profile>
+        <profile>
+            <id>mac-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+                <file>
+                    <exists>dist.sh</exists>
+                </file>
+            </activation>
         </profile>
     </profiles>
 </project>
