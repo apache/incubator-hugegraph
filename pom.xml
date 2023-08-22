@@ -790,7 +790,7 @@
             </build>
         </profile>
         <profile>
-            <id>assembly</id>
+            <id>assembly-hugegraph</id>
             <build>
                 <plugins>
                     <plugin>
