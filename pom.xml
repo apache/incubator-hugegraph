@@ -790,12 +790,24 @@
             </build>
         </profile>
         <profile>
-            <id>unix-package</id>
+            <id>assembly</id>
             <build>
                 <plugins>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
                     </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <file>
+                    <exists>dist.sh</exists>
+                </file>
+            </activation>
+        </profile>
+        <profile>
+            <id>unix-package</id>
+            <build>
+                <plugins>
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                     </plugin>
@@ -815,9 +827,6 @@
             <id>mac-package</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                    </plugin>
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
                     </plugin>
