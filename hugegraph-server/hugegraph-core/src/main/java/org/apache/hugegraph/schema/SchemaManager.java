@@ -20,6 +20,7 @@ package org.apache.hugegraph.schema;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -34,10 +35,10 @@ import org.apache.hugegraph.util.E;
 
 public class SchemaManager {
 
-    private final SchemaTransaction transaction;
+    private final ISchemaTransaction transaction;
     private HugeGraph graph;
 
-    public SchemaManager(SchemaTransaction transaction, HugeGraph graph) {
+    public SchemaManager(ISchemaTransaction transaction, HugeGraph graph) {
         E.checkNotNull(transaction, "transaction");
         E.checkNotNull(graph, "graph");
         this.transaction = transaction;

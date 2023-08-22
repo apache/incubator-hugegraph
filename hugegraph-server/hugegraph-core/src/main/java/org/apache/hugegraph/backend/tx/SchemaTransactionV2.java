@@ -62,7 +62,7 @@ import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransactionV2 extends SchemaTransaction {
+public class SchemaTransactionV2 implements ISchemaTransaction {
 
     protected static final Logger LOG = Log.logger(SchemaTransaction.class);
 
@@ -75,7 +75,6 @@ public class SchemaTransactionV2 extends SchemaTransaction {
     public SchemaTransactionV2(MetaDriver metaDriver,
                              String cluster,
                              HugeGraphParams graphParams) {
-        super(graphParams, null);
         E.checkNotNull(graphParams, "graphParams");
         this.graphParams = graphParams;
         // TODO: uncomment later - graph space
@@ -342,6 +341,11 @@ public class SchemaTransactionV2 extends SchemaTransaction {
         return this.getSchema(HugeType.INDEX_LABEL, name);
     }
 
+    @Override
+    public void close() {
+
+    }
+
     @Watched(prefix = "schema")
     public Id removeIndexLabel(Id id) {
         LOG.debug("SchemaTransaction remove index label '{}'", id);
@@ -367,6 +371,11 @@ public class SchemaTransactionV2 extends SchemaTransaction {
     @Watched(prefix = "schema")
     public boolean existsSchemaId(HugeType type, Id id) {
         return this.getSchema(type, id) != null;
+    }
+
+    @Override
+    public void removeIndexLabelFromBaseLabel(IndexLabel indexLabel) {
+
     }
 
     protected void updateSchema(SchemaElement schema,
@@ -685,6 +694,11 @@ public class SchemaTransactionV2 extends SchemaTransaction {
             E.checkArgument(name.indexOf(c) == -1,
                             "The name can't contain character '%s'.", c);
         }
+    }
+
+    @Override
+    public String graphName() {
+        return this.graph;
     }
 
     protected HugeGraphParams graphParams() {

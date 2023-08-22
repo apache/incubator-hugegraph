@@ -22,6 +22,7 @@ import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.task.ServerInfoManager;
@@ -46,7 +47,7 @@ public interface HugeGraphParams {
 
     GraphReadMode readMode();
 
-    SchemaTransaction schemaTransaction();
+    ISchemaTransaction schemaTransaction();
 
     GraphTransaction systemTransaction();
 

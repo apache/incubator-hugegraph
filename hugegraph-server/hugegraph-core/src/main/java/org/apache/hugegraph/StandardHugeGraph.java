@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
 import org.apache.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.cache.CachedSchemaTransaction;
+import org.apache.hugegraph.backend.cache.CachedSchemaTransactionV2;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SnowflakeIdGenerator;
@@ -51,6 +52,8 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
+import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
@@ -453,9 +456,18 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    private SchemaTransaction openSchemaTransaction() throws HugeException {
+    private boolean isHstore() {
+        return "hstore".equals(this.backend());
+    }
+
+    private ISchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
+            if (isHstore()) {
+                return new CachedSchemaTransactionV2(
+                    MetaManager.instance().metaDriver(),
+                    MetaManager.instance().cluster(), this.params);
+            }
             return new CachedSchemaTransaction(this.params, loadSchemaStore());
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -504,7 +516,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Watched
-    private SchemaTransaction schemaTransaction() {
+    private ISchemaTransaction schemaTransaction() {
         this.checkGraphNotClosed();
         /*
          * NOTE: each schema operation will be auto committed,
@@ -1192,7 +1204,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public SchemaTransaction schemaTransaction() {
+        public ISchemaTransaction schemaTransaction() {
             return StandardHugeGraph.this.schemaTransaction();
         }
 
@@ -1443,7 +1455,7 @@ public class StandardHugeGraph implements HugeGraph {
             }
         }
 
-        private SchemaTransaction schemaTransaction() {
+        private ISchemaTransaction schemaTransaction() {
             return this.getOrNewTransaction().schemaTx;
         }
 
@@ -1464,7 +1476,7 @@ public class StandardHugeGraph implements HugeGraph {
 
             Txs txs = this.transactions.get();
             if (txs == null) {
-                SchemaTransaction schemaTransaction = null;
+                ISchemaTransaction schemaTransaction = null;
                 SysTransaction sysTransaction = null;
                 GraphTransaction graphTransaction = null;
                 try {
@@ -1507,12 +1519,12 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static final class Txs {
 
-        private final SchemaTransaction schemaTx;
+        private final ISchemaTransaction schemaTx;
         private final SysTransaction systemTx;
         private final GraphTransaction graphTx;
         private long openedTime;
 
-        public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
+        public Txs(ISchemaTransaction schemaTx, SysTransaction systemTx,
                    GraphTransaction graphTx) {
             assert schemaTx != null && systemTx != null && graphTx != null;
             this.schemaTx = schemaTx;
