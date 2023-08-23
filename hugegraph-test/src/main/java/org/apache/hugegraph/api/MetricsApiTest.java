@@ -32,7 +32,9 @@ public class MetricsApiTest extends BaseApiTest {
 
     @Test
     public void testBaseMetricsAll() {
-        Response r = client().get(path);
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", "json");
+        Response r = client().get(path,params);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "gauges");
         assertJsonContains(result, "counters");
@@ -43,8 +45,6 @@ public class MetricsApiTest extends BaseApiTest {
 
     @Test
     public void testBaseMetricsPromAll() {
-        Map<String, String> params = new HashMap<>();
-        params.put("type", "json");
         Response r = client().get(path);
         assertResponseStatus(200, r);
     }
