@@ -49,6 +49,11 @@ if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; 
     exit 1
 fi
 
+if [[ "$PRELOAD" != "true" && "$PRELOAD" != "false" ]]; then
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
+    exit 1
+fi
+
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
