@@ -699,13 +699,10 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
     /***************************** Store defines *****************************/
 
-    public static class HstoreSystemStore extends HstoreStore {
+    public static class HstoreSystemStore extends HstoreGraphStore {
 
         public HstoreSystemStore(BackendStoreProvider provider, String namespace, String store) {
             super(provider, namespace, store);
-
-            registerTableManager(HugeTableType.VERTEX,
-                                 new HstoreTables.Vertex(store));
         }
 
         @Override

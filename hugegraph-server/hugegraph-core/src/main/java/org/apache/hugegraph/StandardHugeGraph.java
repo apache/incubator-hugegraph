@@ -18,6 +18,7 @@
 package org.apache.hugegraph;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -52,11 +53,8 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
-import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.meta.MetaManager;
-import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
@@ -72,6 +70,7 @@ import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -87,6 +86,7 @@ import org.apache.hugegraph.structure.HugeEdgeProperty;
 import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.task.ServerInfoManager;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.task.TaskScheduler;
@@ -178,6 +178,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final TinkerPopTransaction tx;
 
     private final RamTable ramtable;
+
+    private final MetaManager metaManager = MetaManager.instance();
 
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
@@ -460,10 +462,17 @@ public class StandardHugeGraph implements HugeGraph {
         return "hstore".equals(this.backend());
     }
 
+    private void initMetaManager() {
+        this.metaManager.connect("hg", MetaManager.MetaDriverType.PD,
+                                 "ca", "ca", "ca",
+                                 Collections.singletonList("127.0.0.1:8686"));
+    }
+
     private ISchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
             if (isHstore()) {
+                initMetaManager();
                 return new CachedSchemaTransactionV2(
                     MetaManager.instance().metaDriver(),
                     MetaManager.instance().cluster(), this.params);

@@ -399,8 +399,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         // TODO: uncomment later - graph space
         //String spaceGraph = this.graphParams()
         //                        .graph().spaceGraphName();
-        String spaceGraph = "";
-        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
+        LockUtil.Locks locks = new LockUtil.Locks(graph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()), schema.id());
 
@@ -523,8 +522,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         // TODO: uncomment later - graph space
         //String spaceGraph = this.graphParams()
         //                        .graph().spaceGraphName();
-        String spaceGraph = "";
-        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
+        LockUtil.Locks locks = new LockUtil.Locks(graph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
