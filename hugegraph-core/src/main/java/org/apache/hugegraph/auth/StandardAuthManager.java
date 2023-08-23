@@ -27,31 +27,30 @@ import java.util.concurrent.Callable;
 
 import javax.security.sasl.AuthenticationException;
 
-import jakarta.ws.rs.ForbiddenException;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.HugeUser.P;
+import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.AuthOptions;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.LockUtil;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.HugeUser.P;
-import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import io.jsonwebtoken.Claims;
+import jakarta.ws.rs.ForbiddenException;
 
 public class StandardAuthManager implements AuthManager {
 
@@ -76,6 +75,10 @@ public class StandardAuthManager implements AuthManager {
 
     private final TokenGenerator tokenGenerator;
     private final long tokenExpire;
+
+    private List<String> ipWhiteList;
+
+    private Boolean whiteIpStatus;
 
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
@@ -104,6 +107,10 @@ public class StandardAuthManager implements AuthManager {
                                                 HugeAccess::fromEdge);
 
         this.tokenGenerator = new TokenGenerator(config);
+
+        this.ipWhiteList = new ArrayList<>();
+
+        this.whiteIpStatus = false;
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
@@ -687,6 +694,26 @@ public class StandardAuthManager implements AuthManager {
         }
 
         return new UserWithRole(user.id(), username, this.rolePermission(user));
+    }
+
+    @Override
+    public List<String> listWhiteIp() {
+        return ipWhiteList;
+    }
+
+    @Override
+    public void setWhiteIpList(List<String> ipWhiteList) {
+        this.ipWhiteList = ipWhiteList;
+    }
+
+    @Override
+    public boolean getWhiteIpStatus() {
+        return this.whiteIpStatus;
+    }
+
+    @Override
+    public void setWhiteIpStatus(boolean status) {
+        this.whiteIpStatus = status;
     }
 
     /**

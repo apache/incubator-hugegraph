@@ -126,4 +126,12 @@ public interface AuthManager {
     UserWithRole validateUser(String username, String password);
 
     UserWithRole validateUser(String token);
+
+    public List<String> listWhiteIp();
+
+    public void setWhiteIpList(List<String> whiteIpList);
+
+    public boolean getWhiteIpStatus();
+
+    public void setWhiteIpStatus(boolean status);
 }
