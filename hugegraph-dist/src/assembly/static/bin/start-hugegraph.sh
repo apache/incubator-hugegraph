@@ -34,18 +34,18 @@ while getopts "d:g:m:p:s:j:t:v" arg; do
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         # TODO: should remove it in future (check the usage carefully)
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]
+        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]
                 [-t timeout]" && exit 1 ;;
     esac
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
