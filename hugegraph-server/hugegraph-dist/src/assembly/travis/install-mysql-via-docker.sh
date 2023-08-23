@@ -20,7 +20,7 @@ set -ev
 TRAVIS_DIR=$(dirname "$0")
 
 # Need speed up it
-CONF=hugegraph-test/src/main/resources/hugegraph.properties
+CONF=hugegraph-server/hugegraph-test/src/main/resources/hugegraph.properties
 MYSQL_USERNAME=root
 
 # Set MySQL configurations
