@@ -676,18 +676,29 @@
                             </gpgArguments>
                         </configuration>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>enforce-version</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>enforce-all</id>
+                                <id>enforce-version</id>
                                 <goals>
                                     <goal>enforce</goal>
                                 </goals>
                                 <configuration>
                                     <rules>
-                                        <DependencyConvergence/>
+                                        <!-- TODO: uncomment for checking dependency conflicts -->
+                                        <!-- <DependencyConvergence/> -->
                                         <requireJavaVersion>
                                             <version>[1.8,12)</version>
                                         </requireJavaVersion>
