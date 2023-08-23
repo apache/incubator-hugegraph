@@ -19,7 +19,7 @@ OUTPUT="hugegraph-release-*.tar.gz"
 
 echo "Start publish..."
 
-mvn clean package -DskipTests -Passembly-hugegraph,tar-package
+mvn clean package -DskipTests
 if [ $? -ne 0 ]; then
     echo "Failed to package."
     exit 1
