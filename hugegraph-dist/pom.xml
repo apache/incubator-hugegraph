@@ -234,7 +234,9 @@
                 </plugins>
             </build>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>!skip-assembly-hugegraph</name>
+                </property>
             </activation>
         </profile>
         <profile>
@@ -298,7 +300,9 @@
                 </plugins>
             </build>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>!skip-tar-package</name>
+                </property>
             </activation>
         </profile>
     </profiles>
