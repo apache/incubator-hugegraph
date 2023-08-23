@@ -10,7 +10,7 @@ To build without executing tests:
 
 ```
 mvn clean 
-mvn package -DskipTests
+mvn package -DskipTests -Passembly-hugegraph,tar-package
 ```
 
 ## Building on Eclipse IDE

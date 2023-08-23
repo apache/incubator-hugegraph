@@ -29,7 +29,7 @@ REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 JACOCO_PORT=36320
 
-mvn package -DskipTests -ntp
+mvn package -DskipTests -Passembly-hugegraph,tar-package -ntp
 
 
 # add mysql dependency

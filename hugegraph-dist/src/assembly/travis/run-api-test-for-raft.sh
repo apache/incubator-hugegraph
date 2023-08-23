@@ -35,7 +35,7 @@ JACOCO_PORT=36320
 RAFT_TOOLS=$RAFT1_DIR/bin/raft-tools.sh
 RAFT_LEADER="127.0.0.1:8091"
 
-mvn package -DskipTests
+mvn package -DskipTests -Passembly-hugegraph,tar-package
 
 # mkdir for each raft-server
 cp -r $SERVER_DIR $RAFT1_DIR

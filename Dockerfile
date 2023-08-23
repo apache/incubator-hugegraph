@@ -21,7 +21,8 @@ FROM maven:3.9.0-eclipse-temurin-11 AS build
 
 COPY . /pkg
 WORKDIR /pkg
-RUN mvn package -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
+RUN mvn package -e -B -ntp -DskipTests -Passembly-hugegraph,tar-package -Dmaven.javadoc.skip=true \
+     && pwd && ls -l
 
 # 2nd stage: runtime env
 FROM openjdk:11-slim
