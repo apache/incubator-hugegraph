@@ -50,6 +50,7 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <!-- tinkerpop -->
