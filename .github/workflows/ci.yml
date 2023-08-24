@@ -46,6 +46,18 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: cat settings profile
+        run: |
+          cat $HOME/.m2/settings.xml
+
+      - name: Modify settings.xml
+        run: |
+          sed -i 's/<\/settings>/<profiles><profile><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles>' $HOME/.m2/settings.xml
+
+      - name: cat settings profile
+        run: |
+          cat $HOME/.m2/settings.xml
+
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
