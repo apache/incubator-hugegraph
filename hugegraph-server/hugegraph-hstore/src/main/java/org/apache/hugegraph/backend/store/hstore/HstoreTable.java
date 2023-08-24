@@ -245,7 +245,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     @Override
     public void insert(Session session, BackendEntry entry) {
         byte[] owner = entry.type().isEdge() ? getInsertEdgeOwner(entry) : getInsertOwner(entry);
-        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.columns();
+        ArrayList<BackendColumn> columns = new ArrayList<>(entry.columns());
         for (int i = 0; i < columns.size(); i++) {
             BackendColumn col = columns.get(i);
             session.put(this.table(), owner, col.name, col.value);
@@ -254,7 +254,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
     public void insert(Session session, BackendEntry entry, boolean isEdge) {
         byte[] owner = isEdge ? getInsertEdgeOwner(entry) : getInsertOwner(entry);
-        ArrayList<BackendColumn> columns = (ArrayList<BackendColumn>) entry.columns();
+        ArrayList<BackendColumn> columns = new ArrayList<>(entry.columns());
         for (int i = 0; i < columns.size(); i++) {
             BackendColumn col = columns.get(i);
             session.put(this.table(), owner, col.name, col.value);
