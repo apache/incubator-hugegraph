@@ -546,9 +546,7 @@
         <profile>
             <id>core-test</id>
             <activation>
-                <property>
-                    <name>!skip-core-test</name>
-                </property>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <build>
                 <plugins>
