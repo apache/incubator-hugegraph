@@ -172,6 +172,7 @@
                             <mainClass>
                                 org.apache.hugegraph.store.node.StoreNodeApplication
                             </mainClass>
+                            <includeSystemScope>true</includeSystemScope>
                         </configuration>
                     </execution>
                 </executions>
