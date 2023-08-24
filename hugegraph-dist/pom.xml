@@ -234,6 +234,7 @@
                 </plugins>
             </build>
             <activation>
+                <!-- usage refer: https://github.com/apache/incubator-hugegraph/pull/2277 -->
                 <property>
                     <name>!skip-assembly-hugegraph</name>
                 </property>
@@ -300,6 +301,7 @@
                 </plugins>
             </build>
             <activation>
+                <!-- usage refer: https://github.com/apache/incubator-hugegraph/pull/2277 -->
                 <property>
                     <name>!skip-tar-package</name>
                 </property>
