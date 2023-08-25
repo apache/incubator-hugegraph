@@ -60,7 +60,7 @@ public class MapRandomGetPutThroughputTest {
 
     private IntMap.IntMapBySegments intMapBySegments;
 
-    private IntMap.IntMapByEcSegment intMapByEcSegments;
+    private IntMapByDynamicHash intMapByDynamicHashNonCap;
 
     private IntMapByDynamicHash intMapByDynamicHash;
 
@@ -73,9 +73,8 @@ public class MapRandomGetPutThroughputTest {
         this.concurrentHashMapNonCap = new ConcurrentHashMap<>();
         this.concurrentHashMap = new ConcurrentHashMap<>(MAP_CAPACITY);
         this.intMapBySegments = new IntMap.IntMapBySegments(MAP_CAPACITY);
-        this.intMapByEcSegments = new IntMap.IntMapByEcSegment();
-        intMapByDynamicHash =
-            new IntMapByDynamicHash();
+        this.intMapByDynamicHashNonCap = new IntMapByDynamicHash();
+        this.intMapByDynamicHash = new IntMapByDynamicHash(MAP_CAPACITY);
     }
 
     /**
@@ -104,7 +103,7 @@ public class MapRandomGetPutThroughputTest {
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfConcurrentHashMapWithInitCap(ThreadState state) {
-        int key = state.next() & (MAP_CAPACITY - 1);
+        int key = state.next();
         if (!this.concurrentHashMap.containsKey(key)) {
             this.concurrentHashMap.put(key, state.next());
         }
@@ -123,18 +122,18 @@ public class MapRandomGetPutThroughputTest {
 
     @Benchmark
     @Threads(THREAD_COUNT)
-    public void randomGetPutOfIntMapByEcSegment(ThreadState state) {
-        int key = state.next() & (MAP_CAPACITY - 1);
-        if (!this.intMapByEcSegments.containsKey(key)) {
-            this.intMapByEcSegments.put(key, state.next());
+    public void randomGetPutOfIntMapByDynamicHashWithNoneCap(ThreadState state) {
+        int key = state.next();
+        if (!this.intMapByDynamicHashNonCap.containsKey(key)) {
+            this.intMapByDynamicHashNonCap.put(key, state.next());
         }
-        this.intMapByEcSegments.get(key);
+        this.intMapByDynamicHashNonCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfIntMapByDynamicHash(ThreadState state) {
-        int key = state.next() & (MAP_CAPACITY - 1);
+        int key = state.next();
         if (!this.intMapByDynamicHash.containsKey(key)) {
             this.intMapByDynamicHash.put(key, state.next());
         }

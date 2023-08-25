@@ -21,6 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 import org.apache.hugegraph.testutil.Assert;
@@ -28,6 +33,7 @@ import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.util.collection.IntMap;
 import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
+import org.apache.hugegraph.util.collection.IntSet;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -413,14 +419,56 @@ public class IntMapTest extends BaseUnitTest {
     }
 
     @Test
-    public void testIntMapByDynamicHash() {
+    public void testIntMapByDynamicHashSingleThread() {
         IntMapByDynamicHash map = new IntMapByDynamicHash();
-
-        for (int i = 0; i < 1000; i++) {
+        int mapSize = 1000;
+        for (int i = 0; i < mapSize; i++) {
             map.put(i, i + 1);
             Assert.assertTrue(map.containsKey(i));
+            Assert.assertFalse(map.containsKey(i + mapSize));
             Assert.assertEquals(i + 1, map.get(i));
         }
+
+        Assert.assertEquals(mapSize, map.size());
+        map.clear();
+        Assert.assertEquals(0, map.size());
+    }
+
+    @Test
+    public void testIntMapByDynamicHashMultiThread() throws InterruptedException {
+        IntMapByDynamicHash map = new IntMapByDynamicHash();
+
+        int cpus = IntSet.CPUS;
+        ThreadPoolExecutor executor =
+            new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
+                                   new LinkedBlockingDeque<>());
+
+        AtomicInteger size = new AtomicInteger();
+        int mapSize = 1000;
+        CountDownLatch latch = new CountDownLatch(cpus);
+        for (int i = 1; i <= cpus; i++) {
+            int index = i;
+            executor.execute(() -> {
+                try {
+                    for (int j = 0; j < mapSize; j++) {
+                        int key = j + (index - 1) * 1000;
+                        map.put(key, j);
+                        Assert.assertTrue(map.containsKey(key));
+                        Assert.assertEquals(j, map.get(key));
+                        size.getAndIncrement();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+
+        Assert.assertEquals(size.get(), map.size());
     }
 
     private IntMap fixed(int capacity) {
