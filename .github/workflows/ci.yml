@@ -58,15 +58,6 @@ jobs:
         run: |
           cat $HOME/.m2/settings.xml
 
-      - name: Clear Maven Cache
-        uses: actions/cache@v2
-        with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/*.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-        action: delete
-
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
