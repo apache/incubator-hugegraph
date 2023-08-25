@@ -60,7 +60,7 @@ jobs:
 
       - name: Compile
         run: |
-          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
+          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp -X
 
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
