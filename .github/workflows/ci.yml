@@ -58,16 +58,19 @@ jobs:
         run: |
           cat $HOME/.m2/settings.xml
 
-      - name: Cache Maven packages again
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
+
+      - name: Install JDK ${{ matrix.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'zulu'
+
+      - name: cat settings profile
+        run: |
+          cat $HOME/.m2/settings.xml
 
       - name: Install JDK 8
         uses: actions/setup-java@v3
