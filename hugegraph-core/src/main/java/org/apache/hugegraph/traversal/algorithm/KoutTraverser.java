@@ -167,7 +167,6 @@ public class KoutTraverser extends OltpTraverser {
             }
         }
 
-        this.vertexIterCounter.addAndGet(all.size());
         return records;
     }
 

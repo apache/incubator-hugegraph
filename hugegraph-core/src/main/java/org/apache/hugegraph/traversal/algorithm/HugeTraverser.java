@@ -1089,6 +1089,7 @@ public class HugeTraverser {
                 this.cachePointer++;
                 this.currentIterator =
                         traverser.edgesOfVertex(this.currentEdge.id().otherVertexId(), steps);
+                this.traverser.vertexIterCounter.addAndGet(1L);
 
             }
             return true;
