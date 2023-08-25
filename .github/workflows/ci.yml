@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
-      USE_STAGE: 'false'
+      USE_STAGE: 'true'
       TRAVIS_DIR: hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
