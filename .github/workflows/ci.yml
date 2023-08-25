@@ -60,17 +60,13 @@ jobs:
 
       - name: Compile
         run: |
-          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp -X
+          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
-
-      - name: cat settings profile
-        run: |
-          cat $HOME/.m2/settings.xml
 
       - name: Install JDK 8
         uses: actions/setup-java@v3
@@ -78,16 +74,14 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
 
+      - name: Modify settings.xml
+        run: |
+          sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' $HOME/.m2/settings.xml
+
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
 
-      - name: Install JDK ${{ matrix.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'zulu'
-          
       - name: Run unit test
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
