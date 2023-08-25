@@ -67,13 +67,6 @@ jobs:
           ${{ runner.os }}-maven-
         action: delete
 
-      - name: Cache Maven packages Again
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
