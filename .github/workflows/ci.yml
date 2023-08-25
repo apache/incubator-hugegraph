@@ -7,7 +7,8 @@ on:
       - 'release-*'
       - 'test-*'
   pull_request:
-
+env:
+  use_stage: ${{ true }}
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -28,11 +29,6 @@ jobs:
         JAVA_VERSION: [ '8', '11' ]
 
     steps:
-      - name: set use_stage
-        run: |
-          export 'use_stage=false'
-          source ~/.bashrc
-
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
@@ -56,7 +52,7 @@ jobs:
           cat $HOME/.m2/settings.xml
 
       - name: Modify settings.xml
-        if: ${{ use_stage }} == 'true'
+        if: ${{ use_stage == 'true' }}
         run: |
           sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' $HOME/.m2/settings.xml
 
@@ -81,7 +77,7 @@ jobs:
           distribution: 'zulu'
 
       - name: Modify settings.xml
-        if: ${{ use_stage }} == 'true'
+        if: ${{ use_stage == 'true' }}
         run: |
           sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' $HOME/.m2/settings.xml
 
