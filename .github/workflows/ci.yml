@@ -9,8 +9,8 @@ on:
   pull_request:
     
 env:
-  USE_STAGE: ${{ true }}
-  
+  USE_STAGE: true
+
 jobs:
   build:
     runs-on: ubuntu-20.04
