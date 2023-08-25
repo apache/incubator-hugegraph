@@ -76,6 +76,7 @@ jobs:
         with:
           java-version: '8'
           distribution: 'zulu'
+
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
@@ -86,14 +87,6 @@ jobs:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
           
-      - name: Print Debug Info (Start)
-        run: |
-          echo "Debug Info at the Beginning of Test Step"
-          echo "Maven Settings:"
-          cat $HOME/.m2/settings.xml
-          echo "Environment Variables:"
-          printenv
-
       - name: Run unit test
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
