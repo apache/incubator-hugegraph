@@ -9,7 +9,7 @@ on:
   pull_request:
     
 env:
-  USE_STAGE: true
+  USE_STAGE: 'true'
 
 jobs:
   build:
@@ -79,7 +79,7 @@ jobs:
           distribution: 'zulu'
 
       - name: Modify settings.xml
-        if: ${{ USE_STAGE }}
+        if: ${{ USE_STAGE == 'true' }}
         run: |
           sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' $HOME/.m2/settings.xml
 
