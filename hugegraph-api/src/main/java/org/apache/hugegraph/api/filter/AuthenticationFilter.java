@@ -17,15 +17,17 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.config.ServerOptions.WHITE_IP_STATUS;
+
 import java.io.IOException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import org.apache.hugegraph.auth.HugeAuthenticator.RolePerm;
@@ -40,10 +42,12 @@ import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
 import org.slf4j.Logger;
 
+import com.alipay.remoting.util.StringUtils;
 import com.google.common.collect.ImmutableList;
 
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -72,7 +76,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static String whiteIpStatus;
 
-    private static String STRING_WHITE_IP_LIST = "whiteiplist";
+    private static final String STRING_WHITE_IP_LIST = "whiteiplist";
+    private static final String STRING_ENABLE = "enable";
 
     @Context
     private jakarta.inject.Provider<GraphManager> managerProvider;
@@ -111,25 +116,25 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             path = request.getRequestURI();
         }
 
-        //if (whiteIpStatus == null) {
-        //    whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
-        //}
-        //
-        //if (Objects.equals(whiteIpStatus, "enable") && request != null) {
-        //    peer = request.getRemoteAddr() + ":" + request.getRemotePort();
-        //    path = request.getRequestURI();
-        //
-        //    // check white ip
-        //    String remoteIp = request.getRemoteAddr();
-        //    List<String> whiteIpList = manager.authManager().listWhiteIp();
-        //    boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
-        //    if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
-        //        !whiteIpList.contains(remoteIp)) {
-        //        throw new ForbiddenException(
-        //                String.format("Remote ip '%s' is not permitted",
-        //                              remoteIp));
-        //    }
-        //}
+        // Check whiteIp
+        if (whiteIpStatus == null) {
+            whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
+        }
+
+        if (Objects.equals(whiteIpStatus, STRING_ENABLE) && request != null) {
+            peer = request.getRemoteAddr() + ":" + request.getRemotePort();
+            path = request.getRequestURI();
+
+            String remoteIp = request.getRemoteAddr();
+            List<String> whiteIpList = manager.authManager().listWhiteIp();
+            boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
+            if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
+                !whiteIpList.contains(remoteIp)) {
+                throw new ForbiddenException(
+                        String.format("Remote ip '%s' is not permitted",
+                                      remoteIp));
+            }
+        }
 
         Map<String, String> credentials = new HashMap<>();
         // Extract authentication credentials

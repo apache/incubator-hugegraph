@@ -74,9 +74,12 @@ public class WhiteIpAPI extends API {
     public Map<String, Object> batch(@Context GraphManager manager,
                                      Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
-            "Missing argument: actionMap");
+                        "Missing argument: actionMap");
         List<String> whiteIpList = manager.authManager().listWhiteIp();
-        List<String> ipList = (List) actionMap.get("ips");
+        Object ips = actionMap.get("ips");
+        E.checkArgument(ips instanceof List,
+                        "Invalid ips type '%s', must be list", ips.getClass());
+        List<String> ipList = (List<String>) ips;
         Object value = actionMap.get("action");
         E.checkArgument(value != null,
                         "Missing argument: action");
