@@ -22,11 +22,29 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -37,29 +55,27 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 @Path("graphs/{graph}/traversers/customizedcrosspoints")
 @Singleton
 @Tag(name = "CustomizedCrosspointsAPI")
 public class CustomizedCrosspointsAPI extends API {
 
     private static final Logger LOG = Log.logger(CustomizedCrosspointsAPI.class);
+
+    private static List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns(
+            HugeGraph graph, CrosspointsRequest request) {
+        int stepSize = request.pathPatterns.size();
+        List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns = new ArrayList<>(stepSize);
+        for (PathPattern pattern : request.pathPatterns) {
+            CustomizedCrosspointsTraverser.PathPattern pathPattern =
+                    new CustomizedCrosspointsTraverser.PathPattern();
+            for (Step step : pattern.steps) {
+                pathPattern.add(step.jsonToStep(graph));
+            }
+            pathPatterns.add(pathPattern);
+        }
+        return pathPatterns;
+    }
 
     @POST
     @Timed
@@ -78,55 +94,56 @@ public class CustomizedCrosspointsAPI extends API {
                         "The steps of crosspoints request can't be empty");
 
         LOG.debug("Graph [{}] get customized crosspoints from source vertex " +
-                  "'{}', with path_pattern '{}', with_path '{}', with_vertex " +
-                  "'{}', capacity '{}' and limit '{}'", graph, request.sources,
-                  request.pathPatterns, request.withPath, request.withVertex,
-                  request.capacity, request.limit);
+                  "'{}', with path_pattern '{}', with path '{}', with_vertex " +
+                  "'{}', capacity '{}', limit '{}' and with_edge '{}'",
+                  graph, request.sources, request.pathPatterns, request.withPath,
+                  request.withVertex, request.capacity, request.limit, request.withEdge);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
-        List<CustomizedCrosspointsTraverser.PathPattern> patterns;
-        patterns = pathPatterns(g, request);
 
         CustomizedCrosspointsTraverser traverser =
-                                       new CustomizedCrosspointsTraverser(g);
-        CustomizedCrosspointsTraverser.CrosspointsPaths paths;
-        paths = traverser.crosspointsPaths(sources, patterns, request.capacity,
-                                           request.limit);
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (!request.withVertex) {
-            return manager.serializer(g).writeCrosspoints(paths, iter,
-                                                          request.withPath);
-        }
-        Set<Id> ids = new HashSet<>();
+                new CustomizedCrosspointsTraverser(g);
+
+        List<CustomizedCrosspointsTraverser.PathPattern> patterns = pathPatterns(g, request);
+        CustomizedCrosspointsTraverser.CrosspointsPaths paths =
+                traverser.crosspointsPaths(sources, patterns, request.capacity, request.limit);
+
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
+
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>();
         if (request.withPath) {
-            for (HugeTraverser.Path p : paths.paths()) {
-                ids.addAll(p.vertices());
+            for (HugeTraverser.Path path : paths.paths()) {
+                vertexIds.addAll(path.vertices());
             }
         } else {
-            ids = paths.crosspoints();
+            vertexIds = paths.crosspoints();
         }
-        if (!ids.isEmpty()) {
-            iter = g.vertices(ids.toArray());
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
-        return manager.serializer(g).writeCrosspoints(paths, iter,
-                                                      request.withPath);
-    }
 
-    private static List<CustomizedCrosspointsTraverser.PathPattern>
-                   pathPatterns(HugeGraph graph, CrosspointsRequest request) {
-        int stepSize = request.pathPatterns.size();
-        List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns;
-        pathPatterns = new ArrayList<>(stepSize);
-        for (PathPattern pattern : request.pathPatterns) {
-            CustomizedCrosspointsTraverser.PathPattern pathPattern;
-            pathPattern = new CustomizedCrosspointsTraverser.PathPattern();
-            for (Step step : pattern.steps) {
-                pathPattern.add(step.jsonToStep(graph));
+        Iterator<?> iterEdge = Collections.emptyIterator();
+        if (request.withPath) {
+            Set<Edge> edges = traverser.edgeResults().getEdges(paths.paths());
+            if (request.withEdge) {
+                iterEdge = edges.iterator();
+            } else {
+                iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
             }
-            pathPatterns.add(pathPattern);
         }
-        return pathPatterns;
+
+        return manager.serializer(g, measure.measures())
+                      .writeCrosspoints(paths, iterVertex,
+                                        iterEdge, request.withPath);
     }
 
     private static class CrosspointsRequest {
@@ -143,14 +160,16 @@ public class CustomizedCrosspointsAPI extends API {
         public boolean withPath = false;
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
 
         @Override
         public String toString() {
             return String.format("CrosspointsRequest{sourceVertex=%s," +
                                  "pathPatterns=%s,withPath=%s,withVertex=%s," +
-                                 "capacity=%s,limit=%s}", this.sources,
-                                 this.pathPatterns, this.withPath,
-                                 this.withVertex, this.capacity, this.limit);
+                                 "capacity=%s,limit=%s,withEdge=%s}", this.sources,
+                                 this.pathPatterns, this.withPath, this.withVertex,
+                                 this.capacity, this.limit, this.withEdge);
         }
     }
 

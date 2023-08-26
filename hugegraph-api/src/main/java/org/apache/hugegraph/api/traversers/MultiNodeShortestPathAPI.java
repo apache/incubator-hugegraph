@@ -24,6 +24,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -32,21 +47,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/traversers/multinodeshortestpath")
 @Singleton
@@ -74,32 +74,48 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
                   graph, request.vertices, request.step, request.maxDepth,
                   request.capacity, request.withVertex);
 
+        ApiMeasurer measure = new ApiMeasurer();
+
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> vertices = request.vertices.vertices(g);
 
         EdgeStep step = step(g, request.step);
 
-        List<HugeTraverser.Path> paths;
+        MultiNodeShortestPathTraverser.WrappedListPath wrappedListPath;
         try (MultiNodeShortestPathTraverser traverser =
-                                        new MultiNodeShortestPathTraverser(g)) {
-            paths = traverser.multiNodeShortestPath(vertices, step,
-                                                    request.maxDepth,
-                                                    request.capacity);
+                     new MultiNodeShortestPathTraverser(g)) {
+            wrappedListPath = traverser.multiNodeShortestPath(vertices, step,
+                                                              request.maxDepth,
+                                                              request.capacity);
+            measure.addIterCount(traverser.vertexIterCounter.get(),
+                                 traverser.edgeIterCounter.get());
         }
 
-        if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+        List<HugeTraverser.Path> paths = wrappedListPath.paths();
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>();
+        for (HugeTraverser.Path path : paths) {
+            vertexIds.addAll(path.vertices());
+        }
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
 
-        Set<Id> ids = new HashSet<>();
-        for (HugeTraverser.Path p : paths) {
-            ids.addAll(p.vertices());
+        Iterator<?> iterEdge;
+        Set<Edge> edges = wrappedListPath.edges();
+        if (request.withEdge && !edges.isEmpty()) {
+            iterEdge = wrappedListPath.edges().iterator();
+        } else {
+            iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (!ids.isEmpty()) {
-            iter = g.vertices(ids.toArray());
-        }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
+
+        return manager.serializer(g, measure.measures())
+                      .writePaths("paths", paths,
+                                  false, iterVertex, iterEdge);
     }
 
     private static class Request {
@@ -114,13 +130,15 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
         public long capacity = Long.parseLong(DEFAULT_CAPACITY);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
 
         @Override
         public String toString() {
             return String.format("Request{vertices=%s,step=%s,maxDepth=%s" +
-                                 "capacity=%s,withVertex=%s}",
+                                 "capacity=%s,withVertex=%s,withEdge=%s}",
                                  this.vertices, this.step, this.maxDepth,
-                                 this.capacity, this.withVertex);
+                                 this.capacity, this.withVertex, this.withEdge);
         }
     }
 }
