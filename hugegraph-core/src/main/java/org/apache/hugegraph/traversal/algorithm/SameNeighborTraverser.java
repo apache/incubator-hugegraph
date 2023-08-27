@@ -17,15 +17,17 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class SameNeighborTraverser extends HugeTraverser {
 
@@ -46,11 +48,56 @@ public class SameNeighborTraverser extends HugeTraverser {
         Id labelId = this.getEdgeLabelId(label);
 
         Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, direction, labelId, degree));
+                vertex, direction, labelId, degree));
         Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, direction, labelId, degree));
+                other, direction, labelId, degree));
         Set<Id> sameNeighbors = (Set<Id>) CollectionUtil.intersect(
-                                sourceNeighbors, targetNeighbors);
+                sourceNeighbors, targetNeighbors);
+
+        this.vertexIterCounter.addAndGet(2L);
+        this.edgeIterCounter.addAndGet(sourceNeighbors.size());
+        this.edgeIterCounter.addAndGet(targetNeighbors.size());
+
+        if (limit != NO_LIMIT) {
+            int end = Math.min(sameNeighbors.size(), limit);
+            sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);
+        }
+        return sameNeighbors;
+    }
+
+    public Set<Id> sameNeighbors(List<Id> vertexIds, Directions direction,
+                                 List<String> labels, long degree, int limit) {
+        E.checkNotNull(vertexIds, "vertex ids");
+        E.checkArgument(vertexIds.size() >= 2, "vertex_list size can't " +
+                                               "be less than 2");
+        for (Id id : vertexIds) {
+            this.checkVertexExist(id, "vertex");
+        }
+        E.checkNotNull(direction, "direction");
+        checkDegree(degree);
+        checkLimit(limit);
+
+        List<Id> labelsId = new ArrayList<>();
+        if (labels != null) {
+            for (String label : labels) {
+                labelsId.add(this.getEdgeLabelId(label));
+            }
+        }
+
+        Set<Id> sameNeighbors = new HashSet<>();
+        for (int i = 0; i < vertexIds.size(); i++) {
+            Set<Id> vertexNeighbors = IteratorUtils.set(this.adjacentVertices(
+                    vertexIds.get(i), direction, labelsId, degree));
+            if (i == 0) {
+                sameNeighbors = vertexNeighbors;
+            } else {
+                sameNeighbors = (Set<Id>) CollectionUtil.intersect(
+                        sameNeighbors, vertexNeighbors);
+            }
+            this.vertexIterCounter.addAndGet(1L);
+            this.edgeIterCounter.addAndGet(vertexNeighbors.size());
+        }
+
         if (limit != NO_LIMIT) {
             int end = Math.min(sameNeighbors.size(), limit);
             sameNeighbors = CollectionUtil.subSet(sameNeighbors, 0, end);

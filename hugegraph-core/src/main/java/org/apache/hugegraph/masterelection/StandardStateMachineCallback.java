@@ -33,7 +33,11 @@ public class StandardStateMachineCallback implements StateMachineCallback {
 
     private boolean isMaster = false;
 
+<<<<<<< HEAD
     public StandardStateMachineCallback(TaskManager taskManager,
+=======
+    public StandardStateMachineCallback(TaskManager taskManager, 
+>>>>>>> ac3ebf500cac8ebff319cb433977867a7481e801
                                         GlobalMasterInfo globalMasterInfo) {
         this.taskManager = taskManager;
         this.taskManager.enableRoleElected(true);
