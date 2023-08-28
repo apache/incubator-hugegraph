@@ -18,33 +18,40 @@
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
 DAEMON="true"
+PRELOAD="false"
 #VERBOSE=""
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
 
-while getopts "d:g:m:s:j:t:v" arg; do
+while getopts "d:g:m:p:s:j:t:v" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
         m) OPEN_MONITOR="$OPTARG" ;;
+        p) PRELOAD="$OPTARG" ;;
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         # TODO: should remove it in future (check the usage carefully)
         v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]
+        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]
                 [-t timeout]" && exit 1 ;;
     esac
 done
 
 if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
 if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-s true|false] [-j java_options]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
+    exit 1
+fi
+
+if [[ "$PRELOAD" != "true" && "$PRELOAD" != "false" ]]; then
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
     exit 1
 fi
 
@@ -62,6 +69,7 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LOGS="$TOP/logs"
+SCRIPTS="$TOP/scripts"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
@@ -79,13 +87,23 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
+GREMLIN_SERVER_CONF="gremlin-server.yaml"
+if [[ $PRELOAD == "true" ]]; then
+    GREMLIN_SERVER_CONF="gremlin-server-preload.yaml"
+    EXAMPLE_SCRPIT="example-preload.groovy"
+    cp "${CONF}"/gremlin-server.yaml "${CONF}/${GREMLIN_SERVER_CONF}"
+    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRPIT}"
+    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRPIT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
+    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRPIT}"
+fi
+
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
 else
     echo "Starting HugeGraphServer in foreground mode..."
-    "${BIN}"/hugegraph-server.sh "${CONF}"/gremlin-server.yaml "${CONF}"/rest-server.properties \
+    "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
     "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
