@@ -64,6 +64,19 @@ public class HstoreTables {
         }
     }
 
+    public static class ServerInfo extends HstoreTable {
+        public static final String TABLE = HugeTableType.SERVER_INFO_TABLE.string();
+
+        public ServerInfo(String database) {
+            super(database, TABLE);
+        }
+
+        @Override
+        protected BackendColumnIterator queryById(Session session, Id id) {
+            return this.getById(session, id);
+        }
+    }
+
     public static class Edge extends HstoreTable {
 
         public static final String TABLE_SUFFIX = HugeType.EDGE.string();

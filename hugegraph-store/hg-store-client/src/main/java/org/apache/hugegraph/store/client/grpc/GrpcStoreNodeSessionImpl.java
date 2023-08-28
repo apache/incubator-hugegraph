@@ -70,6 +70,7 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
         put("g+index", 4);
         put("g+task", 5);
         put("g+olap", 6);
+        put("g+server", 7);
     }};
     private final HgStoreNode storeNode;
     private final String graphName;

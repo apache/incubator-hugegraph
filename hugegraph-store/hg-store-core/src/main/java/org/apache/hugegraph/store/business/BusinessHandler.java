@@ -50,9 +50,10 @@ public interface BusinessHandler extends DBSessionBuilder {
     String tableIndex = "g+index";
     String tableTask = "g+task";
     String tableOlap = "g+olap";
+    String tableServer = "g+server";
 
     String[] tables = new String[]{tableUnknown, tableVertex, tableOutEdge, tableInEdge, tableIndex,
-                                   tableTask, tableOlap};
+                                   tableTask, tableOlap, tableServer};
 
     void doPut(String graph, int code, String table, byte[] key, byte[] value) throws
                                                                                HgStoreException;

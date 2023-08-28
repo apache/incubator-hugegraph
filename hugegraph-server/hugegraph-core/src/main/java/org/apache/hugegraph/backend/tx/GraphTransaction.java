@@ -734,16 +734,42 @@ public class GraphTransaction extends IndexableTransaction {
         return vertex;
     }
 
+    public Iterator<Vertex> queryTaskInfos(Query query) {
+        return this.queryVertices(query);
+    }
+
+    public Iterator<Vertex> queryTaskInfos(Object... vertexIds) {
+        return this.queryVerticesByIds(vertexIds, false, false,
+                                       HugeType.TASK);
+    }
+
+    public Iterator<Vertex> queryServerInfos(Query query) {
+        return this.queryVertices(query);
+    }
+
+    public Iterator<Vertex> queryServerInfos(Object... vertexIds) {
+        return this.queryVerticesByIds(vertexIds, false, false,
+                                       HugeType.SERVER);
+    }
+
+    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
+                                              boolean adjacentVertex,
+                                              boolean checkMustExist) {
+        return this.queryVerticesByIds(vertexIds, adjacentVertex, checkMustExist,
+                                       HugeType.VERTEX);
+    }
+
     protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
                                                   boolean adjacentVertex,
-                                                  boolean checkMustExist) {
+                                                  boolean checkMustExist,
+                                                  HugeType type) {
         Query.checkForceCapacity(vertexIds.length);
 
         // NOTE: allowed duplicated vertices if query by duplicated ids
         List<Id> ids = InsertionOrderUtil.newList();
         Map<Id, HugeVertex> vertices = new HashMap<>(vertexIds.length);
 
-        IdQuery query = new IdQuery(HugeType.VERTEX);
+        IdQuery query = new IdQuery(type);
         for (Object vertexId : vertexIds) {
             HugeVertex vertex;
             Id id = HugeVertex.getIdValue(vertexId);

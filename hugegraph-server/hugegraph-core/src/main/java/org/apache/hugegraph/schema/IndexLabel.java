@@ -167,6 +167,8 @@ public class IndexLabel extends SchemaElement {
 
     public static IndexLabel label(HugeType type) {
         switch (type) {
+            case TASK:
+            case SERVER:
             case VERTEX:
                 return VL_IL;
             case EDGE:

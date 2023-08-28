@@ -34,7 +34,7 @@ public class HstoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     public String driverVersion() {
-        return "1.12";
+        return "1.13";
     }
 
     @Override
@@ -49,6 +49,6 @@ public class HstoreProvider extends AbstractBackendStoreProvider {
 
     @Override
     protected BackendStore newSystemStore(HugeConfig config, String store) {
-        return new HstoreStore.HstoreSystemStore(this, this.namespace(), store);
+        return null;
     }
 }

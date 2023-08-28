@@ -129,6 +129,9 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             case TASK:
                 table = HugeTableType.TASK_INFO_TABLE;
                 break;
+            case SERVER:
+                table = HugeTableType.SERVER_INFO_TABLE;
+                break;
             case SEARCH_INDEX:
             case SHARD_INDEX:
             case SECONDARY_INDEX:
@@ -699,35 +702,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
     /***************************** Store defines *****************************/
 
-    public static class HstoreSystemStore extends HstoreGraphStore {
-
-        public HstoreSystemStore(BackendStoreProvider provider, String namespace, String store) {
-            super(provider, namespace, store);
-        }
-
-        @Override
-        public boolean isSchemaStore() {
-            return true;
-        }
-
-        @Override
-        public void increaseCounter(HugeType type, long num) {
-            throw new UnsupportedOperationException(
-                "HstoreSchemaStore.increaseCounter()");
-        }
-
-        @Override
-        public long getCounter(HugeType type) {
-            throw new UnsupportedOperationException(
-                "HstoreSchemaStore.getCounter()");
-        }
-
-        @Override
-        public String storedVersion() {
-            return "1.12";
-        }
-    }
-
     public static class HstoreSchemaStore extends HstoreStore {
 
         public HstoreSchemaStore(BackendStoreProvider provider, String namespace, String store) {
@@ -770,6 +744,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                                  new HstoreTables.OlapTable(store));
             registerTableManager(HugeTableType.TASK_INFO_TABLE,
                                  new HstoreTables.TaskInfo(store));
+            registerTableManager(HugeTableType.SERVER_INFO_TABLE,
+                                 new HstoreTables.ServerInfo(store));
         }
 
         @Override
@@ -826,5 +802,10 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         @Override
         public void removeOlapTable(Id pkId) {
         }
+    }
+
+    @Override
+    public String storedVersion() {
+        return "1.13";
     }
 }

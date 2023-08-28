@@ -521,6 +521,9 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadSystemStore() {
+        if (isHstore()) {
+            return this.storeProvider.loadGraphStore(this.configuration);
+        }
         return this.storeProvider.loadSystemStore(this.configuration);
     }
 

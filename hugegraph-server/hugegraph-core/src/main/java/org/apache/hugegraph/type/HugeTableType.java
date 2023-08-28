@@ -32,7 +32,8 @@ public enum HugeTableType implements SerialEnum {
     IN_EDGE(3, "IE"), // 入边表
     ALL_INDEX_TABLE(4, "INDEX"), // 索引表
     TASK_INFO_TABLE(5, "TASK"), // 任务信息表
-    OLAP_TABLE(6, "OLAP"); // OLAP 表
+    OLAP_TABLE(6, "OLAP"), // OLAP 表
+    SERVER_INFO_TABLE(7, "SERVER"); // SERVER 信息表
 
     private static final Map<String, HugeTableType> ALL_NAME = new HashMap<>();
 
