@@ -42,11 +42,11 @@ jobs:
       - name: Modify maven settings
         if: ${{ env.USE_STAGE == 'true' }}
         run: |
-          sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' /tmp/settings.xml
+          sed -i 's/<\/settings>/<profiles><profile><id>local-repo<\/id><repositories><repository><id>central<\/id><url>https:\/\/repo.maven.apache.org\/maven2<\/url><releases><enabled>true<\/enabled><\/releases><snapshots><enabled>false<\/enabled><\/snapshots><\/repository><repository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/repository><\/repositories><pluginRepositories><pluginRepository><id>staged-releases<\/id><url>https:\/\/repository.apache.org\/content\/groups\/staging\/<\/url><\/pluginRepository><\/pluginRepositories><\/profile><\/profiles><activeProfiles><activeProfile>local-repo<\/activeProfile><\/activeProfiles><\/settings>/' $HOME/.m2/settings.xml
 
-      - name: cat tmp settings profile
+      - name: cat settings profile
         run: |
-          cat /tmp/settings.xml
+          cat $HOME/.m2/settings.xml
 
       - name: Cache Maven packages
         uses: actions/cache@v3
@@ -62,7 +62,7 @@ jobs:
 
       - name: Compile
         run: |
-          mvn -gs /tmp/settings.xml clean compile -U -Dmaven.javadoc.skip=true -ntp
+          mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
       - name: Install JDK 8
         uses: actions/setup-java@v3
@@ -70,7 +70,6 @@ jobs:
           overwrite-settings: false
           java-version: '8'
           distribution: 'zulu'
-          settings-path: /tmp
 
       - name: Prepare env and service
         run: |
@@ -82,7 +81,6 @@ jobs:
           overwrite-settings: false
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
-          settings-path: /tmp
 
       - name: Run unit test
         run: |
