@@ -25,6 +25,10 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
 
+      - name: copy maven settings
+        run: |
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+
       - name: Modify settings.xml
         if: ${{ env.USE_STAGE == 'true' }}
         run: |

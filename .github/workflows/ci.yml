@@ -52,8 +52,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path:
-            !~/.m2/settings.xml
             ~/.m2
+            !~/.m2/settings.xml
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
