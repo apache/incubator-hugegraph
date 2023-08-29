@@ -1122,10 +1122,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
             this.meta = new RocksDBTables.Meta(database);
 
-            registerTableManager(HugeType.TASK,
-                                 new RocksDBTables.TaskInfo(database));
-            registerTableManager(HugeType.SERVER,
-                                 new RocksDBTables.ServerInfo(database));
+            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
+            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

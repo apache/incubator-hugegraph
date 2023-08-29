@@ -564,6 +564,9 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             super(config, provider, namespace, store);
 
             this.meta = new HbaseTables.Meta();
+
+            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
+            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

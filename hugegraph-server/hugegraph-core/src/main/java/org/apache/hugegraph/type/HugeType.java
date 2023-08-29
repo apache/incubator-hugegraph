@@ -65,8 +65,8 @@ public enum HugeType implements SerialEnum {
     SHARD_INDEX(175, "HI"),
     UNIQUE_INDEX(178, "UI"),
 
-    TASK(180, "T"),
-    SERVER(181, "SR"),
+    TASK(180, "TASK"),
+    SERVER(181, "SERVER"),
 
     // System schema
     SYS_SCHEMA(250, "SS"),

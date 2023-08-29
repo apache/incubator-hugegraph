@@ -1748,7 +1748,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        HugeElement element) {
             if (element.type() != HugeType.VERTEX &&
                 element.type() != HugeType.EDGE_OUT &&
-                element.type() != HugeType.EDGE_IN) {
+                element.type() != HugeType.EDGE_IN &&
+                element.type() != HugeType.TASK &&
+                element.type() != HugeType.SERVER) {
                 throw new HugeException("Only accept element of type VERTEX " +
                                         "and EDGE to remove left index, " +
                                         "but got: '%s'", element.type());

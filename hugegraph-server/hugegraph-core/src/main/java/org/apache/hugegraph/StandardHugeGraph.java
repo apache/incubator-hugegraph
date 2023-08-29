@@ -459,7 +459,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private boolean isHstore() {
-        return "hstore".equals(this.backend());
+        return this.storeProvider.isHstore();
     }
 
     private void initMetaManager() {

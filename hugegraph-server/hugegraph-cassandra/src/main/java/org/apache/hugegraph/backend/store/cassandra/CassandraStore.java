@@ -789,6 +789,9 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
             super(provider, keyspace, store);
 
             this.meta = new CassandraTables.Meta();
+
+            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
+            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

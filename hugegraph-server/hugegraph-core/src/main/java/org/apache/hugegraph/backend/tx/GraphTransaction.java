@@ -739,8 +739,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryTaskInfos(Object... vertexIds) {
+        if (this.graph().backendStoreFeatures().supportsTaskAndServerVertex()) {
+            return this.queryVerticesByIds(vertexIds, false, false,
+                                           HugeType.TASK);
+        }
         return this.queryVerticesByIds(vertexIds, false, false,
-                                       HugeType.TASK);
+                                       HugeType.VERTEX);
     }
 
     public Iterator<Vertex> queryServerInfos(Query query) {
@@ -748,8 +752,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Vertex> queryServerInfos(Object... vertexIds) {
+        if (this.graph().backendStoreFeatures().supportsTaskAndServerVertex()) {
+            return this.queryVerticesByIds(vertexIds, false, false,
+                                           HugeType.SERVER);
+        }
         return this.queryVerticesByIds(vertexIds, false, false,
-                                       HugeType.SERVER);
+                                       HugeType.VERTEX);
     }
 
     protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,

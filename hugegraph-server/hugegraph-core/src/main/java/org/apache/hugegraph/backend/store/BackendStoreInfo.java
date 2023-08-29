@@ -41,7 +41,7 @@ public class BackendStoreInfo {
     }
 
     public boolean checkVersion() {
-        if ("hstore".equals(this.storeProvider.type())) { // skip for hstore now
+        if (this.storeProvider.isHstore()) { // skip for hstore now
             return true;
         }
         String driverVersion = this.storeProvider.driverVersion();

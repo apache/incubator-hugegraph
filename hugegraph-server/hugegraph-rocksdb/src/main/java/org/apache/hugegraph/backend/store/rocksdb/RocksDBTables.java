@@ -188,48 +188,6 @@ public class RocksDBTables {
         }
     }
 
-    public static class TaskInfo extends RocksDBTable {
-
-        public static final String TABLE = HugeType.TASK.string();
-
-        public TaskInfo(String database) {
-            super(database, TABLE);
-        }
-
-        @Override
-        protected BackendColumnIterator queryById(RocksDBSessions.Session session, Id id) {
-            return this.getById(session, id);
-        }
-
-        @Override
-        protected BackendColumnIterator queryByIds(RocksDBSessions.Session session,
-                                                   Collection<Id> ids) {
-            // TODO: use getByIds() after batch version multi-get is ready
-            return super.queryByIds(session, ids);
-        }
-    }
-
-    public static class ServerInfo extends RocksDBTable {
-
-        public static final String TABLE = HugeType.SERVER.string();
-
-        public ServerInfo(String database) {
-            super(database, TABLE);
-        }
-
-        @Override
-        protected BackendColumnIterator queryById(RocksDBSessions.Session session, Id id) {
-            return this.getById(session, id);
-        }
-
-        @Override
-        protected BackendColumnIterator queryByIds(RocksDBSessions.Session session,
-                                                   Collection<Id> ids) {
-            // TODO: use getByIds() after batch version multi-get is ready
-            return super.queryByIds(session, ids);
-        }
-    }
-
     public static class Edge extends RocksDBTable {
 
         public static final String TABLE_SUFFIX = HugeType.EDGE.string();

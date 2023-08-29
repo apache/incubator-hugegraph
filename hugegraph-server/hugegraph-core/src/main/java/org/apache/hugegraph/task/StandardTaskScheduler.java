@@ -666,7 +666,12 @@ public class StandardTaskScheduler implements TaskScheduler {
     private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
                                                 long limit, String page) {
         return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.TASK);
+            ConditionQuery query;
+            if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+                query = new ConditionQuery(HugeType.TASK);
+            } else {
+                query = new ConditionQuery(HugeType.VERTEX);
+            }
             if (page != null) {
                 query.page(page);
             }

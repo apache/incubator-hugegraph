@@ -128,4 +128,6 @@ public class HstoreFeatures implements BackendFeatures {
         return true;
     }
 
+    @Override
+    public boolean supportsTaskAndServerVertex() { return true; }
 }
