@@ -120,6 +120,12 @@
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>1.0.1</version>
+            <exclusions>
+                <exclusion>
+                  <groupId>org.apache.logging.log4j</groupId>
+                  <artifactId>log4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -138,11 +144,14 @@
                 <executions>
                     <execution>
                         <configuration>
-                            <classifier>spring-boot</classifier>
                             <mainClass>
                                 org.apache.hugegraph.pd.boot.HugePDServer
                             </mainClass>
                         </configuration>
+                        <!-- should configure explicitly without spring-boot-starter-parent -->
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

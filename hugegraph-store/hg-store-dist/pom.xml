@@ -38,6 +38,7 @@
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
         <final.name>hugegraph-store-${revision}</final.name>
+        <executable.jar.name>hg-store-node</executable.jar.name>
     </properties>
     <dependencies>
         <dependency>

@@ -45,11 +45,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-log4j2</artifactId>
-            <version>2.5.14</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
             <version>2.5.14</version>
         </dependency>
@@ -149,7 +144,16 @@
             <version>3.6.4</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.17.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.17.2</version>
+        </dependency>
         <!-- module end -->
     </dependencies>
 
@@ -168,6 +172,7 @@
                             <mainClass>
                                 org.apache.hugegraph.store.node.StoreNodeApplication
                             </mainClass>
+                            <includeSystemScope>true</includeSystemScope>
                         </configuration>
                     </execution>
                 </executions>

@@ -36,7 +36,7 @@
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
         <final.name>hugegraph-pd-${project.parent.version}</final.name>
-        <executable.jar.name>hugegraph-pd</executable.jar.name>
+        <executable.jar.name>hg-pd-service</executable.jar.name>
     </properties>
 
     <dependencies>
