@@ -148,6 +148,7 @@
                                 org.apache.hugegraph.pd.boot.HugePDServer
                             </mainClass>
                         </configuration>
+                        <!-- should configure explicitly without spring-boot-starter-parent -->
                         <goals>
                             <goal>repackage</goal>
                         </goals>
