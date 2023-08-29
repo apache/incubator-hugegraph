@@ -32,6 +32,7 @@ import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class CountTraverser extends HugeTraverser {
 
@@ -78,19 +79,23 @@ public class CountTraverser extends HugeTraverser {
             });
         }
 
-        // The last step, just query count
-        EdgeStep lastStep = steps.get(stepNum - 1);
-        while (edges.hasNext()) {
-            Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-            if (this.dedup(target)) {
-                continue;
+        try {
+            // The last step, just query count
+            EdgeStep lastStep = steps.get(stepNum - 1);
+            while (edges.hasNext()) {
+                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
+                if (this.dedup(target)) {
+                    continue;
+                }
+                // Count last layer vertices(without dedup size)
+                long edgesCount = this.edgesCount(target, lastStep);
+                this.count.add(edgesCount);
             }
-            // Count last layer vertices(without dedup size)
-            long edgesCount = this.edgesCount(target, lastStep);
-            this.count.add(edgesCount);
-        }
 
-        return this.count.longValue();
+            return this.count.longValue();
+        } finally {
+            CloseableIterator.closeIterator(edges);
+        }
     }
 
     private Iterator<Edge> edgesOfVertexWithCount(Id source, EdgeStep step) {
