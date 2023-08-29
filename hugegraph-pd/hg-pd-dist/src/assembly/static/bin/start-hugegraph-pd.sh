@@ -114,7 +114,7 @@ fi
 echo "Starting HugeGraphPDServer..."
 
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphPd" ${JAVA_OPTIONS} -jar \
+exec ${JAVA} -Dname="HugeGraphPD" ${JAVA_OPTIONS} -jar \
     -Dspring.config.location=${CONF}/application.yml ${LIB}/hg-pd-service-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"
