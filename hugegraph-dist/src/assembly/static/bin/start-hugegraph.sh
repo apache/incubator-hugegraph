@@ -53,6 +53,7 @@ while getopts "d:g:m:p:s:j:t:v" arg; do
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         # TODO: should remove it in future (check the usage carefully)
         v) VERBOSE="verbose" ;;
+        # usage information "[-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options] [-t timeout]"
         ?) exit_with_usage_help ;;
     esac
 done
