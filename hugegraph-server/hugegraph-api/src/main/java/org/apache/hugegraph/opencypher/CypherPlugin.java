@@ -25,6 +25,7 @@
  * </pre>
  * </p>
  */
+/* Warning: This license cannot be approved, temporarily added to the ignore list, needs to be fixed. */
 
 package org.apache.hugegraph.opencypher;
 

@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/* Warning: This license cannot be approved, temporarily added to the ignore list, needs to be fixed. */
+
 package org.apache.hugegraph.store.node.metrics;
 
 import java.io.IOException;

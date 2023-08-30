@@ -102,7 +102,6 @@ header: # `header` section is configurations for source codes license header.
     - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java'
     - 'hugegraph-store/.mvn/wrapper/MavenWrapperDownloader.java'
     - 'hugegraph-store/hg-store-common/.mvn/wrapper/MavenWrapperDownloader.java'
-    - 'hugegraph-store/hg-store-dist/src/assembly/static/conf/application-pd.yml'
     - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsEntry.java'
     - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsReader.java'
     - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsSmaps.java'
