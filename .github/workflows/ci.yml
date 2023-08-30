@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
@@ -46,6 +47,12 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: copy and overwrite maven settings
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp  $HOME/.m2/settings.xml /tmp/settings.xml
+          mv -f .github/configs/settings.xml $HOME/.m2/settings.xml
+
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
@@ -53,8 +60,10 @@ jobs:
       - name: Install JDK 8
         uses: actions/setup-java@v3
         with:
+          overwrite-settings: false
           java-version: '8'
           distribution: 'zulu'
+
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
@@ -62,6 +71,7 @@ jobs:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
         with:
+          overwrite-settings: false
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
 
