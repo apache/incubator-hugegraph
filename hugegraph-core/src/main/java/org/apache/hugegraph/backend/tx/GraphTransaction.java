@@ -1218,8 +1218,8 @@ public class GraphTransaction extends IndexableTransaction {
         // Edge direction
         if (direction == Directions.BOTH) {
             query.query(Condition.or(
-                    Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
-                    Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
+                        Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+                        Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
         } else {
             assert direction == Directions.OUT || direction == Directions.IN;
             query.eq(HugeKeys.DIRECTION, direction);
@@ -1380,8 +1380,8 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (matched != total) {
             throw new HugeException(
-                    "Not supported querying edges by %s, expect %s",
-                    query.conditions(), EdgeId.KEYS[count]);
+                      "Not supported querying edges by %s, expect %s",
+                      query.conditions(), EdgeId.KEYS[count]);
         }
     }
 
@@ -1614,7 +1614,7 @@ public class GraphTransaction extends IndexableTransaction {
             HugeGraph graph = this.graph();
 
             E.checkArgument(false, "All non-null property keys %s of " +
-                                            "vertex label '%s' must be set, missed keys %s",
+                            "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
                             graph.mapPkId2Name(missed));
         }
