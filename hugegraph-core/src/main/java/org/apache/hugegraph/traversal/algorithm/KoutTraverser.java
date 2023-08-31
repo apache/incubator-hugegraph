@@ -138,7 +138,7 @@ public class KoutTraverser extends OltpTraverser {
         return records;
     }
 
-    public KoutRecords DFSKout(Id source, Steps steps,
+    public KoutRecords dfsKout(Id source, Steps steps,
                                int maxDepth, boolean nearest,
                                long capacity, long limit) {
         E.checkNotNull(source, "source vertex id");

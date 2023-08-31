@@ -104,7 +104,23 @@ public class GraphTransaction extends IndexableTransaction {
     public static final int COMMIT_BATCH = (int) Query.COMMIT_BATCH;
 
     private final GraphIndexTransaction indexTx;
+
+    private Map<Id, HugeVertex> addedVertices;
+    private Map<Id, HugeVertex> removedVertices;
+
+    private Map<Id, HugeEdge> addedEdges;
+    private Map<Id, HugeEdge> removedEdges;
+
+    private Set<HugeProperty<?>> addedProps;
+    private Set<HugeProperty<?>> removedProps;
+
+    // These are used to rollback state
+    private Map<Id, HugeVertex> updatedVertices;
+    private Map<Id, HugeEdge> updatedEdges;
+    private Set<HugeProperty<?>> updatedOldestProps; // Oldest props
+
     private final LockUtil.LocksTable locksTable;
+
     private final boolean checkCustomVertexExist;
     private final boolean checkAdjacentVertexExist;
     private final boolean lazyLoadAdjacentVertex;
@@ -114,18 +130,9 @@ public class GraphTransaction extends IndexableTransaction {
     private final int commitPartOfAdjacentEdges;
     private final int batchSize;
     private final int pageSize;
+
     private final int verticesCapacity;
     private final int edgesCapacity;
-    private Map<Id, HugeVertex> addedVertices;
-    private Map<Id, HugeVertex> removedVertices;
-    private Map<Id, HugeEdge> addedEdges;
-    private Map<Id, HugeEdge> removedEdges;
-    private Set<HugeProperty<?>> addedProps;
-    private Set<HugeProperty<?>> removedProps;
-    // These are used to rollback state
-    private Map<Id, HugeVertex> updatedVertices;
-    private Map<Id, HugeEdge> updatedEdges;
-    private Set<HugeProperty<?>> updatedOldestProps; // Oldest props
 
     public GraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
@@ -137,19 +144,19 @@ public class GraphTransaction extends IndexableTransaction {
 
         final HugeConfig conf = graph.configuration();
         this.checkCustomVertexExist =
-                conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+             conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.checkAdjacentVertexExist =
-                conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.lazyLoadAdjacentVertex =
-                conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
         this.removeLeftIndexOnOverwrite =
-                conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
+             conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
         this.commitPartOfAdjacentEdges =
-                conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
+             conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
-                conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
+             conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
         this.optimizeAggrByIndex =
-                conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
+             conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -1449,7 +1456,7 @@ public class GraphTransaction extends IndexableTransaction {
             // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
             List<Condition> conditions =
-                    GraphIndexTransaction.constructShardConditions(
+                            GraphIndexTransaction.constructShardConditions(
                             query, keys, HugeKeys.SORT_VALUES);
             query.query(conditions);
             /*
@@ -1597,12 +1604,13 @@ public class GraphTransaction extends IndexableTransaction {
         // Check whether passed all non-null property
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                vertexLabel.properties(),
-                vertexLabel.nullableKeys());
+                                     vertexLabel.properties(),
+                                     vertexLabel.nullableKeys());
         if (!keys.containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             HugeGraph graph = this.graph();
+
             E.checkArgument(false, "All non-null property keys %s of " +
                                    "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
@@ -1699,8 +1707,8 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private <T extends HugeElement> Iterator<T> filterUnmatchedRecords(
-            Iterator<T> results,
-            Query query) {
+                                                Iterator<T> results,
+                                                Query query) {
         // Filter unused or incorrect records
         return new FilterIterator<T>(results, elem -> {
             // TODO: Left vertex/edge should to be auto removed via async task
@@ -1719,9 +1727,12 @@ public class GraphTransaction extends IndexableTransaction {
                 return false;
             }
             // Process results that query from left index or primary-key
-            // Only index query will come here
-            return query.resultType().isVertex() != elem.type().isVertex() ||
-                   rightResultFromIndexQuery(query, elem);
+            if (query.resultType().isVertex() == elem.type().isVertex() &&
+                !rightResultFromIndexQuery(query, elem)) {
+                // Only index query will come here
+                return false;
+            }
+            return true;
         });
     }
 
@@ -1859,12 +1870,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private <V extends HugeElement> Iterator<V> joinTxRecords(
-            Query query,
-            Iterator<V> records,
-            BiFunction<Query, V, V> matchFunc,
-            Map<Id, V> addedTxRecords,
-            Map<Id, V> removedTxRecords,
-            Map<Id, V> updatedTxRecords) {
+                                    Query query,
+                                    Iterator<V> records,
+                                    BiFunction<Query, V, V> matchFunc,
+                                    Map<Id, V> addedTxRecords,
+                                    Map<Id, V> removedTxRecords,
+                                    Map<Id, V> updatedTxRecords) {
         this.checkOwnerThread();
         // Return the origin results if there is no change in tx
         if (addedTxRecords.isEmpty() &&

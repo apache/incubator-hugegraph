@@ -46,11 +46,11 @@ import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.LimitIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
-import org.apache.hugegraph.iterator.WrappedIterator;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.algorithm.iterator.NestedIterator;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
@@ -465,7 +465,7 @@ public class HugeTraverser {
         return edgeStep.skipSuperNodeIfNeeded(edges);
     }
 
-    protected Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
+    public Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
         List<Id> edgeLabels = steps.edgeLabels();
         ConditionQuery cq = GraphTransaction.constructEdgesQuery(
                 source, steps.direction(), edgeLabels);
@@ -475,7 +475,7 @@ public class HugeTraverser {
         }
 
         Map<Id, ConditionQuery> edgeConditions =
-                getElementFilterQuery(steps.edgeSteps(), HugeType.EDGE);
+                getFilterQueryConditions(steps.edgeSteps(), HugeType.EDGE);
 
         Iterator<Edge> filteredEdges =
                 new FilterIterator<>(this.graph().edges(cq),
@@ -490,22 +490,22 @@ public class HugeTraverser {
         }
 
         Map<Id, ConditionQuery> vertexConditions =
-                getElementFilterQuery(steps.vertexSteps(), HugeType.VERTEX);
+                getFilterQueryConditions(steps.vertexSteps(), HugeType.VERTEX);
 
         return new FilterIterator<>(edges,
                                     edge -> validateVertex(vertexConditions, (HugeEdge) edge));
     }
 
-    private Boolean validateVertex(Map<Id, ConditionQuery> vConditions,
+    private Boolean validateVertex(Map<Id, ConditionQuery> conditions,
                                    HugeEdge edge) {
         HugeVertex sourceV = edge.sourceVertex();
         HugeVertex targetV = edge.targetVertex();
-        if (!vConditions.containsKey(sourceV.schemaLabel().id()) ||
-            !vConditions.containsKey(targetV.schemaLabel().id())) {
+        if (!conditions.containsKey(sourceV.schemaLabel().id()) ||
+            !conditions.containsKey(targetV.schemaLabel().id())) {
             return false;
         }
 
-        ConditionQuery cq = vConditions.get(sourceV.schemaLabel().id());
+        ConditionQuery cq = conditions.get(sourceV.schemaLabel().id());
         if (cq != null) {
             sourceV = (HugeVertex) this.graph.vertex(sourceV.id());
             if (!cq.test(sourceV)) {
@@ -513,7 +513,7 @@ public class HugeTraverser {
             }
         }
 
-        cq = vConditions.get(targetV.schemaLabel().id());
+        cq = conditions.get(targetV.schemaLabel().id());
         if (cq != null) {
             targetV = (HugeVertex) this.graph.vertex(targetV.id());
             return cq.test(targetV);
@@ -521,20 +521,20 @@ public class HugeTraverser {
         return true;
     }
 
-    private Boolean validateEdge(Map<Id, ConditionQuery> eConditions,
+    private Boolean validateEdge(Map<Id, ConditionQuery> conditions,
                                  HugeEdge edge) {
-        if (!eConditions.containsKey(edge.schemaLabel().id())) {
+        if (!conditions.containsKey(edge.schemaLabel().id())) {
             return false;
         }
 
-        ConditionQuery cq = eConditions.get(edge.schemaLabel().id());
+        ConditionQuery cq = conditions.get(edge.schemaLabel().id());
         if (cq != null) {
             return cq.test(edge);
         }
         return true;
     }
 
-    private Map<Id, ConditionQuery> getElementFilterQuery(
+    private Map<Id, ConditionQuery> getFilterQueryConditions(
             Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
         Map<Id, ConditionQuery> conditions = new HashMap<>();
         for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
@@ -1007,165 +1007,4 @@ public class HugeTraverser {
 
     }
 
-    public static class NestedIterator extends WrappedIterator<Edge> {
-
-        private final int MAX_CACHED_COUNT = 1000;
-        /*
-         * Set<Id> visited: visited vertex-ids of all parent-tree
-         * used to exclude visited vertex
-         */
-        private final boolean nearest;
-        private final Set<Id> visited;
-        private final int MAX_VISITED_COUNT = 100000;
-
-        // cache for edges, initial capacity to avoid memory fragment
-        private final List<HugeEdge> cache;
-        private final Map<Long, Integer> parentEdgePointerMap;
-
-        private final Iterator<Edge> parentIterator;
-        private final HugeTraverser traverser;
-        private final Steps steps;
-        private final ObjectIntMapping<Id> idMapping;
-        private HugeEdge currentEdge;
-        private int cachePointer;
-        private Iterator<Edge> currentIterator;
-
-        public NestedIterator(HugeTraverser traverser,
-                              Iterator<Edge> parentIterator,
-                              Steps steps,
-                              Set<Id> visited,
-                              boolean nearest) {
-            this.traverser = traverser;
-            this.parentIterator = parentIterator;
-            this.steps = steps;
-            this.visited = visited;
-            this.nearest = nearest;
-
-            this.cache = new ArrayList<>(MAX_CACHED_COUNT);
-            this.parentEdgePointerMap = new HashMap<>();
-
-            this.cachePointer = 0;
-            this.currentEdge = null;
-            this.currentIterator = null;
-
-            this.idMapping = ObjectIntMappingFactory.newObjectIntMapping(false);
-        }
-
-        private static Long makeVertexPairIndex(int source, int target) {
-            return ((long) source & 0xFFFFFFFFL) |
-                   (((long) target << 32) & 0xFFFFFFFF00000000L);
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (this.currentIterator == null || !this.currentIterator.hasNext()) {
-                return fetch();
-            }
-            return true;
-        }
-
-        @Override
-        public Edge next() {
-            return this.currentIterator.next();
-        }
-
-        @Override
-        protected Iterator<?> originIterator() {
-            return this.parentIterator;
-        }
-
-        @Override
-        protected boolean fetch() {
-            while (this.currentIterator == null || !this.currentIterator.hasNext()) {
-                if (this.currentIterator != null) {
-                    this.currentIterator = null;
-                }
-
-                if (this.cache.size() == this.cachePointer && !this.fillCache()) {
-                    return false;
-                }
-
-                this.currentEdge = this.cache.get(this.cachePointer);
-                this.cachePointer++;
-                this.currentIterator =
-                        traverser.edgesOfVertex(this.currentEdge.id().otherVertexId(), steps);
-                this.traverser.vertexIterCounter.addAndGet(1L);
-
-            }
-            return true;
-        }
-
-        private boolean fillCache() {
-            // fill cache from parent
-            while (this.parentIterator.hasNext() && this.cache.size() < MAX_CACHED_COUNT) {
-                HugeEdge edge = (HugeEdge) this.parentIterator.next();
-                Id vertexId = edge.id().otherVertexId();
-
-                this.traverser.edgeIterCounter.addAndGet(1L);
-
-                if (!this.nearest || !this.visited.contains(vertexId)) {
-                    // update parent edge cache pointer
-                    int parentEdgePointer = -1;
-                    if (this.parentIterator instanceof NestedIterator) {
-                        parentEdgePointer =
-                                ((NestedIterator) this.parentIterator).currentEdgePointer();
-                    }
-
-                    this.parentEdgePointerMap.put(makeEdgeIndex(edge), parentEdgePointer);
-
-                    this.cache.add(edge);
-                    if (this.visited.size() < MAX_VISITED_COUNT) {
-                        this.visited.add(vertexId);
-                    }
-                }
-            }
-            return this.cache.size() > this.cachePointer;
-        }
-
-        public List<HugeEdge> pathEdges() {
-            List<HugeEdge> edges = new ArrayList<>();
-            HugeEdge currentEdge = this.currentEdge;
-            if (this.parentIterator instanceof NestedIterator) {
-                NestedIterator parent = (NestedIterator) this.parentIterator;
-                int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(currentEdge));
-                edges.addAll(parent.pathEdges(parentEdgePointer));
-            }
-            edges.add(currentEdge);
-            return edges;
-        }
-
-        private List<HugeEdge> pathEdges(int edgePointer) {
-            List<HugeEdge> edges = new ArrayList<>();
-            HugeEdge edge = this.cache.get(edgePointer);
-            if (this.parentIterator instanceof NestedIterator) {
-                NestedIterator parent = (NestedIterator) this.parentIterator;
-                int parentEdgePointer = this.parentEdgePointerMap.get(makeEdgeIndex(edge));
-                edges.addAll(parent.pathEdges(parentEdgePointer));
-            }
-            edges.add(edge);
-            return edges;
-        }
-
-        public int currentEdgePointer() {
-            return this.cachePointer - 1;
-        }
-
-        private Long makeEdgeIndex(HugeEdge edge) {
-            int sourceV = this.code(edge.id().ownerVertexId());
-            int targetV = this.code(edge.id().otherVertexId());
-            return makeVertexPairIndex(sourceV, targetV);
-        }
-
-        private int code(Id id) {
-            if (id.number()) {
-                long l = id.asLong();
-                if (0 <= l && l <= Integer.MAX_VALUE) {
-                    return (int) l;
-                }
-            }
-            int code = this.idMapping.object2Code(id);
-            assert code > 0;
-            return -code;
-        }
-    }
 }

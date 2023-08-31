@@ -626,8 +626,8 @@ public final class TraversalUtil {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
         List<HasStep> steps =
-                TraversalHelper.getStepsOfAssignableClassRecursively(
-                        HasStep.class, traversal);
+                      TraversalHelper.getStepsOfAssignableClassRecursively(
+                      HasStep.class, traversal);
 
         if (steps.isEmpty()) {
             return;

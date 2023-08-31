@@ -152,7 +152,7 @@ public class KoutAPI extends TraverserAPI {
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
             if (HugeTraverser.isDFSAlgorithm(request.algorithm)) {
-                results = traverser.DFSKout(sourceId, steps,
+                results = traverser.dfsKout(sourceId, steps,
                                             request.maxDepth,
                                             request.nearest,
                                             request.capacity,

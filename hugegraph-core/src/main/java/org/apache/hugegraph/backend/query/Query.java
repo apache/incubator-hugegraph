@@ -50,7 +50,7 @@ public class Query implements Cloneable {
     public static final long NO_CAPACITY = -1L;
     public static final long DEFAULT_CAPACITY = 800000L; // HugeGraph-777
 
-    protected static final ThreadLocal<Long> CAPACITY_CONTEXT = new ThreadLocal<>();
+    private static final ThreadLocal<Long> CAPACITY_CONTEXT = new ThreadLocal<>();
 
     protected static final Query NONE = new Query(HugeType.UNKNOWN);
 
@@ -99,25 +99,6 @@ public class Query implements Cloneable {
         this.showExpired = false;
         this.olap = false;
         this.olapPks = EMPTY_OLAP_PKS;
-    }
-
-    public static long defaultCapacity(long capacity) {
-        Long old = CAPACITY_CONTEXT.get();
-        CAPACITY_CONTEXT.set(capacity);
-        return old != null ? old : DEFAULT_CAPACITY;
-    }
-
-    public static long defaultCapacity() {
-        Long capacity = CAPACITY_CONTEXT.get();
-        return capacity != null ? capacity : DEFAULT_CAPACITY;
-    }
-
-    public static void checkForceCapacity(long count) throws LimitExceedException {
-        if (count > Query.DEFAULT_CAPACITY) {
-            throw new LimitExceedException(
-                    "Too many records(must <= %s) for one query",
-                    Query.DEFAULT_CAPACITY);
-        }
     }
 
     public void copyBasic(Query query) {
@@ -578,6 +559,25 @@ public class Query implements Cloneable {
 
         sb.append('`');
         return sb.toString();
+    }
+
+    public static long defaultCapacity(long capacity) {
+        Long old = CAPACITY_CONTEXT.get();
+        CAPACITY_CONTEXT.set(capacity);
+        return old != null ? old : DEFAULT_CAPACITY;
+    }
+
+    public static long defaultCapacity() {
+        Long capacity = CAPACITY_CONTEXT.get();
+        return capacity != null ? capacity : DEFAULT_CAPACITY;
+    }
+
+    public static void checkForceCapacity(long count) throws LimitExceedException {
+        if (count > Query.DEFAULT_CAPACITY) {
+            throw new LimitExceedException(
+                    "Too many records(must <= %s) for one query",
+                    Query.DEFAULT_CAPACITY);
+        }
     }
 
     public enum Order {
