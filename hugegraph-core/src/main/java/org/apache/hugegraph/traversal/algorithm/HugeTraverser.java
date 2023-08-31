@@ -90,8 +90,8 @@ public class HugeTraverser {
     public static final String DEFAULT_PAGE_LIMIT = "100000";
     public static final long NO_LIMIT = -1L;
     // algorithms
-    public static final String ALGORITHM_BFS = "breadth_first_search";
-    public static final String ALGORITHM_DFS = "depth_first_search";
+    public static final String TRAVERSE_MODE_BFS = "breadth_first_search";
+    public static final String TRAVERSE_MODE_DFS = "depth_first_search";
     protected static final Logger LOG = Log.logger(HugeTraverser.class);
     protected static final int MAX_VERTICES = 10;
     private static CollectionFactory collectionFactory;
@@ -171,15 +171,15 @@ public class HugeTraverser {
         }
     }
 
-    public static void checkAlgorithm(String algorithm) {
-        E.checkArgument(algorithm.compareToIgnoreCase(ALGORITHM_BFS) == 0 ||
-                        algorithm.compareToIgnoreCase(ALGORITHM_DFS) == 0,
-                        "The algorithm must be one of '%s' or '%s', but got '%s'",
-                        ALGORITHM_BFS, ALGORITHM_DFS, algorithm);
+    public static void checkTraverseMode(String traverseMode) {
+        E.checkArgument(traverseMode.compareToIgnoreCase(TRAVERSE_MODE_BFS) == 0 ||
+                        traverseMode.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0,
+                        "The traverse mode must be one of '%s' or '%s', but got '%s'",
+                        TRAVERSE_MODE_BFS, TRAVERSE_MODE_DFS, traverseMode);
     }
 
     public static boolean isDFSAlgorithm(String algorithm) {
-        return algorithm.compareToIgnoreCase(ALGORITHM_DFS) == 0;
+        return algorithm.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0;
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(

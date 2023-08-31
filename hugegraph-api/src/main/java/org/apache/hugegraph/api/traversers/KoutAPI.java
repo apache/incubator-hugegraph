@@ -132,7 +132,7 @@ public class KoutAPI extends TraverserAPI {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
                             "Can't return vertex, edge or path when count only");
         }
-        HugeTraverser.checkAlgorithm(request.algorithm);
+        HugeTraverser.checkTraverseMode(request.algorithm);
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
                   "with steps '{}', max_depth '{}', nearest '{}', " +
@@ -239,7 +239,7 @@ public class KoutAPI extends TraverserAPI {
         public boolean withEdge = false;
 
         @JsonProperty("algorithm")
-        public String algorithm = HugeTraverser.ALGORITHM_BFS;
+        public String algorithm = HugeTraverser.TRAVERSE_MODE_BFS;
 
         @Override
         public String toString() {
