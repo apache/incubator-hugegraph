@@ -32,6 +32,7 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
@@ -45,6 +46,7 @@ public class EdgeLabel extends SchemaLabel {
     private Id targetLabel = NONE_ID;
     private Frequency frequency;
     private List<Id> sortKeys;
+    private EdgeLabelType edgeLabelType;
 
     public EdgeLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
@@ -59,6 +61,10 @@ public class EdgeLabel extends SchemaLabel {
 
     public Frequency frequency() {
         return this.frequency;
+    }
+
+    public void edgeLabelType(EdgeLabelType type) {
+        this.edgeLabelType = type;
     }
 
     public void frequency(Frequency frequency) {

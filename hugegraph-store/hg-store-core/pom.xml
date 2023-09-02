@@ -104,22 +104,17 @@
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-core</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-common</artifactId>
             <version>${revision}</version>
         </dependency>
-        <dependency>
-            <!-- TODO: import through system dependency approach is just a temporal solution -->
-            <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hugegraph-core</artifactId>
-            <version>${hugegraph.core.version}</version>
-            <scope>system</scope>
-            <systemPath>
-                ${top.level.dir}/hg-store-dist/src/assembly/ext-lib/hugegraph-core-1.5.0.jar
-            </systemPath>
-        </dependency>
+
         <!-- tinkerpop -->
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>

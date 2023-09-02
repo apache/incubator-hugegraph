@@ -597,6 +597,10 @@ public final class BytesBuffer extends OutputStream {
         }
     }
 
+    public static byte getType(int value) {
+        return (byte) (value & 0x3f);
+    }
+
     public Object readProperty(DataType dataType) {
         switch (dataType) {
             case BOOLEAN:

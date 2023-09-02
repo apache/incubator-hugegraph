@@ -48,7 +48,7 @@ public abstract class AbstractSelectIterator implements ScanIterator {
                 return this.serializer.readVertex(null, entry);
             } else {
                 CIter<Edge> itr =
-                        this.serializer.readEdges(null, entry, true, false);
+                        this.serializer.readEdges(null, entry);
 
                 // Iterator<HugeEdge> itr = this.serializer.readEdges(
                 //         null, entry, true, false).iterator();

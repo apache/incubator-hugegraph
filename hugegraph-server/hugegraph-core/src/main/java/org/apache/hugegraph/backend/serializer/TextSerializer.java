@@ -30,6 +30,7 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.commons.lang.NotImplementedException;
 
+import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.backend.id.EdgeId;
@@ -66,6 +67,8 @@ import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+
 import com.google.common.collect.ImmutableMap;
 
 public class TextSerializer extends AbstractSerializer {
@@ -350,6 +353,13 @@ public class TextSerializer extends AbstractSerializer {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement
         throw new NotImplementedException("Unsupported readEdge()");
+    }
+
+    @Override
+    public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
+        E.checkNotNull(graph, "serializer graph");
+        // TODO: implement
+        throw new NotImplementedException("Unsupported readEdges()");
     }
 
     @Override

@@ -687,6 +687,18 @@ public class ConditionQuery extends IdQuery {
         }
     }
 
+    public static ConditionQuery fromBytes(byte[] bytes) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Condition.class, new QueryAdapter())
+                .registerTypeAdapter(Id.class, new QueryIdAdapter())
+                .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+                .create();
+        String cqs = new String(bytes, StandardCharsets.UTF_8);
+        ConditionQuery conditionQuery = gson.fromJson(cqs, ConditionQuery.class);
+
+        return conditionQuery;
+    }
+
     private static boolean needConvertNumber(Object value) {
         // Numeric or date values should be converted to number from string
         return NumericUtil.isNumber(value) || value instanceof Date;
