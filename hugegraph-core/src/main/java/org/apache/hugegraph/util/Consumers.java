@@ -27,16 +27,16 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.config.CoreOptions;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
+import org.slf4j.Logger;
 
 public final class Consumers<V> {
 
@@ -49,13 +49,13 @@ public final class Consumers<V> {
     private final ExecutorService executor;
     private final Consumer<V> consumer;
     private final Runnable done;
-
+    private final Consumer<Throwable> exceptionHandle;
     private final int workers;
+    private final List<Future> runnings;
     private final int queueSize;
     private final CountDownLatch latch;
-    private final BlockingQueue<V> queue;
-
-    private volatile boolean ending = false;
+    private final BlockingQueue<VWrapper<V>> queue;
+    private final VWrapper<V> queueEnd = new VWrapper(null);
     private volatile Throwable exception = null;
 
     public Consumers(ExecutorService executor, Consumer<V> consumer) {
@@ -64,22 +64,39 @@ public final class Consumers<V> {
 
     public Consumers(ExecutorService executor,
                      Consumer<V> consumer, Runnable done) {
+        this(executor, consumer, done, QUEUE_WORKER_SIZE);
+    }
+
+    public Consumers(ExecutorService executor,
+                     Consumer<V> consumer,
+                     Runnable done,
+                     int queueWorkerSize) {
+        this(executor, consumer, done, null, queueWorkerSize);
+    }
+
+    public Consumers(ExecutorService executor,
+                     Consumer<V> consumer,
+                     Runnable done,
+                     Consumer<Throwable> handle,
+                     int queueWorkerSize) {
         this.executor = executor;
         this.consumer = consumer;
         this.done = done;
+        this.exceptionHandle = handle;
 
         int workers = THREADS;
         if (this.executor instanceof ThreadPoolExecutor) {
             workers = ((ThreadPoolExecutor) this.executor).getCorePoolSize();
         }
         this.workers = workers;
-        this.queueSize = QUEUE_WORKER_SIZE * workers;
+
+        this.runnings = new ArrayList<>(workers);
+        this.queueSize = queueWorkerSize * workers + 1;
         this.latch = new CountDownLatch(workers);
         this.queue = new ArrayBlockingQueue<>(this.queueSize);
     }
 
     public void start(String name) {
-        this.ending = false;
         this.exception = null;
         if (this.executor == null) {
             return;
@@ -87,7 +104,7 @@ public final class Consumers<V> {
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
-            this.executor.submit(new ContextCallable<>(this::runAndDone));
+            this.runnings.add(this.executor.submit(new ContextCallable<>(this::runAndDone)));
         }
     }
 
@@ -95,11 +112,15 @@ public final class Consumers<V> {
         try {
             this.run();
         } catch (Throwable e) {
-            // Only the first exception of one thread can be stored
-            this.exception = e;
-            if (!(e instanceof StopExecution)) {
+            if (e instanceof StopExecution) {
+                this.queue.clear();
+                putEnd();
+            } else {
+                // Only the first exception of one thread can be stored
+                this.exception = e;
                 LOG.error("Error when running task", e);
             }
+            exceptionHandle(e);
         } finally {
             this.done();
             this.latch.countDown();
@@ -109,11 +130,7 @@ public final class Consumers<V> {
 
     private void run() {
         LOG.debug("Start to work...");
-        while (!this.ending) {
-            this.consume();
-        }
-        assert this.ending;
-        while (this.consume()){
+        while (this.consume()) {
             // ignore
         }
 
@@ -121,19 +138,39 @@ public final class Consumers<V> {
     }
 
     private boolean consume() {
-        V elem;
-        try {
-            elem = this.queue.poll(CONSUMER_WAKE_PERIOD, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            // ignore
-            return true;
+        VWrapper<V> elem = null;
+        while (elem == null) {
+            try {
+                elem = this.queue.poll(CONSUMER_WAKE_PERIOD, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                // ignore
+                return false;
+            }
         }
-        if (elem == null) {
+
+        if (elem == queueEnd) {
+            putEnd();
             return false;
         }
         // do job
-        this.consumer.accept(elem);
+        this.consumer.accept(elem.v);
         return true;
+    }
+
+    private void exceptionHandle(Throwable e) {
+        if (this.exceptionHandle == null) {
+            return;
+        }
+
+        try {
+            this.exceptionHandle.accept(e);
+        } catch (Throwable ex) {
+            if (this.exception == null) {
+                this.exception = ex;
+            } else {
+                LOG.warn("Error while calling exceptionHandle()", ex);
+            }
+        }
     }
 
     private void done() {
@@ -168,7 +205,17 @@ public final class Consumers<V> {
             throw this.throwException();
         } else {
             try {
-                this.queue.put(v);
+                this.queue.put(new VWrapper<>(v));
+            } catch (InterruptedException e) {
+                LOG.warn("Interrupted while enqueue", e);
+            }
+        }
+    }
+
+    private void putEnd() {
+        if (this.executor != null) {
+            try {
+                this.queue.put(queueEnd);
             } catch (InterruptedException e) {
                 LOG.warn("Interrupted while enqueue", e);
             }
@@ -176,15 +223,18 @@ public final class Consumers<V> {
     }
 
     public void await() throws Throwable {
-        this.ending = true;
         if (this.executor == null) {
             // call done() directly if without thread pool
             this.done();
         } else {
             try {
+                putEnd();
                 this.latch.await();
             } catch (InterruptedException e) {
                 String error = "Interrupted while waiting for consumers";
+                for (Future f: this.runnings) {
+                    f.cancel(true);
+                }
                 this.exception = new HugeException(error, e);
                 LOG.warn(error, e);
             }
@@ -202,7 +252,7 @@ public final class Consumers<V> {
     public static void executeOncePerThread(ExecutorService executor,
                                             int totalThreads,
                                             Runnable callback)
-                                            throws InterruptedException {
+            throws InterruptedException {
         // Ensure callback execute at least once for every thread
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();
@@ -230,7 +280,7 @@ public final class Consumers<V> {
         for (int i = 0; i < totalThreads; i++) {
             tasks.add(task);
         }
-        executor.invokeAll(tasks);
+        executor.invokeAll(tasks, 5, TimeUnit.SECONDS);
     }
 
     public static ExecutorService newThreadPool(String prefix, int workers) {
@@ -290,13 +340,21 @@ public final class Consumers<V> {
         public synchronized void returnExecutor(ExecutorService executor) {
             E.checkNotNull(executor, "executor");
             if (!this.executors.offer(executor)) {
-                executor.shutdown();
+                try {
+                    executor.shutdown();
+                } catch (Exception e) {
+                    LOG.warn("close ExecutorService with error:", e);
+                }
             }
         }
 
         public synchronized void destroy() {
             for (ExecutorService executor : this.executors) {
-                executor.shutdown();
+                try {
+                    executor.shutdownNow();
+                } catch (Exception e) {
+                    LOG.warn("close ExecutorService with error:", e);
+                }
             }
             this.executors.clear();
         }
@@ -312,6 +370,14 @@ public final class Consumers<V> {
 
         public StopExecution(String message, Object... args) {
             super(message, args);
+        }
+    }
+
+    public static class VWrapper<V> {
+        public V v;
+
+        public VWrapper(V v) {
+            this.v = v;
         }
     }
 }
