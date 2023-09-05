@@ -112,9 +112,9 @@
             </pluginRepositories>
         </profile>
         <profile>
-            <id>exclude-jdk11-modules</id>
+            <id>jdk-11-to-17-support</id>
             <activation>
-                <jdk>11</jdk>
+                <jdk>[11, 18)</jdk>
             </activation>
             <modules>
                 <module>hugegraph-store</module>
