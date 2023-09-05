@@ -8,6 +8,7 @@
             <password>${env.GITHUB_TOKEN}</password>
         </server>
     </servers>
+
     <profiles>
         <profile>
             <id>local-repo</id>
@@ -35,6 +36,7 @@
             </pluginRepositories>
         </profile>
     </profiles>
+
     <activeProfiles>
         <activeProfile>local-repo</activeProfile>
     </activeProfiles>
