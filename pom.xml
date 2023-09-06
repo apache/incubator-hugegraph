@@ -114,7 +114,7 @@
         <profile>
             <id>jdk-11-to-17-support</id>
             <activation>
-                <jdk>[11, 18)</jdk>
+                <jdk>[11, 17)</jdk>
             </activation>
             <modules>
                 <module>hugegraph-store</module>
