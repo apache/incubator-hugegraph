@@ -94,7 +94,32 @@
 
     <modules>
         <module>hugegraph-server</module>
-        <module>hugegraph-pd</module>
-        <module>hugegraph-store</module>
     </modules>
+    <profiles>
+        <profile>
+            <id>stage</id>
+            <repositories>
+                <repository>
+                    <id>staged-releases</id>
+                    <url>https://repository.apache.org/content/groups/staging/</url>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>staged-releases</id>
+                    <url>https://repository.apache.org/content/groups/staging/</url>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+        <profile>
+            <id>jdk-11-to-17-support</id>
+            <activation>
+                <jdk>[11, 17)</jdk>
+            </activation>
+            <modules>
+                <module>hugegraph-store</module>
+                <module>hugegraph-pd</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
