@@ -22,7 +22,7 @@ DAEMON="true"
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
-
+# todo: move abs_path funtion to shell like util.sh
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
