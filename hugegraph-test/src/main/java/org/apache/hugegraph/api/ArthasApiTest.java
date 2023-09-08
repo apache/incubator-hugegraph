@@ -36,7 +36,6 @@ public class ArthasApiTest extends BaseApiTest {
 
     @Test
     public void testArthasApi() {
-
         String body = "{\n" +
                       "  \"action\": \"exec\",\n" +
                       "  \"requestId\": \"req112\",\n" +

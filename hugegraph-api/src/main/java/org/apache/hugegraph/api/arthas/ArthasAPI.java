@@ -28,7 +28,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.taobao.arthas.agent.attach.ArthasAgent;
 
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
@@ -40,57 +40,18 @@ public class ArthasAPI extends API {
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
 
-    @GET
+    @PUT
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public Object arthasStart() {
+    public Object startArthas() {
         HugeConfig config = this.configProvider.get();
         HashMap<String, String> configMap = new HashMap<>(4);
-        configMap.put("arthas.telnetPort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
-        configMap.put("arthas.httpPort", config.get(ServerOptions.ARTHAS_HTTP_PORT));
+        configMap.put("arthas.telnet_ort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
+        configMap.put("arthas.http_port", config.get(ServerOptions.ARTHAS_HTTP_PORT));
         configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
-        configMap.put("arthas.disabledCommands",
+        configMap.put("arthas.disabled_commands",
                       config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
         ArthasAgent.attach(configMap);
-
-        DashResponse retPose = new DashResponse();
-        retPose.setData(JsonUtil.toJson(configMap));
-        retPose.setStatus(200);
-        retPose.setMessage("arthas 启动成功");
-        return retPose;
-    }
-
-    public static class DashResponse {
-
-        private String data;
-        private int status;
-        private String message;
-
-        public DashResponse() {
-        }
-
-        public String getData() {
-            return data;
-        }
-
-        public void setData(String data) {
-            this.data = data;
-        }
-
-        public int getStatus() {
-            return status;
-        }
-
-        public void setStatus(int status) {
-            this.status = status;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
+        return JsonUtil.toJson(configMap);
     }
 }

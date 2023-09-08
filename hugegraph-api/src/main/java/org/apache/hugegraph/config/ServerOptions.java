@@ -265,21 +265,22 @@ public class ServerOptions extends OptionHolder {
                     true
             );
 
-
     public static final ConfigOption<String> ARTHAS_TELNET_PORT =
         new ConfigOption<>(
-            "arthas.telnetPort",
+            "arthas.telnet_port",
             "arthas provides telnet ports to the outside",
             disallowEmpty(),
             "8562"
         );
+
     public static final ConfigOption<String> ARTHAS_HTTP_PORT =
         new ConfigOption<>(
-            "arthas.httpPort",
+            "arthas.http_port",
             "arthas provides http ports to the outside",
             disallowEmpty(),
             "8561"
         );
+
     public static final ConfigOption<String> ARTHAS_IP =
         new ConfigOption<>(
             "arthas.ip",
@@ -287,12 +288,12 @@ public class ServerOptions extends OptionHolder {
             disallowEmpty(),
             "0.0.0.0"
         );
+
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
         new ConfigOption<>(
-            "arthas.disabledCommands",
+            "arthas.disabled_commands",
             "arthas disabled commands",
             disallowEmpty(),
             "jad"
         );
-
 }
