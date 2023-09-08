@@ -18,43 +18,11 @@
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
 DAEMON="true"
-PRELOAD="false"
 #VERBOSE=""
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
-
-while getopts "d:g:m:p:s:j:t:v" arg; do
-    case ${arg} in
-        d) DAEMON="$OPTARG" ;;
-        g) GC_OPTION="$OPTARG" ;;
-        m) OPEN_MONITOR="$OPTARG" ;;
-        p) PRELOAD="$OPTARG" ;;
-        s) OPEN_SECURITY_CHECK="$OPTARG" ;;
-        j) USER_OPTION="$OPTARG" ;;
-        t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
-        # TODO: should remove it in future (check the usage carefully)
-        v) VERBOSE="verbose" ;;
-        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]
-                [-t timeout]" && exit 1 ;;
-    esac
-done
-
-if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
-    exit 1
-fi
-
-if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
-    exit 1
-fi
-
-if [[ "$PRELOAD" != "true" && "$PRELOAD" != "false" ]]; then
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options]"
-    exit 1
-fi
-
+# todo: move abs_path funtion to shell like util.sh
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
@@ -73,6 +41,30 @@ SCRIPTS="$TOP/scripts"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
+
+while getopts "d:g:m:p:s:j:t:v" arg; do
+    case ${arg} in
+        d) DAEMON="$OPTARG" ;;
+        g) GC_OPTION="$OPTARG" ;;
+        m) OPEN_MONITOR="$OPTARG" ;;
+        p) PRELOAD="$OPTARG" ;;
+        s) OPEN_SECURITY_CHECK="$OPTARG" ;;
+        j) USER_OPTION="$OPTARG" ;;
+        t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
+        # TODO: should remove it in future (check the usage carefully)
+        v) VERBOSE="verbose" ;;
+        # Note: update usage info when the params changed
+        ?) exit_with_usage_help ;;
+    esac
+done
+
+if [[ "$OPEN_MONITOR" != "true" && "$OPEN_MONITOR" != "false" ]]; then
+    exit_with_usage_help
+fi
+
+if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; then
+    exit_with_usage_help
+fi
 
 GREMLIN_SERVER_URL=$(read_property "$CONF/rest-server.properties" "gremlinserver.url")
 if [ -z "$GREMLIN_SERVER_URL" ]; then
