@@ -83,3 +83,5 @@ hs_err_pid*
 .mtj.tmp/
 # blueJ files
 *.ctxt
+
+*swagger-ui*

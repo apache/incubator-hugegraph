@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  graph:
+    image: hugegraph/hugegraph
+    container_name: ca-graph
+    ports:
+      - 18080:8080
+    environment:
+      hugegraph.backend: cassandra
+      hugegraph.serializer: cassandra
+      hugegraph.cassandra.host: ca-cassandra
+      hugegraph.cassandra.port: 9042
+    networks:
+      - ca-network
+    depends_on:
+      - cassandra
+    healthcheck:
+      test: ["CMD", "bin/gremlin-console.sh", "--" ,"-e", "scripts/remote-connect.groovy"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  cassandra:
+    image: cassandra:3.11
+    container_name: ca-cassandra
+    ports:
+      - 7000:7000
+      - 9042:9042
+    security_opt:
+      - seccomp:unconfined
+    networks:
+      - ca-network
+    healthcheck:
+      test: ["CMD", "cqlsh", "--execute", "describe keyspaces;"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+
+networks:
+  ca-network:
+
+volumes:
+  hugegraph-data:

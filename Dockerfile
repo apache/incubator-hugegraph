@@ -50,11 +50,10 @@ RUN set -x \
 # 2. Init HugeGraph Sever
 RUN set -e \
     && pwd && cd /hugegraph/ \
-    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
-    && ./bin/init-store.sh
+    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties 
 
 EXPOSE 8080
 VOLUME /hugegraph
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["./bin/start-hugegraph.sh", "-d false -j $JAVA_OPTS -g zgc"]
+CMD ["./bin/docker-entrypoint.sh"]
