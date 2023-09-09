@@ -3,7 +3,7 @@ name: "3rd-party"
 on:
   push:
     branches:
-      - master
+#      - master
       - /^release-.*$/
   pull_request:
   
