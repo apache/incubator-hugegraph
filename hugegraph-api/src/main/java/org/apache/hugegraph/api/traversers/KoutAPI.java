@@ -237,7 +237,6 @@ public class KoutAPI extends TraverserAPI {
         public boolean withPath = false;
         @JsonProperty("with_edge")
         public boolean withEdge = false;
-
         @JsonProperty("algorithm")
         public String algorithm = HugeTraverser.TRAVERSE_MODE_BFS;
 
