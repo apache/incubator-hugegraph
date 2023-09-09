@@ -1729,9 +1729,12 @@ public class GraphTransaction extends IndexableTransaction {
                 return false;
             }
             // Process results that query from left index or primary-key
-            // Only index query will come here
-            return query.resultType().isVertex() != elem.type().isVertex() ||
-                   rightResultFromIndexQuery(query, elem);
+            if (query.resultType().isVertex() == elem.type().isVertex() &&
+                !rightResultFromIndexQuery(query, elem)) {
+                // Only index query will come here
+                return false;
+            }
+            return true;
         });
     }
 

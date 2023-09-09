@@ -111,23 +111,23 @@ public class Steps {
     }
 
     public long degree() {
-        return degree;
+        return this.degree;
     }
 
     public Map<Id, StepEntity> edgeSteps() {
-        return edgeSteps;
+        return this.edgeSteps;
     }
 
     public Map<Id, StepEntity> vertexSteps() {
-        return vertexSteps;
+        return this.vertexSteps;
     }
 
     public long skipDegree() {
-        return skipDegree;
+        return this.skipDegree;
     }
 
     public Directions direction() {
-        return direction;
+        return this.direction;
     }
 
     public long limit() {
@@ -145,15 +145,16 @@ public class Steps {
     @Override
     public String toString() {
         return "Steps{" +
-               "edgeSteps=" + edgeSteps +
-               ", vertexSteps=" + vertexSteps +
-               ", direction=" + direction +
-               ", degree=" + degree +
-               ", skipDegree=" + skipDegree +
+               "edgeSteps=" + this.edgeSteps +
+               ", vertexSteps=" + this.vertexSteps +
+               ", direction=" + this.direction +
+               ", degree=" + this.degree +
+               ", skipDegree=" + this.skipDegree +
                '}';
     }
 
     public static class StepEntity {
+
         protected final Id id;
         protected final String label;
         protected final Map<Id, Object> properties;
@@ -165,15 +166,15 @@ public class Steps {
         }
 
         public Id id() {
-            return id;
+            return this.id;
         }
 
         public String label() {
-            return label;
+            return this.label;
         }
 
         public Map<Id, Object> properties() {
-            return properties;
+            return this.properties;
         }
 
         @Override
