@@ -36,7 +36,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 public class NestedIterator extends WrappedIterator<Edge> {
 
     private final int MAX_CACHED_COUNT = 1000;
-    /*
+    /**
      * Set<Id> visited: visited vertex-ids of all parent-tree
      * used to exclude visited vertex
      */

@@ -537,6 +537,7 @@ public class HugeTraverser {
     private Map<Id, ConditionQuery> getFilterQueryConditions(
             Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
         Map<Id, ConditionQuery> conditions = new HashMap<>();
+
         for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
             Steps.StepEntity stepEntity = entry.getValue();
             if (stepEntity.properties() != null && !stepEntity.properties().isEmpty()) {
@@ -628,9 +629,7 @@ public class HugeTraverser {
 
     public Iterator<Edge> createNestedIterator(Id sourceV, Steps steps,
                                                int depth, Set<Id> visited, boolean nearest) {
-        E.checkArgument(depth > 0,
-                        "The depth should large than 0 for nested iterator");
-
+        E.checkArgument(depth > 0, "The depth should large than 0 for nested iterator");
         visited.add(sourceV);
 
         // build a chained iterator path with length of depth
