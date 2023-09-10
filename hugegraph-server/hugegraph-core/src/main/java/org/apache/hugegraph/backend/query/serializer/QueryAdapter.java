@@ -20,13 +20,13 @@ package org.apache.hugegraph.backend.query.serializer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.type.define.Directions;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -37,17 +37,15 @@ import com.google.gson.reflect.TypeToken;
 
 public class QueryAdapter extends AbstractSerializerAdapter<Condition> {
 
-    static HashMap<String, Type> cls;
-
-    static {
-        cls = new HashMap() {{
-            //put("N", Condition.Not.class);
-            put("A", Condition.And.class);
-            put("O", Condition.Or.class);
-            put("S", Condition.SyspropRelation.class);
-            put("U", Condition.UserpropRelation.class);
-        }};
-    }
+    static ImmutableMap<String, Type> cls =
+        ImmutableMap.<String, Type>builder()
+                    // TODO: uncomment later
+                    .put("N", Condition.Not.class)
+                    .put("A", Condition.And.class)
+                    .put("O", Condition.Or.class)
+                    .put("S", Condition.SyspropRelation.class)
+                    .put("U", Condition.UserpropRelation.class)
+                    .build();
 
     static boolean isPrimitive(Class clz) {
         try {

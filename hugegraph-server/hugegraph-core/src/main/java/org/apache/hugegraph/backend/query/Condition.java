@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.query;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -47,7 +48,8 @@ public abstract class Condition {
         NONE,
         RELATION,
         AND,
-        OR;
+        OR,
+        NOT;
     }
 
     public enum RelationType implements BiPredicate<Object, Object> {
@@ -300,7 +302,8 @@ public abstract class Condition {
 
     public boolean isLogic() {
         return this.type() == ConditionType.AND ||
-               this.type() == ConditionType.OR;
+               this.type() == ConditionType.OR ||
+               this.type() == ConditionType.NOT;
     }
 
     public boolean isFlattened() {
@@ -313,6 +316,10 @@ public abstract class Condition {
 
     public static Condition or(Condition left, Condition right) {
         return new Or(left, right);
+    }
+
+    public static Condition not(Condition condition) {
+        return new Not(condition);
     }
 
     public static Relation eq(HugeKeys key, Object value) {
@@ -533,6 +540,79 @@ public abstract class Condition {
         @Override
         public Condition copy() {
             return new Or(this.left().copy(), this.right().copy());
+        }
+    }
+
+    public static class Not extends Condition implements Serializable {
+        Condition condition;
+
+        public Not(Condition condition) {
+            super();
+            this.condition = condition;
+        }
+
+        public Condition condition() {
+            return condition;
+        }
+
+        @Override
+        public ConditionType type() {
+            return ConditionType.NOT;
+        }
+
+        @Override
+        public boolean test(Object value) {
+            return !this.condition.test(value);
+        }
+
+        @Override
+        public boolean test(HugeElement element) {
+            return !this.condition.test(element);
+        }
+
+        @Override
+        public Condition copy() {
+            return new Not(this.condition.copy());
+        }
+
+        @Override
+        public boolean isSysprop() {
+            return this.condition.isSysprop();
+        }
+
+        @Override
+        public List<? extends Relation> relations() {
+            return new ArrayList<Relation>(this.condition.relations());
+        }
+
+        @Override
+        public Condition replace(Relation from, Relation to) {
+            this.condition = this.condition.replace(from, to);
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(64);
+            sb.append(this.type().name()).append(' ');
+            sb.append(this.condition);
+            return sb.toString();
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (!(object instanceof Not)) {
+                return false;
+            }
+            Not other = (Not) object;
+            return this.type().equals(other.type()) &&
+                   this.condition.equals(other.condition());
+        }
+
+        @Override
+        public int hashCode() {
+            return this.type().hashCode() ^
+                   this.condition.hashCode();
         }
     }
 

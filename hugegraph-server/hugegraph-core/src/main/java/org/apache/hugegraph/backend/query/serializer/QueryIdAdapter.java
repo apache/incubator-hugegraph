@@ -18,7 +18,6 @@
 package org.apache.hugegraph.backend.query.serializer;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.id.EdgeId;
@@ -26,20 +25,19 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 
+import com.google.common.collect.ImmutableMap;
+
 public class QueryIdAdapter extends AbstractSerializerAdapter<Id> {
 
-    static HashMap<String, Type> cls;
-
-    static {
-        cls = new HashMap() {{
-            put("E", EdgeId.class);
-            put("S", IdGenerator.StringId.class);
-            put("L", IdGenerator.LongId.class);
-            put("U", IdGenerator.UuidId.class);
-            put("O", IdGenerator.ObjectId.class);
-            put("B", BinaryBackendEntry.BinaryId.class);
-        }};
-    }
+    static ImmutableMap<String, Type> cls =
+        ImmutableMap.<String, Type>builder()
+                    .put("E", EdgeId.class)
+                    .put("S", IdGenerator.StringId.class)
+                    .put("L", IdGenerator.LongId.class)
+                    .put("U", IdGenerator.UuidId.class)
+                    .put("O", IdGenerator.ObjectId.class)
+                    .put("B", BinaryBackendEntry.BinaryId.class)
+                    .build();
 
     @Override
     public Map<String, Type> validType() {
