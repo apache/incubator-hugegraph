@@ -40,9 +40,8 @@ import org.apache.hugegraph.util.collection.IntSet;
 
 public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
+    protected final int sourceCode;
     private final Stack<Record> records;
-
-    private final int sourceCode;
     private final boolean nearest;
     private final IntSet accessedVertices;
     private final EdgeRecord edgeResults;
@@ -110,15 +109,16 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Watched
     public void addPath(Id source, Id target) {
-        int sourceCode = this.code(source);
-        int targetCode = this.code(target);
+        this.addPathToRecord(this.code(source), this.code(target), this.currentRecord());
+    }
+
+    public void addPathToRecord(int sourceCode, int targetCode, Record record) {
         if (this.nearest && this.accessedVertices.contains(targetCode) ||
-            !this.nearest && this.currentRecord().containsKey(targetCode) ||
+            !this.nearest && record.containsKey(targetCode) ||
             targetCode == this.sourceCode) {
             return;
         }
-        this.currentRecord().addPath(targetCode, sourceCode);
-
+        record.addPath(targetCode, sourceCode);
         this.accessedVertices.add(targetCode);
     }
 
