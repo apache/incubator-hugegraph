@@ -52,7 +52,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.eclipse.collections.api.iterator.IntIterator;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 
-public abstract class HugeElement implements Element, GraphType, Idfiable {
+public abstract class HugeElement implements Element, GraphType, Idfiable, Comparable<HugeElement> {
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
                          CollectionFactory.newIntObjectMap();
@@ -405,6 +405,11 @@ public abstract class HugeElement implements Element, GraphType, Idfiable {
     public int hashCode() {
         E.checkState(this.id() != null, "Element id can't be null");
         return ElementHelper.hashCode(this);
+    }
+
+    @Override
+    public int compareTo(HugeElement o) {
+        return this.id().compareTo(o.id());
     }
 
     /**

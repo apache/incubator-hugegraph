@@ -19,13 +19,16 @@ package org.apache.hugegraph.api.traversers;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.type.define.Directions;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -34,6 +37,25 @@ public class TraverserAPI extends API {
     protected static EdgeStep step(HugeGraph graph, Step step) {
         return new EdgeStep(graph, step.direction, step.labels, step.properties,
                             step.maxDegree, step.skipDegree);
+    }
+
+    protected static Steps steps(HugeGraph graph, VESteps steps) {
+        Map<String, Map<String, Object>> vSteps = new HashMap<>();
+        if (steps.vSteps != null) {
+            for (VEStepEntity vStep : steps.vSteps) {
+                vSteps.put(vStep.label, vStep.properties);
+            }
+        }
+
+        Map<String, Map<String, Object>> eSteps = new HashMap<>();
+        if (steps.eSteps != null) {
+            for (VEStepEntity eStep : steps.eSteps) {
+                eSteps.put(eStep.label, eStep.properties);
+            }
+        }
+
+        return new Steps(graph, steps.direction, vSteps, eSteps,
+                         steps.maxDegree, steps.skipDegree);
     }
 
     protected static class Step {
@@ -56,6 +78,44 @@ public class TraverserAPI extends API {
                                  "maxDegree=%s,skipDegree=%s}",
                                  this.direction, this.labels, this.properties,
                                  this.maxDegree, this.skipDegree);
+        }
+    }
+
+    protected static class VEStepEntity {
+
+        @JsonProperty("label")
+        public String label;
+
+        @JsonProperty("properties")
+        public Map<String, Object> properties;
+
+        @Override
+        public String toString() {
+            return String.format("VEStepEntity{label=%s,properties=%s}",
+                                 this.label, this.properties);
+        }
+    }
+
+    protected static class VESteps {
+
+        @JsonProperty("direction")
+        public Directions direction;
+        @JsonAlias("degree")
+        @JsonProperty("max_degree")
+        public long maxDegree = Long.parseLong(DEFAULT_MAX_DEGREE);
+        @JsonProperty("skip_degree")
+        public long skipDegree = 0L;
+        @JsonProperty("vertex_steps")
+        public List<VEStepEntity> vSteps;
+        @JsonProperty("edge_steps")
+        public List<VEStepEntity> eSteps;
+
+        @Override
+        public String toString() {
+            return String.format("Steps{direction=%s,maxDegree=%s," +
+                                 "skipDegree=%s,vSteps=%s,eSteps=%s}",
+                                 this.direction, this.maxDegree,
+                                 this.skipDegree, this.vSteps, this.eSteps);
         }
     }
 }

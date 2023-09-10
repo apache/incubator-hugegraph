@@ -408,6 +408,7 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * io.grpc:grpc-protobuf (io.grpc:grpc-protobuf:1.47.0 - https://github.com/grpc/grpc-java)
 	(Apache License, Version 2.0) * io.grpc:grpc-protobuf-lite (io.grpc:grpc-protobuf-lite:1.47.0 - https://github.com/grpc/grpc-java)
 	(Apache License, Version 2.0) * io.grpc:grpc-stub (io.grpc:grpc-stub:1.47.0 - https://github.com/grpc/grpc-java)
+	(Apache License, Version 2.0) * ikanalyzer (com.janeluo.ikanalyzer:2012_u6 - https://mvnrepository.com/artifact/com.janeluo/ikanalyzer/2012_u6)
 	(Apache License, Version 2.0) * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.12.1 - http://github.com/FasterXML/jackson)
 	(Apache License, Version 2.0) * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.12.5 - http://github.com/FasterXML/jackson)
 	(Apache License, Version 2.0) * javatuples (org.javatuples:javatuples:1.2 - http://www.javatuples.org)
@@ -538,6 +539,7 @@ See licenses/ for text of these licenses.
 	(The MIT License) * mockito-core (org.mockito:mockito-core:3.3.3 - https://github.com/mockito/mockito)
 	(The MIT License) * sourcecode (com.lihaoyi:sourcecode_2.12:0.1.4 - https://github.com/lihaoyi/sourcecode)
 	(The MIT License) * Checker Qual (org.checkerframework:checker-qual:2.0.0 - http://checkerframework.org)
+	(The MIT License) * jopt-simple (net.sf.jopt-simple:jopt-simple:5.0.4 - https://github.com/jopt-simple/jopt-simple)
 
 ========================================================================
 Third party Public Domain licenses

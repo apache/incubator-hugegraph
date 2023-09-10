@@ -21,13 +21,12 @@ import java.util.Iterator;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.records.PathsRecords;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.traversal.algorithm.records.PathsRecords;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public class PathsTraverser extends HugeTraverser {
 
@@ -75,6 +74,8 @@ public class PathsTraverser extends HugeTraverser {
             }
             traverser.backward(sourceV, targetDir);
         }
+        vertexIterCounter.addAndGet(traverser.vertexCounter);
+        edgeIterCounter.addAndGet(traverser.edgeCounter);
         return traverser.paths();
     }
 
@@ -88,6 +89,8 @@ public class PathsTraverser extends HugeTraverser {
         private final long limit;
 
         private final PathSet paths;
+        private long vertexCounter;
+        private long edgeCounter;
 
         public Traverser(Id sourceV, Id targetV, Id label,
                          long degree, long capacity, long limit) {
@@ -96,6 +99,8 @@ public class PathsTraverser extends HugeTraverser {
             this.degree = degree;
             this.capacity = capacity;
             this.limit = limit;
+            this.vertexCounter = 0L;
+            this.edgeCounter = 0L;
 
             this.paths = new PathSet();
         }
@@ -115,10 +120,11 @@ public class PathsTraverser extends HugeTraverser {
                 }
 
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
-
+                this.vertexCounter += 1L;
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
+                    this.edgeCounter += 1L;
 
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
@@ -148,10 +154,11 @@ public class PathsTraverser extends HugeTraverser {
                 }
 
                 edges = edgesOfVertex(vid, direction, this.label, this.degree);
-
+                this.vertexCounter += 1L;
                 while (edges.hasNext()) {
                     HugeEdge edge = (HugeEdge) edges.next();
                     Id target = edge.id().otherVertexId();
+                    this.edgeCounter += 1L;
 
                     PathSet results = this.record.findPath(target, null,
                                                            true, false);
@@ -174,6 +181,10 @@ public class PathsTraverser extends HugeTraverser {
         private boolean reachLimit() {
             checkCapacity(this.capacity, this.record.accessed(), "paths");
             return this.limit != NO_LIMIT && this.paths.size() >= this.limit;
+        }
+
+        public long accessed() {
+            return this.record.accessed();
         }
     }
 }

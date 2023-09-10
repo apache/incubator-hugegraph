@@ -23,14 +23,14 @@ import java.util.Stack;
 import java.util.function.Function;
 
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser.Path;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import org.apache.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import org.apache.hugegraph.traversal.algorithm.records.record.Record;
 import org.apache.hugegraph.traversal.algorithm.records.record.RecordType;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.hugegraph.util.collection.IntMap;
 import org.apache.hugegraph.util.collection.IntSet;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser.Path;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 
 public class ShortestPathRecords extends DoubleWayMultiPathsRecords {
 

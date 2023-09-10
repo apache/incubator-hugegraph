@@ -103,7 +103,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         String number = String.format("%04d", 1);
         Path sstFile = Paths.get(this.dataPath, table, number + RocksDBIngester.SST);
         try {
-            FileUtils.forceMkdir(sstFile.getParent().toFile());
+            FileUtils.forceMkdir(sstFile.toAbsolutePath().getParent().toFile());
         } catch (IOException e) {
             throw new BackendException("Can't make directory for sst: '%s'",
                                        e, sstFile.toString());

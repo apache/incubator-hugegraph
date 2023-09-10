@@ -68,7 +68,7 @@ public interface IntMap {
         private final int segmentMask;
         private final Function<Integer, IntMap> creator;
 
-        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
+        private static final int DEFAULT_SEGMENTS = (IntSet.CPUS + 8) * 32;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
                              size -> new IntMapByFixedAddr(size);
 
@@ -511,6 +511,10 @@ public interface IntMap {
 
         private final MutableIntIntMap[] maps;
         private final int segmentMask;
+
+        public IntMapByEcSegment() {
+            this(IntMapBySegments.DEFAULT_SEGMENTS);
+        }
 
         public IntMapByEcSegment(int segments) {
             segments = IntSet.sizeToPowerOf2Size(segments);

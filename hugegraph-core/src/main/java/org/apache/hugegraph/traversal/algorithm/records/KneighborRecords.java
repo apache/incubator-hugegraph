@@ -17,17 +17,18 @@
 
 package org.apache.hugegraph.traversal.algorithm.records;
 
+import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
+
 import java.util.List;
 import java.util.Stack;
 
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.util.collection.CollectionFactory;
-import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import org.apache.hugegraph.traversal.algorithm.records.record.Record;
 import org.apache.hugegraph.traversal.algorithm.records.record.RecordType;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.apache.hugegraph.util.collection.IntIterator;
 
 public class KneighborRecords extends SingleWayMultiPathsRecords {
 
@@ -48,7 +49,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
-            while ((limit == Query.NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 ids.add(this.id(iterator.next()));
                 limit--;
             }
@@ -62,7 +63,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         Stack<Record> records = this.records();
         for (int i = 1; i < records.size(); i++) {
             IntIterator iterator = records.get(i).keys();
-            while ((limit == Query.NO_LIMIT || limit > 0L) && iterator.hasNext()) {
+            while ((limit == NO_LIMIT || limit > 0L) && iterator.hasNext()) {
                 paths.add(this.linkPath(i, iterator.next()));
                 limit--;
             }

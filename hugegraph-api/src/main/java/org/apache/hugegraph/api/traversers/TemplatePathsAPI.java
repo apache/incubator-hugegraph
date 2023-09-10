@@ -26,6 +26,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.TemplatePathsTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -35,27 +50,28 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-import org.apache.hugegraph.traversal.algorithm.TemplatePathsTraverser;
-import org.apache.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 @Path("graphs/{graph}/traversers/templatepaths")
 @Singleton
 @Tag(name = "TemplatePathsAPI")
 public class TemplatePathsAPI extends TraverserAPI {
 
     private static final Logger LOG = Log.logger(TemplatePathsAPI.class);
+
+    private static List<RepeatEdgeStep> steps(HugeGraph g,
+                                              List<TemplatePathStep> steps) {
+        List<RepeatEdgeStep> edgeSteps = new ArrayList<>(steps.size());
+        for (TemplatePathStep step : steps) {
+            edgeSteps.add(repeatEdgeStep(g, step));
+        }
+        return edgeSteps;
+    }
+
+    private static RepeatEdgeStep repeatEdgeStep(HugeGraph graph,
+                                                 TemplatePathStep step) {
+        return new RepeatEdgeStep(graph, step.direction, step.labels,
+                                  step.properties, step.maxDegree,
+                                  step.skipDegree, step.maxTimes);
+    }
 
     @POST
     @Timed
@@ -74,9 +90,11 @@ public class TemplatePathsAPI extends TraverserAPI {
 
         LOG.debug("Graph [{}] get template paths from source vertices '{}', " +
                   "target vertices '{}', with steps '{}', " +
-                  "capacity '{}', limit '{}' and with_vertex '{}'",
+                  "capacity '{}', limit '{}', with_vertex '{}' and with_edge '{}'",
                   graph, request.sources, request.targets, request.steps,
-                  request.capacity, request.limit, request.withVertex);
+                  request.capacity, request.limit, request.withVertex, request.withEdge);
+
+        ApiMeasurer measure = new ApiMeasurer();
 
         HugeGraph g = graph(manager, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
@@ -84,40 +102,38 @@ public class TemplatePathsAPI extends TraverserAPI {
         List<RepeatEdgeStep> steps = steps(g, request.steps);
 
         TemplatePathsTraverser traverser = new TemplatePathsTraverser(g);
-        Set<HugeTraverser.Path> paths;
-        paths = traverser.templatePaths(sources, targets, steps,
+        TemplatePathsTraverser.WrappedPathSet wrappedPathSet =
+                traverser.templatePaths(sources, targets, steps,
                                         request.withRing, request.capacity,
                                         request.limit);
+        measure.addIterCount(traverser.vertexIterCounter.get(),
+                             traverser.edgeIterCounter.get());
 
-        if (!request.withVertex) {
-            return manager.serializer(g).writePaths("paths", paths, false);
+        Set<HugeTraverser.Path> paths = wrappedPathSet.paths();
+
+        Iterator<?> iterVertex;
+        Set<Id> vertexIds = new HashSet<>();
+        for (HugeTraverser.Path path : paths) {
+            vertexIds.addAll(path.vertices());
+        }
+        if (request.withVertex && !vertexIds.isEmpty()) {
+            iterVertex = g.vertices(vertexIds.toArray());
+            measure.addIterCount(vertexIds.size(), 0L);
+        } else {
+            iterVertex = vertexIds.iterator();
         }
 
-        Set<Id> ids = new HashSet<>();
-        for (HugeTraverser.Path p : paths) {
-            ids.addAll(p.vertices());
+        Iterator<?> iterEdge;
+        Set<Edge> edges = wrappedPathSet.edges();
+        if (request.withEdge && !edges.isEmpty()) {
+            iterEdge = edges.iterator();
+        } else {
+            iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
         }
-        Iterator<Vertex> iter = QueryResults.emptyIterator();
-        if (!ids.isEmpty()) {
-            iter = g.vertices(ids.toArray());
-        }
-        return manager.serializer(g).writePaths("paths", paths, false, iter);
-    }
 
-    private static List<RepeatEdgeStep> steps(HugeGraph g,
-                                              List<TemplatePathStep> steps) {
-        List<RepeatEdgeStep> edgeSteps = new ArrayList<>(steps.size());
-        for (TemplatePathStep step : steps) {
-            edgeSteps.add(repeatEdgeStep(g, step));
-        }
-        return edgeSteps;
-    }
-
-    private static RepeatEdgeStep repeatEdgeStep(HugeGraph graph,
-                                                 TemplatePathStep step) {
-        return new RepeatEdgeStep(graph, step.direction, step.labels,
-                                  step.properties, step.maxDegree,
-                                  step.skipDegree, step.maxTimes);
+        return manager.serializer(g, measure.measures())
+                      .writePaths("paths", paths, false,
+                                  iterVertex, iterEdge);
     }
 
     private static class Request {
@@ -136,15 +152,17 @@ public class TemplatePathsAPI extends TraverserAPI {
         public int limit = Integer.parseInt(DEFAULT_PATHS_LIMIT);
         @JsonProperty("with_vertex")
         public boolean withVertex = false;
+        @JsonProperty("with_edge")
+        public boolean withEdge = false;
 
         @Override
         public String toString() {
             return String.format("TemplatePathsRequest{sources=%s,targets=%s," +
                                  "steps=%s,withRing=%s,capacity=%s,limit=%s," +
-                                 "withVertex=%s}",
+                                 "withVertex=%s,withEdge=%s}",
                                  this.sources, this.targets, this.steps,
                                  this.withRing, this.capacity, this.limit,
-                                 this.withVertex);
+                                 this.withVertex, this.withEdge);
         }
     }
 
