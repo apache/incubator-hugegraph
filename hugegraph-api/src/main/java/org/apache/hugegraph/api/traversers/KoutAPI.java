@@ -132,7 +132,7 @@ public class KoutAPI extends TraverserAPI {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
                             "Can't return vertex, edge or path when count only");
         }
-        HugeTraverser.checkTraverseMode(request.algorithm);
+        HugeTraverser.checkTraverseMode(request.traverse_mode);
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
                   "with steps '{}', max_depth '{}', nearest '{}', " +
@@ -151,7 +151,7 @@ public class KoutAPI extends TraverserAPI {
         Steps steps = steps(g, request.steps);
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
-            if (HugeTraverser.isTraverseModeDFS(request.algorithm)) {
+            if (HugeTraverser.isTraverseModeDFS(request.traverse_mode)) {
                 results = traverser.dfsKout(sourceId, steps,
                                             request.maxDepth,
                                             request.nearest,
@@ -237,19 +237,19 @@ public class KoutAPI extends TraverserAPI {
         public boolean withPath = false;
         @JsonProperty("with_edge")
         public boolean withEdge = false;
-        @JsonProperty("algorithm")
-        public String algorithm = HugeTraverser.TRAVERSE_MODE_BFS;
+        @JsonProperty("traverse_mode")
+        public String traverse_mode = HugeTraverser.TRAVERSE_MODE_BFS;
 
         @Override
         public String toString() {
             return String.format("KoutRequest{source=%s,steps=%s,maxDepth=%s" +
                                  "nearest=%s,countOnly=%s,capacity=%s," +
                                  "limit=%s,withVertex=%s,withPath=%s," +
-                                 "withEdge=%s,algorithm=%s}", this.source,
+                                 "withEdge=%s,traverse_mode=%s}", this.source,
                                  this.steps, this.maxDepth, this.nearest,
                                  this.countOnly, this.capacity, this.limit,
                                  this.withVertex, this.withPath, this.withEdge,
-                                 this.algorithm);
+                                 this.traverse_mode);
         }
     }
 }

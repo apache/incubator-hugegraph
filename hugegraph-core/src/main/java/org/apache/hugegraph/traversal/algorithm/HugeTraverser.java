@@ -89,7 +89,7 @@ public class HugeTraverser {
     // Empirical value of scan limit, with which results can be returned in 3s
     public static final String DEFAULT_PAGE_LIMIT = "100000";
     public static final long NO_LIMIT = -1L;
-    // kout traverse mode algorithms: bfs and dfs
+    // traverse mode of kout algorithm: bfs and dfs
     public static final String TRAVERSE_MODE_BFS = "breadth_first_search";
     public static final String TRAVERSE_MODE_DFS = "depth_first_search";
     protected static final Logger LOG = Log.logger(HugeTraverser.class);
@@ -178,8 +178,8 @@ public class HugeTraverser {
                         TRAVERSE_MODE_BFS, TRAVERSE_MODE_DFS, traverseMode);
     }
 
-    public static boolean isTraverseModeDFS(String algorithm) {
-        return algorithm.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0;
+    public static boolean isTraverseModeDFS(String traverse_mode) {
+        return traverse_mode.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0;
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
