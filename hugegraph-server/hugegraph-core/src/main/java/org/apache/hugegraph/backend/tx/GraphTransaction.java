@@ -690,7 +690,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Override vertices in local `addedVertices`
         this.addedVertices.remove(vertex.id());
         // Force load vertex to ensure all properties are loaded (refer to #2181)
-        if (vertex.schemaLabel().indexLabels().size() > 0)  {
+        if (vertex.schemaLabel().indexLabels().size() > 0) {
             vertex.forceLoad();
         }
         // Collect the removed vertex
@@ -971,7 +971,7 @@ public class GraphTransaction extends IndexableTransaction {
                  * local vertex and duplicated id.
                  */
                 Iterator<HugeEdge> it = this.queryEdgesFromBackend(query);
-                @SuppressWarnings({ "unchecked", "rawtypes" })
+                @SuppressWarnings({"unchecked", "rawtypes"})
                 Iterator<Edge> r = (Iterator) it;
                 return r;
             }
@@ -1229,9 +1229,10 @@ public class GraphTransaction extends IndexableTransaction {
     /**
      * Construct one edge condition query based on source vertex, direction and
      * edge labels
+     *
      * @param sourceVertex source vertex of edge
-     * @param direction only be "IN", "OUT" or "BOTH"
-     * @param edgeLabels edge labels of queried edges
+     * @param direction    only be "IN", "OUT" or "BOTH"
+     * @param edgeLabels   edge labels of queried edges
      * @return constructed condition query
      */
     @Watched
@@ -1264,8 +1265,39 @@ public class GraphTransaction extends IndexableTransaction {
         } else if (edgeLabels.length > 1) {
             query.query(Condition.in(HugeKeys.LABEL,
                                      Arrays.asList(edgeLabels)));
+        }
+
+        return query;
+    }
+
+    public static ConditionQuery constructEdgesQuery(Id sourceVertex,
+                                                     Directions direction,
+                                                     List<Id> edgeLabels) {
+        E.checkState(sourceVertex != null,
+                     "The edge query must contain source vertex");
+        E.checkState(direction != null,
+                     "The edge query must contain direction");
+
+        ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+
+        // Edge source vertex
+        query.eq(HugeKeys.OWNER_VERTEX, sourceVertex);
+
+        // Edge direction
+        if (direction == Directions.BOTH) {
+            query.query(Condition.or(
+                    Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+                    Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
         } else {
-            assert edgeLabels.length == 0;
+            assert direction == Directions.OUT || direction == Directions.IN;
+            query.eq(HugeKeys.DIRECTION, direction);
+        }
+
+        // Edge labels
+        if (edgeLabels.size() == 1) {
+            query.eq(HugeKeys.LABEL, edgeLabels.get(0));
+        } else if (edgeLabels.size() > 1) {
+            query.query(Condition.in(HugeKeys.LABEL, edgeLabels));
         }
 
         return query;
@@ -1397,8 +1429,8 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
-        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
-                                (ConditionQuery) query, supportIn)) {
+        for (ConditionQuery cq : ConditionQueryFlatten.flatten(
+                                 (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
@@ -1421,7 +1453,7 @@ public class GraphTransaction extends IndexableTransaction {
                       "Not supported querying by id and conditions: %s", query);
         }
 
-        Id label = (Id) query.condition(HugeKeys.LABEL);
+        Id label = query.condition(HugeKeys.LABEL);
 
         // Optimize vertex query
         if (label != null && query.resultType().isVertex()) {
@@ -1614,6 +1646,7 @@ public class GraphTransaction extends IndexableTransaction {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             HugeGraph graph = this.graph();
+
             E.checkArgument(false, "All non-null property keys %s of " +
                             "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
@@ -1837,9 +1870,9 @@ public class GraphTransaction extends IndexableTransaction {
             // Filter vertices matched conditions
             return q.test(v) ? v : null;
         };
-        vertices =  this.joinTxRecords(query, vertices, matchTxFunc,
-                                       this.addedVertices, this.removedVertices,
-                                       this.updatedVertices);
+        vertices = this.joinTxRecords(query, vertices, matchTxFunc,
+                                      this.addedVertices, this.removedVertices,
+                                      this.updatedVertices);
         return vertices;
     }
 

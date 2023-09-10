@@ -20,14 +20,15 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class KoutApiTest extends BaseApiTest {
 
@@ -75,13 +76,18 @@ public class KoutApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String reqBody = String.format("{ " +
                                        "\"source\": \"%s\", " +
-                                       "\"step\": { " +
+                                       "\"steps\": { " +
                                        " \"direction\": \"BOTH\", " +
-                                       " \"labels\": [\"knows\", " +
-                                       " \"created\"], " +
-                                       "\"properties\": { " +
-                                       " \"weight\": \"P.gt(0.1)\"}, " +
-                                       " \"degree\": 10000, " +
+                                       " \"edge_steps\": [" +
+                                       "  {\"label\": \"knows\"," +
+                                       "  \"properties\": {" +
+                                       "  \"weight\": \"P.gt(0.1)\"}}," +
+                                       "  {\"label\": \"created\"," +
+                                       "  \"properties\": {" +
+                                       "  \"weight\": \"P.gt(0.1)\"}}" +
+                                       "  ], " +
+                                       " \"vertex_steps\": []," +
+                                       " \"max_degree\": 10000, " +
                                        " \"skip_degree\": 100000}, " +
                                        "\"max_depth\": 1, " +
                                        "\"nearest\": true, " +
