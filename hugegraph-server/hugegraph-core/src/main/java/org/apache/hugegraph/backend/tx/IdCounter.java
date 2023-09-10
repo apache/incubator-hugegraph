@@ -25,8 +25,6 @@ import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.pd.client.PDClient;
-import org.apache.hugegraph.pd.client.PDConfig;
-import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.store.term.HgPair;
 import org.apache.hugegraph.type.HugeType;
@@ -37,21 +35,14 @@ public class IdCounter {
     private static final int TIMES = 10000;
     private static final int DELTA = 10000;
     private static final String DELIMITER = "/";
-    private static Map<String, HgPair> ids = new ConcurrentHashMap<>();
+    private static final Map<String, HgPair<AtomicLong, AtomicLong>> ids =
+        new ConcurrentHashMap<>();
     private final PDClient pdClient;
     private final String graphName;
 
     public IdCounter(PDClient pdClient, String graphName) {
         this.graphName = graphName;
         this.pdClient = pdClient;
-    }
-
-    public static void main(String[] args) {
-        PDConfig pdConfig = PDConfig.of("127.0.0.1:8686");
-        PDClient pdClient = PDClient.create(pdConfig);
-        IdCounter idCounters = new IdCounter(pdClient, "hugegraph");
-        System.out.println(idCounters.nextId(HugeType.EDGE_LABEL));
-        System.out.println(idCounters.nextId(HugeType.EDGE_LABEL));
     }
 
     public Id nextId(HugeType type) {
@@ -89,11 +80,10 @@ public class IdCounter {
         }
         synchronized (ids) {
             try {
-                this.pdClient.getIdByKey(key,
-                                         (int) (lowest - maxId.longValue()));
+                this.pdClient.getIdByKey(key, (int) (lowest - maxId.longValue()));
                 ids.remove(key);
             } catch (Exception e) {
-                throw new BackendException("");
+                throw new BackendException(e);
             }
         }
     }
@@ -115,7 +105,7 @@ public class IdCounter {
                     try {
                         currentId = new AtomicLong(0);
                         maxId = new AtomicLong(0);
-                        idPair = new HgPair(currentId, maxId);
+                        idPair = new HgPair<>(currentId, maxId);
                         ids.put(key, idPair);
                     } catch (Exception e) {
                         throw new BackendException(String.format(
@@ -148,14 +138,5 @@ public class IdCounter {
                         "Having made too many attempts to get the" +
                         " ID for type '%s'", type.name());
         return 0L;
-    }
-
-    public void resetIdCounter(String graphName) {
-        try {
-            this.pdClient.resetIdByKey(graphName);
-            ids = new ConcurrentHashMap<>();
-        } catch (PDException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

@@ -32,7 +32,7 @@ public class SchemaTemplate {
     protected Date createTime;
     protected Date updateTime;
     protected String creator;
-    private String name;
+    private final String name;
     private String schema;
 
     public SchemaTemplate(String name, String schema) {

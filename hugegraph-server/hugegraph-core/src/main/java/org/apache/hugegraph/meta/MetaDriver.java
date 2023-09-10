@@ -50,9 +50,6 @@ public interface MetaDriver {
      */
     public <T> Map<String, String> extractKVFromResponse(T response);
 
-    @Deprecated
-    public LockResult lock(String key, long ttl);
-
     public LockResult tryLock(String key, long ttl, long timeout);
 
     /**

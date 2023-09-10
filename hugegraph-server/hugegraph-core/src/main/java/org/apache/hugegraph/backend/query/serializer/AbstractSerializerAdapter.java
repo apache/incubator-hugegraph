@@ -31,6 +31,7 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+// TODO: optimize by binary protocol
 public abstract class AbstractSerializerAdapter<T> implements JsonSerializer<T>,
                                                               JsonDeserializer<T> {
 

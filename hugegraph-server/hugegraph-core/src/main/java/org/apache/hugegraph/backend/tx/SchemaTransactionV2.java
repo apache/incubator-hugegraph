@@ -732,8 +732,4 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public void clear() {
         this.schemaMetaManager.clearAllSchema(this.graphSpace, graph);
     }
-
-    public void resetIdCounter() {
-        this.idCounter.resetIdCounter(idKeyName(graphSpace, graph));
-    }
 }
