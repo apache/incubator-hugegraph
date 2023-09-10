@@ -94,7 +94,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
     private static final long OPEN_TIMEOUT = 600L;
-    /*
+    /**
      * This is threads number used to concurrently opening RocksDB dbs,
      * 8 is supposed enough due to configurable data disks and
      * disk number of one machine
@@ -106,7 +106,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                         final String database, final String store) {
         this.tables = new HashMap<>();
         this.olapTables = new HashMap<>();
-
         this.provider = provider;
         this.database = database;
         this.store = store;
@@ -220,8 +219,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         }
 
         List<Future<?>> futures = new ArrayList<>();
-        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(
-                                   OPEN_POOL_THREADS, DB_OPEN);
+        ExecutorService openPool = ExecutorUtil.newFixedThreadPool(OPEN_POOL_THREADS, DB_OPEN);
         // Open base disk
         futures.add(openPool.submit(() -> {
             this.sessions = this.open(config, this.tableNames());
@@ -278,21 +276,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
          */
         this.useSessions();
         try {
-            Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
-                                           this::closeSessions);
+            Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS, this::closeSessions);
         } catch (InterruptedException e) {
-            throw new BackendException("Failed to close session opened by " +
-                                       "open-pool");
+            throw new BackendException("Failed to close session opened by open-pool");
         }
 
         boolean terminated;
         openPool.shutdown();
         try {
-            terminated = openPool.awaitTermination(OPEN_TIMEOUT,
-                                                   TimeUnit.SECONDS);
+            terminated = openPool.awaitTermination(OPEN_TIMEOUT, TimeUnit.SECONDS);
         } catch (Throwable e) {
-            throw new BackendException(
-                      "Failed to wait db-open thread pool shutdown", e);
+            throw new BackendException("Failed to wait db-open thread pool shutdown", e);
         }
         if (!terminated) {
             LOG.warn("Timeout when waiting db-open thread pool shutdown");
@@ -345,8 +339,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
                     none = null;
                 }
                 try {
-                    sessions = this.openSessionPool(config, dataPath,
-                                                    walPath, none);
+                    sessions = this.openSessionPool(config, dataPath, walPath, none);
                 } catch (RocksDBException e1) {
                     e = e1;
                 }
@@ -375,11 +368,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     protected RocksDBSessions openSessionPool(HugeConfig config,
                                               String dataPath, String walPath,
-                                              List<String> tableNames)
-                                              throws RocksDBException {
+                                              List<String> tableNames) throws RocksDBException {
         if (tableNames == null) {
-            return new RocksDBStdSessions(config, this.database, this.store,
-                                          dataPath, walPath);
+            return new RocksDBStdSessions(config, this.database, this.store, dataPath, walPath);
         } else {
             return new RocksDBStdSessions(config, this.database, this.store,
                                           dataPath, walPath, tableNames);
@@ -415,7 +406,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     @Override
     public void close() {
         LOG.debug("Store close: {}", this.store);
-
         this.checkOpened();
         this.closeSessions();
     }
@@ -432,15 +422,13 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         readLock.lock();
         try {
             this.checkOpened();
-
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Store {} mutation: {}", this.store, mutation);
             }
 
             for (HugeType type : mutation.types()) {
                 RocksDBSessions.Session session = this.session(type);
-                for (Iterator<BackendAction> it = mutation.mutation(type);
-                     it.hasNext();) {
+                for (Iterator<BackendAction> it = mutation.mutation(type); it.hasNext(); ) {
                     this.mutate(session, it.next());
                 }
             }
@@ -451,8 +439,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     private void mutate(RocksDBSessions.Session session, BackendAction item) {
         BackendEntry entry = item.entry();
-
         RocksDBTable table;
+
         if (!entry.olap()) {
             // Oltp table
             table = this.table(entry.type());
@@ -466,6 +454,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             }
             session = this.session(HugeType.OLAP);
         }
+
         switch (item.action()) {
             case INSERT:
                 table.insert(session, entry);
@@ -495,9 +484,9 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     public Iterator<BackendEntry> query(Query query) {
         Lock readLock = this.storeLock.readLock();
         readLock.lock();
+
         try {
             this.checkOpened();
-
             HugeType tableType = RocksDBTable.tableType(query);
             RocksDBTable table;
             RocksDBSessions.Session session;
@@ -533,7 +522,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         readLock.lock();
         try {
             this.checkOpened();
-
             HugeType tableType = RocksDBTable.tableType(query);
             RocksDBTable table = this.table(tableType);
             return table.queryNumber(this.session(tableType), query);
@@ -548,7 +536,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         writeLock.lock();
         try {
             this.checkDbOpened();
-
             // Create tables with main disk
             this.createTable(this.sessions, this.tableNames().toArray(new String[0]));
 
@@ -585,7 +572,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         writeLock.lock();
         try {
             this.checkDbOpened();
-
             // Drop tables with main disk
             this.dropTable(this.sessions, this.tableNames().toArray(new String[0]));
 
@@ -624,10 +610,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     @Override
     public boolean initialized() {
         this.checkDbOpened();
-
         if (!this.opened()) {
             return false;
         }
+
         for (String table : this.tableNames()) {
             if (!this.sessions.existsTable(table)) {
                 return false;
@@ -768,7 +754,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             }
 
             for (Map.Entry<String, RocksDBSessions> entry :
-                 snapshotPaths.entrySet()) {
+                snapshotPaths.entrySet()) {
                 String snapshotPath = entry.getKey();
                 RocksDBSessions sessions = entry.getValue();
                 sessions.resumeSnapshot(snapshotPath);
@@ -834,8 +820,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             // The format of `disk` like: `graph/vertex: /path/to/disk1`
             String name = disk.getKey();
             String path = disk.getValue();
-            E.checkArgument(!dataPath.equals(path), "Invalid disk path" +
-                            "(can't be the same as data_path): '%s'", path);
+            E.checkArgument(!dataPath.equals(path),
+                            "Invalid disk path (can't be the same as data_path): '%s'", path);
             E.checkArgument(!name.isEmpty() && !path.isEmpty(),
                             "Invalid disk format: '%s', expect `NAME:PATH`", disk);
             String[] pair = name.split("/", 2);

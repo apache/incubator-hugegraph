@@ -33,6 +33,7 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class BackendTable<Session extends BackendSession, Entry> {
@@ -91,7 +92,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     }
 
     /**
-     *  Mapping query-type to table-type
+     * Mapping query-type to table-type
+     *
      * @param query origin query
      * @return corresponding table type
      */

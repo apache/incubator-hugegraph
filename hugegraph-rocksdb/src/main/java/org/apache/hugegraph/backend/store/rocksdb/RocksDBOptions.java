@@ -52,6 +52,7 @@ public class RocksDBOptions extends OptionHolder {
         return instance;
     }
 
+    // TODO: the entire align style is wrong, change it to 4 space later
     public static final ConfigOption<String> DATA_PATH =
             new ConfigOption<>(
                     "rocksdb.data_path",

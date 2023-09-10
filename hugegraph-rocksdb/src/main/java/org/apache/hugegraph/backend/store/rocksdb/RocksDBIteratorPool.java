@@ -62,9 +62,8 @@ public final class RocksDBIteratorPool implements AutoCloseable {
 
     @Override
     public void close() {
-        LOG.debug("Close IteratorPool with pool size {} ({})",
-                  this.pool.size(), this);
-        for (RocksIterator iter; (iter = this.pool.poll()) != null;) {
+        LOG.debug("Close IteratorPool with pool size {} ({})", this.pool.size(), this);
+        for (RocksIterator iter; (iter = this.pool.poll()) != null; ) {
             this.closeIterator(iter);
         }
         assert this.pool.isEmpty();
@@ -148,14 +147,13 @@ public final class RocksDBIteratorPool implements AutoCloseable {
 
     protected final class ReusedRocksIterator {
 
-        // TODO: is the typo "EREUSING_ENABLED" right? or should be "REUSING_ENABLED"?
-        private static final boolean EREUSING_ENABLED = false;
+        private static final boolean REUSING_ENABLED = false;
         private final RocksIterator iterator;
         private boolean closed;
 
         public ReusedRocksIterator() {
             this.closed = false;
-            if (EREUSING_ENABLED) {
+            if (REUSING_ENABLED) {
                 this.iterator = allocIterator();
             } else {
                 this.iterator = createIterator();
@@ -173,7 +171,7 @@ public final class RocksDBIteratorPool implements AutoCloseable {
             }
             this.closed = true;
 
-            if (EREUSING_ENABLED) {
+            if (REUSING_ENABLED) {
                 releaseIterator(this.iterator);
             } else {
                 closeIterator(this.iterator);
