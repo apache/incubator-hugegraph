@@ -178,8 +178,8 @@ public class HugeTraverser {
                         TRAVERSE_MODE_BFS, TRAVERSE_MODE_DFS, traverseMode);
     }
 
-    public static boolean isTraverseModeDFS(String traverse_mode) {
-        return traverse_mode.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0;
+    public static boolean isTraverseModeDFS(String traverseMode) {
+        return traverseMode.compareToIgnoreCase(TRAVERSE_MODE_DFS) == 0;
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
