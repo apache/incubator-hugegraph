@@ -23,10 +23,6 @@ import java.nio.ByteOrder;
 import org.apache.hugegraph.backend.store.hstore.HstoreSessions;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
-/**
- * @author zhangyingjie
- * @date 2022/1/17
- **/
 public abstract class IdClient {
 
     protected HstoreSessions.Session session;

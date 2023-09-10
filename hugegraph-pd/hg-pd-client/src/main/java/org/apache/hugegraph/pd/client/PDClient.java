@@ -54,8 +54,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * PD客户端实现类
- *
- * @author yanjinbing
  */
 @Slf4j
 public class PDClient {

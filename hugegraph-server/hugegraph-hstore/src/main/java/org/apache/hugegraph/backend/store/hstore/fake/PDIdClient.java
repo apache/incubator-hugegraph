@@ -22,10 +22,6 @@ import org.apache.hugegraph.backend.store.hstore.HstoreSessionsImpl;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
-/**
- * @author zhangyingjie
- * @date 2022/1/17
- **/
 public class PDIdClient extends IdClient {
 
     PDClient pdClient;
