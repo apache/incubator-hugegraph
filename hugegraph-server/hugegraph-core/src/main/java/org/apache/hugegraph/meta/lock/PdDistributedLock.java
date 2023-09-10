@@ -27,25 +27,20 @@ import org.apache.hugegraph.pd.client.KvClient;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.kv.LockResponse;
 
-/**
- * @author zhangyingjie
- * @date 2022/6/18
- **/
-public class PdDistributedLock extends AbstractDistributedLock {
+public class PdDistributedLock {
 
-    private static int poolSize = 8;
-    private final KvClient client;
-    private ScheduledExecutorService service = new ScheduledThreadPoolExecutor(poolSize, r -> {
-        Thread t = new Thread(r);
+    private static final int poolSize = 8;
+    private final KvClient<?> client;
+    private final ScheduledExecutorService service = new ScheduledThreadPoolExecutor(poolSize, r -> {
+        Thread t = new Thread(r, "keepalive");
         t.setDaemon(true);
         return t;
     });
 
-    public PdDistributedLock(KvClient client) {
+    public PdDistributedLock(KvClient<?> client) {
         this.client = client;
     }
 
-    @Override
     public LockResult lock(String key, long second) {
         long ttl = second * 1000L;
         try {
@@ -69,12 +64,11 @@ public class PdDistributedLock extends AbstractDistributedLock {
         }
     }
 
-    @Override
     public void unLock(String key, LockResult lockResult) {
         try {
             LockResponse response = this.client.unlock(key);
             boolean succeed = response.getSucceed();
-            if (succeed == false) {
+            if (!succeed) {
                 throw new HugeException("Failed to unlock '%s' to pd", key);
             }
             if (lockResult.getFuture() != null) {
@@ -95,6 +89,4 @@ public class PdDistributedLock extends AbstractDistributedLock {
             throw new HugeException("Failed to keepAlive '%s' to pd", key);
         }
     }
-
-
 }

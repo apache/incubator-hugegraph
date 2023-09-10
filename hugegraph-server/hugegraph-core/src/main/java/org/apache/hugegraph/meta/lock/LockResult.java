@@ -25,7 +25,7 @@ public class LockResult {
     private boolean lockSuccess;
     private long leaseId;
     private ScheduledExecutorService service;
-    private ScheduledFuture future;
+    private ScheduledFuture<?> future;
 
     public void lockSuccess(boolean isLockSuccess) {
         this.lockSuccess = isLockSuccess;
@@ -51,11 +51,11 @@ public class LockResult {
         this.service = service;
     }
 
-    public ScheduledFuture getFuture() {
+    public ScheduledFuture<?> getFuture() {
         return future;
     }
 
-    public void setFuture(ScheduledFuture future) {
+    public void setFuture(ScheduledFuture<?> future) {
         this.future = future;
     }
 }

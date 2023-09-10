@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.meta.lock.DistributedLock;
+import org.apache.hugegraph.meta.lock.EtcdDistributedLock;
 import org.apache.hugegraph.meta.lock.LockResult;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.E;
@@ -57,8 +57,8 @@ import io.netty.handler.ssl.SslProvider;
 
 public class EtcdMetaDriver implements MetaDriver {
 
-    private Client client;
-    private DistributedLock lock;
+    private final Client client;
+    private final EtcdDistributedLock lock;
 
     public EtcdMetaDriver(String trustFile, String clientCertFile,
                           String clientKeyFile, Object... endpoints) {
@@ -67,13 +67,13 @@ public class EtcdMetaDriver implements MetaDriver {
         SslContext sslContext = openSslContext(trustFile, clientCertFile,
                                                clientKeyFile);
         this.client = builder.sslContext(sslContext).build();
-        this.lock = DistributedLock.getInstance(this.client);
+        this.lock = EtcdDistributedLock.getInstance(this.client);
     }
 
     public EtcdMetaDriver(Object... endpoints) {
         ClientBuilder builder = this.etcdMetaDriverBuilder(endpoints);
         this.client = builder.build();
-        this.lock = DistributedLock.getInstance(this.client);
+        this.lock = EtcdDistributedLock.getInstance(this.client);
     }
 
     private static ByteSequence toByteSequence(String content) {
@@ -165,7 +165,7 @@ public class EtcdMetaDriver implements MetaDriver {
             throw new HugeException("Failed to get key '%s' from etcd", e, key);
         }
 
-        if (keyValues.size() > 0) {
+        if (!keyValues.isEmpty()) {
             return keyValues.get(0).getValue().toString(Charset.defaultCharset());
         }
 
@@ -230,7 +230,7 @@ public class EtcdMetaDriver implements MetaDriver {
                 CollectionType.JCF, size);
         for (KeyValue kv : response.getKvs()) {
             String key = kv.getKey().toString(Charset.defaultCharset());
-            String value = kv.getValue().size() == 0 ? "" :
+            String value = kv.getValue().isEmpty() ? "" :
                            kv.getValue().toString(Charset.defaultCharset());
             keyValues.put(key, value);
         }
@@ -284,21 +284,12 @@ public class EtcdMetaDriver implements MetaDriver {
     }
 
     @Override
-    public LockResult lock(String key, long ttl) {
-        return this.lock.lock(key, ttl);
-    }
-
-    @Override
     public boolean isLocked(String key) {
         try {
             long size = this.client.getKVClient().get(toByteSequence(key))
                                    .get().getCount();
 
-            if (size > 0) {
-                return true;
-            } else {
-                return false;
-            }
+            return size > 0;
         } catch (InterruptedException | ExecutionException e) {
             throw new HugeException("Failed to check is locked '%s'", e, key);
         }

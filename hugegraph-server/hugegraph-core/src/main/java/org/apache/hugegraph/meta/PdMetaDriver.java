@@ -17,9 +17,7 @@
 
 package org.apache.hugegraph.meta;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,35 +42,15 @@ import com.google.common.base.Strings;
 
 public class PdMetaDriver implements MetaDriver {
 
-    KvClient<WatchResponse> client = null;
-    PDClient pdClient = null;
-    private PdDistributedLock lock;
+    private final KvClient<WatchResponse> client;
+    private final PDClient pdClient;
+    private final PdDistributedLock lock;
 
     public PdMetaDriver(String pdPeer) {
         PDConfig pdConfig = PDConfig.of(pdPeer);
         this.client = new KvClient<>(pdConfig);
         this.pdClient = PDClient.create(pdConfig);
-        lock = new PdDistributedLock(this.client);
-    }
-
-    public static void main(String[] args) {
-        PDConfig pdConfig = PDConfig.of("127.0.0.1:8686");
-        KvClient<WatchResponse> client = new KvClient<>(pdConfig);
-        ScanPrefixResponse contents;
-        try {
-            contents = client.scanPrefix("HUGEGRAPH/METRICS");
-            Map<String, String> map = contents.getKvsMap();
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                System.out.println(entry.getKey() + ":" + entry.getValue());
-            }
-            System.out.println(map.size());
-        } catch (PDException e) {
-            e.printStackTrace();
-        }
-        Date dNow = new Date();
-        System.out.println(dNow);
-        SimpleDateFormat ft = new SimpleDateFormat("HHmmss");
-        System.out.println("当前时间为: " + ft.format(dNow));
+        this.lock = new PdDistributedLock(this.client);
     }
 
     public PDClient pdClient() {
@@ -177,22 +155,6 @@ public class PdMetaDriver implements MetaDriver {
             resultMap.put(key, value);
         }
         return resultMap;
-    }
-
-    @Override
-    public LockResult lock(String key, long ttl) {
-        while (true) {
-            LockResult lock = this.lock.lock(key, ttl);
-            if (lock.lockSuccess()) {
-                return lock;
-            } else {
-                try {
-                    Thread.sleep(1000L);
-                } catch (Exception e) {
-
-                }
-            }
-        }
     }
 
     @Override

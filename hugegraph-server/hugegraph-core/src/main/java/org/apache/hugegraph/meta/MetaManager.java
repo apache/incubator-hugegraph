@@ -509,22 +509,6 @@ public class MetaManager {
         this.graphMetaManager.notifyGraphEdgeCacheClear(graphSpace, graph);
     }
 
-    public LockResult lock(String... keys) {
-        return this.lockMetaManager.lock(keys);
-    }
-
-    public LockResult lock(long ttl, String... keys) {
-        return this.lockMetaManager.lock(ttl, keys);
-    }
-
-    public LockResult lock(String key, long ttl) {
-        return this.lockMetaManager.lock(key, ttl);
-    }
-
-    public LockResult lock(String key) {
-        return this.lockMetaManager.lock(key);
-    }
-
     public LockResult tryLock(String key) {
         return this.lockMetaManager.tryLock(key);
     }

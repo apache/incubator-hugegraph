@@ -19,8 +19,8 @@ package org.apache.hugegraph.meta.lock;
 
 import java.nio.charset.Charset;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -33,26 +33,33 @@ import io.etcd.jetcd.KV;
 import io.etcd.jetcd.Lease;
 import io.etcd.jetcd.Lock;
 
-public class DistributedLock extends AbstractDistributedLock {
+public class EtcdDistributedLock {
 
-    protected static final Logger LOG = Log.logger(DistributedLock.class);
-    private static final long UNLIMIT_TIMEOUT = -1L;
+    protected static final Logger LOG = Log.logger(EtcdDistributedLock.class);
+    private static final long UNLIMITED_TIMEOUT = -1L;
     private final static Object mutex = new Object();
-    private static DistributedLock lockProvider = null;
+    private static EtcdDistributedLock lockProvider = null;
     private final KV kvClient;
     private final Lock lockClient;
     private final Lease leaseClient;
 
-    private DistributedLock(Client client) {
+    private static final int poolSize = 8;
+    private final ScheduledExecutorService service = new ScheduledThreadPoolExecutor(poolSize, r -> {
+        Thread t = new Thread(r, "keepalive");
+        t.setDaemon(true);
+        return t;
+    });
+
+    private EtcdDistributedLock(Client client) {
         this.kvClient = client.getKVClient();
         this.lockClient = client.getLockClient();
         this.leaseClient = client.getLeaseClient();
     }
 
-    public static DistributedLock getInstance(Client client) {
+    public static EtcdDistributedLock getInstance(Client client) {
         synchronized (mutex) {
             if (null == lockProvider) {
-                lockProvider = new DistributedLock(client);
+                lockProvider = new EtcdDistributedLock(client);
             }
         }
         return lockProvider;
@@ -64,13 +71,10 @@ public class DistributedLock extends AbstractDistributedLock {
 
     public LockResult tryLock(String lockName, long ttl, long timeout) {
         LockResult lockResult = new LockResult();
-        ScheduledExecutorService service =
-                Executors.newSingleThreadScheduledExecutor();
-
         lockResult.lockSuccess(false);
         lockResult.setService(service);
 
-        Long leaseId;
+        long leaseId;
 
         try {
             leaseId = this.leaseClient.grant(ttl).get().getID();
@@ -89,7 +93,7 @@ public class DistributedLock extends AbstractDistributedLock {
                                     period, period, TimeUnit.SECONDS);
 
         try {
-            if (timeout == UNLIMIT_TIMEOUT) {
+            if (timeout == UNLIMITED_TIMEOUT) {
                 this.lockClient.lock(toByteSequence(lockName), leaseId).get();
 
             } else {
@@ -117,12 +121,10 @@ public class DistributedLock extends AbstractDistributedLock {
         return lockResult;
     }
 
-    @Override
     public LockResult lock(String lockName, long ttl) {
-        return tryLock(lockName, ttl, UNLIMIT_TIMEOUT);
+        return tryLock(lockName, ttl, UNLIMITED_TIMEOUT);
     }
 
-    @Override
     public void unLock(String lockName, LockResult lockResult) {
         LOG.debug("Thread {} start to unlock {}",
                   Thread.currentThread().getName(), lockName);
