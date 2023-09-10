@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Stack;
 
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import org.apache.hugegraph.traversal.algorithm.records.record.Record;
 import org.apache.hugegraph.traversal.algorithm.records.record.RecordType;
@@ -32,8 +33,23 @@ import org.apache.hugegraph.util.collection.IntIterator;
 
 public class KoutRecords extends SingleWayMultiPathsRecords {
 
-    public KoutRecords(boolean concurrent, Id source, boolean nearest) {
+    // Non-zero depth is used for deepFirst traverse mode.
+    // In such case, startOneLayer/finishOneLayer should not be called,
+    // instead, we should use addFullPath
+    private final int depth;
+
+    public KoutRecords(boolean concurrent, Id source, boolean nearest, int depth) {
         super(RecordType.INT, concurrent, source, nearest);
+
+        // add depth(num) records to record each layer
+        this.depth = depth;
+        for (int i = 0; i < depth; i++) {
+            this.records().push(this.newRecord());
+        }
+        assert (this.records().size() == (depth + 1));
+
+        // init top layer's parentRecord
+        this.currentRecord(this.records().peek(), null);
     }
 
     @Override
@@ -60,5 +76,30 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
             paths.add(this.linkPath(records.size() - 1, iterator.next()));
         }
         return paths;
+    }
+
+    public void addFullPath(List<HugeEdge> edges) {
+        assert (depth == edges.size());
+
+        int sourceCode = this.code(edges.get(0).id().ownerVertexId());
+        int targetCode;
+        for (int i = 0; i < edges.size(); i++) {
+            HugeEdge edge = edges.get(i);
+            Id sourceV = edge.id().ownerVertexId();
+            Id targetV = edge.id().otherVertexId();
+
+            assert (this.code(sourceV) == sourceCode);
+
+            this.edgeResults().addEdge(sourceV, targetV, edge);
+
+            targetCode = this.code(targetV);
+            Record record = this.records().elementAt(i + 1);
+            if (this.sourceCode == targetCode) {
+                break;
+            }
+            
+            this.addPathToRecord(sourceCode, targetCode, record);
+            sourceCode = targetCode;
+        }
     }
 }
