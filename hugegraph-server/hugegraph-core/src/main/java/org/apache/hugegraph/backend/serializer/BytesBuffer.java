@@ -756,11 +756,11 @@ public final class BytesBuffer extends OutputStream {
     public BinaryId readIndexId(HugeType type) {
         byte[] id;
         if (type.isRange4Index()) {
-            // IndexLabel 4 bytes + fieldValue 4 bytes
-            id = this.read(8);
+            // HugeTypeCode 1 byte + IndexLabel 4 bytes + fieldValue 4 bytes
+            id = this.read(9);
         } else if (type.isRange8Index()) {
-            // IndexLabel 4 bytes + fieldValue 8 bytes
-            id = this.read(12);
+            // HugeTypeCode 1 byte + IndexLabel 4 bytes + fieldValue 8 bytes
+            id = this.read(13);
         } else {
             assert type.isStringIndex();
             id = this.readBytesWithEnding();
