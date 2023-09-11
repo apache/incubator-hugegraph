@@ -594,7 +594,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
 
     @Override
     protected final CassandraTable table(HugeType type) {
-        return this.table(type.string());
+        return this.table(convertTaskOrServerToVertex(type).string());
     }
 
     protected final CassandraTable table(String name) {
@@ -789,9 +789,6 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
             super(provider, keyspace, store);
 
             this.meta = new CassandraTables.Meta();
-
-            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
-            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

@@ -27,10 +27,6 @@ import org.apache.hugegraph.backend.LocalCounter;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.Action;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.AbstractBackendStore;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -39,7 +35,9 @@ import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendSession;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 /**
  * NOTE:
@@ -95,7 +93,7 @@ public abstract class InMemoryDBStore
     @Override
     protected final InMemoryDBTable table(HugeType type) {
         assert type != null;
-        InMemoryDBTable table = this.tables.get(type);
+        InMemoryDBTable table = this.tables.get(convertTaskOrServerToVertex(type));
         if (table == null) {
             throw new BackendException("Unsupported table type: %s", type);
         }

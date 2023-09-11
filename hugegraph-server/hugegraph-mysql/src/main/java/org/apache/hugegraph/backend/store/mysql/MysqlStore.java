@@ -349,7 +349,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     @Override
     protected final MysqlTable table(HugeType type) {
         assert type != null;
-        MysqlTable table = this.tables.get(type);
+        MysqlTable table = this.tables.get(convertTaskOrServerToVertex(type));
         if (table == null) {
             throw new BackendException("Unsupported table type: %s", type);
         }
@@ -486,9 +486,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
             super(provider, database, store);
 
             this.meta = new MysqlTables.Meta();
-
-            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
-            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

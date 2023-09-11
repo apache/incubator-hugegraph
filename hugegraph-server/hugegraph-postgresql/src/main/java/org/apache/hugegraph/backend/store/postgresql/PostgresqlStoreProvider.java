@@ -192,9 +192,6 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
             super(provider, database, store);
 
             this.meta = new PostgresqlTables.Meta();
-
-            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
-            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override

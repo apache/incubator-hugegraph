@@ -151,7 +151,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     @Override
     protected final RocksDBTable table(HugeType type) {
-        RocksDBTable table = this.tables.get(type);
+        RocksDBTable table = this.tables.get(convertTaskOrServerToVertex(type));
         if (table == null) {
             throw new BackendException("Unsupported table: '%s'", type);
         }
@@ -1121,9 +1121,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             super(provider, database, store);
 
             this.meta = new RocksDBTables.Meta(database);
-
-            registerTableManager(HugeType.TASK, this.table(HugeType.VERTEX));
-            registerTableManager(HugeType.SERVER, this.table(HugeType.VERTEX));
         }
 
         @Override
