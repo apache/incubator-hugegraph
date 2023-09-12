@@ -46,11 +46,10 @@ public class ArthasAPI extends API {
     public Object startArthas() {
         HugeConfig config = this.configProvider.get();
         HashMap<String, String> configMap = new HashMap<>(4);
-        configMap.put("arthas.telnet_ort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
-        configMap.put("arthas.http_port", config.get(ServerOptions.ARTHAS_HTTP_PORT));
+        configMap.put("arthas.telnetPort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
+        configMap.put("arthas.httpPort", config.get(ServerOptions.ARTHAS_HTTP_PORT));
         configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
-        configMap.put("arthas.disabled_commands",
-                      config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
+        configMap.put("arthas.disabledCommands",config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
         ArthasAgent.attach(configMap);
         return JsonUtil.toJson(configMap);
     }
