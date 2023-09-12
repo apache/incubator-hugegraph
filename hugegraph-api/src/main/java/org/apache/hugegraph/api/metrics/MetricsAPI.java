@@ -38,7 +38,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.SPACE_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_HELP;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_TYPE;
 import static org.apache.hugegraph.metrics.MetricsUtil.UNTYPED;
-import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshort;
+import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshot;
 import static org.apache.hugegraph.metrics.MetricsUtil.replaceDotDashInKey;
 import static org.apache.hugegraph.metrics.MetricsUtil.replaceSlashInKey;
 
@@ -266,7 +266,7 @@ public class MetricsAPI extends API {
                           .append(COUNT_ATTR)
                           .append(histogram.getCount() + END_LSTR);
                 promMetric.append(
-                        exportSnapshort(helpName, histogram.getSnapshot()));
+                        exportSnapshot(helpName, histogram.getSnapshot()));
             }
         }
 
@@ -325,7 +325,7 @@ public class MetricsAPI extends API {
                           .append(FIFT_MIN_RATE_ATRR)
                           .append(timer.getFifteenMinuteRate() + END_LSTR);
                 promMetric.append(
-                        exportSnapshort(helpName, timer.getSnapshot()));
+                        exportSnapshot(helpName, timer.getSnapshot()));
             }
         }
 

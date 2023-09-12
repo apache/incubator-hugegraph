@@ -47,33 +47,23 @@ public class AccessLogFilter implements ContainerResponseFilter {
      * @param responseContext responseContext
      */
     @Override
-    public void filter(ContainerRequestContext requestContext,
-                       ContainerResponseContext responseContext)
-            throws IOException {
+    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
         // Grab corresponding request / response info from context;
         String method = requestContext.getRequest().getMethod();
         String path = requestContext.getUriInfo().getPath();
         String metricsName = join(path, method);
 
-        MetricsUtil.registerCounter(
-                           join(metricsName, METRICS_PATH_TOTAL_COUNTER))
-                   .inc();
-        if (responseContext.getStatus() == 200 ||
-            responseContext.getStatus() == 201 ||
-            responseContext.getStatus() == 202) {
-            MetricsUtil.registerCounter(
-                               join(metricsName, METRICS_PATH_SUCCESS_COUNTER))
-                       .inc();
+        MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
+        if (statusOK(responseContext.getStatus())) {
+            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
         } else {
-            MetricsUtil.registerCounter(
-                               join(metricsName, METRICS_PATH_FAILED_COUNTER))
-                       .inc();
+            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
         }
 
-        //  get responseTime
-        Object requestTime = requestContext.getProperty("RequestTime");
+        // get responseTime
+        Object requestTime = requestContext.getProperty("request_time");
         if(requestTime!=null){
-            requestContext.getProperty("RequestTime");
+            requestContext.getProperty("request_time");
             long now = System.currentTimeMillis();
             long responseTime = (now - (long)requestTime);
 
@@ -85,5 +75,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
     private String join(String path1, String path2) {
         return String.join(DELIMETER, path1, path2);
+    }
+
+    private boolean statusOK(int status){
+        return status == 200 || status == 201 || status == 202;
     }
 }

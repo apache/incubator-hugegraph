@@ -130,7 +130,7 @@ public class MetricsUtil {
                 promeMetrics.append(helpName)
                             .append(COUNT_ATTR).append(histogram.getCount()).append(END_LSTR);
                 promeMetrics.append(
-                        exportSnapshort(helpName, histogram.getSnapshot()));
+                        exportSnapshot(helpName, histogram.getSnapshot()));
             }
         });
 
@@ -182,12 +182,12 @@ public class MetricsUtil {
                             .append(FIFT_MIN_RATE_ATRR).append(timer.getFifteenMinuteRate())
                             .append(END_LSTR);
                 promeMetrics.append(
-                        exportSnapshort(helpName, timer.getSnapshot()));
+                        exportSnapshot(helpName, timer.getSnapshot()));
             }
         });
     }
 
-    public static String exportSnapshort(final String helpName, final Snapshot snapshot) {
+    public static String exportSnapshot(final String helpName, final Snapshot snapshot) {
         if (snapshot != null) {
             StringBuilder snapMetrics = new StringBuilder();
             snapMetrics.append(helpName)
@@ -214,6 +214,5 @@ public class MetricsUtil {
         }
         return "";
     }
-
 
 }
