@@ -54,7 +54,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String metricsName = join(path, method);
 
         MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
-        if (statusOK(responseContext.getStatus())) {
+        if (statusOk(responseContext.getStatus())) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
         } else {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
@@ -77,7 +77,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         return String.join(DELIMETER, path1, path2);
     }
 
-    private boolean statusOK(int status){
+    private boolean statusOk(int status){
         return status == 200 || status == 201 || status == 202;
     }
 }
