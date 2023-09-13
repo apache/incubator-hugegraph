@@ -21,15 +21,17 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
+import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableList;
 
 public class CollectionPathsTraverser extends HugeTraverser {
@@ -38,10 +40,10 @@ public class CollectionPathsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Collection<Path> paths(Iterator<Vertex> sources,
-                                  Iterator<Vertex> targets,
-                                  EdgeStep step, int depth, boolean nearest,
-                                  long capacity, long limit) {
+    public WrappedPathCollection paths(Iterator<Vertex> sources,
+                                       Iterator<Vertex> targets,
+                                       EdgeStep step, int depth, boolean nearest,
+                                       long capacity, long limit) {
         checkCapacity(capacity);
         checkLimit(limit);
 
@@ -63,31 +65,33 @@ public class CollectionPathsTraverser extends HugeTraverser {
                      "but got: %s", MAX_VERTICES, sourceList.size());
         checkPositive(depth, "max depth");
 
+        boolean concurrent = depth >= this.concurrentDepth();
         TraverseStrategy strategy = TraverseStrategy.create(
-                                    depth >= this.concurrentDepth(),
-                                    this.graph());
+                concurrent, this.graph());
         Traverser traverser;
         if (nearest) {
             traverser = new NearestTraverser(this, strategy,
                                              sourceList, targetList, step,
-                                             depth, capacity, limit);
+                                             depth, capacity, limit, concurrent);
         } else {
             traverser = new Traverser(this, strategy,
                                       sourceList, targetList, step,
-                                      depth, capacity, limit);
+                                      depth, capacity, limit, concurrent);
         }
 
         do {
             // Forward
             traverser.forward();
             if (traverser.finished()) {
-                return traverser.paths();
+                Collection<Path> paths = traverser.paths();
+                return new WrappedPathCollection(paths, traverser.edgeResults.getEdges(paths));
             }
 
             // Backward
             traverser.backward();
             if (traverser.finished()) {
-                return traverser.paths();
+                Collection<Path> paths = traverser.paths();
+                return new WrappedPathCollection(paths, traverser.edgeResults.getEdges(paths));
             }
         } while (true);
     }
@@ -98,8 +102,9 @@ public class CollectionPathsTraverser extends HugeTraverser {
 
         public Traverser(HugeTraverser traverser, TraverseStrategy strategy,
                          Collection<Id> sources, Collection<Id> targets,
-                         EdgeStep step, int depth, long capacity, long limit) {
-            super(traverser, strategy, sources, targets, capacity, limit);
+                         EdgeStep step, int depth, long capacity, long limit,
+                         boolean concurrent) {
+            super(traverser, strategy, sources, targets, capacity, limit, concurrent);
             this.step = step;
             this.totalSteps = depth;
         }
@@ -180,15 +185,15 @@ public class CollectionPathsTraverser extends HugeTraverser {
         }
     }
 
-    private class NearestTraverser extends Traverser {
+    private static class NearestTraverser extends Traverser {
 
         public NearestTraverser(HugeTraverser traverser,
                                 TraverseStrategy strategy,
                                 Collection<Id> sources, Collection<Id> targets,
                                 EdgeStep step, int depth, long capacity,
-                                long limit) {
+                                long limit, boolean concurrent) {
             super(traverser, strategy, sources, targets, step,
-                  depth, capacity, limit);
+                  depth, capacity, limit, concurrent);
         }
 
         @Override
@@ -272,6 +277,25 @@ public class CollectionPathsTraverser extends HugeTraverser {
         @Override
         protected int accessedNodes() {
             return this.sourcesAll.size() + this.targetsAll.size();
+        }
+    }
+
+    public static class WrappedPathCollection {
+
+        private final Collection<Path> paths;
+        private final Set<Edge> edges;
+
+        public WrappedPathCollection(Collection<Path> paths, Set<Edge> edges) {
+            this.paths = paths;
+            this.edges = edges;
+        }
+
+        public Collection<Path> paths() {
+            return paths;
+        }
+
+        public Set<Edge> edges() {
+            return edges;
         }
     }
 }

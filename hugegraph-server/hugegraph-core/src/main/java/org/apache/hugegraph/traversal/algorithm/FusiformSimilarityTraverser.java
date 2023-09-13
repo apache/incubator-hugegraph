@@ -22,26 +22,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.Frequency;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
 
 public class FusiformSimilarityTraverser extends HugeTraverser {
 
@@ -49,6 +49,20 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
 
     public FusiformSimilarityTraverser(HugeGraph graph) {
         super(graph);
+    }
+
+    private static void checkGroupArgs(String groupProperty, int minGroups) {
+        if (groupProperty == null) {
+            E.checkArgument(minGroups == 0,
+                            "Can't set min group count when " +
+                            "group property not set");
+        } else {
+            E.checkArgument(!groupProperty.isEmpty(),
+                            "The group property can't be empty");
+            E.checkArgument(minGroups > 0,
+                            "Must set min group count when " +
+                            "group property set");
+        }
     }
 
     public SimilarsMap fusiformSimilarity(Iterator<Vertex> vertices,
@@ -69,10 +83,10 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             HugeVertex vertex = (HugeVertex) vertices.next();
             // Find fusiform similarity for current vertex
             Set<Similar> result = this.fusiformSimilarityForVertex(
-                                  vertex, direction, label,
-                                  minNeighbors, alpha, minSimilars, top,
-                                  groupProperty, minGroups, degree, capacity,
-                                  withIntermediary);
+                    vertex, direction, label,
+                    minNeighbors, alpha, minSimilars, top,
+                    groupProperty, minGroups, degree, capacity,
+                    withIntermediary);
             if (result.isEmpty()) {
                 continue;
             }
@@ -87,11 +101,11 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
     }
 
     private Set<Similar> fusiformSimilarityForVertex(
-                         HugeVertex vertex, Directions direction,
-                         String label, int minNeighbors, double alpha,
-                         int minSimilars, int top, String groupProperty,
-                         int minGroups, long degree, long capacity,
-                         boolean withIntermediary) {
+            HugeVertex vertex, Directions direction,
+            String label, int minNeighbors, double alpha,
+            int minSimilars, int top, String groupProperty,
+            int minGroups, long degree, long capacity,
+            boolean withIntermediary) {
         boolean matched = this.matchMinNeighborCount(vertex, direction, label,
                                                      minNeighbors, degree);
         if (!matched) {
@@ -105,6 +119,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         Map<Id, MutableInt> similars = newMap();
         MultivaluedMap<Id, Id> intermediaries = new MultivaluedHashMap<>();
         Set<Id> neighbors = newIdSet();
+        long vertexCount = 1L;
         while (edges.hasNext()) {
             Id target = ((HugeEdge) edges.next()).id().otherVertexId();
             if (neighbors.contains(target)) {
@@ -116,6 +131,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             Directions backDir = direction.opposite();
             Iterator<Edge> backEdges = this.edgesOfVertex(target, backDir,
                                                           labelId, degree);
+            vertexCount += 1L;
             Set<Id> currentSimilars = newIdSet();
             while (backEdges.hasNext()) {
                 Id node = ((HugeEdge) backEdges.next()).id().otherVertexId();
@@ -137,6 +153,9 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
                 count.increment();
             }
         }
+        this.edgeIterCounter.addAndGet(this.accessed);
+        this.vertexIterCounter.addAndGet(vertexCount);
+
         // Delete source vertex
         assert similars.containsKey(vertex.id());
         similars.remove(vertex.id());
@@ -189,20 +208,6 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
         return result;
     }
 
-    private static void checkGroupArgs(String groupProperty, int minGroups) {
-        if (groupProperty == null) {
-            E.checkArgument(minGroups == 0,
-                            "Can't set min group count when " +
-                            "group property not set");
-        } else {
-            E.checkArgument(!groupProperty.isEmpty(),
-                            "The group property can't be empty");
-            E.checkArgument(minGroups > 0,
-                            "Must set min group count when " +
-                            "group property set");
-        }
-    }
-
     private boolean matchMinNeighborCount(HugeVertex vertex,
                                           Directions direction,
                                           String label,
@@ -249,7 +254,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             this.id = id;
             this.score = score;
             assert newSet(intermediaries).size() == intermediaries.size() :
-                   "Invalid intermediaries";
+                    "Invalid intermediaries";
             this.intermediaries = intermediaries;
         }
 
