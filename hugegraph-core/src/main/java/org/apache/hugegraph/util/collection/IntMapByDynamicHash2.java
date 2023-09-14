@@ -17,12 +17,13 @@
 
 package org.apache.hugegraph.util.collection;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import sun.misc.Unsafe;
 
-public class IntMapByDynamicHash implements IntMap {
+public class IntMapByDynamicHash2 implements IntMap {
 
     private static final int DEFAULT_INITIAL_CAPACITY = 16;
 
@@ -37,24 +38,28 @@ public class IntMapByDynamicHash implements IntMap {
 
     private static final int PARTITIONED_SIZE_THRESHOLD = 4096;
 
-    private static final int NULL_VALUE = Integer.MIN_VALUE;
+    private static final long NULL_VALUE = Long.MIN_VALUE;
 
-    private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash, Entry[]>
-        TABLE_UPDATER =
-        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class,
-                                               "table");
+    private static final int INT_NULL_VALUE = Integer.MIN_VALUE;
 
-    private volatile Entry[] table;
+    /**
+     * max number of probes to find an item
+     */
+    private static final int MAX_PROBES = 6;
+
+    private volatile long[] table;
 
     /**
      * Partition counting to improve the concurrency performance of addToSize()
      */
     private int[] partitionedSize;
 
-    private static final Entry RESIZING = new Entry(NULL_VALUE, NULL_VALUE, 1);
-    private static final Entry RESIZED = new Entry(NULL_VALUE, NULL_VALUE, 2);
+    private volatile ResizeContainer resizeContainer;
 
-    private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, 3);
+    private static final long RESIZING = Long.MIN_VALUE + 1;
+    private static final long RESIZED = Long.MIN_VALUE + 2;
+
+    private static final long RESIZE_SENTINEL = Long.MIN_VALUE + 3;
 
     /**
      * must be 2^n - 1
@@ -62,24 +67,35 @@ public class IntMapByDynamicHash implements IntMap {
     private static final int SIZE_BUCKETS = 7;
 
 
+    private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash2, long[]>
+        TABLE_UPDATER =
+        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash2.class, long[].class,
+                                               "table");
+
+    private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash2, ResizeContainer>
+        RESIZE_CONTAINER_UPDATER =
+        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash2.class, ResizeContainer.class,
+                                               "resizeContainer");
+
+
     /* ---------------- Table element access -------------- */
-    private static Object tableAt(Object[] array, int index) {
-        return UNSAFE.getObjectVolatile(array,
-                                        ((long) index << ENTRY_ARRAY_SHIFT) +
-                                        ENTRY_ARRAY_BASE);
+    private static long tableAt(long[] array, int index) {
+        return UNSAFE.getLongVolatile(array,
+                                      ((long) index << ENTRY_ARRAY_SHIFT) +
+                                      ENTRY_ARRAY_BASE);
     }
 
-    private static boolean casTableAt(Object[] array, int index, Object expected, Object newValue) {
-        return UNSAFE.compareAndSwapObject(
+    private static boolean casTableAt(long[] array, int index, long expected, long newValue) {
+        return UNSAFE.compareAndSwapLong(
             array,
             ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
             expected,
             newValue);
     }
 
-    private static void setTableAt(Object[] array, int index, Object newValue) {
-        UNSAFE.putObjectVolatile(array, ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
-                                 newValue);
+    private static void setTableAt(long[] array, int index, long newValue) {
+        UNSAFE.putLongVolatile(array, ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
+                               newValue);
     }
 
     private static int tableSizeFor(int c) {
@@ -95,11 +111,11 @@ public class IntMapByDynamicHash implements IntMap {
     @SuppressWarnings("UnusedDeclaration")
     private volatile int size; // updated via atomic field updater
 
-    public IntMapByDynamicHash() {
+    public IntMapByDynamicHash2() {
         this(DEFAULT_INITIAL_CAPACITY);
     }
 
-    public IntMapByDynamicHash(int initialCapacity) {
+    public IntMapByDynamicHash2(int initialCapacity) {
         if (initialCapacity < 0) {
             throw new IllegalArgumentException("Illegal Initial Capacity: " + initialCapacity);
         }
@@ -118,18 +134,19 @@ public class IntMapByDynamicHash implements IntMap {
                 new int[SIZE_BUCKETS * 16];
         }
         // The end index is for resizeContainer
-        this.table = new Entry[cap + 1];
+        this.table = new long[cap + 1];
+        Arrays.fill(table, NULL_VALUE);
     }
 
     @Override
     public boolean put(int key, int value) {
         int hash = this.hash(key);
-        Entry[] currentArray = this.table;
-        Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, hash);
-        if (o == null) {
-            Entry newEntry = new Entry(key, value);
+        long[] currentArray = this.table;
+        long o = IntMapByDynamicHash2.tableAt(currentArray, hash);
+        if (o == NULL_VALUE) {
+            long newEntry = combineInts(key, value);
             this.addToSize(1);
-            if (IntMapByDynamicHash.casTableAt(currentArray, hash, null, newEntry)) {
+            if (IntMapByDynamicHash2.casTableAt(currentArray, hash, NULL_VALUE, newEntry)) {
                 return true;
             }
             this.addToSize(-1);
@@ -139,45 +156,62 @@ public class IntMapByDynamicHash implements IntMap {
         return true;
     }
 
-    private int slowPut(int key, int value, Entry[] currentTable) {
+    private long slowPut(int key, int value, long[] currentTable) {
         int length;
         int index;
-        Entry o;
+        long o;
 
+        outer:
         while (true) {
             length = currentTable.length;
             index = this.hash(key, length);
-            o = (Entry) IntMapByDynamicHash.tableAt(currentTable, index);
+            o = IntMapByDynamicHash2.tableAt(currentTable, index);
 
             if (o == RESIZED || o == RESIZING) {
                 currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
             } else {
-                Entry e = o;
+                long e = o;
                 boolean found = false;
+                boolean isNeedResize = false;
+                int probes = 0;
 
-                // Search for the key in the chain
-                while (e != null) {
-                    int candidate = e.getKey();
+                // Search for the key(open address)
+                while (e != NULL_VALUE) {
+                    if (e == RESIZED || e == RESIZING) {
+                        currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
+                        continue outer;
+                    }
+                    int candidate = extractKey(e);
                     if (candidate == key) {
                         found = true;
                         break;
                     }
-                    e = e.getNext();
+                    if (++index == currentTable.length - 1) {
+                        index = 0;
+                    }
+                    e = IntMapByDynamicHash2.tableAt(currentTable, index);
+                    if (++probes > MAX_PROBES) {
+                        isNeedResize = true;
+                        break;
+                    }
                 }
 
+                if (isNeedResize) {
+                    this.resize(currentTable);
+                    currentTable = this.table;
+                    continue;
+                }
+
+                long newEntry = combineInts(key, value);
                 if (found) {
-                    int oldVal = e.getValue();
                     // Key found, replace the entry
-                    Entry newEntry =
-                        new Entry(key, value, this.createReplacementChainForRemoval(o, e));
-                    if (IntMapByDynamicHash.casTableAt(currentTable, index, o, newEntry)) {
-                        return oldVal;
+                    if (IntMapByDynamicHash2.casTableAt(currentTable, index, o, newEntry)) {
+                        return e;
                     }
                 } else {
                     // Key not found, add a new entry
-                    Entry newEntry = new Entry(key, value, o);
-                    if (IntMapByDynamicHash.casTableAt(currentTable, index, o, newEntry)) {
-                        this.incrementSizeAndPossiblyResize(currentTable, length, o);
+                    if (IntMapByDynamicHash2.casTableAt(currentTable, index, o, newEntry)) {
+                        this.incrementSizeAndPossiblyResize(currentTable, length);
                         return NULL_VALUE;
                     }
                 }
@@ -187,100 +221,137 @@ public class IntMapByDynamicHash implements IntMap {
 
     @Override
     public int get(int key) {
-        int hash = this.hash(key);
-        Entry[] currentArray = this.table;
-        Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, hash);
+        int index = this.hash(key);
+        long[] currentTable = this.table;
+        long o = IntMapByDynamicHash2.tableAt(currentTable, index);
         if (o == RESIZED || o == RESIZING) {
-            return this.slowGet(key, currentArray);
+            return this.slowGet(key, currentTable);
         }
-        for (Entry e = o; e != null; e = e.getNext()) {
-            int k;
-            if ((k = e.getKey()) == key || key == k) {
-                return e.value;
+        long e = o;
+        for (int i = 0; i < MAX_PROBES; i++) {
+            if (e == NULL_VALUE) {
+                return INT_NULL_VALUE;
             }
+            if (e == RESIZED || e == RESIZING) {
+                return this.slowGet(key, currentTable);
+            }
+            if (extractKey(e) == key) {
+                return extractValue(e);
+            }
+            if (++index == currentTable.length - 1) {
+                index = 0;
+            }
+            e = IntMapByDynamicHash2.tableAt(currentTable, index);
         }
-        return NULL_VALUE;
+        return INT_NULL_VALUE;
     }
 
-    private int slowGet(int key, Entry[] currentArray) {
+    private int slowGet(int key, long[] currentTable) {
+        outer:
         while (true) {
-            int length = currentArray.length;
-            int hash = this.hash(key, length);
-            Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, hash);
+            int length = currentTable.length;
+            int index = this.hash(key, length);
+            long o = IntMapByDynamicHash2.tableAt(currentTable, index);
             if (o == RESIZED || o == RESIZING) {
-                currentArray = this.helpWithResizeWhileCurrentIndex(currentArray, hash);
+                currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
             } else {
-                Entry e = o;
-                while (e != null) {
-                    int candidate = e.getKey();
-                    if (candidate == key) {
-                        return e.getValue();
+                long e = o;
+                for (int i = 0; i < MAX_PROBES; i++) {
+                    if (e == NULL_VALUE) {
+                        return INT_NULL_VALUE;
                     }
-                    e = e.getNext();
+                    if (e == RESIZED || e == RESIZING) {
+                        currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
+                        continue outer;
+                    }
+                    int candidate = extractKey(e);
+                    if (candidate == key) {
+                        return extractValue(e);
+                    }
+                    if (++index == currentTable.length - 1) {
+                        index = 0;
+                    }
+                    e = IntMapByDynamicHash2.tableAt(currentTable, index);
                 }
-                return NULL_VALUE;
+                return INT_NULL_VALUE;
             }
         }
     }
 
     @Override
     public boolean remove(int key) {
-        int hash = this.hash(key);
-        Entry[] currentTable = this.table;
-        Entry o = (Entry) IntMapByDynamicHash.tableAt(currentTable, hash);
+        int index = this.hash(key);
+        long[] currentTable = this.table;
+        long o = IntMapByDynamicHash2.tableAt(currentTable, index);
         if (o == RESIZED || o == RESIZING) {
-            return this.slowRemove(key, currentTable) != null;
+            return this.slowRemove(key, currentTable) != NULL_VALUE;
         }
 
-        Entry e = o;
-        while (e != null) {
-            int candidate = e.getKey();
-            if (candidate == key) {
-                Entry replacement = this.createReplacementChainForRemoval(o, e);
-                if (IntMapByDynamicHash.casTableAt(currentTable, hash, o, replacement)) {
+        long e = o;
+        for (int i = 0; i < MAX_PROBES; i++) {
+            if (e == NULL_VALUE) {
+                return false;
+            }
+            if (e == RESIZED || e == RESIZING) {
+                return this.slowRemove(key, currentTable) != NULL_VALUE;
+            }
+            if (extractKey(e) == key) {
+                if (IntMapByDynamicHash2.casTableAt(currentTable, index, o, NULL_VALUE)) {
                     this.addToSize(-1);
                     return true;
                 }
-                return this.slowRemove(key, currentTable) != null;
+                return this.slowRemove(key, currentTable) != NULL_VALUE;
             }
-            e = e.getNext();
+            if (++index == currentTable.length - 1) {
+                index = 0;
+            }
+            e = IntMapByDynamicHash2.tableAt(currentTable, index);
         }
         return false;
     }
 
-    private Entry slowRemove(int key, Entry[] currentTable) {
+    private long slowRemove(int key, long[] currentTable) {
         int length;
         int index;
-        Entry o;
+        long o;
 
+        outer:
         while (true) {
             length = currentTable.length;
             index = this.hash(key, length);
-            o = (Entry) IntMapByDynamicHash.tableAt(currentTable, index);
+            o = IntMapByDynamicHash2.tableAt(currentTable, index);
             if (o == RESIZED || o == RESIZING) {
                 currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
             } else {
-                Entry e = o;
-                Entry prev = null;
+                long e = o;
+                long prev = NULL_VALUE;
 
-                while (e != null) {
-                    int candidate = e.getKey();
-                    if (candidate == key) {
-                        Entry replacement = this.createReplacementChainForRemoval(o, e);
-                        if (IntMapByDynamicHash.casTableAt(currentTable, index, o, replacement)) {
+                for (int i = 0; i < MAX_PROBES; i++) {
+                    if (e == NULL_VALUE) {
+                        return NULL_VALUE;
+                    }
+                    if (e == RESIZED || e == RESIZING) {
+                        currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
+                        continue outer;
+                    }
+                    if (extractKey(e) == key) {
+                        if (IntMapByDynamicHash2.casTableAt(currentTable, index, o, NULL_VALUE)) {
                             this.addToSize(-1);
-                            return e;
+                            return extractValue(e);
                         }
                         // Key found, but CAS failed, restart the loop
                         break;
                     }
+                    if (++index == length - 1) {
+                        index = 0;
+                    }
                     prev = e;
-                    e = e.getNext();
+                    e = IntMapByDynamicHash2.tableAt(currentTable, index);
                 }
 
-                if (prev != null) {
+                if (prev != NULL_VALUE) {
                     // Key not found
-                    return null;
+                    return NULL_VALUE;
                 }
             }
         }
@@ -288,7 +359,7 @@ public class IntMapByDynamicHash implements IntMap {
 
     @Override
     public boolean containsKey(int key) {
-        return this.getEntry(key) != null;
+        return this.getEntry(key) != NULL_VALUE;
     }
 
     @Override
@@ -305,25 +376,17 @@ public class IntMapByDynamicHash implements IntMap {
 
     @Override
     public void clear() {
-        Entry[] currentArray = this.table;
+        long[] currentArray = this.table;
         ResizeContainer resizeContainer;
         do {
             resizeContainer = null;
             for (int i = 0; i < currentArray.length - 1; i++) {
-                Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, i);
+                long o = IntMapByDynamicHash2.tableAt(currentArray, i);
                 if (o == RESIZED || o == RESIZING) {
-                    resizeContainer = (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                                    currentArray.length -
-                                                                                    1);
-                } else if (o != null) {
-                    Entry e = o;
-                    if (IntMapByDynamicHash.casTableAt(currentArray, i, o, null)) {
-                        int removedEntries = 0;
-                        while (e != null) {
-                            removedEntries++;
-                            e = e.getNext();
-                        }
-                        this.addToSize(-removedEntries);
+                    resizeContainer = this.resizeContainer;
+                } else if (o != NULL_VALUE) {
+                    if (IntMapByDynamicHash2.casTableAt(currentArray, i, o, NULL_VALUE)) {
+                        this.addToSize(-1);
                     }
                 }
             }
@@ -361,24 +424,34 @@ public class IntMapByDynamicHash implements IntMap {
         return key & (length - 2);
     }
 
-    private Entry getEntry(int key) {
-        Entry[] currentArray = this.table;
+    private long getEntry(int key) {
+        long[] currentTable = this.table;
+        outer:
         while (true) {
-            int length = currentArray.length;
+            int length = currentTable.length;
             int index = this.hash(key, length);
-            Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, index);
+            long o = IntMapByDynamicHash2.tableAt(currentTable, index);
             if (o == RESIZED || o == RESIZING) {
-                currentArray = this.helpWithResizeWhileCurrentIndex(currentArray, index);
+                currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
             } else {
-                Entry e = o;
-                while (e != null) {
-                    int candidate = e.getKey();
-                    if (candidate == key) {
+                long e = o;
+                for (int i = 0; i < MAX_PROBES; i++) {
+                    if (e == NULL_VALUE) {
+                        return NULL_VALUE;
+                    }
+                    if (e == RESIZED || e == RESIZING) {
+                        currentTable = this.helpWithResizeWhileCurrentIndex(currentTable, index);
+                        continue outer;
+                    }
+                    if (extractKey(e) == key) {
                         return e;
                     }
-                    e = e.getNext();
+                    if (++index == length - 1) {
+                        index = 0;
+                    }
+                    e = IntMapByDynamicHash2.tableAt(currentTable, index);
                 }
-                return null;
+                return NULL_VALUE;
             }
         }
     }
@@ -419,37 +492,20 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
-    private Entry createReplacementChainForRemoval(Entry original,
-                                                   Entry toRemove) {
-        if (original == toRemove) {
-            return original.getNext();
-        }
-        Entry replacement = null;
-        Entry e = original;
-        while (e != null) {
-            if (e != toRemove) {
-                replacement = new Entry(e.getKey(), e.getValue(), replacement);
-            }
-            e = e.getNext();
-        }
-        return replacement;
-    }
-
-    private void incrementSizeAndPossiblyResize(Entry[] currentArray, int length, Entry prev) {
+    private void incrementSizeAndPossiblyResize(long[] currentArray, int length) {
         this.addToSize(1);
-        if (prev != null) {
-            int localSize = this.size();
-            int threshold = (int) (length * LOAD_FACTOR); // threshold = length * 0.75
-            if (localSize + 1 > threshold) {
-                this.resize(currentArray);
-            }
+
+        int localSize = this.size();
+        int threshold = (int) (length * LOAD_FACTOR); // threshold = length * 0.75
+        if (localSize + 1 > threshold) {
+            this.resize(currentArray);
         }
     }
 
-    private Entry[] helpWithResizeWhileCurrentIndex(Entry[] currentArray, int index) {
-        Entry[] newArray = this.helpWithResize(currentArray);
+    private long[] helpWithResizeWhileCurrentIndex(long[] currentArray, int index) {
+        long[] newArray = this.helpWithResize(currentArray);
         int helpCount = 0;
-        while (IntMapByDynamicHash.tableAt(currentArray, index) != RESIZED) {
+        while (IntMapByDynamicHash2.tableAt(currentArray, index) != RESIZED) {
             helpCount++;
             newArray = this.helpWithResize(currentArray);
             if ((helpCount & 7) == 0) {
@@ -459,16 +515,16 @@ public class IntMapByDynamicHash implements IntMap {
         return newArray;
     }
 
-    private void resize(Entry[] oldTable) {
+    private void resize(long[] oldTable) {
         this.resize(oldTable, (oldTable.length - 1 << 1) + 1);
     }
 
     // newSize must be a power of 2 + 1
     @SuppressWarnings("JLM_JSR166_UTILCONCURRENT_MONITORENTER")
-    private void resize(Entry[] oldTable, int newSize) {
+    private void resize(long[] oldTable, int newSize) {
         int oldCapacity = oldTable.length;
         int end = oldCapacity - 1;
-        Entry last = (Entry) IntMapByDynamicHash.tableAt(oldTable, end);
+        long last = IntMapByDynamicHash2.tableAt(oldTable, end);
         if (this.size() < end && last == RESIZE_SENTINEL) {
             return;
         }
@@ -479,16 +535,18 @@ public class IntMapByDynamicHash implements IntMap {
         // This ownResize records whether current thread need to perform the expansion operation of
         // the map by itself
         boolean ownResize = false;
-        if (last == null || last == RESIZE_SENTINEL) {
+        if (last == NULL_VALUE || last == RESIZE_SENTINEL) {
             // allocating a new array is too expensive to make this an atomic operation
             synchronized (oldTable) {
-                if (IntMapByDynamicHash.tableAt(oldTable, end) == null) {
-                    IntMapByDynamicHash.setTableAt(oldTable, end, RESIZE_SENTINEL);
+                if (IntMapByDynamicHash2.tableAt(oldTable, end) == NULL_VALUE) {
+                    IntMapByDynamicHash2.setTableAt(oldTable, end, RESIZE_SENTINEL);
                     if (this.partitionedSize == null && newSize >= PARTITIONED_SIZE_THRESHOLD) {
                         this.partitionedSize = new int[SIZE_BUCKETS * 16];
                     }
-                    resizeContainer = new ResizeContainer(new Entry[newSize], oldTable.length - 1);
-                    IntMapByDynamicHash.setTableAt(oldTable, end, resizeContainer);
+                    long[] nextTable = new long[newSize];
+                    Arrays.fill(nextTable, NULL_VALUE);
+                    resizeContainer = new ResizeContainer(nextTable, oldTable.length - 1);
+                    RESIZE_CONTAINER_UPDATER.set(this, resizeContainer);
                     ownResize = true;
                 }
             }
@@ -496,16 +554,28 @@ public class IntMapByDynamicHash implements IntMap {
         if (ownResize) {
             this.transfer(oldTable, resizeContainer);
 
-            Entry[] src = this.table;
-            while (!TABLE_UPDATER.compareAndSet(this, oldTable, resizeContainer.nextArray)) {
-                /*
-                we're in a double resize situation; we'll have to go help until it's our turn
-                to set the table
-                 */
-                if (src != oldTable) {
-                    this.helpWithResize(src);
-                }
+            long[] src = this.table;
+            synchronized (oldTable) {
+                long[] next = new long[resizeContainer.nextArray.length];
+                System.arraycopy(resizeContainer.nextArray, 0, next, 0,
+                                 resizeContainer.nextArray.length);
+                TABLE_UPDATER.set(this, next);
+                RESIZE_CONTAINER_UPDATER.set(this, null);
             }
+            //while (!TABLE_UPDATER.compareAndSet(this, oldTable, resizeContainer.nextArray)) {
+            //    /*
+            //    we're in a double resize situation; we'll have to go help until it's our turn
+            //    to set the table
+            //     */
+            //    if (src != oldTable) {
+            //        this.helpWithResize(src);
+            //    }
+            //}
+            //while (true) {
+            //    if (RESIZE_CONTAINER_UPDATER.compareAndSet(this, resizeContainer, null)) {
+            //        break;
+            //    }
+            //}
         } else {
             this.helpWithResize(oldTable);
         }
@@ -514,13 +584,13 @@ public class IntMapByDynamicHash implements IntMap {
     /**
      * Transfer all entries from src to dest tables
      */
-    private void transfer(Entry[] src, ResizeContainer resizeContainer) {
-        Entry[] dest = resizeContainer.nextArray;
+    private void transfer(long[] src, ResizeContainer resizeContainer) {
+        long[] dest = resizeContainer.nextArray;
 
         for (int j = 0; j < src.length - 1; ) {
-            Entry o = (Entry) IntMapByDynamicHash.tableAt(src, j);
-            if (o == null) {
-                if (IntMapByDynamicHash.casTableAt(src, j, null, RESIZED)) {
+            long o = IntMapByDynamicHash2.tableAt(src, j);
+            if (o == NULL_VALUE) {
+                if (IntMapByDynamicHash2.casTableAt(src, j, NULL_VALUE, RESIZED)) {
                     j++;
                 }
             } else if (o == RESIZED || o == RESIZING) {
@@ -538,13 +608,9 @@ public class IntMapByDynamicHash implements IntMap {
                     break;
                 }
             } else {
-                Entry e = o;
-                if (IntMapByDynamicHash.casTableAt(src, j, o, RESIZING)) {
-                    while (e != null) {
-                        this.unconditionalCopy(dest, e);
-                        e = e.getNext();
-                    }
-                    IntMapByDynamicHash.setTableAt(src, j, RESIZED);
+                if (IntMapByDynamicHash2.casTableAt(src, j, o, RESIZING)) {
+                    this.unconditionalCopy(dest, o);
+                    IntMapByDynamicHash2.setTableAt(src, j, RESIZED);
                     j++;
                 }
             }
@@ -556,11 +622,16 @@ public class IntMapByDynamicHash implements IntMap {
     /**
      * Enable the current thread to participate in the expansion
      */
-    private Entry[] helpWithResize(Entry[] currentArray) {
-        ResizeContainer resizeContainer =
-            (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                          currentArray.length - 1);
-        Entry[] newTable = resizeContainer.nextArray;
+    private long[] helpWithResize(long[] currentArray) {
+        if (resizeContainer == null) {
+            //System.out.println("============");
+            //System.out.println(Arrays.toString(this.table));
+            //System.out.println(Arrays.toString(currentArray));
+            //System.out.println("************");
+            //throw new RuntimeException("resizeContainer should not be null.");
+            return this.table;
+        }
+        long[] newTable = resizeContainer.nextArray;
         if (resizeContainer.getQueuePosition() > ResizeContainer.QUEUE_INCREMENT) {
             resizeContainer.incrementResizer();
             this.reverseTransfer(currentArray, resizeContainer);
@@ -569,8 +640,8 @@ public class IntMapByDynamicHash implements IntMap {
         return newTable;
     }
 
-    private void reverseTransfer(Entry[] src, ResizeContainer resizeContainer) {
-        Entry[] dest = resizeContainer.nextArray;
+    private void reverseTransfer(long[] src, ResizeContainer resizeContainer) {
+        long[] dest = resizeContainer.nextArray;
         while (resizeContainer.getQueuePosition() > 0) {
             int start = resizeContainer.subtractAndGetQueuePosition();
             int end = start + ResizeContainer.QUEUE_INCREMENT;
@@ -579,22 +650,18 @@ public class IntMapByDynamicHash implements IntMap {
                     start = 0;
                 }
                 for (int j = end - 1; j >= start; ) {
-                    Entry o = (Entry) IntMapByDynamicHash.tableAt(src, j);
-                    if (o == null) {
-                        if (IntMapByDynamicHash.casTableAt(src, j, null, RESIZED)) {
+                    long o = IntMapByDynamicHash2.tableAt(src, j);
+                    if (o == NULL_VALUE) {
+                        if (IntMapByDynamicHash2.casTableAt(src, j, NULL_VALUE, RESIZED)) {
                             j--;
                         }
                     } else if (o == RESIZED || o == RESIZING) {
                         resizeContainer.zeroOutQueuePosition();
                         return;
                     } else {
-                        Entry e = o;
-                        if (IntMapByDynamicHash.casTableAt(src, j, o, RESIZING)) {
-                            while (e != null) {
-                                this.unconditionalCopy(dest, e);
-                                e = e.getNext();
-                            }
-                            IntMapByDynamicHash.setTableAt(src, j, RESIZED);
+                        if (IntMapByDynamicHash2.casTableAt(src, j, o, RESIZING)) {
+                            this.unconditionalCopy(dest, o);
+                            IntMapByDynamicHash2.setTableAt(src, j, RESIZED);
                             j--;
                         }
                     }
@@ -603,45 +670,31 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
-    private void unconditionalCopy(Entry[] dest, Entry toCopyEntry) {
-        Entry[] currentArray = dest;
+    private void unconditionalCopy(long[] dest, long toCopyEntry) {
+        long[] currentArray = dest;
         while (true) {
             int length = currentArray.length;
-            int index = this.hash(toCopyEntry.getKey(), length);
-            Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, index);
+            int index = this.hash(extractKey(toCopyEntry), length);
+            long o = IntMapByDynamicHash2.tableAt(currentArray, index);
             if (o == RESIZED || o == RESIZING) {
-                currentArray = ((ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                              length -
-                                                                              1)).nextArray;
+                currentArray = this.resizeContainer.nextArray;
             } else {
-                Entry newEntry;
-                if (o == null) {
-                    if (toCopyEntry.getNext() == null) {
-                        newEntry = toCopyEntry; // no need to duplicate
-                    } else {
-                        newEntry = new Entry(toCopyEntry.getKey(), toCopyEntry.getValue());
-                    }
-                } else {
-                    newEntry =
-                        new Entry(toCopyEntry.getKey(), toCopyEntry.getValue(), o);
-                }
-                if (IntMapByDynamicHash.casTableAt(currentArray, index, o, newEntry)) {
+                if (IntMapByDynamicHash2.casTableAt(currentArray, index, o, toCopyEntry)) {
                     return;
                 }
             }
         }
     }
 
-    private static final class ResizeContainer extends Entry {
+    private static final class ResizeContainer {
         private static final int QUEUE_INCREMENT =
             Math.min(1 << 10,
                      Integer.highestOneBit(Runtime.getRuntime().availableProcessors()) << 4);
         private final AtomicInteger resizers = new AtomicInteger(1);
-        private final Entry[] nextArray;
+        private final long[] nextArray;
         private final AtomicInteger queuePosition;
 
-        private ResizeContainer(Entry[] nextArray, int oldSize) {
-            super(NULL_VALUE, NULL_VALUE, 4);
+        private ResizeContainer(long[] nextArray, int oldSize) {
             this.nextArray = nextArray;
             this.queuePosition = new AtomicInteger(oldSize);
         }
@@ -703,56 +756,16 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
-    private static class Entry {
-        final int key;
-        volatile int value;
-        volatile Entry next;
+    public static long combineInts(int key, int value) {
+        return ((long) key << 32) | (value & 0xFFFFFFFFL);
+    }
 
-        /**
-         * 0 NORMAL
-         * 1 RESIZING
-         * 2 RESIZED
-         * 3 RESIZE_SENTINEL
-         * 4 ResizeContainer
-         */
-        final int state;
+    public static int extractKey(long combined) {
+        return (int) (combined >> 32);
+    }
 
-        public Entry(int key, int value, int state) {
-            this.key = key;
-            this.value = value;
-            this.state = state;
-        }
-
-        public Entry(int key, int value) {
-            this.key = key;
-            this.value = value;
-            this.next = null;
-            this.state = 0;
-        }
-
-        public Entry(int key, int value, Entry next) {
-            this.key = key;
-            this.value = value;
-            this.next = next;
-            this.state = 0;
-        }
-
-        public int getKey() {
-            return key;
-        }
-
-        public int getValue() {
-            return value;
-        }
-
-        public Entry getNext() {
-            return next;
-        }
-
-        @Override
-        public String toString() {
-            return this.key + "=" + this.value;
-        }
+    public static int extractValue(long combined) {
+        return (int) (combined & 0xFFFFFFFFL);
     }
 
     /* ---------------- Unsafe mechanics -------------- */
@@ -765,7 +778,7 @@ public class IntMapByDynamicHash implements IntMap {
 
     static {
         try {
-            Class<?> tableClass = Entry[].class;
+            Class<?> tableClass = long[].class;
             ENTRY_ARRAY_BASE = UNSAFE.arrayBaseOffset(tableClass);
             int objectArrayScale = UNSAFE.arrayIndexScale(tableClass);
             if ((objectArrayScale & (objectArrayScale - 1)) != 0) {
@@ -781,7 +794,7 @@ public class IntMapByDynamicHash implements IntMap {
             }
             INT_ARRAY_SHIFT = 31 - Integer.numberOfLeadingZeros(intArrayScale);
 
-            Class<?> mapClass = IntMapByDynamicHash.class;
+            Class<?> mapClass = IntMapByDynamicHash2.class;
             SIZE_OFFSET = UNSAFE.objectFieldOffset(mapClass.getDeclaredField("size"));
         } catch (NoSuchFieldException | SecurityException e) {
             throw new AssertionError(e);

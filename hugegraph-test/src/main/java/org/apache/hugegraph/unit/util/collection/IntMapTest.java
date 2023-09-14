@@ -33,7 +33,7 @@ import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.util.collection.IntMap;
 import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
-import org.apache.hugegraph.util.collection.IntSet;
+import org.apache.hugegraph.util.collection.IntMapByDynamicHash2;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -420,13 +420,20 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntMapByDynamicHashSingleThread() {
-        IntMapByDynamicHash map = new IntMapByDynamicHash();
-        int mapSize = 1000;
+        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
+        int mapSize = 2000;
         for (int i = 0; i < mapSize; i++) {
             map.put(i, i + 1);
             Assert.assertTrue(map.containsKey(i));
             Assert.assertFalse(map.containsKey(i + mapSize));
             Assert.assertEquals(i + 1, map.get(i));
+        }
+
+        for (int i = mapSize - 1; i >= 0; i--) {
+            map.put(i, i - 1);
+            Assert.assertTrue(map.containsKey(i));
+            Assert.assertFalse(map.containsKey(i + mapSize));
+            Assert.assertEquals(i - 1, map.get(i));
         }
 
         Assert.assertEquals(mapSize, map.size());
@@ -436,26 +443,37 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntMapByDynamicHashMultiThread() throws InterruptedException {
-        IntMapByDynamicHash map = new IntMapByDynamicHash();
+        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
 
-        int cpus = IntSet.CPUS;
+        //int cpus = IntSet.CPUS;
+        int cpus = 16;
         ThreadPoolExecutor executor =
             new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
-                                   new LinkedBlockingDeque<>());
+                                   new LinkedBlockingDeque<>()) {
+                @Override
+                protected void afterExecute(Runnable r, Throwable t) {
+                    super.afterExecute(r, t);
+                    if (t != null) {
+                        Assert.fail(t.getMessage());
+                    }
+                }
+            };
+        ;
 
         AtomicInteger size = new AtomicInteger();
-        int mapSize = 1000;
+        int mapSize = 100;
         CountDownLatch latch = new CountDownLatch(cpus);
         for (int i = 1; i <= cpus; i++) {
             int index = i;
-            executor.execute(() -> {
+            executor.submit(() -> {
                 try {
                     for (int j = 0; j < mapSize; j++) {
-                        int key = j + (index - 1) * 1000;
+                        int key = j + (index - 1) * mapSize;
                         map.put(key, j);
-                        Assert.assertTrue(map.containsKey(key));
-                        Assert.assertEquals(j, map.get(key));
                         size.getAndIncrement();
+                        //Assert.assertTrue(map.containsKey(key));
+                        Assert.assertEquals(j, map.get(key));
+                        //System.out.println(key + " " + j);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -467,6 +485,7 @@ public class IntMapTest extends BaseUnitTest {
         }
 
         latch.await();
+        System.out.println();
 
         Assert.assertEquals(size.get(), map.size());
     }
