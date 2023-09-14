@@ -226,6 +226,10 @@ public class StandardHugeGraph implements HugeGraph {
             throw new HugeException(message, e);
         }
 
+        if (isHstore()) {
+            initMetaManager();
+        }
+
         try {
             this.tx = new TinkerPopTransaction(this);
             boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
@@ -472,7 +476,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.checkGraphNotClosed();
         try {
             if (isHstore()) {
-                initMetaManager();
                 return new CachedSchemaTransactionV2(
                     MetaManager.instance().metaDriver(),
                     MetaManager.instance().cluster(), this.params);
