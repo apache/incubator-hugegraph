@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
-import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.records.KneighborRecords;
@@ -48,25 +48,28 @@ public class KneighborTraverser extends OltpTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
 
-        Set<Id> latest = newSet();
-        Set<Id> all = newSet();
+        KneighborRecords records = new KneighborRecords(true, sourceV, true);
 
-        latest.add(sourceV);
-        this.vertexIterCounter.addAndGet(1L);
+        Consumer<EdgeId> consumer = edgeId -> {
+            if (this.reachLimit(limit, records.size())) {
+                return;
+            }
+            records.addPath(edgeId.ownerVertexId(), edgeId.otherVertexId());
+            this.edgeIterCounter.addAndGet(1L);
+        };
 
         while (depth-- > 0) {
-            long remaining = limit == NO_LIMIT ? NO_LIMIT : limit - all.size();
-            latest = this.adjacentVertices(sourceV, latest, dir, labelId,
-                                           all, degree, remaining);
-            all.addAll(latest);
-            this.vertexIterCounter.addAndGet(1L);
-            this.edgeIterCounter.addAndGet(latest.size());
-            if (reachLimit(limit, all.size())) {
+            records.startOneLayer(true);
+            bfsQuery(records.keys(), dir, labelId, degree, NO_LIMIT, consumer);
+            records.finishOneLayer();
+            if (reachLimit(limit, records.size())) {
                 break;
             }
         }
 
-        return all;
+        this.vertexIterCounter.addAndGet(records.size());
+
+        return records.idSet(limit);
     }
 
     public KneighborRecords customizedKneighbor(Id source, Steps steps,
@@ -76,33 +79,30 @@ public class KneighborTraverser extends OltpTraverser {
         checkPositive(maxDepth, "k-neighbor max_depth");
         checkLimit(limit);
 
-        boolean concurrent = maxDepth >= this.concurrentDepth();
-
-        KneighborRecords records = new KneighborRecords(concurrent,
+        KneighborRecords records = new KneighborRecords(true,
                                                         source, true);
 
-        Consumer<Id> consumer = v -> {
+        Consumer<Edge> consumer = edge -> {
             if (this.reachLimit(limit, records.size())) {
                 return;
             }
-            Iterator<Edge> edges = edgesOfVertex(v, steps);
-            this.vertexIterCounter.addAndGet(1L);
-            while (!this.reachLimit(limit, records.size()) && edges.hasNext()) {
-                HugeEdge edge = (HugeEdge) edges.next();
-                Id target = edge.id().otherVertexId();
-                records.addPath(v, target);
-
-                records.edgeResults().addEdge(v, target, edge);
-
-                this.edgeIterCounter.addAndGet(1L);
-            }
+            EdgeId edgeId = ((HugeEdge) edge).id();
+            records.addPath(edgeId.ownerVertexId(), edgeId.otherVertexId());
+            records.edgeResults().addEdge(edgeId.ownerVertexId(), edgeId.otherVertexId(), edge);
+            this.edgeIterCounter.addAndGet(1L);
         };
 
         while (maxDepth-- > 0) {
             records.startOneLayer(true);
-            traverseIds(records.keys(), consumer, concurrent);
+            bfsQuery(records.keys(), steps, NO_LIMIT, consumer);
             records.finishOneLayer();
+            if (this.reachLimit(limit, records.size())) {
+                break;
+            }
         }
+
+        this.vertexIterCounter.addAndGet(records.size());
+
         return records;
     }
 

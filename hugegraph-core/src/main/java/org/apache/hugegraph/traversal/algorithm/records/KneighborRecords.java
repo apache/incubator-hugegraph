@@ -19,7 +19,9 @@ package org.apache.hugegraph.traversal.algorithm.records;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hugegraph.backend.id.Id;
@@ -45,6 +47,17 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
     @Override
     public List<Id> ids(long limit) {
         List<Id> ids = CollectionFactory.newList(CollectionType.EC);
+        this.getRecords(limit, ids);
+        return ids;
+    }
+
+    public Set<Id> idSet(long limit) {
+        Set<Id> ids = CollectionFactory.newSet(CollectionType.EC);
+        this.getRecords(limit, ids);
+        return ids;
+    }
+
+    private void getRecords(long limit, Collection<Id> ids) {
         Stack<Record> records = this.records();
         // Not include record(i=0) to ignore source vertex
         for (int i = 1; i < records.size(); i++) {
@@ -54,7 +67,6 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
                 limit--;
             }
         }
-        return ids;
     }
 
     @Override
