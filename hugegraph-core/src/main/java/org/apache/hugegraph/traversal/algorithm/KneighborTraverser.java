@@ -55,7 +55,6 @@ public class KneighborTraverser extends OltpTraverser {
                 return;
             }
             records.addPath(edgeId.ownerVertexId(), edgeId.otherVertexId());
-            this.edgeIterCounter.addAndGet(1L);
         };
 
         while (depth-- > 0) {
@@ -89,7 +88,6 @@ public class KneighborTraverser extends OltpTraverser {
             EdgeId edgeId = ((HugeEdge) edge).id();
             records.addPath(edgeId.ownerVertexId(), edgeId.otherVertexId());
             records.edgeResults().addEdge(edgeId.ownerVertexId(), edgeId.otherVertexId(), edge);
-            this.edgeIterCounter.addAndGet(1L);
         };
 
         while (maxDepth-- > 0) {

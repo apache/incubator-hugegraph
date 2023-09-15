@@ -334,7 +334,7 @@ public abstract class OltpTraverser extends HugeTraverser
             long counter = 0;
             while (ids.hasNext()) {
                 if (Thread.currentThread().isInterrupted()) {
-                    LOG.warn("Consumer isInterrupted");
+                    LOG.warn("Consumer is Interrupted");
                     break;
                 }
                 counter++;
