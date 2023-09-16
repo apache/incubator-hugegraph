@@ -30,11 +30,11 @@ import jakarta.ws.rs.ext.Provider;
 @PreMatching
 public class PathFilter implements ContainerRequestFilter {
 
+    public static final String REQUEST_TIME = "request_time";
+
     @Override
     public void filter(ContainerRequestContext context)
             throws IOException {
-
-        context.setProperty("request_time", System.currentTimeMillis());
-
+        context.setProperty(REQUEST_TIME, System.currentTimeMillis());
     }
 }

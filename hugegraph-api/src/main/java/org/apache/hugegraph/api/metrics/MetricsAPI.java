@@ -205,9 +205,7 @@ public class MetricsAPI extends API {
             return JsonUtil.toJson(metricMap);
         }
         return statisticsProm(metricMap);
-
     }
-
 
     public String baseMetricAll() {
         ServerReporter reporter = ServerReporter.instance();
@@ -221,7 +219,6 @@ public class MetricsAPI extends API {
     }
 
     private String baseMetricPrometheusAll() {
-
         StringBuilder promMetric = new StringBuilder();
         ServerReporter reporter = ServerReporter.instance();
         String helpName = "hugegraph_info";
@@ -269,7 +266,6 @@ public class MetricsAPI extends API {
                         exportSnapshot(helpName, histogram.getSnapshot()));
             }
         }
-
 
         //meters
         for (String meterkey : reporter.meters().keySet()) {
@@ -424,6 +420,4 @@ public class MetricsAPI extends API {
     private String joinWithSlash(String path1, String path2) {
         return String.join("/", path1, path2);
     }
-
-
 }

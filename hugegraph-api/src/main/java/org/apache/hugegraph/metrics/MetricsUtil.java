@@ -188,31 +188,30 @@ public class MetricsUtil {
     }
 
     public static String exportSnapshot(final String helpName, final Snapshot snapshot) {
-        if (snapshot != null) {
-            StringBuilder snapMetrics = new StringBuilder();
-            snapMetrics.append(helpName)
-                       .append(MIN_ATTR).append(snapshot.getMin()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(MAX_ATTR).append(snapshot.getMax()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(MEAN_ATTR).append(snapshot.getMean()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(STDDEV_ATTR).append(snapshot.getStdDev()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P50_ATTR).append(snapshot.getMedian()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P75_ATTR).append(snapshot.get75thPercentile()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P95_ATTR).append(snapshot.get95thPercentile()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P98_ATTR).append(snapshot.get98thPercentile()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P99_ATTR).append(snapshot.get99thPercentile()).append(END_LSTR);
-            snapMetrics.append(helpName)
-                       .append(P999_ATTR).append(snapshot.get999thPercentile()).append(END_LSTR);
-            return snapMetrics.toString();
+        if (snapshot == null) {
+            return "";
         }
-        return "";
+        StringBuilder snapMetrics = new StringBuilder();
+        snapMetrics.append(helpName)
+                   .append(MIN_ATTR).append(snapshot.getMin()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(MAX_ATTR).append(snapshot.getMax()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(MEAN_ATTR).append(snapshot.getMean()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(STDDEV_ATTR).append(snapshot.getStdDev()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P50_ATTR).append(snapshot.getMedian()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P75_ATTR).append(snapshot.get75thPercentile()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P95_ATTR).append(snapshot.get95thPercentile()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P98_ATTR).append(snapshot.get98thPercentile()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P99_ATTR).append(snapshot.get99thPercentile()).append(END_LSTR);
+        snapMetrics.append(helpName)
+                   .append(P999_ATTR).append(snapshot.get999thPercentile()).append(END_LSTR);
+        return snapMetrics.toString();
     }
-
 }

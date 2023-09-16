@@ -38,7 +38,6 @@ public enum MetricsKeys {
     private final byte code;
     private final String name;
 
-
     MetricsKeys(int code, String name) {
         assert code < 256;
         this.code = (byte) code;

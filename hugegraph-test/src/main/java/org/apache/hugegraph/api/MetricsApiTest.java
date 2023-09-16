@@ -63,7 +63,6 @@ public class MetricsApiTest extends BaseApiTest {
         assertResponseStatus(200, r);
     }
 
-
     @Test
     public void testMetricsSystem() {
         Response r = client().get(path, "system");

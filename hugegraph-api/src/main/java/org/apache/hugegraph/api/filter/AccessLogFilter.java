@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_TIME;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUNTER;
@@ -61,9 +62,8 @@ public class AccessLogFilter implements ContainerResponseFilter {
         }
 
         // get responseTime
-        Object requestTime = requestContext.getProperty("request_time");
+        Object requestTime = requestContext.getProperty(REQUEST_TIME);
         if(requestTime!=null){
-            requestContext.getProperty("request_time");
             long now = System.currentTimeMillis();
             long responseTime = (now - (long)requestTime);
 
