@@ -276,7 +276,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> ARTHAS_HTTP_PORT =
         new ConfigOption<>(
             "arthas.http_port",
-            "arthas provides http port to the outside",
+            "The HTTP port provided by Arthas, it can be accessible from the outside.",
             disallowEmpty(),
             "8561"
         );
@@ -293,7 +293,7 @@ public class ServerOptions extends OptionHolder {
         new ConfigOption<>(
             "arthas.disabled_commands",
             "arthas disabled commands due to high risk",
-            allowValues("jad"),
+            null,
             "jad"
         );
 }
