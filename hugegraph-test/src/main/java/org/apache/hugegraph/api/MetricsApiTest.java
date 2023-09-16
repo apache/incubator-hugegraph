@@ -34,7 +34,7 @@ public class MetricsApiTest extends BaseApiTest {
     public void testBaseMetricsAll() {
         Map<String, Object> params = new HashMap<>();
         params.put("type", "json");
-        Response r = client().get(path,params);
+        Response r = client().get(path, params);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "gauges");
         assertJsonContains(result, "counters");
