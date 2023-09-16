@@ -28,7 +28,7 @@ import jakarta.ws.rs.core.Response;
 public class MetricsApiTest extends BaseApiTest {
 
     private static final String path = "/metrics";
-    private static final String statistics_path = path + "/statistics";
+    private static final String statisticsPath = path + "/statistics";
 
     @Test
     public void testBaseMetricsAll() {
@@ -59,7 +59,7 @@ public class MetricsApiTest extends BaseApiTest {
 
     @Test
     public void testStatisticsMetricsPromAll() {
-        Response r = client().get(statistics_path);
+        Response r = client().get(statisticsPath);
         assertResponseStatus(200, r);
     }
 

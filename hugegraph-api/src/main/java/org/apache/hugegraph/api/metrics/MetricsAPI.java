@@ -127,7 +127,6 @@ public class MetricsAPI extends API {
         return JsonUtil.toJson(results);
     }
 
-
     @GET
     @Timed
     @Path("gauges")
@@ -177,7 +176,6 @@ public class MetricsAPI extends API {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.timers());
     }
-
 
     @GET
     @Timed
@@ -325,12 +323,11 @@ public class MetricsAPI extends API {
             }
         }
 
-        MetricsUtil.writePrometheus(promMetric,
+        MetricsUtil.writePrometheusFormat(promMetric,
                                     MetricManager.INSTANCE.getRegistry());
 
         return promMetric.toString();
     }
-
 
     private Map<String, Map<String, Object>> statistics() {
         Map<String, Map<String, Object>> metricsMap = new HashMap<>();
@@ -385,7 +382,6 @@ public class MetricsAPI extends API {
         }
         return metricsMap;
     }
-
 
     private String statisticsProm(Map<String, Map<String, Object>> metricMap) {
         StringBuilder promMetric = new StringBuilder();

@@ -102,7 +102,7 @@ public class MetricsUtil {
         return orgKey.replace("/", "_");
     }
 
-    public static void writePrometheus(StringBuilder promeMetrics,
+    public static void writePrometheusFormat(StringBuilder promeMetrics,
                                        MetricRegistry registry) {
         // gauges
         registry.getGauges().forEach((key, gauge) -> {
