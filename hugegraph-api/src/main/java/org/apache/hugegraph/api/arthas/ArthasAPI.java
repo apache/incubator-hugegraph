@@ -49,7 +49,7 @@ public class ArthasAPI extends API {
         configMap.put("arthas.telnetPort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
         configMap.put("arthas.httpPort", config.get(ServerOptions.ARTHAS_HTTP_PORT));
         configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
-        configMap.put("arthas.disabledCommands",config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
+        configMap.put("arthas.disabledCommands", config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
         ArthasAgent.attach(configMap);
         return JsonUtil.toJson(configMap);
     }
