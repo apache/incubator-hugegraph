@@ -43,19 +43,19 @@ public final class Consumers<V> {
     public static final int THREADS = 4 + CoreOptions.CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
     public static final long CONSUMER_WAKE_PERIOD = 1;
+    private static final Object QUEUE_END = new VWrapper(null);
 
     private static final Logger LOG = Log.logger(Consumers.class);
 
     private final ExecutorService executor;
     private final Consumer<V> consumer;
-    private final Runnable done;
+    private final Runnable doneHandle;
     private final Consumer<Throwable> exceptionHandle;
     private final int workers;
-    private final List<Future> runnings;
+    private final List<Future> runningFutures;
     private final int queueSize;
     private final CountDownLatch latch;
     private final BlockingQueue<VWrapper<V>> queue;
-    private final VWrapper<V> queueEnd = new VWrapper(null);
     private volatile Throwable exception = null;
 
     public Consumers(ExecutorService executor, Consumer<V> consumer) {
@@ -63,26 +63,26 @@ public final class Consumers<V> {
     }
 
     public Consumers(ExecutorService executor,
-                     Consumer<V> consumer, Runnable done) {
-        this(executor, consumer, done, QUEUE_WORKER_SIZE);
+                     Consumer<V> consumer, Runnable doneHandle) {
+        this(executor, consumer, doneHandle, QUEUE_WORKER_SIZE);
     }
 
     public Consumers(ExecutorService executor,
                      Consumer<V> consumer,
-                     Runnable done,
-                     int queueWorkerSize) {
-        this(executor, consumer, done, null, queueWorkerSize);
+                     Runnable doneHandle,
+                     int queueSizePerWorker) {
+        this(executor, consumer, doneHandle, null, queueSizePerWorker);
     }
 
     public Consumers(ExecutorService executor,
                      Consumer<V> consumer,
-                     Runnable done,
-                     Consumer<Throwable> handle,
-                     int queueWorkerSize) {
+                     Runnable doneHandle,
+                     Consumer<Throwable> exceptionHandle,
+                     int queueSizePerWorker) {
         this.executor = executor;
         this.consumer = consumer;
-        this.done = done;
-        this.exceptionHandle = handle;
+        this.doneHandle = doneHandle;
+        this.exceptionHandle = exceptionHandle;
 
         int workers = THREADS;
         if (this.executor instanceof ThreadPoolExecutor) {
@@ -90,8 +90,8 @@ public final class Consumers<V> {
         }
         this.workers = workers;
 
-        this.runnings = new ArrayList<>(workers);
-        this.queueSize = queueWorkerSize * workers + 1;
+        this.runningFutures = new ArrayList<>(workers);
+        this.queueSize = queueSizePerWorker * workers + 1;
         this.latch = new CountDownLatch(workers);
         this.queue = new ArrayBlockingQueue<>(this.queueSize);
     }
@@ -104,7 +104,7 @@ public final class Consumers<V> {
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
-            this.runnings.add(this.executor.submit(new ContextCallable<>(this::runAndDone)));
+            this.runningFutures.add(this.executor.submit(new ContextCallable<>(this::runAndDone)));
         }
     }
 
@@ -114,7 +114,7 @@ public final class Consumers<V> {
         } catch (Throwable e) {
             if (e instanceof StopExecution) {
                 this.queue.clear();
-                putEnd();
+                putQueueEnd();
             } else {
                 // Only the first exception of one thread can be stored
                 this.exception = e;
@@ -148,8 +148,8 @@ public final class Consumers<V> {
             }
         }
 
-        if (elem == queueEnd) {
-            putEnd();
+        if (elem == QUEUE_END) {
+            putQueueEnd();
             return false;
         }
         // do job
@@ -174,12 +174,12 @@ public final class Consumers<V> {
     }
 
     private void done() {
-        if (this.done == null) {
+        if (this.doneHandle == null) {
             return;
         }
 
         try {
-            this.done.run();
+            this.doneHandle.run();
         } catch (Throwable e) {
             if (this.exception == null) {
                 this.exception = e;
@@ -212,10 +212,10 @@ public final class Consumers<V> {
         }
     }
 
-    private void putEnd() {
+    private void putQueueEnd() {
         if (this.executor != null) {
             try {
-                this.queue.put(queueEnd);
+                this.queue.put((VWrapper<V>) QUEUE_END);
             } catch (InterruptedException e) {
                 LOG.warn("Interrupted while enqueue", e);
             }
@@ -228,11 +228,11 @@ public final class Consumers<V> {
             this.done();
         } else {
             try {
-                putEnd();
+                putQueueEnd();
                 this.latch.await();
             } catch (InterruptedException e) {
                 String error = "Interrupted while waiting for consumers";
-                for (Future f: this.runnings) {
+                for (Future f: this.runningFutures) {
                     f.cancel(true);
                 }
                 this.exception = new HugeException(error, e);
@@ -251,8 +251,10 @@ public final class Consumers<V> {
 
     public static void executeOncePerThread(ExecutorService executor,
                                             int totalThreads,
-                                            Runnable callback)
-            throws InterruptedException {
+                                            Runnable callback,
+                                            int invokeTimeout,
+                                            TimeUnit unit)
+                                            throws InterruptedException {
         // Ensure callback execute at least once for every thread
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();
@@ -280,7 +282,7 @@ public final class Consumers<V> {
         for (int i = 0; i < totalThreads; i++) {
             tasks.add(task);
         }
-        executor.invokeAll(tasks, 5, TimeUnit.SECONDS);
+        executor.invokeAll(tasks, invokeTimeout, unit);
     }
 
     public static ExecutorService newThreadPool(String prefix, int workers) {

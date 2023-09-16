@@ -26,15 +26,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.hugegraph.util.*;
-import org.apache.hugegraph.util.Consumers;
-import org.apache.hugegraph.util.LockUtil;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.concurrent.PausableScheduledThreadPool;
+import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.hugegraph.util.Consumers;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.ExecutorUtil;
+import org.apache.hugegraph.util.LockUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public final class TaskManager {
 
@@ -47,7 +48,7 @@ public final class TaskManager {
                                "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
-    protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
+    static final long SCHEDULE_PERIOD = 1000L; // unit ms
 
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
@@ -134,7 +135,7 @@ public final class TaskManager {
                 graph.closeTx();
             } else {
                 Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
-                                               graph::closeTx);
+                                               graph::closeTx, 5, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
@@ -242,7 +243,7 @@ public final class TaskManager {
         return size;
     }
 
-    protected void notifyNewTask(HugeTask<?> task) {
+    void notifyNewTask(HugeTask<?> task) {
         Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
                                                           .getQueue();
         if (queue.size() <= 1) {
@@ -357,11 +358,11 @@ public final class TaskManager {
 
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
-    protected static void setContext(String context) {
+    static void setContext(String context) {
         CONTEXTS.set(context);
     }
 
-    protected static void resetContext() {
+    static void resetContext() {
         CONTEXTS.remove();
     }
 

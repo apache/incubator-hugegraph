@@ -44,9 +44,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.rocksdb.RocksDBException;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -69,6 +66,9 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
+import org.rocksdb.RocksDBException;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.Session> {
@@ -279,7 +279,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         this.useSessions();
         try {
             Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
-                                           this::closeSessions);
+                                           this::closeSessions, 5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new BackendException("Failed to close session opened by " +
                                        "open-pool");

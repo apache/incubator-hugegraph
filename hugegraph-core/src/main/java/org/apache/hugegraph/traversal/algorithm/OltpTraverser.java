@@ -87,7 +87,7 @@ public abstract class OltpTraverser extends HugeTraverser
 
     protected long traversePairs(Iterator<Pair<Id, Id>> pairs,
                                  Consumer<Pair<Id, Id>> consumer) {
-        return this.traverse(pairs, consumer, "traverse-pairs");
+        return this.traverseByOne(pairs, consumer, "traverse-pairs");
     }
 
     protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer,
@@ -105,18 +105,19 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     protected long traverseIds(Iterator<Id> ids, Consumer<Id> consumer) {
-        return this.traverse(ids, consumer, "traverse-ids");
+        return this.traverseByOne(ids, consumer, "traverse-ids");
     }
 
-    protected <K> long traverse(Iterator<K> iterator, Consumer<K> consumer,
-                                String name) {
+    protected <K> long traverseByOne(Iterator<K> iterator,
+                                     Consumer<K> consumer,
+                                     String taskName) {
         if (!iterator.hasNext()) {
             return 0L;
         }
 
         Consumers<K> consumers = new Consumers<>(executors.getExecutor(),
                                                  consumer, null);
-        consumers.start(name);
+        consumers.start(taskName);
         long total = 0L;
         try {
             while (iterator.hasNext()) {
@@ -141,33 +142,69 @@ public abstract class OltpTraverser extends HugeTraverser
         return total;
     }
 
-    protected <K> long traverseBatch(Iterator<Iterator<K>> iterator,
-                                     Consumer<Iterator<K>> consumer,
-                                     String name, int queueWorkerSize) {
-        if (!iterator.hasNext()) {
+    protected void traverseIdsByBfs(Iterator<Id> vertices,
+                                    Directions dir,
+                                    Id label,
+                                    long degree,
+                                    long capacity,
+                                    Consumer<EdgeId> consumer) {
+        List<Id> labels =
+                label == null ? Collections.emptyList() : Collections.singletonList(label);
+        OneStepEdgeIterConsumer edgeIterConsumer = new OneStepEdgeIterConsumer(consumer, capacity);
+
+        EdgesIterator edgeIter = edgesOfVertices(vertices, dir, labels, degree);
+
+        // parallel out-of-order execution
+        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-ite-edge", 1);
+    }
+
+    protected void traverseIdsByBfs(Iterator<Id> vertices,
+                                    Steps steps,
+                                    long capacity,
+                                    Consumer<Edge> consumer) {
+        StepsEdgeIterConsumer edgeIterConsumer =
+                new StepsEdgeIterConsumer(consumer, capacity, steps);
+
+        EdgesQueryIterator queryIterator = new EdgesQueryIterator(vertices,
+                                                                  steps.direction(),
+                                                                  steps.edgeLabels(),
+                                                                  steps.degree());
+
+        // get Iterator<Iterator<edges>> from Iterator<Query>
+        EdgesIterator edgeIter = new EdgesIterator(queryIterator);
+
+        // parallel out-of-order execution
+        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-ite-edge", 1);
+    }
+
+    protected <K> long traverseByBatch(Iterator<Iterator<K>> sources,
+                                       Consumer<Iterator<K>> consumer,
+                                       String taskName, int concurrentWorkers) {
+        if (!sources.hasNext()) {
             return 0L;
         }
         AtomicBoolean done = new AtomicBoolean(false);
         Consumers<Iterator<K>> consumers = null;
         try {
-            consumers = getConsumers(consumer, queueWorkerSize, done,
-                                     executors.getExecutor());
-            return consumersStart(iterator, name, done, consumers);
+            consumers = buildConsumers(consumer, concurrentWorkers, done,
+                                       executors.getExecutor());
+            return startConsumers(sources, taskName, done, consumers);
         } finally {
             assert consumers != null;
             executors.returnExecutor(consumers.executor());
         }
     }
 
-    private <K> long consumersStart(Iterator<Iterator<K>> iterator, String name,
+    private <K> long startConsumers(Iterator<Iterator<K>> sources,
+                                    String taskName,
                                     AtomicBoolean done,
                                     Consumers<Iterator<K>> consumers) {
         long total = 0L;
         try {
-            consumers.start(name);
-            while (iterator.hasNext() && !done.get()) {
+            consumers.start(taskName);
+            while (sources.hasNext() && !done.get()) {
                 total++;
-                Iterator<K> v = iterator.next();
+                Iterator<K> v = sources.next();
                 consumers.provide(v);
             }
         } catch (Consumers.StopExecution e) {
@@ -180,30 +217,26 @@ public abstract class OltpTraverser extends HugeTraverser
             } catch (Throwable e) {
                 throw Consumers.wrapException(e);
             } finally {
-                CloseableIterator.closeIterator(iterator);
+                CloseableIterator.closeIterator(sources);
             }
         }
         return total;
     }
 
-    private <K> Consumers<Iterator<K>> getConsumers(Consumer<Iterator<K>> consumer,
-                                                    int queueWorkerSize,
-                                                    AtomicBoolean done,
-                                                    ExecutorService executor) {
-        Consumers<Iterator<K>> consumers;
-        consumers = new Consumers<>(executor,
-                                    consumer,
-                                    null,
-                                    e -> done.set(true),
-                                    queueWorkerSize);
-        return consumers;
+    private <K> Consumers<Iterator<K>> buildConsumers(Consumer<Iterator<K>> consumer,
+                                                      int queueWorkerSize,
+                                                      AtomicBoolean done,
+                                                      ExecutorService executor) {
+        return new Consumers<>(executor,
+                               consumer,
+                               null,
+                               e -> done.set(true),
+                               queueWorkerSize);
     }
 
     protected Iterator<Vertex> filter(Iterator<Vertex> vertices,
                                       String key, Object value) {
-        return new FilterIterator<>(vertices, vertex -> {
-            return match(vertex, key, value);
-        });
+        return new FilterIterator<>(vertices, vertex -> match(vertex, key, value));
     }
 
     protected boolean match(Element elem, String key, Object value) {
@@ -212,39 +245,6 @@ public abstract class OltpTraverser extends HugeTraverser
         // return true if property value exists & equals to specified value
         Property<Object> p = elem.property(key);
         return p.isPresent() && Objects.equal(p.value(), value);
-    }
-
-    protected void bfsQuery(Iterator<Id> vertices,
-                            Directions dir,
-                            Id label,
-                            long degree,
-                            long capacity,
-                            Consumer<EdgeId> parseConsumer) {
-        List<Id> labels =
-                label == null ? Collections.emptyList() : Collections.singletonList(label);
-        CapacityConsumer consumer = new CapacityConsumer(parseConsumer, capacity);
-
-        EdgesIterator edgeIts = edgesOfVertices(vertices, dir, labels, degree);
-        // 并行乱序处理
-        this.traverseBatch(edgeIts, consumer, "traverse-ite-edge", 1);
-    }
-
-    protected void bfsQuery(Iterator<Id> vertices,
-                            Steps steps,
-                            long capacity,
-                            Consumer<Edge> parseConsumer) {
-        CapacityConsumerWithStep consumer =
-                new CapacityConsumerWithStep(parseConsumer, capacity, steps);
-
-        EdgesQueryIterator queryIterator =
-                new EdgesQueryIterator(vertices, steps.direction(), steps.edgeLabels(),
-                                       steps.degree());
-
-        // 这里获取边数据，以便支持 step
-        EdgesIterator edgeIts = new EdgesIterator(queryIterator);
-
-        // 并行乱序处理
-        this.traverseBatch(edgeIts, consumer, "traverse-ite-edge", 1);
     }
 
     public static class ConcurrentMultiValuedMap<K, V>
@@ -280,6 +280,7 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     public static class ConcurrentVerticesConsumer implements Consumer<EdgeId> {
+
         private final Id sourceV;
         private final Set<Id> excluded;
         private final Set<Id> neighbors;
@@ -317,20 +318,21 @@ public abstract class OltpTraverser extends HugeTraverser
         }
     }
 
-    public abstract class EdgeItConsumer<T, E> implements Consumer<Iterator<T>> {
-        private final Consumer<E> parseConsumer;
+    public abstract class EdgesConsumer<T, E> implements Consumer<Iterator<T>> {
+
+        private final Consumer<E> consumer;
         private final long capacity;
 
-        public EdgeItConsumer(Consumer<E> parseConsumer, long capacity) {
-            this.parseConsumer = parseConsumer;
+        public EdgesConsumer(Consumer<E> consumer, long capacity) {
+            this.consumer = consumer;
             this.capacity = capacity;
         }
 
-        protected abstract Iterator<E> prepare(Iterator<T> it);
+        protected abstract Iterator<E> prepare(Iterator<T> iter);
 
         @Override
-        public void accept(Iterator<T> edges) {
-            Iterator<E> ids = prepare(edges);
+        public void accept(Iterator<T> edgeIter) {
+            Iterator<E> ids = prepare(edgeIter);
             long counter = 0;
             while (ids.hasNext()) {
                 if (Thread.currentThread().isInterrupted()) {
@@ -338,40 +340,41 @@ public abstract class OltpTraverser extends HugeTraverser
                     break;
                 }
                 counter++;
-                parseConsumer.accept(ids.next());
+                consumer.accept(ids.next());
             }
             long total = edgeIterCounter.addAndGet(counter);
-            // 按批次检测 capacity，以提高性能
+            // traverse by batch & improve performance
             if (this.capacity != NO_LIMIT && total >= capacity) {
                 throw new Consumers.StopExecution("reach capacity");
             }
         }
     }
 
-    public class CapacityConsumer extends EdgeItConsumer<Edge, EdgeId> {
-        public CapacityConsumer(Consumer<EdgeId> parseConsumer, long capacity) {
-            super(parseConsumer, capacity);
+    public class OneStepEdgeIterConsumer extends EdgesConsumer<Edge, EdgeId> {
+
+        public OneStepEdgeIterConsumer(Consumer<EdgeId> consumer, long capacity) {
+            super(consumer, capacity);
         }
 
         @Override
-        protected Iterator<EdgeId> prepare(Iterator<Edge> edges) {
-            return new MapperIterator<>(edges, (e) -> ((HugeEdge) e).id());
+        protected Iterator<EdgeId> prepare(Iterator<Edge> edgeIter) {
+            return new MapperIterator<>(edgeIter, (e) -> ((HugeEdge) e).id());
         }
     }
 
-    public class CapacityConsumerWithStep extends EdgeItConsumer<Edge, Edge> {
+    public class StepsEdgeIterConsumer extends EdgesConsumer<Edge, Edge> {
+
         private final Steps steps;
 
-        public CapacityConsumerWithStep(Consumer<Edge> parseConsumer, long capacity,
-                                        Steps steps) {
-            super(parseConsumer, capacity);
+        public StepsEdgeIterConsumer(Consumer<Edge> consumer, long capacity,
+                                     Steps steps) {
+            super(consumer, capacity);
             this.steps = steps;
         }
 
         @Override
-        protected Iterator<Edge> prepare(Iterator<Edge> edges) {
-            return edgesOfVertexStep(edges, steps);
+        protected Iterator<Edge> prepare(Iterator<Edge> edgeIter) {
+            return edgesOfVertexStep(edgeIter, steps);
         }
     }
-
 }

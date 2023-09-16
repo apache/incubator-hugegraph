@@ -92,7 +92,7 @@ public class KoutTraverser extends OltpTraverser {
             this.vertexIterCounter.addAndGet(sources.size());
             this.edgeIterCounter.addAndGet(neighbors.size());
 
-            bfsQuery(sources.iterator(), dir, labelId, degree, capacity, consumer);
+            traverseIdsByBfs(sources.iterator(), dir, labelId, degree, capacity, consumer);
 
             sources.clear();
 
@@ -136,7 +136,7 @@ public class KoutTraverser extends OltpTraverser {
         while (depth[0]-- > 0) {
             List<Id> sources = records.ids(Query.NO_LIMIT);
             records.startOneLayer(true);
-            bfsQuery(sources.iterator(), steps, capacity, consumer);
+            traverseIdsByBfs(sources.iterator(), steps, capacity, consumer);
             this.vertexIterCounter.addAndGet(sources.size());
             records.finishOneLayer();
             checkCapacity(capacity, records.accessed(), depth[0]);

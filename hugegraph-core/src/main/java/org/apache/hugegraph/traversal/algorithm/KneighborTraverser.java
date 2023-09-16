@@ -59,7 +59,7 @@ public class KneighborTraverser extends OltpTraverser {
 
         while (depth-- > 0) {
             records.startOneLayer(true);
-            bfsQuery(records.keys(), dir, labelId, degree, NO_LIMIT, consumer);
+            traverseIdsByBfs(records.keys(), dir, labelId, degree, NO_LIMIT, consumer);
             records.finishOneLayer();
             if (reachLimit(limit, records.size())) {
                 break;
@@ -68,7 +68,7 @@ public class KneighborTraverser extends OltpTraverser {
 
         this.vertexIterCounter.addAndGet(records.size());
 
-        return records.idSet(limit);
+        return records.idsBySet(limit);
     }
 
     public KneighborRecords customizedKneighbor(Id source, Steps steps,
@@ -92,7 +92,7 @@ public class KneighborTraverser extends OltpTraverser {
 
         while (maxDepth-- > 0) {
             records.startOneLayer(true);
-            bfsQuery(records.keys(), steps, NO_LIMIT, consumer);
+            traverseIdsByBfs(records.keys(), steps, NO_LIMIT, consumer);
             records.finishOneLayer();
             if (this.reachLimit(limit, records.size())) {
                 break;

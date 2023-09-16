@@ -51,7 +51,7 @@ public class KneighborRecords extends SingleWayMultiPathsRecords {
         return ids;
     }
 
-    public Set<Id> idSet(long limit) {
+    public Set<Id> idsBySet(long limit) {
         Set<Id> ids = CollectionFactory.newSet(CollectionType.EC);
         this.getRecords(limit, ids);
         return ids;
