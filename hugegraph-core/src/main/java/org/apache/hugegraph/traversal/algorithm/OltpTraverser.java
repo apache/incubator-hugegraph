@@ -155,7 +155,7 @@ public abstract class OltpTraverser extends HugeTraverser
         EdgesIterator edgeIter = edgesOfVertices(vertices, dir, labels, degree);
 
         // parallel out-of-order execution
-        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-ite-edge", 1);
+        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-bfs-step", 1);
     }
 
     protected void traverseIdsByBfs(Iterator<Id> vertices,
@@ -174,7 +174,7 @@ public abstract class OltpTraverser extends HugeTraverser
         EdgesIterator edgeIter = new EdgesIterator(queryIterator);
 
         // parallel out-of-order execution
-        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-ite-edge", 1);
+        this.traverseByBatch(edgeIter, edgeIterConsumer, "traverse-bfs-steps", 1);
     }
 
     protected <K> long traverseByBatch(Iterator<Iterator<K>> sources,
@@ -224,14 +224,14 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     private <K> Consumers<Iterator<K>> buildConsumers(Consumer<Iterator<K>> consumer,
-                                                      int queueWorkerSize,
+                                                      int queueSizePerWorker,
                                                       AtomicBoolean done,
                                                       ExecutorService executor) {
         return new Consumers<>(executor,
                                consumer,
                                null,
                                e -> done.set(true),
-                               queueWorkerSize);
+                               queueSizePerWorker);
     }
 
     protected Iterator<Vertex> filter(Iterator<Vertex> vertices,
@@ -297,22 +297,22 @@ public abstract class OltpTraverser extends HugeTraverser
 
         @Override
         public void accept(EdgeId edgeId) {
-            if (limit != NO_LIMIT && count.get() >= limit) {
+            if (this.limit != NO_LIMIT && count.get() >= this.limit) {
                 throw new Consumers.StopExecution("reach limit");
             }
 
             Id targetV = edgeId.otherVertexId();
-            if (sourceV.equals(targetV)) {
+            if (this.sourceV.equals(targetV)) {
                 return;
             }
 
-            if (excluded != null && excluded.contains(targetV)) {
+            if (this.excluded != null && this.excluded.contains(targetV)) {
                 return;
             }
 
-            if (neighbors.add(targetV)) {
-                if (limit != NO_LIMIT) {
-                    count.getAndIncrement();
+            if (this.neighbors.add(targetV)) {
+                if (this.limit != NO_LIMIT) {
+                    this.count.getAndIncrement();
                 }
             }
         }
@@ -340,11 +340,11 @@ public abstract class OltpTraverser extends HugeTraverser
                     break;
                 }
                 counter++;
-                consumer.accept(ids.next());
+                this.consumer.accept(ids.next());
             }
             long total = edgeIterCounter.addAndGet(counter);
             // traverse by batch & improve performance
-            if (this.capacity != NO_LIMIT && total >= capacity) {
+            if (this.capacity != NO_LIMIT && total >= this.capacity) {
                 throw new Consumers.StopExecution("reach capacity");
             }
         }
@@ -374,7 +374,7 @@ public abstract class OltpTraverser extends HugeTraverser
 
         @Override
         protected Iterator<Edge> prepare(Iterator<Edge> edgeIter) {
-            return edgesOfVertexStep(edgeIter, steps);
+            return edgesOfVertexStep(edgeIter, this.steps);
         }
     }
 }

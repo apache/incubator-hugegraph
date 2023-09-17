@@ -48,9 +48,10 @@ public final class TaskManager {
                                "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
-    static final long SCHEDULE_PERIOD = 1000L; // unit ms
+    protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
 
     private static final int THREADS = 4;
+    private static final int TX_CLOSE_TIMEOUT = 30;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
@@ -135,7 +136,7 @@ public final class TaskManager {
                 graph.closeTx();
             } else {
                 Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
-                                               graph::closeTx, 5, TimeUnit.SECONDS);
+                                               graph::closeTx, TX_CLOSE_TIMEOUT);
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
@@ -243,7 +244,7 @@ public final class TaskManager {
         return size;
     }
 
-    void notifyNewTask(HugeTask<?> task) {
+    protected void notifyNewTask(HugeTask<?> task) {
         Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
                                                           .getQueue();
         if (queue.size() <= 1) {
@@ -358,11 +359,11 @@ public final class TaskManager {
 
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
-    static void setContext(String context) {
+    protected static void setContext(String context) {
         CONTEXTS.set(context);
     }
 
-    static void resetContext() {
+    protected static void resetContext() {
         CONTEXTS.remove();
     }
 

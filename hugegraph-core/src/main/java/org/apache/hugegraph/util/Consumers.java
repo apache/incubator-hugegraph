@@ -43,7 +43,7 @@ public final class Consumers<V> {
     public static final int THREADS = 4 + CoreOptions.CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
     public static final long CONSUMER_WAKE_PERIOD = 1;
-    private static final Object QUEUE_END = new VWrapper(null);
+    private static final Object QUEUE_END = new Object();
 
     private static final Logger LOG = Log.logger(Consumers.class);
 
@@ -232,7 +232,7 @@ public final class Consumers<V> {
                 this.latch.await();
             } catch (InterruptedException e) {
                 String error = "Interrupted while waiting for consumers";
-                for (Future f: this.runningFutures) {
+                for (Future f : this.runningFutures) {
                     f.cancel(true);
                 }
                 this.exception = new HugeException(error, e);
@@ -252,8 +252,7 @@ public final class Consumers<V> {
     public static void executeOncePerThread(ExecutorService executor,
                                             int totalThreads,
                                             Runnable callback,
-                                            int invokeTimeout,
-                                            TimeUnit unit)
+                                            int invokeTimeout)
                                             throws InterruptedException {
         // Ensure callback execute at least once for every thread
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
@@ -282,7 +281,7 @@ public final class Consumers<V> {
         for (int i = 0; i < totalThreads; i++) {
             tasks.add(task);
         }
-        executor.invokeAll(tasks, invokeTimeout, unit);
+        executor.invokeAll(tasks, invokeTimeout, TimeUnit.SECONDS);
     }
 
     public static ExecutorService newThreadPool(String prefix, int workers) {
