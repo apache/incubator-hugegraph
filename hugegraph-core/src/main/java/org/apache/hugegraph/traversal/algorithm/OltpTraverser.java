@@ -148,8 +148,8 @@ public abstract class OltpTraverser extends HugeTraverser
                                     long degree,
                                     long capacity,
                                     Consumer<EdgeId> consumer) {
-        List<Id> labels =
-                label == null ? Collections.emptyList() : Collections.singletonList(label);
+        List<Id> labels = label == null ? Collections.emptyList() :
+                                          Collections.singletonList(label);
         OneStepEdgeIterConsumer edgeIterConsumer = new OneStepEdgeIterConsumer(consumer, capacity);
 
         EdgesIterator edgeIter = edgesOfVertices(vertices, dir, labels, degree);
@@ -285,7 +285,6 @@ public abstract class OltpTraverser extends HugeTraverser
         private final Set<Id> excluded;
         private final Set<Id> neighbors;
         private final long limit;
-        private final AtomicInteger count = new AtomicInteger(0);
 
         public ConcurrentVerticesConsumer(Id sourceV, Set<Id> excluded, long limit,
                                           Set<Id> neighbors) {
@@ -294,6 +293,8 @@ public abstract class OltpTraverser extends HugeTraverser
             this.limit = limit;
             this.neighbors = neighbors;
         }
+
+        private final AtomicInteger count = new AtomicInteger(0);
 
         @Override
         public void accept(EdgeId edgeId) {

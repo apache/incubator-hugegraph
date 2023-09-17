@@ -49,9 +49,8 @@ public final class TaskManager {
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
-
+    private static final long TX_CLOSE_TIMEOUT = 30L; // unit s
     private static final int THREADS = 4;
-    private static final int TX_CLOSE_TIMEOUT = 30;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
     private final Map<HugeGraphParams, TaskScheduler> schedulers;

@@ -93,8 +93,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
-    private static final long OPEN_TIMEOUT = 600L;
-    private static final int TX_CLOSE_TIMEOUT = 30;
+    private static final long DB_OPEN_TIMEOUT = 600L; // unit s
+    private static final long DB_CLOSE_TIMEOUT = 30L; // unit s
     /*
      * This is threads number used to concurrently opening RocksDB dbs,
      * 8 is supposed enough due to configurable data disks and
@@ -280,7 +280,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         this.useSessions();
         try {
             Consumers.executeOncePerThread(openPool, OPEN_POOL_THREADS,
-                                           this::closeSessions, TX_CLOSE_TIMEOUT);
+                                           this::closeSessions, DB_CLOSE_TIMEOUT);
         } catch (InterruptedException e) {
             throw new BackendException("Failed to close session opened by " +
                                        "open-pool");
@@ -289,7 +289,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         boolean terminated;
         openPool.shutdown();
         try {
-            terminated = openPool.awaitTermination(OPEN_TIMEOUT,
+            terminated = openPool.awaitTermination(DB_OPEN_TIMEOUT,
                                                    TimeUnit.SECONDS);
         } catch (Throwable e) {
             throw new BackendException(

@@ -1017,29 +1017,31 @@ public class HugeTraverser {
     }
 
     public class EdgesIterator implements Iterator<Iterator<Edge>>, Closeable {
-        private final Iterator<Iterator<Edge>> currentIt;
 
-        public EdgesIterator(EdgesQueryIterator queryIterator) {
+        private final Iterator<Iterator<Edge>> currentIter;
+
+        public EdgesIterator(EdgesQueryIterator queries) {
             List<Iterator<Edge>> iteratorList = new ArrayList<>();
-            while (queryIterator.hasNext()) {
-                iteratorList.add(graph().edges(queryIterator.next()));
+            while (queries.hasNext()) {
+                iteratorList.add(
+                        graph().edges(queries.next()));
             }
-            this.currentIt = iteratorList.iterator();
+            this.currentIter = iteratorList.iterator();
         }
 
         @Override
         public boolean hasNext() {
-            return this.currentIt.hasNext();
+            return this.currentIter.hasNext();
         }
 
         @Override
         public Iterator<Edge> next() {
-            return this.currentIt.next();
+            return this.currentIter.next();
         }
 
         @Override
         public void close() throws IOException {
-            CloseableIterator.closeIterator(currentIt);
+            CloseableIterator.closeIterator(currentIter);
         }
     }
 }

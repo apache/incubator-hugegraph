@@ -43,10 +43,10 @@ public final class Consumers<V> {
     public static final int THREADS = 4 + CoreOptions.CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
     public static final long CONSUMER_WAKE_PERIOD = 1;
-    private static final Object QUEUE_END = new VWrapper<>(null);
 
     private static final Logger LOG = Log.logger(Consumers.class);
 
+    private final V QUEUE_END = (V) new Object();
     private final ExecutorService executor;
     private final Consumer<V> consumer;
     private final Runnable doneHandle;
@@ -55,7 +55,7 @@ public final class Consumers<V> {
     private final List<Future> runningFutures;
     private final int queueSize;
     private final CountDownLatch latch;
-    private final BlockingQueue<VWrapper<V>> queue;
+    private final BlockingQueue<V> queue;
     private volatile Throwable exception = null;
 
     public Consumers(ExecutorService executor, Consumer<V> consumer) {
@@ -104,7 +104,8 @@ public final class Consumers<V> {
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
-            this.runningFutures.add(this.executor.submit(new ContextCallable<>(this::runAndDone)));
+            this.runningFutures.add(
+                    this.executor.submit(new ContextCallable<>(this::runAndDone)));
         }
     }
 
@@ -116,7 +117,7 @@ public final class Consumers<V> {
                 this.queue.clear();
                 putQueueEnd();
             } else {
-                // Only the first exception of one thread can be stored
+                // Only the first exception to one thread can be stored
                 this.exception = e;
                 LOG.error("Error when running task", e);
             }
@@ -138,7 +139,7 @@ public final class Consumers<V> {
     }
 
     private boolean consume() {
-        VWrapper<V> elem = null;
+        V elem = null;
         while (elem == null) {
             try {
                 elem = this.queue.poll(CONSUMER_WAKE_PERIOD, TimeUnit.MILLISECONDS);
@@ -153,7 +154,7 @@ public final class Consumers<V> {
             return false;
         }
         // do job
-        this.consumer.accept(elem.v);
+        this.consumer.accept(elem);
         return true;
     }
 
@@ -205,7 +206,7 @@ public final class Consumers<V> {
             throw this.throwException();
         } else {
             try {
-                this.queue.put(new VWrapper<>(v));
+                this.queue.put(v);
             } catch (InterruptedException e) {
                 LOG.warn("Interrupted while enqueue", e);
             }
@@ -215,7 +216,7 @@ public final class Consumers<V> {
     private void putQueueEnd() {
         if (this.executor != null) {
             try {
-                this.queue.put((VWrapper<V>) QUEUE_END);
+                this.queue.put(QUEUE_END);
             } catch (InterruptedException e) {
                 LOG.warn("Interrupted while enqueue", e);
             }
@@ -252,7 +253,7 @@ public final class Consumers<V> {
     public static void executeOncePerThread(ExecutorService executor,
                                             int totalThreads,
                                             Runnable callback,
-                                            int invokeTimeout)
+                                            long invokeTimeout)
                                             throws InterruptedException {
         // Ensure callback execute at least once for every thread
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
@@ -371,14 +372,6 @@ public final class Consumers<V> {
 
         public StopExecution(String message, Object... args) {
             super(message, args);
-        }
-    }
-
-    public static class VWrapper<V> {
-        public V v;
-
-        public VWrapper(V v) {
-            this.v = v;
         }
     }
 }

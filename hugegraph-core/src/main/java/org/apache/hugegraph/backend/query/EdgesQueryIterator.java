@@ -25,6 +25,7 @@ import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.Directions;
 
 public class EdgesQueryIterator implements Iterator<Query> {
+
     private final List<Id> labels;
     private final Directions directions;
     private final long limit;
@@ -60,5 +61,4 @@ public class EdgesQueryIterator implements Iterator<Query> {
         }
         return query;
     }
-
 }
