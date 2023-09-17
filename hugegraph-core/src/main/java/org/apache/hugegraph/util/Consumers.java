@@ -43,7 +43,7 @@ public final class Consumers<V> {
     public static final int THREADS = 4 + CoreOptions.CPUS / 4;
     public static final int QUEUE_WORKER_SIZE = 1000;
     public static final long CONSUMER_WAKE_PERIOD = 1;
-    private static final Object QUEUE_END = new Object();
+    private static final Object QUEUE_END = new VWrapper<>(null);
 
     private static final Logger LOG = Log.logger(Consumers.class);
 
