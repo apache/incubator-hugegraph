@@ -133,7 +133,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Watched(prefix = "tx")
-    public QueryResults<BackendEntry> query(Query query) {
+    protected QueryResults<BackendEntry> query(Query query) {
         LOG.debug("Transaction query: {}", query);
         /*
          * NOTE: it's dangerous if an IdQuery/ConditionQuery is empty

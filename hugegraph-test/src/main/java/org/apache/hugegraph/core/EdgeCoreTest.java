@@ -2763,14 +2763,14 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.traversal().E().hasLabel("know").has("ID", id).toList();
         }, e -> {
             Assert.assertContains("Undefined property key: 'ID'",
-                                  e.getMessage());
+                e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.traversal().E().hasLabel("know").has("NAME", "n1").toList();
         }, e -> {
             Assert.assertContains("Undefined property key: 'NAME'",
-                                  e.getMessage());
+                e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
@@ -2780,9 +2780,12 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying by id and conditions",
-                                  e.getMessage());
+                e.getMessage());
         });
 
+
+        Id look = graph.schema().getEdgeLabel("look").id();
+        Id score = graph.schema().getPropertyKey("score").id();
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
             query.eq(HugeKeys.LABEL, know);
@@ -2790,19 +2793,19 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Not supported querying edges by",
-                                  e.getMessage());
+                e.getMessage());
             Assert.assertContains("NAME == n1", e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {
             ConditionQuery query = new ConditionQuery(HugeType.EDGE);
-            query.eq(HugeKeys.LABEL, know);
+            query.eq(HugeKeys.LABEL, look);
             query.eq(HugeKeys.NAME, "n2");
-            query.query(Condition.eq(IdGenerator.of("fake"), "n3"));
+            query.query(Condition.eq(score, "n3"));
             graph.edges(query).hasNext();
         }, e -> {
             Assert.assertContains("Can't do index query with [",
-                                  e.getMessage());
+                e.getMessage());
             Assert.assertContains("LABEL == ", e.getMessage());
             Assert.assertContains("NAME == n2", e.getMessage());
         });

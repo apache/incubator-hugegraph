@@ -76,7 +76,7 @@ public class ConditionQuery extends IdQuery {
 
     private OptimizedType optimizedType = OptimizedType.NONE;
     private ResultsFilter resultsFilter = null;
-    private Element2IndexValueMap element2IndexValueMap = null;
+    private transient Element2IndexValueMap element2IndexValueMap = null;
 
     public ConditionQuery(HugeType resultType) {
         super(resultType);
