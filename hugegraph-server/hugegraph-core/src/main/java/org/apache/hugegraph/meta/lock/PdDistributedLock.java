@@ -52,6 +52,7 @@ public class PdDistributedLock {
                 result.lockSuccess(true);
                 long period = ttl - ttl / 4;
                 ScheduledFuture<?> future = service.scheduleAtFixedRate(() -> {
+                    // TODO: why synchronized?
                     synchronized (result) {
                         keepAlive(key);
                     }
@@ -72,6 +73,7 @@ public class PdDistributedLock {
                 throw new HugeException("Failed to unlock '%s' to pd", key);
             }
             if (lockResult.getFuture() != null) {
+                // TODO: why synchronized?
                 synchronized (lockResult) {
                     lockResult.getFuture().cancel(true);
                 }

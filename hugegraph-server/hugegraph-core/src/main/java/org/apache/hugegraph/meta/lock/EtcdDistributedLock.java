@@ -160,6 +160,7 @@ public class EtcdDistributedLock {
 
         @Override
         public void run() {
+            // TODO: calculate the time interval between the calls
             this.leaseClient.keepAliveOnce(this.leaseId);
         }
     }
