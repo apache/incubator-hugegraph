@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -43,7 +44,7 @@ public class EdgeLabelRemoveJob extends SchemaJob {
 
     private static void removeEdgeLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
+        ISchemaTransaction schemaTx = graph.schemaTransaction();
         EdgeLabel edgeLabel = schemaTx.getEdgeLabel(id);
         // If the edge label does not exist, return directly
         if (edgeLabel == null) {

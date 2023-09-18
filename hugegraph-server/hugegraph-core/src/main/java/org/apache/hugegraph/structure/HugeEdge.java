@@ -540,4 +540,69 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         return edge;
     }
+
+    public static HugeEdge constructEdgeWithoutLabel(HugeVertex ownerVertex,
+                                                     boolean isOutEdge,
+                                                     String sortValues,
+                                                     Id otherVertexId) {
+        HugeGraph graph = ownerVertex.graph();
+        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId,
+                                                VertexLabel.NONE);
+        ownerVertex.propNotLoaded();
+        otherVertex.propNotLoaded();
+
+        HugeEdge edge = new HugeEdge(graph, null, EdgeLabel.NONE);
+        edge.name(sortValues);
+        edge.vertices(isOutEdge, ownerVertex, otherVertex);
+        edge.assignId();
+
+        if (isOutEdge) {
+            ownerVertex.addOutEdge(edge);
+            otherVertex.addInEdge(edge.switchOwner());
+        } else {
+            ownerVertex.addInEdge(edge);
+            otherVertex.addOutEdge(edge.switchOwner());
+        }
+
+        return edge;
+    }
+
+    public static HugeEdge constructEdgeWithoutGraph(HugeVertex ownerVertex,
+                                                     boolean isOutEdge,
+                                                     EdgeLabel edgeLabel,
+                                                     String sortValues,
+                                                     Id otherVertexId) {
+        Id ownerLabelId = edgeLabel.sourceLabel();
+        Id otherLabelId = edgeLabel.targetLabel();
+        VertexLabel srcLabel = new VertexLabel(null, ownerLabelId, "UNDEF");
+        VertexLabel tgtLabel = new VertexLabel(null, otherLabelId, "UNDEF");
+
+        VertexLabel otherVertexLabel;
+        if (isOutEdge) {
+            ownerVertex.correctVertexLabel(srcLabel);
+            otherVertexLabel = tgtLabel;
+        } else {
+            ownerVertex.correctVertexLabel(tgtLabel);
+            otherVertexLabel = srcLabel;
+        }
+        HugeVertex otherVertex = new HugeVertex(null, otherVertexId,
+                                                otherVertexLabel);
+        ownerVertex.propNotLoaded();
+        otherVertex.propNotLoaded();
+
+        HugeEdge edge = new HugeEdge(null, null, edgeLabel);
+        edge.name(sortValues);
+        edge.vertices(isOutEdge, ownerVertex, otherVertex);
+        edge.assignId();
+
+        if (isOutEdge) {
+            ownerVertex.addOutEdge(edge);
+            otherVertex.addInEdge(edge.switchOwner());
+        } else {
+            ownerVertex.addInEdge(edge);
+            otherVertex.addOutEdge(edge.switchOwner());
+        }
+
+        return edge;
+    }
 }

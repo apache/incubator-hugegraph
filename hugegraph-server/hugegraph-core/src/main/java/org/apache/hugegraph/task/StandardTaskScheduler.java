@@ -523,7 +523,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     public <V> HugeTask<V> findTask(Id id) {
         HugeTask<V> result =  this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(id);
+            Iterator<Vertex> vertices = this.tx().queryTaskInfos(id);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -573,7 +573,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
 
         return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(id);
+            Iterator<Vertex> vertices = this.tx().queryTaskInfos(id);
             HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -666,7 +666,12 @@ public class StandardTaskScheduler implements TaskScheduler {
     private <V> Iterator<HugeTask<V>> queryTask(Map<String, Object> conditions,
                                                 long limit, String page) {
         return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            ConditionQuery query;
+            if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+                query = new ConditionQuery(HugeType.TASK);
+            } else {
+                query = new ConditionQuery(HugeType.VERTEX);
+            }
             if (page != null) {
                 query.page(page);
             }
@@ -691,7 +696,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     private <V> Iterator<HugeTask<V>> queryTask(List<Id> ids) {
         return this.call(() -> {
             Object[] idArray = ids.toArray(new Id[0]);
-            Iterator<Vertex> vertices = this.tx().queryVertices(idArray);
+            Iterator<Vertex> vertices = this.tx().queryTaskInfos(idArray);
             Iterator<HugeTask<V>> tasks =
                     new MapperIterator<>(vertices, HugeTask::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
@@ -756,7 +761,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         public void deleteIndex(HugeVertex vertex) {
             // Delete the old record if exist
-            Iterator<Vertex> old = this.queryVertices(vertex.id());
+            Iterator<Vertex> old = this.queryTaskInfos(vertex.id());
             HugeVertex oldV = (HugeVertex) QueryResults.one(old);
             if (oldV == null) {
                 return;

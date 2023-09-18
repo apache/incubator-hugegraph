@@ -19,6 +19,7 @@ package org.apache.hugegraph.job.schema;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -40,7 +41,7 @@ public class IndexLabelRemoveJob extends SchemaJob {
 
     protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
+        ISchemaTransaction schemaTx = graph.schemaTransaction();
         IndexLabel indexLabel = schemaTx.getIndexLabel(id);
         // If the index label does not exist, return directly
         if (indexLabel == null) {

@@ -136,11 +136,6 @@ public class API {
         return builder;
     }
 
-    /**
-     * @param object
-     * @return
-     * @author tianxiaohui
-     */
     public String toJSON(Object object) {
         ObjectMapper mapper = new ObjectMapper();
         try {

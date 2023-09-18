@@ -91,6 +91,9 @@ public class RegisterUtil {
             case "postgresql":
                 registerPostgresql();
                 break;
+            case "hstore":
+                registerHstore();
+                break;
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
@@ -214,5 +217,14 @@ public class RegisterUtil {
                 throw new HugeException("Failed to load plugin '%s'", plugin.name(), e);
             }
         }
+    }
+
+    public static void registerHstore() {
+        // Register config
+        OptionSpace.register("hstore",
+                             "org.apache.hugegraph.backend.store.hstore.HstoreOptions");
+        // Register backend
+        BackendProviderFactory.register("hstore",
+                                        "org.apache.hugegraph.backend.store.hstore.HstoreProvider");
     }
 }

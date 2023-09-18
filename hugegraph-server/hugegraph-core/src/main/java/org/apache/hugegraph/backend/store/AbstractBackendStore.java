@@ -80,6 +80,13 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
 
     protected abstract BackendTable<Session, ?> table(HugeType type);
 
+    protected static HugeType convertTaskOrServerToVertex(HugeType type) {
+        if (HugeType.TASK.equals(type) || HugeType.SERVER.equals(type)) {
+            return HugeType.VERTEX;
+        }
+        return type;
+    }
+
     // NOTE: Need to support passing null
     protected abstract Session session(HugeType type);
 }

@@ -42,6 +42,7 @@ public class HugeTarget extends Entity {
 
     private String name;
     private String graph;
+    private String description;
     private String url;
     private List<HugeResource> resources;
 
@@ -90,6 +91,18 @@ public class HugeTarget extends Entity {
 
     public String graph() {
         return this.graph;
+    }
+
+    public void graph(String graph) {
+        this.graph = graph;
+    }
+
+    public String description() {
+        return this.description;
+    }
+
+    public void description(String description) {
+        this.description = description;
     }
 
     public String url() {
@@ -257,5 +270,10 @@ public class HugeTarget extends Entity {
 
             return super.initProperties(props);
         }
+    }
+
+    public static HugeTarget fromMap(Map<String, Object> map) {
+        HugeTarget target = new HugeTarget(null);
+        return fromMap(map, target);
     }
 }

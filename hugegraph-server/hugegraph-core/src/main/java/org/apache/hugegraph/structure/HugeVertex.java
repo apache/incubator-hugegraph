@@ -43,6 +43,8 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.task.HugeServerInfo;
+import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.CollectionType;
@@ -90,6 +92,12 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public HugeType type() {
+        if (label != null && label.name().equals(HugeTask.P.TASK)) {
+            return HugeType.TASK;
+        }
+        if (label != null && label.name().equals(HugeServerInfo.P.SERVER)) {
+            return HugeType.SERVER;
+        }
         return HugeType.VERTEX;
     }
 

@@ -20,8 +20,11 @@ package org.apache.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -29,6 +32,8 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.type.define.SchemaStatus;
+
 import com.google.common.base.Objects;
 
 public class VertexLabel extends SchemaLabel {
@@ -131,5 +136,112 @@ public class VertexLabel extends SchemaLabel {
         Builder userdata(String key, Object value);
 
         Builder userdata(Map<String, Object> userdata);
+    }
+
+    @Override
+    public Map<String, Object> asMap() {
+        HashMap<String, Object> map = new HashMap();
+
+        map.put(P.PROPERTIES, this.properties());
+
+        map.put(P.NULLABLE_KEYS, this.nullableKeys());
+
+        map.put(P.INDEX_LABELS, this.indexLabels());
+
+        map.put(P.ENABLE_LABEL_INDEX, this.enableLabelIndex());
+
+        map.put(P.TTL, String.valueOf(this.ttl()));
+
+        map.put(P.TT_START_TIME, this.ttlStartTime().asString());
+
+        map.put(P.ID_STRATEGY, this.idStrategy().string());
+
+        map.put(P.PRIMARY_KEYS, this.primaryKeys());
+
+        return super.asMap(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static VertexLabel fromMap(Map<String, Object> map, HugeGraph graph) {
+        Id id = IdGenerator.of((int) map.get(VertexLabel.P.ID));
+        String name = (String) map.get(VertexLabel.P.NAME);
+
+        VertexLabel vertexLabel = new VertexLabel(graph, id, name);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            switch (entry.getKey()) {
+                case P.ID:
+                case P.NAME:
+                    break;
+                case P.STATUS:
+                    vertexLabel.status(
+                        SchemaStatus.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.USERDATA:
+                    vertexLabel.userdata(new Userdata((Map<String, Object>) entry.getValue()));
+                    break;
+                case P.PROPERTIES:
+                    Set<Id> ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    vertexLabel.properties(ids);
+                    break;
+                case P.NULLABLE_KEYS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    vertexLabel.nullableKeys(ids);
+                    break;
+                case P.INDEX_LABELS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    vertexLabel.addIndexLabels(ids.toArray(new Id[0]));
+                    break;
+                case P.ENABLE_LABEL_INDEX:
+                    boolean enableLabelIndex = (Boolean) entry.getValue();
+                    vertexLabel.enableLabelIndex(enableLabelIndex);
+                    break;
+                case P.TTL:
+                    long ttl = Long.parseLong((String) entry.getValue());
+                    vertexLabel.ttl(ttl);
+                    break;
+                case P.TT_START_TIME:
+                    long ttlStartTime =
+                            Long.parseLong((String) entry.getValue());
+                    vertexLabel.ttlStartTime(IdGenerator.of(ttlStartTime));
+                    break;
+                case P.ID_STRATEGY:
+                    IdStrategy idStrategy =
+                            IdStrategy.valueOf(((String) entry.getValue()).toUpperCase());
+                    vertexLabel.idStrategy(idStrategy);
+                    break;
+                case P.PRIMARY_KEYS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    vertexLabel.primaryKeys(ids.toArray(new Id[0]));
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                            "Invalid key '%s' for vertex label",
+                            entry.getKey()));
+            }
+        }
+        return vertexLabel;
+    }
+
+    public static final class P {
+
+        public static final String ID = "id";
+        public static final String NAME = "name";
+
+        public static final String STATUS = "status";
+        public static final String USERDATA = "userdata";
+
+        public static final String PROPERTIES = "properties";
+        public static final String NULLABLE_KEYS = "nullableKeys";
+        public static final String INDEX_LABELS = "indexLabels";
+
+        public static final String ENABLE_LABEL_INDEX = "enableLabelIndex";
+        public static final String TTL = "ttl";
+        public static final String TT_START_TIME = "ttlStartTime";
+        public static final String ID_STRATEGY = "idStrategy";
+        public static final String PRIMARY_KEYS = "primaryKeys";
     }
 }

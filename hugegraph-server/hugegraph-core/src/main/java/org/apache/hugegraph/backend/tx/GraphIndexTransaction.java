@@ -191,7 +191,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @param removed   remove or add index
      */
     protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(ilId);
         E.checkArgument(indexLabel != null,
                         "Not exist index label with id '%s'", ilId);
@@ -730,7 +730,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         Id label = query.condition(HugeKeys.LABEL);
 
         List<? extends SchemaLabel> schemaLabels;
@@ -780,7 +780,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private MatchedIndex collectMatchedIndex(SchemaLabel schemaLabel,
                                              ConditionQuery query) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for (Id il : schemaLabel.indexLabels()) {
             IndexLabel indexLabel = schema.getIndexLabel(il);
@@ -1748,7 +1748,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        HugeElement element) {
             if (element.type() != HugeType.VERTEX &&
                 element.type() != HugeType.EDGE_OUT &&
-                element.type() != HugeType.EDGE_IN) {
+                element.type() != HugeType.EDGE_IN &&
+                element.type() != HugeType.TASK &&
+                element.type() != HugeType.SERVER) {
                 throw new HugeException("Only accept element of type VERTEX " +
                                         "and EDGE to remove left index, " +
                                         "but got: '%s'", element.type());

@@ -65,7 +65,8 @@ public enum HugeType implements SerialEnum {
     SHARD_INDEX(175, "HI"),
     UNIQUE_INDEX(178, "UI"),
 
-    TASK(180, "T"),
+    TASK(180, "TASK"),
+    SERVER(181, "SERVER"),
 
     // System schema
     SYS_SCHEMA(250, "SS"),
@@ -115,7 +116,7 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isVertex() {
-        return this == HugeType.VERTEX;
+        return this == HugeType.VERTEX || this == HugeType.TASK || this == HugeType.SERVER;
     }
 
     public boolean isEdge() {
@@ -191,5 +192,9 @@ public enum HugeType implements SerialEnum {
 
     public static HugeType fromCode(byte code) {
         return SerialEnum.fromCode(HugeType.class, code);
+    }
+
+    public boolean isLabelIndex() {
+        return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX;
     }
 }

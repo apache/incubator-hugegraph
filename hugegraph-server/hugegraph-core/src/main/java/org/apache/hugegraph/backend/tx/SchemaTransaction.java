@@ -68,7 +68,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.LockUtil;
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransaction extends IndexableTransaction {
+public class SchemaTransaction extends IndexableTransaction implements ISchemaTransaction {
 
     private final SchemaIndexTransaction indexTx;
     private final SystemSchemaStore systemSchemaStore;

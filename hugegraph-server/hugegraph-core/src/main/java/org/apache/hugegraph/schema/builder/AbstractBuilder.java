@@ -22,6 +22,7 @@ import java.util.function.Function;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -38,10 +39,10 @@ import org.apache.hugegraph.util.LockUtil;
 
 public abstract class AbstractBuilder {
 
-    private final SchemaTransaction transaction;
+    private final ISchemaTransaction transaction;
     private final HugeGraph graph;
 
-    public AbstractBuilder(SchemaTransaction transaction, HugeGraph graph) {
+    public AbstractBuilder(ISchemaTransaction transaction, HugeGraph graph) {
         E.checkNotNull(transaction, "transaction");
         E.checkNotNull(graph, "graph");
         this.transaction = transaction;

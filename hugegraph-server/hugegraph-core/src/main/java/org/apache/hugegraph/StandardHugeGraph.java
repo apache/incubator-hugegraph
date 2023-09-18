@@ -18,6 +18,7 @@
 package org.apache.hugegraph;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,7 @@ import org.apache.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
 import org.apache.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.cache.CachedSchemaTransaction;
+import org.apache.hugegraph.backend.cache.CachedSchemaTransactionV2;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SnowflakeIdGenerator;
@@ -51,9 +53,8 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
-import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
@@ -69,6 +70,7 @@ import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -84,6 +86,7 @@ import org.apache.hugegraph.structure.HugeEdgeProperty;
 import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.task.ServerInfoManager;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.task.TaskScheduler;
@@ -176,6 +179,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final RamTable ramtable;
 
+    private final MetaManager metaManager = MetaManager.instance();
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -219,6 +224,10 @@ public class StandardHugeGraph implements HugeGraph {
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message, e);
+        }
+
+        if (isHstore()) {
+            initMetaManager();
         }
 
         try {
@@ -453,9 +462,24 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    private SchemaTransaction openSchemaTransaction() throws HugeException {
+    private boolean isHstore() {
+        return this.storeProvider.isHstore();
+    }
+
+    private void initMetaManager() {
+        this.metaManager.connect("hg", MetaManager.MetaDriverType.PD,
+                                 "ca", "ca", "ca",
+                                 Collections.singletonList("127.0.0.1:8686"));
+    }
+
+    private ISchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
+            if (isHstore()) {
+                return new CachedSchemaTransactionV2(
+                    MetaManager.instance().metaDriver(),
+                    MetaManager.instance().cluster(), this.params);
+            }
             return new CachedSchemaTransaction(this.params, loadSchemaStore());
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -500,11 +524,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadSystemStore() {
+        if (isHstore()) {
+            return this.storeProvider.loadGraphStore(this.configuration);
+        }
         return this.storeProvider.loadSystemStore(this.configuration);
     }
 
     @Watched
-    private SchemaTransaction schemaTransaction() {
+    private ISchemaTransaction schemaTransaction() {
         this.checkGraphNotClosed();
         /*
          * NOTE: each schema operation will be auto committed,
@@ -1192,7 +1219,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public SchemaTransaction schemaTransaction() {
+        public ISchemaTransaction schemaTransaction() {
             return StandardHugeGraph.this.schemaTransaction();
         }
 
@@ -1443,7 +1470,7 @@ public class StandardHugeGraph implements HugeGraph {
             }
         }
 
-        private SchemaTransaction schemaTransaction() {
+        private ISchemaTransaction schemaTransaction() {
             return this.getOrNewTransaction().schemaTx;
         }
 
@@ -1464,7 +1491,7 @@ public class StandardHugeGraph implements HugeGraph {
 
             Txs txs = this.transactions.get();
             if (txs == null) {
-                SchemaTransaction schemaTransaction = null;
+                ISchemaTransaction schemaTransaction = null;
                 SysTransaction sysTransaction = null;
                 GraphTransaction graphTransaction = null;
                 try {
@@ -1507,12 +1534,12 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static final class Txs {
 
-        private final SchemaTransaction schemaTx;
+        private final ISchemaTransaction schemaTx;
         private final SysTransaction systemTx;
         private final GraphTransaction graphTx;
         private long openedTime;
 
-        public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
+        public Txs(ISchemaTransaction schemaTx, SysTransaction systemTx,
                    GraphTransaction graphTx) {
             assert schemaTx != null && systemTx != null && graphTx != null;
             this.schemaTx = schemaTx;

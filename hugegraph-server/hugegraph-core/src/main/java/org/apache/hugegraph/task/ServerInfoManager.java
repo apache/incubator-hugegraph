@@ -319,7 +319,7 @@ public class ServerInfoManager {
 
     private HugeServerInfo serverInfo(Id server) {
         return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(server);
+            Iterator<Vertex> vertices = this.tx().queryServerInfos(server);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -347,7 +347,7 @@ public class ServerInfoManager {
         }
         LOG.info("Remove server info: {}", server);
         return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(server);
+            Iterator<Vertex> vertices = this.tx().queryServerInfos(server);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -382,7 +382,12 @@ public class ServerInfoManager {
     private Iterator<HugeServerInfo> serverInfos(Map<String, Object> conditions,
                                                  long limit, String page) {
         return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            ConditionQuery query;
+            if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+                query = new ConditionQuery(HugeType.SERVER);
+            } else {
+                query = new ConditionQuery(HugeType.VERTEX);
+            }
             if (page != null) {
                 query.page(page);
             }

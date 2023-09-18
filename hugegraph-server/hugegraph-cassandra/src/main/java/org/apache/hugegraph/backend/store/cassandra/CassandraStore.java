@@ -594,7 +594,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
 
     @Override
     protected final CassandraTable table(HugeType type) {
-        return this.table(type.string());
+        return this.table(convertTaskOrServerToVertex(type).string());
     }
 
     protected final CassandraTable table(String name) {

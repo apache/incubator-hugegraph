@@ -93,8 +93,11 @@
     </properties>
 
     <modules>
+        <module>hugegraph-pd</module>
+        <module>hugegraph-store</module>
         <module>hugegraph-server</module>
     </modules>
+
     <profiles>
         <profile>
             <id>stage</id>

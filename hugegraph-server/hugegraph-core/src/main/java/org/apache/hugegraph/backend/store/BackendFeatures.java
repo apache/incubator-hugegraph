@@ -31,6 +31,8 @@ public interface BackendFeatures {
         return false;
     }
 
+    default boolean supportsTaskAndServerVertex() { return false; }
+
     boolean supportsScanToken();
 
     boolean supportsScanKeyPrefix();

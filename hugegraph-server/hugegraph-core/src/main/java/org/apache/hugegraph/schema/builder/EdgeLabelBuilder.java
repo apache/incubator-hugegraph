@@ -29,6 +29,7 @@ import org.apache.commons.collections.CollectionUtils;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.Userdata;
@@ -62,7 +63,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
     private Userdata userdata;
     private boolean checkExist;
 
-    public EdgeLabelBuilder(SchemaTransaction transaction,
+    public EdgeLabelBuilder(ISchemaTransaction transaction,
                             HugeGraph graph, String name) {
         super(transaction, graph);
         E.checkNotNull(name, "name");
@@ -81,7 +82,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
-    public EdgeLabelBuilder(SchemaTransaction transaction,
+    public EdgeLabelBuilder(ISchemaTransaction transaction,
                             HugeGraph graph, EdgeLabel copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");
