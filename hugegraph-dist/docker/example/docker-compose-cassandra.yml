@@ -40,7 +40,7 @@ services:
 
   cassandra:
     image: cassandra:4
-    container_name: ca-cassandra
+    container_name: cas-cassandra
     ports:
       - 7000:7000
       - 9042:9042
