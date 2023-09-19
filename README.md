@@ -41,7 +41,7 @@ HugeGraph server with `RocksDB` in background.
 Optional: 
 
 1. use `docker exec -it graph bash` to enter the container to do some operations.
-2. use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD="true" hugegraph/hugegraph` to start with a example graph.
+2. use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD="true" hugegraph/hugegraph` to start with a **built-in** (example) graph.
 
 ### 2. Download Way
 
