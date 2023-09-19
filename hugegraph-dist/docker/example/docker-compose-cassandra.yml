@@ -26,7 +26,7 @@ services:
     environment:
       hugegraph.backend: cassandra
       hugegraph.serializer: cassandra
-      hugegraph.cassandra.host: ca-cassandra
+      hugegraph.cassandra.host: cas-cassandra
       hugegraph.cassandra.port: 9042
     networks:
       - ca-network
