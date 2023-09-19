@@ -485,6 +485,11 @@ public class HugeTraverser {
             cq.limit(steps.limit());
         }
 
+        if (steps.isEdgeEmpty()) {
+            Iterator<Edge> edges = this.graph().edges(cq);
+            return edgesOfVertexStep(edges, steps);
+        }
+
         Map<Id, ConditionQuery> edgeConditions =
                 getFilterQueryConditions(steps.edgeSteps(), HugeType.EDGE);
 
