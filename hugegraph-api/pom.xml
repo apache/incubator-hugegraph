@@ -157,12 +157,12 @@
         <dependency>
             <groupId>com.taobao.arthas</groupId>
             <artifactId>arthas-agent-attach</artifactId>
-            <version>3.6.9</version>
+            <version>${arthas.version}</version>
         </dependency>
         <dependency>
             <groupId>com.taobao.arthas</groupId>
             <artifactId>arthas-packaging</artifactId>
-            <version>3.6.9</version>
+            <version>${arthas.version}</version>
         </dependency>
     </dependencies>
 
