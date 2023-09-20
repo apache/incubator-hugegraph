@@ -125,30 +125,6 @@
 
         <plugins>
             <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>assembly-hugegraph</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <attach>false</attach>
-                            <appendAssemblyId>false</appendAssemblyId>
-                            <outputDirectory>${top.level.dir}
-                            </outputDirectory>
-                            <descriptor>
-                                ${assembly.descriptor.dir}/assembly.xml
-                            </descriptor>
-                            <finalName>${final.name}</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
                 <configuration>
@@ -168,51 +144,168 @@
                     </filesets>
                 </configuration>
             </plugin>
-
-            <plugin>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>download-swagger-ui</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <tasks>
-                                <echo file="${project.basedir}/dist.sh">
-                                    wget --version 1>/dev/null || exit
-                                    wget https://github.com/swagger-api/swagger-ui/archive/refs/tags/v4.15.5.tar.gz
-                                    tar zxvf v4.15.5.tar.gz
-                                    echo "window.onload = function() { window.ui = SwaggerUIBundle({
-                                    url:'/openapi.json',dom_id:'#swagger-ui',deepLinking:true,layout:'StandaloneLayout',
-                                    presets:[SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset ],
-                                    plugins:[SwaggerUIBundle.plugins.DownloadUrl]});};" > swagger-ui-4.15.5/dist/swagger-initializer.js
-                                    cp -r swagger-ui-4.15.5/dist ../${final.name}/swagger-ui
-                                </echo>
-                                <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
-                                    <arg line="./dist.sh"/>
-                                </exec>
-                            </tasks>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <tar destfile="${final.destfile}" compression="gzip">
-                                    <tarfileset dir="${top.level.dir}/" filemode="755">
-                                        <include name="${final.name}/**"/>
-                                    </tarfileset>
-                                </tar>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>2.4</version>
+                    <executions>
+                        <execution>
+                            <id>assembly-hugegraph</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                            <configuration>
+                                <attach>false</attach>
+                                <appendAssemblyId>false</appendAssemblyId>
+                                <outputDirectory>${top.level.dir}
+                                </outputDirectory>
+                                <descriptor>
+                                    ${assembly.descriptor.dir}/assembly.xml
+                                </descriptor>
+                                <finalName>${final.name}</finalName>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                    <executions>
+                        <execution>
+                            <id>download-swagger-ui</id>
+                            <phase>prepare-package</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
+                                    <exec executable="${shell-executable}"
+                                          dir="${project.basedir}"
+                                          failonerror="false">
+                                        <arg line="./dist.sh"/>
+                                    </exec>
+                                </target>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>install-swagger-ui</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <configuration>
+                                <target>
+                                    <exec executable="cp"
+                                          dir="${project.basedir}"
+                                          failonerror="false">
+                                        <arg value="-r"/>
+                                        <arg value="swagger-ui/dist"/>
+                                        <arg value="../${final.name}/swagger-ui"/>
+                                    </exec>
+                                    <exec executable="rm"
+                                          dir="${project.basedir}"
+                                          failonerror="false">
+                                        <arg value="-rf"/>
+                                        <arg value="swagger-ui"/>
+                                    </exec>
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
+
+    <profiles>
+        <profile>
+            <id>assembly-hugegraph</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <!-- usage refer: https://github.com/apache/hugegraph/pull/2277 -->
+                <property>
+                    <name>!skip-assembly-hugegraph</name>
+                </property>
+            </activation>
+        </profile>
+        <profile>
+            <id>unix-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>Linux</name>
+                </os>
+            </activation>
+        </profile>
+        <profile>
+            <id>mac-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+        </profile>
+        <profile>
+            <id>tar-package</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>tar-package</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <tar destfile="${final.destfile}" compression="gzip">
+                                            <tarfileset dir="${top.level.dir}/" filemode="755">
+                                                <include name="${final.name}/**"/>
+                                            </tarfileset>
+                                        </tar>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <activation>
+                <!-- usage refer: https://github.com/apache/incubator-hugegraph/pull/2277 -->
+                <property>
+                    <name>!skip-tar-package</name>
+                </property>
+            </activation>
+        </profile>
+    </profiles>
 </project>

@@ -37,7 +37,7 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.KneighborTraverser;
 import org.apache.hugegraph.traversal.algorithm.records.KneighborRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
@@ -120,7 +120,7 @@ public class KneighborAPI extends TraverserAPI {
         E.checkArgumentNotNull(request, "The request body can't be null");
         E.checkArgumentNotNull(request.source,
                                "The source of request can't be null");
-        E.checkArgument(request.step != null,
+        E.checkArgument(request.steps != null,
                         "The steps of request can't be null");
         if (request.countOnly) {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
@@ -128,9 +128,9 @@ public class KneighborAPI extends TraverserAPI {
         }
 
         LOG.debug("Graph [{}] get customized kneighbor from source vertex " +
-                  "'{}', with step '{}', limit '{}', count_only '{}', " +
+                  "'{}', with steps '{}', limit '{}', count_only '{}', " +
                   "with_vertex '{}', with_path '{}' and with_edge '{}'",
-                  graph, request.source, request.step, request.limit,
+                  graph, request.source, request.steps, request.limit,
                   request.countOnly, request.withVertex, request.withPath,
                   request.withEdge);
 
@@ -139,11 +139,11 @@ public class KneighborAPI extends TraverserAPI {
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
 
-        EdgeStep step = step(g, request.step);
+        Steps steps = steps(g, request.steps);
 
         KneighborRecords results;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
-            results = traverser.customizedKneighbor(sourceId, step,
+            results = traverser.customizedKneighbor(sourceId, steps,
                                                     request.maxDepth,
                                                     request.limit);
             measure.addIterCount(traverser.vertexIterCounter.get(),
@@ -202,8 +202,8 @@ public class KneighborAPI extends TraverserAPI {
 
         @JsonProperty("source")
         public Object source;
-        @JsonProperty("step")
-        public TraverserAPI.Step step;
+        @JsonProperty("steps")
+        public TraverserAPI.VESteps steps;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("limit")
@@ -219,9 +219,9 @@ public class KneighborAPI extends TraverserAPI {
 
         @Override
         public String toString() {
-            return String.format("PathRequest{source=%s,step=%s,maxDepth=%s" +
+            return String.format("PathRequest{source=%s,steps=%s,maxDepth=%s" +
                                  "limit=%s,countOnly=%s,withVertex=%s," +
-                                 "withPath=%s,withEdge=%s}", this.source, this.step,
+                                 "withPath=%s,withEdge=%s}", this.source, this.steps,
                                  this.maxDepth, this.limit, this.countOnly,
                                  this.withVertex, this.withPath, this.withEdge);
         }
