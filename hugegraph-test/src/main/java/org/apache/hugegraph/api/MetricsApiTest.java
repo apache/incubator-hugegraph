@@ -126,8 +126,8 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                              "Expect map value for key %s but got %s",
-                                              key, value),
+                                      "Expect map value for key %s but got %s",
+                                      key, value),
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");

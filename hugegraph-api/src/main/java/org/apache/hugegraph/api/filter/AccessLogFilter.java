@@ -38,7 +38,6 @@ import jakarta.ws.rs.ext.Provider;
 @Singleton
 public class AccessLogFilter implements ContainerResponseFilter {
 
-
     private static final String DELIMETER = "/";
 
     /**

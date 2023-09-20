@@ -38,6 +38,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.SPACE_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_HELP;
 import static org.apache.hugegraph.metrics.MetricsUtil.STR_TYPE;
 import static org.apache.hugegraph.metrics.MetricsUtil.UNTYPED;
+import static org.apache.hugegraph.metrics.MetricsUtil.VERSION_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshot;
 import static org.apache.hugegraph.metrics.MetricsUtil.replaceDotDashInKey;
 import static org.apache.hugegraph.metrics.MetricsUtil.replaceSlashInKey;
@@ -63,6 +64,7 @@ import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
@@ -183,7 +185,6 @@ public class MetricsAPI extends API {
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
     public String all(@Context GraphManager manager,
                       @QueryParam("type") String type) {
-
         if (type != null && type.equals(JSON_STR)) {
             return baseMetricAll();
         } else {
@@ -219,21 +220,21 @@ public class MetricsAPI extends API {
     private String baseMetricPrometheusAll() {
         StringBuilder promMetric = new StringBuilder();
         ServerReporter reporter = ServerReporter.instance();
-        String helpName = "hugegraph_info";
-        //version
+        String helpName = PROM_HELP_NAME;
+        // build version info
         promMetric.append(STR_HELP)
                   .append(helpName).append(END_LSTR);
         promMetric.append(STR_TYPE)
                   .append(helpName)
                   .append(SPACE_STR + UNTYPED + END_LSTR);
         promMetric.append(helpName)
-                  .append("{version=\"")
+                  .append(VERSION_STR)
                   .append(ApiVersion.VERSION.toString()).append("\",}")
                   .append(SPACE_STR + "1.0" + END_LSTR);
 
-        //gauges
+        // build gauges metric info
         for (String key : reporter.gauges().keySet()) {
-            final com.codahale.metrics.Gauge<?> gauge
+            final Gauge<?> gauge
                     = reporter.gauges().get(key);
             if (gauge != null) {
                 helpName = replaceDotDashInKey(key);
@@ -246,7 +247,7 @@ public class MetricsAPI extends API {
             }
         }
 
-        //histograms
+        // build histograms metric info
         for (String histogramkey : reporter.histograms().keySet()) {
             final Histogram histogram = reporter.histograms().get(histogramkey);
             if (histogram != null) {
@@ -265,7 +266,7 @@ public class MetricsAPI extends API {
             }
         }
 
-        //meters
+        // build meters metric info
         for (String meterkey : reporter.meters().keySet()) {
             final Meter metric = reporter.meters().get(meterkey);
             if (metric != null) {
@@ -294,7 +295,7 @@ public class MetricsAPI extends API {
             }
         }
 
-        //timer
+        // build timer metric info
         for (String timerkey : reporter.timers().keySet()) {
             final com.codahale.metrics.Timer timer = reporter.timers()
                                                              .get(timerkey);
@@ -323,8 +324,7 @@ public class MetricsAPI extends API {
             }
         }
 
-        MetricsUtil.writePrometheusFormat(promMetric,
-                                    MetricManager.INSTANCE.getRegistry());
+        MetricsUtil.writePrometheusFormat(promMetric, MetricManager.INSTANCE.getRegistry());
 
         return promMetric.toString();
     }
@@ -386,14 +386,14 @@ public class MetricsAPI extends API {
     private String statisticsProm(Map<String, Map<String, Object>> metricMap) {
         StringBuilder promMetric = new StringBuilder();
 
-        //version
+        // build version info
         promMetric.append(STR_HELP)
                   .append(PROM_HELP_NAME).append(END_LSTR);
         promMetric.append(STR_TYPE)
                   .append(PROM_HELP_NAME)
                   .append(SPACE_STR + UNTYPED + END_LSTR);
         promMetric.append(PROM_HELP_NAME)
-                  .append("{version=\"")
+                  .append(VERSION_STR)
                   .append(ApiVersion.VERSION.toString()).append("\",}")
                   .append(SPACE_STR + "1.0" + END_LSTR);
 

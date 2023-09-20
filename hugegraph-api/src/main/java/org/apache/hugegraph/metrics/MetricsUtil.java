@@ -43,8 +43,7 @@ public class MetricsUtil {
     public static final String ONE_MIN_RATE_ATRR = "{name=\"m1_rate\",} ";
     public static final String FIVE_MIN_RATE_ATRR = "{name=\"m5_rate\",} ";
     public static final String FIFT_MIN_RATE_ATRR = "{name=\"m15_rate\",} ";
-    public static final MetricRegistry REGISTRY =
-            MetricManager.INSTANCE.getRegistry();
+    public static final MetricRegistry REGISTRY = MetricManager.INSTANCE.getRegistry();
     public static final String STR_HELP = "# HELP ";
     public static final String STR_TYPE = "# TYPE ";
     public static final String HISTOGRAM_TYPE = "histogram";
@@ -52,6 +51,7 @@ public class MetricsUtil {
     public static final String GAUGE_TYPE = "gauge";
     public static final String END_LSTR = "\n";
     public static final String SPACE_STR = " ";
+    public static final String VERSION_STR = "{version=\"";
     public static final String COUNT_ATTR = "{name=\"count\",} ";
     public static final String MIN_ATTR = "{name=\"min\",} ";
     public static final String MAX_ATTR = "{name=\"max\",} ";
@@ -85,7 +85,6 @@ public class MetricsUtil {
         return REGISTRY.histogram(name);
     }
 
-
     public static Meter registerMeter(Class<?> clazz, String name) {
         return REGISTRY.meter(MetricRegistry.name(clazz, name));
     }
@@ -102,8 +101,7 @@ public class MetricsUtil {
         return orgKey.replace("/", "_");
     }
 
-    public static void writePrometheusFormat(StringBuilder promeMetrics,
-                                       MetricRegistry registry) {
+    public static void writePrometheusFormat(StringBuilder promeMetrics, MetricRegistry registry) {
         // gauges
         registry.getGauges().forEach((key, gauge) -> {
             if (gauge != null) {

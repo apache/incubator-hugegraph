@@ -49,8 +49,7 @@ public class API {
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;
-    public static final String APPLICATION_TEXT_WITH_CHARSET =
-            MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
+    public static final String APPLICATION_TEXT_WITH_CHARSET = MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
                                                .getSubtype();
     public static final String ACTION_APPEND = "append";
@@ -96,7 +95,7 @@ public class API {
             SUCCEED_METER.mark();
             return result;
         } catch (IllegalArgumentException | NotFoundException |
-                ForbiddenException e) {
+                 ForbiddenException e) {
             ILLEGAL_ARG_ERROR_METER.mark();
             rollback.accept(null);
             throw e;
