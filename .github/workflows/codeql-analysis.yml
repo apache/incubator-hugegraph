@@ -3,8 +3,6 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ master, release-* ]
   pull_request:
     # The branches below must be a subset of the branches above
     # branches: [ master ] # enable in all PRs
@@ -57,3 +55,12 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Repository'
+        uses: actions/checkout@v3
+      - name: 'Dependency Review'
+        uses: actions/dependency-review-action@v3
+        
