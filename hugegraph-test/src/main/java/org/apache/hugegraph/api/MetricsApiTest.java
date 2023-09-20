@@ -189,7 +189,7 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                              "Expect map value for key %s but got %s",
+                                      "Expect map value for key %s but got %s",
                                               key, value),
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
@@ -258,7 +258,7 @@ public class MetricsApiTest extends BaseApiTest {
                     String key = (String) e.getKey();
                     value = e.getValue();
                     Assert.assertTrue(String.format(
-                                              "Expect map value for key %s but got %s",
+                                      "Expect map value for key %s but got %s",
                                               key, value),
                                       value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
