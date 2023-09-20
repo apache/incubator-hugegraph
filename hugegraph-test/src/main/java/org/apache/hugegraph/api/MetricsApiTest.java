@@ -190,7 +190,7 @@ public class MetricsApiTest extends BaseApiTest {
                     value = e.getValue();
                     Assert.assertTrue(String.format(
                                       "Expect map value for key %s but got %s",
-                                              key, value),
+                                      key, value),
                                       value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
@@ -259,7 +259,7 @@ public class MetricsApiTest extends BaseApiTest {
                     value = e.getValue();
                     Assert.assertTrue(String.format(
                                       "Expect map value for key %s but got %s",
-                                              key, value),
+                                      key, value),
                                       value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
                     assertMapContains(regionServer, "mem_max");
