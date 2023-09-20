@@ -127,11 +127,11 @@ public interface AuthManager {
 
     UserWithRole validateUser(String token);
 
-    List<String> listWhiteIp();
+    List<String> listWhiteIPs();
 
-    void setWhiteIpList(List<String> whiteIpList);
+    void setWhiteIPs(List<String> whiteIpList);
 
     boolean getWhiteIpStatus();
 
-    void setWhiteIpStatus(boolean status);
+    void enabledWhiteIpList(boolean status);
 }

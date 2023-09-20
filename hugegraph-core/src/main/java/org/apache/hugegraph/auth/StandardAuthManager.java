@@ -78,7 +78,7 @@ public class StandardAuthManager implements AuthManager {
 
     private List<String> ipWhiteList;
 
-    private Boolean whiteIpStatus;
+    private Boolean ipWhiteListEnabled;
 
     public StandardAuthManager(HugeGraphParams graph) {
         E.checkNotNull(graph, "graph");
@@ -110,7 +110,7 @@ public class StandardAuthManager implements AuthManager {
 
         this.ipWhiteList = new ArrayList<>();
 
-        this.whiteIpStatus = false;
+        this.ipWhiteListEnabled = false;
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
@@ -697,23 +697,23 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public List<String> listWhiteIp() {
+    public List<String> listWhiteIPs() {
         return ipWhiteList;
     }
 
     @Override
-    public void setWhiteIpList(List<String> ipWhiteList) {
+    public void setWhiteIPs(List<String> ipWhiteList) {
         this.ipWhiteList = ipWhiteList;
     }
 
     @Override
     public boolean getWhiteIpStatus() {
-        return this.whiteIpStatus;
+        return this.ipWhiteListEnabled;
     }
 
     @Override
-    public void setWhiteIpStatus(boolean status) {
-        this.whiteIpStatus = status;
+    public void enabledWhiteIpList(boolean status) {
+        this.ipWhiteListEnabled = status;
     }
 
     /**

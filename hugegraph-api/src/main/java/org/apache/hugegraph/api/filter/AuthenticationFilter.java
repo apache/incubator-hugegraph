@@ -126,7 +126,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             path = request.getRequestURI();
 
             String remoteIp = request.getRemoteAddr();
-            List<String> whiteIpList = manager.authManager().listWhiteIp();
+            List<String> whiteIpList = manager.authManager().listWhiteIPs();
             boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
             if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
                 !whiteIpList.contains(remoteIp)) {

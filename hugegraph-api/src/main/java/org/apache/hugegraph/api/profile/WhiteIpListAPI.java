@@ -50,7 +50,7 @@ import jakarta.ws.rs.core.Context;
 
 @Path("whiteiplist")
 @Singleton
-public class WhiteIpAPI extends API {
+public class WhiteIpListAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
 
@@ -61,7 +61,7 @@ public class WhiteIpAPI extends API {
     public Map<String, Object> list(@Context GraphManager manager) {
         LOG.debug("List white ips");
         AuthManager authManager = manager.authManager();
-        List<String> whiteIpList = authManager.listWhiteIp();
+        List<String> whiteIpList = authManager.listWhiteIPs();
         return ImmutableMap.of("whiteIpList", whiteIpList);
     }
 
@@ -71,52 +71,52 @@ public class WhiteIpAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Map<String, Object> batch(@Context GraphManager manager,
+    public Map<String, Object> updateWhiteIPs(@Context GraphManager manager,
                                      Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
                         "Missing argument: actionMap");
-        List<String> whiteIpList = manager.authManager().listWhiteIp();
-        Object ips = actionMap.get("ips");
-        E.checkArgument(ips instanceof List,
-                        "Invalid ips type '%s', must be list", ips.getClass());
-        List<String> ipList = (List<String>) ips;
-        Object value = actionMap.get("action");
-        E.checkArgument(value != null,
+        List<String> whiteIpList = manager.authManager().listWhiteIPs();
+        Object ipListRaw = actionMap.get("ips");
+        E.checkArgument(ipListRaw instanceof List,
+                        "Invalid ips type '%s', must be list", ipListRaw.getClass());
+        List<String> ipList = (List<String>) ipListRaw;
+        Object actionRaw = actionMap.get("action");
+        E.checkArgument(actionRaw != null,
                         "Missing argument: action");
-        E.checkArgument(value instanceof String,
+        E.checkArgument(actionRaw instanceof String,
                         "Invalid action type '%s', must be string",
-                        value.getClass());
-        String action = (String) value;
+                        actionRaw.getClass());
+        String action = (String) actionRaw;
         E.checkArgument(StringUtils.isNotEmpty(action),
                         "Missing argument: action");
-        List<String> existed = new ArrayList<>();
-        List<String> loaded = new ArrayList<>();
-        List<String> illegalIps = new ArrayList<>();
+        List<String> existedIPs = new ArrayList<>();
+        List<String> loadedIPs = new ArrayList<>();
+        List<String> illegalIPs = new ArrayList<>();
         Map<String, Object> result = new HashMap<>();
         for (String ip : ipList) {
             if (whiteIpList.contains(ip)) {
-                existed.add(ip);
+                existedIPs.add(ip);
                 continue;
             }
             if ("load".equals(action)) {
-                boolean rightIp = checkIp(ip) ? loaded.add(ip) : illegalIps.add(ip);
+                boolean rightIp = checkIp(ip) ? loadedIPs.add(ip) : illegalIPs.add(ip);
             }
         }
         switch (action) {
             case "load":
                 LOG.debug("Load to white ip list");
-                result.put("existed", existed);
-                result.put("loaded", loaded);
-                if (!illegalIps.isEmpty()) {
-                    result.put("illegalIps", illegalIps);
+                result.put("existed_ips", existedIPs);
+                result.put("loaded_ips", loadedIPs);
+                if (!illegalIPs.isEmpty()) {
+                    result.put("illegal_ips", illegalIPs);
                 }
-                whiteIpList.addAll(loaded);
+                whiteIpList.addAll(loadedIPs);
                 break;
             case "remove":
                 LOG.debug("Remove from white ip list");
-                result.put("removed", existed);
-                result.put("nonexistent", loaded);
-                whiteIpList.removeAll(existed);
+                result.put("removed", existedIPs);
+                result.put("nonexistent", loadedIPs);
+                whiteIpList.removeAll(existedIPs);
                 break;
             default:
                 throw new AssertionError(String.format("Invalid action '%s', " +
@@ -124,7 +124,7 @@ public class WhiteIpAPI extends API {
                                                        "'load' or 'remove'",
                                                        action));
         }
-        manager.authManager().setWhiteIpList(whiteIpList);
+        manager.authManager().setWhiteIPs(whiteIpList);
         return result;
     }
 
@@ -132,14 +132,14 @@ public class WhiteIpAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Map<String, Object> update(@Context GraphManager manager,
+    public Map<String, Object> updateStatus(@Context GraphManager manager,
                                       @QueryParam("status") String status) {
         LOG.debug("Enable or disable white ip list");
         E.checkArgument("true".equals(status) ||
                         "false".equals(status),
                         "Invalid status, valid status is 'true' or 'false'");
         boolean open = Boolean.parseBoolean(status);
-        manager.authManager().setWhiteIpStatus(open);
+        manager.authManager().enabledWhiteIpList(open);
         Map<String, Object> map = new HashMap<>();
         map.put("WhiteIpListOpen", open);
         return map;
