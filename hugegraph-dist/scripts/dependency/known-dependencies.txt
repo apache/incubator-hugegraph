@@ -7,8 +7,8 @@ annotations-4.1.1.4.jar
 ansj_seg-5.1.6.jar
 antlr-runtime-3.5.2.jar
 aopalliance-repackaged-3.0.1.jar
-arthas-agent-attach-3.6.9.jar
-arthas-packaging-3.6.9.jar
+arthas-agent-attach-3.7.1.jar
+arthas-packaging-3.7.1.jar
 asm-5.0.4.jar
 asm-6.0.jar
 asm-analysis-5.0.3.jar
