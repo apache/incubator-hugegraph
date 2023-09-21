@@ -208,7 +208,7 @@ public final class Consumers<V> {
             try {
                 this.queue.put(v);
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted while enqueue", e);
+                LOG.warn("Interrupt while queuing QUEUE_END", e);
             }
         }
     }

@@ -285,6 +285,7 @@ public abstract class OltpTraverser extends HugeTraverser
         private final Set<Id> excluded;
         private final Set<Id> neighbors;
         private final long limit;
+        private final AtomicInteger count;
 
         public ConcurrentVerticesConsumer(Id sourceV, Set<Id> excluded, long limit,
                                           Set<Id> neighbors) {
@@ -292,9 +293,8 @@ public abstract class OltpTraverser extends HugeTraverser
             this.excluded = excluded;
             this.limit = limit;
             this.neighbors = neighbors;
+            this.count = new AtomicInteger(0);
         }
-
-        private final AtomicInteger count = new AtomicInteger(0);
 
         @Override
         public void accept(EdgeId edgeId) {

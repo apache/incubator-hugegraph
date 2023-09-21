@@ -1028,8 +1028,8 @@ public class HugeTraverser {
         public EdgesIterator(EdgesQueryIterator queries) {
             List<Iterator<Edge>> iteratorList = new ArrayList<>();
             while (queries.hasNext()) {
-                iteratorList.add(
-                        graph().edges(queries.next()));
+                Iterator<Edge> edges = graph.edges(queries.next());
+                iteratorList.add(edges);
             }
             this.currentIter = iteratorList.iterator();
         }
