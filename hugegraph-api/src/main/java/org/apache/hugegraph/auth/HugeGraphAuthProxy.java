@@ -1569,12 +1569,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public List<String> listWhiteIPs() {
+        public Set<String> listWhiteIPs() {
             return this.authManager.listWhiteIPs();
         }
 
         @Override
-        public void setWhiteIPs(List<String> whiteIpList) {
+        public void setWhiteIPs(Set<String> whiteIpList) {
             this.authManager.setWhiteIPs(whiteIpList);
         }
 

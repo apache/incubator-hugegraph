@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -126,7 +127,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             path = request.getRequestURI();
 
             String remoteIp = request.getRemoteAddr();
-            List<String> whiteIpList = manager.authManager().listWhiteIPs();
+            Set<String> whiteIpList = manager.authManager().listWhiteIPs();
             boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
             if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
                 !whiteIpList.contains(remoteIp)) {

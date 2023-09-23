@@ -76,7 +76,7 @@ public class StandardAuthManager implements AuthManager {
     private final TokenGenerator tokenGenerator;
     private final long tokenExpire;
 
-    private List<String> ipWhiteList;
+    private Set<String> ipWhiteList;
 
     private Boolean ipWhiteListEnabled;
 
@@ -108,7 +108,7 @@ public class StandardAuthManager implements AuthManager {
 
         this.tokenGenerator = new TokenGenerator(config);
 
-        this.ipWhiteList = new ArrayList<>();
+        this.ipWhiteList = new HashSet<>();
 
         this.ipWhiteListEnabled = false;
     }
@@ -697,12 +697,12 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public List<String> listWhiteIPs() {
+    public Set<String> listWhiteIPs() {
         return ipWhiteList;
     }
 
     @Override
-    public void setWhiteIPs(List<String> ipWhiteList) {
+    public void setWhiteIPs(Set<String> ipWhiteList) {
         this.ipWhiteList = ipWhiteList;
     }
 

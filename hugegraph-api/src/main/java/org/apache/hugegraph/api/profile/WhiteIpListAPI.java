@@ -17,10 +17,11 @@
 
 package org.apache.hugegraph.api.profile;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,7 +62,7 @@ public class WhiteIpListAPI extends API {
     public Map<String, Object> list(@Context GraphManager manager) {
         LOG.debug("List white ips");
         AuthManager authManager = manager.authManager();
-        List<String> whiteIpList = authManager.listWhiteIPs();
+        Set<String> whiteIpList = authManager.listWhiteIPs();
         return ImmutableMap.of("whiteIpList", whiteIpList);
     }
 
@@ -74,7 +75,7 @@ public class WhiteIpListAPI extends API {
     public Map<String, Object> updateWhiteIPs(@Context GraphManager manager, Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
                         "Missing argument: actionMap");
-        List<String> whiteIpList = manager.authManager().listWhiteIPs();
+        Set<String> whiteIpList = manager.authManager().listWhiteIPs();
         Object ipListRaw = actionMap.get("ips");
         E.checkArgument(ipListRaw instanceof List,
                         "Invalid ips type '%s', must be list", ipListRaw.getClass());
@@ -88,9 +89,9 @@ public class WhiteIpListAPI extends API {
         String action = (String) actionRaw;
         E.checkArgument(StringUtils.isNotEmpty(action),
                         "Missing argument: action");
-        List<String> existedIPs = new ArrayList<>();
-        List<String> loadedIPs = new ArrayList<>();
-        List<String> illegalIPs = new ArrayList<>();
+        Set<String> existedIPs = new HashSet<>();
+        Set<String> loadedIPs = new HashSet<>();
+        Set<String> illegalIPs = new HashSet<>();
         Map<String, Object> result = new HashMap<>();
         for (String ip : ipList) {
             if (whiteIpList.contains(ip)) {
