@@ -71,8 +71,7 @@ public class WhiteIpListAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Map<String, Object> updateWhiteIPs(@Context GraphManager manager,
-                                     Map<String, Object> actionMap) {
+    public Map<String, Object> updateWhiteIPs(@Context GraphManager manager, Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
                         "Missing argument: actionMap");
         List<String> whiteIpList = manager.authManager().listWhiteIPs();
@@ -106,7 +105,7 @@ public class WhiteIpListAPI extends API {
             case "load":
                 LOG.debug("Load to white ip list");
                 result.put("existed_ips", existedIPs);
-                result.put("loaded_ips", loadedIPs);
+                result.put("added_ips", loadedIPs);
                 if (!illegalIPs.isEmpty()) {
                     result.put("illegal_ips", illegalIPs);
                 }
@@ -114,8 +113,8 @@ public class WhiteIpListAPI extends API {
                 break;
             case "remove":
                 LOG.debug("Remove from white ip list");
-                result.put("removed", existedIPs);
-                result.put("nonexistent", loadedIPs);
+                result.put("removed_ips", existedIPs);
+                result.put("non_existed_ips", loadedIPs);
                 whiteIpList.removeAll(existedIPs);
                 break;
             default:
@@ -132,8 +131,7 @@ public class WhiteIpListAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
-    public Map<String, Object> updateStatus(@Context GraphManager manager,
-                                      @QueryParam("status") String status) {
+    public Map<String, Object> updateStatus(@Context GraphManager manager, @QueryParam("status") String status) {
         LOG.debug("Enable or disable white ip list");
         E.checkArgument("true".equals(status) ||
                         "false".equals(status),
