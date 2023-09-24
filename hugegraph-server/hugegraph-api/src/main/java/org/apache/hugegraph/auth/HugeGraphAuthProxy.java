@@ -71,6 +71,7 @@ import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask;
+import org.apache.hugegraph.task.ServerInfoManager;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.task.TaskStatus;
@@ -1135,6 +1136,24 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public <V> V call(Runnable runnable) {
             verifyAnyPermission();
             return this.taskScheduler.call(runnable);
+        }
+
+        @Override
+        public ServerInfoManager serverManager() {
+            verifyAnyPermission();
+            return this.taskScheduler.serverManager();
+        }
+
+        @Override
+        public String graphName() {
+            verifyAnyPermission();
+            return this.taskScheduler.graphName();
+        }
+
+        @Override
+        public void taskDone(HugeTask<?> task) {
+            verifyAnyPermission();
+            this.taskScheduler.taskDone(task);
         }
 
         private void verifyTaskPermission(HugePermission actionPerm) {

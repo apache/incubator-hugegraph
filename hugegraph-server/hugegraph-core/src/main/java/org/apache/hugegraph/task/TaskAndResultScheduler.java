@@ -327,4 +327,9 @@ public abstract class TaskAndResultScheduler implements TaskScheduler {
         assert this.taskTx != null;
         return this.taskTx;
     }
+
+    @Override
+    public ServerInfoManager serverManager() {
+        return this.serverManager;
+    }
 }

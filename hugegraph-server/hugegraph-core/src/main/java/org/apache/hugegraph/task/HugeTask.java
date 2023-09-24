@@ -364,9 +364,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                              this.scheduler();
-            scheduler.taskDone(this);
+            this.scheduler().taskDone(this);
         }
     }
 

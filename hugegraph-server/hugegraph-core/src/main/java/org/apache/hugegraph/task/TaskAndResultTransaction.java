@@ -17,10 +17,19 @@
 
 package org.apache.hugegraph.task;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.define.Cardinality;
+import org.apache.hugegraph.type.define.DataType;
 
 public class TaskAndResultTransaction extends TaskTransaction {
 
@@ -51,5 +60,44 @@ public class TaskAndResultTransaction extends TaskTransaction {
         }
 
         return this.constructVertex(false, taskResult.asArray());
+    }
+
+    @Override
+    public void initSchema() {
+        super.initSchema();
+
+        if (this.graph().existsVertexLabel(TASKRESULT)) {
+            return;
+        }
+
+        HugeGraph graph = this.graph();
+        String[] properties = this.initTaskResultProperties();
+
+        // Create vertex label '~taskresult'
+        VertexLabel label =
+            graph.schema().vertexLabel(HugeTaskResult.P.TASKRESULT).properties(properties)
+                 .nullableKeys(HugeTaskResult.P.RESULT)
+                 .useCustomizeStringId().enableLabelIndex(true).build();
+
+        graph.addVertexLabel(label);
+    }
+
+    private String[] initTaskResultProperties() {
+        List<String> props = new ArrayList<>();
+        props.add(createPropertyKey(HugeTaskResult.P.RESULT, DataType.BLOB));
+
+        return props.toArray(new String[0]);
+    }
+
+    private String createPropertyKey(String name, DataType dataType) {
+        return createPropertyKey(name, dataType, Cardinality.SINGLE);
+    }
+
+    private String createPropertyKey(String name, DataType dataType, Cardinality cardinality) {
+        SchemaManager schema = this.graph().schema();
+        PropertyKey propertyKey =
+            schema.propertyKey(name).dataType(dataType).cardinality(cardinality).build();
+        this.graph().addPropertyKey(propertyKey);
+        return name;
     }
 }

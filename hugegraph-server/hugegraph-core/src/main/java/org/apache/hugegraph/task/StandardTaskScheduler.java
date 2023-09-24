@@ -102,6 +102,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.graph.graph();
     }
 
+    @Override
     public String graphName() {
         return this.graph.name();
     }
@@ -294,7 +295,8 @@ public class StandardTaskScheduler implements TaskScheduler {
                                 task.id(), task.status());
     }
 
-    protected ServerInfoManager serverManager() {
+    @Override
+    public ServerInfoManager serverManager() {
         return this.serverManager;
     }
 
@@ -414,7 +416,8 @@ public class StandardTaskScheduler implements TaskScheduler {
         } while (page != null);
     }
 
-    protected void taskDone(HugeTask<?> task) {
+    @Override
+    public void taskDone(HugeTask<?> task) {
         this.remove(task);
 
         Id selfServerId = this.serverManager().selfServerId();

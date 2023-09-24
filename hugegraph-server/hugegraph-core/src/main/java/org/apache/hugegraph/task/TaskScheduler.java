@@ -72,4 +72,10 @@ public interface TaskScheduler {
     <V> V call(Callable<V> callable);
 
     <V> V call(Runnable runnable);
+
+    ServerInfoManager serverManager();
+
+    String graphName();
+
+    void taskDone(HugeTask<?> task);
 }

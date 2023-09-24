@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.task;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +36,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.concurrent.LockGroup;
 import org.apache.hugegraph.concurrent.LockManager;
@@ -299,7 +301,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public void init() {
-
+        this.call(() -> this.tx().initSchema());
     }
 
     protected <V> HugeTask<V> deleteFromDB(Id id) {
@@ -647,5 +649,15 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 }
             }
         }
+    }
+
+    @Override
+    public String graphName() {
+        return this.graph.name();
+    }
+
+    @Override
+    public void taskDone(HugeTask<?> task) {
+        // DO Nothing
     }
 }

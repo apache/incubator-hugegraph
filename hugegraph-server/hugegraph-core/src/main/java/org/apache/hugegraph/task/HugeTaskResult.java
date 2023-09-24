@@ -119,49 +119,4 @@ public class HugeTaskResult {
             return key;
         }
     }
-
-    public static class Schema {
-        private final HugeGraph graph;
-
-        public Schema(HugeGraph graph) {
-            this.graph = graph;
-        }
-
-        public void initSchemaIfNeeded() {
-
-            if (!graph.existsVertexLabel(P.TASKRESULT)) {
-
-                LOG.info("init task result schema");
-
-                String[] properties = this.initTaskResultProperties();
-
-                // Create vertex label '~taskresult'
-                VertexLabel label = graph.schema().vertexLabel(P.TASKRESULT).properties(properties)
-                                         .nullableKeys(HugeTaskResult.P.RESULT)
-                                         .useCustomizeStringId().enableLabelIndex(true).build();
-                graph.addVertexLabel(label);
-            } else {
-                LOG.info("task result schema exist");
-            }
-        }
-
-        private String[] initTaskResultProperties() {
-            List<String> props = new ArrayList<>();
-            props.add(createPropertyKey(HugeTaskResult.P.RESULT, DataType.BLOB));
-
-            return props.toArray(new String[0]);
-        }
-
-        private String createPropertyKey(String name, DataType dataType) {
-            return createPropertyKey(name, dataType, Cardinality.SINGLE);
-        }
-
-        private String createPropertyKey(String name, DataType dataType, Cardinality cardinality) {
-            SchemaManager schema = graph.schema();
-            PropertyKey propertyKey =
-                schema.propertyKey(name).dataType(dataType).cardinality(cardinality).build();
-            this.graph.addPropertyKey(propertyKey);
-            return name;
-        }
-    }
 }
