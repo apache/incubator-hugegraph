@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -1085,10 +1086,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public <V> HugeTask<V> delete(Id id) {
+        public <V> HugeTask<V> delete(Id id, boolean force) {
             verifyTaskPermission(HugePermission.DELETE,
                                  this.taskScheduler.task(id));
-            return this.taskScheduler.delete(id);
+            return this.taskScheduler.delete(id, force);
         }
 
         @Override
@@ -1122,6 +1123,18 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public void checkRequirement(String op) {
             verifyAnyPermission();
             this.taskScheduler.checkRequirement(op);
+        }
+
+        @Override
+        public <V> V call(Callable<V> callable) {
+            verifyAnyPermission();
+            return this.taskScheduler.call(callable);
+        }
+
+        @Override
+        public <V> V call(Runnable runnable) {
+            verifyAnyPermission();
+            return this.taskScheduler.call(runnable);
         }
 
         private void verifyTaskPermission(HugePermission actionPerm) {

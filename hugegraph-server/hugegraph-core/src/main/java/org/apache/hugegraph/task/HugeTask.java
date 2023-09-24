@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.job.GremlinJob;
+import org.apache.hugegraph.job.schema.SchemaJob;
 import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.util.*;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
@@ -218,6 +220,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.result;
     }
 
+    public synchronized void result(HugeTaskResult result) {
+        this.result = result.result();
+    }
+
     private synchronized boolean result(TaskStatus status, String result) {
         checkPropertySize(result, P.RESULT);
         if (this.status(status)) {
@@ -261,6 +267,18 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public boolean computer() {
         return ComputerJob.COMPUTER.equals(this.type);
+    }
+
+    public boolean schemaTask() {
+        return this.callable instanceof SchemaJob;
+    }
+
+    public boolean gremlinTask() {
+        return this.callable instanceof GremlinJob;
+    }
+
+    public boolean ephemeralTask() {
+        return this.callable instanceof EphemeralJob;
     }
 
     @Override
@@ -428,6 +446,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return false;
     }
 
+    public synchronized void overwriteStatus(TaskStatus status) {
+        this.status = status;
+    }
+
     protected void property(String key, Object value) {
         E.checkNotNull(key, "property key");
         switch (key) {
@@ -549,6 +571,75 @@ public class HugeTask<V> extends FutureTask<V> {
             byte[] bytes = StringEncoding.compress(this.result);
             checkPropertySize(bytes.length, P.RESULT);
             list.add(P.RESULT);
+            list.add(bytes);
+        }
+
+        if (this.server != null) {
+            list.add(P.SERVER);
+            list.add(this.server.asString());
+        }
+
+        return list.toArray();
+    }
+
+    protected synchronized Object[] asArrayWithoutResult() {
+        E.checkState(this.type != null, "Task type can't be null");
+        E.checkState(this.name != null, "Task name can't be null");
+
+        List<Object> list = new ArrayList<>(28);
+
+        list.add(T.label);
+        list.add(P.TASK);
+
+        list.add(T.id);
+        list.add(this.id);
+
+        list.add(P.TYPE);
+        list.add(this.type);
+
+        list.add(P.NAME);
+        list.add(this.name);
+
+        list.add(P.CALLABLE);
+        list.add(this.callable.getClass().getName());
+
+        list.add(P.STATUS);
+        list.add(this.status.code());
+
+        list.add(P.PROGRESS);
+        list.add(this.progress);
+
+        list.add(P.CREATE);
+        list.add(this.create);
+
+        list.add(P.RETRIES);
+        list.add(this.retries);
+
+        if (this.description != null) {
+            list.add(P.DESCRIPTION);
+            list.add(this.description);
+        }
+
+        if (this.context != null) {
+            list.add(P.CONTEXT);
+            list.add(this.context);
+        }
+
+        if (this.update != null) {
+            list.add(P.UPDATE);
+            list.add(this.update);
+        }
+
+        if (this.dependencies != null) {
+            list.add(P.DEPENDENCIES);
+            list.add(this.dependencies.stream().map(Id::asLong)
+                                      .collect(toOrderSet()));
+        }
+
+        if (this.input != null) {
+            byte[] bytes = StringEncoding.compress(this.input);
+            checkPropertySize(bytes.length, P.INPUT);
+            list.add(P.INPUT);
             list.add(bytes);
         }
 

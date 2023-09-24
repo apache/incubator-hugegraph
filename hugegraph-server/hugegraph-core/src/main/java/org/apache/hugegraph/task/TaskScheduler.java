@@ -19,6 +19,7 @@ package org.apache.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
@@ -26,6 +27,11 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.HugeGraph;
 
 public interface TaskScheduler {
+
+    long NO_LIMIT = -1L;
+    long PAGE_SIZE = 500L;
+    long QUERY_INTERVAL = 100L;
+    int MAX_PENDING_TASKS = 10000;
 
     HugeGraph graph();
 
@@ -39,7 +45,7 @@ public interface TaskScheduler {
 
     <V> void save(HugeTask<V> task);
 
-    <V> HugeTask<V> delete(Id id);
+    <V> HugeTask<V> delete(Id id, boolean force);
 
     <V> HugeTask<V> task(Id id);
 
@@ -62,4 +68,8 @@ public interface TaskScheduler {
                                     throws TimeoutException;
 
     void checkRequirement(String op);
+
+    <V> V call(Callable<V> callable);
+
+    <V> V call(Runnable runnable);
 }

@@ -79,11 +79,6 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private volatile TaskTransaction taskTx;
 
-    private static final long NO_LIMIT = -1L;
-    private static final long PAGE_SIZE = 500L;
-    private static final long QUERY_INTERVAL = 100L;
-    private static final int MAX_PENDING_TASKS = 10000;
-
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,
                                  ExecutorService taskDbExecutor,
@@ -433,13 +428,17 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     protected void remove(HugeTask<?> task) {
+        this.remove(task, false);
+    }
+
+    protected void remove(HugeTask<?> task, boolean force) {
         E.checkNotNull(task, "remove task");
         HugeTask<?> delTask = this.tasks.remove(task.id());
         if (delTask != null && delTask != task) {
             LOG.warn("Task '{}' may be inconsistent status {}(expect {})",
                       task.id(), task.status(), delTask.status());
         }
-        assert delTask == null || delTask.completed() ||
+        assert force || delTask == null || delTask.completed() ||
                delTask.cancelling() || delTask.isCancelled() : delTask;
     }
 
@@ -550,7 +549,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> HugeTask<V> delete(Id id) {
+    public <V> HugeTask<V> delete(Id id, boolean force) {
         this.checkOnMasterNode("delete");
 
         HugeTask<?> task = this.task(id);
@@ -565,11 +564,11 @@ public class StandardTaskScheduler implements TaskScheduler {
          * when the database status is inconsistent.
          */
         if (task != null) {
-            E.checkArgument(task.completed(),
+            E.checkArgument(force || task.completed(),
                             "Can't delete incomplete task '%s' in status %s" +
                             ", Please try to cancel the task first",
                             id, task.status());
-            this.remove(task);
+            this.remove(task, force);
         }
 
         return this.call(() -> {
@@ -579,7 +578,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 return null;
             }
             HugeTask<V> result = HugeTask.fromVertex(vertex);
-            E.checkState(result.completed(),
+            E.checkState(force || result.completed(),
                          "Can't delete incomplete task '%s' in status %s",
                          id, result.status());
             this.tx().removeVertex(vertex);
@@ -704,11 +703,13 @@ public class StandardTaskScheduler implements TaskScheduler {
         });
     }
 
-    private <V> V call(Runnable runnable) {
+    @Override
+    public <V> V call(Runnable runnable) {
         return this.call(Executors.callable(runnable, null));
     }
 
-    private <V> V call(Callable<V> callable) {
+    @Override
+    public  <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
                "task-db-worker") : "can't call by itself";
         try {
@@ -739,131 +740,6 @@ public class StandardTaskScheduler implements TaskScheduler {
         } catch (InterruptedException ignored) {
             // Ignore InterruptedException
             return false;
-        }
-    }
-
-    private static class TaskTransaction extends GraphTransaction {
-
-        public static final String TASK = P.TASK;
-
-        public TaskTransaction(HugeGraphParams graph, BackendStore store) {
-            super(graph, store);
-            this.autoCommit(true);
-        }
-
-        public HugeVertex constructVertex(HugeTask<?> task) {
-            if (!this.graph().existsVertexLabel(TASK)) {
-                throw new HugeException("Schema is missing for task(%s) '%s'",
-                                        task.id(), task.name());
-            }
-            return this.constructVertex(false, task.asArray());
-        }
-
-        public void deleteIndex(HugeVertex vertex) {
-            // Delete the old record if exist
-            Iterator<Vertex> old = this.queryTaskInfos(vertex.id());
-            HugeVertex oldV = (HugeVertex) QueryResults.one(old);
-            if (oldV == null) {
-                return;
-            }
-            this.deleteIndexIfNeeded(oldV, vertex);
-        }
-
-        private boolean deleteIndexIfNeeded(HugeVertex oldV, HugeVertex newV) {
-            if (!oldV.value(P.STATUS).equals(newV.value(P.STATUS))) {
-                // Only delete vertex if index value changed else override it
-                this.updateIndex(this.indexLabel(P.STATUS).id(), oldV, true);
-                return true;
-            }
-            return false;
-        }
-
-        public void initSchema() {
-            if (this.existVertexLabel(TASK)) {
-                return;
-            }
-
-            HugeGraph graph = this.graph();
-            String[] properties = this.initProperties();
-
-            // Create vertex label '~task'
-            VertexLabel label = graph.schema().vertexLabel(TASK)
-                                     .properties(properties)
-                                     .useCustomizeNumberId()
-                                     .nullableKeys(P.DESCRIPTION, P.CONTEXT,
-                                                   P.UPDATE, P.INPUT, P.RESULT,
-                                                   P.DEPENDENCIES, P.SERVER)
-                                     .enableLabelIndex(true)
-                                     .build();
-            this.params().schemaTransaction().addVertexLabel(label);
-
-            // Create index
-            this.createIndexLabel(label, P.STATUS);
-        }
-
-        private boolean existVertexLabel(String label) {
-            return this.params().schemaTransaction()
-                                .getVertexLabel(label) != null;
-        }
-
-        private String[] initProperties() {
-            List<String> props = new ArrayList<>();
-
-            props.add(createPropertyKey(P.TYPE));
-            props.add(createPropertyKey(P.NAME));
-            props.add(createPropertyKey(P.CALLABLE));
-            props.add(createPropertyKey(P.DESCRIPTION));
-            props.add(createPropertyKey(P.CONTEXT));
-            props.add(createPropertyKey(P.STATUS, DataType.BYTE));
-            props.add(createPropertyKey(P.PROGRESS, DataType.INT));
-            props.add(createPropertyKey(P.CREATE, DataType.DATE));
-            props.add(createPropertyKey(P.UPDATE, DataType.DATE));
-            props.add(createPropertyKey(P.RETRIES, DataType.INT));
-            props.add(createPropertyKey(P.INPUT, DataType.BLOB));
-            props.add(createPropertyKey(P.RESULT, DataType.BLOB));
-            props.add(createPropertyKey(P.DEPENDENCIES, DataType.LONG,
-                                        Cardinality.SET));
-            props.add(createPropertyKey(P.SERVER));
-
-            return props.toArray(new String[0]);
-        }
-
-        private String createPropertyKey(String name) {
-            return this.createPropertyKey(name, DataType.TEXT);
-        }
-
-        private String createPropertyKey(String name, DataType dataType) {
-            return this.createPropertyKey(name, dataType, Cardinality.SINGLE);
-        }
-
-        private String createPropertyKey(String name, DataType dataType,
-                                         Cardinality cardinality) {
-            HugeGraph graph = this.graph();
-            SchemaManager schema = graph.schema();
-            PropertyKey propertyKey = schema.propertyKey(name)
-                                            .dataType(dataType)
-                                            .cardinality(cardinality)
-                                            .build();
-            this.params().schemaTransaction().addPropertyKey(propertyKey);
-            return name;
-        }
-
-        private IndexLabel createIndexLabel(VertexLabel label, String field) {
-            HugeGraph graph = this.graph();
-            SchemaManager schema = graph.schema();
-            String name = Hidden.hide("task-index-by-" + field);
-            IndexLabel indexLabel = schema.indexLabel(name)
-                                          .on(HugeType.VERTEX_LABEL, TASK)
-                                          .by(field)
-                                          .build();
-            this.params().schemaTransaction().addIndexLabel(label, indexLabel);
-            return indexLabel;
-        }
-
-        private IndexLabel indexLabel(String field) {
-            String name = Hidden.hide("task-index-by-" + field);
-            HugeGraph graph = this.graph();
-            return graph.indexLabel(name);
         }
     }
 }

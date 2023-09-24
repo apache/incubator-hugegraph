@@ -331,12 +331,28 @@ public class CoreOptions extends OptionHolder {
                     1
             );
 
+    public static final ConfigOption<String> SCHEDULER_TYPE =
+            new ConfigOption<>(
+                    "task.scheduler_type",
+                    "The type of scheduler used in distribution system.",
+                    allowValues("local", "distributed"),
+                    "distributed"
+            );
+
     public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
                     "task.sync_deletion",
                     "Whether to delete schema or expired data synchronously.",
                     disallowEmpty(),
                     false
+            );
+
+    public static final ConfigOption<Integer> TASK_RETRY =
+            new ConfigOption<>(
+                    "task.retry",
+                    "Task retry times.",
+                    rangeInt(0, 3),
+                    0
             );
 
     public static final ConfigOption<Long> STORE_CONN_DETECT_INTERVAL =
