@@ -261,19 +261,18 @@ public final class TaskManager {
         if (terminated && !this.distributedSchedulerExecutor.isShutdown()) {
             this.distributedSchedulerExecutor.shutdown();
             try {
-                terminated = this.distributedSchedulerExecutor
-                        .awaitTermination(timeout, unit);
-                LOG.info("Shutdown distributedSchedulerExecutor result: {}",
-                         terminated);
+                terminated = this.distributedSchedulerExecutor.awaitTermination(timeout,
+                                                                                unit);
             } catch (Throwable e) {
-                ex = new HugeException("Shutdown SchedulerExecutor error", e);
+                ex = e;
             }
         }
 
         if (terminated && !this.taskExecutor.isShutdown()) {
             this.taskExecutor.shutdown();
             try {
-                terminated = this.taskExecutor.awaitTermination(timeout, unit);
+                terminated = this.taskExecutor.awaitTermination(timeout,
+                                                                unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -292,7 +291,8 @@ public final class TaskManager {
         if (terminated && !this.taskDbExecutor.isShutdown()) {
             this.taskDbExecutor.shutdown();
             try {
-                terminated = this.taskDbExecutor.awaitTermination(timeout, unit);
+                terminated = this.taskDbExecutor.awaitTermination(timeout,
+                                                                  unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -301,7 +301,8 @@ public final class TaskManager {
         if (terminated && !this.ephemeralTaskExecutor.isShutdown()) {
             this.ephemeralTaskExecutor.shutdown();
             try {
-                terminated = this.ephemeralTaskExecutor.awaitTermination(timeout, unit);
+                terminated = this.ephemeralTaskExecutor.awaitTermination(timeout,
+                                                                         unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -309,10 +310,9 @@ public final class TaskManager {
 
         if (terminated && !this.schemaTaskExecutor.isShutdown()) {
             this.schemaTaskExecutor.shutdown();
-            LOG.info("schemaTaskexecutor running count({})",
-                     ((ThreadPoolExecutor) this.schemaTaskExecutor).getActiveCount());
             try {
-                terminated = this.schemaTaskExecutor.awaitTermination(timeout, unit);
+                terminated = this.schemaTaskExecutor.awaitTermination(timeout,
+                                                                      unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -321,7 +321,8 @@ public final class TaskManager {
         if (terminated && !this.olapTaskExecutor.isShutdown()) {
             this.olapTaskExecutor.shutdown();
             try {
-                terminated = this.olapTaskExecutor.awaitTermination(timeout, unit);
+                terminated = this.olapTaskExecutor.awaitTermination(timeout,
+                                                                    unit);
             } catch (Throwable e) {
                 ex = e;
             }
