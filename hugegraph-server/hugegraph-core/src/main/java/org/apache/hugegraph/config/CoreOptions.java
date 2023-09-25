@@ -336,7 +336,7 @@ public class CoreOptions extends OptionHolder {
                     "task.scheduler_type",
                     "The type of scheduler used in distribution system.",
                     allowValues("local", "distributed"),
-                    "distributed"
+                    "local"
             );
 
     public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
