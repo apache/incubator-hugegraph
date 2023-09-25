@@ -440,7 +440,9 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public void checkRequirement(String op) {
-
+        if (!this.serverManager().master()) {
+            throw new HugeException("Can't %s task on non-master server", op);
+        }
     }
 
     @Override
