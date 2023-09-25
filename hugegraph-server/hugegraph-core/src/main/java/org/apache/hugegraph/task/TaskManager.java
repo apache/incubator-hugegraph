@@ -114,15 +114,15 @@ public final class TaskManager {
         switch (graph.schedulerType()) {
             case "distributed": {
                 TaskScheduler scheduler =
-                        new DistributedTaskScheduler(
-                                graph,
-                                distributedSchedulerExecutor,
-                                taskDbExecutor,
-                                schemaTaskExecutor,
-                                olapTaskExecutor,
-                                taskExecutor, /* gremlinTaskExecutor */
-                                ephemeralTaskExecutor,
-                                serverInfoDbExecutor);
+                    new DistributedTaskScheduler(
+                        graph,
+                        distributedSchedulerExecutor,
+                        taskDbExecutor,
+                        schemaTaskExecutor,
+                        olapTaskExecutor,
+                        taskExecutor, /* gremlinTaskExecutor */
+                        ephemeralTaskExecutor,
+                        serverInfoDbExecutor);
                 this.schedulers.put(graph, scheduler);
                 break;
             }
@@ -135,6 +135,7 @@ public final class TaskManager {
                         this.taskDbExecutor,
                         this.serverInfoDbExecutor);
                 this.schedulers.put(graph, scheduler);
+                break;
             }
         }
     }
