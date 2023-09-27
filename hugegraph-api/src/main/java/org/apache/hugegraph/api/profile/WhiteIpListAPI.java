@@ -30,7 +30,6 @@ import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.StatusFilter;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
@@ -53,7 +52,7 @@ import jakarta.ws.rs.core.Context;
 @Singleton
 public class WhiteIpListAPI extends API {
 
-    private static final Logger LOG = Log.logger(RestServer.class);
+    private static final Logger LOG = Log.logger(WhiteIpListAPI.class);
 
     @GET
     @Timed
