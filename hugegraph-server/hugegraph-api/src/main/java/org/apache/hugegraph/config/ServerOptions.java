@@ -264,4 +264,12 @@ public class ServerOptions extends OptionHolder {
                     disallowEmpty(),
                     true
             );
+
+    public static final ConfigOption<String> WHITE_IP_STATUS =
+            new ConfigOption<>(
+                    "white_ip.status",
+                    "The status of whether enable white ip.",
+                    disallowEmpty(),
+                    "disable"
+            );
 }
