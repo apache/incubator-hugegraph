@@ -26,7 +26,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.records.KoutRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -97,7 +97,7 @@ public class KoutTraverser extends OltpTraverser {
         return latest;
     }
 
-    public KoutRecords customizedKout(Id source, EdgeStep step,
+    public KoutRecords customizedKout(Id source, Steps steps,
                                       int maxDepth, boolean nearest,
                                       long capacity, long limit) {
         E.checkNotNull(source, "source vertex id");
@@ -109,13 +109,13 @@ public class KoutTraverser extends OltpTraverser {
         depth[0] = maxDepth;
         boolean concurrent = maxDepth >= this.concurrentDepth();
 
-        KoutRecords records = new KoutRecords(concurrent, source, nearest);
+        KoutRecords records = new KoutRecords(concurrent, source, nearest, 0);
 
         Consumer<Id> consumer = v -> {
             if (this.reachLimit(limit, depth[0], records.size())) {
                 return;
             }
-            Iterator<Edge> edges = edgesOfVertex(v, step);
+            Iterator<Edge> edges = edgesOfVertex(v, steps);
             this.vertexIterCounter.addAndGet(1L);
             while (!this.reachLimit(limit, depth[0], records.size()) &&
                    edges.hasNext()) {
@@ -135,6 +135,38 @@ public class KoutTraverser extends OltpTraverser {
             this.traverseIds(records.keys(), consumer, concurrent);
             records.finishOneLayer();
         }
+        return records;
+    }
+
+    public KoutRecords dfsKout(Id source, Steps steps,
+                               int maxDepth, boolean nearest,
+                               long capacity, long limit) {
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
+        checkPositive(maxDepth, "k-out max_depth");
+        checkCapacity(capacity);
+        checkLimit(limit);
+
+        Set<Id> all = newIdSet();
+        all.add(source);
+
+        KoutRecords records = new KoutRecords(false, source, nearest, maxDepth);
+        Iterator<Edge> iterator = this.createNestedIterator(source, steps, maxDepth, all, nearest);
+        while (iterator.hasNext()) {
+            HugeEdge edge = (HugeEdge) iterator.next();
+            this.edgeIterCounter.addAndGet(1L);
+
+            Id target = edge.id().otherVertexId();
+            if (!nearest || !all.contains(target)) {
+                records.addFullPath(HugeTraverser.pathEdges(iterator, edge));
+            }
+
+            if (limit != NO_LIMIT && records.size() >= limit ||
+                capacity != NO_LIMIT && all.size() > capacity) {
+                break;
+            }
+        }
+
         return records;
     }
 

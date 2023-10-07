@@ -265,6 +265,14 @@ public class ServerOptions extends OptionHolder {
                     true
             );
 
+    public static final ConfigOption<String> WHITE_IP_STATUS =
+            new ConfigOption<>(
+                    "white_ip.status",
+                    "The status of whether enable white ip.",
+                    disallowEmpty(),
+                    "disable"
+            );
+
     public static final ConfigOption<String> ARTHAS_TELNET_PORT =
         new ConfigOption<>(
             "arthas.telnet_port",
