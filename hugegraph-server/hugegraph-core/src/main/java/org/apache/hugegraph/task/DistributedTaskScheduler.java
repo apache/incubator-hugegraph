@@ -262,6 +262,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         // 处理 gremlin 任务
         // 处理 olap 计算任务
         // 添加任务到 DB，当前任务状态为 NEW
+        // TODO: save server id for task
         this.save(task);
 
         if (!this.closed.get()) {
