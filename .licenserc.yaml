@@ -96,6 +96,14 @@ header: # `header` section is configurations for source codes license header.
     - '**/util/StringEncoding.java'
     - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
     - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
+    # TODO: temporarily added to the ignore list, need handle them before releases ( ↓ )
+    - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
+    - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
+    - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java'
+    - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsEntry.java'
+    - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsReader.java'
+    - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsSmaps.java'
+    # TODO: temporarily added to the ignore list, need handle them before releases ( ↑ )
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,
