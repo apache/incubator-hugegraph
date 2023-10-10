@@ -66,6 +66,7 @@ jobs:
 
       - name: Prepare env and service
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/install-backend.sh $BACKEND
 
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
@@ -77,24 +78,29 @@ jobs:
 
       - name: Run unit test
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
 
       - name: Run core test
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/run-core-test.sh $BACKEND
 
       - name: Run api test
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
 
       - name: Run raft test
         if: ${{ env.BACKEND == 'rocksdb' }}
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
 
       - name: Run TinkerPop test
         if: ${{ env.RELEASE_BRANCH == 'true' }}
         run: |
+          cd hugegraph-server
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
