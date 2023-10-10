@@ -20,6 +20,8 @@ package org.apache.hugegraph.api;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 import jakarta.ws.rs.core.Response;
 
 public class ArthasApiTest extends BaseApiTest {
@@ -30,7 +32,7 @@ public class ArthasApiTest extends BaseApiTest {
 
     @Before
     public void testArthasStart() {
-        Response r = client().get(ARTHAS_START_PATH);
+        Response r = client().put(ARTHAS_START_PATH, "", "", ImmutableMap.of());
         assertResponseStatus(200, r);
     }
 
@@ -39,17 +41,24 @@ public class ArthasApiTest extends BaseApiTest {
         String body = "{\n" +
                       "  \"action\": \"exec\",\n" +
                       "  \"requestId\": \"req112\",\n" +
-                      "  \"sessionId\": \"\",\n" +
                       "  \"consumerId\": \"955dbd1325334a84972b0f3ac19de4f7_2\",\n" +
                       "  \"command\": \"version\",\n" +
                       "  \"execTimeout\": \"10000\"\n" +
                       "}";
-        RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL);
+        RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL,false);
+        // If request header contains basic auth, and if we are not set auth when arthas attach hg,
+        // arthas will auth it and return 401. ref:https://arthas.aliyun.com/en/doc/auth.html#configure-username-and-password
         Response r = arthasApiClient.post(ARTHAS_API_PATH, body);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "state");
         assertJsonContains(result, "requestId");
         assertJsonContains(result, "sessionId");
         assertJsonContains(result, "body");
+
+        RestClient arthasApiClientWithAuth = new RestClient(ARTHAS_API_BASE_URL);
+        // If request header contains basic auth, and if we are not set auth when arthas attach hg,
+        // arthas will auth it and return 401. ref:https://arthas.aliyun.com/en/doc/auth.html#configure-username-and-password
+        r = arthasApiClientWithAuth.post(ARTHAS_API_PATH, body);
+        assertResponseStatus(401, r);
     }
 }
