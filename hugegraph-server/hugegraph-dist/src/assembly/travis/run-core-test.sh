@@ -19,4 +19,4 @@ set -ev
 
 BACKEND=$1
 
-mvn test -P core-test,$BACKEND
+mvn test -pl hugegraph-server -am -P core-test,$BACKEND
