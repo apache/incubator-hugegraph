@@ -55,13 +55,6 @@ jobs:
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
 
-      - name: Install JDK ${{ matrix.JAVA_VERSION }}
-        uses: actions/setup-java@v3
-        with:
-          overwrite-settings: false
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'zulu'
-
       - name: Run unit test
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
