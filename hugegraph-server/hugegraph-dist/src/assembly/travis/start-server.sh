@@ -40,7 +40,7 @@ declare -A backend_serializer_map=(["memory"]="text" \
                                    ["hbase"]="hbase" \
                                    ["rocksdb"]="binary" \
                                    ["postgresql"]="postgresql" \
-                                   ["hstore"]="hstore")
+                                   ["hstore"]="binary")
 
 SERIALIZER=${backend_serializer_map[$BACKEND]}
 
