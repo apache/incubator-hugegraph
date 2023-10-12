@@ -17,5 +17,10 @@
 #
 set -ev
 
-. start-pd.sh
-. start-store.sh
+HOME_DIR=$(pwd)
+PD_DIR=$HOME_DIR/hugegraph-pd/dist/hugegraph-pd-1.5.0.1
+
+pushd $PD_DIR
+. bin/start-hugegraph-pd.sh
+sleep 10
+popd
