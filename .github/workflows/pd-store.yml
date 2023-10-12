@@ -61,7 +61,7 @@ jobs:
 
       - name: Run store test
         run: |
-          mvn test -pl hg-store-test/hg-store-client -am -P store-client-test
+          mvn test -pl hg-store-test/hg-store-test -am -P store-client-test
 
       - name: Run unit test
         run: |
