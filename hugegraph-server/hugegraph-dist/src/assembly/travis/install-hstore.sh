@@ -17,5 +17,7 @@
 #
 set -ev
 
-. start-pd.sh
-. start-store.sh
+TRAVIS_DIR=$(dirname "$0")
+
+. "$TRAVIS_DIR"/start-pd.sh
+. "$TRAVIS_DIR"/start-store.sh
