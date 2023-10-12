@@ -55,6 +55,14 @@ jobs:
         run: |
           $TRAVIS_DIR/install-backend.sh $BACKEND
 
+      - name: Run pd test
+        run: |
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test
+
+      - name: Run store test
+        run: |
+          mvn test -pl hg-store-test/hg-store-client -am -P store-client-test
+
       - name: Run unit test
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND

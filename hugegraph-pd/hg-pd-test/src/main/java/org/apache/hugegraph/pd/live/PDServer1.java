@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package live;
+package org.apache.hugegraph.pd.live;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,13 +24,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.boot.HugePDServer;
 import org.springframework.boot.SpringApplication;
 
-public class PDServer3 {
+public class PDServer1 {
 
-    static String SERVER_NAME = "server3";
-    static String DATA_PATH = "tmp/8688";
+    static String SERVER_NAME = "server1";
+    static String DATA_PATH = "tmp/8686";
 
     public static void main(String[] args) {
-        //   deleteDirectory(new File(DATA_PATH));
+        deleteDirectory(new File(DATA_PATH));
         SpringApplication.run(HugePDServer.class,
                               String.format("--spring.profiles.active=%s", SERVER_NAME));
         System.out.println(SERVER_NAME + " started.");

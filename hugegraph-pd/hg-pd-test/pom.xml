@@ -244,7 +244,7 @@
                 <version>2.20</version>
                 <executions>
                     <execution>
-                        <id>client-test</id>
+                        <id>pd-client-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -256,7 +256,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>core-test</id>
+                        <id>pd-core-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -268,7 +268,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>cli-tools-test</id>
+                        <id>pd-cli-tools-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -280,7 +280,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>common-test</id>
+                        <id>pd-common-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -292,7 +292,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>service-test</id>
+                        <id>pd-service-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -303,7 +303,6 @@
                             </includes>
                         </configuration>
                     </execution>
-
                 </executions>
             </plugin>
             <plugin>
