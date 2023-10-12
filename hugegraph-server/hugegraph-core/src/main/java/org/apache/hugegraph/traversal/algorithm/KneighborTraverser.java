@@ -25,7 +25,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.records.KneighborRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -69,7 +69,7 @@ public class KneighborTraverser extends OltpTraverser {
         return all;
     }
 
-    public KneighborRecords customizedKneighbor(Id source, EdgeStep step,
+    public KneighborRecords customizedKneighbor(Id source, Steps steps,
                                                 int maxDepth, long limit) {
         E.checkNotNull(source, "source vertex id");
         this.checkVertexExist(source, "source vertex");
@@ -85,7 +85,7 @@ public class KneighborTraverser extends OltpTraverser {
             if (this.reachLimit(limit, records.size())) {
                 return;
             }
-            Iterator<Edge> edges = edgesOfVertex(v, step);
+            Iterator<Edge> edges = edgesOfVertex(v, steps);
             this.vertexIterCounter.addAndGet(1L);
             while (!this.reachLimit(limit, records.size()) && edges.hasNext()) {
                 HugeEdge edge = (HugeEdge) edges.next();

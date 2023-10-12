@@ -38,7 +38,7 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.KoutTraverser;
 import org.apache.hugegraph.traversal.algorithm.records.KoutRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
@@ -126,18 +126,19 @@ public class KoutAPI extends TraverserAPI {
         E.checkArgumentNotNull(request, "The request body can't be null");
         E.checkArgumentNotNull(request.source,
                                "The source of request can't be null");
-        E.checkArgument(request.step != null,
+        E.checkArgument(request.steps != null,
                         "The steps of request can't be null");
         if (request.countOnly) {
             E.checkArgument(!request.withVertex && !request.withPath && !request.withEdge,
                             "Can't return vertex, edge or path when count only");
         }
+        HugeTraverser.checkTraverseMode(request.traverseMode);
 
         LOG.debug("Graph [{}] get customized kout from source vertex '{}', " +
-                  "with step '{}', max_depth '{}', nearest '{}', " +
+                  "with steps '{}', max_depth '{}', nearest '{}', " +
                   "count_only '{}', capacity '{}', limit '{}', " +
                   "with_vertex '{}', with_path '{}' and with_edge '{}'",
-                  graph, request.source, request.step, request.maxDepth,
+                  graph, request.source, request.steps, request.maxDepth,
                   request.nearest, request.countOnly, request.capacity,
                   request.limit, request.withVertex, request.withPath,
                   request.withEdge);
@@ -147,14 +148,22 @@ public class KoutAPI extends TraverserAPI {
         HugeGraph g = graph(manager, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
 
-        EdgeStep step = step(g, request.step);
+        Steps steps = steps(g, request.steps);
         KoutRecords results;
         try (KoutTraverser traverser = new KoutTraverser(g)) {
-            results = traverser.customizedKout(sourceId, step,
-                                               request.maxDepth,
-                                               request.nearest,
-                                               request.capacity,
-                                               request.limit);
+            if (HugeTraverser.isTraverseModeDFS(request.traverseMode)) {
+                results = traverser.dfsKout(sourceId, steps,
+                                            request.maxDepth,
+                                            request.nearest,
+                                            request.capacity,
+                                            request.limit);
+            } else {
+                results = traverser.customizedKout(sourceId, steps,
+                                                   request.maxDepth,
+                                                   request.nearest,
+                                                   request.capacity,
+                                                   request.limit);
+            }
             measure.addIterCount(traverser.vertexIterCounter.get(),
                                  traverser.edgeIterCounter.get());
         }
@@ -172,7 +181,7 @@ public class KoutAPI extends TraverserAPI {
 
         if (request.countOnly) {
             return manager.serializer(g, measure.measures())
-                          .writeNodesWithPath("kneighbor", neighbors, size, paths,
+                          .writeNodesWithPath("kout", neighbors, size, paths,
                                               QueryResults.emptyIterator(),
                                               QueryResults.emptyIterator());
         }
@@ -210,8 +219,8 @@ public class KoutAPI extends TraverserAPI {
 
         @JsonProperty("source")
         public Object source;
-        @JsonProperty("step")
-        public TraverserAPI.Step step;
+        @JsonProperty("steps")
+        public TraverserAPI.VESteps steps;
         @JsonProperty("max_depth")
         public int maxDepth;
         @JsonProperty("nearest")
@@ -228,16 +237,19 @@ public class KoutAPI extends TraverserAPI {
         public boolean withPath = false;
         @JsonProperty("with_edge")
         public boolean withEdge = false;
+        @JsonProperty("traverse_mode")
+        public String traverseMode = HugeTraverser.TRAVERSE_MODE_BFS;
 
         @Override
         public String toString() {
-            return String.format("KoutRequest{source=%s,step=%s,maxDepth=%s" +
+            return String.format("KoutRequest{source=%s,steps=%s,maxDepth=%s" +
                                  "nearest=%s,countOnly=%s,capacity=%s," +
                                  "limit=%s,withVertex=%s,withPath=%s," +
-                                 "withEdge=%s}", this.source, this.step,
-                                 this.maxDepth, this.nearest, this.countOnly,
-                                 this.capacity, this.limit, this.withVertex,
-                                 this.withPath, this.withEdge);
+                                 "withEdge=%s,traverseMode=%s}", this.source,
+                                 this.steps, this.maxDepth, this.nearest,
+                                 this.countOnly, this.capacity, this.limit,
+                                 this.withVertex, this.withPath, this.withEdge,
+                                 this.traverseMode);
         }
     }
 }

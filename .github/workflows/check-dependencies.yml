@@ -3,7 +3,6 @@ name: "3rd-party"
 on:
   push:
     branches:
-#      - master
       - /^release-.*$/
   pull_request:
   
@@ -14,7 +13,7 @@ jobs:
   dependency-check:
     runs-on: ubuntu-latest
     env:
-      SCRIPT_DEPENDENCY: hugegraph-server/hugegraph-dist/scripts/dependency
+      SCRIPT_DEPENDENCY: hugegraph-dist/scripts/dependency
     steps:
       - name: Checkout source
         uses: actions/checkout@v3
