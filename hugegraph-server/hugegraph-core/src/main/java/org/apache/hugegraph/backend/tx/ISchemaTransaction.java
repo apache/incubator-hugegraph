@@ -106,4 +106,6 @@ public interface ISchemaTransaction {
     void removeIndexLabelFromBaseLabel(IndexLabel indexLabel);
 
     void createIndexLabelForOlapPk(PropertyKey propertyKey);
+
+    void removeSchema(SchemaElement schema);
 }

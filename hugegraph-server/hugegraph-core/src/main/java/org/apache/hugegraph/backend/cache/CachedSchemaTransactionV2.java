@@ -237,7 +237,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     @Override
-    protected void removeSchema(SchemaElement schema) {
+    public void removeSchema(SchemaElement schema) {
         super.removeSchema(schema);
 
         this.invalidateCache(schema.type(), schema.id());

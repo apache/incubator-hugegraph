@@ -89,7 +89,7 @@ public abstract class SchemaJob extends SysJob<Object> {
     protected static void removeSchema(ISchemaTransaction tx,
                                        SchemaElement schema) {
         try {
-            Method method = SchemaTransaction.class
+            Method method = ISchemaTransaction.class
                             .getDeclaredMethod("removeSchema",
                                                SchemaElement.class);
             method.setAccessible(true);
