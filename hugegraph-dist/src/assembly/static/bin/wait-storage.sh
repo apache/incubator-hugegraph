@@ -30,7 +30,7 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 GRAPH_PROP="$TOP/conf/graphs/hugegraph.properties"
 HUGE_STORAGE_TIMEOUT_S=120
-TRY_STORAGE="$TOP/scripts/try-storage.groovy"
+TRY_STORAGE="$TOP/scripts/detect-storage.groovy"
 
 . "$BIN"/util.sh
 

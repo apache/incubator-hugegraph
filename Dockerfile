@@ -55,7 +55,7 @@ RUN set -e \
 
 # 3. Init docker script
 COPY hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
-COPY hugegraph-dist/docker/scripts/try-storage.groovy ./scripts
+COPY hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh 
 
