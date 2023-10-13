@@ -17,26 +17,50 @@
 
 package org.apache.hugegraph.api;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
+import jakarta.ws.rs.core.Response;
 
 public class MetricsApiTest extends BaseApiTest {
 
-    private static String path = "/metrics";
+    private static final String path = "/metrics";
+    private static final String statisticsPath = path + "/statistics";
 
     @Test
-    public void testMetricsAll() {
-        Response r = client().get(path);
+    public void testBaseMetricsAll() {
+        Map<String, Object> params = new HashMap<>();
+        params.put("type", "json");
+        Response r = client().get(path, params);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "gauges");
         assertJsonContains(result, "counters");
         assertJsonContains(result, "histograms");
         assertJsonContains(result, "meters");
         assertJsonContains(result, "timers");
+    }
+
+    @Test
+    public void testBaseMetricsPromAll() {
+        Response r = client().get(path);
+        assertResponseStatus(200, r);
+    }
+
+    @Test
+    public void testStatisticsMetricsAll() {
+        Map<String, String> params = new HashMap<>();
+        params.put("type", "json");
+        Response r = client().get(path);
+        assertResponseStatus(200, r);
+    }
+
+    @Test
+    public void testStatisticsMetricsPromAll() {
+        Response r = client().get(statisticsPath);
+        assertResponseStatus(200, r);
     }
 
     @Test
