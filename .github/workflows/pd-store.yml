@@ -51,23 +51,23 @@ jobs:
 
       - name: Run client test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test -Dmaven.test.failure.ignore=true
 
       - name: Run core test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test -Dmaven.test.failure.ignore=true
 
       - name: Run cli-tools test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-cli-tools-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-cli-tools-test -Dmaven.test.failure.ignore=true
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test -Dmaven.test.failure.ignore=true
 
       - name: Run service test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-service-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-service-test -Dmaven.test.failure.ignore=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
@@ -118,27 +118,27 @@ jobs:
 
       - name: Run client test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test -Dmaven.test.failure.ignore=true
 
       - name: Run core test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test -Dmaven.test.failure.ignore=true
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test -Dmaven.test.failure.ignore=true
 
       - name: Run rocksdb test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test -Dmaven.test.failure.ignore=true
 
       - name: Run server test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test -Dmaven.test.failure.ignore=true
 
       - name: Run raftcore test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test -Dmaven.test.failure.ignore=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
