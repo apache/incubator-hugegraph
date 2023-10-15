@@ -105,22 +105,17 @@ public class BaseApiTest {
         private WebTarget target;
 
         public RestClient(String url) {
-            this.client = ClientBuilder.newClient();
-            this.client.register(EncodingFilter.class);
-            this.client.register(GZipEncoder.class);
-            this.client.register(HttpAuthenticationFeature.basic(USERNAME,
-                                                                 PASSWORD));
-            this.target = this.client.target(url);
+            this(url, true);
         }
-        public RestClient(String url,Boolean useAuth) {
+
+        public RestClient(String url,Boolean enableAuth) {
             this.client = ClientBuilder.newClient();
             this.client.register(EncodingFilter.class);
             this.client.register(GZipEncoder.class);
-            if(useAuth){
+            if(enableAuth) {
                 this.client.register(HttpAuthenticationFeature.basic(USERNAME,
                                                                      PASSWORD));
             }
-
             this.target = this.client.target(url);
         }
 
