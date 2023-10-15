@@ -39,6 +39,7 @@ import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -98,7 +99,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
              label.name().equals(HugeTaskResult.P.TASKRESULT))) {
             return HugeType.TASK;
         }
-        if (label != null && label.name().equals(HugeServerInfo.P.SERVER)) {
+        if (label != null &&
+            (label.name().equals(HugeServerInfo.P.SERVER) ||
+             label.name().equals(StandardClusterRoleStore.P.ROLE_DATA))) {
             return HugeType.SERVER;
         }
         return HugeType.VERTEX;

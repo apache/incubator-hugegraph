@@ -26,17 +26,23 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.task.DistributedTaskScheduler;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.glassfish.hk2.api.IterableProvider;
 import org.glassfish.hk2.api.ServiceHandle;
 import org.glassfish.jersey.message.internal.HeaderUtils;
+import org.glassfish.jersey.server.ContainerRequest;
 import org.slf4j.Logger;
 
 import jakarta.ws.rs.NameBinding;
@@ -55,6 +61,10 @@ public class RedirectFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(RedirectFilter.class);
 
     private static final String X_HG_REDIRECT = "x-hg-redirect";
+
+    private static final String TASK_API_REGEX = "graphs/(.*?)/tasks/.*";
+
+    private static final Pattern TASK_API_PATTERN = Pattern.compile(TASK_API_REGEX);
 
     private static volatile Client client = null;
 
@@ -91,6 +101,20 @@ public class RedirectFilter implements ContainerRequestFilter {
             StringUtils.isEmpty(masterNodeInfo.url())) {
             return;
         }
+
+        // skip filter if call TaskAPI to graph with DistributedTaskScheduler
+        if (context instanceof ContainerRequest) {
+            String relativePath = ((ContainerRequest) context).getPath(true);
+            Matcher matcher = TASK_API_PATTERN.matcher(relativePath);
+            if (matcher.matches()) {
+                HugeGraph graph = manager.graph(matcher.group(1));
+                if (Objects.nonNull(graph) &&
+                    graph.taskScheduler() instanceof DistributedTaskScheduler) {
+                    return;
+                }
+            }
+        }
+
         String url = masterNodeInfo.url();
 
         URI redirectUri;

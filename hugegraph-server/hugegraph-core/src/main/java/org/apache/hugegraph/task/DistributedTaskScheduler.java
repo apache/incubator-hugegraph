@@ -133,19 +133,17 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             return;
         }
 
-        if (!this.closed.get()) {
-            // 处理 NEW 状态的任务
-            Iterator<HugeTask<Object>> news = queryTaskWithoutResultByStatus(
-                TaskStatus.NEW);
+        // 处理 NEW 状态的任务
+        Iterator<HugeTask<Object>> news = queryTaskWithoutResultByStatus(
+            TaskStatus.NEW);
 
-            while (news.hasNext()) {
-                HugeTask<?> newTask = news.next();
-                LOG.info("Try to start task({})@({}/{})", newTask.id(),
-                         this.graphSpace, this.graphName);
-                if (!tryStartHugeTask(newTask)) {
-                    // 任务提交失败时，线程池已打满
-                    break;
-                }
+        while (!this.closed.get() && news.hasNext()) {
+            HugeTask<?> newTask = news.next();
+            LOG.info("Try to start task({})@({}/{})", newTask.id(),
+                     this.graphSpace, this.graphName);
+            if (!tryStartHugeTask(newTask)) {
+                // 任务提交失败时，线程池已打满
+                break;
             }
         }
 
@@ -153,7 +151,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         Iterator<HugeTask<Object>> runnings =
             queryTaskWithoutResultByStatus(TaskStatus.RUNNING);
 
-        while (runnings.hasNext()) {
+        while (!this.closed.get() && runnings.hasNext()) {
             HugeTask<?> running = runnings.next();
             initTaskParams(running);
             if (!isLockedTask(running.id().toString())) {
@@ -170,7 +168,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         Iterator<HugeTask<Object>> faileds =
             queryTaskWithoutResultByStatus(TaskStatus.FAILED);
 
-        while (faileds.hasNext()) {
+        while (!this.closed.get() && faileds.hasNext()) {
             HugeTask<?> failed = faileds.next();
             initTaskParams(failed);
             if (failed.retries() < this.graph().option(CoreOptions.TASK_RETRY)) {
@@ -185,7 +183,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         Iterator<HugeTask<Object>> cancellings = queryTaskWithoutResultByStatus(
             TaskStatus.CANCELLING);
 
-        while (cancellings.hasNext()) {
+        while (!this.closed.get() && cancellings.hasNext()) {
             Id cancellingId = cancellings.next().id();
             if (runningTasks.containsKey(cancellingId)) {
                 HugeTask<?> cancelling = runningTasks.get(cancellingId);
@@ -208,7 +206,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         Iterator<HugeTask<Object>> deletings = queryTaskWithoutResultByStatus(
             TaskStatus.DELETING);
 
-        while (deletings.hasNext()) {
+        while (!this.closed.get() && deletings.hasNext()) {
             Id deletingId = deletings.next().id();
             if (runningTasks.containsKey(deletingId)) {
                 HugeTask<?> deleting = runningTasks.get(deletingId);
@@ -229,6 +227,9 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     }
 
     protected <V> Iterator<HugeTask<V>> queryTaskWithoutResultByStatus(TaskStatus status) {
+        if (this.closed.get()) {
+            return QueryResults.emptyIterator();
+        }
         return queryTaskWithoutResult(HugeTask.P.STATUS, status.code(), NO_LIMIT, null);
     }
 
@@ -349,7 +350,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         try {
             this.waitUntilAllTasksCompleted(10);
         } catch (TimeoutException e) {
-            LOG.warn("Tasks not complted when close taskscheduler", e);
+            LOG.warn("Tasks not completed when close distributed task scheduler", e);
         }
 
         // cancel cron thread

@@ -450,6 +450,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
          */
         @Override
         public Integer commit() {
+            if (!this.hasChanges()) {
+                return 0;
+            }
             int commitSize = this.changedSize;
             if (TRANSACTIONAL) {
                 this.graph.commit();
