@@ -10,7 +10,7 @@ on:
 
 jobs:
   pd:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
@@ -76,7 +76,7 @@ jobs:
 
   store:
     # TODO: avoid duplicated env setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
@@ -147,7 +147,7 @@ jobs:
 
   hstore:
     # TODO: avoid duplicated env setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
