@@ -51,12 +51,12 @@ public class UnsafeUtilTest {
 
     @Test
     public void testEncodedLength() {
-        assertEquals(10, UnsafeUtf8Util.encodedLength("aa 中文 aa"));
+        assertEquals(10, UnsafeUtf8Util.encodedLength("aa中文aa"));
     }
 
     @Test
     public void testEncodeUtf8() {
-        assertEquals(10, UnsafeUtf8Util.encodeUtf8("aa 中文 aa", new byte[16], 0, 16));
+        assertEquals(10, UnsafeUtf8Util.encodeUtf8("aa中文aa", new byte[16], 0, 16));
     }
 
     @Test
