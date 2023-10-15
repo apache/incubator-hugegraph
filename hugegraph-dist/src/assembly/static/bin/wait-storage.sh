@@ -28,9 +28,9 @@ function abs_path() {
 
 BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
-GRAPH_PROP="$TOP/conf/graphs/hugegraph.properties"
-HUGE_STORAGE_TIMEOUT_S=120
-TRY_STORAGE="$TOP/scripts/detect-storage.groovy"
+GRAPH_CONF="$TOP/conf/graphs/hugegraph.properties"
+WAIT_STORAGE_TIMEOUT_S=120
+DETECT_STORAGE="$TOP/scripts/detect-storage.groovy"
 
 . "$BIN"/util.sh
 
@@ -38,10 +38,10 @@ TRY_STORAGE="$TOP/scripts/detect-storage.groovy"
 while IFS=' ' read -r envvar_key envvar_val; do
     if [[ "${envvar_key}" =~ hugegraph\. ]] && [[ ! -z ${envvar_val} ]]; then
         envvar_key=${envvar_key#"hugegraph."}
-        if grep -q -E "^\s*${envvar_key}\s*=\.*" ${GRAPH_PROP}; then
-            sed -ri "s#^(\s*${envvar_key}\s*=).*#\\1${envvar_val}#" ${GRAPH_PROP}
+        if grep -q -E "^\s*${envvar_key}\s*=\.*" ${GRAPH_CONF}; then
+            sed -ri "s#^(\s*${envvar_key}\s*=).*#\\1${envvar_val}#" ${GRAPH_CONF}
         else
-            echo "${envvar_key}=${envvar_val}" >> ${GRAPH_PROP}
+            echo "${envvar_key}=${envvar_val}" >> ${GRAPH_CONF}
         fi
     else
         continue
@@ -49,7 +49,7 @@ while IFS=' ' read -r envvar_key envvar_val; do
 done < <(env | sort -r | awk -F= '{ st = index($0, "="); print $1 " " substr($0, st+1) }')
 
 # wait for storage
-if ! [ -z "${HUGE_STORAGE_TIMEOUT_S:-}" ]; then
-    timeout "${HUGE_STORAGE_TIMEOUT_S}s" bash -c \
-    "until bin/gremlin-console.sh -- -e $TRY_STORAGE > /dev/null 2>&1; do echo \"waiting for storage...\"; sleep 5; done"
+if ! [ -z "${WAIT_STORAGE_TIMEOUT_S:-}" ]; then
+    timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c \
+    "until bin/gremlin-console.sh -- -e $DETECT_STORAGE > /dev/null 2>&1; do echo \"waiting for storage...\"; sleep 5; done"
 fi
