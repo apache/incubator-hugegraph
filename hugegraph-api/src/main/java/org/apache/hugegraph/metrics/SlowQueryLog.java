@@ -34,6 +34,7 @@ public class SlowQueryLog {
     public SlowQueryLog(Long executeTime, Long startTime, String rawQuery, String method, Long threshold,
                         String path) {
         this.executeTime = executeTime;
+        this.startTime = startTime;
         this.rawQuery = rawQuery;
         this.method = method;
         this.threshold = threshold;
