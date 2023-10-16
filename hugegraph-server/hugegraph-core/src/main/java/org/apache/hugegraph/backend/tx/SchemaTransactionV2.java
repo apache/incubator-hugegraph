@@ -516,7 +516,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         }
     }
 
-    protected void removeSchema(SchemaElement schema) {
+    @Override
+    public void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         // TODO: uncomment later - graph space

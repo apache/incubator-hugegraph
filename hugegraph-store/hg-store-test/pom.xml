@@ -219,7 +219,7 @@
                 <version>2.20</version>
                 <executions>
                     <execution>
-                        <id>client-test</id>
+                        <id>store-client-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -231,7 +231,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>core-test</id>
+                        <id>store-core-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -243,7 +243,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>common-test</id>
+                        <id>store-common-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -255,7 +255,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>rocksdb-test</id>
+                        <id>store-rocksdb-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -267,7 +267,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>server-test</id>
+                        <id>store-server-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
@@ -282,7 +282,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>raftcore-test</id>
+                        <id>store-raftcore-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>

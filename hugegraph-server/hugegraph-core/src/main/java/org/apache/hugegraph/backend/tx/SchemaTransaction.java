@@ -523,7 +523,8 @@ public class SchemaTransaction extends IndexableTransaction implements ISchemaTr
         return results;
     }
 
-    protected void removeSchema(SchemaElement schema) {
+    @Override
+    public void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         // System schema just remove from SystemSchemaStore in memory
