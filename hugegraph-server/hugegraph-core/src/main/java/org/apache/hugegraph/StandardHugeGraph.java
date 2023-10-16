@@ -181,6 +181,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final MetaManager metaManager = MetaManager.instance();
 
+    private final String schedulerType;
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -214,6 +216,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.closed = false;
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
+        this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
 
         LockUtil.init(this.name);
 
@@ -1338,6 +1341,11 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public <T> void submitEphemeralJob(EphemeralJob<T> job) {
             this.ephemeralJobQueue.add(job);
+        }
+
+        @Override
+        public String schedulerType() {
+            return StandardHugeGraph.this.schedulerType;
         }
     }
 

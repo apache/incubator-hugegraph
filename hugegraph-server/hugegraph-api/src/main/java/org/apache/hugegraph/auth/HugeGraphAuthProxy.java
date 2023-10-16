@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -70,6 +71,7 @@ import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask;
+import org.apache.hugegraph.task.ServerInfoManager;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.task.TaskStatus;
@@ -1085,10 +1087,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public <V> HugeTask<V> delete(Id id) {
+        public <V> HugeTask<V> delete(Id id, boolean force) {
             verifyTaskPermission(HugePermission.DELETE,
                                  this.taskScheduler.task(id));
-            return this.taskScheduler.delete(id);
+            return this.taskScheduler.delete(id, force);
         }
 
         @Override
@@ -1122,6 +1124,36 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         public void checkRequirement(String op) {
             verifyAnyPermission();
             this.taskScheduler.checkRequirement(op);
+        }
+
+        @Override
+        public <V> V call(Callable<V> callable) {
+            verifyAnyPermission();
+            return this.taskScheduler.call(callable);
+        }
+
+        @Override
+        public <V> V call(Runnable runnable) {
+            verifyAnyPermission();
+            return this.taskScheduler.call(runnable);
+        }
+
+        @Override
+        public ServerInfoManager serverManager() {
+            verifyAnyPermission();
+            return this.taskScheduler.serverManager();
+        }
+
+        @Override
+        public String graphName() {
+            verifyAnyPermission();
+            return this.taskScheduler.graphName();
+        }
+
+        @Override
+        public void taskDone(HugeTask<?> task) {
+            verifyAnyPermission();
+            this.taskScheduler.taskDone(task);
         }
 
         private void verifyTaskPermission(HugePermission actionPerm) {

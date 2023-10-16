@@ -94,4 +94,6 @@ public interface HugeGraphParams {
     RamTable ramtable();
 
     <T> void submitEphemeralJob(EphemeralJob<T> job);
+
+    String schedulerType();
 }

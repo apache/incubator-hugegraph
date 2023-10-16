@@ -25,7 +25,7 @@ import org.apache.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
 public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
-   private final Cache<Id, Object> idCache;
+    private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
     private final SchemaCaches<SchemaElement> arrayCaches;
