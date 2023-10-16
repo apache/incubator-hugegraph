@@ -29,6 +29,8 @@ import java.io.IOException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.metrics.SlowQueryLog;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
@@ -48,8 +50,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
     private static final String DELIMETER = "/";
     private static final String GRAPHS = "graphs";
     private static final String GREMLIN = "gremlin";
+    private static final String CYPHER = "cypher";
 
-    private static final Logger LOG = Log.logger(AuthenticationFilter.class);
+    private static final Logger LOG = Log.logger(AccessLogFilter.class);
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
@@ -86,13 +89,14 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
             HugeConfig config = configProvider.get();
             Boolean enableSlowQueryLog = config.get(ServerOptions.ENABLE_SLOW_QUERY_LOG);
-            Integer timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+            Long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
 
             // record slow query log
             if (enableSlowQueryLog && isSlowQueryLogWhiteAPI(requestContext) &&
                 timeThreshold < responseTime) {
-                LOG.info("{} slow query log {} execute time is longer than threshold {} ms, path {}",
-                         method, requestContext.getProperty(REQUEST_PARAMS_JSON), timeThreshold, path);
+                SlowQueryLog log = new SlowQueryLog(responseTime,
+                                                    (String) requestContext.getProperty(REQUEST_PARAMS_JSON), method, timeThreshold, path);
+                LOG.info("slow query log: {}", JsonUtil.toJson(log));
             }
         }
     }
@@ -109,10 +113,19 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String path = context.getUriInfo().getPath();
         String method = context.getRequest().getMethod();
 
+        // GraphsAPI
         if (path.startsWith(GRAPHS) && method.equals(HttpMethod.GET)) {
             return true;
         }
-
+        // CypherAPI
+        if (path.startsWith(GRAPHS) && path.endsWith(CYPHER)) {
+            return true;
+        }
+        // Job GremlinAPI
+        if (path.startsWith(GRAPHS) && path.endsWith(GREMLIN)) {
+            return true;
+        }
+        // Raw GremlinAPI
         return path.startsWith(GREMLIN);
     }
 }
