@@ -94,7 +94,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
             // record slow query log
             if (enableSlowQueryLog && isSlowQueryLogWhiteAPI(requestContext) &&
                 timeThreshold < responseTime) {
-                SlowQueryLog log = new SlowQueryLog(responseTime,
+                SlowQueryLog log = new SlowQueryLog(responseTime, (Long) requestTime,
                                                     (String) requestContext.getProperty(REQUEST_PARAMS_JSON), method, timeThreshold, path);
                 LOG.info("slow query log: {}", JsonUtil.toJson(log));
             }
