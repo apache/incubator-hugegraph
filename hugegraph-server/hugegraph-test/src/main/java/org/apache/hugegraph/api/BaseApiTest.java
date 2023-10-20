@@ -27,13 +27,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
 import org.apache.http.util.TextUtils;
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.util.CollectionUtil;
+import org.apache.hugegraph.util.JsonUtil;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
@@ -42,15 +39,19 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.util.CollectionUtil;
-import org.apache.hugegraph.util.JsonUtil;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 public class BaseApiTest {
 
@@ -104,11 +105,17 @@ public class BaseApiTest {
         private WebTarget target;
 
         public RestClient(String url) {
+            this(url, true);
+        }
+
+        public RestClient(String url,Boolean enableAuth) {
             this.client = ClientBuilder.newClient();
             this.client.register(EncodingFilter.class);
             this.client.register(GZipEncoder.class);
-            this.client.register(HttpAuthenticationFeature.basic(USERNAME,
-                                                                 PASSWORD));
+            if(enableAuth) {
+                this.client.register(HttpAuthenticationFeature.basic(USERNAME,
+                                                                     PASSWORD));
+            }
             this.target = this.client.target(url);
         }
 
