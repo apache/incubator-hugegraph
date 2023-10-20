@@ -81,22 +81,21 @@ public class AccessLogFilter implements ContainerResponseFilter {
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
         if(requestTime != null){
             long now = System.currentTimeMillis();
-            long responseTime = (now - (long)requestTime);
+            long start = (Long) requestTime;
+            long responseTime = now - start;
 
             MetricsUtil.registerHistogram(
                                join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
                        .update(responseTime);
 
             HugeConfig config = configProvider.get();
-            Boolean enableSlowQueryLog = config.get(ServerOptions.ENABLE_SLOW_QUERY_LOG);
             Long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
 
             // record slow query log
-            if (enableSlowQueryLog && isSlowQueryLogWhiteAPI(requestContext) &&
-                timeThreshold < responseTime) {
-                SlowQueryLog log = new SlowQueryLog(responseTime, (Long) requestTime,
-                                                    (String) requestContext.getProperty(REQUEST_PARAMS_JSON), method, timeThreshold, path);
-                LOG.info("slow query log: {}", JsonUtil.toJson(log));
+            if (timeThreshold > 0 && isSlowQueryLogWhiteAPI(requestContext) && responseTime > timeThreshold) {
+                SlowQueryLog log = new SlowQueryLog(responseTime, start, (String) requestContext.getProperty(REQUEST_PARAMS_JSON),
+                                                    method, timeThreshold, path);
+                LOG.info("Slow query: {}", JsonUtil.toJson(log));
             }
         }
     }

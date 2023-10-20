@@ -276,16 +276,8 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<Long> SLOW_QUERY_LOG_TIME_THRESHOLD =
             new ConfigOption<>(
                     "log.slow_query_threshold",
-                    "The slow query log time threshold(ms) of rest server.",
-                    disallowEmpty(),
+                    "The threshold time(ms) of logging slow query.",
+                    nonNegativeInt(),
                     1000L
-            );
-
-    public static final ConfigOption<Boolean> ENABLE_SLOW_QUERY_LOG =
-            new ConfigOption<>(
-                    "log.slow_query_enabled",
-                    "Whether to enable record slow query log.",
-                    disallowEmpty(),
-                    true
             );
 }
