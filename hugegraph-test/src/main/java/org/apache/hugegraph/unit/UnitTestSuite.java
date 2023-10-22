@@ -27,6 +27,7 @@ import org.apache.hugegraph.unit.mysql.WhereBuilderTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionsTest;
+import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -148,7 +149,10 @@ import org.apache.hugegraph.unit.util.collection.ObjectIntMappingTest;
     Int2IntsMapTest.class,
     IdSetTest.class,
     IntMapTest.class,
-    IntSetTest.class
+    IntSetTest.class,
+
+    /* store */
+    RamIntObjectMapTest.class
 })
 public class UnitTestSuite {
 }
