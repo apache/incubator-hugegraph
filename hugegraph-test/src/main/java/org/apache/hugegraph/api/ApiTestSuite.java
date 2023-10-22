@@ -40,7 +40,8 @@ import org.apache.hugegraph.dist.RegisterUtil;
     LoginApiTest.class,
     ProjectApiTest.class,
     TraversersApiTestSuite.class,
-    CypherApiTest.class
+    CypherApiTest.class,
+    ArthasApiTest.class
 })
 public class ApiTestSuite {
 
