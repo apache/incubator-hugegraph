@@ -10,7 +10,7 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in bac
 
 2. Using docker compose
 
-    Additionally, if we want to manage other Hugegraph-related instances with `server` in a single file, we can also use docker-compose for deployment. (Certainly we can only deploy server without other instance) We can also use `docker-compose up -d`.  The `docker-compose.yaml` is below:
+    Certainly we can only deploy server without other instance. Additionally, if we want to manage other HugeGraph-related instances with `server` in a single file, we can deploy HugeGraph-related instances via `docker-compose up -d`.  The `docker-compose.yaml` is as below:
 
     ```yaml
     version: '3'
