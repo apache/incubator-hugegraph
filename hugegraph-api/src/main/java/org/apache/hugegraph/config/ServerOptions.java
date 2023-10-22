@@ -273,6 +273,38 @@ public class ServerOptions extends OptionHolder {
                     "disable"
             );
 
+    public static final ConfigOption<String> ARTHAS_TELNET_PORT =
+        new ConfigOption<>(
+            "arthas.telnet_port",
+            "The telnet port provided by Arthas, it can be accessible from the outside.",
+            disallowEmpty(),
+            "8562"
+        );
+
+    public static final ConfigOption<String> ARTHAS_HTTP_PORT =
+        new ConfigOption<>(
+            "arthas.http_port",
+            "The HTTP port provided by Arthas, it can be accessible from the outside.",
+            disallowEmpty(),
+            "8561"
+        );
+
+    public static final ConfigOption<String> ARTHAS_IP =
+        new ConfigOption<>(
+            "arthas.ip",
+            "The IP provided by Arthas, it can be accessible from the outside.",
+            disallowEmpty(),
+            "0.0.0.0"
+        );
+
+    public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
+        new ConfigOption<>(
+            "arthas.disabled_commands",
+            "The disabled Arthas commands due to high risk.",
+            null,
+            "jad"
+        );
+
     public static final ConfigOption<Long> SLOW_QUERY_LOG_TIME_THRESHOLD =
             new ConfigOption<>(
                     "log.slow_query_threshold",
