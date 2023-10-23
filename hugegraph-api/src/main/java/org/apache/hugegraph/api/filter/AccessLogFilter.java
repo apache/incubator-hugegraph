@@ -89,7 +89,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
                        .update(responseTime);
 
             HugeConfig config = configProvider.get();
-            Long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+            long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
 
             // record slow query log
             if (timeThreshold > 0 && isSlowQueryLogWhiteAPI(requestContext) && responseTime > timeThreshold) {
@@ -112,17 +112,11 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String path = context.getUriInfo().getPath();
         String method = context.getRequest().getMethod();
 
-        // GraphsAPI
-        if (path.startsWith(GRAPHS) && method.equals(HttpMethod.GET)) {
-            return true;
-        }
-        // CypherAPI
-        if (path.startsWith(GRAPHS) && path.endsWith(CYPHER)) {
-            return true;
-        }
-        // Job GremlinAPI
-        if (path.startsWith(GRAPHS) && path.endsWith(GREMLIN)) {
-            return true;
+        // GraphsAPI/CypherAPI/Job GremlinAPI
+        if (path.startsWith(GRAPHS)) {
+            if (method.equals(HttpMethod.GET) || path.endsWith(CYPHER) || path.endsWith(GREMLIN) ){
+                return true;
+            }
         }
         // Raw GremlinAPI
         return path.startsWith(GREMLIN);
