@@ -138,6 +138,10 @@ public class Steps {
         return new ArrayList<>(this.edgeSteps.keySet());
     }
 
+    public boolean isEdgeEmpty() {
+        return this.edgeSteps.isEmpty();
+    }
+
     public boolean isVertexEmpty() {
         return this.vertexSteps.isEmpty();
     }
