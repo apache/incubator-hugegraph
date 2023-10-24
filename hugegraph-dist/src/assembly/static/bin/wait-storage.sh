@@ -48,7 +48,9 @@ while IFS=' ' read -r envvar_key envvar_val; do
 done < <(env | sort -r | awk -F= '{ st = index($0, "="); print $1 " " substr($0, st+1) }')
 
 # wait for storage
-if ! [ -z "${WAIT_STORAGE_TIMEOUT_S:-}" ]; then
-    timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c \
-    "until bin/gremlin-console.sh -- -e $DETECT_STORAGE > /dev/null 2>&1; do echo \"waiting for storage...\"; sleep 5; done"
+if env | grep '^hugegraph\.' > /dev/null; then
+    if ! [ -z "${WAIT_STORAGE_TIMEOUT_S:-}" ]; then
+        timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c \
+        "until bin/gremlin-console.sh -- -e $DETECT_STORAGE > /dev/null 2>&1; do echo \"waiting for storage...\"; sleep 5; done"
+    fi
 fi
