@@ -26,15 +26,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.hugegraph.util.*;
-import org.apache.hugegraph.util.Consumers;
-import org.apache.hugegraph.util.LockUtil;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.concurrent.PausableScheduledThreadPool;
+import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.hugegraph.util.Consumers;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.ExecutorUtil;
+import org.apache.hugegraph.util.LockUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public final class TaskManager {
 
@@ -48,7 +49,7 @@ public final class TaskManager {
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
-
+    private static final long TX_CLOSE_TIMEOUT = 30L; // unit s
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
 
@@ -134,7 +135,7 @@ public final class TaskManager {
                 graph.closeTx();
             } else {
                 Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
-                                               graph::closeTx);
+                                               graph::closeTx, TX_CLOSE_TIMEOUT);
             }
         } catch (Exception e) {
             throw new HugeException("Exception when closing task tx", e);
