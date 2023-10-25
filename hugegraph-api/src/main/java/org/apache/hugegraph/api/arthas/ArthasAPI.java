@@ -27,6 +27,8 @@ import org.apache.hugegraph.util.JsonUtil;
 import com.codahale.metrics.annotation.Timed;
 import com.taobao.arthas.agent.attach.ArthasAgent;
 
+import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -35,6 +37,7 @@ import jakarta.ws.rs.core.Context;
 
 @Path("arthas")
 @Singleton
+@Tag(name = "ArthasAPI")
 public class ArthasAPI extends API {
 
     @Context
@@ -43,6 +46,7 @@ public class ArthasAPI extends API {
     @PUT
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @ApiOperation("start arthas agent")
     public Object startArthas() {
         HugeConfig config = this.configProvider.get();
         HashMap<String, String> configMap = new HashMap<>(4);
