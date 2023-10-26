@@ -25,26 +25,26 @@ import java.util.function.Function;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.util.collection.CollectionFactory;
-import org.apache.hugegraph.util.collection.IntIterator;
-import org.apache.hugegraph.util.collection.IntMap;
-import org.apache.hugegraph.util.collection.IntSet;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser.EdgeRecord;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser.Path;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser.PathSet;
 import org.apache.hugegraph.traversal.algorithm.records.record.Int2IntRecord;
 import org.apache.hugegraph.traversal.algorithm.records.record.Record;
 import org.apache.hugegraph.traversal.algorithm.records.record.RecordType;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.apache.hugegraph.util.collection.IntIterator;
+import org.apache.hugegraph.util.collection.IntMap;
+import org.apache.hugegraph.util.collection.IntSet;
 
 public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
+    protected final int sourceCode;
     private final Stack<Record> records;
-
-    private final int sourceCode;
     private final boolean nearest;
     private final IntSet accessedVertices;
-
+    private final EdgeRecord edgeResults;
     private IntIterator parentRecordKeys;
 
     public SingleWayMultiPathsRecords(RecordType type, boolean concurrent,
@@ -58,6 +58,7 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
         firstRecord.addPath(this.sourceCode, 0);
         this.records = new Stack<>();
         this.records.push(firstRecord);
+        this.edgeResults = new EdgeRecord(concurrent);
 
         this.accessedVertices = CollectionFactory.newIntSet();
     }
@@ -108,15 +109,16 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     @Watched
     public void addPath(Id source, Id target) {
-        int sourceCode = this.code(source);
-        int targetCode = this.code(target);
+        this.addPathToRecord(this.code(source), this.code(target), this.currentRecord());
+    }
+
+    public void addPathToRecord(int sourceCode, int targetCode, Record record) {
         if (this.nearest && this.accessedVertices.contains(targetCode) ||
-            !this.nearest && this.currentRecord().containsKey(targetCode) ||
+            !this.nearest && record.containsKey(targetCode) ||
             targetCode == this.sourceCode) {
             return;
         }
-        this.currentRecord().addPath(targetCode, sourceCode);
-
+        record.addPath(targetCode, sourceCode);
         this.accessedVertices.add(targetCode);
     }
 
@@ -174,6 +176,10 @@ public abstract class SingleWayMultiPathsRecords extends AbstractRecords {
 
     protected final Stack<Record> records() {
         return this.records;
+    }
+
+    public EdgeRecord edgeResults() {
+        return edgeResults;
     }
 
     public abstract int size();

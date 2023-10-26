@@ -25,13 +25,13 @@ import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.steps.RepeatEdgeStep;
 import org.apache.hugegraph.traversal.algorithm.strategy.TraverseStrategy;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class TemplatePathsTraverser extends HugeTraverser {
 
@@ -39,11 +39,11 @@ public class TemplatePathsTraverser extends HugeTraverser {
         super(graph);
     }
 
-    public Set<Path> templatePaths(Iterator<Vertex> sources,
-                                   Iterator<Vertex> targets,
-                                   List<RepeatEdgeStep> steps,
-                                   boolean withRing,
-                                   long capacity, long limit) {
+    public WrappedPathSet templatePaths(Iterator<Vertex> sources,
+                                        Iterator<Vertex> targets,
+                                        List<RepeatEdgeStep> steps,
+                                        boolean withRing, long capacity,
+                                        long limit) {
         checkCapacity(capacity);
         checkLimit(limit);
 
@@ -68,23 +68,26 @@ public class TemplatePathsTraverser extends HugeTraverser {
         for (RepeatEdgeStep step : steps) {
             totalSteps += step.maxTimes();
         }
+
+        boolean concurrent = totalSteps >= this.concurrentDepth();
         TraverseStrategy strategy = TraverseStrategy.create(
-                                    totalSteps >= this.concurrentDepth(),
-                                    this.graph());
+                concurrent, this.graph());
         Traverser traverser = new Traverser(this, strategy,
                                             sourceList, targetList, steps,
-                                            withRing, capacity, limit);
+                                            withRing, capacity, limit, concurrent);
         do {
             // Forward
             traverser.forward();
             if (traverser.finished()) {
-                return traverser.paths();
+                Set<Path> paths = traverser.paths();
+                return new WrappedPathSet(paths, traverser.edgeResults.getEdges(paths));
             }
 
             // Backward
             traverser.backward();
             if (traverser.finished()) {
-                return traverser.paths();
+                Set<Path> paths = traverser.paths();
+                return new WrappedPathSet(paths, traverser.edgeResults.getEdges(paths));
             }
         } while (true);
     }
@@ -98,14 +101,14 @@ public class TemplatePathsTraverser extends HugeTraverser {
         protected int sourceIndex;
         protected int targetIndex;
 
-        protected boolean sourceFinishOneStep = false;
-        protected boolean targetFinishOneStep = false;
+        protected boolean sourceFinishOneStep;
+        protected boolean targetFinishOneStep;
 
         public Traverser(HugeTraverser traverser, TraverseStrategy strategy,
                          Collection<Id> sources, Collection<Id> targets,
                          List<RepeatEdgeStep> steps, boolean withRing,
-                         long capacity, long limit) {
-            super(traverser, strategy, sources, targets, capacity, limit);
+                         long capacity, long limit, boolean concurrent) {
+            super(traverser, strategy, sources, targets, capacity, limit, concurrent);
 
             this.steps = steps;
             this.withRing = withRing;
@@ -135,7 +138,7 @@ public class TemplatePathsTraverser extends HugeTraverser {
         public void afterTraverse(EdgeStep step, boolean forward) {
 
             Map<Id, List<Node>> all = forward ? this.sourcesAll :
-                                                this.targetsAll;
+                                      this.targetsAll;
             this.addNewVerticesToAll(all);
             this.reInitCurrentStepIfNeeded(step, forward);
             this.stepCount++;
@@ -274,6 +277,25 @@ public class TemplatePathsTraverser extends HugeTraverser {
         public boolean lastSuperStep() {
             return this.targetIndex == this.sourceIndex ||
                    this.targetIndex == this.sourceIndex + 1;
+        }
+    }
+
+    public static class WrappedPathSet {
+
+        private final Set<Path> paths;
+        private final Set<Edge> edges;
+
+        public WrappedPathSet(Set<Path> paths, Set<Edge> edges) {
+            this.paths = paths;
+            this.edges = edges;
+        }
+
+        public Set<Path> paths() {
+            return paths;
+        }
+
+        public Set<Edge> edges() {
+            return edges;
         }
     }
 }

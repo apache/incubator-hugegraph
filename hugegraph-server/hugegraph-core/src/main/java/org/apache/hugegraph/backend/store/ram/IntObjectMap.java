@@ -29,8 +29,8 @@ public final class IntObjectMap<V> implements RamMap {
     private static final float DEFAULT_INITIAL_FACTOR = 0.25f;
 
     private final int maxSize;
-    private int currentSize;
-    private Object[] array;
+    private volatile int currentSize;
+    private volatile Object[] array;
 
     public IntObjectMap(int size) {
         this.maxSize = size;
@@ -79,10 +79,11 @@ public final class IntObjectMap<V> implements RamMap {
         if (this.currentSize == this.maxSize) {
             return;
         }
-        this.currentSize = Math.min(this.currentSize * 2, this.maxSize);
-        Object[] newArray = new Object[this.currentSize];
+        int newSize = Math.min(this.currentSize * 2, this.maxSize);
+        Object[] newArray = new Object[newSize];
         System.arraycopy(this.array, 0, newArray, 0, this.array.length);
         this.clear();
         this.array = newArray;
+        this.currentSize = newSize;
     }
 }

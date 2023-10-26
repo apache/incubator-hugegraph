@@ -18,19 +18,21 @@
 package org.apache.hugegraph.traversal.algorithm;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.records.KoutRecords;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
+import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.traversal.algorithm.records.KoutRecords;
+import org.apache.hugegraph.traversal.algorithm.steps.Steps;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public class KoutTraverser extends OltpTraverser {
 
@@ -58,44 +60,58 @@ public class KoutTraverser extends OltpTraverser {
 
         Id labelId = this.getEdgeLabelId(label);
 
-        Set<Id> latest = newIdSet();
-        latest.add(sourceV);
+        Set<Id> sources = newIdSet();
+        Set<Id> neighbors = newIdSet();
+        Set<Id> visited = nearest ? newIdSet() : null;
 
-        Set<Id> all = newIdSet();
-        all.add(sourceV);
+        neighbors.add(sourceV);
 
-        long remaining = capacity == NO_LIMIT ?
-                         NO_LIMIT : capacity - latest.size();
+        ConcurrentVerticesConsumer consumer;
+
+        long remaining = capacity == NO_LIMIT ? NO_LIMIT : capacity - 1;
+
         while (depth-- > 0) {
             // Just get limit nodes in last layer if limit < remaining capacity
             if (depth == 0 && limit != NO_LIMIT &&
                 (limit < remaining || remaining == NO_LIMIT)) {
                 remaining = limit;
             }
-            if (nearest) {
-                latest = this.adjacentVertices(sourceV, latest, dir, labelId,
-                                               all, degree, remaining);
-                all.addAll(latest);
-            } else {
-                latest = this.adjacentVertices(sourceV, latest, dir, labelId,
-                                               null, degree, remaining);
+
+            if (visited != null) {
+                visited.addAll(neighbors);
             }
+
+            // swap sources and neighbors
+            Set<Id> tmp = neighbors;
+            neighbors = sources;
+            sources = tmp;
+
+            // start
+            consumer = new ConcurrentVerticesConsumer(sourceV, visited, remaining, neighbors);
+
+            this.vertexIterCounter.addAndGet(sources.size());
+            this.edgeIterCounter.addAndGet(neighbors.size());
+
+            traverseIdsByBfs(sources.iterator(), dir, labelId, degree, capacity, consumer);
+
+            sources.clear();
+
             if (capacity != NO_LIMIT) {
                 // Update 'remaining' value to record remaining capacity
-                remaining -= latest.size();
+                remaining -= neighbors.size();
 
                 if (remaining <= 0 && depth > 0) {
                     throw new HugeException(
-                              "Reach capacity '%s' while remaining depth '%s'",
-                              capacity, depth);
+                            "Reach capacity '%s' while remaining depth '%s'",
+                            capacity, depth);
                 }
             }
         }
 
-        return latest;
+        return neighbors;
     }
 
-    public KoutRecords customizedKout(Id source, EdgeStep step,
+    public KoutRecords customizedKout(Id source, Steps steps,
                                       int maxDepth, boolean nearest,
                                       long capacity, long limit) {
         E.checkNotNull(source, "source vertex id");
@@ -105,28 +121,58 @@ public class KoutTraverser extends OltpTraverser {
         checkLimit(limit);
         long[] depth = new long[1];
         depth[0] = maxDepth;
-        boolean concurrent = maxDepth >= this.concurrentDepth();
 
-        KoutRecords records = new KoutRecords(concurrent, source, nearest);
+        KoutRecords records = new KoutRecords(true, source, nearest, 0);
 
-        Consumer<Id> consumer = v -> {
+        Consumer<Edge> consumer = edge -> {
             if (this.reachLimit(limit, depth[0], records.size())) {
                 return;
             }
-            Iterator<Edge> edges = edgesOfVertex(v, step);
-            while (!this.reachLimit(limit, depth[0], records.size()) &&
-                   edges.hasNext()) {
-                Id target = ((HugeEdge) edges.next()).id().otherVertexId();
-                records.addPath(v, target);
-                this.checkCapacity(capacity, records.accessed(), depth[0]);
-            }
+            EdgeId edgeId = ((HugeEdge) edge).id();
+            records.addPath(edgeId.ownerVertexId(), edgeId.otherVertexId());
+            records.edgeResults().addEdge(edgeId.ownerVertexId(), edgeId.otherVertexId(), edge);
         };
 
         while (depth[0]-- > 0) {
+            List<Id> sources = records.ids(Query.NO_LIMIT);
             records.startOneLayer(true);
-            this.traverseIds(records.keys(), consumer, concurrent);
+            traverseIdsByBfs(sources.iterator(), steps, capacity, consumer);
+            this.vertexIterCounter.addAndGet(sources.size());
             records.finishOneLayer();
+            checkCapacity(capacity, records.accessed(), depth[0]);
         }
+        return records;
+    }
+
+    public KoutRecords dfsKout(Id source, Steps steps,
+                               int maxDepth, boolean nearest,
+                               long capacity, long limit) {
+        E.checkNotNull(source, "source vertex id");
+        this.checkVertexExist(source, "source vertex");
+        checkPositive(maxDepth, "k-out max_depth");
+        checkCapacity(capacity);
+        checkLimit(limit);
+
+        Set<Id> all = newIdSet();
+        all.add(source);
+
+        KoutRecords records = new KoutRecords(false, source, nearest, maxDepth);
+        Iterator<Edge> iterator = this.createNestedIterator(source, steps, maxDepth, all, nearest);
+        while (iterator.hasNext()) {
+            HugeEdge edge = (HugeEdge) iterator.next();
+            this.edgeIterCounter.addAndGet(1L);
+
+            Id target = edge.id().otherVertexId();
+            if (!nearest || !all.contains(target)) {
+                records.addFullPath(HugeTraverser.pathEdges(iterator, edge));
+            }
+
+            if (limit != NO_LIMIT && records.size() >= limit ||
+                capacity != NO_LIMIT && all.size() > capacity) {
+                break;
+            }
+        }
+
         return records;
     }
 
@@ -136,8 +182,8 @@ public class KoutTraverser extends OltpTraverser {
         }
         if (accessed >= capacity && depth > 0) {
             throw new HugeException(
-                      "Reach capacity '%s' while remaining depth '%s'",
-                      capacity, depth);
+                    "Reach capacity '%s' while remaining depth '%s'",
+                    capacity, depth);
         }
     }
 

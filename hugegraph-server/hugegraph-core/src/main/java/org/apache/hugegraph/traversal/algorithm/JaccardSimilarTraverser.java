@@ -27,16 +27,22 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
 import com.google.common.collect.ImmutableMap;
 
 public class JaccardSimilarTraverser extends OltpTraverser {
 
     public JaccardSimilarTraverser(HugeGraph graph) {
         super(graph);
+    }
+
+    private static void reachCapacity(long count, long capacity) {
+        if (capacity != NO_LIMIT && count > capacity) {
+            throw new HugeException("Reach capacity '%s'", capacity);
+        }
     }
 
     public double jaccardSimilarity(Id vertex, Id other, Directions dir,
@@ -51,9 +57,14 @@ public class JaccardSimilarTraverser extends OltpTraverser {
         Id labelId = this.getEdgeLabelId(label);
 
         Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  vertex, dir, labelId, degree));
+                vertex, dir, labelId, degree));
         Set<Id> targetNeighbors = IteratorUtils.set(this.adjacentVertices(
-                                  other, dir, labelId, degree));
+                other, dir, labelId, degree));
+
+        this.vertexIterCounter.addAndGet(2L);
+        this.edgeIterCounter.addAndGet(sourceNeighbors.size());
+        this.edgeIterCounter.addAndGet(targetNeighbors.size());
+
         return jaccardSimilarity(sourceNeighbors, targetNeighbors);
     }
 
@@ -96,6 +107,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
 
         // Query neighbors
         Set<Id> layer1s = this.adjacentVertices(source, step);
+
+        this.vertexIterCounter.addAndGet(1L);
+        this.edgeIterCounter.addAndGet(layer1s.size());
+
         reachCapacity(count.get() + layer1s.size(), capacity);
         count.addAndGet(layer1s.size());
         if (layer1s.isEmpty()) {
@@ -111,6 +126,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
                 return;
             }
             Set<Id> layer2s = this.adjacentVertices(id, step);
+
+            this.vertexIterCounter.addAndGet(1L);
+            this.edgeIterCounter.addAndGet(layer2s.size());
+
             if (layer2s.isEmpty()) {
                 results.put(id, 0.0D);
             }
@@ -130,6 +149,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
                 return;
             }
             Set<Id> layer3s = this.adjacentVertices(id, step);
+
+            this.vertexIterCounter.addAndGet(1L);
+            this.edgeIterCounter.addAndGet(layer3s.size());
+
             reachCapacity(count.get() + layer3s.size(), capacity);
             if (layer3s.isEmpty()) {
                 results.put(id, 0.0D);
@@ -152,6 +175,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
 
         // Query neighbors
         Set<Id> layer1s = this.adjacentVertices(source, step);
+
+        this.vertexIterCounter.addAndGet(1L);
+        this.edgeIterCounter.addAndGet(layer1s.size());
+
         reachCapacity(count + layer1s.size(), capacity);
         count += layer1s.size();
         if (layer1s.isEmpty()) {
@@ -168,6 +195,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
                 continue;
             }
             layer2s = this.adjacentVertices(neighbor, step);
+
+            this.vertexIterCounter.addAndGet(1L);
+            this.edgeIterCounter.addAndGet(layer2s.size());
+
             if (layer2s.isEmpty()) {
                 results.put(neighbor, 0.0D);
                 continue;
@@ -188,6 +219,10 @@ public class JaccardSimilarTraverser extends OltpTraverser {
                 continue;
             }
             layer3s = this.adjacentVertices(neighbor, step);
+
+            this.vertexIterCounter.addAndGet(1L);
+            this.edgeIterCounter.addAndGet(layer3s.size());
+
             reachCapacity(count + layer3s.size(), capacity);
             if (layer3s.isEmpty()) {
                 results.put(neighbor, 0.0D);
@@ -200,11 +235,5 @@ public class JaccardSimilarTraverser extends OltpTraverser {
         }
 
         return results;
-    }
-
-    private static void reachCapacity(long count, long capacity) {
-        if (capacity != NO_LIMIT && count > capacity) {
-            throw new HugeException("Reach capacity '%s'", capacity);
-        }
     }
 }
