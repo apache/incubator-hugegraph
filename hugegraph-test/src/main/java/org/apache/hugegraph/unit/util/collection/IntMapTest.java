@@ -21,17 +21,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
-
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.util.collection.IntMap;
+import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
+import org.apache.hugegraph.util.collection.IntMapByDynamicHash2;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IntMapTest extends BaseUnitTest {
 
@@ -410,6 +416,78 @@ public class IntMapTest extends BaseUnitTest {
                 Assert.assertNull(e.getMessage());
             });
         }
+    }
+
+    @Test
+    public void testIntMapByDynamicHashSingleThread() {
+        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
+        int mapSize = 2000;
+        for (int i = 0; i < mapSize; i++) {
+            map.put(i, i + 1);
+            Assert.assertTrue(map.containsKey(i));
+            Assert.assertFalse(map.containsKey(i + mapSize));
+            Assert.assertEquals(i + 1, map.get(i));
+        }
+
+        for (int i = mapSize - 1; i >= 0; i--) {
+            map.put(i, i - 1);
+            Assert.assertTrue(map.containsKey(i));
+            Assert.assertFalse(map.containsKey(i + mapSize));
+            Assert.assertEquals(i - 1, map.get(i));
+        }
+
+        Assert.assertEquals(mapSize, map.size());
+        map.clear();
+        Assert.assertEquals(0, map.size());
+    }
+
+    @Test
+    public void testIntMapByDynamicHashMultiThread() throws InterruptedException {
+        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
+
+        //int cpus = IntSet.CPUS;
+        int cpus = 16;
+        ThreadPoolExecutor executor =
+            new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
+                                   new LinkedBlockingDeque<>()) {
+                @Override
+                protected void afterExecute(Runnable r, Throwable t) {
+                    super.afterExecute(r, t);
+                    if (t != null) {
+                        Assert.fail(t.getMessage());
+                    }
+                }
+            };
+        ;
+
+        AtomicInteger size = new AtomicInteger();
+        int mapSize = 100;
+        CountDownLatch latch = new CountDownLatch(cpus);
+        for (int i = 1; i <= cpus; i++) {
+            int index = i;
+            executor.submit(() -> {
+                try {
+                    for (int j = 0; j < mapSize; j++) {
+                        int key = j + (index - 1) * mapSize;
+                        map.put(key, j);
+                        size.getAndIncrement();
+                        //Assert.assertTrue(map.containsKey(key));
+                        Assert.assertEquals(j, map.get(key));
+                        //System.out.println(key + " " + j);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        System.out.println();
+
+        Assert.assertEquals(size.get(), map.size());
     }
 
     private IntMap fixed(int capacity) {
