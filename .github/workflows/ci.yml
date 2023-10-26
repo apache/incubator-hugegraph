@@ -19,7 +19,7 @@ jobs:
       HEAD_BRANCH_NAME: ${{ github.head_ref }}
       BASE_BRANCH_NAME: ${{ github.base_ref }}
       TARGET_BRANCH_NAME: ${{ github.base_ref != '' && github.base_ref || github.ref_name }}
-      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') || startsWith(github.base_ref, 'release-') }}
+      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') }}
 
     strategy:
       fail-fast: false
@@ -42,7 +42,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -60,7 +60,7 @@ jobs:
           $TRAVIS_DIR/install-backend.sh $BACKEND
 
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
@@ -88,6 +88,6 @@ jobs:
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3.0.0
+        uses: codecov/codecov-action@v3
         with:
           file: ${{ env.REPORT_DIR }}/*.xml
