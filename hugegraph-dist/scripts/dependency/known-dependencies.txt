@@ -265,3 +265,5 @@ translation-1.0.4.jar
 util-9.0-9.0.20190305.jar
 validation-api-1.1.0.Final.jar
 zt-zip-1.14.jar
+zstd-jni-1.5.5-1.jar
+
