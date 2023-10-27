@@ -31,7 +31,8 @@ COPY --from=build /pkg/apache-hugegraph-incubating-$version/ /hugegraph
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
-ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm"
+ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm" \
+    HUGEGRAPH_HOME="hugegraph"
 
 #COPY . /hugegraph/hugegraph-server
 WORKDIR /hugegraph/
@@ -50,11 +51,16 @@ RUN set -x \
 # 2. Init HugeGraph Sever
 RUN set -e \
     && pwd && cd /hugegraph/ \
-    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties \
-    && ./bin/init-store.sh
+    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
+
+# 3. Init docker script
+COPY hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
+COPY hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
+COPY hugegraph-dist/docker/docker-entrypoint.sh .
+RUN chmod 755 ./docker-entrypoint.sh 
 
 EXPOSE 8080
 VOLUME /hugegraph
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["./bin/start-hugegraph.sh", "-d false -j $JAVA_OPTS -g zgc"]
+CMD ["./docker-entrypoint.sh"]

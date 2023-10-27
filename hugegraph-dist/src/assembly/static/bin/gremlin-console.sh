@@ -84,14 +84,10 @@ PROFILING_ENABLED=false
 
 # Process options
 MAIN_CLASS=org.apache.tinkerpop.gremlin.console.Console
-while getopts "elpv" opt; do
+while getopts "lpv" opt; do
     case "$opt" in
-    e) MAIN_CLASS=org.apache.tinkerpop.gremlin.groovy.jsr223.ScriptExecutor
-       # Stop processing gremlin-console.sh arguments as soon as the -e switch
-       # is seen; everything following -e becomes arguments to the 
-       # ScriptExecutor main class. This maintains compatibility with
-       # older deployments.
-       break;;
+    # class ScriptExecutor has been Deprecated. 
+    # reference https://tinkerpop.apache.org/javadocs/3.2.3/full/org/apache/tinkerpop/gremlin/groovy/jsr223/ScriptExecutor.html
     l) eval GREMLIN_LOG_LEVEL=\$$OPTIND
        OPTIND="$(( $OPTIND + 1 ))"
        if [ "$GREMLIN_LOG_LEVEL" = "TRACE" -o \
