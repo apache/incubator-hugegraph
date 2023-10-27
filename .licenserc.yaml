@@ -68,7 +68,7 @@ header: # `header` section is configurations for source codes license header.
     - '**/*.properties'
     - '**/RaftRequests.java'
     - 'dist/**/*'
-    - 'hugegraph-dist'
+    - 'hugegraph-server/hugegraph-dist'
     - '**/assembly/static/bin/hugegraph.service'
     - 'scripts/dev/reviewers'
     - 'scripts/dev/reviewers'
