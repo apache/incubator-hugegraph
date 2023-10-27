@@ -35,59 +35,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <inceptionYear>2017</inceptionYear>
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-      <developer>
-        <id>Apache Hugegraph(incubating)</id>
-        <email>dev-subscribe@hugegraph.apache.org</email>
-        <url>https://hugegraph.apache.org/</url>
-      </developer>
-    </developers>
-
-    <mailingLists>
-      <mailingList>
-        <name>Development Mailing List</name>
-        <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>dev@hugegraph.incubator.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Commits List</name>
-        <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>commits@hugegraph.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Issues List</name>
-        <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>issues@hugegraph.apache.org</post>
-      </mailingList>
-    </mailingLists>
-
-    <issueManagement>
-      <system>Github Issues</system>
-      <url>https://github.com/apache/hugegraph/issues</url>
-    </issueManagement>
-
-    <scm>
-        <url>https://github.com/apache/hugegraph</url>
-        <connection>scm:git:https://github.com/apache/hugegraph.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/hugegraph.git</developerConnection>
-    </scm>
-
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
