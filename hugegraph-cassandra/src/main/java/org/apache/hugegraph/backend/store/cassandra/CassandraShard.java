@@ -32,7 +32,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.config.SchemaConstants;
+import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
@@ -222,7 +222,7 @@ public class CassandraShard {
                 "WHERE keyspace_name = ? AND table_name = ? AND " +
                 "range_start = ? AND range_end = ?",
                 SchemaConstants.SYSTEM_KEYSPACE_NAME,
-                SystemKeyspace.SIZE_ESTIMATES);
+                SystemKeyspace.LEGACY_SIZE_ESTIMATES);
 
         ResultSet resultSet = session.execute(query, keyspace, table,
                                               tokenRange.getStart().toString(),
