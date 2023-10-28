@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import com.codahale.metrics.annotation.Timed;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
