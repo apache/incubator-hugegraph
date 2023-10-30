@@ -88,6 +88,8 @@ grpc-api-1.47.0.jar
 grpc-context-1.47.0.jar
 grpc-core-1.47.0.jar
 grpc-netty-shaded-1.47.0.jar
+grpc-protobuf-1.28.0.jar
+grpc-protobuf-lite-1.28.0.jar
 gson-2.9.0.jar
 guava-27.0-jre.jar
 guava-30.0-jre.jar
@@ -240,6 +242,7 @@ perfmark-api-0.25.0.jar
 picocli-4.3.2.jar
 postgresql-42.4.1.jar
 protobuf-java-3.21.7.jar
+proto-google-common-protos-1.17.0.jar
 psjava-0.1.19.jar
 reporter-config3-3.0.3.jar
 reporter-config-base-3.0.3.jar
