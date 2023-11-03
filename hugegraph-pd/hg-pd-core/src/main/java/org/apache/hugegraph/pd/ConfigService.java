@@ -24,6 +24,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.ConfigMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
 
 import lombok.extern.slf4j.Slf4j;
@@ -87,6 +88,8 @@ public class ConfigService implements RaftStateListener {
                                          .setMaxShardsPerStore(
                                                  pdConfig.getPartition().getMaxShardsPerStore())
                                          .build();
+            }
+            if (RaftEngine.getInstance().isLeader()) {
                 this.meta.setPdConfig(mConfig);
             }
             pdConfig = updatePDConfig(mConfig);
