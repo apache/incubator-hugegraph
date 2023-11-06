@@ -37,6 +37,8 @@ import org.slf4j.Logger;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -50,6 +52,7 @@ import jakarta.ws.rs.core.Context;
 
 @Path("whiteiplist")
 @Singleton
+@Tag(name = "WhiteIpListAPI")
 public class WhiteIpListAPI extends API {
 
     private static final Logger LOG = Log.logger(WhiteIpListAPI.class);
@@ -58,6 +61,7 @@ public class WhiteIpListAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
+    @Operation(summary = "list white ips")
     public Map<String, Object> list(@Context GraphManager manager) {
         LOG.debug("List white ips");
         AuthManager authManager = manager.authManager();
@@ -71,6 +75,7 @@ public class WhiteIpListAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
+    @Operation(summary = "update white ip list")
     public Map<String, Object> updateWhiteIPs(@Context GraphManager manager, Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
                         "Missing argument: actionMap");
@@ -131,6 +136,7 @@ public class WhiteIpListAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
+    @Operation(summary = "enable/disable the white ip list")
     public Map<String, Object> updateStatus(@Context GraphManager manager, @QueryParam("status") String status) {
         LOG.debug("Enable or disable white ip list");
         E.checkArgument("true".equals(status) ||
