@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeException;
@@ -56,6 +57,7 @@ import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.LimitExceedException;
+import org.apache.hugegraph.exception.NoIndexException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.iterator.BatchMapperIterator;
 import org.apache.hugegraph.iterator.ExtendableIterator;
@@ -1395,8 +1397,8 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
-        for (ConditionQuery cq : ConditionQueryFlatten.flatten(
-                                 (ConditionQuery) query, supportIn)) {
+        for (ConditionQuery cq: ConditionQueryFlatten.flatten(
+            (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
@@ -1405,11 +1407,125 @@ public class GraphTransaction extends IndexableTransaction {
              * 2.index-query result(ids after optimization), which may be empty.
              */
             if (q == null) {
-                queries.add(this.indexQuery(cq), this.batchSize);
+                boolean sys = cq.syspropConditions().size() != 0;
+                if (sys){
+                    queries.add(this.indexQuery(cq), this.batchSize);
+                } else {
+                    excludeOnlyLabelQuery(cq, queries);
+                }
+
             } else if (!q.empty()) {
                 queries.add(q);
             }
         }
+        return queries;
+    }
+    private boolean hasOlapCondition(ConditionQuery query) {
+        for (Id pk : query.userpropKeys()) {
+            if(this.graph().propertyKey(pk).olap()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    // Method to reorder conditions
+    private void excludeOnlyLabelQuery(ConditionQuery cq, QueryList queries) {
+        // 判断是否命中索引
+        Set<GraphIndexTransaction.MatchedIndex> indexes = this.indexTx
+            .collectMatchedIndexes(cq);
+        if (CollectionUtils.isEmpty(indexes)){
+            if (this.hasOlapCondition(cq)) {
+                // 未命中索引且包含olap属性查询，需要throw NoIndexException
+                throw new NoIndexException("Don't accept query " +
+                    "based on properties [olap] that are not indexed in any label");
+            } else {
+                // 走算子下沉
+//                E.checkState(this.indexTx.store().features()
+//                        .supportsFilterInStore(),
+//                    "Must support filter in store");
+                queries.add(cq);
+            }
+        } else {
+            // 命中索引
+            queries.add(this.indexQuery(cq), this.batchSize);
+
+            // 判断是否存在部分数据没有创建索引
+            fillQueryLabel(cq, indexes).stream().forEach(queries::add);
+        }
+    }
+    private List<ConditionQuery> fillQueryLabel(ConditionQuery rawQuery,
+                                                Set<GraphIndexTransaction.MatchedIndex> matchedIndices) {
+        List<ConditionQuery> queries = new ArrayList<>();
+
+        // 如果条件查询中包含olap相关属性查询，暂不做补充查询
+        if(this.hasOlapCondition(rawQuery)) {
+            return queries;
+        }
+
+        Collection<VertexLabel> vertexLabels = this.graph().vertexLabels();
+        Collection<EdgeLabel> edgeLabels = this.graph().edgeLabels();
+
+        Set<SchemaLabel> matchedLabels =
+            matchedIndices.stream()
+                .flatMap(matchedIndex -> matchedIndex.schemaLabels().stream())
+                .collect(Collectors.toSet());
+
+        Id label = rawQuery.condition(HugeKeys.LABEL);
+        if (label == null) {
+            // g.V().has('p', 'condition')...
+            // not g.('xx')
+            if (rawQuery.resultType().isVertex()) {
+                // !rawQuery.containsCondition(HugeKeys.ID))
+                for (VertexLabel vl : vertexLabels) {
+                    if (!vl.hidden() && !matchedLabels.contains(vl)
+                        && vl.properties().containsAll(rawQuery.userpropKeys())) {
+
+                        ConditionQuery newQuery = new ConditionQuery(HugeType.VERTEX);
+                        newQuery = newQuery.copy().eq(HugeKeys.LABEL, vl.id());
+
+                        //当binary——rocksdb查询
+                        //ConditionQuery newQuery = new ConditionQuery(HugeType.PROPERTY_KEY);
+                        //newQuery = newQuery.eq(HugeKeys.LABEL, vl.id());
+                        //newQuery = newQuery.copy().eq(HugeKeys.LABEL, vl.id());
+                        //rawQuery.copy().eq(HugeKeys.LABEL, vl.id());
+                        //rawQuery.eq(HugeKeys.LABEL, vl.id()).copy();
+                        //rawQuery.copy().eq(HugeKeys.LABEL, vl.id());
+                        // 如果指定Label信息， limit offset信息需要移除
+                        //原来代码
+//                        ConditionQuery newQuery =
+//                            rawQuery.copy().eq(HugeKeys.LABEL, vl.id());
+                        newQuery.offset(0L);
+//                        for (ConditionQuery cq1: ConditionQueryFlatten.flatten(
+//                            (ConditionQuery) newQuery)){
+//                            super.query(cq1);
+//                        }
+                        //super.query(newQuery);
+                        queries.add(newQuery);
+                        //queries.add(this.indexQuery(newQuery), this.batchSize);
+                        LOG.debug("Fill vertexlabel {} for {}",
+                            vl.name(), rawQuery);
+                    }
+                }
+            }
+
+            // g.E().has('c', 'condition1')
+            if (rawQuery.resultType().isEdge()) {
+                // !rawQuery.containsCondition(HugeKeys.OWNER_VERTEX))
+                for (EdgeLabel el : edgeLabels) {
+                    if (!el.hidden() && !matchedLabels.contains(el)
+                        && el.properties().containsAll(rawQuery.userpropKeys())) {
+                        ConditionQuery newQuery =
+                            rawQuery.copy().eq(HugeKeys.LABEL, el.id());
+                        newQuery.offset(0L);
+                        queries.add(newQuery);
+                        LOG.debug("Fill edgelabel {} for {}",
+                            el.name(), rawQuery);
+                    }
+                }
+            }
+        }
+
         return queries;
     }
 

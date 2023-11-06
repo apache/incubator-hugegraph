@@ -2738,7 +2738,29 @@ public class VertexCoreTest extends BaseCoreTest {
 
         assertContains(vertices, T.label, "book", "name", "java-1");
     }
+    @Test
+    public void testQueryWithPartIndex() {
+        HugeGraph graph = graph();
 
+        graph.schema().indexLabel("allByAge").range()
+            .onV("person").by("age").create();
+
+        graph.addVertex(T.label, "person", "name", "James",
+            "city", "Beijing", "age", 19,
+            "birth", Utils.date("2013-01-01 00:00:00.000"));
+
+        graph.addVertex(T.label, "author", "id", 1,
+            "name", "James Gosling",  "age", 19,
+            "lived", "San Francisco Bay Area");
+        graph.tx().commit();
+        List<Vertex> vertices =
+            graph.traversal().V().has("age", 19).toList();
+        for (Vertex vertex : vertices) {
+            System.out.println(vertex.id());
+        }
+        System.out.printf("vertices.size() = %d%n", vertices.size());
+        //Assert.assertEquals(2, vertices.size());
+    }
     @Test
     public void testQueryAllWithGraphAPI() {
         HugeGraph graph = graph();

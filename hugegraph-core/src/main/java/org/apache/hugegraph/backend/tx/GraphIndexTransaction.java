@@ -729,7 +729,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     @Watched(prefix = "index")
-    private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
+    protected Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
         SchemaTransaction schema = this.params().schemaTransaction();
         Id label = query.condition(HugeKeys.LABEL);
 
@@ -764,7 +764,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<MatchedIndex> matchedIndexes = InsertionOrderUtil.newSet();
         for (SchemaLabel schemaLabel : schemaLabels) {
             MatchedIndex index = this.collectMatchedIndex(schemaLabel, query);
-            if (index != null) {
+            if (index == null) {
+                continue;
+            }
+            if (matchedIndexes.contains(index)) {
+                matchedIndexes.stream().filter(m -> m.equals(index))
+                    .findFirst().ifPresent(i-> i.addSchemaLabel(schemaLabel));
+            } else {
                 matchedIndexes.add(index);
             }
         }
@@ -1554,20 +1560,31 @@ public class GraphIndexTransaction extends AbstractTransaction {
         this.doRemove(this.serializer.writeIndex(index));
     }
 
-    private static class MatchedIndex {
+    protected static class MatchedIndex {
 
-        private SchemaLabel schemaLabel;
-        private Set<IndexLabel> indexLabels;
+        private final Set<SchemaLabel> schemaLabels;
+        private final Set<IndexLabel> indexLabels;
+
 
         public MatchedIndex(SchemaLabel schemaLabel,
                             Set<IndexLabel> indexLabels) {
-            this.schemaLabel = schemaLabel;
+            //this.schemaLabels = new HashSet<>();
+            this.schemaLabels = new HashSet<>();
+            this.schemaLabels.add(schemaLabel);
             this.indexLabels = indexLabels;
         }
 
-        @SuppressWarnings("unused")
-        public SchemaLabel schemaLabel() {
-            return this.schemaLabel;
+        public MatchedIndex(Set<SchemaLabel> schemaLabels,
+                            Set<IndexLabel> indexLabels) {
+            this.schemaLabels = schemaLabels;
+            this.indexLabels = indexLabels;
+        }
+
+        public Set<SchemaLabel> schemaLabels() {
+            return this.schemaLabels;
+        }
+        public void addSchemaLabel(SchemaLabel schemaLabel) {
+            this.schemaLabels.add(schemaLabel);
         }
 
         public Set<IndexLabel> indexLabels() {
