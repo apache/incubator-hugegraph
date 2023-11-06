@@ -70,7 +70,9 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.annotation.Timed;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -103,6 +105,7 @@ public class MetricsAPI extends API {
     @Path("system")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the system metrics")
     public String system() {
         return JsonUtil.toJson(this.systemMetrics.metrics());
     }
@@ -112,6 +115,7 @@ public class MetricsAPI extends API {
     @Path("backend")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the backend metrics")
     public String backend(@Context GraphManager manager) {
         Map<String, Map<String, Object>> results = InsertionOrderUtil.newMap();
         for (String graph : manager.graphs()) {
@@ -134,6 +138,7 @@ public class MetricsAPI extends API {
     @Path("gauges")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the gauges metrics")
     public String gauges() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.gauges());
@@ -144,6 +149,7 @@ public class MetricsAPI extends API {
     @Path("counters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the counters metrics")
     public String counters() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.counters());
@@ -154,6 +160,7 @@ public class MetricsAPI extends API {
     @Path("histograms")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the histograms metrics")
     public String histograms() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.histograms());
@@ -164,6 +171,7 @@ public class MetricsAPI extends API {
     @Path("meters")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the meters metrics")
     public String meters() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.meters());
@@ -174,6 +182,7 @@ public class MetricsAPI extends API {
     @Path("timers")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get the timers metrics")
     public String timers() {
         ServerReporter reporter = ServerReporter.instance();
         return JsonUtil.toJson(reporter.timers());
@@ -183,6 +192,7 @@ public class MetricsAPI extends API {
     @Timed
     @Produces(APPLICATION_TEXT_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get all base metrics")
     public String all(@Context GraphManager manager,
                       @QueryParam("type") String type) {
         if (type != null && type.equals(JSON_STR)) {
@@ -197,6 +207,7 @@ public class MetricsAPI extends API {
     @Timed
     @Produces(APPLICATION_TEXT_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner= $action=metrics_read"})
+    @Operation(summary = "get all statistics metrics")
     public String statistics(@QueryParam("type") String type) {
         Map<String, Map<String, Object>> metricMap = statistics();
 

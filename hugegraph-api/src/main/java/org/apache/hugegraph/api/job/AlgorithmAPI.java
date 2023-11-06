@@ -36,6 +36,8 @@ import org.slf4j.Logger;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.NotFoundException;
@@ -47,6 +49,7 @@ import jakarta.ws.rs.core.Context;
 
 @Path("graphs/{graph}/jobs/algorithm")
 @Singleton
+@Tag(name = "AlgorithmAPI")
 public class AlgorithmAPI extends API {
 
     private static final Logger LOG = Log.logger(RestServer.class);
