@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_PARAMS_JSON;
 import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_TIME;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
@@ -25,12 +26,20 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 
 import java.io.IOException;
 
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.metrics.SlowQueryLog;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 
 
@@ -39,6 +48,14 @@ import jakarta.ws.rs.ext.Provider;
 public class AccessLogFilter implements ContainerResponseFilter {
 
     private static final String DELIMETER = "/";
+    private static final String GRAPHS = "graphs";
+    private static final String GREMLIN = "gremlin";
+    private static final String CYPHER = "cypher";
+
+    private static final Logger LOG = Log.logger(AccessLogFilter.class);
+
+    @Context
+    private jakarta.inject.Provider<HugeConfig> configProvider;
 
     /**
      * Use filter to log request info
@@ -62,13 +79,24 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
         // get responseTime
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
-        if(requestTime!=null){
+        if(requestTime != null){
             long now = System.currentTimeMillis();
-            long responseTime = (now - (long)requestTime);
+            long start = (Long) requestTime;
+            long responseTime = now - start;
 
             MetricsUtil.registerHistogram(
                                join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
                        .update(responseTime);
+
+            HugeConfig config = configProvider.get();
+            long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+
+            // record slow query log
+            if (timeThreshold > 0 && isSlowQueryLogWhiteAPI(requestContext) && responseTime > timeThreshold) {
+                SlowQueryLog log = new SlowQueryLog(responseTime, start, (String) requestContext.getProperty(REQUEST_PARAMS_JSON),
+                                                    method, timeThreshold, path);
+                LOG.info("Slow query: {}", JsonUtil.toJson(log));
+            }
         }
     }
 
@@ -78,5 +106,19 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
     private boolean statusOk(int status){
         return status == 200 || status == 201 || status == 202;
+    }
+
+    public static boolean isSlowQueryLogWhiteAPI(ContainerRequestContext context) {
+        String path = context.getUriInfo().getPath();
+        String method = context.getRequest().getMethod();
+
+        // GraphsAPI/CypherAPI/Job GremlinAPI
+        if (path.startsWith(GRAPHS)) {
+            if (method.equals(HttpMethod.GET) || path.endsWith(CYPHER) || path.endsWith(GREMLIN) ){
+                return true;
+            }
+        }
+        // Raw GremlinAPI
+        return path.startsWith(GREMLIN);
     }
 }

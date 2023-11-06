@@ -76,6 +76,30 @@
                 </Delete>
             </DefaultRolloverStrategy>
         </RollingRandomAccessFile>
+
+        <!-- Slow query log config -->
+        <RollingRandomAccessFile name="slowQueryLog" fileName="${LOG_PATH}/slow_query.log"
+                                 filePattern="${LOG_PATH}/$${date:yyyy-MM}/slow_query_log-%d{yyyy-MM-dd}-%i.log"
+                                 immediateFlush="false">
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
+            <!-- Trigger after exceeding 1day or 50MB -->
+            <Policies>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            </Policies>
+            <!-- Keep 5 files per day & auto delete after over 2GB or 100 files -->
+            <DefaultRolloverStrategy max="5">
+                <Delete basePath="${LOG_PATH}" maxDepth="2">
+                    <IfFileName glob="*/*.log"/>
+                    <!-- Limit log amount & size -->
+                    <IfAny>
+                        <IfAccumulatedFileSize exceeds="2GB" />
+                        <IfAccumulatedFileCount exceeds="100" />
+                    </IfAny>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingRandomAccessFile>
     </appenders>
 
     <loggers>
@@ -112,6 +136,9 @@
         </AsyncLogger>
         <AsyncLogger name="org.apache.hugegraph.api.filter.AuthenticationFilter" level="INFO" additivity="false">
             <appender-ref ref="audit"/>
+        </AsyncLogger>
+        <AsyncLogger name="org.apache.hugegraph.api.filter.AccessLogFilter" level="INFO" additivity="false">
+            <appender-ref ref="slowQueryLog"/>
         </AsyncLogger>
     </loggers>
 </configuration>
