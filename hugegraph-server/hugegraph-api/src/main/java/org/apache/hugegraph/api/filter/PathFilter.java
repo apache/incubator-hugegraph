@@ -17,12 +17,20 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.api.API.CHARSET;
+
 import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.IOUtils;
 
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
 
 @Provider
@@ -31,10 +39,26 @@ import jakarta.ws.rs.ext.Provider;
 public class PathFilter implements ContainerRequestFilter {
 
     public static final String REQUEST_TIME = "request_time";
+    public static final String REQUEST_PARAMS_JSON = "request_params_json";
 
     @Override
     public void filter(ContainerRequestContext context)
             throws IOException {
         context.setProperty(REQUEST_TIME, System.currentTimeMillis());
+
+        // record the request json
+        String method = context.getMethod();
+        String requestParamsJson = "";
+        if (method.equals(HttpMethod.POST)) {
+            requestParamsJson = IOUtils.toString(context.getEntityStream(), Charsets.toCharset(CHARSET));
+            // replace input stream because we have already read it
+            InputStream in = IOUtils.toInputStream(requestParamsJson, Charsets.toCharset(CHARSET));
+            context.setEntityStream(in);
+        } else if(method.equals(HttpMethod.GET)){
+            MultivaluedMap<String, String> pathParameters = context.getUriInfo().getPathParameters();
+            requestParamsJson = pathParameters.toString();
+        }
+
+        context.setProperty(REQUEST_PARAMS_JSON, requestParamsJson);
     }
 }

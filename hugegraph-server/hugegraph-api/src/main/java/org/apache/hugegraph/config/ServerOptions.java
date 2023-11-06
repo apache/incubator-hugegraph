@@ -304,4 +304,13 @@ public class ServerOptions extends OptionHolder {
             null,
             "jad"
         );
+
+    public static final ConfigOption<Long> SLOW_QUERY_LOG_TIME_THRESHOLD =
+            new ConfigOption<>(
+                    "log.slow_query_threshold",
+                    "The threshold time(ms) of logging slow query, " +
+                    "0 means logging slow query is disabled.",
+                    nonNegativeInt(),
+                    1000L
+            );
 }
