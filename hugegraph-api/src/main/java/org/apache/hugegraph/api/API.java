@@ -27,6 +27,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
@@ -38,7 +39,6 @@ import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.NotSupportedException;
 import jakarta.ws.rs.core.MediaType;
 
@@ -49,6 +49,7 @@ public class API {
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
                                APPLICATION_JSON + ";charset=" + CHARSET;
+    public static final String APPLICATION_TEXT_WITH_CHARSET = MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
                                                .getSubtype();
     public static final String ACTION_APPEND = "append";

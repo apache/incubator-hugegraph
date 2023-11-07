@@ -112,7 +112,7 @@ public class CassandraMetrics implements BackendMetrics {
             metrics.put(DISK_USAGE, UnitUtil.bytesToGB(diskSize));
             metrics.put(DISK_USAGE + READABLE,
                         UnitUtil.bytesToReadableString(diskSize));
-            metrics.put(DISK_USAGE + "_details", probe.getLoadMap());
+            metrics.put(DISK_USAGE + "_details", probe.getLoadMap(false));
             metrics.put(DISK_UNIT, "GB");
 
             // Uptime Metrics
@@ -125,11 +125,11 @@ public class CassandraMetrics implements BackendMetrics {
             this.appendExtraMetrics(metrics, probe);
 
             // Nodes Metrics
-            metrics.put("live_nodes", probe.getLiveNodes());
-            metrics.put("joining_nodes", probe.getJoiningNodes());
-            metrics.put("moving_nodes", probe.getMovingNodes());
-            metrics.put("leaving_nodes", probe.getLeavingNodes());
-            metrics.put("unreachable_nodes", probe.getUnreachableNodes());
+            metrics.put("live_nodes", probe.getLiveNodes(false));
+            metrics.put("joining_nodes", probe.getJoiningNodes(false));
+            metrics.put("moving_nodes", probe.getMovingNodes(false));
+            metrics.put("leaving_nodes", probe.getLeavingNodes(false));
+            metrics.put("unreachable_nodes", probe.getUnreachableNodes(false));
 
             // Others
             metrics.put("keyspaces", probe.getKeyspaces());
