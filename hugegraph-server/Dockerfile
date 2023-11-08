@@ -26,7 +26,7 @@ RUN mvn package -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
 # 2nd stage: runtime env
 FROM openjdk:11-slim
 # TODO: get the version from the pom.xml
-ENV version=1.0.0
+ENV version=1.5.0
 COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-$version/ /hugegraph-server
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
