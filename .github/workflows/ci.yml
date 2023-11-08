@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
-      TRAVIS_DIR: hugegraph-dist/src/assembly/travis
+      TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
       TRIGGER_BRANCH_NAME: ${{ github.ref_name }}
