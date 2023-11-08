@@ -68,7 +68,7 @@ header: # `header` section is configurations for source codes license header.
     - '**/*.properties'
     - '**/RaftRequests.java'
     - 'dist/**/*'
-    - 'hugegraph-dist'
+    - 'hugegraph-server/hugegraph-dist'
     - '**/assembly/static/bin/hugegraph.service'
     - 'scripts/dev/reviewers'
     - 'scripts/dev/reviewers'
@@ -89,13 +89,10 @@ header: # `header` section is configurations for source codes license header.
     - '**/META-INF/MANIFEST.MF'
     - '.repository/**'
     - '**/.flattened-pom.xml'
-    - 'hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java'
     - '**/optimize/HugeScriptTraversal.java'
     - '**/type/Nameable.java'
     - '**/define/Cardinality.java'
     - '**/util/StringEncoding.java'
-    - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
-    - 'hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
     # TODO: temporarily added to the ignore list, need handle them before releases ( ↓ )
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
@@ -104,7 +101,7 @@ header: # `header` section is configurations for source codes license header.
     - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsReader.java'
     - 'hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/metrics/ProcfsSmaps.java'
     # TODO: temporarily added to the ignore list, need handle them before releases ( ↑ )
-    - 'hugegraph-dist/src/assembly/static/bin/wait-storage.sh'
+    - 'hugegraph-server/hugegraph-dist/src/assembly/static/bin/wait-storage.sh'
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,
