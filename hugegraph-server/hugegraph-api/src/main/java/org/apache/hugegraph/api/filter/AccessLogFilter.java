@@ -111,7 +111,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
                 // Record slow query if meet needs
                 if (timeThreshold > 0 && executeTime > timeThreshold) {
-                    // TODO: set RequsetBody null, handle it later & should record "client IP"
+                    // TODO: set RequestBody null, handle it later & should record "client IP"
                     LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
                              executeTime, null, method, path, uri.getRawQuery());
                 }

@@ -19,26 +19,26 @@ package org.apache.hugegraph.metrics;
 
 public class SlowQueryLog {
 
-    public long executeTime;
-
-    public long startTime;
-
     public String rawQuery;
 
     public String method;
 
-    public long threshold;
-
     public String path;
 
-    public SlowQueryLog(long executeTime, long startTime, String rawQuery, String method,
-                        long threshold, String path) {
-        this.executeTime = executeTime;
-        this.startTime = startTime;
+    public long executeTime;
+
+    public long startTime;
+
+    public long threshold;
+
+    public SlowQueryLog(String rawQuery, String method, String path,
+                        long executeTime, long startTime, long threshold) {
         this.rawQuery = rawQuery;
         this.method = method;
-        this.threshold = threshold;
         this.path = path;
+        this.executeTime = executeTime;
+        this.startTime = startTime;
+        this.threshold = threshold;
     }
 
     @Override
