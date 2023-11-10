@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.api.filter;
 
-import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_PARAMS_JSON;
 import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_TIME;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
@@ -25,12 +24,11 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUN
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTER;
 
 import java.io.IOException;
+import java.net.URI;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.metrics.MetricsUtil;
-import org.apache.hugegraph.metrics.SlowQueryLog;
-import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
@@ -42,12 +40,12 @@ import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 
-
+// TODO: should add test for this class
 @Provider
 @Singleton
 public class AccessLogFilter implements ContainerResponseFilter {
 
-    private static final String DELIMETER = "/";
+    private static final String DELIMITER = "/";
     private static final String GRAPHS = "graphs";
     private static final String GREMLIN = "gremlin";
     private static final String CYPHER = "cypher";
@@ -57,6 +55,25 @@ public class AccessLogFilter implements ContainerResponseFilter {
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
 
+    public static boolean needRecord(ContainerRequestContext context) {
+        // TODO: add test for 'path' result ('/gremlin' or 'gremlin')
+        String path = context.getUriInfo().getPath();
+
+        // GraphsAPI/CypherAPI/Job GremlinAPI
+        if (path.startsWith(GRAPHS)) {
+            if (HttpMethod.GET.equals(context.getMethod()) ||
+                path.endsWith(CYPHER) || path.endsWith(GREMLIN)) {
+                return true;
+            }
+        }
+        // Raw GremlinAPI
+        return path.startsWith(GREMLIN);
+    }
+
+    private String join(String path1, String path2) {
+        return String.join(DELIMITER, path1, path2);
+    }
+
     /**
      * Use filter to log request info
      *
@@ -64,10 +81,12 @@ public class AccessLogFilter implements ContainerResponseFilter {
      * @param responseContext responseContext
      */
     @Override
-    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
+    public void filter(ContainerRequestContext requestContext,
+                       ContainerResponseContext responseContext) throws IOException {
         // Grab corresponding request / response info from context;
-        String method = requestContext.getRequest().getMethod();
-        String path = requestContext.getUriInfo().getPath();
+        URI uri = requestContext.getUriInfo().getRequestUri();
+        String path = uri.getRawPath();
+        String method = requestContext.getMethod();
         String metricsName = join(path, method);
 
         MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
@@ -77,48 +96,30 @@ public class AccessLogFilter implements ContainerResponseFilter {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
         }
 
-        // get responseTime
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
-        if(requestTime != null){
+        if (requestTime != null) {
             long now = System.currentTimeMillis();
             long start = (Long) requestTime;
-            long responseTime = now - start;
+            long executeTime = now - start;
 
-            MetricsUtil.registerHistogram(
-                               join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
-                       .update(responseTime);
+            MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                       .update(executeTime);
 
-            HugeConfig config = configProvider.get();
-            long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+            if (needRecord(requestContext)) {
+                HugeConfig config = configProvider.get();
+                long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
 
-            // record slow query log
-            if (timeThreshold > 0 && isSlowQueryLogWhiteAPI(requestContext) && responseTime > timeThreshold) {
-                SlowQueryLog log = new SlowQueryLog(responseTime, start, (String) requestContext.getProperty(REQUEST_PARAMS_JSON),
-                                                    method, timeThreshold, path);
-                LOG.info("Slow query: {}", JsonUtil.toJson(log));
+                // Record slow query if meet needs
+                if (timeThreshold > 0 && executeTime > timeThreshold) {
+                    // TODO: set RequsetBody null, handle it later & should record "client IP"
+                    LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
+                             executeTime, null, method, path, uri.getRawQuery());
+                }
             }
         }
     }
 
-    private String join(String path1, String path2) {
-        return String.join(DELIMETER, path1, path2);
-    }
-
-    private boolean statusOk(int status){
-        return status == 200 || status == 201 || status == 202;
-    }
-
-    public static boolean isSlowQueryLogWhiteAPI(ContainerRequestContext context) {
-        String path = context.getUriInfo().getPath();
-        String method = context.getRequest().getMethod();
-
-        // GraphsAPI/CypherAPI/Job GremlinAPI
-        if (path.startsWith(GRAPHS)) {
-            if (method.equals(HttpMethod.GET) || path.endsWith(CYPHER) || path.endsWith(GREMLIN) ){
-                return true;
-            }
-        }
-        // Raw GremlinAPI
-        return path.startsWith(GREMLIN);
+    private boolean statusOk(int status) {
+        return status >= 200 && status < 300;
     }
 }
