@@ -56,7 +56,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Iterator<HugeTask<Object>> iter = scheduler.tasks(null, -1, null);
         while (iter.hasNext()) {
-            scheduler.delete(iter.next().id(), true);
+            scheduler.delete(iter.next().id(), false);
         }
     }
 
@@ -77,7 +77,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertFalse(task.completed());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.delete(id, true);
+            scheduler.delete(id, false);
         }, e -> {
             Assert.assertContains("Can't delete incomplete task '88888'",
                                   e.getMessage());
@@ -107,7 +107,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals("test-task", iter.next().name());
         Assert.assertFalse(iter.hasNext());
 
-        scheduler.delete(id, true);
+        scheduler.delete(id, false);
         iter = scheduler.tasks(null, 10, null);
         Assert.assertFalse(iter.hasNext());
         Assert.assertThrows(NotFoundException.class, () -> {
