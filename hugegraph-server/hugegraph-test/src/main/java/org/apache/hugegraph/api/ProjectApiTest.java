@@ -20,16 +20,17 @@ package org.apache.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.apache.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.Response;
 
 public class ProjectApiTest extends BaseApiTest {
 
@@ -45,9 +46,9 @@ public class ProjectApiTest extends BaseApiTest {
             @SuppressWarnings("unchecked")
             Map<String, Object> projectMap = ((Map<String, Object>) project);
             String projectId = (String) projectMap.get("id");
-            // remove graphs from project if needed
+            // remove graphs from a project if needed
             List<?> projectGraphs = (List<?>) projectMap.get("project_graphs");
-            if (projectGraphs != null && projectGraphs.size() > 0) {
+            if (projectGraphs != null && !projectGraphs.isEmpty()) {
                 Map<String, Object> graphs = ImmutableMap.of("project_graphs",
                                                              projectGraphs);
                 resp = client().target()
@@ -70,9 +71,9 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testCreate() {
-        String project = String.format("{\"project_name\": \"test_project\"," +
-                                       "\"project_description\": " +
-                                       "\"this is a good project\"}");
+        String project = "{\"project_name\": \"test_project\"," +
+                         "\"project_description\": " +
+                         "\"this is a good project\"}";
         Response resp = client().post(PATH, project);
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
@@ -256,7 +257,6 @@ public class ProjectApiTest extends BaseApiTest {
                                 .path(projectId)
                                 .request()
                                 .get();
-        String respBody = assertResponseStatus(200, resp);
-        return respBody;
+        return assertResponseStatus(200, resp);
     }
 }

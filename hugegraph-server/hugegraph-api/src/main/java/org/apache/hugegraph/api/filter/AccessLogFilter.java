@@ -45,29 +45,28 @@ import jakarta.ws.rs.ext.Provider;
 @Singleton
 public class AccessLogFilter implements ContainerResponseFilter {
 
+    private static final Logger LOG = Log.logger(AccessLogFilter.class);
+
     private static final String DELIMITER = "/";
     private static final String GRAPHS = "graphs";
     private static final String GREMLIN = "gremlin";
     private static final String CYPHER = "cypher";
 
-    private static final Logger LOG = Log.logger(AccessLogFilter.class);
-
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
 
-    public static boolean needRecord(ContainerRequestContext context) {
+    public static boolean needRecordLog(ContainerRequestContext context) {
         // TODO: add test for 'path' result ('/gremlin' or 'gremlin')
         String path = context.getUriInfo().getPath();
 
         // GraphsAPI/CypherAPI/Job GremlinAPI
         if (path.startsWith(GRAPHS)) {
-            if (HttpMethod.GET.equals(context.getMethod()) ||
-                path.endsWith(CYPHER) || path.endsWith(GREMLIN)) {
+            if (HttpMethod.GET.equals(context.getMethod()) || path.endsWith(CYPHER)) {
                 return true;
             }
         }
-        // Raw GremlinAPI
-        return path.startsWith(GREMLIN);
+        // Direct GremlinAPI
+        return path.endsWith(GREMLIN);
     }
 
     private String join(String path1, String path2) {
@@ -105,16 +104,14 @@ public class AccessLogFilter implements ContainerResponseFilter {
             MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
                        .update(executeTime);
 
-            if (needRecord(requestContext)) {
-                HugeConfig config = configProvider.get();
-                long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
-
-                // Record slow query if meet needs
-                if (timeThreshold > 0 && executeTime > timeThreshold) {
-                    // TODO: set RequestBody null, handle it later & should record "client IP"
-                    LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
-                             executeTime, null, method, path, uri.getRawQuery());
-                }
+            HugeConfig config = configProvider.get();
+            long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+            // Record slow query if meet needs, watch out the perf
+            if (timeThreshold > 0 && timeThreshold < executeTime &&
+                needRecordLog(requestContext)) {
+                // TODO: set RequestBody null, handle it later & should record "client IP"
+                LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
+                         executeTime, null, method, path, uri.getQuery());
             }
         }
     }

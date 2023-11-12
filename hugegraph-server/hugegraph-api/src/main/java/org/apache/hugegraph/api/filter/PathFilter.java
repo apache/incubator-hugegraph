@@ -37,7 +37,7 @@ public class PathFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext context) throws IOException {
         context.setProperty(REQUEST_TIME, System.currentTimeMillis());
 
-        // TODO: comment it to fix loader bug, handle it later
+        // TODO: temporarily comment it to fix loader bug, handle it later
         /*// record the request json
         String method = context.getMethod();
         String requestParamsJson = "";
