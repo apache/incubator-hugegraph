@@ -20,16 +20,17 @@ package org.apache.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
+import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class TaskApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/tasks/";
+    private static final String PATH = "/graphs/hugegraph/tasks/";
 
     @Before
     public void prepareSchema() {
@@ -43,14 +44,14 @@ public class TaskApiTest extends BaseApiTest {
         // create a task
         int taskId = this.rebuild();
 
-        Response r = client().get(path, ImmutableMap.of("limit", -1));
+        Response r = client().get(PATH, ImmutableMap.of("limit", -1));
         String content = assertResponseStatus(200, r);
         List<Map<?, ?>> tasks = assertJsonContains(content, "tasks");
         assertArrayContains(tasks, "id", taskId);
 
         waitTaskSuccess(taskId);
 
-        r = client().get(path, String.valueOf(taskId));
+        r = client().get(PATH, String.valueOf(taskId));
         content = assertResponseStatus(200, r);
         String status = assertJsonContains(content, "task_status");
         Assert.assertEquals("success", status);
@@ -62,11 +63,10 @@ public class TaskApiTest extends BaseApiTest {
          * NOTE: seems the master node won't store task status in memory,
          *       because only worker nodes store task status in memory.
          */
-        r = client().get(path, ImmutableMap.of("status", "RUNNING"));
+        r = client().get(PATH, ImmutableMap.of("status", "RUNNING"));
         content = assertResponseStatus(200, r);
         tasks = assertJsonContains(content, "tasks");
-        String message = String.format("Expect none RUNNING tasks(%d), " +
-                                       "but got %s", taskId, tasks);
+        String message = String.format("Expect none RUNNING tasks(%d), but got %s", taskId, tasks);
         Assert.assertTrue(message, tasks.isEmpty());
     }
 
@@ -75,13 +75,13 @@ public class TaskApiTest extends BaseApiTest {
         // create a task
         int taskId = this.rebuild();
 
-        Response r = client().get(path, String.valueOf(taskId));
+        Response r = client().get(PATH, String.valueOf(taskId));
         String content = assertResponseStatus(200, r);
         assertJsonContains(content, "id");
 
         waitTaskSuccess(taskId);
 
-        r = client().get(path, String.valueOf(taskId));
+        r = client().get(PATH, String.valueOf(taskId));
         content = assertResponseStatus(200, r);
         String status = assertJsonContains(content, "task_status");
         Assert.assertEquals("success", status);
@@ -96,27 +96,25 @@ public class TaskApiTest extends BaseApiTest {
 
         // cancel task
         Map<String, Object> params = ImmutableMap.of("action", "cancel");
-        Response r = client().put(path, String.valueOf(taskId), "", params);
+        Response r = client().put(PATH, String.valueOf(taskId), "", params);
         String content = r.readEntity(String.class);
         Assert.assertTrue(content,
                           r.getStatus() == 202 || r.getStatus() == 400);
         if (r.getStatus() == 202) {
             String status = assertJsonContains(content, "task_status");
-            Assert.assertTrue(status, status.equals("cancelling") ||
-                                      status.equals("cancelled"));
+            Assert.assertTrue(status, "cancelling".equals(status) || "cancelled".equals(status));
             /*
              * NOTE: should be waitTaskStatus(taskId, "cancelled"), but worker
-             * node may ignore the CANCELLING status due to now we can't atomic
+             * node may ignore the CANCELLING status due to now we can't atomically
              * update task status, and then the task is running to SUCCESS.
              */
             waitTaskCompleted(taskId);
         } else {
             assert r.getStatus() == 400;
-            String error = String.format(
-                           "Can't cancel task '%s' which is completed", taskId);
+            String error = String.format("Can't cancel task '%s' which is completed", taskId);
             Assert.assertContains(error, content);
 
-            r = client().get(path, String.valueOf(taskId));
+            r = client().get(PATH, String.valueOf(taskId));
             content = assertResponseStatus(200, r);
             String status = assertJsonContains(content, "task_status");
             Assert.assertEquals("success", status);
@@ -130,7 +128,7 @@ public class TaskApiTest extends BaseApiTest {
 
         waitTaskSuccess(taskId);
         // delete task
-        Response r = client().delete(path, String.valueOf(taskId));
+        Response r = client().delete(PATH, String.valueOf(taskId));
         assertResponseStatus(204, r);
     }
 

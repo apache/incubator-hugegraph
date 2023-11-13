@@ -20,15 +20,16 @@ package org.apache.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.apache.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class UserApiTest extends BaseApiTest {
 
@@ -39,16 +40,14 @@ public class UserApiTest extends BaseApiTest {
     @After
     public void teardown() throws Exception {
         super.teardown();
-        Response r = this.client().get(PATH,
-                                       ImmutableMap.of("limit", NO_LIMIT));
+        Response r = this.client().get(PATH, ImmutableMap.of("limit", NO_LIMIT));
         String result = r.readEntity(String.class);
         Map<String, List<Map<String, Object>>> resultMap =
-                JsonUtil.fromJson(result,
-                                  new TypeReference<Map<String,
-                                  List<Map<String, Object>>>>() {});
+            JsonUtil.fromJson(result,
+                              new TypeReference<Map<String, List<Map<String, Object>>>>() {});
         List<Map<String, Object>> users = resultMap.get("users");
         for (Map<String, Object> user : users) {
-            if (user.get("user_name").equals("admin")) {
+            if ("admin".equals(user.get("user_name"))) {
                 continue;
             }
             this.client().delete(PATH, (String) user.get("id"));
@@ -124,7 +123,7 @@ public class UserApiTest extends BaseApiTest {
         createUser("test2");
         List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
-            if (user.get("user_name").equals("admin")) {
+            if ("admin".equals(user.get("user_name"))) {
                 continue;
             }
             String user1 = "{\"user_password\":\"p1\"," +
@@ -146,7 +145,7 @@ public class UserApiTest extends BaseApiTest {
 
         List<Map<String, Object>> users = listUsers();
         for (Map<String, Object> user : users) {
-            if (user.get("user_name").equals("admin")) {
+            if ("admin".equals(user.get("user_name"))) {
                 continue;
             }
             Response r = client().delete(PATH, (String) user.get("id"));
@@ -169,13 +168,12 @@ public class UserApiTest extends BaseApiTest {
     }
 
     protected List<Map<String, Object>> listUsers() {
-        Response r = this.client().get(PATH, ImmutableMap.of("limit",
-                                                             NO_LIMIT));
+        Response r = this.client().get(PATH, ImmutableMap.of("limit", NO_LIMIT));
         String result = assertResponseStatus(200, r);
 
         Map<String, List<Map<String, Object>>> resultMap =
-                JsonUtil.fromJson(result, new TypeReference<Map<String,
-                                              List<Map<String, Object>>>>() {});
+            JsonUtil.fromJson(result,
+                              new TypeReference<Map<String, List<Map<String, Object>>>>() {});
         return resultMap.get("users");
     }
 }

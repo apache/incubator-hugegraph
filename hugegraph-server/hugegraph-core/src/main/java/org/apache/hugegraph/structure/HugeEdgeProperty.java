@@ -20,10 +20,9 @@ package org.apache.hugegraph.structure;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
-import org.apache.hugegraph.util.E;
 
 public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
@@ -67,7 +66,7 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     public HugeEdgeProperty<V> switchEdgeOwner() {
         assert this.owner instanceof HugeEdge;
-        return new HugeEdgeProperty<V>(((HugeEdge) this.owner).switchOwner(),
-                                       this.pkey, this.value);
+        return new HugeEdgeProperty<>(((HugeEdge) this.owner).switchOwner(),
+                                      this.pkey, this.value);
     }
 }

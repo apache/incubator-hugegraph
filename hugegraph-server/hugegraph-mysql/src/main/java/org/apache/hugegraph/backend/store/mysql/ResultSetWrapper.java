@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.backend.store.mysql;
 
-import org.apache.hugegraph.backend.BackendException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.apache.hugegraph.backend.BackendException;
 
 public class ResultSetWrapper implements AutoCloseable {
 
@@ -37,6 +37,7 @@ public class ResultSetWrapper implements AutoCloseable {
         return !this.resultSet.isClosed() && this.resultSet.next();
     }
 
+    @Override
     public void close() {
         try {
             if (this.resultSet != null) {

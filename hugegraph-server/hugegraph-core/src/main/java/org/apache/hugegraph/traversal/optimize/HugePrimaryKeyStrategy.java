@@ -17,20 +17,20 @@
 
 package org.apache.hugegraph.traversal.optimize;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategy.ProviderOptimizationStrategy;
 import org.apache.tinkerpop.gremlin.process.traversal.step.Mutating;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStartStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.sideEffect.AddPropertyStep;
 import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversalStrategy;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.process.traversal.step.map.AddVertexStep;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty.Cardinality;
-
-import java.util.LinkedList;
-import java.util.List;
 
 public class HugePrimaryKeyStrategy
     extends AbstractTraversalStrategy<TraversalStrategy.ProviderOptimizationStrategy>
@@ -53,17 +53,19 @@ public class HugePrimaryKeyStrategy
         for (int i = 0, s = stepList.size(); i < s; i++) {
             Step step = stepList.get(i);
 
-            if (i == 0 && AddVertexStartStep.class.isInstance(step)) {
+            if (i == 0 && step instanceof AddVertexStartStep) {
                 curAddStep = (Mutating) step;
                 continue;
-            } else if (curAddStep == null && AddVertexStep.class.isInstance((step))) {
+            } else if (curAddStep == null && (step) instanceof AddVertexStep) {
                 curAddStep = (Mutating) step;
                 continue;
             }
 
-            if (curAddStep == null) continue;
+            if (curAddStep == null) {
+                continue;
+            }
 
-            if (!AddPropertyStep.class.isInstance(step)) {
+            if (!(step instanceof AddPropertyStep)) {
                 curAddStep = null;
                 continue;
             }
@@ -89,8 +91,8 @@ public class HugePrimaryKeyStrategy
 
                 curAddStep.configure(kvs);
 
-                if (kvList.size() > 0) {
-                    curAddStep.configure(kvList.toArray(new Object[kvList.size()]));
+                if (!kvList.isEmpty()) {
+                    curAddStep.configure(kvList.toArray(new Object[0]));
                 }
 
                 removeSteps.add(step);

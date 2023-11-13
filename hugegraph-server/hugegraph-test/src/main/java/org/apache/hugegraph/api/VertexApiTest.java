@@ -19,13 +19,14 @@ package org.apache.hugegraph.api;
 
 import java.io.IOException;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
+import jakarta.ws.rs.core.Response;
+
 public class VertexApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/graph/vertices/";
+    private static final String PATH = "/graphs/hugegraph/graph/vertices/";
 
     @Before
     public void prepareSchema() {
@@ -42,7 +43,7 @@ public class VertexApiTest extends BaseApiTest {
                 "\"city\":\"Beijing\"," +
                 "\"age\":19}" +
                 "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(PATH, vertex);
         assertResponseStatus(201, r);
     }
 
@@ -55,12 +56,12 @@ public class VertexApiTest extends BaseApiTest {
                 "\"city\":\"Beijing\"," +
                 "\"age\":19}" +
                 "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(PATH, vertex);
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
         id = String.format("\"%s\"", id);
-        r = client().get(path, id);
+        r = client().get(PATH, id);
         assertResponseStatus(200, r);
     }
 
@@ -73,10 +74,10 @@ public class VertexApiTest extends BaseApiTest {
                 "\"city\":\"Beijing\"," +
                 "\"age\":19}" +
                 "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(PATH, vertex);
         assertResponseStatus(201, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -89,12 +90,12 @@ public class VertexApiTest extends BaseApiTest {
                 "\"city\":\"Beijing\"," +
                 "\"age\":19}" +
                 "}";
-        Response r = client().post(path, vertex);
+        Response r = client().post(PATH, vertex);
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
         id = String.format("\"%s\"", id);
-        r = client().delete(path, id);
+        r = client().delete(PATH, id);
         assertResponseStatus(204, r);
     }
 }

@@ -19,17 +19,17 @@ package org.apache.hugegraph.api;
 
 import java.io.IOException;
 
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.core.Response;
 
 public class EdgeApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/graph/edges/";
+    private static final String PATH = "/graphs/hugegraph/graph/edges/";
 
     @Before
     public void prepareSchema() {
@@ -54,7 +54,7 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"date\": \"20170324\"," +
                 "\"weight\": 0.5}" +
                 "}", outVId, inVId);
-        Response r = client().post(path, edge);
+        Response r = client().post(PATH, edge);
         assertResponseStatus(201, r);
     }
 
@@ -73,7 +73,7 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"date\": \"2013-02-20\"," +
                 "\"weight\": 1.0}" +
                 "}", outVId, inVId);
-        Response r = client().post(path, edge);
+        Response r = client().post(PATH, edge);
         // The edge id is 'S1:marko>1>7JooBil0>S1:josh'
         String content = assertResponseStatus(201, r);
         String edgeId = parseId(content);
@@ -101,7 +101,7 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"check_vertex\":false," +
                 "\"create_if_not_exist\":true" +
                 "}", edgeId, outVId, inVId);
-        r = client().put(path, "batch", edge, ImmutableMap.of());
+        r = client().put(PATH, "batch", edge, ImmutableMap.of());
         // Now allowed to modify sortkey values, the property 'date' has changed
         content = assertResponseStatus(400, r);
         Assert.assertTrue(content.contains(
@@ -130,7 +130,7 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"check_vertex\":false," +
                 "\"create_if_not_exist\":true" +
                 "}", outVId, inVId);
-        r = client().put(path, "batch", edge, ImmutableMap.of());
+        r = client().put(PATH, "batch", edge, ImmutableMap.of());
         // Add a new edge when sortkey value has changed
         content = assertResponseStatus(200, r);
         String newEdgeId = parseId(content);
@@ -152,11 +152,11 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"date\": \"20170324\"," +
                 "\"weight\": 0.5}" +
                 "}", outVId, inVId);
-        Response r = client().post(path, edge);
+        Response r = client().post(PATH, edge);
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
-        r = client().get(path, id);
+        r = client().get(PATH, id);
         assertResponseStatus(200, r);
     }
 
@@ -175,10 +175,10 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"date\": \"20170324\"," +
                 "\"weight\": 0.5}" +
                 "}", outVId, inVId);
-        Response r = client().post(path, edge);
+        Response r = client().post(PATH, edge);
         assertResponseStatus(201, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -197,11 +197,11 @@ public class EdgeApiTest extends BaseApiTest {
                 "\"date\": \"20170324\"," +
                 "\"weight\": 0.5}" +
                 "}", outVId, inVId);
-        Response r = client().post(path, edge);
+        Response r = client().post(PATH, edge);
         String content = assertResponseStatus(201, r);
 
         String id = parseId(content);
-        r = client().delete(path, id);
+        r = client().delete(PATH, id);
         assertResponseStatus(204, r);
     }
 }
