@@ -139,8 +139,7 @@ public class BaseApiTest {
             return this.target.path(path).path(id).request().get();
         }
 
-        public Response get(String path,
-                            MultivaluedMap<String, Object> headers) {
+        public Response get(String path, MultivaluedMap<String, Object> headers) {
             return this.target.path(path).request().headers(headers).get();
         }
 

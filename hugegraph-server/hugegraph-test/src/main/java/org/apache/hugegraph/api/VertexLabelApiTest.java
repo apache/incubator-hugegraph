@@ -19,15 +19,16 @@ package org.apache.hugegraph.api;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import jakarta.ws.rs.core.Response;
+
 public class VertexLabelApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/schema/vertexlabels/";
+    private static final String PATH = "/graphs/hugegraph/schema/vertexlabels/";
 
     @Before
     public void prepareSchema() {
@@ -43,7 +44,7 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"primary_keys\":[\"name\"]," +
                 "\"nullable_keys\":[\"city\"]" +
                 "}";
-        Response r = client().post(path, vertexLabel);
+        Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
     }
 
@@ -56,7 +57,7 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"primary_keys\":[\"name\"]," +
                 "\"nullable_keys\":[\"city\"]" +
                 "}";
-        Response r = client().post(path, vertexLabel);
+        Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
         vertexLabel = "{" +
@@ -67,7 +68,7 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"lang\"]" +
                 "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path, "person", vertexLabel, params);
+        r = client().put(PATH, "person", vertexLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -80,11 +81,11 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"primary_keys\":[\"name\"]," +
                 "\"nullable_keys\":[\"city\"]" +
                 "}";
-        Response r = client().post(path, vertexLabel);
+        Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
         String name = "person";
-        r = client().get(path, name);
+        r = client().get(PATH, name);
         assertResponseStatus(200, r);
     }
 
@@ -97,10 +98,10 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"primary_keys\":[\"name\"]," +
                 "\"nullable_keys\":[\"city\"]" +
                 "}";
-        Response r = client().post(path, vertexLabel);
+        Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -113,11 +114,11 @@ public class VertexLabelApiTest extends BaseApiTest {
                 "\"primary_keys\":[\"name\"]," +
                 "\"nullable_keys\":[\"city\"]" +
                 "}";
-        Response r = client().post(path, vertexLabel);
+        Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
         String name = "person";
-        r = client().delete(path, name);
+        r = client().delete(PATH, name);
         String content = assertResponseStatus(202, r);
         int task = assertJsonContains(content, "task_id");
         waitTaskSuccess(task);
