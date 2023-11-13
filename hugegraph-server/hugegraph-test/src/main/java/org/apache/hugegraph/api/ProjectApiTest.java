@@ -49,8 +49,7 @@ public class ProjectApiTest extends BaseApiTest {
             // remove graphs from a project if needed
             List<?> projectGraphs = (List<?>) projectMap.get("project_graphs");
             if (projectGraphs != null && !projectGraphs.isEmpty()) {
-                Map<String, Object> graphs = ImmutableMap.of("project_graphs",
-                                                             projectGraphs);
+                Map<String, Object> graphs = ImmutableMap.of("project_graphs", projectGraphs);
                 resp = client().target()
                                .path(PATH)
                                .path(projectId)
@@ -78,23 +77,19 @@ public class ProjectApiTest extends BaseApiTest {
         String respBody = assertResponseStatus(201, resp);
         String projectName = assertJsonContains(respBody, "project_name");
         Assert.assertEquals("test_project", projectName);
-        String projectDescription = assertJsonContains(respBody,
-                                                       "project_description");
+        String projectDescription = assertJsonContains(respBody, "project_description");
         Assert.assertEquals("this is a good project", projectDescription);
         String projectTarget = assertJsonContains(respBody, "project_target");
         Assert.assertFalse(StringUtils.isEmpty(projectTarget));
-        String projectAdminGroup = assertJsonContains(respBody,
-                                                      "project_admin_group");
+        String projectAdminGroup = assertJsonContains(respBody, "project_admin_group");
         Assert.assertFalse(StringUtils.isEmpty(projectAdminGroup));
-        String projectOpGroup = assertJsonContains(respBody,
-                                                   "project_op_group");
+        String projectOpGroup = assertJsonContains(respBody, "project_op_group");
         Assert.assertFalse(StringUtils.isEmpty(projectOpGroup));
     }
 
     @Test
     public void testDelete() {
-        String project = this.createProject("test_project1",
-                                            "this is a good project");
+        String project = this.createProject("test_project1", "this is a good project");
         String projectId = assertJsonContains(project, "id");
         Response resp = client().target()
                                 .path(PATH)
@@ -106,8 +101,7 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testGet() {
-        String project = this.createProject("test_project",
-                                            "this is a good project");
+        String project = this.createProject("test_project", "this is a good project");
         String projectId = assertJsonContains(project, "id");
         String project2 = this.getProject(projectId);
         Assert.assertEquals(project, project2);
@@ -134,17 +128,14 @@ public class ProjectApiTest extends BaseApiTest {
                                 .put(Entity.json(project));
         assertResponseStatus(400, resp);
 
-        String projectId = assertJsonContains(createProject("test_project",
-                                                            "desc"),
-                                              "id");
+        String projectId = assertJsonContains(createProject("test_project", "desc"), "id");
         resp = client().target()
                        .path(PATH)
                        .path(projectId)
                        .request()
                        .put(Entity.json(project));
         String respBody = assertResponseStatus(200, resp);
-        String description = assertJsonContains(respBody,
-                                                "project_description");
+        String description = assertJsonContains(respBody, "project_description");
         Assert.assertEquals("update desc", description);
     }
 
@@ -171,8 +162,7 @@ public class ProjectApiTest extends BaseApiTest {
 
     @Test
     public void testRemoveGraphs() {
-        String projectId = this.createProjectAndAddGraph("project_test",
-                                                         "graph_test");
+        String projectId = this.createProjectAndAddGraph("project_test", "graph_test");
         String graphs = "{\"project_graphs\":[\"graph_test\"]}";
         Response resp = client().target()
                                 .path(PATH)
@@ -216,18 +206,16 @@ public class ProjectApiTest extends BaseApiTest {
             Assert.assertEquals(desc, description);
         }
         Assert.assertFalse(StringUtils.isEmpty(
-                assertJsonContains(respBody, "project_target")));
+            assertJsonContains(respBody, "project_target")));
         Assert.assertFalse(StringUtils.isEmpty(
-                assertJsonContains(respBody, "project_admin_group")));
+            assertJsonContains(respBody, "project_admin_group")));
         Assert.assertFalse(StringUtils.isEmpty(
-                assertJsonContains(respBody, "project_op_group")));
+            assertJsonContains(respBody, "project_op_group")));
         return respBody;
     }
 
-    private String createProjectAndAddGraph(String projectName,
-                                            String graph) {
-        String projectId = assertJsonContains(createProject(projectName, null),
-                                              "id");
+    private String createProjectAndAddGraph(String projectName, String graph) {
+        String projectId = assertJsonContains(createProject(projectName, null), "id");
         this.addGraphsToProject(projectId, graph);
         return projectId;
     }
@@ -238,8 +226,7 @@ public class ProjectApiTest extends BaseApiTest {
         for (int i = 0; i < graphNames.length - 1; i++) {
             graphNamesBuilder.append(String.format("\"%s\",", graphNames[i]));
         }
-        graphNamesBuilder.append(String.format("\"%s\"",
-                                 graphNames[graphNames.length - 1]));
+        graphNamesBuilder.append(String.format("\"%s\"", graphNames[graphNames.length - 1]));
         String graphs = String.format("{\"project_graphs\":[%s]}",
                                       graphNamesBuilder);
         Response resp = client().target()

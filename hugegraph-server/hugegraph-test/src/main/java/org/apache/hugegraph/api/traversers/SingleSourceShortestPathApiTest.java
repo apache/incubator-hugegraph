@@ -19,13 +19,14 @@ package org.apache.hugegraph.api.traversers;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class SingleSourceShortestPathApiTest extends BaseApiTest {
 
@@ -44,10 +45,8 @@ public class SingleSourceShortestPathApiTest extends BaseApiTest {
     public void testGet() {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
-        Response r = client().get(PATH, ImmutableMap.of("source",
-                                                        id2Json(markoId),
-                                                        "with_vertex",
-                                                        true));
+        Response r = client().get(PATH, ImmutableMap.of("source", id2Json(markoId),
+                                                        "with_vertex", true));
         String content = assertResponseStatus(200, r);
         Map<String, Map<?, ?>> paths = assertJsonContains(content, "paths");
         Assert.assertEquals(4, paths.size());

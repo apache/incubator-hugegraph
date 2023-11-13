@@ -17,16 +17,17 @@
 
 package org.apache.hugegraph.api;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Test;
+
+import jakarta.ws.rs.core.Response;
 
 public class SchemaApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/schema";
+    private static final String PATH = "/graphs/hugegraph/schema";
 
     @Test
     public void testGet() {
-        Response r = client().get(path);
+        Response r = client().get(PATH);
         String content = assertResponseStatus(200, r);
 
         assertJsonContains(content, "propertykeys");
