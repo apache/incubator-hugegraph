@@ -17,14 +17,14 @@
 
 package org.apache.hugegraph.api;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
+import jakarta.ws.rs.core.Response;
 
 public class PropertyKeyApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/schema/propertykeys/";
+    private static final String PATH = "/graphs/hugegraph/schema/propertykeys/";
 
     @Test
     public void testCreate() {
@@ -34,7 +34,7 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 "\"cardinality\": \"SINGLE\"," +
                 "\"properties\":[]" +
                 "}";
-        Response r = client().post(path, propertyKey);
+        Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
     }
 
@@ -46,11 +46,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 "\"cardinality\": \"SINGLE\"," +
                 "\"properties\":[]" +
                 "}";
-        Response r = client().post(path, propertyKey);
+        Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 
         String name = "id";
-        r = client().get(path, name);
+        r = client().get(PATH, name);
         assertResponseStatus(200, r);
     }
 
@@ -62,10 +62,10 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 "\"cardinality\": \"SINGLE\"," +
                 "\"properties\":[]" +
                 "}";
-        Response r = client().post(path, propertyKey);
+        Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -77,11 +77,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
                 "\"cardinality\": \"SINGLE\"," +
                 "\"properties\":[]" +
                 "}";
-        Response r = client().post(path, propertyKey);
+        Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 
         String name = "id";
-        r = client().delete(path, name);
+        r = client().delete(PATH, name);
         String content = assertResponseStatus(202, r);
         int task = assertJsonContains(content, "task_id");
         Assert.assertEquals(0, task);
