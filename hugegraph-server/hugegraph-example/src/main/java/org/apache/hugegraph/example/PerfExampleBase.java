@@ -26,12 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.Consumer;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
@@ -45,6 +39,11 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 public abstract class PerfExampleBase {
 
@@ -55,7 +54,7 @@ public abstract class PerfExampleBase {
     protected static final Logger LOG = Log.logger(PerfExampleBase.class);
 
     protected Set<Object> vertices = Collections.newSetFromMap(
-                                     new ConcurrentHashMap<Object, Boolean>());
+            new ConcurrentHashMap<>());
     protected boolean profile = false;
 
     public int test(String[] args) throws Exception {

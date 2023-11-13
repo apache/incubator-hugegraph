@@ -19,15 +19,16 @@ package org.apache.hugegraph.api;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import jakarta.ws.rs.core.Response;
+
 public class IndexLabelApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/schema/indexlabels/";
+    private static final String PATH = "/graphs/hugegraph/schema/indexlabels/";
 
     @Before
     public void prepareSchema() {
@@ -45,7 +46,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"index_type\": \"RANGE\"," +
                 "\"fields\":[\"age\"]" +
                 "}";
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
     }
 
@@ -59,7 +60,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"fields\":[\"age\"]" +
                 "}";
 
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         indexLabel = "{" +
@@ -70,7 +71,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "}" +
                 "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path, "personByAge", indexLabel, params);
+        r = client().put(PATH, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -87,7 +88,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"max\": 100" +
                 "}" +
                 "}";
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         indexLabel = "{" +
@@ -97,7 +98,7 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "}" +
                 "}";
         Map<String, Object> params = ImmutableMap.of("action", "eliminate");
-        r = client().put(path, "personByAge", indexLabel, params);
+        r = client().put(PATH, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -110,11 +111,11 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"index_type\": \"RANGE\"," +
                 "\"fields\":[\"age\"]" +
                 "}";
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         String name = "personByAge";
-        r = client().get(path, name);
+        r = client().get(PATH, name);
         assertResponseStatus(200, r);
     }
 
@@ -127,10 +128,10 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"index_type\": \"RANGE\"," +
                 "\"fields\":[\"age\"]" +
                 "}";
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -143,11 +144,11 @@ public class IndexLabelApiTest extends BaseApiTest {
                 "\"index_type\": \"RANGE\"," +
                 "\"fields\":[\"age\"]" +
                 "}";
-        Response r = client().post(path, indexLabel);
+        Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         String name = "personByAge";
-        r = client().delete(path, name);
+        r = client().delete(PATH, name);
         String content = assertResponseStatus(202, r);
         int task = assertJsonContains(content, "task_id");
         waitTaskSuccess(task);

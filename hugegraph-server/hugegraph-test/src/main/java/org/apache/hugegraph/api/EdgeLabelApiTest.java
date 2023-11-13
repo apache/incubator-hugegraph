@@ -19,15 +19,16 @@ package org.apache.hugegraph.api;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
+import jakarta.ws.rs.core.Response;
+
 public class EdgeLabelApiTest extends BaseApiTest {
 
-    private static String path = "/graphs/hugegraph/schema/edgelabels/";
+    private static final String PATH = "/graphs/hugegraph/schema/edgelabels/";
 
     @Before
     public void prepareSchema() {
@@ -46,7 +47,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"city\"]," +
                 "\"sort_keys\":[]" +
                 "}";
-        Response r = client().post(path, edgeLabel);
+        Response r = client().post(PATH, edgeLabel);
         assertResponseStatus(201, r);
     }
 
@@ -61,7 +62,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"city\"]," +
                 "\"sort_keys\":[]" +
                 "}";
-        Response r = client().post(path, edgeLabel);
+        Response r = client().post(PATH, edgeLabel);
         assertResponseStatus(201, r);
 
         edgeLabel = "{" +
@@ -74,7 +75,7 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"sort_keys\":[]" +
                 "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
-        r = client().put(path, "created", edgeLabel, params);
+        r = client().put(PATH, "created", edgeLabel, params);
         assertResponseStatus(200, r);
     }
 
@@ -89,11 +90,11 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"city\"]," +
                 "\"sort_keys\":[]" +
                 "}";
-        Response r = client().post(path, edgeLabel);
+        Response r = client().post(PATH, edgeLabel);
         assertResponseStatus(201, r);
 
         String name = "created";
-        r = client().get(path, name);
+        r = client().get(PATH, name);
         assertResponseStatus(200, r);
     }
 
@@ -108,10 +109,10 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"city\"]," +
                 "\"sort_keys\":[]" +
                 "}";
-        Response r = client().post(path, edgeLabel);
+        Response r = client().post(PATH, edgeLabel);
         assertResponseStatus(201, r);
 
-        r = client().get(path);
+        r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -126,11 +127,11 @@ public class EdgeLabelApiTest extends BaseApiTest {
                 "\"nullable_keys\":[\"city\"]," +
                 "\"sort_keys\":[]" +
                 "}";
-        Response r = client().post(path, edgeLabel);
+        Response r = client().post(PATH, edgeLabel);
         assertResponseStatus(201, r);
 
         String name = "created";
-        r = client().delete(path, name);
+        r = client().delete(PATH, name);
         String content = assertResponseStatus(202, r);
         int task = assertJsonContains(content, "task_id");
         waitTaskSuccess(task);

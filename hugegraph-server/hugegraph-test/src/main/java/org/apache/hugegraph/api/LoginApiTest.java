@@ -20,18 +20,18 @@ package org.apache.hugegraph.api;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import jakarta.ws.rs.core.GenericType;
-import jakarta.ws.rs.core.HttpHeaders;
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.util.JsonUtil;
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 public class LoginApiTest extends BaseApiTest {
 
@@ -42,8 +42,7 @@ public class LoginApiTest extends BaseApiTest {
     @Before
     public void setup() {
         Response r = this.createUser("test", "test");
-        Map<String, Object> user = r.readEntity(
-                                     new GenericType<Map<String, Object>>(){});
+        Map<String, Object> user = r.readEntity(new GenericType<Map<String, Object>>(){});
         this.userId4Test = (String) user.get("id");
     }
 
@@ -115,9 +114,8 @@ public class LoginApiTest extends BaseApiTest {
         assertJsonContains(result, "user_id");
         assertJsonContains(result, "user_name");
 
-        Map<String, Object> user = JsonUtil.fromJson(
-                                   result,
-                                   new TypeReference<Map<String, Object>>(){});
+        Map<String, Object> user = JsonUtil.fromJson(result,
+                                                     new TypeReference<Map<String, Object>>(){});
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
 
@@ -142,8 +140,7 @@ public class LoginApiTest extends BaseApiTest {
                       "\",\"user_email\":\"user1@baidu.com\"," +
                       "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
                       ".jpg\"}";
-        return this.client().post(USER_PATH,
-                                  String.format(user, name, password));
+        return this.client().post(USER_PATH, String.format(user, name, password));
     }
 
     private Response deleteUser(String id) {
@@ -155,14 +152,12 @@ public class LoginApiTest extends BaseApiTest {
         String loginUser = "{\"user_name\":\"%s\"," +
                            "\"user_password\":\"%s\"}";
 
-        return client().post(login, String.format(loginUser,
-                                                  name, password));
+        return client().post(login, String.format(loginUser, name, password));
     }
 
     private String tokenFromResponse(String content) {
-        Map<String, Object> data = JsonUtil.fromJson(
-                                   content,
-                                   new TypeReference<Map<String, Object>>(){});
+        Map<String, Object> data = JsonUtil.fromJson(content,
+                                                     new TypeReference<Map<String, Object>>(){});
         return (String) data.get("token");
     }
 }
