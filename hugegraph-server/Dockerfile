@@ -26,8 +26,8 @@ RUN mvn package -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
 # 2nd stage: runtime env
 FROM openjdk:11-slim
 # TODO: get the version from the pom.xml
-ENV version=1.0.0
-COPY --from=build /pkg/apache-hugegraph-incubating-$version/ /hugegraph
+ENV version=1.5.0
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-$version/ /hugegraph-server
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
@@ -35,7 +35,7 @@ ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:Max
     HUGEGRAPH_HOME="hugegraph"
 
 #COPY . /hugegraph/hugegraph-server
-WORKDIR /hugegraph/
+WORKDIR /hugegraph-server/
 
 # 1. Install environment
 RUN set -x \
@@ -50,17 +50,17 @@ RUN set -x \
 
 # 2. Init HugeGraph Sever
 RUN set -e \
-    && pwd && cd /hugegraph/ \
+    && pwd && cd /hugegraph-server/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
 
 # 3. Init docker script
-COPY hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
-COPY hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
-COPY hugegraph-dist/docker/docker-entrypoint.sh .
+COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
+COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
+COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh 
 
 EXPOSE 8080
-VOLUME /hugegraph
+VOLUME /hugegraph-server
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]
