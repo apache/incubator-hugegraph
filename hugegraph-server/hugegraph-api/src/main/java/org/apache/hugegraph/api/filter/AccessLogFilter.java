@@ -107,7 +107,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
             HugeConfig config = configProvider.get();
             long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
             // Record slow query if meet needs, watch out the perf
-            if (timeThreshold > 0 && timeThreshold < executeTime &&
+            if (timeThreshold > 0 && executeTime > timeThreshold &&
                 needRecordLog(requestContext)) {
                 // TODO: set RequestBody null, handle it later & should record "client IP"
                 LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
