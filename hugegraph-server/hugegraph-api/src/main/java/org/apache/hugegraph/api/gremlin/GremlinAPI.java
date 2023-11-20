@@ -51,6 +51,7 @@ public class GremlinAPI extends GremlinQueryAPI {
     @Timed
     @Compress
     @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Response post(@Context HugeConfig conf,
                          @Context HttpHeaders headers,
                          String request) {
