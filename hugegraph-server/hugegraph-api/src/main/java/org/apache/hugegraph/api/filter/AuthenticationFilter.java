@@ -72,7 +72,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
             "auth/login",
-            "versions"
+            "versions",
+            "openapi.json"
     );
 
     private static String whiteIpStatus;
