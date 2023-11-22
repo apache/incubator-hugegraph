@@ -1,6 +1,7 @@
 name: "hugegraph-commons ci"
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master

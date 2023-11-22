@@ -19,21 +19,43 @@ package org.apache.hugegraph.unit.rest;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
-import org.glassfish.jersey.internal.util.collection.ImmutableMultivaluedMap;
+import org.apache.hugegraph.rest.RestHeaders;
+import org.apache.hugegraph.rest.RestResult;
+import org.apache.hugegraph.rest.SerializeException;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.hugegraph.rest.RestResult;
-import org.apache.hugegraph.rest.SerializeException;
-import org.apache.hugegraph.testutil.Assert;
+import lombok.SneakyThrows;
+import okhttp3.Response;
 
 public class RestResultTest {
+
+    private static RestResult newRestResult(int status) {
+        return newRestResult(status, "", new RestHeaders());
+    }
+
+    private static RestResult newRestResult(int status, String content) {
+        return newRestResult(status, content, new RestHeaders());
+    }
+
+    private static RestResult newRestResult(int status, RestHeaders headers) {
+        return newRestResult(status, "", headers);
+    }
+
+    @SneakyThrows
+    private static RestResult newRestResult(int status, String content,
+                                            RestHeaders headers) {
+        Response response = Mockito.mock(Response.class, Mockito.RETURNS_DEEP_STUBS);
+        Mockito.when(response.code()).thenReturn(status);
+        Mockito.when(response.headers()).thenReturn(headers.toOkHttpHeader());
+        Mockito.when(response.body().string())
+               .thenReturn(content);
+        return new RestResult(response);
+    }
 
     @Test
     public void testStatus() {
@@ -43,7 +65,7 @@ public class RestResultTest {
 
     @Test
     public void testHeaders() {
-        MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+        RestHeaders headers = new RestHeaders();
         headers.add("key1", "value1-1");
         headers.add("key1", "value1-2");
         headers.add("key2", "value2");
@@ -115,28 +137,5 @@ public class RestResultTest {
         Assert.assertThrows(SerializeException.class, () -> {
             result3.readList(String.class);
         });
-    }
-
-    private static RestResult newRestResult(int status) {
-        return newRestResult(status, "", ImmutableMultivaluedMap.empty());
-    }
-
-    private static RestResult newRestResult(int status, String content) {
-        return newRestResult(status, content, ImmutableMultivaluedMap.empty());
-    }
-
-    private static RestResult newRestResult(int status,
-                                            MultivaluedMap<String, Object> h) {
-        return newRestResult(status, "", h);
-    }
-
-    private static RestResult newRestResult(int status, String content,
-                                            MultivaluedMap<String, Object> h) {
-        Response response = Mockito.mock(Response.class);
-        Mockito.when(response.getStatus()).thenReturn(status);
-        Mockito.when(response.getHeaders()).thenReturn(h);
-        Mockito.when(response.readEntity(String.class))
-               .thenReturn(content);
-        return new RestResult(response);
     }
 }

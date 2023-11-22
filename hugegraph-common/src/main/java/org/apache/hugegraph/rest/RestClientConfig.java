@@ -15,14 +15,27 @@
  * under the License.
  */
 
-package org.apache.hugegraph.version;
+package org.apache.hugegraph.rest;
 
-import org.apache.hugegraph.util.VersionUtil.Version;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
-public class CommonVersion {
+@Builder
+@Getter
+@Setter
+public class RestClientConfig {
 
-    public static final String NAME = "hugegraph-common";
-
-    // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class, "1.2.0");
+    private String user;
+    private String password;
+    private String token;
+    // unit in milliseconds
+    private Integer timeout;
+    private Integer maxConns;
+    private Integer maxConnsPerRoute;
+    // unit in seconds
+    private Integer idleTime = 30;
+    private Integer maxIdleConns = 5;
+    private String trustStoreFile;
+    private String trustStorePassword;
 }

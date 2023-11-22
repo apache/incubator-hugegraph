@@ -21,39 +21,47 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
-
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.SneakyThrows;
+import okhttp3.Response;
 
 public class RestResult {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final int status;
-    private final MultivaluedMap<String, Object> headers;
+    private final RestHeaders headers;
     private final String content;
 
     public RestResult(Response response) {
-        this(response.getStatus(), response.readEntity(String.class),
-             response.getHeaders());
+        this(response.code(), getResponseContent(response),
+             RestHeaders.convertToRestHeaders(response.headers()));
     }
 
-    public RestResult(int status, String content,
-                      MultivaluedMap<String, Object> headers) {
+    public RestResult(int status, String content, RestHeaders headers) {
         this.status = status;
         this.headers = headers;
         this.content = content;
+    }
+
+    @SneakyThrows
+    private static String getResponseContent(Response response) {
+        return response.body().string();
+    }
+
+    public static void registerModule(Module module) {
+        MAPPER.registerModule(module);
     }
 
     public int status() {
         return this.status;
     }
 
-    public MultivaluedMap<String, Object> headers() {
+    public RestHeaders headers() {
         return this.headers;
     }
 
@@ -65,8 +73,7 @@ public class RestResult {
         try {
             return MAPPER.readValue(this.content, clazz);
         } catch (Exception e) {
-            throw new SerializeException(
-                      "Failed to deserialize: %s", e, this.content);
+            throw new SerializeException("Failed to deserialize: %s", e, this.content);
         }
     }
 
@@ -76,16 +83,14 @@ public class RestResult {
             JsonNode root = MAPPER.readTree(this.content);
             JsonNode element = root.get(key);
             if (element == null) {
-                throw new SerializeException(
-                          "Can't find value of the key: %s in json.", key);
+                throw new SerializeException("Can't find value of the key: %s in json.", key);
             }
             JavaType type = MAPPER.getTypeFactory()
                                   .constructParametrizedType(ArrayList.class,
                                                              List.class, clazz);
             return MAPPER.convertValue(element, type);
         } catch (IOException e) {
-            throw new SerializeException(
-                      "Failed to deserialize %s", e, this.content);
+            throw new SerializeException("Failed to deserialize %s", e, this.content);
         }
     }
 
@@ -97,18 +102,13 @@ public class RestResult {
         try {
             return MAPPER.readValue(this.content, type);
         } catch (IOException e) {
-            throw new SerializeException(
-                      "Failed to deserialize %s", e, this.content);
+            throw new SerializeException("Failed to deserialize %s", e, this.content);
         }
     }
 
     @Override
     public String toString() {
-        return String.format("{status=%s, headers=%s, content=%s}",
-                             this.status, this.headers, this.content);
-    }
-
-    public static void registerModule(Module module) {
-        MAPPER.registerModule(module);
+        return String.format("{status=%s, headers=%s, content=%s}", this.status, this.headers,
+                             this.content);
     }
 }

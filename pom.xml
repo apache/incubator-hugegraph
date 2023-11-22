@@ -90,7 +90,7 @@
 
     <properties>
         <!-- Note: We need also update the version in CommonVersion.java & RpcVersion.java now -->
-        <revision>1.0.1</revision>
+        <revision>1.2.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>

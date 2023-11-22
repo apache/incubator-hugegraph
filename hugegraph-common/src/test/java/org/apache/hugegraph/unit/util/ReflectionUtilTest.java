@@ -94,7 +94,7 @@ public class ReflectionUtilTest extends BaseUnitTest {
         @SuppressWarnings("unchecked")
         List<ClassInfo> classes = IteratorUtils.toList(ReflectionUtil.classes(
                                   "org.apache.hugegraph.util"));
-        Assert.assertEquals(17, classes.size());
+        Assert.assertEquals(18, classes.size());
         classes.sort(Comparator.comparing(ClassInfo::getName));
         Assert.assertEquals("org.apache.hugegraph.util.Bytes",
                             classes.get(0).getName());
@@ -103,7 +103,7 @@ public class ReflectionUtilTest extends BaseUnitTest {
         Assert.assertEquals("org.apache.hugegraph.util.CollectionUtil",
                             classes.get(2).getName());
         Assert.assertEquals("org.apache.hugegraph.util.VersionUtil",
-                            classes.get(16).getName());
+                            classes.get(17).getName());
     }
 
     @Test
