@@ -21,6 +21,7 @@ jobs:
       BASE_BRANCH_NAME: ${{ github.base_ref }}
       TARGET_BRANCH_NAME: ${{ github.base_ref != '' && github.base_ref || github.ref_name }}
       RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') }}
+      RAFT_MODE: ${{ startsWith(github.head_ref, 'test') || startsWith(github.head_ref, 'raft') }}
 
     strategy:
       fail-fast: false
@@ -87,8 +88,9 @@ jobs:
         run: |
           $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
 
+      # TODO: disable raft test in normal PR due to the always timeout problem
       - name: Run raft test
-        if: ${{ env.BACKEND == 'rocksdb' }}
+        if: ${{ env.RAFT_MODE == 'true' && env.BACKEND == 'rocksdb' }}
         run: |
           $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
 
