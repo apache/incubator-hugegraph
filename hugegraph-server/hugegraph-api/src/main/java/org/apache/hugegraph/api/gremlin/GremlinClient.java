@@ -20,6 +20,10 @@ package org.apache.hugegraph.api.gremlin;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.api.filter.CompressInterceptor;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.E;
+
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -27,12 +31,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
-import org.apache.hugegraph.api.filter.CompressInterceptor;
-import org.apache.hugegraph.rest.AbstractRestClient;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.E;
-
-public class GremlinClient extends AbstractRestClient {
+public class GremlinClient extends AbstractJerseyRestClient {
 
     private final WebTarget webTarget;
 
