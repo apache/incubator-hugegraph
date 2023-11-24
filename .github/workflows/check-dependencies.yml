@@ -13,6 +13,7 @@ jobs:
   dependency-check:
     runs-on: ubuntu-latest
     env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
       SCRIPT_DEPENDENCY: hugegraph-server/hugegraph-dist/scripts/dependency
     steps:
       - name: Checkout source
@@ -22,6 +23,11 @@ jobs:
         with:
           java-version: '11'
           distribution: 'adopt'
+      - name: Use staged maven repo
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
       - name: mvn install
         run: |
           mvn install -DskipTests=true -ntp
