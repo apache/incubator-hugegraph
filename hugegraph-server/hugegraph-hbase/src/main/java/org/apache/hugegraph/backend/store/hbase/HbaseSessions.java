@@ -391,7 +391,10 @@ public class HbaseSessions extends BackendSessionPool {
          * Scan records by rowkey prefix from a table
          */
         default R scan(String table, byte[] prefix) {
-            return this.scan(table, prefix, true, prefix);
+            // TODO setRowPrefixFilter deprecated since HBase 2.5.0,
+            // will be removed in 4.0.0,setStartStopRowForPrefixScan(byte[]) instead.
+            final Scan scan = new Scan().setRowPrefixFilter(prefix);
+            return this.scan(table, scan);
         }
 
         /**
@@ -879,7 +882,8 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         @Override
-        public Number scan(String table, Scan scan) {
+        public Number
+        scan(String table, Scan scan) {
             LongColumnInterpreter ci = new LongColumnInterpreter();
             try {
                 return this.aggrClient.rowCount(table(table), ci, scan);
