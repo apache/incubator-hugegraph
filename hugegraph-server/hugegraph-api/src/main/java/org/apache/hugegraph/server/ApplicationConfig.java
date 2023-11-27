@@ -54,6 +54,11 @@ import jakarta.ws.rs.ApplicationPath;
     type = SecuritySchemeType.HTTP,
     scheme = "basic"
 )
+@SecurityScheme(
+    name = "bearer",
+    type = SecuritySchemeType.HTTP,
+    scheme = "bearer"
+)
 @ApplicationPath("/")
 @OpenAPIDefinition(
     info = @Info(
@@ -62,7 +67,7 @@ import jakarta.ws.rs.ApplicationPath;
         description = "All management API for HugeGraph",
         contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
     ),
-    security = {@SecurityRequirement(name = "basic")}
+    security = {@SecurityRequirement(name = "basic"), @SecurityRequirement(name = "bearer")}
 )
 public class ApplicationConfig extends ResourceConfig {
 
