@@ -873,8 +873,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         @Override
-        public Number
-        scan(String table, Scan scan) {
+        public Number scan(String table, Scan scan) {
             LongColumnInterpreter ci = new LongColumnInterpreter();
             try {
                 return this.aggrClient.rowCount(table(table), ci, scan);
