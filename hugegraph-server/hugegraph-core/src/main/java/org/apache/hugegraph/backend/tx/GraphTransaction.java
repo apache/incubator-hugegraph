@@ -1712,7 +1712,7 @@ public class GraphTransaction extends IndexableTransaction {
                                                 Iterator<T> results,
                                                 Query query) {
         // Filter unused or incorrect records
-        return new FilterIterator<T>(results, elem -> {
+        return new FilterIterator<>(results, elem -> {
             // TODO: Left vertex/edge should to be auto removed via async task
             if (elem.schemaLabel().undefined()) {
                 LOG.warn("Left record is found: id={}, label={}, properties={}",
@@ -1861,7 +1861,7 @@ public class GraphTransaction extends IndexableTransaction {
             return edges;
         }
         // Filter edges that belong to deleted vertex
-        return new FilterIterator<HugeEdge>(edges, edge -> {
+        return new FilterIterator<>(edges, edge -> {
             for (HugeVertex v : removingVertices.values()) {
                 if (edge.belongToVertex(v)) {
                     return false;
@@ -1917,7 +1917,7 @@ public class GraphTransaction extends IndexableTransaction {
                    !removedTxRecords.containsKey(id);
         });
 
-        return new ExtendableIterator<V>(txResults.iterator(), backendResults);
+        return new ExtendableIterator<>(txResults.iterator(), backendResults);
     }
 
     private void checkTxVerticesCapacity() throws LimitExceedException {

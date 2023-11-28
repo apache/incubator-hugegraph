@@ -20,13 +20,14 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class RaysApiTest extends BaseApiTest {
 
@@ -46,12 +47,10 @@ public class RaysApiTest extends BaseApiTest {
         Map<String, String> name2Ids = listAllVertexName2Ids();
         String markoId = name2Ids.get("marko");
         String vadasId = name2Ids.get("vadas");
-        Response r = client().get(PATH, ImmutableMap.of("source",
-                                                        id2Json(markoId),
+        Response r = client().get(PATH, ImmutableMap.of("source", id2Json(markoId),
                                                         "max_depth", 10));
         String content = assertResponseStatus(200, r);
-        List<Map<String, List<String>>> rays = assertJsonContains(content,
-                                                                  "rays");
+        List<Map<String, List<String>>> rays = assertJsonContains(content, "rays");
         Assert.assertNotNull(rays);
         Assert.assertEquals(2, rays.size());
         Object[] valuesArray = rays.get(0).values().toArray();

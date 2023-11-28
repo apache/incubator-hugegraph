@@ -20,13 +20,14 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class SameNeighborsApiTest extends BaseApiTest {
 
@@ -47,13 +48,10 @@ public class SameNeighborsApiTest extends BaseApiTest {
         String markoId = name2Ids.get("marko");
         String joshId = name2Ids.get("josh");
         String peterId = name2Ids.get("peter");
-        Response r = client().get(PATH, ImmutableMap.of("vertex",
-                                                        id2Json(markoId),
-                                                        "other",
-                                                        id2Json(joshId)));
+        Response r = client().get(PATH, ImmutableMap.of("vertex", id2Json(markoId),
+                                                        "other", id2Json(joshId)));
         String content = assertResponseStatus(200, r);
-        List<String> sameNeighbors = assertJsonContains(content,
-                                                        "same_neighbors");
+        List<String> sameNeighbors = assertJsonContains(content, "same_neighbors");
         Assert.assertFalse(sameNeighbors.isEmpty());
         Assert.assertTrue(sameNeighbors.contains(peterId));
     }

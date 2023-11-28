@@ -24,21 +24,54 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUN
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTER;
 
 import java.io.IOException;
+import java.net.URI;
 
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 
-
+// TODO: should add test for this class
 @Provider
 @Singleton
 public class AccessLogFilter implements ContainerResponseFilter {
 
-    private static final String DELIMETER = "/";
+    private static final Logger LOG = Log.logger(AccessLogFilter.class);
+
+    private static final String DELIMITER = "/";
+    private static final String GRAPHS = "graphs";
+    private static final String GREMLIN = "gremlin";
+    private static final String CYPHER = "cypher";
+
+    @Context
+    private jakarta.inject.Provider<HugeConfig> configProvider;
+
+    public static boolean needRecordLog(ContainerRequestContext context) {
+        // TODO: add test for 'path' result ('/gremlin' or 'gremlin')
+        String path = context.getUriInfo().getPath();
+
+        // GraphsAPI/CypherAPI/Job GremlinAPI
+        if (path.startsWith(GRAPHS)) {
+            if (HttpMethod.GET.equals(context.getMethod()) || path.endsWith(CYPHER)) {
+                return true;
+            }
+        }
+        // Direct GremlinAPI
+        return path.endsWith(GREMLIN);
+    }
+
+    private String join(String path1, String path2) {
+        return String.join(DELIMITER, path1, path2);
+    }
 
     /**
      * Use filter to log request info
@@ -47,10 +80,12 @@ public class AccessLogFilter implements ContainerResponseFilter {
      * @param responseContext responseContext
      */
     @Override
-    public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
+    public void filter(ContainerRequestContext requestContext,
+                       ContainerResponseContext responseContext) throws IOException {
         // Grab corresponding request / response info from context;
-        String method = requestContext.getRequest().getMethod();
-        String path = requestContext.getUriInfo().getPath();
+        URI uri = requestContext.getUriInfo().getRequestUri();
+        String path = uri.getRawPath();
+        String method = requestContext.getMethod();
         String metricsName = join(path, method);
 
         MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
@@ -60,23 +95,28 @@ public class AccessLogFilter implements ContainerResponseFilter {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
         }
 
-        // get responseTime
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
-        if(requestTime!=null){
+        if (requestTime != null) {
             long now = System.currentTimeMillis();
-            long responseTime = (now - (long)requestTime);
+            long start = (Long) requestTime;
+            long executeTime = now - start;
 
-            MetricsUtil.registerHistogram(
-                               join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
-                       .update(responseTime);
+            MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                       .update(executeTime);
+
+            HugeConfig config = configProvider.get();
+            long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
+            // Record slow query if meet needs, watch out the perf
+            if (timeThreshold > 0 && executeTime > timeThreshold &&
+                needRecordLog(requestContext)) {
+                // TODO: set RequestBody null, handle it later & should record "client IP"
+                LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
+                         executeTime, null, method, path, uri.getQuery());
+            }
         }
     }
 
-    private String join(String path1, String path2) {
-        return String.join(DELIMETER, path1, path2);
-    }
-
-    private boolean statusOk(int status){
-        return status == 200 || status == 201 || status == 202;
+    private boolean statusOk(int status) {
+        return status >= 200 && status < 300;
     }
 }

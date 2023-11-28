@@ -31,10 +31,28 @@ import jakarta.ws.rs.ext.Provider;
 public class PathFilter implements ContainerRequestFilter {
 
     public static final String REQUEST_TIME = "request_time";
+    public static final String REQUEST_PARAMS_JSON = "request_params_json";
 
     @Override
-    public void filter(ContainerRequestContext context)
-            throws IOException {
+    public void filter(ContainerRequestContext context) throws IOException {
         context.setProperty(REQUEST_TIME, System.currentTimeMillis());
+
+        // TODO: temporarily comment it to fix loader bug, handle it later
+        /*// record the request json
+        String method = context.getMethod();
+        String requestParamsJson = "";
+        if (method.equals(HttpMethod.POST)) {
+            requestParamsJson = IOUtils.toString(context.getEntityStream(),
+                                                 Charsets.toCharset(CHARSET));
+            // replace input stream because we have already read it
+            InputStream in = IOUtils.toInputStream(requestParamsJson, Charsets.toCharset(CHARSET));
+            context.setEntityStream(in);
+        } else if (method.equals(HttpMethod.GET)) {
+            MultivaluedMap<String, String> pathParameters = context.getUriInfo()
+                                                                   .getPathParameters();
+            requestParamsJson = pathParameters.toString();
+        }
+
+        context.setProperty(REQUEST_PARAMS_JSON, requestParamsJson);*/
     }
 }

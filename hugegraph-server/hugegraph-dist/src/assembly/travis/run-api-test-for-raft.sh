@@ -21,8 +21,8 @@ BACKEND=$1
 REPORT_DIR=$2
 REPORT_FILE=$REPORT_DIR/jacoco-api-test.xml
 
-TRAVIS_DIR=`dirname $0`
-VERSION=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
+TRAVIS_DIR=$(dirname $0)
+VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-$VERSION
 RAFT1_DIR=hugegraph-raft1
 RAFT2_DIR=hugegraph-raft2
@@ -57,7 +57,7 @@ export HUGEGRAPH_PASSWORD=pa
 $RAFT_TOOLS --set-leader "hugegraph" "$RAFT_LEADER"
 
 # run api-test
-mvn test -P api-test,$BACKEND || (cat $RAFT1_DIR/logs/hugegraph-server.log && exit 1)
+mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND || (cat $RAFT1_DIR/logs/hugegraph-server.log && exit 1)
 
 $TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 

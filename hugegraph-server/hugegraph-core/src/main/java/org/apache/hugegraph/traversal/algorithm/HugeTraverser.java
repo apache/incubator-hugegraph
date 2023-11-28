@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +39,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Aggregate;
 import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.query.EdgesQueryIterator;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
@@ -66,6 +69,7 @@ import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.hugegraph.util.collection.ObjectIntMapping;
 import org.apache.hugegraph.util.collection.ObjectIntMappingFactory;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
@@ -465,6 +469,13 @@ public class HugeTraverser {
         return edgeStep.skipSuperNodeIfNeeded(edges);
     }
 
+    public EdgesIterator edgesOfVertices(Iterator<Id> sources,
+                                         Directions dir,
+                                         List<Id> labelIds,
+                                         long degree) {
+        return new EdgesIterator(new EdgesQueryIterator(sources, dir, labelIds, degree));
+    }
+
     public Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
         List<Id> edgeLabels = steps.edgeLabels();
         ConditionQuery cq = GraphTransaction.constructEdgesQuery(
@@ -472,6 +483,11 @@ public class HugeTraverser {
         cq.capacity(Query.NO_CAPACITY);
         if (steps.limit() != NO_LIMIT) {
             cq.limit(steps.limit());
+        }
+
+        if (steps.isEdgeEmpty()) {
+            Iterator<Edge> edges = this.graph().edges(cq);
+            return edgesOfVertexStep(edges, steps);
         }
 
         Map<Id, ConditionQuery> edgeConditions =
@@ -1002,6 +1018,35 @@ public class HugeTraverser {
                 first = second;
             }
             return edges;
+        }
+    }
+
+    public class EdgesIterator implements Iterator<Iterator<Edge>>, Closeable {
+
+        private final Iterator<Iterator<Edge>> currentIter;
+
+        public EdgesIterator(EdgesQueryIterator queries) {
+            List<Iterator<Edge>> iteratorList = new ArrayList<>();
+            while (queries.hasNext()) {
+                Iterator<Edge> edges = graph.edges(queries.next());
+                iteratorList.add(edges);
+            }
+            this.currentIter = iteratorList.iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.currentIter.hasNext();
+        }
+
+        @Override
+        public Iterator<Edge> next() {
+            return this.currentIter.next();
+        }
+
+        @Override
+        public void close() throws IOException {
+            CloseableIterator.closeIterator(currentIter);
         }
     }
 }

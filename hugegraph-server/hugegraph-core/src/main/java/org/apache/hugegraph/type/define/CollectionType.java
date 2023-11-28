@@ -41,6 +41,7 @@ public enum CollectionType implements SerialEnum {
         this.name = name;
     }
 
+    @Override
     public byte code() {
         return this.code;
     }

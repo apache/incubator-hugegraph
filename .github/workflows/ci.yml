@@ -19,12 +19,13 @@ jobs:
       HEAD_BRANCH_NAME: ${{ github.head_ref }}
       BASE_BRANCH_NAME: ${{ github.base_ref }}
       TARGET_BRANCH_NAME: ${{ github.base_ref != '' && github.base_ref || github.ref_name }}
-      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') || startsWith(github.base_ref, 'release-') }}
+      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') }}
+      RAFT_MODE: ${{ startsWith(github.head_ref, 'test') || startsWith(github.head_ref, 'raft') }}
 
     strategy:
       fail-fast: false
       matrix:
-        BACKEND: [ memory, cassandra, scylladb, hbase, rocksdb, mysql, postgresql ]
+        BACKEND: [ memory, rocksdb, hbase, cassandra, mysql, postgresql, scylladb ]
         JAVA_VERSION: [ '8', '11' ]
 
     steps:
@@ -42,7 +43,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -77,8 +78,9 @@ jobs:
         run: |
           $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
 
+      # TODO: disable raft test in normal PR due to the always timeout problem
       - name: Run raft test
-        if: ${{ env.BACKEND == 'rocksdb' }}
+        if: ${{ env.RAFT_MODE == 'true' && env.BACKEND == 'rocksdb' }}
         run: |
           $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
 
@@ -88,6 +90,6 @@ jobs:
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3.0.0
+        uses: codecov/codecov-action@v3
         with:
           file: ${{ env.REPORT_DIR }}/*.xml

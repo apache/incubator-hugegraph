@@ -220,6 +220,7 @@ The text of each license is the standard Apache 2.0 license.
 hugegraph-core/src/main/java/org/apache/hugegraph/type/Nameable.java from https://github.com/JanusGraph/janusgraph
 hugegraph-core/src/main/java/org/apache/hugegraph/type/define/Cardinality.java from https://github.com/JanusGraph/janusgraph
 hugegraph-core/src/main/java/org/apache/hugegraph/util/StringEncoding.java from https://github.com/JanusGraph/janusgraph
+hugegraph-dist/src/assembly/static/bin/wait-storage.sh from https://github.com/JanusGraph/janusgraph
 hugegraph-core/src/main/java/org/apache/hugegraph/traversal/optimize/HugeScriptTraversal.java from https://github.com/apache/tinkerpop
 hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/ProcessBasicSuite.java from https://github.com/apache/tinkerpop
 hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/StructureBasicSuite.java from https://github.com/apache/tinkerpop
@@ -251,7 +252,7 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
 	(Apache License, Version 2.0) * ASM based accessors helper used by json-smart (net.minidev:accessors-smart:1.2 - http://www.minidev.net/)
 	(Apache License, Version 2.0) * Annotations for Metrics (io.dropwizard.metrics:metrics-annotation:4.2.4 - https://metrics.dropwizard.io/metrics-annotation)
-	(Apache License, Version 2.0) * Apache Cassandra (org.apache.cassandra:cassandra-all:3.11.12 - https://cassandra.apache.org)
+	(Apache License, Version 2.0) * Apache Cassandra (org.apache.cassandra:cassandra-all:4.0.10 - https://cassandra.apache.org)
 	(Apache License, Version 2.0) * Apache Commons BeanUtils (commons-beanutils:commons-beanutils:1.9.4 - https://commons.apache.org/proper/commons-beanutils/)
 	(Apache License, Version 2.0) * Apache Commons Codec (commons-codec:commons-codec:1.11 - http://commons.apache.org/proper/commons-codec/)
 	(Apache License, Version 2.0) * Apache Commons Codec (commons-codec:commons-codec:1.15 - https://commons.apache.org/proper/commons-codec/)

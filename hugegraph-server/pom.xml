@@ -35,59 +35,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <inceptionYear>2017</inceptionYear>
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-      <developer>
-        <id>Apache Hugegraph(incubating)</id>
-        <email>dev-subscribe@hugegraph.apache.org</email>
-        <url>https://hugegraph.apache.org/</url>
-      </developer>
-    </developers>
-
-    <mailingLists>
-      <mailingList>
-        <name>Development Mailing List</name>
-        <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>dev@hugegraph.incubator.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Commits List</name>
-        <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>commits@hugegraph.apache.org</post>
-      </mailingList>
-      <mailingList>
-        <name>Issues List</name>
-        <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
-        <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
-        <post>issues@hugegraph.apache.org</post>
-      </mailingList>
-    </mailingLists>
-
-    <issueManagement>
-      <system>Github Issues</system>
-      <url>https://github.com/apache/hugegraph/issues</url>
-    </issueManagement>
-
-    <scm>
-        <url>https://github.com/apache/hugegraph</url>
-        <connection>scm:git:https://github.com/apache/hugegraph.git</connection>
-        <developerConnection>scm:git:https://github.com/apache/hugegraph.git</developerConnection>
-    </scm>
-
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
@@ -99,7 +46,7 @@
         <slf4j.version>1.7.5</slf4j.version>
         <log4j.version>1.2.17</log4j.version>
         <log4j2.version>2.17.1</log4j2.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <tinkerpop.version>3.5.1</tinkerpop.version>
         <commons.io.version>2.7</commons.io.version>
         <guava.version>25.1-jre</guava.version>
@@ -114,6 +61,8 @@
         <grpc.version>1.47.0</grpc.version>
         <protobuf.version>3.21.7</protobuf.version>
         <jmh.version>1.36</jmh.version>
+        <arthas.version>3.7.1</arthas.version>
+        <swagger.version>2.2.18</swagger.version>
     </properties>
 
     <modules>
@@ -236,11 +185,6 @@
                 <version>${commons.io.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>${httpclient.version}</version>
@@ -301,12 +245,6 @@
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
                 <artifactId>grpc-stub</artifactId>
                 <version>${grpc.version}</version>
                 <scope>provided</scope>
@@ -340,38 +278,6 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- TODO: move necessary plugin out of pluginManagement? -->
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>1.19</version>
-                    <executions>
-                        <execution>
-                            <id>default-cli</id>
-                            <configuration>
-                                <!-- Accept the pom module -->
-                                <acceptPomPackaging>true</acceptPomPackaging>
-                                <!-- Using the template which is grouped by License file -->
-                                <fileTemplate>/org/codehaus/mojo/license/third-party-file-groupByMultiLicense.ftl</fileTemplate>
-                                <licenseMerges>
-                                    <licenseMerge>The Apache Software License, Version 2.0|The Apache License, Version 2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License, Version 2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache Public License 2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache 2</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache 2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache-2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License 2.0</licenseMerge>
-                                    <licenseMerge>The Apache Software License, Version 2.0|Apache License, version 2.0</licenseMerge>
-                                    <licenseMerge>3-Clause BSD License|BSD 3-clause</licenseMerge>
-                                    <licenseMerge>3-Clause BSD License|BSD 3-Clause</licenseMerge>
-                                    <licenseMerge>Eclipse Public License v1.0|Eclipse Public License 1.0</licenseMerge>
-                                    <licenseMerge>Eclipse Public License v1.0|Eclipse Public License - v 1.0</licenseMerge>
-                                    <licenseMerge>The MIT License|MIT License</licenseMerge>
-                                </licenseMerges>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.1</version>
@@ -405,51 +311,6 @@
                                 <directory>${final.name}</directory>
                             </fileset>
                         </filesets>
-                    </configuration>
-                </plugin>
-                <!-- Apache RAT for license check -->
-                <plugin>
-                    <groupId>org.apache.rat</groupId>
-                    <artifactId>apache-rat-plugin</artifactId>
-                    <configuration>
-                        <excludes>
-                            <exclude>**/*.versionsBackup</exclude>
-                            <exclude>**/*.proto</exclude>
-                            <exclude>**/*.log</exclude>
-                            <exclude>**/*.txt</exclude>
-                            <exclude>**/*.json</exclude>
-                            <exclude>**/*.conf</exclude>
-                            <exclude>**/*.map</exclude>
-                            <exclude>**/*.properties</exclude>
-                            <exclude>dist/**/*</exclude>
-                            <exclude>**/assembly/static/bin/hugegraph.service</exclude>
-                            <exclude>**/swagger-ui/**/*</exclude>
-                            <exclude>scripts/dev/reviewers</exclude>
-                            <exclude>scripts/dev/reviewers</exclude>
-                            <exclude>**/*.md</exclude>
-                            <exclude>**/dependency-reduced-pom.xml</exclude>
-                            <exclude>**/logs/*.log</exclude>
-                            <exclude>**/META-INF/**/*</exclude>
-                            <exclude>**/target/*</exclude>
-                            <exclude>style/*</exclude>
-                            <exclude>ChangeLog</exclude>
-                            <exclude>CONFIG.ini</exclude>
-                            <exclude>GROUPS</exclude>
-                            <exclude>OWNERS</exclude>
-                            <!-- Git & GitHub  -->
-                            <exclude>.github/**/*</exclude>
-                            <exclude>.gitignore</exclude>
-                            <exclude>.gitattributes</exclude>
-                            <!-- Intellij -->
-                            <exclude>**/*.iml</exclude>
-                            <exclude>**/*.iws</exclude>
-                            <exclude>**/*.ipr</exclude>
-                            <exclude>**/META-INF/MANIFEST.MF</exclude>
-                            <!-- Maven -->
-                            <exclude>.repository/**</exclude>
-                            <exclude>**/.flattened-pom.xml</exclude>
-                        </excludes>
-                        <consoleOutput>true</consoleOutput>
                     </configuration>
                 </plugin>
             </plugins>
@@ -615,65 +476,6 @@
                                 <phase>test</phase>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>apache-release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <doclint>none</doclint>
-                                    <failOnError>false</failOnError>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <doclint>none</doclint>
-                            <failOnError>false</failOnError>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <!-- Prevent `gpg` from using pinentry programs -->
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
