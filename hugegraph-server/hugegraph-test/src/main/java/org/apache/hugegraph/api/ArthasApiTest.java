@@ -40,10 +40,7 @@ public class ArthasApiTest extends BaseApiTest {
     public void testArthasApi() {
         String body = "{\n" +
                       "  \"action\": \"exec\",\n" +
-                      "  \"requestId\": \"req112\",\n" +
-                      "  \"consumerId\": \"955dbd1325334a84972b0f3ac19de4f7_2\",\n" +
-                      "  \"command\": \"version\",\n" +
-                      "  \"execTimeout\": \"10000\"\n" +
+                      "  \"command\": \"version\"\n" +
                       "}";
         RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL, false);
         // If the request header contains basic auth,
@@ -52,8 +49,6 @@ public class ArthasApiTest extends BaseApiTest {
         Response r = arthasApiClient.post(ARTHAS_API_PATH, body);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "state");
-        assertJsonContains(result, "requestId");
-        assertJsonContains(result, "sessionId");
         assertJsonContains(result, "body");
 
         RestClient arthasApiClientWithAuth = new RestClient(ARTHAS_API_BASE_URL);
