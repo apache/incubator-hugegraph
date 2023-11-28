@@ -20,6 +20,7 @@ package org.apache.hugegraph.api.traversers;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 
 import com.codahale.metrics.annotation.Timed;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.*;
@@ -47,6 +48,7 @@ public class EdgeExistenceAPI extends TraverserAPI {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @Operation(summary = "get edges from 'source' to 'target' vertex")
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
