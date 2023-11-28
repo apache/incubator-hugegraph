@@ -19,12 +19,8 @@ package org.apache.hugegraph.api.traversers;
 
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIMIT;
 
-import com.codahale.metrics.annotation.Timed;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
+import java.util.Iterator;
+
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.core.GraphManager;
@@ -35,7 +31,18 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.slf4j.Logger;
 
-import java.util.Iterator;
+import com.codahale.metrics.annotation.Timed;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 
 @Path("graphs/{graph}/traversers/edgeexist")
 @Singleton
@@ -58,7 +65,7 @@ public class EdgeExistenceAPI extends TraverserAPI {
                       @DefaultValue(DEFAULT_EMPTY) String sortValues,
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_LIMIT) long limit) {
-        LOG.debug("Graph [{}] get edgeexistence with " +
+        LOG.debug("Graph [{}] get edgeExistence with " +
                   "source '{}', target '{}', edgeLabel '{}', sortValue '{}', limit '{}'",
                   graph, source, target, edgeLabel, sortValues, limit);
 
@@ -69,7 +76,8 @@ public class EdgeExistenceAPI extends TraverserAPI {
         Id targetId = HugeVertex.getIdValue(target);
         HugeGraph hugegraph = graph(manager, graph);
         EdgeExistenceTraverser traverser = new EdgeExistenceTraverser(hugegraph);
-        Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel, sortValues, limit);
+        Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel,
+                                                            sortValues, limit);
 
         return manager.serializer(hugegraph).writeEdges(edges, false);
     }

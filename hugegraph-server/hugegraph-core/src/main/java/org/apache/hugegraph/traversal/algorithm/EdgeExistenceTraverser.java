@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.traversal.algorithm;
 
+import java.util.Iterator;
+
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -27,8 +29,6 @@ import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
-import java.util.Iterator;
-
 public class EdgeExistenceTraverser extends HugeTraverser {
 
     public EdgeExistenceTraverser(HugeGraph graph) {
@@ -37,7 +37,7 @@ public class EdgeExistenceTraverser extends HugeTraverser {
 
     public Iterator<Edge> queryEdgeExistence(Id sourceId, Id targetId, String label,
                                              String sortValues, long limit) {
-        // If no label provided, fallback to slow query by filtering
+        // If no label provided, fallback to a slow query by filtering
         if (label == null || label.isEmpty()) {
             return queryByNeighbors(sourceId, targetId, limit);
         }
@@ -60,7 +60,7 @@ public class EdgeExistenceTraverser extends HugeTraverser {
     }
 
     private Iterator<Edge> queryByNeighbors(Id sourceId, Id targetId, long limit) {
-        return new FilterIterator<>(edgesOfVertex(sourceId, Directions.OUT, (Id) null, limit), 
+        return new FilterIterator<>(edgesOfVertex(sourceId, Directions.OUT, (Id) null, limit),
                                     edge -> targetId.equals(edge.inVertex().id()));
     }
 }
