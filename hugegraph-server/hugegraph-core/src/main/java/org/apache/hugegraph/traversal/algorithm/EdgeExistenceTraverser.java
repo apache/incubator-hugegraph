@@ -41,6 +41,7 @@ public class EdgeExistenceTraverser extends HugeTraverser {
         if (label == null || label.isEmpty()) {
             return queryByNeighbors(sourceId, targetId, limit);
         }
+
         Id edgeLabelId = getEdgeLabelId(label);
         EdgeLabel edgeLabel = graph().edgeLabel(edgeLabelId);
         ConditionQuery conditionQuery = new ConditionQuery(HugeType.EDGE);
@@ -49,6 +50,7 @@ public class EdgeExistenceTraverser extends HugeTraverser {
         conditionQuery.eq(HugeKeys.LABEL, edgeLabelId);
         conditionQuery.eq(HugeKeys.DIRECTION, Directions.OUT);
         conditionQuery.limit(limit);
+
         if (edgeLabel.existSortKeys()) {
             conditionQuery.eq(HugeKeys.SORT_VALUES, sortValues);
         } else {
@@ -58,7 +60,7 @@ public class EdgeExistenceTraverser extends HugeTraverser {
     }
 
     private Iterator<Edge> queryByNeighbors(Id sourceId, Id targetId, long limit) {
-        return new FilterIterator<>(edgesOfVertex(sourceId, Directions.OUT, (Id) null, limit)
-                                    , edge -> targetId.equals(edge.inVertex().id()));
+        return new FilterIterator<>(edgesOfVertex(sourceId, Directions.OUT, (Id) null, limit), 
+                                    edge -> targetId.equals(edge.inVertex().id()));
     }
 }
