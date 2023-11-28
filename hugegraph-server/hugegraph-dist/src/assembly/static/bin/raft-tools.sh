@@ -18,9 +18,9 @@
 export LANG=zh_CN.UTF-8
 set -e
 
-HOME_PATH=`dirname $0`
-HOME_PATH=`cd ${HOME_PATH}/.. && pwd`
-cd ${HOME_PATH}
+HOME_PATH=$(dirname "$0")
+HOME_PATH=$(cd "${HOME_PATH}"/.. && pwd)
+cd "${HOME_PATH}"
 
 BIN_PATH=${HOME_PATH}/bin
 CONF_PATH=${HOME_PATH}/conf
@@ -98,7 +98,7 @@ function remove_peer() {
 }
 
 if [ "${HUGEGRAPH_URL}" = "" ]; then
-    HUGEGRAPH_URL=`read_property ${CONF_PATH}/rest-server.properties restserver.url`
+    HUGEGRAPH_URL=$(read_property ${CONF_PATH}/rest-server.properties restserver.url)
 fi
 
 if [ "${HUGEGRAPH_GRAPH}" = "" ]; then
