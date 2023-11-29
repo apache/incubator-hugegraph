@@ -22,22 +22,19 @@ import org.apache.hugegraph.util.VersionUtil.Version;
 
 public class CoreVersion {
 
+    public static final String NAME = "hugegraph-core";
+    public static final String DEFAULT_VERSION = "1.5.0";
+    // The second parameter of Version.of() is for IDE running without JAR
+    public static final Version VERSION = Version.of(CoreVersion.class, DEFAULT_VERSION);
+    public static final String GREMLIN_VERSION = "3.4.3";
+
     static {
         // Check versions of the dependency packages
         CoreVersion.check();
     }
 
-    public static final String NAME = "hugegraph-core";
-
-    public static final String DEFAULT_VERSION = "1.5.0";
-
-    // The second parameter of Version.of() is for IDE running without JAR
-    public static final Version VERSION = Version.of(CoreVersion.class, DEFAULT_VERSION);
-
-    public static final String GREMLIN_VERSION = "3.4.3";
-
     public static void check() {
         // Check version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.0", "1.1", CommonVersion.NAME);
+        VersionUtil.check(CommonVersion.VERSION, "1.0", "1.2", CommonVersion.NAME);
     }
 }
