@@ -230,7 +230,8 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
 
     protected <R> R queryByPrefix(HbaseSessions.HbaseSession<R> session,
                                   IdPrefixQuery query) {
-        return session.scan(this.table(), query.start() == null ? query.prefix().asBytes() : query.start().asBytes());
+        return session.scan(this.table(), query.start().asBytes(),
+                            query.inclusiveStart(), query.prefix().asBytes());
     }
 
     protected <R> R queryByRange(HbaseSessions.HbaseSession<R> session, IdRangeQuery query) {

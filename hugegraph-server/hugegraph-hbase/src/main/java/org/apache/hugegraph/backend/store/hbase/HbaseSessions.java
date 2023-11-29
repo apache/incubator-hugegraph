@@ -389,12 +389,9 @@ public class HbaseSessions extends BackendSessionPool {
 
         /**
          * Scan records by rowkey prefix from a table
-         * TODO: setRowPrefixFilter deprecated since HBase 2.5.0, will be removed in 4.0.0,
-         * use setStartStopRowForPrefixScan(byte[]) instead.
          */
         default R scan(String table, byte[] prefix) {
-            final Scan scan = new Scan().setRowPrefixFilter(prefix);
-            return this.scan(table, scan);
+            return this.scan(table, prefix, true, prefix);
         }
 
         /**
@@ -416,6 +413,22 @@ public class HbaseSessions extends BackendSessionPool {
             return this.scan(table, scan);
         }
 
+        /**
+         * Scan records by rowkey start and prefix from a table
+         * TODO: setRowPrefixFilter deprecated since HBase 2.5.0, will be removed in 4.0.0,
+         * use setStartStopRowForPrefixScan(byte[]) instead.
+         */
+        default R scan(String table, byte[] startRow, boolean inclusiveStart,
+                       byte[] prefix) {
+            final Scan scan = new Scan();
+            if(startRow == prefix) {
+                scan.setRowPrefixFilter(prefix);
+            } else {
+                scan.withStartRow(startRow, inclusiveStart)
+                    .setFilter(new PrefixFilter(prefix));
+            }
+            return this.scan(table, scan);
+        }
 
         /**
          * Scan records by rowkey range from a table
