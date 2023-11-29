@@ -29,7 +29,7 @@ public final class ApiVersion {
      * [0.2] HugeGraph-527: First add the version to the hugegraph module
      * [0.3] HugeGraph-525: Add versions check of components and api
      * [0.4] HugeGraph-162: Add schema builder to separate client and inner interface.
-     * [0.5] HugeGraph-498: Support three kind of id strategy
+     * [0.5] HugeGraph-498: Support three kinds of id strategy
      * <p>
      * version 0.3:
      * <p>
@@ -41,12 +41,12 @@ public final class ApiVersion {
      * <p>
      * version 0.4:
      * [0.11] HugeGraph-938: Remove useless index-names field in VL/EL API
-     * [0.12] HugeGraph-589: Add schema id for all schema element
+     * [0.12] HugeGraph-589: Add schema id for all schema elements
      * [0.13] HugeGraph-956: Support customize string/number id strategy
      * <p>
      * version 0.5:
      * [0.14] HugeGraph-1085: Add enable_label_index to VL/EL
-     * [0.15] HugeGraph-1105: Support paging for large amounts of records
+     * [0.15] HugeGraph-1105: Support paging for large numbers of records
      * [0.16] HugeGraph-944: Support rest shortest path, k-out, k-neighbor
      * [0.17] HugeGraph-944: Support rest shortest path, k-out, k-neighbor
      * [0.18] HugeGraph-81: Change argument "checkVertex" to "check_vertex"
@@ -75,7 +75,7 @@ public final class ApiVersion {
      * [0.34] Issue-307: Let VertexAPI use simplified property serializer
      * [0.35] Issue-287: Support pagination when do index query
      * [0.36] Issue-360: Support paging for scan api
-     * [0.37] Issue-391: Add skip_super_node for shortest path
+     * [0.37] Issue-391: Add skip_super_node for the shortest path
      * [0.38] Issue-274: Add personal-rank and neighbor-rank RESTful API
      * <p>
      * version 0.10:
@@ -114,17 +114,18 @@ public final class ApiVersion {
      * [0.67] Issue-1065: Support dynamically add/remove graph
      * [0.68] Issue-1763: Support adamic-adar & resource-allocation API
      * [0.69] Issue-1748: Support Cypher query RESTful API
-     * [0.70] Issue-2242: Optimising adjacency edge queries
+     * [0.70] PR-2242: Add edge-existence RESTful API
      * [0.71] PR-2286: Support Arthas API & Metric API prometheus format
      */
 
     /**
      * The second parameter of Version.of() is for IDE running without JAR
+     * Note: Also update the version number in hugegraph-api/pom.xml
      */
     public static final Version VERSION = Version.of(ApiVersion.class, "0.71");
 
     public static void check() {
-        // Check version of hugegraph-core. Firstly do check from version 0.3
+        // Check the version of hugegraph-core. Do first check from version 0.3
         VersionUtil.check(CoreVersion.VERSION, "1.0", "1.6", CoreVersion.NAME);
     }
 }
