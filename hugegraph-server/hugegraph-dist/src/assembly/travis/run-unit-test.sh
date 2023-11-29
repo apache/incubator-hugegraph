@@ -22,12 +22,6 @@ BACKEND=$1
 echo "USE_STAGE: $USE_STAGE"
 echo `cat $HOME/.m2/settings.xml`
 
-if [[ "$USE_STAGE" == "true" ]]; then
-  cp $HOME/.m2/settings.xml /tmp/settings.xml
-  mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-fi
-
-echo `cat $HOME/.m2/settings.xml`
 
 if [[ "$BACKEND" == "memory" ]]; then
     mvn test -pl hugegraph-server/hugegraph-test -am -P unit-test
