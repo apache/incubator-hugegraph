@@ -24,6 +24,7 @@ import lombok.Setter;
 @Builder
 @Getter
 @Setter
+@SuppressWarnings("unused")
 public class RestClientConfig {
 
     private String user;

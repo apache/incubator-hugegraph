@@ -22,19 +22,19 @@ import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.List;
 
-import org.junit.Test;
-
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.hugegraph.perf.PerfUtil;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.perf.testclass.TestClass;
 import org.apache.hugegraph.unit.perf.testclass.TestClass.Bar;
 import org.apache.hugegraph.unit.perf.testclass.TestClass.Base;
 import org.apache.hugegraph.unit.perf.testclass.TestClass.Foo;
 import org.apache.hugegraph.unit.perf.testclass.TestClass.ManuallyProfile;
 import org.apache.hugegraph.unit.perf.testclass.TestClass.Sub;
-import org.apache.hugegraph.perf.PerfUtil;
-import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.ReflectionUtil;
-import org.apache.commons.collections.IteratorUtils;
+import org.junit.Test;
+
 import com.google.common.reflect.ClassPath.ClassInfo;
 
 import javassist.NotFoundException;
@@ -94,7 +94,7 @@ public class ReflectionUtilTest extends BaseUnitTest {
         @SuppressWarnings("unchecked")
         List<ClassInfo> classes = IteratorUtils.toList(ReflectionUtil.classes(
                                   "org.apache.hugegraph.util"));
-        Assert.assertEquals(18, classes.size());
+        Assert.assertEquals(19, classes.size());
         classes.sort(Comparator.comparing(ClassInfo::getName));
         Assert.assertEquals("org.apache.hugegraph.util.Bytes",
                             classes.get(0).getName());
@@ -102,8 +102,8 @@ public class ReflectionUtilTest extends BaseUnitTest {
                             classes.get(1).getName());
         Assert.assertEquals("org.apache.hugegraph.util.CollectionUtil",
                             classes.get(2).getName());
-        Assert.assertEquals("org.apache.hugegraph.util.VersionUtil",
-                            classes.get(17).getName());
+        Assert.assertEquals("org.apache.hugegraph.util.DateUtil",
+                            classes.get(3).getName());
     }
 
     @Test

@@ -556,7 +556,7 @@ public final class PerfUtil {
         }
     }
 
-    public static final class LocalStack<E> {
+    public static final class LocalStack<T> {
 
         private final Object[] elementData;
         private int elementCount;
@@ -574,27 +574,27 @@ public final class PerfUtil {
             return this.elementCount == 0;
         }
 
-        public void push(E elem) {
+        public void push(T elem) {
             this.elementData[this.elementCount++] = elem;
         }
 
-        public E pop() {
+        public T pop() {
             if (this.elementCount == 0) {
                 throw new EmptyStackException();
             }
             this.elementCount--;
             @SuppressWarnings("unchecked")
-            E elem = (E) this.elementData[this.elementCount];
+            T elem = (T) this.elementData[this.elementCount];
             this.elementData[this.elementCount] = null;
             return elem;
         }
 
-        public E peek() {
+        public T peek() {
             if (this.elementCount == 0) {
                 throw new EmptyStackException();
             }
             @SuppressWarnings("unchecked")
-            E elem = (E) this.elementData[this.elementCount - 1];
+            T elem = (T) this.elementData[this.elementCount - 1];
             return elem;
         }
     }

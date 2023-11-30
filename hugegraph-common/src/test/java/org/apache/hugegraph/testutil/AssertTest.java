@@ -17,9 +17,8 @@
 
 package org.apache.hugegraph.testutil;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
 
 public class AssertTest extends BaseUnitTest {
 
@@ -175,6 +174,12 @@ public class AssertTest extends BaseUnitTest {
             throw new RuntimeException();
         });
 
+        Throwable exception = Assert.assertThrows(RuntimeException.class, () -> {
+            throw new RuntimeException("fake-error");
+        });
+        Assert.assertInstanceOf(RuntimeException.class, exception);
+        Assert.assertEquals("fake-error", exception.getMessage());
+
         Assert.assertThrows(RuntimeException.class, () -> {
             throw new RuntimeException("fake-error");
         }, e -> {
@@ -183,7 +188,7 @@ public class AssertTest extends BaseUnitTest {
     }
 
     @Test
-    public void testAssertThrowsWithError() {
+    public void testAssertThrowsWithTypeError() {
         try {
             Assert.assertThrows(NullPointerException.class, () -> {
                 // pass
@@ -201,6 +206,21 @@ public class AssertTest extends BaseUnitTest {
         } catch (AssertionError e) {
             Assert.assertContains("java.lang.NullPointerException", e.getMessage());
             Assert.assertContains("java.lang.RuntimeException", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testAssertThrowsWithMessageError() {
+        try {
+            Assert.assertThrows(RuntimeException.class, () -> {
+                throw new RuntimeException("fake-error");
+            }, e -> {
+                Assert.assertEquals("fake-error-typo", e.getMessage());
+            });
+            Assert.fail("Expect error");
+        } catch (AssertionError e) {
+            Assert.assertContains("expected:<fake-error[-typo]> but was:<fake-error[]>",
+                                  e.getMessage());
         }
     }
 

@@ -22,12 +22,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.util.ExceptionUtil;
 import org.apache.hugegraph.util.TimeUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -51,11 +51,7 @@ public class BaseUnitTest {
             futures.add(executor.submit(task));
         }
         for (Future<?> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            ExceptionUtil.futureGet(future);
         }
     }
 

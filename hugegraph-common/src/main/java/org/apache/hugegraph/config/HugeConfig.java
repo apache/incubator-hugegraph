@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
+import javax.annotation.Nullable;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.FileBasedConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
@@ -35,9 +35,9 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
 
 public class HugeConfig extends PropertiesConfiguration {
 
@@ -117,7 +117,7 @@ public class HugeConfig extends PropertiesConfiguration {
             value = this.validateOption(key, value);
         }
         if (this.containsKey(key) && value instanceof List) {
-            for (Object item : (List<Object>) value) {
+            for (Object item : (List<?>) value) {
                 super.addPropertyDirect(key, item);
             }
         } else {
@@ -137,7 +137,7 @@ public class HugeConfig extends PropertiesConfiguration {
             return option.parseConvert((String) value);
         }
 
-        Class dataType = option.dataType();
+        Class<?> dataType = option.dataType();
         if (dataType.isInstance(value)) {
             return value;
         }

@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.testutil;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -37,43 +36,36 @@ public class Assert extends org.junit.Assert {
         void accept(T t) throws Throwable;
     }
 
-    public static void assertThrows(Class<? extends Throwable> throwable,
-                                    ThrowableRunnable runnable) {
-        CompletableFuture<?> future = assertThrowsFuture(throwable, runnable);
-        future.thenAccept(System.err::println);
-    }
-
-    public static void assertThrows(Class<? extends Throwable> throwable,
+    public static void assertThrows(Class<? extends Throwable> clazz,
                                     ThrowableRunnable runnable,
                                     Consumer<Throwable> exceptionConsumer) {
-        CompletableFuture<Throwable> future = assertThrowsFuture(throwable,
-                                                                 runnable);
-        future.thenAccept(exceptionConsumer);
+        Throwable expectedException = assertThrows(clazz, runnable);
+        assert expectedException != null;
+        exceptionConsumer.accept(expectedException);
     }
 
-    public static CompletableFuture<Throwable> assertThrowsFuture(
-                                               Class<? extends Throwable> clazz,
-                                               ThrowableRunnable runnable) {
-        CompletableFuture<Throwable> future = new CompletableFuture<>();
-        boolean fail = false;
+    public static Throwable assertThrows(Class<? extends Throwable> clazz,
+                                         ThrowableRunnable runnable) {
         try {
+            // expect throwing here
             runnable.run();
-            fail = true;
         } catch (Throwable e) {
             if (!clazz.isInstance(e)) {
-                Assert.fail(String.format(
-                            "Bad exception type %s(expected %s)",
-                            e.getClass().getName(), clazz.getName()));
+                // exception type not matched
+                Assert.fail(String.format("Bad exception type %s(expected %s)",
+                                          e.getClass().getName(), clazz.getName()));
             }
-            future.complete(e);
+
+            return e;
         }
-        if (fail) {
-            String msg = String.format("No exception was thrown(expected %s)",
-                                       clazz.getName());
-            future.completeExceptionally(new AssertionError(msg));
-            Assert.fail(msg);
-        }
-        return future;
+
+        // no exception
+        Assert.fail(String.format("No exception was thrown(expected %s)",
+                                  clazz.getName()));
+
+        // unavailable
+        assert false;
+        return null;
     }
 
     public static void assertEquals(byte expected, Object actual) {
@@ -104,34 +96,40 @@ public class Assert extends org.junit.Assert {
         org.junit.Assert.assertEquals(expected, actual);
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertGt(Number expected, Object actual) {
         org.junit.Assert.assertThat(actual, new NumberMatcher(expected, cmp -> {
             return cmp > 0;
         }, ">"));
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertGte(Number expected, Object actual) {
         org.junit.Assert.assertThat(actual, new NumberMatcher(expected, cmp -> {
             return cmp >= 0;
         }, ">="));
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertLt(Number expected, Object actual) {
         org.junit.Assert.assertThat(actual, new NumberMatcher(expected, cmp -> {
             return cmp < 0;
         }, "<"));
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertLte(Number expected, Object actual) {
         org.junit.Assert.assertThat(actual, new NumberMatcher(expected, cmp -> {
             return cmp <= 0;
         }, "<="));
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertContains(String sub, String actual) {
         org.junit.Assert.assertThat(actual, CoreMatchers.containsString(sub));
     }
 
+    @SuppressWarnings("deprecation")
     public static void assertInstanceOf(Class<?> clazz, Object object) {
         org.junit.Assert.assertThat(object, CoreMatchers.instanceOf(clazz));
     }
