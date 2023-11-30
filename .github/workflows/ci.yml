@@ -44,7 +44,7 @@ jobs:
 
       - name: Prepare backend environment
         run: |
-          $TRAVIS_DIR/install-backend.sh $BACKEND
+          $TRAVIS_DIR/install-backend.sh $BACKEND && jps -l
 
       - name: Install Java ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v3
