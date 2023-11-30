@@ -269,5 +269,16 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- use mvn -P stage to enable the remote apache-stage repo -->
+        <profile>
+            <id>stage</id>
+            <repositories>
+                <repository>
+                    <id>staged-releases</id>
+                    <url>https://repository.apache.org/content/groups/staging/</url>
+                </repository>
+            </repositories>
+        </profile>
     </profiles>
 </project>
