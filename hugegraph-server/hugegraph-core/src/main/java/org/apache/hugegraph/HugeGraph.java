@@ -30,6 +30,7 @@ import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -44,12 +45,11 @@ import org.apache.hugegraph.structure.HugeFeatures;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
-import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugePrimaryKeyStrategy;
+import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -201,7 +201,7 @@ public interface HugeGraph extends Graph {
 
     void waitReady(RpcServer rpcServer);
 
-    void serverStarted(Id serverId, NodeRole serverRole);
+    void serverStarted(GlobalMasterInfo serverInfo);
 
     boolean started();
 
@@ -221,7 +221,7 @@ public interface HugeGraph extends Graph {
 
     void resumeSnapshot();
 
-    void create(String configPath, Id server, NodeRole role);
+    void create(String configPath, GlobalMasterInfo serverInfo);
 
     void drop();
 

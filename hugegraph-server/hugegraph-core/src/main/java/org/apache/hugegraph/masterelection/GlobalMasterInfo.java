@@ -17,50 +17,103 @@
 
 package org.apache.hugegraph.masterelection;
 
-public class GlobalMasterInfo {
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.type.define.NodeRole;
+import org.apache.hugegraph.util.E;
 
-    private NodeInfo nodeInfo;
-    private volatile boolean featureSupport;
+// TODO: rename to GlobalNodeRoleInfo
+public final class GlobalMasterInfo {
+
+    private final static NodeInfo NO_MASTER = new NodeInfo(false, "");
+
+    private volatile boolean supportElection;
+    private volatile NodeInfo masterNodeInfo;
+
+    private volatile Id serverId;
+    private volatile NodeRole serverRole;
 
     public GlobalMasterInfo() {
-        this.featureSupport = false;
-        this.nodeInfo = new NodeInfo(false, "");
+        this(NO_MASTER);
     }
 
-    public final void nodeInfo(boolean isMaster, String url) {
+    public GlobalMasterInfo(NodeInfo masterInfo) {
+        this.supportElection = false;
+        this.masterNodeInfo = masterInfo;
+
+        this.serverId = null;
+        this.serverRole = null;
+    }
+
+    public void supportElection(boolean featureSupport) {
+        this.supportElection = featureSupport;
+    }
+
+    public boolean supportElection() {
+        return this.supportElection;
+    }
+
+    public void resetMasterInfo() {
+        this.masterNodeInfo = NO_MASTER;
+    }
+
+    public void masterInfo(boolean isMaster, String nodeUrl) {
         // final can avoid instruction rearrangement, visibility can be ignored
-        final NodeInfo tmp = new NodeInfo(isMaster, url);
-        this.nodeInfo = tmp;
+        this.masterNodeInfo = new NodeInfo(isMaster, nodeUrl);
     }
 
-    public final NodeInfo nodeInfo() {
-        return this.nodeInfo;
+    public NodeInfo masterInfo() {
+        return this.masterNodeInfo;
     }
 
-    public void isFeatureSupport(boolean featureSupport) {
-        this.featureSupport = featureSupport;
+    public Id serverId() {
+        return this.serverId;
     }
 
-    public boolean isFeatureSupport() {
-        return this.featureSupport;
+    public NodeRole serverRole() {
+        return this.serverRole;
+    }
+
+    public void serverId(Id id) {
+        this.serverId = id;
+    }
+
+    public void initServerRole(NodeRole role) {
+        E.checkArgument(role != null, "The server role can't be null");
+        E.checkArgument(this.serverRole == null,
+                        "The server role can't be init twice");
+        this.serverRole = role;
+    }
+
+    public void changeServerRole(NodeRole role) {
+        E.checkArgument(role != null, "The server role can't be null");
+        this.serverRole = role;
+    }
+
+    public static GlobalMasterInfo master(String serverId) {
+        NodeInfo masterInfo = new NodeInfo(true, serverId);
+        GlobalMasterInfo serverInfo = new GlobalMasterInfo(masterInfo);
+        serverInfo.serverId = IdGenerator.of(serverId);
+        serverInfo.serverRole = NodeRole.MASTER;
+        return serverInfo;
     }
 
     public static class NodeInfo {
 
         private final boolean isMaster;
-        private final String url;
+        private final String nodeUrl;
 
         public NodeInfo(boolean isMaster, String url) {
             this.isMaster = isMaster;
-            this.url = url;
+            this.nodeUrl = url;
         }
 
         public boolean isMaster() {
             return this.isMaster;
         }
 
-        public String url() {
-            return this.url;
+        public String nodeUrl() {
+            return this.nodeUrl;
         }
     }
 }

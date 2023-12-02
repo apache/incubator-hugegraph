@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.iterator.ListIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
@@ -61,8 +62,7 @@ public class ServerInfoManager {
     private final HugeGraphParams graph;
     private final ExecutorService dbExecutor;
 
-    private Id selfServerId;
-    private NodeRole selfServerRole;
+    private GlobalMasterInfo globalServerInfo;
 
     private volatile boolean onlySingleNode;
     private volatile boolean closed;
@@ -75,8 +75,7 @@ public class ServerInfoManager {
         this.graph = graph;
         this.dbExecutor = dbExecutor;
 
-        this.selfServerId = null;
-        this.selfServerRole = NodeRole.MASTER;
+        this.globalServerInfo = null;
 
         this.onlySingleNode = false;
         this.closed = false;
@@ -103,40 +102,24 @@ public class ServerInfoManager {
         return true;
     }
 
-    public synchronized void forceInitServerInfo(Id server, NodeRole role) {
-        if (this.closed) {
-            return;
-        }
+    public synchronized void initServerInfo(GlobalMasterInfo serverInfo) {
+        E.checkArgument(serverInfo != null, "The global node info can't be null");
+        this.globalServerInfo = serverInfo;
+        Id serverId = this.globalServerInfo.serverId();
 
-        E.checkArgument(server != null && role != null,
-                        "The server id or role can't be null");
-        this.selfServerId = server;
-        this.selfServerRole = role;
-
-        this.saveServerInfo(this.selfServerId, this.selfServerRole);
-    }
-
-    public synchronized void initServerInfo(Id server, NodeRole role) {
-        E.checkArgument(server != null && role != null,
-                        "The server id or role can't be null");
-        this.selfServerId = server;
-        this.selfServerRole = role;
-
-        HugeServerInfo existed = this.serverInfo(server);
+        HugeServerInfo existed = this.serverInfo(serverId);
         E.checkArgument(existed == null || !existed.alive(),
                         "The server with name '%s' already in cluster",
-                        server);
-        if (role.master()) {
+                        serverId);
+        if (this.globalServerInfo.serverRole().master()) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
             do {
-                Iterator<HugeServerInfo> servers = this.serverInfos(PAGE_SIZE,
-                                                                    page);
+                Iterator<HugeServerInfo> servers = this.serverInfos(PAGE_SIZE, page);
                 while (servers.hasNext()) {
                     existed = servers.next();
-                    E.checkArgument(!existed.role().master() ||
-                                    !existed.alive(),
-                                    "Already existed master '%s' in current " +
-                                    "cluster", existed.id());
+                    E.checkArgument(!existed.role().master() || !existed.alive(),
+                                    "Already existed master '%s' in current cluster", 
+                                    existed.id());
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(servers);
@@ -145,19 +128,39 @@ public class ServerInfoManager {
         }
 
         // TODO: save ServerInfo at AuthServer
-        this.saveServerInfo(this.selfServerId, this.selfServerRole);
+        this.saveServerInfo(this.selfServerId(), this.selfServerRole());
+    }
+
+    public synchronized void changeServerRole(NodeRole serverRole) {
+        if (this.closed) {
+            return;
+        }
+
+        this.globalServerInfo.changeServerRole(serverRole);
+
+        this.saveServerInfo(this.selfServerId(), this.selfServerRole());
+    }
+
+    public GlobalMasterInfo serverInfo() {
+        return this.globalServerInfo;
     }
 
     public Id selfServerId() {
-        return this.selfServerId;
+        if (this.globalServerInfo == null) {
+            return null;
+        }
+        return this.globalServerInfo.serverId();
     }
 
     public NodeRole selfServerRole() {
-        return this.selfServerRole;
+        if (this.globalServerInfo == null) {
+            return null;
+        }
+        return this.globalServerInfo.serverRole();
     }
 
     public boolean master() {
-        return this.selfServerRole != null && this.selfServerRole.master();
+        return this.selfServerRole() != null && this.selfServerRole().master();
     }
 
     public boolean onlySingleNode() {
@@ -167,10 +170,9 @@ public class ServerInfoManager {
 
     public void heartbeat() {
         HugeServerInfo serverInfo = this.selfServerInfo();
-        if (serverInfo == null && this.selfServerId != null &&
-            this.selfServerRole != NodeRole.MASTER) {
-            serverInfo = this.saveServerInfo(this.selfServerId,
-                                             this.selfServerRole);
+        if (serverInfo == null && this.selfServerId() != null &&
+            this.selfServerRole() != NodeRole.MASTER) {
+            serverInfo = this.saveServerInfo(this.selfServerId(), this.selfServerRole());
         }
         serverInfo.updateTime(DateUtil.now());
         this.save(serverInfo);
@@ -310,9 +312,9 @@ public class ServerInfoManager {
     }
 
     private HugeServerInfo selfServerInfo() {
-        HugeServerInfo selfServerInfo = this.serverInfo(this.selfServerId);
+        HugeServerInfo selfServerInfo = this.serverInfo(this.selfServerId());
         if (selfServerInfo == null) {
-            LOG.warn("ServerInfo is missing: {}", this.selfServerId);
+            LOG.warn("ServerInfo is missing: {}", this.selfServerId());
         }
         return selfServerInfo;
     }
@@ -335,8 +337,8 @@ public class ServerInfoManager {
          * backend store, initServerInfo() is not called in this case, so
          * this.selfServerId is null at this time.
          */
-        if (this.selfServerId != null && this.graph.initialized()) {
-            return this.removeServerInfo(this.selfServerId);
+        if (this.selfServerId() != null && this.graph.initialized()) {
+            return this.removeServerInfo(this.selfServerId());
         }
         return null;
     }

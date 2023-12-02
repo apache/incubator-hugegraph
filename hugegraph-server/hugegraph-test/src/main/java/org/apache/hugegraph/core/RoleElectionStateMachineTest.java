@@ -35,7 +35,7 @@ import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
-import org.apache.hugegraph.masterelection.StateMachineCallback;
+import org.apache.hugegraph.masterelection.RoleListener;
 import org.apache.hugegraph.masterelection.StateMachineContext;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Utils;
@@ -143,7 +143,7 @@ public class RoleElectionStateMachineTest {
         final int MAX_COUNT = 200;
         final List<LogEntry> logRecords = Collections.synchronizedList(new ArrayList<>(MAX_COUNT));
         final List<String> masterNodes = Collections.synchronizedList(new ArrayList<>(MAX_COUNT));
-        final StateMachineCallback callback = new StateMachineCallback() {
+        final RoleListener callback = new RoleListener() {
 
             @Override
             public void onAsRoleMaster(StateMachineContext context) {
@@ -264,7 +264,7 @@ public class RoleElectionStateMachineTest {
             RoleElectionStateMachine stateMachine =
                                      new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[1] = stateMachine;
-            stateMachine.apply(callback);
+            stateMachine.start(callback);
             stop.countDown();
         });
 
@@ -273,7 +273,7 @@ public class RoleElectionStateMachineTest {
             RoleElectionStateMachine stateMachine =
                                      new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[2] = stateMachine;
-            stateMachine.apply(callback);
+            stateMachine.start(callback);
             stop.countDown();
         });
 
@@ -282,7 +282,7 @@ public class RoleElectionStateMachineTest {
             RoleElectionStateMachine stateMachine =
                                      new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[3] = stateMachine;
-            stateMachine.apply(callback);
+            stateMachine.start(callback);
             stop.countDown();
         });
 
