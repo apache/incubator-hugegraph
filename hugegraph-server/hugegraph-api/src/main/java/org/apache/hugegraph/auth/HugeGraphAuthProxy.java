@@ -669,9 +669,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(GlobalMasterInfo serverInfo) {
+    public void serverStarted(GlobalMasterInfo nodeInfo) {
         this.verifyAdminPermission();
-        this.hugegraph.serverStarted(serverInfo);
+        this.hugegraph.serverStarted(nodeInfo);
     }
 
     @Override
@@ -776,9 +776,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, GlobalMasterInfo serverInfo) {
+    public void create(String configPath, GlobalMasterInfo nodeInfo) {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
-        this.hugegraph.create(configPath, serverInfo);
+        this.hugegraph.create(configPath, nodeInfo);
     }
 
     @Override

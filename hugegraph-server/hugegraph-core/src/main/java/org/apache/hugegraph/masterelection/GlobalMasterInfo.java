@@ -30,8 +30,8 @@ public final class GlobalMasterInfo {
     private volatile boolean supportElection;
     private volatile NodeInfo masterNodeInfo;
 
-    private volatile Id serverId;
-    private volatile NodeRole serverRole;
+    private volatile Id nodeId;
+    private volatile NodeRole nodeRole;
 
     public GlobalMasterInfo() {
         this(NO_MASTER);
@@ -41,8 +41,8 @@ public final class GlobalMasterInfo {
         this.supportElection = false;
         this.masterNodeInfo = masterInfo;
 
-        this.serverId = null;
-        this.serverRole = null;
+        this.nodeId = null;
+        this.nodeRole = null;
     }
 
     public void supportElection(boolean featureSupport) {
@@ -66,36 +66,36 @@ public final class GlobalMasterInfo {
         return this.masterNodeInfo;
     }
 
-    public Id serverId() {
-        return this.serverId;
+    public Id nodeId() {
+        return this.nodeId;
     }
 
-    public NodeRole serverRole() {
-        return this.serverRole;
+    public NodeRole nodeRole() {
+        return this.nodeRole;
     }
 
-    public void serverId(Id id) {
-        this.serverId = id;
+    public void initNodeId(Id id) {
+        this.nodeId = id;
     }
 
-    public void initServerRole(NodeRole role) {
+    public void initNodeRole(NodeRole role) {
         E.checkArgument(role != null, "The server role can't be null");
-        E.checkArgument(this.serverRole == null,
+        E.checkArgument(this.nodeRole == null,
                         "The server role can't be init twice");
-        this.serverRole = role;
+        this.nodeRole = role;
     }
 
-    public void changeServerRole(NodeRole role) {
+    public void changeNodeRole(NodeRole role) {
         E.checkArgument(role != null, "The server role can't be null");
-        this.serverRole = role;
+        this.nodeRole = role;
     }
 
-    public static GlobalMasterInfo master(String serverId) {
-        NodeInfo masterInfo = new NodeInfo(true, serverId);
-        GlobalMasterInfo serverInfo = new GlobalMasterInfo(masterInfo);
-        serverInfo.serverId = IdGenerator.of(serverId);
-        serverInfo.serverRole = NodeRole.MASTER;
-        return serverInfo;
+    public static GlobalMasterInfo master(String nodeId) {
+        NodeInfo masterInfo = new NodeInfo(true, nodeId);
+        GlobalMasterInfo nodeInfo = new GlobalMasterInfo(masterInfo);
+        nodeInfo.nodeId = IdGenerator.of(nodeId);
+        nodeInfo.nodeRole = NodeRole.MASTER;
+        return nodeInfo;
     }
 
     public static class NodeInfo {

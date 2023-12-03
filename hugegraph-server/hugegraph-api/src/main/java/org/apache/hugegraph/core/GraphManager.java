@@ -455,23 +455,23 @@ public final class GraphManager {
     }
 
     private void serverStarted(HugeConfig config) {
-        String serverId = config.get(ServerOptions.SERVER_ID);
+        String id = config.get(ServerOptions.SERVER_ID);
         String role = config.get(ServerOptions.SERVER_ROLE);
-        E.checkArgument(StringUtils.isNotEmpty(serverId),
+        E.checkArgument(StringUtils.isNotEmpty(id),
                         "The server name can't be null or empty");
         E.checkArgument(StringUtils.isNotEmpty(role),
                         "The server role can't be null or empty");
 
-        NodeRole serverRole = NodeRole.valueOf(role.toUpperCase());
-        boolean supportRoleElection = !serverRole.computer() &&
+        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
+        boolean supportRoleElection = !nodeRole.computer() &&
                                       this.supportRoleElection();
         if (supportRoleElection) {
             // Init any server as Worker role, then do role election
-            serverRole = NodeRole.WORKER;
+            nodeRole = NodeRole.WORKER;
         }
 
-        this.globalNodeRoleInfo.serverId(IdGenerator.of(serverId));
-        this.globalNodeRoleInfo.initServerRole(serverRole);
+        this.globalNodeRoleInfo.initNodeId(IdGenerator.of(id));
+        this.globalNodeRoleInfo.initNodeRole(nodeRole);
 
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);

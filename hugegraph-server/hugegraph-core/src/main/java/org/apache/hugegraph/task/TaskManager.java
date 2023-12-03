@@ -324,7 +324,7 @@ public final class TaskManager {
              * If graph is closed, don't call serverManager.initialized()
              * due to it will reopen graph tx.
              */
-            if (!serverManager.graphReady()) {
+            if (!serverManager.graphIsReady()) {
                 return;
             }
 
@@ -338,7 +338,7 @@ public final class TaskManager {
              * However, when enableRoleElected=false, a Master is only set by the
              * config assignment, assigned-Master always stays the same state.
              */
-            if (serverManager.master()) {
+            if (serverManager.selfIsMaster()) {
                 scheduler.scheduleTasksOnMaster();
                 if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
                     // assigned-Master + non-single-node don't need to execute tasks
@@ -347,10 +347,10 @@ public final class TaskManager {
             }
 
             // Execute queued tasks scheduled to current server
-            scheduler.executeTasksOnWorker(serverManager.selfServerId());
+            scheduler.executeTasksOnWorker(serverManager.selfNodeId());
 
             // Cancel tasks scheduled to current server
-            scheduler.cancelTasksOnWorker(serverManager.selfServerId());
+            scheduler.cancelTasksOnWorker(serverManager.selfNodeId());
         } finally {
             LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
         }

@@ -267,15 +267,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(GlobalMasterInfo serverInfo) {
+    public void serverStarted(GlobalMasterInfo nodeInfo) {
         LOG.info("Init system info for graph '{}'", this.name);
         this.initSystemInfo();
 
         LOG.info("Init server info [{}-{}] for graph '{}'...",
-                 serverInfo.serverId(), serverInfo.serverRole(), this.name);
-        this.serverInfoManager().initServerInfo(serverInfo);
+                 nodeInfo.nodeId(), nodeInfo.nodeRole(), this.name);
+        this.serverInfoManager().initServerInfo(nodeInfo);
 
-        this.initRoleStateMachine(serverInfo.serverId());
+        this.initRoleStateMachine(nodeInfo.nodeId());
 
         // TODO: check necessary?
         LOG.info("Check olap property-key tables for graph '{}'", this.name);
@@ -401,7 +401,7 @@ public class StandardHugeGraph implements HugeGraph {
         try {
             this.storeProvider.truncate();
             // TODO: remove this after serverinfo saved in etcd
-            this.serverStarted(this.serverInfoManager().serverInfo());
+            this.serverStarted(this.serverInfoManager().globalNodeRoleInfo());
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
@@ -975,9 +975,9 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, GlobalMasterInfo serverInfo) {
+    public void create(String configPath, GlobalMasterInfo nodeInfo) {
         this.initBackend();
-        this.serverStarted(serverInfo);
+        this.serverStarted(nodeInfo);
 
         // Write config to disk file
         String confPath = ConfigUtil.writeToFile(configPath, this.name(),

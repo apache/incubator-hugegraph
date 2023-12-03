@@ -201,7 +201,7 @@ public interface HugeGraph extends Graph {
 
     void waitReady(RpcServer rpcServer);
 
-    void serverStarted(GlobalMasterInfo serverInfo);
+    void serverStarted(GlobalMasterInfo nodeInfo);
 
     boolean started();
 
@@ -221,7 +221,7 @@ public interface HugeGraph extends Graph {
 
     void resumeSnapshot();
 
-    void create(String configPath, GlobalMasterInfo serverInfo);
+    void create(String configPath, GlobalMasterInfo nodeInfo);
 
     void drop();
 
