@@ -21,5 +21,5 @@ public interface RoleElectionStateMachine {
 
     void shutdown();
 
-    void apply(StateMachineCallback stateMachineCallback);
+    void start(RoleListener callback);
 }

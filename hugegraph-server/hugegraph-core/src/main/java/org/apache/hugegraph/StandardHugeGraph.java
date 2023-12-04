@@ -65,6 +65,7 @@ import org.apache.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.masterelection.ClusterRoleStore;
 import org.apache.hugegraph.masterelection.Config;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionConfig;
 import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
@@ -93,7 +94,6 @@ import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
@@ -279,15 +279,15 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(Id serverId, NodeRole serverRole) {
+    public void serverStarted(GlobalMasterInfo nodeInfo) {
         LOG.info("Init system info for graph '{}'", this.name);
         this.initSystemInfo();
 
         LOG.info("Init server info [{}-{}] for graph '{}'...",
-                 serverId, serverRole, this.name);
-        this.serverInfoManager().initServerInfo(serverId, serverRole);
+                 nodeInfo.nodeId(), nodeInfo.nodeRole(), this.name);
+        this.serverInfoManager().initServerInfo(nodeInfo);
 
-        this.initRoleStateWorker(serverId);
+        this.initRoleStateMachine(nodeInfo.nodeId());
 
         // TODO: check necessary?
         LOG.info("Check olap property-key tables for graph '{}'", this.name);
@@ -303,16 +303,18 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = true;
     }
 
-    private void initRoleStateWorker(Id serverId) {
-        Config roleStateMachineConfig = new RoleElectionConfig(serverId.toString(),
-                                            this.configuration.get(RoleElectionOptions.NODE_EXTERNAL_URL),
-                                            this.configuration.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
-                                            this.configuration.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
-                                            this.configuration.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND),
-                                            this.configuration.get(RoleElectionOptions.MASTER_DEAD_TIMES),
-                                            this.configuration.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
-        ClusterRoleStore clusterRoleStore = new StandardClusterRoleStore(this.params);
-        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleStateMachineConfig, clusterRoleStore);
+    private void initRoleStateMachine(Id serverId) {
+        HugeConfig conf = this.configuration;
+        Config roleConfig = new RoleElectionConfig(serverId.toString(),
+                            conf.get(RoleElectionOptions.NODE_EXTERNAL_URL),
+                            conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
+                            conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
+                            conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND),
+                            conf.get(RoleElectionOptions.MASTER_DEAD_TIMES),
+                            conf.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+        ClusterRoleStore roleStore = new StandardClusterRoleStore(this.params);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig, 
+                                                                             roleStore);
     }
 
     @Override
@@ -411,8 +413,7 @@ public class StandardHugeGraph implements HugeGraph {
         try {
             this.storeProvider.truncate();
             // TODO: remove this after serverinfo saved in etcd
-            this.serverStarted(this.serverInfoManager().selfServerId(),
-                               this.serverInfoManager().selfServerRole());
+            this.serverStarted(this.serverInfoManager().globalNodeRoleInfo());
         } finally {
             LockUtil.unlock(this.name, LockUtil.GRAPH_LOCK);
         }
@@ -1004,9 +1005,9 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, Id server, NodeRole role) {
+    public void create(String configPath, GlobalMasterInfo nodeInfo) {
         this.initBackend();
-        this.serverStarted(server, role);
+        this.serverStarted(nodeInfo);
 
         // Write config to disk file
         String confPath = ConfigUtil.writeToFile(configPath, this.name(),
@@ -1082,8 +1083,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private ServerInfoManager serverInfoManager() {
-        ServerInfoManager manager = this.taskManager
-                                        .getServerInfoManager(this.params);
+        ServerInfoManager manager = this.taskManager.getServerInfoManager(this.params);
         E.checkState(manager != null,
                      "Can't find server info manager for graph '%s'", this);
         return manager;

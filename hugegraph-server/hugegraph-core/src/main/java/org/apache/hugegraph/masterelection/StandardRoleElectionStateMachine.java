@@ -19,6 +19,8 @@ package org.apache.hugegraph.masterelection;
 
 import java.security.SecureRandom;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.hugegraph.util.E;
@@ -29,25 +31,36 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
     private static final Logger LOG = Log.logger(StandardRoleElectionStateMachine.class);
 
-    private volatile boolean shutdown;
     private final Config config;
-    private volatile RoleState state;
-    private final ClusterRoleStore clusterRoleStore;
+    private final ClusterRoleStore roleStore;
+    private final ExecutorService applyThread;
 
-    public StandardRoleElectionStateMachine(Config config, ClusterRoleStore clusterRoleStore) {
+    private volatile boolean shutdown;
+    private volatile RoleState state;
+
+    public StandardRoleElectionStateMachine(Config config, ClusterRoleStore roleStore) {
         this.config = config;
-        this.clusterRoleStore = clusterRoleStore;
+        this.roleStore = roleStore;
+        this.applyThread = Executors.newSingleThreadExecutor();
         this.state = new UnknownState(null);
         this.shutdown = false;
     }
 
     @Override
     public void shutdown() {
+        if (this.shutdown) {
+            return;
+        }
         this.shutdown = true;
+        this.applyThread.shutdown();
     }
 
     @Override
-    public void apply(StateMachineCallback stateMachineCallback) {
+    public void start(RoleListener stateMachineCallback) {
+        this.applyThread.execute(() -> this.apply(stateMachineCallback));
+    }
+
+    private void apply(RoleListener stateMachineCallback) {
         int failCount = 0;
         StateMachineContextImpl context = new StateMachineContextImpl(this);
         while (!this.shutdown) {
@@ -73,13 +86,17 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
     }
 
+    protected ClusterRoleStore roleStore() {
+        return this.roleStore;
+    }
+
     private interface RoleState {
 
         SecureRandom SECURE_RANDOM = new SecureRandom();
 
         RoleState transform(StateMachineContext context);
 
-        Callback callback(StateMachineCallback callback);
+        Callback callback(RoleListener callback);
 
         static void heartBeatPark(StateMachineContext context) {
             long heartBeatIntervalSecond = context.config().heartBeatIntervalSecond();
@@ -110,7 +127,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
 
         @Override
         public RoleState transform(StateMachineContext context) {
-            ClusterRoleStore adapter = context.adapter();
+            ClusterRoleStore adapter = context.roleStore();
             Optional<ClusterRole> clusterRoleOpt = adapter.query();
             if (!clusterRoleOpt.isPresent()) {
                 context.reset();
@@ -137,7 +154,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public Callback callback(StateMachineCallback callback) {
+        public Callback callback(RoleListener callback) {
             return callback::unknown;
         }
     }
@@ -158,7 +175,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public Callback callback(StateMachineCallback callback) {
+        public Callback callback(RoleListener callback) {
             return callback::onAsRoleAbdication;
         }
     }
@@ -175,7 +192,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public RoleState transform(StateMachineContext context) {
             this.clusterRole.increaseClock();
             RoleState.heartBeatPark(context);
-            if (context.adapter().updateIfNodePresent(this.clusterRole)) {
+            if (context.roleStore().updateIfNodePresent(this.clusterRole)) {
                 return this;
             }
             context.reset();
@@ -184,7 +201,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public Callback callback(StateMachineCallback callback) {
+        public Callback callback(RoleListener callback) {
             return callback::onAsRoleMaster;
         }
     }
@@ -216,7 +233,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public Callback callback(StateMachineCallback callback) {
+        public Callback callback(RoleListener callback) {
             return callback::onAsRoleWorker;
         }
 
@@ -255,7 +272,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
                                                       context.config().url(), epoch);
             // The master failover completed
             context.epoch(clusterRole.epoch());
-            if (context.adapter().updateIfNodePresent(clusterRole)) {
+            if (context.roleStore().updateIfNodePresent(clusterRole)) {
                 context.master(new MasterServerInfoImpl(clusterRole.node(), clusterRole.url()));
                 return new MasterState(clusterRole);
             } else {
@@ -264,7 +281,7 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public Callback callback(StateMachineCallback callback) {
+        public Callback callback(RoleListener callback) {
             return callback::onAsRoleCandidate;
         }
     }
@@ -303,8 +320,8 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         }
 
         @Override
-        public ClusterRoleStore adapter() {
-            return this.machine.adapter();
+        public ClusterRoleStore roleStore() {
+            return this.machine.roleStore();
         }
 
         @Override
@@ -347,9 +364,5 @@ public class StandardRoleElectionStateMachine implements RoleElectionStateMachin
         public String node() {
             return this.node;
         }
-    }
-
-    protected ClusterRoleStore adapter() {
-        return this.clusterRoleStore;
     }
 }

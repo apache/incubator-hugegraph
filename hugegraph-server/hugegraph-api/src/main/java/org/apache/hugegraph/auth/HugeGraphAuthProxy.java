@@ -56,6 +56,7 @@ import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -80,7 +81,6 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.RateLimiter;
@@ -671,9 +671,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void serverStarted(Id serverId, NodeRole serverRole) {
+    public void serverStarted(GlobalMasterInfo nodeInfo) {
         this.verifyAdminPermission();
-        this.hugegraph.serverStarted(serverId, serverRole);
+        this.hugegraph.serverStarted(nodeInfo);
     }
 
     @Override
@@ -778,9 +778,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, Id server, NodeRole role) {
+    public void create(String configPath, GlobalMasterInfo nodeInfo) {
         this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
-        this.hugegraph.create(configPath, server, role);
+        this.hugegraph.create(configPath, nodeInfo);
     }
 
     @Override

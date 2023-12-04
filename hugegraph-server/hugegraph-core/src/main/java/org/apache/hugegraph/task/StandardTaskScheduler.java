@@ -137,7 +137,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
-        Id selfServer = this.serverManager().selfServerId();
+        Id selfServer = this.serverManager().selfNodeId();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -173,35 +173,35 @@ public class StandardTaskScheduler implements TaskScheduler {
     public <V> Future<?> schedule(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
 
+        /*
+         * Just submit to queue if status=QUEUED (means re-schedule task)
+         * NOTE: schedule() method may be called multi times by
+         * HugeTask.checkDependenciesSuccess() method
+         */
         if (task.status() == TaskStatus.QUEUED) {
-            /*
-             * Just submit to queue if status=QUEUED (means re-schedule task)
-             * NOTE: schedule() method may be called multi times by
-             * HugeTask.checkDependenciesSuccess() method
-             */
             return this.resubmitTask(task);
         }
 
+        /*
+         * Due to EphemeralJob won't be serialized and deserialized through
+         * shared storage, submit EphemeralJob immediately on any node
+         */
         if (task.callable() instanceof EphemeralJob) {
-            /*
-             * Due to EphemeralJob won't be serialized and deserialized through
-             * shared storage, submit EphemeralJob immediately on master
-             * NOTE: don't need to save EphemeralJob task
-             */
+            // NOTE: we don't need to save EphemeralJob task
             task.status(TaskStatus.QUEUED);
             return this.submitTask(task);
         }
 
-        // Only check if not EphemeralJob
+        // Check this is on master for normal task schedule
         this.checkOnMasterNode("schedule");
 
         if (this.serverManager().onlySingleNode() && !task.computer()) {
             /*
              * Speed up for single node, submit task immediately,
-             * this code can be removed without affecting logic
+             * this code can be removed without affecting code logic
              */
             task.status(TaskStatus.QUEUED);
-            task.server(this.serverManager().selfServerId());
+            task.server(this.serverManager().selfNodeId());
             this.save(task);
             return this.submitTask(task);
         } else {
@@ -274,8 +274,8 @@ public class StandardTaskScheduler implements TaskScheduler {
             // The task scheduled to workers, let the worker node to cancel
             this.save(task);
             assert task.server() != null : task;
-            assert this.serverManager().master();
-            if (!task.server().equals(this.serverManager().selfServerId())) {
+            assert this.serverManager().selfIsMaster();
+            if (!task.server().equals(this.serverManager().selfNodeId())) {
                 /*
                  * Remove task from memory if it's running on worker node,
                  * but keep task in memory if it's running on master node.
@@ -300,10 +300,10 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.serverManager;
     }
 
-    protected synchronized void scheduleTasks() {
+    protected synchronized void scheduleTasksOnMaster() {
         // Master server schedule all scheduling tasks to suitable worker nodes
-        Collection<HugeServerInfo> scheduleInfos = this.serverManager()
-                                                       .allServerInfos();
+        Collection<HugeServerInfo> serverInfos = this.serverManager()
+                                                     .allServerInfos();
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
             Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING,
@@ -315,12 +315,12 @@ public class StandardTaskScheduler implements TaskScheduler {
                     continue;
                 }
 
-                if (!this.serverManager.master()) {
+                if (!this.serverManager.selfIsMaster()) {
                     return;
                 }
 
                 HugeServerInfo server = this.serverManager().pickWorkerNode(
-                                        scheduleInfos, task);
+                                        serverInfos, task);
                 if (server == null) {
                     LOG.info("The master can't find suitable servers to " +
                              "execute task '{}', wait for next schedule",
@@ -345,7 +345,8 @@ public class StandardTaskScheduler implements TaskScheduler {
             }
         } while (page != null);
 
-        this.serverManager().updateServerInfos(scheduleInfos);
+        // Save to store
+        this.serverManager().updateServerInfos(serverInfos);
     }
 
     protected void executeTasksOnWorker(Id server) {
@@ -420,7 +421,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     public void taskDone(HugeTask<?> task) {
         this.remove(task);
 
-        Id selfServerId = this.serverManager().selfServerId();
+        Id selfServerId = this.serverManager().selfNodeId();
         try {
             this.serverManager().decreaseLoad(task.load());
         } catch (Throwable e) {
@@ -727,7 +728,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private void checkOnMasterNode(String op) {
-        if (!this.serverManager().master()) {
+        if (!this.serverManager().selfIsMaster()) {
             throw new HugeException("Can't %s task on non-master server", op);
         }
     }
