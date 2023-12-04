@@ -113,7 +113,7 @@ jackson-annotations-2.13.2.jar
 jackson-annotations-2.14.0-rc1.jar
 jackson-core-2.13.2.jar
 jackson-core-2.14.0-rc1.jar
-jackson-databind-2.13.2.jar
+jackson-databind-2.13.2.2.jar
 jackson-databind-2.14.0-rc1.jar
 jackson-databind-2.15.2.jar
 jackson-dataformat-yaml-2.9.3.jar
