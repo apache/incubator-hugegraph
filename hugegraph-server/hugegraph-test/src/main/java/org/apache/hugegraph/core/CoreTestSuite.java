@@ -36,9 +36,7 @@ import org.junit.runners.Suite;
     TaskCoreTest.class,
     AuthTest.class,
     MultiGraphsTest.class,
-    RamTableTest.class,
-    RoleElectionStateMachineTest.class
+    RamTableTest.class
 })
 public class CoreTestSuite {
-
 }

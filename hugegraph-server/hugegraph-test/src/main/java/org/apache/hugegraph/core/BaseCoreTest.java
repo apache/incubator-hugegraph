@@ -21,13 +21,12 @@ import java.util.Random;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -66,7 +65,7 @@ public class BaseCoreTest {
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+        graph.serverStarted(GlobalMasterInfo.master("server-test"));
     }
 
     @AfterClass

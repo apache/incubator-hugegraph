@@ -31,8 +31,8 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.exception.ExistedException;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -40,7 +40,6 @@ import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Utils;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
@@ -87,9 +86,9 @@ public class MultiGraphsTest extends BaseCoreTest {
             graph.initBackend();
         }
         HugeGraph g1 = graphs.get(0);
-        g1.serverStarted(IdGenerator.of("server-g2"), NodeRole.MASTER);
+        g1.serverStarted(GlobalMasterInfo.master("server-g2"));
         HugeGraph g2 = graphs.get(1);
-        g2.serverStarted(IdGenerator.of("server-g3"), NodeRole.MASTER);
+        g2.serverStarted(GlobalMasterInfo.master("server-g3"));
 
         SchemaManager schema = g1.schema();
 
@@ -209,8 +208,8 @@ public class MultiGraphsTest extends BaseCoreTest {
         }
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
-        g1.serverStarted(IdGenerator.of("server-g1c"), NodeRole.MASTER);
-        g2.serverStarted(IdGenerator.of("server-g2c"), NodeRole.MASTER);
+        g1.serverStarted(GlobalMasterInfo.master("server-g1c"));
+        g2.serverStarted(GlobalMasterInfo.master("server-g2c"));
 
         g1.schema().propertyKey("id").asInt().create();
         g2.schema().propertyKey("id").asText().create();
