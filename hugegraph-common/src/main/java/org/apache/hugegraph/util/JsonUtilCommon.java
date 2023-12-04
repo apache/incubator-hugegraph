@@ -17,46 +17,78 @@
 
 package org.apache.hugegraph.util;
 
+import java.io.IOException;
+
+import org.apache.hugegraph.rest.SerializeException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hugegraph.rest.SerializeException;
 
-import java.io.IOException;
+/**
+ * Utility class for JSON operations.
+ */
+public final class JsonUtilCommon {
 
-public final class JsonUtil {
-
+    /**
+     * ObjectMapper instance used for JSON operations.
+     */
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Registers a module with the ObjectMapper.
+     *
+     * @param module the module to register
+     */
     public static void registerModule(Module module) {
         MAPPER.registerModule(module);
     }
 
+    /**
+     * Converts an object to a JSON string.
+     *
+     * @param object the object to convert
+     * @return the JSON string representation of the object
+     * @throws SerializeException if the object cannot be serialized
+     */
     public static String toJson(Object object) {
         try {
             return MAPPER.writeValueAsString(object);
         } catch (JsonProcessingException e) {
-            throw new SerializeException("Failed to serialize object '%s'",
-                                         e, object);
+            throw new SerializeException("Failed to serialize object '%s'", e, object);
         }
     }
 
+    /**
+     * Converts a JSON string to an object of the specified class.
+     *
+     * @param json  the JSON string
+     * @param clazz the class of the object
+     * @return the object represented by the JSON string
+     * @throws SerializeException if the JSON string cannot be deserialized
+     */
     public static <T> T fromJson(String json, Class<T> clazz) {
         try {
             return MAPPER.readValue(json, clazz);
         } catch (IOException e) {
-            throw new SerializeException("Failed to deserialize json '%s'",
-                                         e, json);
+            throw new SerializeException("Failed to deserialize json '%s'", e, json);
         }
     }
 
+    /**
+     * Converts a JsonNode to an object of the specified class.
+     *
+     * @param node  the JsonNode
+     * @param clazz the class of the object
+     * @return the object represented by the JsonNode
+     * @throws SerializeException if the JsonNode cannot be deserialized
+     */
     public static <T> T convertValue(JsonNode node, Class<T> clazz) {
         try {
             return MAPPER.convertValue(node, clazz);
         } catch (IllegalArgumentException e) {
-            throw new SerializeException("Failed to deserialize json node '%s'",
-                                         e, node);
+            throw new SerializeException("Failed to deserialize json node '%s'", e, node);
         }
     }
 }

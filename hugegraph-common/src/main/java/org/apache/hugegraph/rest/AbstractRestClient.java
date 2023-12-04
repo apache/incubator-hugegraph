@@ -37,7 +37,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.JsonUtilCommon;
 import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableMap;
@@ -128,7 +128,7 @@ public abstract class AbstractRestClient implements RestClient {
             if (body == null) {
                 bodyContent = "{}";
             } else {
-                bodyContent = JsonUtil.toJson(body);
+                bodyContent = JsonUtilCommon.toJson(body);
             }
         } else {
             bodyContent = String.valueOf(body);
