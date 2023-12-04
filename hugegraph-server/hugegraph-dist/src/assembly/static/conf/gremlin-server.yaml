@@ -40,6 +40,8 @@ scriptEngines: {
           org.apache.hugegraph.backend.id.IdGenerator,
           org.apache.hugegraph.type.define.Directions,
           org.apache.hugegraph.type.define.NodeRole,
+          org.apache.hugegraph.masterelection.GlobalMasterInfo,
+          org.apache.hugegraph.util.DateUtil,
           org.apache.hugegraph.traversal.algorithm.CollectionPathsTraverser,
           org.apache.hugegraph.traversal.algorithm.CountTraverser,
           org.apache.hugegraph.traversal.algorithm.CustomizedCrosspointsTraverser,
@@ -64,7 +66,6 @@ scriptEngines: {
           org.apache.hugegraph.traversal.optimize.ConditionP,
           org.apache.hugegraph.traversal.optimize.Text,
           org.apache.hugegraph.traversal.optimize.TraversalUtil,
-          org.apache.hugegraph.util.DateUtil,
           org.opencypher.gremlin.traversal.CustomFunctions,
           org.opencypher.gremlin.traversal.CustomPredicate
         ],

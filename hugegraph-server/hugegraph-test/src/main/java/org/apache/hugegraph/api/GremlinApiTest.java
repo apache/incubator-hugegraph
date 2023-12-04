@@ -121,7 +121,7 @@ public class GremlinApiTest extends BaseApiTest {
 
         body = "{" +
                 "\"gremlin\":\"hugegraph.serverStarted(" +
-                "              IdGenerator.of('server1'), NodeRole.MASTER)\"," +
+                "              GlobalMasterInfo.master('server1'))\"," +
                 "\"bindings\":{}," +
                 "\"language\":\"gremlin-groovy\"," +
                 "\"aliases\":{\"g\":\"__g_hugegraph\"}}";
