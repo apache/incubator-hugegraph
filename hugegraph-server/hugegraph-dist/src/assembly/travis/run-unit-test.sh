@@ -19,10 +19,6 @@ set -ev
 
 BACKEND=$1
 
-echo "USE_STAGE: $USE_STAGE"
-echo `cat $HOME/.m2/settings.xml`
-
-
 if [[ "$BACKEND" == "memory" ]]; then
     mvn test -pl hugegraph-server/hugegraph-test -am -P unit-test
 fi

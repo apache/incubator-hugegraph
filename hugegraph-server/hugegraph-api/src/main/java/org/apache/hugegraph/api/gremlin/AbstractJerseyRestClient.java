@@ -23,7 +23,6 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,8 +35,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpHeaders;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
@@ -62,13 +59,10 @@ import org.glassfish.jersey.uri.UriComponent;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation.Builder;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Variant;
 
 /**
  * This class is a simplified class of AbstractRestClient from hugegraph-common.
@@ -88,8 +82,6 @@ public abstract class AbstractJerseyRestClient {
 
     private final Client client;
     private final WebTarget target;
-    private final ThreadLocal<String> authContext =
-        new InheritableThreadLocal<>();
     private final PoolingHttpClientConnectionManager pool;
     private ScheduledExecutorService cleanExecutor;
 
@@ -152,7 +144,7 @@ public abstract class AbstractJerseyRestClient {
          * jersey connector. But the jersey that has been released in the maven central
          * repository seems to have a bug: https://github.com/jersey/jersey/pull/3752
          */
-        PoolingHttpClientConnectionManager pool = connectionManager(url, conf);
+        PoolingHttpClientConnectionManager pool = new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
         Object maxTotal = conf.getProperty("maxTotal");
         Object maxPerRoute = conf.getProperty("maxPerRoute");
         if (maxTotal != null) {
@@ -164,54 +156,6 @@ public abstract class AbstractJerseyRestClient {
         conf.property(ApacheClientProperties.CONNECTION_MANAGER, pool);
         conf.connectorProvider(new ApacheConnectorProvider());
     }
-
-    private static PoolingHttpClientConnectionManager connectionManager(
-        String url,
-        ClientConfig conf) {
-        String protocol = (String) conf.getProperty("protocol");
-        if (protocol == null || "http".equals(protocol)) {
-            return new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
-        }
-
-        assert "https".equals(protocol);
-        String trustStoreFile = (String) conf.getProperty("trustStoreFile");
-        E.checkArgument(trustStoreFile != null && !trustStoreFile.isEmpty(),
-                        "The trust store file must be set when use https");
-        String trustStorePass = (String) conf.getProperty("trustStorePassword");
-        E.checkArgument(trustStorePass != null,
-                        "The trust store password must be set when use https");
-        SSLContext context = SslConfigurator.newInstance()
-                                            .trustStoreFile(trustStoreFile)
-                                            .trustStorePassword(trustStorePass)
-                                            .securityProtocol("SSL")
-                                            .createSSLContext();
-        TrustManager[] trustAllManager = NoCheckTrustManager.create();
-        try {
-            context.init(null, trustAllManager, new SecureRandom());
-        } catch (KeyManagementException e) {
-            throw new ClientException("Failed to init security management", e);
-        }
-
-        HostnameVerifier verifier = new HostNameVerifier(url);
-        ConnectionSocketFactory httpSocketFactory, httpsSocketFactory;
-        httpSocketFactory = PlainConnectionSocketFactory.getSocketFactory();
-        httpsSocketFactory = new SSLConnectionSocketFactory(context, verifier);
-        Registry<ConnectionSocketFactory> registry =
-            RegistryBuilder.<ConnectionSocketFactory>create()
-                           .register("http", httpSocketFactory)
-                           .register("https", httpsSocketFactory)
-                           .build();
-        return new PoolingHttpClientConnectionManager(registry, null,
-                                                      null, null, TTL,
-                                                      TimeUnit.HOURS);
-    }
-
-    public static String encode(String raw) {
-        return UriComponent.encode(raw, UriComponent.Type.PATH_SEGMENT);
-    }
-
-    protected abstract void checkStatus(Response response,
-                                        Response.Status... statuses);
 
     protected Response request(Callable<Response> method) {
         try {
@@ -227,112 +171,6 @@ public abstract class AbstractJerseyRestClient {
             this.cleanExecutor.shutdownNow();
         }
         this.client.close();
-    }
-
-    public void resetAuthContext() {
-        this.authContext.remove();
-    }
-
-    public String getAuthContext() {
-        return this.authContext.get();
-    }
-
-    public void setAuthContext(String auth) {
-        this.authContext.set(auth);
-    }
-
-    private void attachAuthToRequest(Builder builder) {
-        // Add auth header
-        String auth = this.getAuthContext();
-        if (StringUtils.isNotEmpty(auth)) {
-            builder.header(HttpHeaders.AUTHORIZATION, auth);
-        }
-    }
-
-    private Pair<Builder, Entity<?>> buildRequest(
-        String path, String id, Object object,
-        MultivaluedMap<String, Object> headers,
-        Map<String, Object> params) {
-        WebTarget target = this.target;
-        if (params != null && !params.isEmpty()) {
-            for (Map.Entry<String, Object> param : params.entrySet()) {
-                target = target.queryParam(param.getKey(), param.getValue());
-            }
-        }
-
-        Builder builder = id == null ? target.path(path).request() :
-                          target.path(path).path(encode(id)).request();
-
-        String encoding = null;
-        if (headers != null && !headers.isEmpty()) {
-            // Add headers
-            builder = builder.headers(headers);
-            encoding = (String) headers.getFirst("Content-Encoding");
-        }
-        // Add auth header
-        this.attachAuthToRequest(builder);
-
-        /*
-         * We should specify the encoding of the entity object manually,
-         * because Entity.json() method will reset "content encoding =
-         * null" that has been set up by headers before.
-         */
-        MediaType customContentType = parseCustomContentType(headers);
-        Entity<?> entity;
-        if (encoding == null) {
-            entity = Entity.entity(object, customContentType);
-        } else {
-            Variant variant = new Variant(customContentType,
-                                          (String) null, encoding);
-            entity = Entity.entity(object, variant);
-        }
-        return Pair.of(builder, entity);
-    }
-
-    public static class HostNameVerifier implements HostnameVerifier {
-
-        private final String url;
-
-        public HostNameVerifier(String url) {
-            if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                url = "http://" + url;
-            }
-            url = URI.create(url).getHost();
-            this.url = url;
-        }
-
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            if (!this.url.isEmpty() && this.url.endsWith(hostname)) {
-                return true;
-            } else {
-                HostnameVerifier verifier = HttpsURLConnection
-                    .getDefaultHostnameVerifier();
-                return verifier.verify(hostname, session);
-            }
-        }
-    }
-
-    private static class NoCheckTrustManager implements X509TrustManager {
-
-        public static TrustManager[] create() {
-            return new TrustManager[]{new NoCheckTrustManager()};
-        }
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return null;
-        }
     }
 
     private static class ConfigBuilder {

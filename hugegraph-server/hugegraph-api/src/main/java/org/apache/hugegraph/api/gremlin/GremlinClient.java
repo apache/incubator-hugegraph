@@ -42,11 +42,6 @@ public class GremlinClient extends AbstractJerseyRestClient {
         E.checkNotNull(this.webTarget, "target");
     }
 
-    @Override
-    protected void checkStatus(Response response, Response.Status... statuses) {
-        // pass
-    }
-
     public Response doPostRequest(String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
         return this.webTarget.request()
