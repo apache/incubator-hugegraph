@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +39,6 @@ import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
-import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.config.CoreOptions;
@@ -53,7 +50,7 @@ import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
-import org.apache.hugegraph.masterelection.StandardStateMachineCallback;
+import org.apache.hugegraph.masterelection.StandardRoleListener;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.rpc.RpcClientProvider;
@@ -88,14 +85,11 @@ public final class GraphManager {
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
+
+    private RoleElectionStateMachine roleStateMachine;
+    private GlobalMasterInfo globalNodeRoleInfo;
+
     private final HugeConfig conf;
-
-    private RoleElectionStateMachine roleStateWorker;
-    private GlobalMasterInfo globalMasterInfo;
-
-    private Id server;
-    private NodeRole role;
-
     private final EventHub eventHub;
 
     public GraphManager(HugeConfig conf, EventHub hub) {
@@ -104,6 +98,10 @@ public final class GraphManager {
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.rpcServer = new RpcServer(conf);
         this.rpcClient = new RpcClientProvider(conf);
+
+        this.roleStateMachine = null;
+        this.globalNodeRoleInfo = new GlobalMasterInfo();
+
         this.eventHub = hub;
         this.conf = conf;
     }
@@ -141,8 +139,7 @@ public final class GraphManager {
         }
     }
 
-    public HugeGraph cloneGraph(String name, String newName,
-                                String configText) {
+    public HugeGraph cloneGraph(String name, String newName, String configText) {
         /*
          * 0. check and modify params
          * 1. create graph instance
@@ -270,6 +267,10 @@ public final class GraphManager {
         return this.authenticator().authManager();
     }
 
+    public GlobalMasterInfo globalNodeRoleInfo() {
+        return this.globalNodeRoleInfo;
+    }
+
     public void close() {
         for (Graph graph : this.graphs.values()) {
             try {
@@ -280,8 +281,8 @@ public final class GraphManager {
         }
         this.destroyRpcServer();
         this.unlistenChanges();
-        if (this.roleStateWorker != null) {
-            this.roleStateWorker.shutdown();
+        if (this.roleStateMachine != null) {
+            this.roleStateMachine.shutdown();
         }
     }
 
@@ -414,8 +415,7 @@ public final class GraphManager {
             LOG.info("RpcServer is not enabled, skip wait graphs ready");
             return;
         }
-        com.alipay.remoting.rpc.RpcServer remotingRpcServer =
-                                          this.remotingRpcServer();
+        com.alipay.remoting.rpc.RpcServer remotingRpcServer = this.remotingRpcServer();
         for (String graphName : this.graphs.keySet()) {
             HugeGraph graph = this.graph(graphName);
             graph.waitReady(remotingRpcServer);
@@ -433,7 +433,7 @@ public final class GraphManager {
                 if (this.requireAuthentication()) {
                     String token = config.get(ServerOptions.AUTH_ADMIN_TOKEN);
                     try {
-                        this.authenticator.initAdminUser(token);
+                        this.authenticator().initAdminUser(token);
                     } catch (Exception e) {
                         throw new BackendException(
                                   "The backend store of '%s' can't " +
@@ -455,65 +455,57 @@ public final class GraphManager {
     }
 
     private void serverStarted(HugeConfig config) {
-        String server = config.get(ServerOptions.SERVER_ID);
+        String id = config.get(ServerOptions.SERVER_ID);
         String role = config.get(ServerOptions.SERVER_ROLE);
-        E.checkArgument(StringUtils.isNotEmpty(server),
+        E.checkArgument(StringUtils.isNotEmpty(id),
                         "The server name can't be null or empty");
         E.checkArgument(StringUtils.isNotEmpty(role),
                         "The server role can't be null or empty");
-        this.server = IdGenerator.of(server);
-        this.role = NodeRole.valueOf(role.toUpperCase());
 
-        boolean supportRoleStateWorker = this.supportRoleStateWorker();
-        if (supportRoleStateWorker) {
-            this.role = NodeRole.WORKER;
+        NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
+        boolean supportRoleElection = !nodeRole.computer() &&
+                                      this.supportRoleElection();
+        if (supportRoleElection) {
+            // Init any server as Worker role, then do role election
+            nodeRole = NodeRole.WORKER;
         }
+
+        this.globalNodeRoleInfo.initNodeId(IdGenerator.of(id));
+        this.globalNodeRoleInfo.initNodeRole(nodeRole);
 
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
-            hugegraph.serverStarted(this.server, this.role);
+            hugegraph.serverStarted(this.globalNodeRoleInfo);
         }
 
-        if (supportRoleStateWorker) {
-            this.initRoleStateWorker();
+        if (supportRoleElection) {
+            this.initRoleStateMachine();
         }
     }
 
-    private void initRoleStateWorker() {
-        E.checkArgument(this.roleStateWorker == null, "Repetition init");
-        Executor applyThread = Executors.newSingleThreadExecutor();
-        this.roleStateWorker = this.authenticator().graph().roleElectionStateMachine();
-        this.globalMasterInfo = new GlobalMasterInfo();
-        StandardStateMachineCallback stateMachineCallback = new StandardStateMachineCallback(
-                                                                TaskManager.instance(),
-                                                                this.globalMasterInfo);
-        applyThread.execute(() -> {
-            this.roleStateWorker.apply(stateMachineCallback);
-        });
+    private void initRoleStateMachine() {
+        E.checkArgument(this.roleStateMachine == null,
+                        "Repeated initialization of role state worker");
+        this.globalNodeRoleInfo.supportElection(true);
+        this.roleStateMachine = this.authenticator().graph().roleElectionStateMachine();
+        StandardRoleListener listener = new StandardRoleListener(TaskManager.instance(),
+                                                                 this.globalNodeRoleInfo);
+        this.roleStateMachine.start(listener);
     }
 
-    public GlobalMasterInfo globalMasterInfo() {
-        return this.globalMasterInfo;
-    }
-
-    private boolean supportRoleStateWorker() {
-        if (this.role.computer()) {
-            return false;
-        }
-
+    private boolean supportRoleElection() {
         try {
             if (!(this.authenticator() instanceof StandardAuthenticator)) {
                 LOG.info("{} authenticator does not support role election currently",
                          this.authenticator().getClass().getSimpleName());
                 return false;
             }
+            return true;
         } catch (IllegalStateException e) {
-            LOG.info("Unconfigured StandardAuthenticator, not support role election currently");
+            LOG.info("{}, does not support role election currently", e.getMessage());
             return false;
         }
-
-        return true;
     }
 
     private void addMetrics(HugeConfig config) {
@@ -591,7 +583,7 @@ public final class GraphManager {
             graph = (HugeGraph) GraphFactory.open(config);
 
             // Init graph and start it
-            graph.create(this.graphsDir, this.server, this.role);
+            graph.create(this.graphsDir, this.globalNodeRoleInfo);
         } catch (Throwable e) {
             LOG.error("Failed to create graph '{}' due to: {}",
                       name, e.getMessage(), e);

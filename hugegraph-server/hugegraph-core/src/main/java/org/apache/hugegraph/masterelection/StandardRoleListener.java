@@ -23,68 +23,57 @@ import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-public class StandardStateMachineCallback implements StateMachineCallback {
+public class StandardRoleListener implements RoleListener {
 
-    private static final Logger LOG = Log.logger(StandardStateMachineCallback.class);
+    private static final Logger LOG = Log.logger(StandardRoleListener.class);
 
     private final TaskManager taskManager;
 
-    private final GlobalMasterInfo globalMasterInfo;
+    private final GlobalMasterInfo roleInfo;
 
-    private boolean isMaster = false;
+    private volatile boolean selfIsMaster;
 
-    public StandardStateMachineCallback(TaskManager taskManager, 
-                                        GlobalMasterInfo globalMasterInfo) {
+    public StandardRoleListener(TaskManager taskManager, 
+                                GlobalMasterInfo roleInfo) {
         this.taskManager = taskManager;
-        this.taskManager.enableRoleElected(true);
-        this.globalMasterInfo = globalMasterInfo;
-        this.globalMasterInfo.isFeatureSupport(true);
+        this.taskManager.enableRoleElection();
+        this.roleInfo = roleInfo;
+        this.selfIsMaster = false;
     }
 
     @Override
     public void onAsRoleMaster(StateMachineContext context) {
-        if (!isMaster) {
+        if (!selfIsMaster) {
             this.taskManager.onAsRoleMaster();
             LOG.info("Server {} change to master role", context.config().node());
         }
-        this.initGlobalMasterInfo(context);
-        this.isMaster = true;
+        this.updateMasterInfo(context);
+        this.selfIsMaster = true;
     }
 
     @Override
     public void onAsRoleWorker(StateMachineContext context) {
-        if (isMaster) {
+        if (this.selfIsMaster) {
             this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
-        this.initGlobalMasterInfo(context);
-        this.isMaster = false;
+        this.updateMasterInfo(context);
+        this.selfIsMaster = false;
     }
 
     @Override
     public void onAsRoleCandidate(StateMachineContext context) {
-    }
-
-    @Override
-    public void unknown(StateMachineContext context) {
-        if (isMaster) {
-            this.taskManager.onAsRoleWorker();
-            LOG.info("Server {} change to worker role", context.config().node());
-        }
-        this.initGlobalMasterInfo(context);
-
-        isMaster = false;
+        // pass
     }
 
     @Override
     public void onAsRoleAbdication(StateMachineContext context) {
-        if (isMaster) {
+        if (this.selfIsMaster) {
             this.taskManager.onAsRoleWorker();
             LOG.info("Server {} change to worker role", context.config().node());
         }
-        this.initGlobalMasterInfo(context);
-
-        isMaster = false;
+        this.updateMasterInfo(context);
+        this.selfIsMaster = false;
     }
 
     @Override
@@ -92,15 +81,25 @@ public class StandardStateMachineCallback implements StateMachineCallback {
         LOG.error("Server {} exception occurred", context.config().node(), e);
     }
 
-    public void initGlobalMasterInfo(StateMachineContext context) {
+    @Override
+    public void unknown(StateMachineContext context) {
+        if (this.selfIsMaster) {
+            this.taskManager.onAsRoleWorker();
+            LOG.info("Server {} change to worker role", context.config().node());
+        }
+        this.updateMasterInfo(context);
+
+        this.selfIsMaster = false;
+    }
+
+    public void updateMasterInfo(StateMachineContext context) {
         StateMachineContext.MasterServerInfo master = context.master();
         if (master == null) {
-            this.globalMasterInfo.nodeInfo(false, "");
+            this.roleInfo.resetMasterInfo();
             return;
         }
 
         boolean isMaster = Objects.equals(context.node(), master.node());
-        String url = master.url();
-        this.globalMasterInfo.nodeInfo(isMaster, url);
+        this.roleInfo.masterInfo(isMaster, master.url());
     }
 }

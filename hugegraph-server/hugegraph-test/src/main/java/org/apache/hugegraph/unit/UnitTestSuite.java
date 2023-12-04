@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.unit;
 
+import org.apache.hugegraph.core.RoleElectionStateMachineTest;
 import org.apache.hugegraph.unit.cache.CacheManagerTest;
 import org.apache.hugegraph.unit.cache.CacheTest;
 import org.apache.hugegraph.unit.cache.CachedGraphTransactionTest;
@@ -111,6 +112,7 @@ import org.junit.runners.Suite;
     TraversalUtilTest.class,
     PageStateTest.class,
     SystemSchemaStoreTest.class,
+    RoleElectionStateMachineTest.class,
 
     /* serializer */
     BytesBufferTest.class,

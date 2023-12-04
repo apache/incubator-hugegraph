@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.masterelection;
 
-public interface StateMachineCallback {
+public interface RoleListener {
 
     void onAsRoleMaster(StateMachineContext context);
 

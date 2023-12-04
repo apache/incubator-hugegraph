@@ -20,18 +20,17 @@ package org.apache.hugegraph.example;
 import java.io.File;
 import java.util.Iterator;
 import java.util.concurrent.TimeoutException;
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.perf.PerfUtil;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class ExampleUtil {
     private static final Logger LOG = Log.logger(ExampleUtil.class);
@@ -81,7 +80,7 @@ public class ExampleUtil {
             graph.clearBackend();
         }
         graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+        graph.serverStarted(GlobalMasterInfo.master("server1"));
 
         return graph;
     }
