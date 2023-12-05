@@ -44,7 +44,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/edgeexist")
+@Path("graphs/{graph}/traversers/edgeexistence")
 @Singleton
 @Tag(name = "EdgeExistenceAPI")
 public class EdgeExistenceAPI extends TraverserAPI {
