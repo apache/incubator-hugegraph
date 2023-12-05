@@ -11,6 +11,8 @@ on:
 
 jobs:
   analyze:
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
@@ -32,6 +34,12 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '11'
+
+      - name: use staged maven repo settings
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL

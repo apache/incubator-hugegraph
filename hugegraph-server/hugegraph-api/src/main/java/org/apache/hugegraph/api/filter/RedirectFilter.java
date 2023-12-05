@@ -82,16 +82,16 @@ public class RedirectFilter implements ContainerRequestFilter {
             return;
         }
 
-        GlobalMasterInfo globalMasterInfo = manager.globalMasterInfo();
-        if (globalMasterInfo == null || !globalMasterInfo.isFeatureSupport()) {
+        GlobalMasterInfo globalNodeInfo = manager.globalNodeRoleInfo();
+        if (globalNodeInfo == null || !globalNodeInfo.supportElection()) {
             return;
         }
-        GlobalMasterInfo.NodeInfo masterNodeInfo = globalMasterInfo.nodeInfo();
-        if (masterNodeInfo == null || masterNodeInfo.isMaster() ||
-            StringUtils.isEmpty(masterNodeInfo.url())) {
+        GlobalMasterInfo.NodeInfo masterInfo = globalNodeInfo.masterInfo();
+        if (masterInfo == null || masterInfo.isMaster() ||
+            StringUtils.isEmpty(masterInfo.nodeUrl())) {
             return;
         }
-        String url = masterNodeInfo.url();
+        String url = masterInfo.nodeUrl();
 
         URI redirectUri;
         try {

@@ -243,6 +243,36 @@ public final class TaskManager {
         return size;
     }
 
+    public void enableRoleElection() {
+        this.enableRoleElected = true;
+    }
+
+    public void onAsRoleMaster() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.changeServerRole(NodeRole.MASTER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to master role", e);
+            throw e;
+        }
+    }
+
+    public void onAsRoleWorker() {
+        try {
+            for (TaskScheduler entry : this.schedulers.values()) {
+                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
+                ServerInfoManager serverInfoManager = scheduler.serverManager();
+                serverInfoManager.changeServerRole(NodeRole.WORKER);
+            }
+        } catch (Throwable e) {
+            LOG.error("Exception occurred when change to worker role", e);
+            throw e;
+        }
+    }
+
     protected void notifyNewTask(HugeTask<?> task) {
         Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
                                                           .getQueue();
@@ -256,36 +286,6 @@ public final class TaskManager {
              */
             this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
         }
-    }
-
-    public void onAsRoleMaster() {
-        try {
-            for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.MASTER);
-            }
-        } catch (Throwable e) {
-            LOG.error("Exception occurred when change to master role", e);
-            throw e;
-        }
-    }
-
-    public void onAsRoleWorker() {
-        try {
-            for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.forceInitServerInfo(serverInfoManager.selfServerId(), NodeRole.WORKER);
-            }
-        } catch (Throwable e) {
-            LOG.error("Exception occurred when change to worker role", e);
-            throw e;
-        }
-    }
-
-    public void enableRoleElected(boolean enableRoleElected) {
-        this.enableRoleElected = enableRoleElected;
     }
 
     private void scheduleOrExecuteJob() {
@@ -324,7 +324,7 @@ public final class TaskManager {
              * If graph is closed, don't call serverManager.initialized()
              * due to it will reopen graph tx.
              */
-            if (!serverManager.graphReady()) {
+            if (!serverManager.graphIsReady()) {
                 return;
             }
 
@@ -332,25 +332,25 @@ public final class TaskManager {
             serverManager.heartbeat();
 
             /*
-             * Master schedule tasks to suitable servers.
-             * Worker maybe become Master, so Master also need perform tasks assigned by
-             * previous Master when enableRoleElected is true.
-             * However, the master only needs to take the assignment,
-             * because the master stays the same when enableRoleElected is false.
-             * There is no suitable server when these tasks are created
+             * Master will schedule tasks to suitable servers.
+             * Note a Worker may become to a Master, so elected-Master also needs to
+             * execute tasks assigned by previous Master when enableRoleElected=true.
+             * However, when enableRoleElected=false, a Master is only set by the
+             * config assignment, assigned-Master always stays the same state.
              */
-            if (serverManager.master()) {
-                scheduler.scheduleTasks();
+            if (serverManager.selfIsMaster()) {
+                scheduler.scheduleTasksOnMaster();
                 if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
+                    // assigned-Master + non-single-node don't need to execute tasks
                     return;
                 }
             }
 
-            // Schedule queued tasks scheduled to current server
-            scheduler.executeTasksOnWorker(serverManager.selfServerId());
+            // Execute queued tasks scheduled to current server
+            scheduler.executeTasksOnWorker(serverManager.selfNodeId());
 
             // Cancel tasks scheduled to current server
-            scheduler.cancelTasksOnWorker(serverManager.selfServerId());
+            scheduler.cancelTasksOnWorker(serverManager.selfNodeId());
         } finally {
             LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
         }
