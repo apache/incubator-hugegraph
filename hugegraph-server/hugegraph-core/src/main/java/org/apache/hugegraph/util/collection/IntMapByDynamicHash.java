@@ -17,6 +17,9 @@
 
 package org.apache.hugegraph.util.collection;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -92,8 +95,11 @@ public class IntMapByDynamicHash implements IntMap {
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
+    /**
+     * updated via atomic field updater
+     */
     @SuppressWarnings("UnusedDeclaration")
-    private volatile int size; // updated via atomic field updater
+    private volatile int size;
 
     public IntMapByDynamicHash() {
         this(DEFAULT_INITIAL_CAPACITY);
@@ -110,10 +116,8 @@ public class IntMapByDynamicHash implements IntMap {
         int cap = (size >= (long) MAXIMUM_CAPACITY) ?
                   MAXIMUM_CAPACITY : tableSizeFor((int) size);
         if (cap >= PARTITIONED_SIZE_THRESHOLD) {
-            /*
-            we want 7 extra slots and 64 bytes for each
-            slot. int is 4 bytes, so 64 bytes is 16 ints.
-             */
+            // we want 7 extra slots and 64 bytes for each
+            // slot. int is 4 bytes, so 64 bytes is 16 ints.
             this.partitionedSize =
                 new int[SIZE_BUCKETS * 16];
         }
@@ -293,14 +297,12 @@ public class IntMapByDynamicHash implements IntMap {
 
     @Override
     public IntIterator keys() {
-        // TODO impl
-        return null;
+        return new KeyIterator();
     }
 
     @Override
     public IntIterator values() {
-        // TODO impl
-        return null;
+        return new ValueIterator();
     }
 
     @Override
@@ -752,6 +754,113 @@ public class IntMapByDynamicHash implements IntMap {
         @Override
         public String toString() {
             return this.key + "=" + this.value;
+        }
+    }
+
+    /* ---------------- Iterator -------------- */
+
+    private static final class IteratorState {
+        private Entry[] currentTable;
+        private int start;
+        private int end;
+
+        private IteratorState(Entry[] currentTable) {
+            this.currentTable = currentTable;
+            this.end = this.currentTable.length - 1;
+        }
+
+        private IteratorState(Entry[] currentTable, int start, int end) {
+            this.currentTable = currentTable;
+            this.start = start;
+            this.end = end;
+        }
+    }
+
+    private abstract class HashIterator implements IntIterator {
+        private List<IteratorState> todo;
+        private IteratorState currentState;
+        private Entry next;
+        private int index;
+
+        protected HashIterator() {
+            this.currentState = new IteratorState(IntMapByDynamicHash.this.table);
+            this.findNext();
+        }
+
+        private void findNext() {
+            while (this.index < this.currentState.end) {
+                Entry o =
+                    (Entry) IntMapByDynamicHash.tableAt(this.currentState.currentTable, this.index);
+                if (o == RESIZED || o == RESIZING) {
+                    Entry[] nextArray =
+                        IntMapByDynamicHash.this.helpWithResizeWhileCurrentIndex(
+                            this.currentState.currentTable, this.index);
+                    int endResized = this.index + 1;
+                    while (endResized < this.currentState.end) {
+                        if (IntMapByDynamicHash.tableAt(this.currentState.currentTable,
+                                                        endResized) != RESIZED) {
+                            break;
+                        }
+                        endResized++;
+                    }
+                    if (this.todo == null) {
+                        this.todo = new ArrayList<>(4);
+                    }
+                    if (endResized < this.currentState.end) {
+                        this.todo.add(new IteratorState(
+                            this.currentState.currentTable, endResized, this.currentState.end));
+                    }
+                    int powerTwoLength = this.currentState.currentTable.length - 1;
+                    this.todo.add(new IteratorState(nextArray, this.index + powerTwoLength,
+                                                    endResized + powerTwoLength));
+                    this.currentState.currentTable = nextArray;
+                    this.currentState.end = endResized;
+                    this.currentState.start = this.index;
+                } else if (o != null) {
+                    this.next = o;
+                    this.index++;
+                    break;
+                } else {
+                    this.index++;
+                }
+            }
+            if (this.next == null && this.index == this.currentState.end && this.todo != null &&
+                !this.todo.isEmpty()) {
+                this.currentState = this.todo.remove(this.todo.size() - 1);
+                this.index = this.currentState.start;
+                this.findNext();
+            }
+        }
+
+        @Override
+        public final boolean hasNext() {
+            return this.next != null;
+        }
+
+        final Entry nextEntry() {
+            Entry e = this.next;
+            if (e == null) {
+                throw new NoSuchElementException();
+            }
+
+            if ((this.next = e.getNext()) == null) {
+                this.findNext();
+            }
+            return e;
+        }
+    }
+
+    private final class ValueIterator extends HashIterator {
+        @Override
+        public int next() {
+            return this.nextEntry().getValue();
+        }
+    }
+
+    private final class KeyIterator extends HashIterator {
+        @Override
+        public int next() {
+            return this.nextEntry().getKey();
         }
     }
 

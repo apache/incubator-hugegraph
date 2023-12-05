@@ -33,7 +33,6 @@ import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntIterator;
 import org.apache.hugegraph.util.collection.IntMap;
 import org.apache.hugegraph.util.collection.IntMapByDynamicHash;
-import org.apache.hugegraph.util.collection.IntMapByDynamicHash2;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -420,7 +419,7 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntMapByDynamicHashSingleThread() {
-        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
+        IntMap map = new IntMapByDynamicHash();
         int mapSize = 2000;
         for (int i = 0; i < mapSize; i++) {
             map.put(i, i + 1);
@@ -443,7 +442,7 @@ public class IntMapTest extends BaseUnitTest {
 
     @Test
     public void testIntMapByDynamicHashMultiThread() throws InterruptedException {
-        IntMapByDynamicHash2 map = new IntMapByDynamicHash2();
+        IntMap map = new IntMapByDynamicHash();
 
         //int cpus = IntSet.CPUS;
         int cpus = 16;
@@ -488,6 +487,34 @@ public class IntMapTest extends BaseUnitTest {
         System.out.println();
 
         Assert.assertEquals(size.get(), map.size());
+    }
+
+    @Test
+    public void testIntMapByDynamicHashKeys() {
+        IntMap map = new IntMapByDynamicHash();
+        for (int i = 0; i < 10000; i++) {
+            map.put(i, i + 100);
+        }
+        IntIterator iterator = map.keys();
+        for (int i = 0; i < 10000; i++) {
+            Assert.assertTrue(iterator.hasNext());
+            Assert.assertEquals(i, iterator.next());
+        }
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testIntMapByDynamicHashValues() {
+        IntMap map = new IntMapByDynamicHash();
+        for (int i = 0; i < 10000; i++) {
+            map.put(i, i + 100);
+        }
+        IntIterator iterator = map.values();
+        for (int i = 0; i < 10000; i++) {
+            Assert.assertTrue(iterator.hasNext());
+            Assert.assertEquals(i + 100, iterator.next());
+        }
+        Assert.assertFalse(iterator.hasNext());
     }
 
     private IntMap fixed(int capacity) {
