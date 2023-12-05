@@ -127,6 +127,8 @@ public abstract class AbstractRestClient implements RestClient {
         if (RestHeaders.APPLICATION_JSON.equals(contentType)) {
             if (body == null) {
                 bodyContent = "{}";
+            } else if (body instanceof String) {
+                bodyContent = (String) body;
             } else {
                 bodyContent = JsonUtilCommon.toJson(body);
             }
